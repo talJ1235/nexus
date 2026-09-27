@@ -1,0 +1,240 @@
+"use client";
+
+import { useMemo } from "react";
+import { History, Inbox, LogOut, Plus, Settings2, ShoppingBag, Store, Zap, Languages, Moon, Sun, Monitor, Bookmark, Command } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useI18n } from "@/components/providers";
+import { LogoMark } from "@/components/logo";
+import { Kbd } from "@/components/ui/button";
+import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
+import { budgetStats } from "@/lib/calc";
+import { CURRENCIES, type Currency } from "@/lib/money";
+import { cn } from "@/lib/utils";
+import { useStore, type View } from "./store";
+import { COLLECTION_COLORS, itemsForView } from "./view-items";
+import { BookmarkletDialog } from "./bookmarklet";
+import { useState } from "react";
+
+function sameView(a: View, b: View) {
+  if (a.type !== b.type) return false;
+  if (a.type === "collection" && b.type === "collection") return a.id === b.id;
+  if (a.type === "store" && b.type === "store") return a.key === b.key;
+  return true;
+}
+
+function NavItem({ active, onClick, icon, label, count, children }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; count?: number; children?: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "group relative flex w-full flex-col rounded-lg px-2.5 py-[7px] text-start text-[14px] transition",
+        active ? "bg-raised text-fg shadow-card" : "text-muted hover:bg-sunken hover:text-fg",
+      )}
+    >
+      <span className="flex w-full items-center gap-2.5">
+        <span className={cn("flex size-4 shrink-0 items-center justify-center [&_svg]:size-4", active ? "text-fg" : "text-faint group-hover:text-muted")}>{icon}</span>
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+        {count != null && count > 0 && <span className="tabular text-xs text-faint">{count}</span>}
+      </span>
+      {children}
+    </button>
+  );
+}
+
+function SectionHeader({ label, onAdd, addLabel }: { label: string; onAdd?: () => void; addLabel?: string }) {
+  return (
+    <div className="mb-1 mt-5 flex items-center justify-between px-2.5">
+      <span className="text-xs font-medium text-faint">{label}</span>
+      {onAdd && (
+        <button type="button" onClick={onAdd} aria-label={addLabel} title={addLabel} className="rounded-md p-0.5 text-faint transition hover:bg-sunken hover:text-fg">
+          <Plus className="size-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function Sidebar() {
+  const s = useStore();
+  const { t, locale, setLocale } = useI18n();
+  const { theme, setTheme } = useTheme();
+  const [bookmarkletOpen, setBookmarkletOpen] = useState(false);
+
+  const counts = useMemo(
+    () => ({
+      to_buy: itemsForView(s.items, { type: "to_buy" }).length,
+      urgent: itemsForView(s.items, { type: "urgent" }).length,
+      history: itemsForView(s.items, { type: "history" }).length,
+      unsorted: itemsForView(s.items, { type: "unsorted" }).length,
+    }),
+    [s.items],
+  );
+
+  const stores = useMemo(() => {
+    const m = new Map<string, { name: string; count: number }>();
+    for (const i of s.items) {
+      if (i.status !== "to_buy") continue;
+      const seen = new Set<string>();
+      for (const src of i.sources) {
+        if (seen.has(src.storeKey)) continue;
+        seen.add(src.storeKey);
+        const e = m.get(src.storeKey) ?? { name: src.store, count: 0 };
+        e.count++;
+        m.set(src.storeKey, e);
+      }
+    }
+    return [...m.entries()].sort((a, b) => b[1].count - a[1].count).slice(0, 10);
+  }, [s.items]);
+
+  const active = (v: View) => sameView(s.view, v);
+  const projects = s.collections.filter((c) => c.kind === "project" && !c.archived);
+  const lists = s.collections.filter((c) => c.kind === "list" && !c.archived);
+
+  return (
+    <nav className="flex h-full flex-col" aria-label="Main">
+      <div className="flex items-center justify-between px-4 pb-2 pt-4">
+        <span className="inline-flex items-center gap-2.5">
+          <LogoMark />
+          <span className="text-[17px] font-semibold tracking-[-0.01em]">{t.appName}</span>
+        </span>
+        <button
+          type="button"
+          onClick={() => s.setPaletteOpen(true)}
+          className="hidden items-center gap-1 rounded-md px-1.5 py-1 text-faint transition hover:bg-sunken hover:text-fg lg:flex"
+          title={t.cmd.placeholder}
+        >
+          <Command className="size-3.5" />
+          <Kbd>K</Kbd>
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-2 pb-4">
+        <div className="mt-2 space-y-0.5">
+          <NavItem active={active({ type: "to_buy" })} onClick={() => s.setView({ type: "to_buy" })} icon={<ShoppingBag />} label={t.nav.toBuy} count={counts.to_buy} />
+          <NavItem active={active({ type: "urgent" })} onClick={() => s.setView({ type: "urgent" })} icon={<Zap />} label={t.nav.urgent} count={counts.urgent} />
+          {counts.unsorted > 0 && (
+            <NavItem active={active({ type: "unsorted" })} onClick={() => s.setView({ type: "unsorted" })} icon={<Inbox />} label={t.nav.unsorted} count={counts.unsorted} />
+          )}
+          <NavItem active={active({ type: "history" })} onClick={() => s.setView({ type: "history" })} icon={<History />} label={t.nav.history} count={counts.history} />
+        </div>
+
+        <SectionHeader label={t.nav.projects} onAdd={() => s.setEditor({ mode: "create", kind: "project" })} addLabel={t.nav.newProject} />
+        <div className="space-y-0.5">
+          {projects.map((c) => {
+            const b = budgetStats(c, s.items, s.rates, s.currency);
+            return (
+              <NavItem
+                key={c.id}
+                active={active({ type: "collection", id: c.id })}
+                onClick={() => s.setView({ type: "collection", id: c.id })}
+                icon={<span className="size-2.5 rounded-[3px]" style={{ background: COLLECTION_COLORS[c.color] ?? COLLECTION_COLORS.amber }} />}
+                label={c.name}
+                count={b.count}
+              >
+                {b.budget != null && (
+                  <span className="mt-1.5 ms-[26px] block h-1 overflow-hidden rounded-full bg-sunken" aria-hidden>
+                    <span
+                      className={cn("block h-full rounded-full", b.state === "over" ? "bg-danger" : b.state === "near" ? "bg-accent" : "bg-ok")}
+                      style={{ width: `${Math.min(100, b.pct ?? 0)}%` }}
+                    />
+                  </span>
+                )}
+              </NavItem>
+            );
+          })}
+          {projects.length === 0 && (
+            <button type="button" onClick={() => s.setEditor({ mode: "create", kind: "project" })} className="w-full rounded-lg px-2.5 py-1.5 text-start text-[13px] text-faint hover:bg-sunken hover:text-muted">
+              + {t.nav.newProject}
+            </button>
+          )}
+        </div>
+
+        <SectionHeader label={t.nav.lists} onAdd={() => s.setEditor({ mode: "create", kind: "list" })} addLabel={t.nav.newList} />
+        <div className="space-y-0.5">
+          {lists.map((c) => (
+            <NavItem
+              key={c.id}
+              active={active({ type: "collection", id: c.id })}
+              onClick={() => s.setView({ type: "collection", id: c.id })}
+              icon={<span className="size-2.5 rounded-full" style={{ background: COLLECTION_COLORS[c.color] ?? COLLECTION_COLORS.amber }} />}
+              label={c.name}
+              count={s.items.filter((i) => i.collectionId === c.id && i.status === "to_buy").length}
+            />
+          ))}
+          {lists.length === 0 && (
+            <button type="button" onClick={() => s.setEditor({ mode: "create", kind: "list" })} className="w-full rounded-lg px-2.5 py-1.5 text-start text-[13px] text-faint hover:bg-sunken hover:text-muted">
+              + {t.nav.newList}
+            </button>
+          )}
+        </div>
+
+        {stores.length > 0 && (
+          <>
+            <SectionHeader label={t.nav.stores} />
+            <div className="space-y-0.5">
+              {stores.map(([key, v]) => (
+                <NavItem key={key} active={active({ type: "store", key })} onClick={() => s.setView({ type: "store", key })} icon={<Store />} label={v.name} count={v.count} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="border-t border-line p-2">
+        <Menu>
+          <MenuTrigger asChild>
+            <button type="button" className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] text-muted transition hover:bg-sunken hover:text-fg">
+              <Settings2 className="size-4" />
+              <span className="flex-1 text-start">{t.nav.settings}</span>
+              <span className="tabular text-xs text-faint">{s.currency}</span>
+            </button>
+          </MenuTrigger>
+          <MenuContent align="start" className="w-60">
+            <MenuLabel>{t.settings.currency}</MenuLabel>
+            <MenuRadioGroup value={s.currency} onValueChange={(v) => s.setCurrency(v as Currency)}>
+              {CURRENCIES.map((c) => (
+                <MenuRadioItem key={c} value={c}>
+                  {c === "ILS" ? "₪ ILS" : c === "USD" ? "$ USD" : "€ EUR"}
+                </MenuRadioItem>
+              ))}
+            </MenuRadioGroup>
+            <MenuSeparator />
+            <MenuLabel>{t.settings.theme}</MenuLabel>
+            <MenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>
+              <MenuRadioItem value="system">
+                <span className="flex items-center gap-2.5"><Monitor className="size-4 text-muted" />{t.settings.system}</span>
+              </MenuRadioItem>
+              <MenuRadioItem value="dark">
+                <span className="flex items-center gap-2.5"><Moon className="size-4 text-muted" />{t.settings.dark}</span>
+              </MenuRadioItem>
+              <MenuRadioItem value="light">
+                <span className="flex items-center gap-2.5"><Sun className="size-4 text-muted" />{t.settings.light}</span>
+              </MenuRadioItem>
+            </MenuRadioGroup>
+            <MenuSeparator />
+            <MenuItem onSelect={() => setLocale(locale === "en" ? "he" : "en")}>
+              <Languages />
+              {t.cmd.switchLang}
+            </MenuItem>
+            <MenuItem onSelect={() => setBookmarkletOpen(true)}>
+              <Bookmark />
+              {t.add.bookmarklet}
+            </MenuItem>
+            <MenuSeparator />
+            <form action="/api/logout" method="post">
+              <MenuItem asChild>
+                <button type="submit" className="w-full">
+                  <LogOut />
+                  {t.nav.signOut}
+                </button>
+              </MenuItem>
+            </form>
+          </MenuContent>
+        </Menu>
+      </div>
+      <BookmarkletDialog open={bookmarkletOpen} onOpenChange={setBookmarkletOpen} />
+    </nav>
+  );
+}
