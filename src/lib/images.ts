@@ -1,11 +1,12 @@
 import "server-only";
 import { put } from "@vercel/blob";
 import sharp from "sharp";
+import { isPublicHttpUrl } from "./utils";
 
 /** Download, shrink to a 480px WebP thumbnail and store in Vercel Blob. Falls back to the remote URL. */
 export async function storeThumbnail(remoteUrl: string | null, id: string): Promise<string | null> {
   if (!remoteUrl) return null;
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return remoteUrl;
+  if (!process.env.BLOB_READ_WRITE_TOKEN || !isPublicHttpUrl(remoteUrl)) return remoteUrl;
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 7000);

@@ -2,6 +2,7 @@ import "server-only";
 import * as cheerio from "cheerio";
 import { parsePrice } from "./money";
 import { normalizeUrl, storeFromUrl } from "./stores";
+import { isPublicHttpUrl } from "./utils";
 
 export type Extracted = {
   url: string; // final URL after redirects
@@ -30,6 +31,7 @@ const HEADERS: Record<string, string> = {
 };
 
 async function fetchHtml(url: string) {
+  if (!isPublicHttpUrl(url)) throw new Error("blocked_host");
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 9000);
   try {

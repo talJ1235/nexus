@@ -20,3 +20,13 @@ export function extractUrls(text: string) {
   const cleaned = found.map((u) => u.replace(/[),.;!?\]]+$/, ""));
   return Array.from(new Set(cleaned)).filter(isHttpUrl);
 }
+
+/** Block obvious internal targets before the server fetches a user-supplied URL. */
+export function isPublicHttpUrl(s: string) {
+  if (!isHttpUrl(s)) return false;
+  const host = new URL(s).hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host.endsWith(".local")) return false;
+  if (/^(127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) return false;
+  if (host === "::1" || /^f[cd][0-9a-f]{2}:/.test(host) || /^fe80:/.test(host) || host === "::") return false;
+  return true;
+}
