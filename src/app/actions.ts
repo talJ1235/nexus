@@ -3,16 +3,17 @@
 import { cookies } from "next/headers";
 import { and, eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { del } from "@vercel/blob";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { extractWithAi, extractWithUrlContext } from "@/lib/ai";
-import { getItem, loadItems } from "@/lib/data";
+import { getItem, loadItems, recordPrice } from "@/lib/data";
 import { addSourceCore, createItemCore, draftSchema, previewFromClientCore, previewUrlCore, refreshSourceCore, type ClientPayload } from "@/lib/service";
 import { extractFromUrl, hintsFromUrl } from "@/lib/extract";
 import { storeThumbnail } from "@/lib/images";
 import { SESSION_COOKIE, verifySessionValue } from "@/lib/session";
 import { storeFromUrl } from "@/lib/stores";
-import type { Collection, ItemWithSources, PreviewResult, SourceDraft } from "@/lib/types";
+import type { AltGroup, Collection, ItemWithSources, PreviewResult, SourceDraft } from "@/lib/types";
 import { isHttpUrl } from "@/lib/utils";
 
 async function assertAuth() {
@@ -105,6 +106,9 @@ const itemPatch = z
     quantity: z.number().int().min(1).max(100000),
     notes: z.string().max(4000).nullable(),
     chosenSourceId: z.string().nullable(),
+    trackingNumber: z.string().max(80).nullable(),
+    carrier: z.string().max(40).nullable(),
+    eta: z.number().int().nullable(),
   })
   .partial();
 
@@ -118,32 +122,170 @@ export async function updateItem(id: string, patch: z.input<typeof itemPatch>): 
   return (await getItem(id))!;
 }
 
-export async function setPurchased(id: string, purchased: boolean, paid?: { price: number; currency: string } | null): Promise<ItemWithSources> {
+type Status = "to_buy" | "ordered" | "purchased";
+type Paid = { price: number; currency: string } | null;
+
+function statusPatch(status: Status, paid: Paid, current?: { orderedAt: number | null; purchasedPrice: number | null; purchasedCurrency: string | null }) {
+  const t = now();
+  if (status === "to_buy") return { status, orderedAt: null, purchasedAt: null, purchasedPrice: null, purchasedCurrency: null, updatedAt: t };
+  const price = paid ? { purchasedPrice: paid.price, purchasedCurrency: paid.currency } : current?.purchasedPrice != null ? {} : { purchasedPrice: null, purchasedCurrency: null };
+  if (status === "ordered") return { status, orderedAt: t, purchasedAt: null, ...price, updatedAt: t };
+  return { status, orderedAt: current?.orderedAt ?? null, purchasedAt: t, ...price, updatedAt: t };
+}
+
+/** Move an item along to_buy → ordered → purchased (received). `paid` = unit price actually paid. */
+export async function setStatus(id: string, status: Status, paid?: Paid): Promise<ItemWithSources> {
   await assertAuth();
-  await db
-    .update(schema.items)
-    .set(
-      purchased
-        ? { status: "purchased", purchasedAt: now(), purchasedPrice: paid?.price ?? null, purchasedCurrency: paid?.currency ?? null, updatedAt: now() }
-        : { status: "to_buy", purchasedAt: null, purchasedPrice: null, purchasedCurrency: null, updatedAt: now() },
-    )
-    .where(eq(schema.items.id, id));
+  z.enum(["to_buy", "ordered", "purchased"]).parse(status);
+  const cur = await db.query.items.findFirst({ where: eq(schema.items.id, id) });
+  if (!cur) throw new Error("not_found");
+  await db.update(schema.items).set(statusPatch(status, paid ?? null, cur)).where(eq(schema.items.id, id));
   return (await getItem(id))!;
+}
+
+// ---------- Bulk ----------
+
+const bulkPatch = z
+  .object({
+    collectionId: z.string().nullable(),
+    priority: z.enum(["urgent", "normal", "someday"]),
+  })
+  .partial();
+
+export async function bulkUpdate(ids: string[], patch: z.input<typeof bulkPatch>): Promise<ItemWithSources[]> {
+  await assertAuth();
+  const p = bulkPatch.parse(patch);
+  if (!ids.length) return [];
+  await db.update(schema.items).set({ ...p, updatedAt: now() }).where(inArray(schema.items.id, ids));
+  return (await loadItems()).filter((i) => ids.includes(i.id));
+}
+
+/** Bulk status change; each item's paid price comes from its active store (computed on the client). */
+export async function bulkSetStatus(entries: { id: string; paid: Paid }[], status: Status): Promise<ItemWithSources[]> {
+  await assertAuth();
+  z.enum(["to_buy", "ordered", "purchased"]).parse(status);
+  const ids = entries.map((e) => e.id);
+  const current = await db.select().from(schema.items).where(inArray(schema.items.id, ids));
+  for (const e of entries) {
+    const cur = current.find((c) => c.id === e.id);
+    if (cur) await db.update(schema.items).set(statusPatch(status, e.paid, cur)).where(eq(schema.items.id, e.id));
+  }
+  return (await loadItems()).filter((i) => ids.includes(i.id));
+}
+
+export async function bulkDelete(ids: string[]): Promise<ItemWithSources[]> {
+  await assertAuth();
+  if (!ids.length) return [];
+  const snaps = (await loadItems()).filter((i) => ids.includes(i.id));
+  await db.delete(schema.sources).where(inArray(schema.sources.itemId, ids));
+  await db.delete(schema.pricePoints).where(inArray(schema.pricePoints.itemId, ids));
+  await db.delete(schema.attachments).where(inArray(schema.attachments.itemId, ids));
+  await db.delete(schema.items).where(inArray(schema.items.id, ids));
+  for (const g of new Set(snaps.map((x) => x.altGroupId).filter(Boolean) as string[])) await cleanupGroup(g);
+  return snaps;
+}
+
+export async function restoreItems(snapshots: ItemWithSources[]): Promise<ItemWithSources[]> {
+  await assertAuth();
+  const out: ItemWithSources[] = [];
+  for (const snap of snapshots) out.push(await restoreItem(snap));
+  return out;
+}
+
+// ---------- Alternatives ----------
+
+async function cleanupGroup(groupId: string) {
+  const members = await db.select({ id: schema.items.id }).from(schema.items).where(eq(schema.items.altGroupId, groupId));
+  if (members.length < 2) {
+    await db.update(schema.items).set({ altGroupId: null }).where(eq(schema.items.altGroupId, groupId));
+    await db.delete(schema.altGroups).where(eq(schema.altGroups.id, groupId));
+    return null;
+  }
+  const g = await db.query.altGroups.findFirst({ where: eq(schema.altGroups.id, groupId) });
+  if (g?.chosenItemId && !members.some((m) => m.id === g.chosenItemId)) {
+    await db.update(schema.altGroups).set({ chosenItemId: null }).where(eq(schema.altGroups.id, groupId));
+  }
+  return (await db.query.altGroups.findFirst({ where: eq(schema.altGroups.id, groupId) })) ?? null;
+}
+
+type AltState = { items: ItemWithSources[]; altGroups: AltGroup[] };
+async function altState(): Promise<AltState> {
+  const [items, altGroups] = await Promise.all([loadItems(), db.select().from(schema.altGroups)]);
+  return { items, altGroups };
+}
+
+export async function createAltGroup(itemIds: string[], name: string): Promise<AltState & { groupId: string }> {
+  await assertAuth();
+  const ids = z.array(z.string()).min(2).max(20).parse(itemIds);
+  const clean = z.string().min(1).max(80).parse(name.trim());
+  const id = nanoid(10);
+  const previous = await db.select({ g: schema.items.altGroupId }).from(schema.items).where(inArray(schema.items.id, ids));
+  const [group] = await db.insert(schema.altGroups).values({ id, name: clean, createdAt: now() }).returning();
+  await db.update(schema.items).set({ altGroupId: id, updatedAt: now() }).where(inArray(schema.items.id, ids));
+  for (const p of previous) if (p.g) await cleanupGroup(p.g);
+  return { ...(await altState()), groupId: group.id };
+}
+
+export async function updateAltGroup(id: string, patch: { name?: string; chosenItemId?: string | null }): Promise<AltGroup> {
+  await assertAuth();
+  const p = z.object({ name: z.string().min(1).max(80).optional(), chosenItemId: z.string().nullable().optional() }).parse(patch);
+  const [row] = await db.update(schema.altGroups).set(p).where(eq(schema.altGroups.id, id)).returning();
+  return row;
+}
+
+/** Take one item out of its group (the group dissolves when fewer than two remain). */
+export async function leaveAltGroup(itemId: string): Promise<AltState> {
+  await assertAuth();
+  const item = await db.query.items.findFirst({ where: eq(schema.items.id, itemId) });
+  if (item?.altGroupId) {
+    await db.update(schema.items).set({ altGroupId: null }).where(eq(schema.items.id, itemId));
+    await cleanupGroup(item.altGroupId);
+  }
+  return altState();
+}
+
+// ---------- Receipts ----------
+
+export async function addAttachment(itemId: string, file: { url: string; name: string; contentType?: string | null; size?: number | null }): Promise<ItemWithSources> {
+  await assertAuth();
+  const f = z
+    .object({ url: z.string().url().refine((u) => u.includes(".blob.vercel-storage.com/")), name: z.string().min(1).max(200), contentType: z.string().max(100).nullish(), size: z.number().int().nonnegative().nullish() })
+    .parse(file);
+  await db.insert(schema.attachments).values({ id: nanoid(12), itemId, url: f.url, name: f.name, contentType: f.contentType ?? null, size: f.size ?? null, createdAt: now() });
+  return (await getItem(itemId))!;
+}
+
+export async function deleteAttachment(id: string): Promise<ItemWithSources> {
+  await assertAuth();
+  const [row] = await db.delete(schema.attachments).where(eq(schema.attachments.id, id)).returning();
+  if (!row) throw new Error("not_found");
+  try {
+    await del(row.url);
+  } catch {
+    /* file may already be gone */
+  }
+  return (await getItem(row.itemId))!;
 }
 
 export async function deleteItem(id: string): Promise<ItemWithSources | null> {
   await assertAuth();
   const snapshot = await getItem(id);
   await db.delete(schema.sources).where(eq(schema.sources.itemId, id));
+  await db.delete(schema.pricePoints).where(eq(schema.pricePoints.itemId, id));
+  await db.delete(schema.attachments).where(eq(schema.attachments.itemId, id));
   await db.delete(schema.items).where(eq(schema.items.id, id));
+  if (snapshot?.altGroupId) await cleanupGroup(snapshot.altGroupId);
   return snapshot;
 }
 
 export async function restoreItem(snapshot: ItemWithSources): Promise<ItemWithSources> {
   await assertAuth();
-  const { sources, ...item } = snapshot;
+  const { sources, points, attachments, ...item } = snapshot;
+  if (item.altGroupId && !(await db.query.altGroups.findFirst({ where: eq(schema.altGroups.id, item.altGroupId) }))) item.altGroupId = null;
   await db.insert(schema.items).values(item).onConflictDoNothing();
   if (sources.length) await db.insert(schema.sources).values(sources).onConflictDoNothing();
+  if (points?.length) await db.insert(schema.pricePoints).values(points).onConflictDoNothing();
+  if (attachments?.length) await db.insert(schema.attachments).values(attachments).onConflictDoNothing();
   return (await getItem(item.id))!;
 }
 
@@ -161,8 +303,9 @@ const sourcePatch = z
 export async function updateSource(id: string, patch: z.input<typeof sourcePatch>): Promise<ItemWithSources> {
   await assertAuth();
   const p = sourcePatch.parse(patch);
-  const [row] = await db.update(schema.sources).set(p).where(eq(schema.sources.id, id)).returning({ itemId: schema.sources.itemId });
+  const [row] = await db.update(schema.sources).set(p).where(eq(schema.sources.id, id)).returning();
   if (!row) throw new Error("not_found");
+  if (p.price !== undefined || p.currency !== undefined) await recordPrice(row.id, row.itemId, row.price, row.currency);
   return (await getItem(row.itemId))!;
 }
 

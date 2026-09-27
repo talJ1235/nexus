@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
-import type { AppData, Collection, ItemWithSources } from "@/lib/types";
+import type { AltGroup, AppData, Collection, ItemWithSources } from "@/lib/types";
 import type { View } from "@/lib/views";
 
 export type { View };
@@ -15,6 +15,18 @@ type Editor = { mode: "create"; kind: "project" | "list" } | { mode: "edit"; col
 type Store = {
   items: ItemWithSources[];
   collections: Collection[];
+  altGroups: AltGroup[];
+  setAltGroups: (g: AltGroup[]) => void;
+  upsertAltGroup: (g: AltGroup) => void;
+  upsertItems: (items: ItemWithSources[]) => void;
+  removeItems: (ids: string[]) => void;
+  /** Multi-select */
+  selected: Set<string>;
+  toggleSelect: (id: string, opts?: { range?: string[] }) => void;
+  setSelected: (ids: string[]) => void;
+  clearSelection: () => void;
+  altOpenId: string | null;
+  openAlt: (groupId: string | null) => void;
   rates: Rates;
   aiEnabled: boolean;
   currency: Currency;
@@ -72,7 +84,7 @@ function paramToView(p: string | null): View {
   if (!p) return { type: "to_buy" };
   if (p.startsWith("c:")) return { type: "collection", id: p.slice(2) };
   if (p.startsWith("s:")) return { type: "store", key: p.slice(2) };
-  if (p === "urgent" || p === "history" || p === "unsorted") return { type: p };
+  if (["urgent", "history", "unsorted", "ordered", "orders", "spending"].includes(p)) return { type: p } as View;
   return { type: "to_buy" };
 }
 
@@ -88,6 +100,10 @@ function readLocal<T extends string>(key: string, allowed: readonly T[], fallbac
 export function StoreProvider({ initial, initialCurrency, children }: { initial: AppData; initialCurrency: Currency; children: React.ReactNode }) {
   const [items, setItems] = useState(initial.items);
   const [collections, setCollections] = useState(initial.collections);
+  const [altGroups, setAltGroups] = useState(initial.altGroups);
+  const [selected, setSelectedState] = useState<Set<string>>(() => new Set());
+  const [lastSelected, setLastSelected] = useState<string | null>(null);
+  const [altOpenId, setAltOpenId] = useState<string | null>(null);
   const [currency, setCurrencyState] = useState<Currency>(initialCurrency);
   const [layout, setLayoutState] = useState<Layout>("cards");
   const [sort, setSortState] = useState<SortKey>("newest");
@@ -120,6 +136,7 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
 
   const setView = useCallback((v: View) => {
     setViewState(v);
+    setSelectedState(new Set());
     setTagFilter(null);
     setNavOpen(false);
     const url = new URL(window.location.href);
@@ -156,6 +173,41 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
     });
   }, []);
   const removeItem = useCallback((id: string) => setItems((prev) => prev.filter((p) => p.id !== id)), []);
+  const upsertItems = useCallback((list: ItemWithSources[]) => {
+    setItems((prev) => {
+      const byId = new Map(list.map((i) => [i.id, i]));
+      const next = prev.map((p) => byId.get(p.id) ?? p);
+      const known = new Set(prev.map((p) => p.id));
+      return [...list.filter((i) => !known.has(i.id)), ...next];
+    });
+  }, []);
+  const removeItems = useCallback((ids: string[]) => {
+    const set = new Set(ids);
+    setItems((prev) => prev.filter((p) => !set.has(p.id)));
+    setSelectedState((prev) => new Set([...prev].filter((id) => !set.has(id))));
+  }, []);
+  const upsertAltGroup = useCallback((g: AltGroup) => {
+    setAltGroups((prev) => (prev.some((x) => x.id === g.id) ? prev.map((x) => (x.id === g.id ? g : x)) : [...prev, g]));
+  }, []);
+  const toggleSelect = useCallback(
+    (id: string, opts?: { range?: string[] }) => {
+      setSelectedState((prev) => {
+        const next = new Set(prev);
+        // Shift-click: select everything between the last clicked card and this one.
+        if (opts?.range && lastSelected && opts.range.includes(lastSelected)) {
+          const a = opts.range.indexOf(lastSelected);
+          const b = opts.range.indexOf(id);
+          for (const x of opts.range.slice(Math.min(a, b), Math.max(a, b) + 1)) next.add(x);
+        } else if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      setLastSelected(id);
+    },
+    [lastSelected],
+  );
+  const setSelected = useCallback((ids: string[]) => setSelectedState(new Set(ids)), []);
+  const clearSelection = useCallback(() => setSelectedState(new Set()), []);
   const upsertCollection = useCallback((c: Collection) => {
     setCollections((prev) => {
       const idx = prev.findIndex((p) => p.id === c.id);
@@ -178,6 +230,17 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
     () => ({
       items,
       collections,
+      altGroups,
+      setAltGroups,
+      upsertAltGroup,
+      upsertItems,
+      removeItems,
+      selected,
+      toggleSelect,
+      setSelected,
+      clearSelection,
+      altOpenId,
+      openAlt: setAltOpenId,
       rates: initial.rates,
       aiEnabled: initial.aiEnabled,
       currency,
@@ -211,7 +274,7 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
       setNavOpen,
       focusAdd,
     }),
-    [items, collections, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, focusAdd],
+    [items, collections, altGroups, upsertAltGroup, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

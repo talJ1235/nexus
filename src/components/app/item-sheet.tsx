@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ExternalLink, Loader2, Minus, Plus, RefreshCw, Trash2, Undo2, X } from "lucide-react";
+import { ExternalLink, Loader2, Minus, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { addSourceFromUrl, deleteItem, deleteSource, refetchSource, restoreItem, updateItem, updateSource } from "@/app/actions";
 import { useI18n } from "@/components/providers";
@@ -11,7 +11,8 @@ import { cheapestSource, activeSource, lineTotal, sourceTotal } from "@/lib/calc
 import { convert, formatMoney } from "@/lib/money";
 import type { ItemWithSources, Source } from "@/lib/types";
 import { cn, isHttpUrl } from "@/lib/utils";
-import { PriceTag, ProductImage, usePurchaseToggle } from "./item-card";
+import { PriceTag, ProductImage } from "./item-card";
+import { AltLink, PriceHistory, ReceiptsSection, ShippingSection, StatusControl } from "./item-sheet-parts";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 import { COLLECTION_COLORS } from "./view-items";
@@ -196,7 +197,6 @@ function TagEditor({ item, onChange }: { item: ItemWithSources; onChange: (tags:
 export function ItemSheet() {
   const s = useStore();
   const { t, locale } = useI18n();
-  const toggle = usePurchaseToggle();
   const item = s.openItemId ? s.items.find((i) => i.id === s.openItemId) ?? null : null;
   const [newLink, setNewLink] = useState("");
   const [adding, setAdding] = useState(false);
@@ -247,19 +247,13 @@ export function ItemSheet() {
       setRepairing(false);
     }
   };
-  const purchased = item?.status === "purchased";
 
   return (
     <Sheet open={!!item} onOpenChange={(o) => !o && s.openItem(null)} title={item?.title ?? ""}>
       {item && (
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2.5">
-            <div className="flex items-center gap-1">
-              <Button size="sm" variant={purchased ? "outline" : "accent"} onClick={() => void toggle(item)} className={cn(!purchased && "bg-ok text-white hover:bg-ok hover:brightness-110")}>
-                {purchased ? <Undo2 /> : <Check />}
-                {purchased ? t.item.markToBuy : t.item.markPurchased}
-              </Button>
-            </div>
+            <StatusControl item={item} />
             <SheetClose className="grid size-8 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label="Close">
               <X className="size-4" />
             </SheetClose>
@@ -302,7 +296,10 @@ export function ItemSheet() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3 px-4">
+            <AltLink item={item} />
+            {item.status !== "to_buy" && <ShippingSection item={item} />}
+
+            <div className="mt-4 grid grid-cols-2 gap-3 px-4">
               <div>
                 <Label>{t.item.quantity}</Label>
                 <div className="flex h-10 items-center rounded-lg border border-line-strong bg-bg">
@@ -404,6 +401,8 @@ export function ItemSheet() {
               </form>
             </section>
 
+            <PriceHistory item={item} />
+
             <section className="mt-6 space-y-4 px-4">
               <div>
                 <Label>{t.item.tags}</Label>
@@ -424,6 +423,11 @@ export function ItemSheet() {
                   }}
                 />
               </div>
+            </section>
+
+            <ReceiptsSection item={item} />
+
+            <section className="mt-6 space-y-4 px-4">
               <details className="group rounded-lg border border-line px-3 py-2 text-sm">
                 <summary className="cursor-pointer select-none text-muted">{t.item.edit}</summary>
                 <div className="mt-3 grid gap-3 pb-1">

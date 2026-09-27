@@ -33,7 +33,7 @@ export function Modal({
             }
           }}
           className={cn(
-            "fixed inset-x-0 top-[12vh] z-50 mx-auto w-[calc(100vw-24px)] max-w-md animate-pop-in rounded-2xl border border-line bg-surface p-5 shadow-pop outline-none",
+            "fixed inset-x-0 top-[10vh] z-50 mx-auto max-h-[84vh] w-[calc(100vw-24px)] max-w-md animate-pop-in overflow-y-auto rounded-2xl border border-line bg-surface p-5 shadow-pop outline-none",
             className,
           )}
         >

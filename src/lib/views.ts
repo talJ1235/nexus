@@ -4,6 +4,9 @@ export type View =
   | { type: "to_buy" }
   | { type: "urgent" }
   | { type: "history" }
+  | { type: "ordered" }
+  | { type: "orders" }
+  | { type: "spending" }
   | { type: "unsorted" }
   | { type: "collection"; id: string }
   | { type: "store"; key: string };
@@ -16,6 +19,12 @@ export function itemsForView(items: ItemWithSources[], view: View) {
       return items.filter((i) => i.status === "to_buy" && i.priority === "urgent");
     case "history":
       return items.filter((i) => i.status === "purchased");
+    case "ordered":
+      return items.filter((i) => i.status === "ordered");
+    case "orders":
+      return items.filter((i) => i.status === "to_buy");
+    case "spending":
+      return items.filter((i) => i.status !== "to_buy");
     case "unsorted":
       return items.filter((i) => !i.collectionId && i.status === "to_buy");
     case "collection":

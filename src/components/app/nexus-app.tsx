@@ -6,7 +6,7 @@ import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Menu, MenuContent, MenuRadioGroup, MenuRadioItem, MenuTrigger, Sheet } from "@/components/ui/overlays";
-import { budgetStats, sumTotals } from "@/lib/calc";
+import { budgetStats, countable, sumTotals } from "@/lib/calc";
 import { formatMoney } from "@/lib/money";
 import type { AppData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,11 @@ import { AddBar, type Incoming } from "./add-bar";
 import { CollectionDialog } from "./collection-dialog";
 import { CommandPalette } from "./command-palette";
 import { SettingsDialog } from "./settings-dialog";
-import { ItemCard } from "./item-card";
+import { AltGroupCard, ItemCard } from "./item-card";
+import { AltSheet } from "./alt-sheet";
+import { OrdersView } from "./orders-view";
+import { SelectionBar } from "./selection-bar";
+import { SpendingView } from "./spending-view";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
@@ -58,15 +62,25 @@ function Shell({ incoming }: { incoming?: Incoming }) {
           </div>
         </header>
         <main className="mx-auto max-w-[1400px] px-4 pb-24 pt-6 sm:px-6 lg:px-8">
-          <ViewHeader />
-          {/* Re-keyed per view so switching views fades the new content in once. */}
-          <div key={viewKey(s.view) + s.layout} className="content-in">
-            <Content />
-          </div>
+          {s.view.type === "spending" ? (
+            <div key="spending" className="content-in">
+              <SpendingView />
+            </div>
+          ) : (
+            <>
+              <ViewHeader />
+              {/* Re-keyed per view so switching views fades the new content in once. */}
+              <div key={viewKey(s.view) + s.layout} className="content-in">
+                <Content />
+              </div>
+            </>
+          )}
         </main>
       </div>
 
       <ItemSheet />
+      <AltSheet />
+      <SelectionBar />
       <CollectionDialog />
       <CommandPalette />
       <SettingsDialog />
@@ -92,6 +106,12 @@ function ViewHeader() {
         return t.nav.urgent;
       case "history":
         return t.nav.history;
+      case "ordered":
+        return t.nav.onTheWay;
+      case "orders":
+        return t.orders.title;
+      case "spending":
+        return t.spending.title;
       case "unsorted":
         return t.nav.unsorted;
       case "collection":
@@ -103,9 +123,10 @@ function ViewHeader() {
     }
   })();
 
-  const toBuy = items.filter((i) => i.status === "to_buy");
-  const totals = sumTotals(s.view.type === "history" ? items : toBuy, s.rates, s.currency);
-  const budget = collection?.kind === "project" ? budgetStats(collection, s.items, s.rates, s.currency) : null;
+  const toBuy = countable(items.filter((i) => i.status === "to_buy"), s.altGroups, s.rates);
+  const spentView = s.view.type === "history" || s.view.type === "ordered";
+  const totals = sumTotals(spentView ? items : toBuy, s.rates, s.currency);
+  const budget = collection?.kind === "project" ? budgetStats(collection, s.items, s.altGroups, s.rates, s.currency) : null;
 
   const tagCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -143,11 +164,11 @@ function ViewHeader() {
             </p>
           )}
           <p className="tabular mt-1 text-sm text-muted">
-            {f(t.collection.itemsCount, { n: items.length })}
+            {(items.length === 1 ? t.collection.itemsCountOne : f(t.collection.itemsCount, { n: items.length }))}
             {totals.total > 0 && (
               <>
                 <span className="mx-2 text-faint">/</span>
-                {s.view.type === "history" ? t.collection.spent : t.view.itemsTotal}{" "}
+                {spentView ? t.collection.spent : t.view.itemsTotal}{" "}
                 <b className="font-semibold text-fg">{formatMoney(totals.total, s.currency, locale)}</b>
               </>
             )}
@@ -170,7 +191,7 @@ function ViewHeader() {
               </button>
             )}
           </div>
-          {s.view.type !== "history" && (
+          {!spentView && s.view.type !== "orders" && (
             <Menu>
               <MenuTrigger asChild>
                 <Button size="icon" variant="outline" aria-label={t.view.sort} title={`${t.view.sort}: ${sortLabels[s.sort]}`}>
@@ -284,8 +305,8 @@ function Content() {
     return (
       <div className="grid place-items-center rounded-2xl border border-dashed border-line-strong px-6 py-20 text-center">
         <EmptyArt />
-        <p className="mt-5 max-w-sm text-[15px] text-muted">{s.query || s.tagFilter ? t.cmd.noResults : s.view.type === "history" ? t.collection.emptyHistory : t.collection.empty}</p>
-        {!s.query && s.view.type !== "history" && (
+        <p className="mt-5 max-w-sm text-[15px] text-muted">{s.query || s.tagFilter ? t.cmd.noResults : s.view.type === "history" || s.view.type === "ordered" ? t.collection.emptyHistory : t.collection.empty}</p>
+        {!s.query && s.view.type !== "history" && s.view.type !== "ordered" && (
           <Button variant="accent" className="mt-5" onClick={s.focusAdd}>
             {t.cmd.addLink}
           </Button>
@@ -293,14 +314,27 @@ function Content() {
       </div>
     );
   }
+  if (s.view.type === "orders") return <OrdersView items={items} />;
   if (s.layout === "table") return <ItemTable items={items} />;
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] sm:gap-4">
-      {items.map((i) => (
-        <ItemCard key={i.id} item={i} />
-      ))}
-    </div>
-  );
+
+  // Alternatives that are still open collapse into one card, placed where the first option would be.
+  const known = new Set(s.altGroups.map((g) => g.id));
+  const seen = new Set<string>();
+  const cells: React.ReactNode[] = [];
+  const order = items.map((i) => i.id);
+  for (const i of items) {
+    if (i.status === "to_buy" && i.altGroupId && known.has(i.altGroupId)) {
+      if (seen.has(i.altGroupId)) continue;
+      seen.add(i.altGroupId);
+      const members = items.filter((m) => m.altGroupId === i.altGroupId && m.status === "to_buy");
+      if (members.length > 1) {
+        cells.push(<AltGroupCard key={`g:${i.altGroupId}`} groupId={i.altGroupId} members={members} />);
+        continue;
+      }
+    }
+    cells.push(<ItemCard key={i.id} item={i} order={order} />);
+  }
+  return <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] sm:gap-4">{cells}</div>;
 }
 
 /** Empty-state illustration: a price tag hanging from a node. */

@@ -50,7 +50,7 @@ export default async function SharedPage({ params }: { params: Promise<{ token: 
         </p>
       )}
       <p className="tabular mt-2 text-sm text-muted">
-        {fmt(t.collection.itemsCount, { n: items.length })}
+        {(items.length === 1 ? t.collection.itemsCountOne : fmt(t.collection.itemsCount, { n: items.length }))}
         {total > 0 && (
           <>
             <span className="mx-2 text-faint">/</span>

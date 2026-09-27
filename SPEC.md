@@ -22,7 +22,8 @@ and anything else.
 | **Category** | AI | one primary category from a fixed set |
 
 ## Item lifecycle
-- `to_buy` → `purchased` (moves to History with purchase date and price paid).
+- `to_buy` → `ordered` (On the way: tracking number, carrier, ETA, tracking link) → `purchased`
+  (received; History). Price paid is captured when the item is ordered.
 - Priority: `urgent` | `normal` | `someday`.
 - Quantity, free notes.
 
@@ -62,6 +63,18 @@ Failure at any step degrades gracefully to a partially filled, editable item.
 - Export collection to Excel (BOM): #, item, qty, unit price, currency, line total,
   store, link, priority, status, notes + totals row.
 
+## Round 2 (shipped)
+- Multi-select (checkbox, Ctrl/⌘-click, Shift-range) with a floating action bar: move, priority,
+  status, compare as alternatives, delete (undo).
+- Drag cards/rows onto a project/list (or Unsorted) in the sidebar to move them.
+- Alternatives: group options for one need, compare side by side, pick a winner. Only the winner
+  (or the cheapest, until picked) counts toward totals and budgets.
+- Order by store: everything to buy grouped by active store with subtotals; mark a store's order as ordered.
+- Price history: every read/edit logs a price point; sparkline in the item, "lowest price seen" badge.
+- Spending: this month / last month / this year, last 12 months, by project, by store.
+- Receipts: images/PDFs uploaded straight to Vercel Blob (client upload), attached to items.
+- Settings dialog; settings actions in the Esc command palette.
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Dark + light (system default), no flash on load.
@@ -70,9 +83,8 @@ Failure at any step degrades gracefully to a partially filled, editable item.
 - Skeleton loading, short action-driven transitions, respects reduced motion.
 - Mobile responsive; installable PWA.
 
-## Non-goals (v1)
-Automatic price re-checks / alerts, price history charts, spending dashboard,
-shipment tracking, multi-user accounts.
+## Non-goals (for now)
+Automatic scheduled price re-checks / alerts, carrier API tracking sync, multi-user accounts.
 
 ## Stack (all free tier)
 Next.js 16 (App Router) on Vercel · Turso (libSQL) + Drizzle · Gemini Flash-Lite ·

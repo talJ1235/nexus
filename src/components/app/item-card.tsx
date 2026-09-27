@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ExternalLink, Package, Undo2 } from "lucide-react";
+import { Check, ExternalLink, Package, PackageCheck, Split, TrendingDown, Truck, Undo2 } from "lucide-react";
 import { toast } from "sonner";
-import { setPurchased } from "@/app/actions";
+import { setStatus } from "@/app/actions";
 import { useI18n } from "@/components/providers";
-import { activeSource, cheapestSource, lineTotal, unitPrice } from "@/lib/calc";
+import { activeSource, cheapestSource, lineTotal, lowestSeen, unitPrice } from "@/lib/calc";
 import { convert, formatMoney } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -26,32 +26,41 @@ export function ProductImage({ src, alt, className, iconClass }: { src: string |
   );
 }
 
-export function usePurchaseToggle() {
+export type Status = ItemWithSources["status"];
+const NEXT: Record<Status, Status> = { to_buy: "ordered", ordered: "purchased", purchased: "to_buy" };
+
+function paidFor(item: ItemWithSources, rates: Parameters<typeof activeSource>[1]) {
+  const src = activeSource(item, rates);
+  return src?.price != null ? { price: src.price + (src.shipping ?? 0), currency: src.currency } : null;
+}
+
+export function optimisticStatus(item: ItemWithSources, status: Status, paid: ReturnType<typeof paidFor>): ItemWithSources {
+  const t = Date.now();
+  if (status === "to_buy") return { ...item, status, orderedAt: null, purchasedAt: null, purchasedPrice: null, purchasedCurrency: null };
+  const price = paid ? { purchasedPrice: paid.price, purchasedCurrency: paid.currency } : {};
+  return status === "ordered" ? { ...item, status, orderedAt: t, purchasedAt: null, ...price } : { ...item, status, purchasedAt: t, ...price };
+}
+
+/** Moves an item along To buy → Ordered → Received, with undo. */
+export function useStatusFlow() {
   const s = useStore();
   const { t } = useI18n();
-  return async (item: ItemWithSources) => {
-    const purchasing = item.status === "to_buy";
-    const src = activeSource(item, s.rates);
-    const paid = purchasing && src?.price != null ? { price: src.price + (src.shipping ?? 0), currency: src.currency } : null;
-    const optimistic: ItemWithSources = purchasing
-      ? { ...item, status: "purchased", purchasedAt: Date.now(), purchasedPrice: paid?.price ?? null, purchasedCurrency: paid?.currency ?? null }
-      : { ...item, status: "to_buy", purchasedAt: null, purchasedPrice: null, purchasedCurrency: null };
-    s.upsertItem(optimistic);
+  const setTo = async (item: ItemWithSources, status: Status) => {
+    const paid = status !== "to_buy" && item.status === "to_buy" ? paidFor(item, s.rates) : null;
+    s.upsertItem(optimisticStatus(item, status, paid));
     try {
-      s.upsertItem(await setPurchased(item.id, purchasing, paid));
-      if (purchasing)
-        toast.success(t.item.markPurchased, {
+      s.upsertItem(await setStatus(item.id, status, paid));
+      if (status !== "to_buy")
+        toast.success(status === "ordered" ? t.flow.markedOrdered : t.flow.markedReceived, {
           description: item.title,
-          action: {
-            label: t.item.undo,
-            onClick: async () => s.upsertItem(await setPurchased(item.id, false)),
-          },
+          action: { label: t.item.undo, onClick: async () => s.upsertItem(await setStatus(item.id, item.status)) },
         });
     } catch {
       s.upsertItem(item);
       toast.error(t.errors.generic);
     }
   };
+  return { setTo, advance: (item: ItemWithSources) => setTo(item, NEXT[item.status]), paidFor: (item: ItemWithSources) => paidFor(item, s.rates) };
 }
 
 export function PriceTag({ item, size = "md" }: { item: ItemWithSources; size?: "md" | "lg" }) {
@@ -62,16 +71,50 @@ export function PriceTag({ item, size = "md" }: { item: ItemWithSources; size?: 
   return <span className={cn("price-tag", size === "lg" ? "text-lg" : "text-[14px]")}>{formatMoney(unit, s.currency, locale)}</span>;
 }
 
-export function ItemCard({ item }: { item: ItemWithSources }) {
+const shortDate = (ms: number, locale: string) => new Date(ms).toLocaleDateString(locale === "he" ? "he-IL" : "en-GB", { day: "numeric", month: "short" });
+
+/** Drag payload: the selection if the dragged card is part of it, otherwise just this item. */
+export function dragIds(id: string, selected: Set<string>) {
+  return selected.has(id) ? [...selected] : [id];
+}
+
+export function SelectBox({ checked, onToggle, className }: { checked: boolean; onToggle: (e: React.MouseEvent) => void; className?: string }) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle(e);
+      }}
+      className={cn(
+        "grid size-6 place-items-center rounded-md border-2 shadow-card backdrop-blur transition",
+        checked ? "border-accent bg-accent text-accent-fg" : "border-white/90 bg-black/25 text-transparent hover:bg-black/40",
+        className,
+      )}
+    >
+      <Check className="size-3.5" strokeWidth={3.2} />
+    </button>
+  );
+}
+
+export function ItemCard({ item, order }: { item: ItemWithSources; order: string[] }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
-  const toggle = usePurchaseToggle();
+  const flow = useStatusFlow();
   const src = activeSource(item, s.rates);
   const cheapest = cheapestSource(item, s.rates);
   const collection = item.collectionId ? s.collections.find((c) => c.id === item.collectionId) : null;
   const total = lineTotal(item, s.rates, s.currency);
+  const unit = unitPrice(item, s.rates, s.currency);
+  // "Lowest price seen" only when the price actually moved: some store link has 2+ different readings.
+  const moved = item.sources.some((src) => new Set(item.points.filter((p) => p.sourceId === src.id).map((p) => p.price)).size > 1);
+  const low = moved ? lowestSeen(item, s.rates, s.currency) : null;
+  const atLowest = item.status === "to_buy" && low != null && unit != null && unit <= low * 1.005;
   const stores = Array.from(new Set(item.sources.map((x) => x.store)));
-  const purchased = item.status === "purchased";
+  const selecting = s.selected.size > 0;
+  const isSelected = s.selected.has(item.id);
 
   // Savings hint: how much cheaper the best store is than the priciest one.
   let spread: number | null = null;
@@ -80,24 +123,49 @@ export function ItemCard({ item }: { item: ItemWithSources }) {
     if (vals.length > 1) spread = Math.max(...vals) - Math.min(...vals);
   }
 
+  const next = NEXT[item.status];
+  const nextLabel = item.status === "to_buy" ? t.flow.markOrdered : item.status === "ordered" ? t.flow.markReceived : t.flow.backToBuy;
+
   return (
     <article
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData("application/x-nexus-items", JSON.stringify(dragIds(item.id, s.selected)));
+        e.dataTransfer.effectAllowed = "move";
+      }}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface transition-[border-color,box-shadow] hover:border-line-strong hover:shadow-card",
+        "group relative flex flex-col overflow-hidden rounded-[var(--radius-card)] border bg-surface transition-[border-color,box-shadow]",
+        isSelected ? "border-accent shadow-[0_0_0_1px_var(--accent)]" : "border-line hover:border-line-strong hover:shadow-card",
       )}
     >
-      <button type="button" onClick={() => s.openItem(item.id)} className="absolute inset-0 z-[1] rounded-[var(--radius-card)]" aria-label={item.title} />
+      <button
+        type="button"
+        onClick={(e) => (selecting || e.metaKey || e.ctrlKey ? s.toggleSelect(item.id, e.shiftKey ? { range: order } : undefined) : s.openItem(item.id))}
+        className="absolute inset-0 z-[1] rounded-[var(--radius-card)]"
+        aria-label={item.title}
+      />
 
       <div className="relative">
         <ProductImage src={item.imageUrl} alt="" className="aspect-[5/4] w-full" />
         <div className="pointer-events-none absolute inset-x-2.5 top-2.5 flex items-start justify-between gap-2">
-          <div className="flex flex-wrap gap-1">
-            {item.priority === "urgent" && !purchased && <span className="rounded-md bg-danger px-1.5 py-0.5 text-[11px] font-semibold text-white">{t.item.urgent}</span>}
-            {item.priority === "someday" && !purchased && <span className="rounded-md bg-black/55 px-1.5 py-0.5 text-[11px] font-medium text-white backdrop-blur">{t.item.someday}</span>}
+          <div className="flex flex-wrap items-center gap-1">
+            <SelectBox
+              checked={isSelected}
+              onToggle={(e) => s.toggleSelect(item.id, e.shiftKey ? { range: order } : undefined)}
+              className={cn("pointer-events-auto relative z-[2]", !selecting && !isSelected && "opacity-0 group-hover:opacity-100 max-sm:hidden")}
+            />
+            {item.priority === "urgent" && item.status === "to_buy" && <span className="rounded-md bg-danger px-1.5 py-0.5 text-[11px] font-semibold text-white">{t.item.urgent}</span>}
+            {item.priority === "someday" && item.status === "to_buy" && <span className="rounded-md bg-black/55 px-1.5 py-0.5 text-[11px] font-medium text-white backdrop-blur">{t.item.someday}</span>}
+            {item.status === "ordered" && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-info px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                <Truck className="size-3" />
+                {t.flow.ordered}
+              </span>
+            )}
           </div>
           <div className="flex gap-1">
-            {purchased && (
-              <span className="grid size-6 place-items-center rounded-md bg-ok text-white" title={t.nav.history}>
+            {item.status === "purchased" && (
+              <span className="grid size-6 place-items-center rounded-md bg-ok text-white" title={t.flow.received}>
                 <Check className="size-3.5" strokeWidth={3} />
               </span>
             )}
@@ -109,29 +177,34 @@ export function ItemCard({ item }: { item: ItemWithSources }) {
           </div>
         </div>
 
-        <div className="absolute bottom-2.5 end-2.5 z-[2] flex gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-100">
-          {src && (
-            <a
-              href={src.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={t.item.openStore}
-              aria-label={t.item.openStore}
-              className="grid size-8 place-items-center rounded-lg bg-white/90 text-[#14171b] shadow-card backdrop-blur transition hover:bg-white"
+        {!selecting && (
+          <div className="absolute bottom-2.5 end-2.5 z-[2] flex gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-100">
+            {src && (
+              <a
+                href={src.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={t.item.openStore}
+                aria-label={t.item.openStore}
+                className="grid size-8 place-items-center rounded-lg bg-white/90 text-[#14171b] shadow-card backdrop-blur transition hover:bg-white"
+              >
+                <ExternalLink className="size-4" />
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => void flow.setTo(item, next)}
+              title={nextLabel}
+              aria-label={nextLabel}
+              className={cn(
+                "grid size-8 place-items-center rounded-lg shadow-card backdrop-blur transition",
+                item.status === "purchased" ? "bg-white/90 text-[#14171b] hover:bg-white" : item.status === "ordered" ? "bg-ok text-white hover:brightness-110" : "bg-info text-white hover:brightness-110",
+              )}
             >
-              <ExternalLink className="size-4" />
-            </a>
-          )}
-          <button
-            type="button"
-            onClick={() => void toggle(item)}
-            title={purchased ? t.item.markToBuy : t.item.markPurchased}
-            aria-label={purchased ? t.item.markToBuy : t.item.markPurchased}
-            className={cn("grid size-8 place-items-center rounded-lg shadow-card backdrop-blur transition", purchased ? "bg-white/90 text-[#14171b] hover:bg-white" : "bg-ok text-white hover:brightness-110")}
-          >
-            {purchased ? <Undo2 className="size-4" /> : <Check className="size-4" />}
-          </button>
-        </div>
+              {item.status === "to_buy" ? <Truck className="size-4" /> : item.status === "ordered" ? <PackageCheck className="size-4" /> : <Undo2 className="size-4" />}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-3.5 pt-3">
@@ -156,22 +229,88 @@ export function ItemCard({ item }: { item: ItemWithSources }) {
           {item.title}
         </h3>
         <div className="mt-auto flex items-end justify-between gap-2 pt-1">
-          <PriceTag item={item} />
+          <div className="flex flex-col items-start gap-1">
+            {atLowest && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ok">
+                <TrendingDown className="size-3" />
+                {t.history.atLowest}
+              </span>
+            )}
+            <PriceTag item={item} />
+          </div>
           <div className="text-end text-[11.5px] leading-tight text-faint">
-            {purchased && item.purchasedAt ? (
-              <span className="text-ok">{f(t.item.purchasedOn, { date: new Date(item.purchasedAt).toLocaleDateString(locale === "he" ? "he-IL" : "en-GB", { day: "numeric", month: "short" }) })}</span>
+            {item.status === "purchased" && item.purchasedAt ? (
+              <span className="text-ok">{f(t.flow.receivedOn, { date: shortDate(item.purchasedAt, locale) })}</span>
+            ) : item.status === "ordered" ? (
+              <span className="text-info">{item.eta ? f(t.flow.arrives, { date: shortDate(item.eta, locale) }) : item.orderedAt ? f(t.flow.orderedOn, { date: shortDate(item.orderedAt, locale) }) : null}</span>
             ) : item.quantity > 1 && total != null ? (
               <span className="tabular">
                 {t.item.total} {formatMoney(total, s.currency, locale)}
               </span>
             ) : spread != null && spread > 0 ? (
               <span className="tabular font-medium text-accent-ink">{f(t.item.saveUpTo, { amount: formatMoney(Math.round(spread), s.currency, locale) })}</span>
-            ) : src?.shipping == null && src?.price != null && !purchased ? (
+            ) : src?.shipping == null && src?.price != null ? (
               <span>{t.item.shippingUnknown}</span>
             ) : null}
           </div>
         </div>
       </div>
+    </article>
+  );
+}
+
+/** One card standing in for a group of alternatives. */
+export function AltGroupCard({ groupId, members }: { groupId: string; members: ItemWithSources[] }) {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const group = s.altGroups.find((g) => g.id === groupId);
+  const chosen = group?.chosenItemId ? members.find((m) => m.id === group.chosenItemId) : null;
+  const prices = members.map((m) => unitPrice(m, s.rates, s.currency)).filter((v): v is number => v != null);
+  const from = prices.length ? Math.min(...prices) : null;
+  const shown = (chosen ? [chosen, ...members.filter((m) => m.id !== chosen.id)] : members).slice(0, 3);
+
+  return (
+    <article
+      className="group relative flex flex-col"
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData("application/x-nexus-items", JSON.stringify(members.map((m) => m.id)));
+        e.dataTransfer.effectAllowed = "move";
+      }}
+    >
+      {/* stacked sheets behind the card */}
+      <span aria-hidden className="absolute inset-x-3 -top-1.5 h-4 rounded-t-[var(--radius-card)] border border-b-0 border-line bg-raised" />
+      <span aria-hidden className="absolute inset-x-1.5 -top-[3px] h-4 rounded-t-[var(--radius-card)] border border-b-0 border-line bg-surface" />
+      <button
+        type="button"
+        onClick={() => s.openAlt(groupId)}
+        className="relative flex flex-1 flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface text-start transition-[border-color,box-shadow] hover:border-line-strong hover:shadow-card"
+      >
+        <div className="grid aspect-[5/4] w-full grid-cols-3 gap-px bg-line">
+          {shown.map((m, i) => (
+            <ProductImage key={m.id} src={m.imageUrl} alt="" className={cn("h-full", shown.length === 1 && "col-span-3", shown.length === 2 && i === 0 && "col-span-2")} iconClass="size-6" />
+          ))}
+        </div>
+        <div className="flex flex-1 flex-col gap-2 p-3.5 pt-3">
+          <div className="flex items-center gap-1.5 text-[12px] font-medium text-accent-ink">
+            <Split className="size-3.5" />
+            {f(t.alt.badge, { n: members.length })}
+          </div>
+          <h3 className="line-clamp-2 text-[14.5px] font-medium leading-snug" dir="auto">
+            {group?.name ?? t.alt.title}
+          </h3>
+          <div className="mt-auto flex items-end justify-between gap-2 pt-1">
+            {chosen ? (
+              <PriceTag item={chosen} />
+            ) : from != null ? (
+              <span className="price-tag muted text-[13px]">{f(t.alt.from, { amount: formatMoney(from, s.currency, locale) })}</span>
+            ) : (
+              <span className="price-tag muted text-[13px]">{t.item.noPrice}</span>
+            )}
+            {chosen && <span className="truncate text-[11.5px] text-ok">{t.alt.picked}</span>}
+          </div>
+        </div>
+      </button>
     </article>
   );
 }

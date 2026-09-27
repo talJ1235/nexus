@@ -33,20 +33,27 @@ export const items = sqliteTable(
     imageUrl: text("image_url"),
     category: text("category"),
     tags: text("tags", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
-    status: text("status", { enum: ["to_buy", "purchased"] }).notNull().default("to_buy"),
+    // to_buy → ordered (on the way) → purchased (received / done)
+    status: text("status", { enum: ["to_buy", "ordered", "purchased"] }).notNull().default("to_buy"),
     priority: text("priority", { enum: ["urgent", "normal", "someday"] })
       .notNull()
       .default("normal"),
     quantity: integer("quantity").notNull().default(1),
     notes: text("notes"),
     chosenSourceId: text("chosen_source_id"),
+    orderedAt: integer("ordered_at"),
     purchasedAt: integer("purchased_at"),
+    // Unit price actually paid (captured when ordered/purchased).
     purchasedPrice: real("purchased_price"),
     purchasedCurrency: text("purchased_currency"),
+    trackingNumber: text("tracking_number"),
+    carrier: text("carrier"),
+    eta: integer("eta"),
+    altGroupId: text("alt_group_id"),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
     updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
-  (t) => [index("items_collection_idx").on(t.collectionId), index("items_status_idx").on(t.status)],
+  (t) => [index("items_collection_idx").on(t.collectionId), index("items_status_idx").on(t.status), index("items_alt_idx").on(t.altGroupId)],
 );
 
 export const sources = sqliteTable(
@@ -70,6 +77,43 @@ export const sources = sqliteTable(
   (t) => [index("sources_item_idx").on(t.itemId), index("sources_norm_idx").on(t.normalizedUrl)],
 );
 
+/** A set of items that are options for the same need; one can be picked as the winner. */
+export const altGroups = sqliteTable("alt_groups", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  chosenItemId: text("chosen_item_id"),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+});
+
+/** Price observed for a store link at a point in time. */
+export const pricePoints = sqliteTable(
+  "price_points",
+  {
+    id: text("id").primaryKey(),
+    sourceId: text("source_id").notNull(),
+    itemId: text("item_id").notNull(),
+    price: real("price").notNull(),
+    currency: text("currency").notNull(),
+    recordedAt: integer("recorded_at").notNull().default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => [index("price_points_source_idx").on(t.sourceId), index("price_points_item_idx").on(t.itemId)],
+);
+
+/** Receipts / invoices attached to an item (files live in Vercel Blob). */
+export const attachments = sqliteTable(
+  "attachments",
+  {
+    id: text("id").primaryKey(),
+    itemId: text("item_id").notNull(),
+    url: text("url").notNull(),
+    name: text("name").notNull(),
+    contentType: text("content_type"),
+    size: integer("size"),
+    createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => [index("attachments_item_idx").on(t.itemId)],
+);
+
 export const kv = sqliteTable("kv", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
@@ -79,3 +123,6 @@ export const kv = sqliteTable("kv", {
 export type Collection = typeof collections.$inferSelect;
 export type Item = typeof items.$inferSelect;
 export type Source = typeof sources.$inferSelect;
+export type AltGroup = typeof altGroups.$inferSelect;
+export type PricePoint = typeof pricePoints.$inferSelect;
+export type Attachment = typeof attachments.$inferSelect;

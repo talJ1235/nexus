@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { Command } from "cmdk";
 import { Dialog as D } from "radix-ui";
-import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut } from "lucide-react";
+import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Kbd } from "@/components/ui/button";
@@ -42,6 +42,11 @@ export function CommandPalette() {
       // Esc opens the palette when nothing else is open (Esc inside any dialog still closes that dialog).
       if (e.key === "Escape" && !e.defaultPrevented && !s.paletteOpen) {
         if (document.querySelector('[role="dialog"], [role="menu"], [data-radix-popper-content-wrapper]')) return;
+        // With items selected, the first Esc just clears the selection.
+        if (s.selected.size) {
+          s.clearSelection();
+          return;
+        }
         const el = e.target as HTMLElement | null;
         if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) {
           const v = (el as HTMLInputElement).value;
@@ -137,8 +142,17 @@ export function CommandPalette() {
                 <Command.Item value={`view ${t.nav.urgent}`} onSelect={() => run(() => s.setView({ type: "urgent" }))} className={itemCls}>
                   <Zap /> {t.nav.urgent}
                 </Command.Item>
+                <Command.Item value={`view orders store ${t.nav.orders}`} onSelect={() => run(() => s.setView({ type: "orders" }))} className={itemCls}>
+                  <Store /> {t.nav.orders}
+                </Command.Item>
+                <Command.Item value={`view ordered shipping tracking ${t.nav.onTheWay}`} onSelect={() => run(() => s.setView({ type: "ordered" }))} className={itemCls}>
+                  <Truck /> {t.nav.onTheWay}
+                </Command.Item>
                 <Command.Item value={`view ${t.nav.history}`} onSelect={() => run(() => s.setView({ type: "history" }))} className={itemCls}>
                   <History /> {t.nav.history}
+                </Command.Item>
+                <Command.Item value={`view spending dashboard ${t.nav.spending}`} onSelect={() => run(() => s.setView({ type: "spending" }))} className={itemCls}>
+                  <ChartColumn /> {t.nav.spending}
                 </Command.Item>
                 {s.collections.map((c) => (
                   <Command.Item key={c.id} value={`collection ${c.name} ${c.id}`} onSelect={() => run(() => s.setView({ type: "collection", id: c.id }))} className={itemCls}>
@@ -160,7 +174,7 @@ export function CommandPalette() {
                     <span className="min-w-0 flex-1 truncate" dir="auto">
                       {i.title}
                     </span>
-                    <span className="shrink-0 text-xs text-faint">{i.status === "purchased" ? t.nav.history : i.sources[0]?.store}</span>
+                    <span className="shrink-0 text-xs text-faint">{i.status === "purchased" ? t.flow.received : i.status === "ordered" ? t.flow.ordered : i.sources[0]?.store}</span>
                   </Command.Item>
                 ))}
               </Command.Group>

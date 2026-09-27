@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { categorize, extractWithAi, extractWithUrlContext } from "@/lib/ai";
-import { getItem } from "@/lib/data";
+import { getItem, recordPrice } from "@/lib/data";
 import { extractFromUrl, hintsFromUrl, type Extracted } from "@/lib/extract";
 import { storeThumbnail } from "@/lib/images";
 import { parsePrice } from "@/lib/money";
@@ -210,6 +210,7 @@ export async function refreshSourceCore(sourceId: string, payload?: ClientPayloa
       extractMethod: draft.source.extractMethod,
     })
     .where(eq(schema.sources.id, sourceId));
+  if (draft.source.price != null) await recordPrice(sourceId, item.id, draft.source.price, draft.source.currency);
 
   // The first read failed (no real title) → adopt the new name, tags and image.
   const firstReadFailed = !src.rawTitle;
@@ -273,7 +274,9 @@ export async function createItemCore(input: z.input<typeof draftSchema>): Promis
     updatedAt: t,
   });
   if (d.source) {
-    await db.insert(schema.sources).values({ id: nanoid(12), itemId: id, ...d.source, fetchedAt: t, createdAt: t });
+    const sourceId = nanoid(12);
+    await db.insert(schema.sources).values({ id: sourceId, itemId: id, ...d.source, fetchedAt: t, createdAt: t });
+    await recordPrice(sourceId, id, d.source.price, d.source.currency);
   }
   return (await getItem(id))!;
 }
@@ -281,7 +284,9 @@ export async function createItemCore(input: z.input<typeof draftSchema>): Promis
 export async function addSourceCore(itemId: string, source: SourceDraft, imageUrl?: string | null): Promise<ItemWithSources> {
   const s = sourceDraftSchema.parse(source);
   const t = now();
-  await db.insert(schema.sources).values({ id: nanoid(12), itemId, ...s, fetchedAt: t, createdAt: t });
+  const sourceId = nanoid(12);
+  await db.insert(schema.sources).values({ id: sourceId, itemId, ...s, fetchedAt: t, createdAt: t });
+  await recordPrice(sourceId, itemId, s.price, s.currency);
   const item = await db.query.items.findFirst({ where: eq(schema.items.id, itemId) });
   if (item && !item.imageUrl && imageUrl) {
     await db.update(schema.items).set({ imageUrl: await storeThumbnail(imageUrl, itemId) }).where(eq(schema.items.id, itemId));

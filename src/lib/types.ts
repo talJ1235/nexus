@@ -1,12 +1,13 @@
-import type { Collection, Item, Source } from "@/db/schema";
+import type { AltGroup, Attachment, Collection, Item, PricePoint, Source } from "@/db/schema";
 import type { Rates } from "./money";
 
-export type { Collection, Item, Source };
-export type ItemWithSources = Item & { sources: Source[] };
+export type { AltGroup, Attachment, Collection, Item, PricePoint, Source };
+export type ItemWithSources = Item & { sources: Source[]; points: PricePoint[]; attachments: Attachment[] };
 
 export type AppData = {
   collections: Collection[];
   items: ItemWithSources[];
+  altGroups: AltGroup[];
   rates: Rates;
   aiEnabled: boolean;
 };
