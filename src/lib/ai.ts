@@ -102,7 +102,7 @@ Product:
 - Description: ${(input.description ?? "").slice(0, 500)}
 
 Tasks:
-1. "title": a short, clean, human product name (max ~70 chars), like a shop assistant would write it. Keep the product type, brand/model number and the 1-2 specs that identify it (size, color, voltage, capacity). Drop marketing fluff, shipping claims, keyword stuffing, store names and SKU codes. If the raw title is in Hebrew keep Hebrew; if it is English keep English; if it is any other language (e.g. German/Chinese from a localized store) translate it to English. If the raw title is only a URL slug or generic text like "KSP item", infer the best name you can from the URL and description.
+1. "title": a short, clean, human product name (max ~70 chars), like a shop assistant would write it. Keep the product type, brand/model number and the 1-2 specs that identify it (size, color, voltage, capacity). Drop marketing fluff, shipping claims, keyword stuffing, store names and SKU codes. If the raw title is in Hebrew keep Hebrew, but keep brand names, model numbers, units and technical acronyms (PLA, PETG, USB-C, LED, NEMA 17) in their original Latin form — never transliterate them into Hebrew letters; if it is English keep English; if it is any other language (e.g. German/Chinese from a localized store) translate it to English. If the raw title is only a URL slug or generic text like "KSP item", infer the best name you can from the URL and description.
 2. "brand": brand if clear, else null.
 3. "category": exactly one of: ${CATEGORIES.join(", ")}.
 4. "tags": 1-4 short lowercase English tags describing the product type (e.g. "stepper motor", "cable", "lighting"). Prefer reusing these existing tags when they fit: ${input.knownTags.slice(0, 60).join(", ") || "(none yet)"}.

@@ -158,7 +158,7 @@ export async function previewUrlCore(url: string, hintCollectionId: string | nul
   }
   const ex = await extractFromUrl(clean);
   const draft = await buildDraft(ex, hintCollectionId, clean);
-  const duplicate = await findDuplicate(draft.source.normalizedUrl, draft.title);
+  const duplicate = await findDuplicate(draft.source.normalizedUrl, draft.source.rawTitle ? draft.title : null);
   return { draft, duplicate };
 }
 
@@ -186,7 +186,7 @@ export function extractedFromPayload(payload: ClientPayload): Extracted {
 
 export async function previewFromClientCore(payload: ClientPayload, hintCollectionId: string | null = null): Promise<PreviewResult> {
   const draft = await buildDraft(extractedFromPayload(payload), hintCollectionId);
-  const duplicate = await findDuplicate(draft.source.normalizedUrl, draft.title);
+  const duplicate = await findDuplicate(draft.source.normalizedUrl, draft.source.rawTitle ? draft.title : null);
   return { draft, duplicate };
 }
 
