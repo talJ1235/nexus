@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Plain-JS Chrome extension, linted by Chrome itself.
+    "extension/**",
   ]),
 ]);
 

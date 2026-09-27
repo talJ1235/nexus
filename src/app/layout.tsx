@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   icons: { icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }, { url: "/icons/favicon-48.png", sizes: "48x48" }], apple: "/icons/icon-192.png" },
   robots: { index: false, follow: false },
+  other: { "nexus-app": "1" },
   appleWebApp: { capable: true, title: "Nexus", statusBarStyle: "black-translucent" },
 };
 

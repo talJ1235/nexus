@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Download } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Modal } from "@/components/ui/overlays";
+import { cn } from "@/lib/utils";
+import { useExtension } from "./use-extension";
 
 /** Runs on the store page: reads JSON-LD / OpenGraph in the browser and hands it to Nexus. */
 function buildBookmarklet(origin: string) {
@@ -13,22 +15,49 @@ function buildBookmarklet(origin: string) {
 
 export function BookmarkletDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { t } = useI18n();
+  const ext = useExtension();
   const href = useMemo(() => (typeof window === "undefined" ? "#" : buildBookmarklet(window.location.origin)), []);
+  const steps = [t.ext.step1, t.ext.step2, t.ext.step3, t.ext.step4];
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={t.add.bookmarklet} description={t.add.bookmarkletHint}>
-      <div className="grid place-items-center rounded-xl border border-dashed border-line-strong bg-sunken py-8">
+    <Modal open={open} onOpenChange={onOpenChange} title={t.ext.title} description={t.ext.intro} className="max-w-lg">
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-bg/50 p-3">
+        <span className={cn("inline-flex items-center gap-2 text-sm font-medium", ext.available ? "text-ok" : "text-muted")}>
+          <span className={cn("size-2 rounded-full", ext.available ? "bg-ok" : "bg-faint")} />
+          {ext.available ? `${t.ext.connected} · v${ext.version}` : t.ext.notInstalled}
+        </span>
+        <a href="/nexus-extension.zip" download className="inline-flex h-9 items-center gap-2 rounded-lg bg-accent px-3.5 text-sm font-semibold text-accent-fg transition hover:bg-accent-strong">
+          <Download className="size-4" />
+          {t.ext.download}
+        </a>
+      </div>
+      <ol className="mt-4 space-y-2.5">
+        {steps.map((step, i) => (
+          <li key={i} className="flex gap-3 text-sm">
+            <span className="tabular grid size-6 shrink-0 place-items-center rounded-full bg-sunken text-xs font-semibold text-muted">{i + 1}</span>
+            <span className="pt-0.5 leading-relaxed">
+              {step}
+              {i === 1 && (
+                <button type="button" onClick={() => navigator.clipboard.writeText("chrome://extensions")} className="ms-2 text-xs font-medium text-accent-ink hover:underline">
+                  {t.ext.copyAddress}
+                </button>
+              )}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-5 border-t border-line pt-4">
+        <p className="text-xs text-muted">{t.ext.fallback}</p>
         <a
           href="#"
           onClick={(e) => e.preventDefault()}
           draggable
-          className="inline-flex cursor-grab items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg shadow-card active:cursor-grabbing"
-          // React blocks javascript: URLs in href at render; set it after mount via ref.
           ref={(el) => {
+            // React blocks javascript: URLs at render; set it after mount.
             if (el) el.setAttribute("href", href);
           }}
+          className="mt-2 inline-flex cursor-grab items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium active:cursor-grabbing"
         >
-          <Bookmark className="size-4" />
-          + Nexus
+          <Bookmark className="size-4 text-accent-ink" />+ Nexus
         </a>
       </div>
     </Modal>

@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Nexus Clipper",
+  "version": "1.0.0",
+  "description": "Save any product page to Nexus in one click — reads the page in your own browser, so it works on every store.",
+  "icons": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png" },
+  "action": { "default_title": "Save to Nexus", "default_popup": "popup.html", "default_icon": { "16": "icons/icon-16.png", "32": "icons/icon-32.png" } },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["https://*.vercel.app/*", "http://localhost/*", "http://localhost:3000/*"],
+      "js": ["bridge.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "_execute_action": { "suggested_key": { "default": "Alt+Shift+S" }, "description": "Save this product to Nexus" }
+  }
+}

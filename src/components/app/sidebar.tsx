@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { History, Inbox, LogOut, Plus, Settings2, ShoppingBag, Store, Zap, Languages, Moon, Sun, Monitor, Bookmark } from "lucide-react";
+import { History, Inbox, LogOut, Plus, Settings2, ShoppingBag, Store, Zap, Languages, Moon, Sun, Monitor, Puzzle } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
@@ -218,8 +218,8 @@ export function Sidebar() {
               {t.cmd.switchLang}
             </MenuItem>
             <MenuItem onSelect={() => setBookmarkletOpen(true)}>
-              <Bookmark />
-              {t.add.bookmarklet}
+              <Puzzle />
+              {t.ext.menu}
             </MenuItem>
             <MenuSeparator />
             <form action="/api/logout" method="post">

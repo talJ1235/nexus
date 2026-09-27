@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, Link2, ListPlus, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { addSource, createItem, previewFromClient, previewUrl, type ClientPayload } from "@/app/actions";
+import { addSource, createItem, previewFromClient, previewUrl } from "@/app/actions";
+import type { ClientPayload } from "@/lib/service";
 import { useI18n } from "@/components/providers";
 import { Button, Textarea } from "@/components/ui/button";
 import { Modal } from "@/components/ui/overlays";
@@ -11,6 +12,7 @@ import type { PreviewResult } from "@/lib/types";
 import { cn, extractUrls, isHttpUrl } from "@/lib/utils";
 import { hostOf } from "@/lib/stores";
 import { useStore } from "./store";
+import { useExtension } from "./use-extension";
 
 type Job = { id: string; label: string; state: "working" | "done" | "partial" | "skipped" | "failed"; itemId?: string };
 export type Incoming = { url?: string; payload?: ClientPayload } | null;
@@ -25,6 +27,7 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [dup, setDup] = useState<DupPrompt | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const ext = useExtension();
   const started = useRef(false);
 
   const hintCollection = s.view.type === "collection" ? s.view.id : null;
@@ -40,7 +43,14 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
       const label = hostOf(input.url ?? input.payload?.url ?? "") || "…";
       setJobs((js) => [...js, { id, label, state: "working" }]);
       try {
-        const preview = input.payload ? await previewFromClient(input.payload, hintCollection) : await previewUrl(input.url!, hintCollection);
+        let payload = input.payload ?? null;
+        // With the extension installed, read the page in this browser first: real sessions, no bot walls.
+        if (!payload && input.url && ext.available) {
+          patchJob(id, { label: `${label} · ${t.add.viaBrowser}` });
+          const got = await ext.resolve(input.url);
+          if (got?.title) payload = { ...got, url: got.url || input.url };
+        }
+        const preview = payload ? await previewFromClient(payload, hintCollection) : await previewUrl(input.url!, hintCollection);
         let choice: "source" | "separate" | "cancel" = "separate";
         if (preview.duplicate) {
           if (interactive) choice = await askDuplicate(preview);
@@ -67,7 +77,7 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hintCollection, s.upsertItem, s.openItem, t],
+    [hintCollection, s.upsertItem, s.openItem, t, ext.available, ext.resolve],
   );
 
   const runMany = useCallback(

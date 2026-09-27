@@ -5,6 +5,7 @@ import { NexusApp } from "@/components/app/nexus-app";
 import type { Incoming } from "@/components/app/add-bar";
 import { getAppData } from "@/lib/data";
 import { getCurrencyPref } from "@/lib/server-prefs";
+import { extensionToken } from "@/lib/ext-token";
 import { extractUrls } from "@/lib/utils";
 
 export default async function AddPage({ searchParams }: { searchParams: Promise<{ d?: string; url?: string }> }) {
@@ -20,6 +21,11 @@ export default async function AddPage({ searchParams }: { searchParams: Promise<
     const u = extractUrls(url)[0];
     if (u) incoming = { url: u };
   }
-  const [data, currency] = await Promise.all([getAppData(), getCurrencyPref()]);
-  return <NexusApp initial={data} currency={currency} incoming={incoming} />;
+  const [data, currency, token] = await Promise.all([getAppData(), getCurrencyPref(), extensionToken()]);
+  return (
+    <>
+      <meta name="nexus-ext-token" content={token} />
+      <NexusApp initial={data} currency={currency} incoming={incoming} />
+    </>
+  );
 }

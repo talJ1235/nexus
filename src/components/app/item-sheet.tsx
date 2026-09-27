@@ -13,6 +13,7 @@ import type { ItemWithSources, Source } from "@/lib/types";
 import { cn, isHttpUrl } from "@/lib/utils";
 import { PriceTag, ProductImage, usePurchaseToggle } from "./item-card";
 import { useStore } from "./store";
+import { useExtension } from "./use-extension";
 import { COLLECTION_COLORS } from "./view-items";
 
 const SOURCE_CURRENCIES = ["ILS", "USD", "EUR", "GBP", "CNY"];
@@ -43,6 +44,7 @@ function SourceRow({ item, source }: { item: ItemWithSources; source: Source }) 
   const s = useStore();
   const { t, locale } = useI18n();
   const [busy, setBusy] = useState(false);
+  const ext = useExtension();
   const cheapest = cheapestSource(item, s.rates);
   const active = activeSource(item, s.rates);
   const isCheapest = cheapest?.id === source.id && item.sources.length > 1;
@@ -82,7 +84,8 @@ function SourceRow({ item, source }: { item: ItemWithSources; source: Source }) 
             onClick={async () => {
               setBusy(true);
               try {
-                s.upsertItem(await refetchSource(source.id));
+                const payload = ext.available ? await ext.resolve(source.url) : null;
+                s.upsertItem(await refetchSource(source.id, payload));
               } catch {
                 toast.error(t.errors.generic);
               } finally {
@@ -225,7 +228,25 @@ export function ItemSheet() {
     });
   };
 
+  const ext = useExtension();
+  const [repairing, setRepairing] = useState(false);
   const total = item ? lineTotal(item, s.rates, s.currency) : null;
+  const firstSource = item?.sources[0];
+  const missing = !!item && !!firstSource && (!item.imageUrl || !firstSource.rawTitle || item.sources.every((x) => x.price == null));
+  const repair = async () => {
+    if (!item || !firstSource) return;
+    setRepairing(true);
+    try {
+      const payload = ext.available ? await ext.resolve(firstSource.url) : null;
+      const next = await refetchSource(firstSource.id, payload);
+      s.upsertItem(next);
+      toast.success(t.item.saved);
+    } catch {
+      toast.error(t.errors.generic);
+    } finally {
+      setRepairing(false);
+    }
+  };
   const purchased = item?.status === "purchased";
 
   return (
@@ -270,6 +291,16 @@ export function ItemSheet() {
                 </div>
               </div>
             </div>
+
+            {missing && (
+              <div className="mx-4 mb-4 flex items-center gap-3 rounded-xl border border-accent/40 bg-accent-soft/60 px-3 py-2.5 text-sm">
+                <span className="min-w-0 flex-1 text-accent-ink">{ext.available ? t.item.missingExt : t.item.missing}</span>
+                <Button size="sm" variant="accent" onClick={repair} disabled={repairing}>
+                  <RefreshCw className={cn(repairing && "animate-spin")} />
+                  {t.item.refetch}
+                </Button>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3 px-4">
               <div>

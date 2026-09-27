@@ -100,7 +100,15 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration from browser-only storage */
     setLayoutState(readLocal("nexus.layout", ["cards", "table"] as const, "cards"));
     setSortState(readLocal("nexus.sort", ["newest", "price", "priority", "name"] as const, "newest"));
-    setViewState(paramToView(new URLSearchParams(window.location.search).get("v")));
+    const params = new URLSearchParams(window.location.search);
+    setViewState(paramToView(params.get("v")));
+    const itemParam = params.get("item");
+    if (itemParam) {
+      setOpenItemId(itemParam);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("item");
+      window.history.replaceState(null, "", url);
+    }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 

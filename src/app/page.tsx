@@ -4,8 +4,15 @@ export const maxDuration = 60;
 import { NexusApp } from "@/components/app/nexus-app";
 import { getAppData } from "@/lib/data";
 import { getCurrencyPref } from "@/lib/server-prefs";
+import { extensionToken } from "@/lib/ext-token";
 
 export default async function Home() {
-  const [data, currency] = await Promise.all([getAppData(), getCurrencyPref()]);
-  return <NexusApp initial={data} currency={currency} />;
+  const [data, currency, token] = await Promise.all([getAppData(), getCurrencyPref(), extensionToken()]);
+  return (
+    <>
+      {/* Read by the Nexus Clipper extension to pair itself with this site. */}
+      <meta name="nexus-ext-token" content={token} />
+      <NexusApp initial={data} currency={currency} />
+    </>
+  );
 }
