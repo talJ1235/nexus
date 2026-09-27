@@ -38,7 +38,17 @@ export function aiEnabled() {
 
 let workingModel: string | null = null;
 
-async function generateJson<T>(prompt: string, schema: object): Promise<T | null> {
+function parseLooseJson<T>(text: string): T | null {
+  const m = text.match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  try {
+    return JSON.parse(m[0]) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function generateJson<T>(prompt: string, schema: object | null, opts: { urlContext?: boolean } = {}): Promise<T | null> {
   const c = ai();
   if (!c) return null;
   const models = process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL, ...DEFAULT_MODELS] : DEFAULT_MODELS;
@@ -48,12 +58,14 @@ async function generateJson<T>(prompt: string, schema: object): Promise<T | null
       const res = await c.models.generateContent({
         model,
         contents: prompt,
-        config: { responseMimeType: "application/json", responseJsonSchema: schema, temperature: 0.2 },
+        config: opts.urlContext
+          ? { tools: [{ urlContext: {} }], temperature: 0.1 }
+          : { responseMimeType: "application/json", responseJsonSchema: schema ?? undefined, temperature: 0.2 },
       });
       const text = res.text;
       if (!text) continue;
       workingModel = model;
-      return JSON.parse(text) as T;
+      return opts.urlContext ? parseLooseJson<T>(text) : (JSON.parse(text) as T);
     } catch (e) {
       const msg = String((e as Error)?.message ?? e);
       // Unknown / retired model → try the next one. Rate limits or other errors → give up quietly.
@@ -90,7 +102,7 @@ Product:
 - Description: ${(input.description ?? "").slice(0, 500)}
 
 Tasks:
-1. "title": a short clean product name (max ~70 chars). Keep model numbers and key specs (size, voltage, capacity). Drop marketing fluff, shipping claims and store names. Keep the language of the original title.
+1. "title": a short, clean, human product name (max ~70 chars), like a shop assistant would write it. Keep the product type, brand/model number and the 1-2 specs that identify it (size, color, voltage, capacity). Drop marketing fluff, shipping claims, keyword stuffing, store names and SKU codes. If the raw title is in Hebrew keep Hebrew; if it is English keep English; if it is any other language (e.g. German/Chinese from a localized store) translate it to English. If the raw title is only a URL slug or generic text like "KSP item", infer the best name you can from the URL and description.
 2. "brand": brand if clear, else null.
 3. "category": exactly one of: ${CATEGORIES.join(", ")}.
 4. "tags": 1-4 short lowercase English tags describing the product type (e.g. "stepper motor", "cable", "lighting"). Prefer reusing these existing tags when they fit: ${input.knownTags.slice(0, 60).join(", ") || "(none yet)"}.
@@ -136,4 +148,22 @@ ${pageText.slice(0, 10000)}`;
     required: ["title", "price", "currency", "brand"],
   };
   return generateJson<{ title: string | null; price: number | null; currency: string | null; brand: string | null }>(prompt, schema);
+}
+
+export type UrlContextResult = { title: string | null; price: number | null; currency: string | null; imageUrl: string | null; brand: string | null };
+
+/** Let Gemini fetch the page itself (Google's fetcher is blocked less often than serverless IPs). */
+export async function extractWithUrlContext(url: string): Promise<UrlContextResult | null> {
+  const prompt = `Open this product page and read it: ${url}
+
+Return ONLY a JSON object, no prose, with these keys:
+{"title": string|null, "price": number|null, "currency": "ISO 4217 code"|null, "imageUrl": "absolute URL of the main product image"|null, "brand": string|null}
+
+Rules: "title" is the product's real name as shown on the page. "price" is the current selling price for one unit (the discounted price if on sale), as a plain number. Use null for anything you cannot see on the page — never guess.`;
+  const out = await generateJson<UrlContextResult>(prompt, null, { urlContext: true });
+  if (!out) return null;
+  const price = typeof out.price === "number" && out.price > 0 ? out.price : null;
+  const imageUrl = typeof out.imageUrl === "string" && /^https?:\/\//.test(out.imageUrl) ? out.imageUrl : null;
+  const title = typeof out.title === "string" && out.title.trim().length > 2 ? out.title.trim() : null;
+  return { title, price, currency: out.currency?.toUpperCase?.() ?? null, imageUrl, brand: out.brand ?? null };
 }

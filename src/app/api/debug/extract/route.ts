@@ -1,6 +1,9 @@
 import { type NextRequest } from "next/server";
 import { desc } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { previewUrl } from "@/app/actions";
+
+export const maxDuration = 60;
 
 // Owner-only diagnostics (behind the session proxy). Shows what the server actually receives from a store.
 export async function GET(req: NextRequest) {
@@ -10,6 +13,13 @@ export async function GET(req: NextRequest) {
     return Response.json({ recent });
   }
   const started = Date.now();
+  if (req.nextUrl.searchParams.get("full")) {
+    try {
+      return Response.json({ ms: 0, ...(await previewUrl(url)), took: Date.now() - started });
+    } catch (e) {
+      return Response.json({ error: String(e) });
+    }
+  }
   try {
     const res = await fetch(url, {
       redirect: "follow",

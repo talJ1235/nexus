@@ -1,3 +1,6 @@
+// Server actions on this page may fetch store pages and call Gemini.
+export const maxDuration = 60;
+
 import { NexusApp } from "@/components/app/nexus-app";
 import type { Incoming } from "@/components/app/add-bar";
 import { getAppData } from "@/lib/data";

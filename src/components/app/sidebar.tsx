@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { History, Inbox, LogOut, Plus, Settings2, ShoppingBag, Store, Zap, Languages, Moon, Sun, Monitor, Bookmark, Command } from "lucide-react";
+import { History, Inbox, LogOut, Plus, Settings2, ShoppingBag, Store, Zap, Languages, Moon, Sun, Monitor, Bookmark } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
@@ -105,8 +105,7 @@ export function Sidebar() {
           className="hidden items-center gap-1 rounded-md px-1.5 py-1 text-faint transition hover:bg-sunken hover:text-fg lg:flex"
           title={t.cmd.placeholder}
         >
-          <Command className="size-3.5" />
-          <Kbd>K</Kbd>
+          <Kbd>Esc</Kbd>
         </button>
       </div>
 

@@ -5,9 +5,9 @@ import { and, eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db, schema } from "@/db";
-import { categorize, extractWithAi } from "@/lib/ai";
+import { categorize, extractWithAi, extractWithUrlContext } from "@/lib/ai";
 import { getItem, loadItems } from "@/lib/data";
-import { extractFromUrl, type Extracted } from "@/lib/extract";
+import { extractFromUrl, hintsFromUrl, type Extracted } from "@/lib/extract";
 import { storeThumbnail } from "@/lib/images";
 import { parsePrice } from "@/lib/money";
 import { SESSION_COOKIE, verifySessionValue } from "@/lib/session";
@@ -55,10 +55,18 @@ async function findDuplicate(normalizedUrl: string, title: string | null): Promi
   return best ? { itemId: best.id, title: best.title, reason: "title" } : null;
 }
 
-async function buildDraft(ex: Extracted, hintCollectionId: string | null): Promise<ItemDraft> {
-  let { title, price, currency, brand } = ex;
+async function buildDraft(ex: Extracted, hintCollectionId: string | null, originalUrl?: string): Promise<ItemDraft> {
+  let { title, price, currency, brand, image } = ex;
   let method: string = ex.method;
+  const hints = hintsFromUrl(originalUrl ?? ex.url);
 
+  if (price == null && hints.price != null) {
+    price = hints.price;
+    currency = hints.currency;
+    method = `${method}+url`;
+  }
+
+  // 1) Page was readable but thin → let the model read the page text.
   if ((!title || price == null) && ex.pageText && !ex.blocked) {
     const ai = await extractWithAi(ex.url, ex.pageText);
     if (ai) {
@@ -69,9 +77,24 @@ async function buildDraft(ex: Extracted, hintCollectionId: string | null): Promi
       if (price == null && ai.price && ai.price > 0) {
         price = ai.price;
         currency = ai.currency?.toUpperCase() ?? currency;
-        if (method !== "ai") method = `${method}+ai`;
+        method = `${method}+ai`;
       }
       brand ??= ai.brand;
+    }
+  }
+
+  // 2) Store blocked us or data still missing → ask Gemini to open the page itself.
+  if (ex.method !== "client" && (!title || price == null || !image)) {
+    const uc = await extractWithUrlContext(originalUrl ?? ex.url);
+    if (uc) {
+      if (!title && uc.title) title = uc.title;
+      if (price == null && uc.price != null) {
+        price = uc.price;
+        currency = uc.currency ?? currency;
+      }
+      if (!image && uc.imageUrl) image = uc.imageUrl;
+      brand ??= uc.brand;
+      method = `${method}+gemini-url`;
     }
   }
 
@@ -83,14 +106,15 @@ async function buildDraft(ex: Extracted, hintCollectionId: string | null): Promi
   let category: string | null = null;
   let tags: string[] = [];
   let collectionId = hintCollectionId;
-  let cleanTitle = title;
+  const rawTitle = title ?? hints.slugTitle;
+  let cleanTitle = rawTitle;
 
-  if (title) {
+  if (rawTitle) {
     const tagRows = await db.select({ tags: schema.items.tags }).from(schema.items);
     const counts = new Map<string, number>();
     for (const r of tagRows) for (const t of r.tags ?? []) counts.set(t, (counts.get(t) ?? 0) + 1);
     const knownTags = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
-    const cat = await categorize({ title, description: ex.description, store: ex.store.name, url: ex.url, collections, knownTags });
+    const cat = await categorize({ title: rawTitle, description: ex.description, store: ex.store.name, url: ex.url, collections, knownTags });
     if (cat) {
       cleanTitle = cat.title;
       brand ??= cat.brand;
@@ -100,24 +124,12 @@ async function buildDraft(ex: Extracted, hintCollectionId: string | null): Promi
     }
   }
 
-  const quality: ItemDraft["quality"] = title && price != null ? "full" : title || price != null ? "partial" : "failed";
-  const fallbackTitle = (() => {
-    try {
-      const u = new URL(ex.url);
-      const slug = decodeURIComponent(u.pathname.split("/").filter(Boolean).pop() ?? "")
-        .replace(/\.(html?|aspx?|php)$/i, "")
-        .replace(/[-_+]+/g, " ")
-        .trim();
-      return slug && !/^\d+$/.test(slug) ? slug.slice(0, 120) : `${ex.store.name} item`;
-    } catch {
-      return "New item";
-    }
-  })();
+  const quality: ItemDraft["quality"] = title && price != null && image ? "full" : title || price != null ? "partial" : "failed";
 
   return {
-    title: cleanTitle || fallbackTitle,
+    title: cleanTitle || `${ex.store.name} item`,
     brand: brand ?? null,
-    imageUrl: ex.image,
+    imageUrl: image,
     category,
     tags,
     collectionId,
@@ -131,7 +143,7 @@ async function buildDraft(ex: Extracted, hintCollectionId: string | null): Promi
       currency: (currency ?? storeFromUrl(ex.url).currency ?? "USD").toUpperCase(),
       shipping: null,
       availability: ex.availability,
-      rawTitle: ex.title,
+      rawTitle: title,
       extractMethod: method,
     },
   };
@@ -154,7 +166,7 @@ export async function previewUrl(url: string, hintCollectionId: string | null = 
     };
   }
   const ex = await extractFromUrl(clean);
-  const draft = await buildDraft(ex, hintCollectionId);
+  const draft = await buildDraft(ex, hintCollectionId, clean);
   const duplicate = await findDuplicate(draft.source.normalizedUrl, draft.title);
   return { draft, duplicate };
 }
@@ -265,6 +277,20 @@ export async function addSourceFromUrl(itemId: string, url: string): Promise<Ite
       currency = ai.currency ?? currency;
     }
   }
+  let image = ex.image;
+  if (price == null || !image) {
+    const uc = await extractWithUrlContext(url.trim());
+    if (price == null && uc?.price != null) {
+      price = uc.price;
+      currency = uc.currency ?? currency;
+    }
+    image ??= uc?.imageUrl ?? null;
+  }
+  const hints = hintsFromUrl(url.trim());
+  if (price == null && hints.price != null) {
+    price = hints.price;
+    currency = hints.currency;
+  }
   return addSource(
     itemId,
     {
@@ -279,7 +305,7 @@ export async function addSourceFromUrl(itemId: string, url: string): Promise<Ite
       rawTitle: ex.title,
       extractMethod: ex.method,
     },
-    ex.image,
+    image,
   );
 }
 

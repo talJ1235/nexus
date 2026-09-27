@@ -30,12 +30,36 @@ const HEADERS: Record<string, string> = {
   "upgrade-insecure-requests": "1",
 };
 
-async function fetchHtml(url: string) {
-  if (!isPublicHttpUrl(url)) throw new Error("blocked_host");
+/** Some stores answer better on a canonical URL (no tracking junk, global English site). */
+function fetchTarget(url: string): { url: string; headers: Record<string, string> } {
+  const ali = url.match(/aliexpress\.[a-z.]+\/item\/(\d+)\.html/i);
+  if (ali) {
+    return {
+      url: `https://www.aliexpress.com/item/${ali[1]}.html`,
+      headers: { ...HEADERS, "accept-language": "en-US,en;q=0.9", cookie: "aep_usuc_f=site=glo&c_tp=USD&region=IL&b_locale=en_US; intl_locale=en_US; xman_us_f=x_locale=en_US&x_l=0" },
+    };
+  }
+  return { url: stripTracking(url), headers: HEADERS };
+}
+
+function stripTracking(url: string) {
+  try {
+    const u = new URL(url);
+    for (const k of Array.from(u.searchParams.keys())) if (/^(utm_|gclid|gbraid|wbraid|gad_|fbclid|msclkid|spm|scm|algo_|pdp_|srcSns|_randl)/i.test(k)) u.searchParams.delete(k);
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
+async function fetchHtml(inputUrl: string) {
+  if (!isPublicHttpUrl(inputUrl)) throw new Error("blocked_host");
+  const target = fetchTarget(inputUrl);
+  const url = target.url;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 9000);
   try {
-    const res = await fetch(url, { headers: HEADERS, redirect: "follow", signal: ctrl.signal, cache: "no-store" });
+    const res = await fetch(url, { headers: target.headers, redirect: "follow", signal: ctrl.signal, cache: "no-store" });
     const type = res.headers.get("content-type") ?? "";
     if (!type.includes("html")) return { finalUrl: res.url || url, html: null, status: res.status };
     // Cap at ~2.5MB to stay within function memory/time.
@@ -235,7 +259,55 @@ function cleanTitle(t: string, siteName: string | null) {
   return out.slice(0, 300);
 }
 
-const BLOCK_HINTS = /captcha|access denied|robot check|are you a human|verify you are human|pardon our interruption|cf-chl|just a moment/i;
+const BLOCK_HINTS = /captcha|access denied|robot check|are you a human|verify you are human|pardon our interruption|cf-chl|just a moment|forbidden|attention required|punish|slide to verify/i;
+
+/** Data we can read from the link itself, before fetching anything. */
+export function hintsFromUrl(url: string): { price: number | null; currency: string | null; slugTitle: string | null } {
+  let price: number | null = null;
+  let currency: string | null = null;
+  try {
+    const u = new URL(url);
+    // AliExpress search/recommendation links carry the shown price: pdp_npi=...dis!ILS!<orig>!<sale>!...
+    const npi = u.searchParams.get("pdp_npi");
+    const m = npi?.match(/dis!([A-Z]{3})!([\d.]+)!([\d.]*)!/);
+    if (m) {
+      const sale = parseFloat(m[3]);
+      const orig = parseFloat(m[2]);
+      price = sale > 0 ? sale : orig > 0 ? orig : null;
+      currency = price ? m[1] : null;
+    }
+    const seg = decodeURIComponent(u.pathname.split("/").filter(Boolean).pop() ?? "")
+      .replace(/\.(html?|aspx?|php)$/i, "")
+      .replace(/[-_+]+/g, " ")
+      .trim();
+    const slugTitle = seg && !/^\d+$/.test(seg) && /[\p{L}]{3,}/u.test(seg) ? seg.slice(0, 140) : null;
+    return { price, currency, slugTitle };
+  } catch {
+    return { price, currency, slugTitle: null };
+  }
+}
+
+/** Store-specific extras when generic metadata is thin. */
+function storeSpecific(html: string, storeKey: string): { price: number | null; currency: string | null; title: string | null } {
+  if (storeKey === "aliexpress") {
+    const patterns = [
+      /"formatedActivityPrice"\s*:\s*"([^"]+)"/,
+      /"formatedAmount"\s*:\s*"([^"]+)"/,
+      /"salePrice"\s*:\s*\{[^}]*"formattedPrice"\s*:\s*"([^"]+)"/,
+      /"minActivityAmount"\s*:\s*\{[^}]*"value"\s*:\s*([\d.]+)/,
+      /"minAmount"\s*:\s*\{[^}]*"value"\s*:\s*([\d.]+)/,
+    ];
+    const cur = html.match(/"currencyCode"\s*:\s*"([A-Z]{3})"/)?.[1] ?? null;
+    for (const re of patterns) {
+      const hit = html.match(re)?.[1];
+      const p = hit ? parsePrice(hit, cur ?? "USD") : null;
+      if (p) return { price: p.amount, currency: p.currency ?? cur, title: null };
+    }
+    const title = html.match(/"subject"\s*:\s*"([^"]{8,400})"/)?.[1] ?? null;
+    return { price: null, currency: null, title };
+  }
+  return { price: null, currency: null, title: null };
+}
 
 export async function extractFromUrl(inputUrl: string): Promise<Extracted> {
   const base = {
@@ -268,6 +340,15 @@ export async function extractFromUrl(inputUrl: string): Promise<Extracted> {
   const parsed = parseHtml(fetched.html, finalUrl);
   const blocked = fetched.status >= 400 || (!parsed.price && BLOCK_HINTS.test((parsed.title ?? "") + " " + (parsed.pageText ?? "").slice(0, 400)));
   const storeWithSite = storeFromUrl(finalUrl, parsed.siteName);
+  if (!blocked) {
+    const extra = storeSpecific(fetched.html, storeWithSite.key);
+    if (parsed.price == null && extra.price != null) {
+      parsed.price = extra.price;
+      parsed.currency = extra.currency;
+    }
+    if (!parsed.title && extra.title) parsed.title = extra.title;
+  }
+  if (parsed.title) parsed.title = parsed.title.replace(/\s*-\s*AliExpress(\s*\d+)?\s*$/i, "").trim();
   return {
     ...parsed,
     title: blocked && parsed.method === "title" ? null : parsed.title,

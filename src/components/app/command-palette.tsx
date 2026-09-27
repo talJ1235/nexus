@@ -26,6 +26,19 @@ export function CommandPalette() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         s.setPaletteOpen(!s.paletteOpen);
+        return;
+      }
+      // Esc opens the palette when nothing else is open (Esc inside any dialog still closes that dialog).
+      if (e.key === "Escape" && !e.defaultPrevented && !s.paletteOpen) {
+        if (document.querySelector('[role="dialog"], [role="menu"], [data-radix-popper-content-wrapper]')) return;
+        const el = e.target as HTMLElement | null;
+        if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) {
+          const v = (el as HTMLInputElement).value;
+          if (v) return; // Esc in a filled field just leaves it alone
+          el.blur();
+        }
+        e.preventDefault();
+        s.setPaletteOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
