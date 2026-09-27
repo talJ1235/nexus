@@ -24,6 +24,14 @@ export function Modal({
       <D.Portal>
         <D.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] overlay-in" />
         <D.Content
+          onOpenAutoFocus={(e) => {
+            // Focus the first field if the dialog has one; otherwise the dialog itself (no stray ring on the close button).
+            const root = e.currentTarget as HTMLElement;
+            if (!root.querySelector("[autofocus], input:not([type=hidden]), textarea")) {
+              e.preventDefault();
+              root.focus();
+            }
+          }}
           className={cn(
             "fixed inset-x-0 top-[12vh] z-50 mx-auto w-[calc(100vw-24px)] max-w-md animate-pop-in rounded-2xl border border-line bg-surface p-5 shadow-pop outline-none",
             className,

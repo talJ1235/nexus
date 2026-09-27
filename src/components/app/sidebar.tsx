@@ -1,19 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { History, Inbox, LogOut, Plus, Settings2, ShoppingBag, Store, Zap, Languages, Moon, Sun, Monitor, Puzzle } from "lucide-react";
-import { useTheme } from "next-themes";
+import { History, Inbox, Plus, Settings2, ShoppingBag, Store, Zap } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { Kbd } from "@/components/ui/button";
-import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { budgetStats } from "@/lib/calc";
-import { CURRENCIES, type Currency } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { useStore, type View } from "./store";
 import { COLLECTION_COLORS, itemsForView } from "./view-items";
-import { BookmarkletDialog } from "./bookmarklet";
-import { useState } from "react";
 
 function sameView(a: View, b: View) {
   if (a.type !== b.type) return false;
@@ -58,9 +53,7 @@ function SectionHeader({ label, onAdd, addLabel }: { label: string; onAdd?: () =
 
 export function Sidebar() {
   const s = useStore();
-  const { t, locale, setLocale } = useI18n();
-  const { theme, setTheme } = useTheme();
-  const [bookmarkletOpen, setBookmarkletOpen] = useState(false);
+  const { t } = useI18n();
 
   const counts = useMemo(
     () => ({
@@ -182,58 +175,16 @@ export function Sidebar() {
       </div>
 
       <div className="border-t border-line p-2">
-        <Menu>
-          <MenuTrigger asChild>
-            <button type="button" className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] text-muted transition hover:bg-sunken hover:text-fg">
-              <Settings2 className="size-4" />
-              <span className="flex-1 text-start">{t.nav.settings}</span>
-              <span className="tabular text-xs text-faint">{s.currency}</span>
-            </button>
-          </MenuTrigger>
-          <MenuContent align="start" className="w-60">
-            <MenuLabel>{t.settings.currency}</MenuLabel>
-            <MenuRadioGroup value={s.currency} onValueChange={(v) => s.setCurrency(v as Currency)}>
-              {CURRENCIES.map((c) => (
-                <MenuRadioItem key={c} value={c}>
-                  {c === "ILS" ? "₪ ILS" : c === "USD" ? "$ USD" : "€ EUR"}
-                </MenuRadioItem>
-              ))}
-            </MenuRadioGroup>
-            <MenuSeparator />
-            <MenuLabel>{t.settings.theme}</MenuLabel>
-            <MenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>
-              <MenuRadioItem value="system">
-                <span className="flex items-center gap-2.5"><Monitor className="size-4 text-muted" />{t.settings.system}</span>
-              </MenuRadioItem>
-              <MenuRadioItem value="dark">
-                <span className="flex items-center gap-2.5"><Moon className="size-4 text-muted" />{t.settings.dark}</span>
-              </MenuRadioItem>
-              <MenuRadioItem value="light">
-                <span className="flex items-center gap-2.5"><Sun className="size-4 text-muted" />{t.settings.light}</span>
-              </MenuRadioItem>
-            </MenuRadioGroup>
-            <MenuSeparator />
-            <MenuItem onSelect={() => setLocale(locale === "en" ? "he" : "en")}>
-              <Languages />
-              {t.cmd.switchLang}
-            </MenuItem>
-            <MenuItem onSelect={() => setBookmarkletOpen(true)}>
-              <Puzzle />
-              {t.ext.menu}
-            </MenuItem>
-            <MenuSeparator />
-            <form action="/api/logout" method="post">
-              <MenuItem asChild>
-                <button type="submit" className="w-full">
-                  <LogOut />
-                  {t.nav.signOut}
-                </button>
-              </MenuItem>
-            </form>
-          </MenuContent>
-        </Menu>
+        <button
+          type="button"
+          onClick={() => s.setSettingsOpen(true)}
+          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] text-muted transition hover:bg-sunken hover:text-fg"
+        >
+          <Settings2 className="size-4" />
+          <span className="flex-1 text-start">{t.nav.settings}</span>
+          <span className="tabular text-xs text-faint">{s.currency}</span>
+        </button>
       </div>
-      <BookmarkletDialog open={bookmarkletOpen} onOpenChange={setBookmarkletOpen} />
     </nav>
   );
 }

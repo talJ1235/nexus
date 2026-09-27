@@ -165,6 +165,13 @@ export const en = {
   },
   settings: {
     title: "Settings",
+    open: "Open settings",
+    display: "Display",
+    account: "Account",
+    extension: "Browser extension",
+    setUp: "Set up",
+    manage: "Manage",
+    ratesFallback: "Using approximate exchange rates",
     currency: "Show prices in",
     language: "Language",
     theme: "Theme",

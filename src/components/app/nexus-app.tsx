@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { AddBar, type Incoming } from "./add-bar";
 import { CollectionDialog } from "./collection-dialog";
 import { CommandPalette } from "./command-palette";
+import { SettingsDialog } from "./settings-dialog";
 import { ItemCard } from "./item-card";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
@@ -58,15 +59,23 @@ function Shell({ incoming }: { incoming?: Incoming }) {
         </header>
         <main className="mx-auto max-w-[1400px] px-4 pb-24 pt-6 sm:px-6 lg:px-8">
           <ViewHeader />
-          <Content />
+          {/* Re-keyed per view so switching views fades the new content in once. */}
+          <div key={viewKey(s.view) + s.layout} className="content-in">
+            <Content />
+          </div>
         </main>
       </div>
 
       <ItemSheet />
       <CollectionDialog />
       <CommandPalette />
+      <SettingsDialog />
     </div>
   );
+}
+
+function viewKey(v: ReturnType<typeof useStore>["view"]) {
+  return v.type === "collection" ? `c:${v.id}` : v.type === "store" ? `s:${v.key}` : v.type;
 }
 
 function ViewHeader() {
@@ -287,8 +296,8 @@ function Content() {
   if (s.layout === "table") return <ItemTable items={items} />;
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] sm:gap-4">
-      {items.map((i, idx) => (
-        <ItemCard key={i.id} item={i} index={idx} />
+      {items.map((i) => (
+        <ItemCard key={i.id} item={i} />
       ))}
     </div>
   );

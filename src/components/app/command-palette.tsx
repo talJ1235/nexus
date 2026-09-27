@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { Command } from "cmdk";
 import { Dialog as D } from "radix-ui";
-import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins } from "lucide-react";
+import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Kbd } from "@/components/ui/button";
@@ -15,6 +15,17 @@ import { COLLECTION_COLORS } from "./view-items";
 const itemCls =
   "flex h-11 cursor-default select-none items-center gap-3 rounded-lg px-3 text-sm text-fg outline-none data-[selected=true]:bg-sunken [&_svg]:size-4 [&_svg]:text-muted";
 const groupCls = "px-1.5 pb-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:text-faint";
+
+/** Word-aware matching: "sett" finds "Open settings", not every value that happens to contain s-e-t-t. */
+function paletteFilter(value: string, search: string) {
+  const q = search.toLowerCase().trim();
+  if (!q) return 1;
+  const v = value.toLowerCase();
+  const words = q.split(/\s+/);
+  if (!words.every((w) => v.includes(w))) return 0;
+  const wordStarts = words.every((w) => new RegExp(`(^|[\\s/,.-])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(v));
+  return wordStarts ? 1 : 0.5;
+}
 
 export function CommandPalette() {
   const s = useStore();
@@ -57,7 +68,7 @@ export function CommandPalette() {
         <D.Content className="fixed inset-x-0 top-[10vh] z-50 mx-auto w-[calc(100vw-24px)] max-w-[600px] animate-pop-in overflow-hidden rounded-2xl border border-line bg-raised shadow-pop outline-none">
           <D.Title className="sr-only">{t.cmd.placeholder}</D.Title>
           <D.Description className="sr-only">{t.cmd.placeholder}</D.Description>
-          <Command loop label={t.cmd.placeholder} className="flex max-h-[min(560px,75vh)] flex-col">
+          <Command loop filter={paletteFilter} label={t.cmd.placeholder} className="flex max-h-[min(560px,75vh)] flex-col">
             <div className="flex items-center gap-3 border-b border-line px-4">
               <Search className="size-4 text-faint" />
               <Command.Input autoFocus placeholder={t.cmd.placeholder} className="h-13 flex-1 bg-transparent py-4 text-[15px] outline-none placeholder:text-faint" />
@@ -79,8 +90,17 @@ export function CommandPalette() {
                 <Command.Item value={`layout ${t.view.cards} ${t.view.table}`} onSelect={() => run(() => s.setLayout(s.layout === "cards" ? "table" : "cards"))} className={itemCls}>
                   {s.layout === "cards" ? <Rows3 /> : <LayoutGrid />} {s.layout === "cards" ? t.view.table : t.view.cards}
                 </Command.Item>
+              </Command.Group>
+
+              <Command.Group heading={t.settings.title} className={groupCls}>
+                <Command.Item value={`settings preferences ${t.settings.open}`} onSelect={() => run(() => s.setSettingsOpen(true))} className={itemCls}>
+                  <Settings2 /> {t.settings.open}
+                </Command.Item>
                 <Command.Item value={`theme dark light ${t.cmd.toggleTheme}`} onSelect={() => run(() => setTheme(resolvedTheme === "dark" ? "light" : "dark"))} className={itemCls}>
-                  <Moon /> {t.cmd.toggleTheme}
+                  {resolvedTheme === "dark" ? <Sun /> : <Moon />} {t.cmd.toggleTheme}
+                </Command.Item>
+                <Command.Item value={`theme system ${t.settings.theme} ${t.settings.system}`} onSelect={() => run(() => setTheme("system"))} className={itemCls}>
+                  <Monitor /> {t.settings.theme}: {t.settings.system}
                 </Command.Item>
                 <Command.Item value={`language hebrew english ${t.cmd.switchLang}`} onSelect={() => run(() => setLocale(locale === "en" ? "he" : "en"))} className={itemCls}>
                   <Languages /> {t.cmd.switchLang}
@@ -90,6 +110,24 @@ export function CommandPalette() {
                     <Coins /> {t.settings.currency} {c}
                   </Command.Item>
                 ))}
+                <Command.Item value={`extension clipper chrome ${t.settings.extension}`} onSelect={() => run(() => s.setExtOpen(true))} className={itemCls}>
+                  <Puzzle /> {t.settings.extension}
+                </Command.Item>
+                <Command.Item
+                  value={`logout sign out ${t.nav.signOut}`}
+                  onSelect={() =>
+                    run(() => {
+                      const f = document.createElement("form");
+                      f.method = "post";
+                      f.action = "/api/logout";
+                      document.body.appendChild(f);
+                      f.submit();
+                    })
+                  }
+                  className={itemCls}
+                >
+                  <LogOut /> {t.nav.signOut}
+                </Command.Item>
               </Command.Group>
 
               <Command.Group heading={t.cmd.collections} className={groupCls}>

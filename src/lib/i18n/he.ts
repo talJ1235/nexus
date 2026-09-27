@@ -167,6 +167,13 @@ export const he: Dict = {
   },
   settings: {
     title: "הגדרות",
+    open: "פתח הגדרות",
+    display: "תצוגה",
+    account: "חשבון",
+    extension: "תוסף לדפדפן",
+    setUp: "התקנה",
+    manage: "ניהול",
+    ratesFallback: "משתמש בשערי מטבע משוערים",
     currency: "הצג מחירים ב",
     language: "שפה",
     theme: "ערכת נושא",

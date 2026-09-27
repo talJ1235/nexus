@@ -41,6 +41,10 @@ type Store = {
   paletteOpen: boolean;
   setPaletteOpen: (o: boolean) => void;
   navOpen: boolean;
+  settingsOpen: boolean;
+  setSettingsOpen: (o: boolean) => void;
+  extOpen: boolean;
+  setExtOpen: (o: boolean) => void;
   setNavOpen: (o: boolean) => void;
   focusAdd: () => void;
 };
@@ -94,6 +98,8 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
   const [editor, setEditor] = useState<Editor>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [extOpen, setExtOpen] = useState(false);
 
   // Restore per-device UI prefs + view from URL after mount.
   useEffect(() => {
@@ -198,10 +204,14 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
       paletteOpen,
       setPaletteOpen,
       navOpen,
+      settingsOpen,
+      setSettingsOpen,
+      extOpen,
+      setExtOpen,
       setNavOpen,
       focusAdd,
     }),
-    [items, collections, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, focusAdd],
+    [items, collections, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

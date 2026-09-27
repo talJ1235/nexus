@@ -2,7 +2,7 @@ import { ItemCardSkeleton } from "@/components/app/item-card";
 
 export default function Loading() {
   return (
-    <div className="flex min-h-dvh">
+    <div className="loading-shell flex min-h-dvh" aria-busy="true">
       <aside className="hidden w-[264px] shrink-0 border-e border-line lg:block">
         <div className="space-y-3 p-4">
           <div className="skeleton h-7 w-28 rounded-lg" />

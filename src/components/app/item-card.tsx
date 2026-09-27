@@ -62,7 +62,7 @@ export function PriceTag({ item, size = "md" }: { item: ItemWithSources; size?: 
   return <span className={cn("price-tag", size === "lg" ? "text-lg" : "text-[14px]")}>{formatMoney(unit, s.currency, locale)}</span>;
 }
 
-export function ItemCard({ item, index }: { item: ItemWithSources; index: number }) {
+export function ItemCard({ item }: { item: ItemWithSources }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
   const toggle = usePurchaseToggle();
@@ -85,7 +85,6 @@ export function ItemCard({ item, index }: { item: ItemWithSources; index: number
       className={cn(
         "group relative flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface transition-[border-color,box-shadow] hover:border-line-strong hover:shadow-card",
       )}
-      style={{ animationDelay: `${Math.min(index, 12) * 18}ms` }}
     >
       <button type="button" onClick={() => s.openItem(item.id)} className="absolute inset-0 z-[1] rounded-[var(--radius-card)]" aria-label={item.title} />
 

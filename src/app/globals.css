@@ -80,16 +80,22 @@
   --shadow-pop: var(--shadow-pop);
   --font-sans: "Rubik Variable", ui-sans-serif, system-ui, sans-serif;
   --radius-card: 14px;
-  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
-  --animate-pop-in: pop-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  --animate-shimmer: shimmer 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  --animate-pop-in: pop-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* One band of light sweeps the whole viewport; every skeleton block shows its slice of it
+   (background-attachment: fixed), so the page shimmers as a single surface instead of many. */
 @keyframes shimmer {
-  0% { background-position: 150% 0; }
-  100% { background-position: -50% 0; }
+  from { background-position: 100vw 0; }
+  to { background-position: -100vw 0; }
 }
 @keyframes pop-in {
-  from { opacity: 0; transform: scale(0.97) translateY(4px); }
+  from { opacity: 0; transform: scale(0.985) translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes content-in {
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
 }
 
@@ -117,10 +123,22 @@ body {
 
 /* Skeleton shimmer */
 .skeleton {
-  background: linear-gradient(90deg, var(--sunken) 25%, var(--line) 50%, var(--sunken) 75%);
-  background-size: 200% 100%;
+  background-color: var(--sunken);
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--line) 70%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 100vw 100%;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   animation: var(--animate-shimmer);
 }
+/* Skeleton screens appear only if loading takes a moment — no flash on fast loads. */
+.loading-shell { animation: fade 320ms ease-out 220ms both; }
+/* Content arrives as one calm fade, not card by card. */
+.content-in { animation: content-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 /* Price tag: notched shape on the leading edge (flips in RTL). */
 .price-tag {
