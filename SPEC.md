@@ -94,8 +94,8 @@ Failure at any step degrades gracefully to a partially filled, editable item.
   Guests never see receipts or items outside shared collections. Owner sees "Added by".
 
 ## Round 4 — Session A: look & feel (shipped)
-- **Palette "Ink & Iris"** (tokens only, `globals.css`): cool graphite neutrals, one iris accent for actions/focus,
-  prices on a soft iris tag (`--tag`/`--tag-fg`), neutral image swatch (`--tile`, `--tile-ink`).
+- **Palette "Ink & Teal"** (tokens only, `globals.css`): cool graphite neutrals, one teal accent for actions/focus, stronger bg↔card contrast,
+  prices on a soft teal tag (`--tag`/`--tag-fg`), neutral image swatch (`--tile`, `--tile-ink`).
 - **Mixed Hebrew/English text**: titles and user text use the `.bidi` class (`unicode-bidi: plaintext` + alignment to
   the page's start edge). No `dir="auto"` on titles; only assistant chat text keeps it.
 - **One loader**: `components/ui/spinner.tsx` — `Spinner` (masked conic ring, transform-only, 1.15 s) and `ThinkingDots`

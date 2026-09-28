@@ -3,59 +3,59 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------- Design tokens ----------
-   "Ink & Iris": cool graphite neutrals, one calm iris accent for actions and focus,
-   prices on a soft iris tag. Product images sit on a light neutral swatch in both themes (catalog look). */
+   "Ink & Teal": graphite neutrals with clear surface/background contrast, one teal accent for actions
+   and focus, prices on a soft teal tag. Product images sit on a light neutral swatch in both themes (catalog look). */
 :root {
-  --bg: #f5f6f8;
+  --bg: #eceef2;
   --surface: #ffffff;
   --raised: #ffffff;
-  --sunken: #eef0f3;
-  --line: #e4e7ec;
-  --line-strong: #d0d5dd;
+  --sunken: #e4e7ec;
+  --line: #dcdfe5;
+  --line-strong: #c3c9d2;
   --fg: #12151b;
-  --muted: #5b6472;
-  --faint: #969dab;
-  --accent: #5b5bd6;
-  --accent-strong: #4b4ac4;
-  --accent-ink: #4643b8;
+  --muted: #535c6a;
+  --faint: #8a92a0;
+  --accent: #0e8f84;
+  --accent-strong: #0b7a70;
+  --accent-ink: #0a6c63;
   --accent-fg: #ffffff;
-  --accent-soft: #efefff;
-  --tag: #ecebfe;
-  --tag-fg: #2f2c8f;
+  --accent-soft: #e0f4f1;
+  --tag: #d9f1ed;
+  --tag-fg: #0a5a53;
   --ok: #16925a;
   --ok-soft: #e1f5ea;
   --danger: #d9463a;
   --danger-soft: #fce8e5;
   --info: #2f7fd8;
-  --tile: #f1f2f5;
+  --tile: #f4f5f7;
   --tile-ink: #aab0bc;
   --shadow: 0 1px 2px rgb(18 21 27 / 0.05), 0 6px 18px -8px rgb(18 21 27 / 0.12);
   --shadow-pop: 0 18px 44px -14px rgb(18 21 27 / 0.26), 0 2px 6px rgb(18 21 27 / 0.06);
 }
 
 .dark {
-  --bg: #0f1115;
-  --surface: #15181d;
-  --raised: #1b1f25;
-  --sunken: #0b0d10;
-  --line: #22262e;
-  --line-strong: #30353f;
+  --bg: #08090c;
+  --surface: #171a20;
+  --raised: #1e222a;
+  --sunken: #0e1014;
+  --line: #2a2f38;
+  --line-strong: #3a404b;
   --fg: #e9ebf0;
-  --muted: #8d95a3;
-  --faint: #5b6271;
-  --accent: #6b6ce8;
-  --accent-strong: #7f80f2;
-  --accent-ink: #a9abff;
+  --muted: #98a0ad;
+  --faint: #667080;
+  --accent: #14a898;
+  --accent-strong: #22c0ae;
+  --accent-ink: #5fd6c7;
   --accent-fg: #ffffff;
-  --accent-soft: #1f2040;
-  --tag: #262852;
-  --tag-fg: #d3d4ff;
+  --accent-soft: #0f2a28;
+  --tag: #123a36;
+  --tag-fg: #9ff0e4;
   --ok: #3cbf82;
   --ok-soft: #12271d;
   --danger: #ef6457;
   --danger-soft: #321a18;
   --info: #5ea4f5;
-  --tile: #e6e8ec;
+  --tile: #eceef1;
   --tile-ink: #a3a9b4;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -10px rgb(0 0 0 / 0.6);
   --shadow-pop: 0 18px 50px -14px rgb(0 0 0 / 0.75), 0 0 0 1px rgb(255 255 255 / 0.04);
@@ -198,7 +198,7 @@ body {
 .product-img { opacity: 0; transition: opacity 280ms ease-out; }
 .product-img[data-loaded] { opacity: 1; }
 
-/* Price tag: soft iris tag with a notched leading edge (flips in RTL). */
+/* Price tag: soft teal tag with a notched leading edge (flips in RTL). */
 .price-tag {
   --notch: 8px;
   position: relative;
