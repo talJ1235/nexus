@@ -29,6 +29,13 @@
       "when": 1790587824589,
       "tag": "0003_planner",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790588214574,
+      "tag": "0004_sharing",
+      "breakpoints": true
     }
   ]
 }

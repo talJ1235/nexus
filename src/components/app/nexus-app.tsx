@@ -17,6 +17,7 @@ import { SettingsDialog } from "./settings-dialog";
 import { ImportDialog } from "./import-dialog";
 import { AlertsBell, AlertsPanel } from "./alerts-panel";
 import { AssistantPanel } from "./assistant-panel";
+import { ShareDialog } from "./share-dialog";
 import { AltGroupCard, ItemCard } from "./item-card";
 import { AltSheet } from "./alt-sheet";
 import { OrdersView } from "./orders-view";
@@ -94,6 +95,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <ImportDialog />
       <AlertsPanel />
       <AssistantPanel />
+      <ShareDialog />
     </div>
   );
 }
@@ -163,9 +165,15 @@ function ViewHeader() {
               {title}
             </h1>
             {collection && (
-              <Button variant="ghost" size="icon-sm" onClick={() => s.setEditor({ mode: "edit", collection })} aria-label={t.collection.rename} title={t.collection.rename}>
-                {collection.shareToken ? <Share2 className="!size-3.5" /> : <Pencil className="!size-3.5" />}
-              </Button>
+              <>
+                <Button variant="ghost" size="icon-sm" onClick={() => s.setEditor({ mode: "edit", collection })} aria-label={t.collection.rename} title={t.collection.rename}>
+                  <Pencil className="!size-3.5" />
+                </Button>
+                <Button variant="outline" size="sm" className="ms-1 h-7 px-2.5" onClick={() => s.setPanel("share")}>
+                  <Share2 className="!size-3.5" />
+                  {t.share.shareBtn}
+                </Button>
+              </>
             )}
           </div>
           {collection?.description && (

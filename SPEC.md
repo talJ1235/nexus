@@ -75,6 +75,24 @@ Failure at any step degrades gracefully to a partially filled, editable item.
 - Receipts: images/PDFs uploaded straight to Vercel Blob (client upload), attached to items.
 - Settings dialog; settings actions in the Esc command palette.
 
+## Round 3 (shipped)
+- **Import & backup**: Excel/CSV import with auto column mapping (EN/HE headers), per-row project/list
+  (created if missing), manual prices without a link, "fill in details" from links (via extension when
+  installed). Full JSON backup download; restore by merge (upsert) or replace. Secrets never exported.
+- **Price tracking**: daily Vercel cron (`/api/cron/prices`, `CRON_SECRET`) re-reads watched links;
+  alerts for drops ≥ N% (default 5), target price reached, back in stock; deduped per link/kind for 20h;
+  one Telegram digest per run (bot token + chat linked from the Alerts panel, stored in kv as secrets).
+  Links the server can't read (3 failures) are checked by the extension every 6h (quiet fetch) or on
+  "Check now" (may open a background tab).
+- **AI assistant** (Gemini Flash, free tier): "Ask" answers questions about the user's own data with
+  linked item chips; "Plan a project" drafts a parts list with quantities and price estimates → adds
+  link-less items with store search buttons (AliExpress, Amazon, Zap, Google Shopping).
+- **Sharing with permissions**: per-collection invite links (viewer/editor, hashed tokens, revocable);
+  guests enter a name once → signed guest cookie (separate HMAC context from the owner's) → `/g`
+  shows only granted collections. Editors add links, change qty/priority/notes, move status, delete only
+  their own items. Every guest action re-checks signature, revocation and the specific item's grant.
+  Guests never see receipts or items outside shared collections. Owner sees "Added by".
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Dark + light (system default), no flash on load.
@@ -84,7 +102,7 @@ Failure at any step degrades gracefully to a partially filled, editable item.
 - Mobile responsive; installable PWA.
 
 ## Non-goals (for now)
-Automatic scheduled price re-checks / alerts, carrier API tracking sync, multi-user accounts.
+Carrier API tracking sync, full multi-user accounts (guests cover sharing).
 
 ## Stack (all free tier)
 Next.js 16 (App Router) on Vercel · Turso (libSQL) + Drizzle · Gemini Flash-Lite ·
@@ -100,3 +118,4 @@ Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 | `APP_PASSWORD` | login password |
 | `SESSION_SECRET` | ≥32 random chars, signs the session cookie |
 | `BLOB_READ_WRITE_TOKEN` | auto-added when a Blob store is connected |
+| `CRON_SECRET` | authorizes the daily price-check cron (Vercel sends it automatically) |

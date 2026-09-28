@@ -204,7 +204,7 @@ function TagEditor({ item, onChange }: { item: ItemWithSources; onChange: (tags:
 
 export function ItemSheet() {
   const s = useStore();
-  const { t, locale } = useI18n();
+  const { t, f, locale } = useI18n();
   const item = s.openItemId ? s.items.find((i) => i.id === s.openItemId) ?? null : null;
   const [newLink, setNewLink] = useState("");
   const [adding, setAdding] = useState(false);
@@ -283,6 +283,7 @@ export function ItemSheet() {
                   aria-label={t.item.title}
                   className="-mx-1.5 w-[calc(100%+12px)] field-sizing-content min-h-[2.5em] resize-none rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[17px] font-semibold leading-snug outline-none hover:border-line focus:border-accent"
                 />
+                {item.addedByName && <p className="-mt-0.5 mb-1 text-xs text-faint">{f(t.share.addedBy, { name: item.addedByName })}</p>}
                 <div className="mt-2 flex flex-wrap items-center gap-3">
                   <PriceTag item={item} size="lg" />
                   {total != null && item.quantity > 1 && (

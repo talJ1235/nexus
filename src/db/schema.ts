@@ -56,6 +56,9 @@ export const items = sqliteTable(
     watch: integer("watch", { mode: "boolean" }).notNull().default(true),
     // For items planned without a link yet (AI planner): what to search for in stores.
     searchQuery: text("search_query"),
+    // Who added it when it came from a shared guest (null = the owner).
+    addedByMemberId: text("added_by_member_id"),
+    addedByName: text("added_by_name"),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
     updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
@@ -140,6 +143,42 @@ export const alerts = sqliteTable(
   (t) => [index("alerts_item_idx").on(t.itemId), index("alerts_created_idx").on(t.createdAt)],
 );
 
+/** A person the owner shared something with (one per device/browser that accepted an invite). */
+export const members = sqliteTable("members", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+  lastSeenAt: integer("last_seen_at"),
+  revokedAt: integer("revoked_at"),
+});
+
+/** What a member can see/do. */
+export const grants = sqliteTable(
+  "grants",
+  {
+    id: text("id").primaryKey(),
+    memberId: text("member_id").notNull(),
+    collectionId: text("collection_id").notNull(),
+    role: text("role", { enum: ["viewer", "editor"] }).notNull(),
+    createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => [index("grants_member_idx").on(t.memberId), index("grants_collection_idx").on(t.collectionId)],
+);
+
+/** Reusable invite link for a collection (revocable). Only a SHA-256 of the token is stored. */
+export const invites = sqliteTable(
+  "invites",
+  {
+    id: text("id").primaryKey(),
+    tokenHash: text("token_hash").notNull(),
+    collectionId: text("collection_id").notNull(),
+    role: text("role", { enum: ["viewer", "editor"] }).notNull(),
+    createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+    revokedAt: integer("revoked_at"),
+  },
+  (t) => [index("invites_token_idx").on(t.tokenHash), index("invites_collection_idx").on(t.collectionId)],
+);
+
 export const kv = sqliteTable("kv", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
@@ -153,3 +192,6 @@ export type AltGroup = typeof altGroups.$inferSelect;
 export type PricePoint = typeof pricePoints.$inferSelect;
 export type Attachment = typeof attachments.$inferSelect;
 export type Alert = typeof alerts.$inferSelect;
+export type Member = typeof members.$inferSelect;
+export type Grant = typeof grants.$inferSelect;
+export type Invite = typeof invites.$inferSelect;

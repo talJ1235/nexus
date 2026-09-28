@@ -11,6 +11,7 @@ import { getItem, loadItems, recordPrice } from "@/lib/data";
 import { addSourceCore, createItemCore, draftSchema, previewFromClientCore, previewUrlCore, refreshSourceCore, type ClientPayload } from "@/lib/service";
 import { extractFromUrl, hintsFromUrl } from "@/lib/extract";
 import { storeThumbnail } from "@/lib/images";
+import { dropCollectionSharing } from "@/lib/sharing";
 import { SESSION_COOKIE, verifySessionValue } from "@/lib/session";
 import { storeFromUrl } from "@/lib/stores";
 import type { AltGroup, Collection, ItemWithSources, PreviewResult, SourceDraft } from "@/lib/types";
@@ -361,6 +362,7 @@ export async function deleteCollection(id: string) {
   await assertAuth();
   await db.update(schema.items).set({ collectionId: null }).where(eq(schema.items.collectionId, id));
   await db.delete(schema.collections).where(eq(schema.collections.id, id));
+  await dropCollectionSharing(id);
 }
 
 export async function setSharing(id: string, on: boolean): Promise<Collection> {
