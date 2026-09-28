@@ -25,6 +25,13 @@ const step = async (msg, fn) => {
 };
 const shot = async (page, name) => OUT && page.screenshot({ path: `${OUT}/${name}.png` });
 
+try {
+  await fetch(`${BASE}/login`, { redirect: "manual" });
+} catch (e) {
+  console.log(`FAIL server unreachable at ${BASE} (${e.cause?.code || e.message}) — start it first`);
+  process.exit(1);
+}
+
 const browser = await chromium.launch();
 try {
   // ---- Anonymous visitor: everything private is locked.
@@ -96,6 +103,23 @@ try {
     await step("owner backup endpoint", async () => {
       const r = await ctx.request.get(`${BASE}/api/backup`);
       ok(r.status() === 200 && (r.headers()["content-type"] || "").includes("json"), "owner backup endpoint", String(r.status()));
+      // Data health report (warnings, not failures): stores whose daily price checks keep failing,
+      // items missing an image or a price, and when the price cron last ran.
+      const b = await r.json();
+      const bad = {};
+      for (const s of b.data.sources) {
+        if (!s.url) continue;
+        const k = s.storeKey || "?";
+        bad[k] ??= { fail: 0, total: 0 };
+        bad[k].total++;
+        if ((s.checkFails ?? 0) > 0) bad[k].fail++;
+      }
+      for (const [k, v] of Object.entries(bad)) if (v.fail) console.log(`WARN store ${k}: ${v.fail}/${v.total} links failing price checks`);
+      const noImg = b.data.items.filter((i) => !i.imageUrl).length;
+      const noPrice = b.data.items.filter((i) => !b.data.sources.some((s) => s.itemId === i.id && s.price != null)).length;
+      if (noImg || noPrice) console.log(`WARN items without image: ${noImg}, without any price: ${noPrice} (of ${b.data.items.length})`);
+      const last = b.data.kv.find?.((x) => x.key === "pref:last_check");
+      if (last) console.log(`INFO last price check: ${String(last.value).slice(0, 80)}`);
     });
 
     if (process.env.SMOKE_AI) {

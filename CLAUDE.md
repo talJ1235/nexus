@@ -26,6 +26,10 @@
   Look at a screenshot only when a visual judgment is needed.
 - Use the live browser (Claude in Chrome) only for things no script can reach, and batch actions.
 - Read only the files a change touches (use the map above, `rg -n` for symbols); prefer Edit over rewriting files.
+- Model routing: stay on the main model for planning, design, security (auth/sharing/guest), and bugs with an
+  unknown cause. Delegate well-specified, self-contained changes to the `implementer` subagent (Sonnet) with a precise
+  brief (goal, files, acceptance checks), then review its diff (`git diff --stat` + the touched hunks) before committing.
+  Small edits (a few lines) are cheaper to do directly than to delegate.
 - One feature/round per session. At the end, update SPEC.md ("shipped") so the next session starts from it.
 
 # Compact instructions
