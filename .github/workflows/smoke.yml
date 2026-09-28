@@ -1,0 +1,28 @@
+# Free production smoke test: runs on GitHub's servers after every successful Vercel production deploy
+# (and on demand). Read-only. GitHub emails the repo owner when it fails; screenshots are attached to the run.
+# Setup once: repo Settings → Secrets and variables → Actions → New secret NEXUS_PASSWORD (the site password).
+name: smoke
+on:
+  deployment_status:
+  workflow_dispatch:
+concurrency: { group: smoke, cancel-in-progress: true }
+jobs:
+  smoke:
+    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/smoke.mjs
+        env:
+          BASE: https://nexus-ashen-beta.vercel.app
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+          SMOKE_AI: "1"
+          SMOKE_OUT: smoke-shots
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: smoke-shots, path: smoke-shots, if-no-files-found: ignore, retention-days: 7 }
