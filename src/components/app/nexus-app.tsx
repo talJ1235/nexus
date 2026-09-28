@@ -18,6 +18,7 @@ import { ImportDialog } from "./import-dialog";
 import { AlertsBell, AlertsPanel } from "./alerts-panel";
 import { AssistantPanel } from "./assistant-panel";
 import { ShareDialog } from "./share-dialog";
+import { PanelBoundary } from "@/components/panel-boundary";
 import { AltGroupCard, ItemCard } from "./item-card";
 import { AltSheet } from "./alt-sheet";
 import { OrdersView } from "./orders-view";
@@ -92,10 +93,18 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <CollectionDialog />
       <CommandPalette />
       <SettingsDialog />
-      <ImportDialog />
-      <AlertsPanel />
-      <AssistantPanel />
-      <ShareDialog />
+      <PanelBoundary label="Import">
+        <ImportDialog />
+      </PanelBoundary>
+      <PanelBoundary label="Alerts">
+        <AlertsPanel />
+      </PanelBoundary>
+      <PanelBoundary label="Assistant">
+        <AssistantPanel />
+      </PanelBoundary>
+      <PanelBoundary label="Share">
+        <ShareDialog />
+      </PanelBoundary>
     </div>
   );
 }

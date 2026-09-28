@@ -39,6 +39,8 @@ export function aiEnabled() {
 }
 
 const workingModel: Record<"fast" | "smart", string | null> = { fast: null, smart: null };
+/** Last failure per model (owner-only diagnostics at /api/debug/ai). */
+export const lastAiErrors: Record<string, string> = {};
 
 function parseLooseJson<T>(text: string): T | null {
   const m = text.match(/\{[\s\S]*\}/);
@@ -80,6 +82,7 @@ async function generate(prompt: string, schema: object | null, opts: GenOpts = {
       return text;
     } catch (e) {
       const msg = String((e as Error)?.message ?? e);
+      lastAiErrors[model] = `${new Date().toISOString()} ${msg.slice(0, 300)}`;
       // Unknown / retired model or per-model quota → try the next one.
       if (/not found|404|not supported|NOT_FOUND|deprecated|no longer available|RESOURCE_EXHAUSTED|429|quota/i.test(msg)) continue;
       console.warn("[ai] generate failed:", model, msg.slice(0, 200));

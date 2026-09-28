@@ -117,7 +117,10 @@ function AskTab({ seed, seedKey }: { seed: string | null; seedKey: string | null
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seedKey]);
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [msgs, busy]);
+  // Braces matter: newer Chrome returns a Promise from scrollIntoView, and an effect must not return it.
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [msgs, busy]);
 
   const openItem = (id: string) => {
     s.setPanel(null);
