@@ -1,5 +1,5 @@
 import "server-only";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
 export const CATEGORIES = [
   "electronics",
@@ -41,6 +41,9 @@ export function aiEnabled() {
 const workingModel: Record<"fast" | "smart", string | null> = { fast: null, smart: null };
 /** Last failure per model (owner-only diagnostics at /api/debug/ai). */
 export const lastAiErrors: Record<string, string> = {};
+/** Models that were overloaded recently are skipped for a few minutes (per warm function instance). */
+const coolingUntil: Record<string, number> = {};
+const TEMPORARY = /503|UNAVAILABLE|overloaded|high demand|500|INTERNAL|DEADLINE|timeout|aborted|RESOURCE_EXHAUSTED|429/i;
 
 function parseLooseJson<T>(text: string): T | null {
   const m = text.match(/\{[\s\S]*\}/);
@@ -52,7 +55,7 @@ function parseLooseJson<T>(text: string): T | null {
   }
 }
 
-type GenOpts = { urlContext?: boolean; smart?: boolean; text?: boolean; system?: string };
+type GenOpts = { urlContext?: boolean; smart?: boolean; text?: boolean; system?: string; budgetMs?: number };
 
 async function generate(prompt: string, schema: object | null, opts: GenOpts = {}): Promise<string | null> {
   const c = ai();
@@ -61,21 +64,38 @@ async function generate(prompt: string, schema: object | null, opts: GenOpts = {
   const base = opts.smart ? SMART_MODELS : DEFAULT_MODELS;
   const models = process.env.GEMINI_MODEL && !opts.smart ? [process.env.GEMINI_MODEL, ...base] : base;
   const known = workingModel[tier];
-  const ordered = known ? [known, ...models.filter((m) => m !== known)] : models;
-  for (const model of ordered) {
+  const now = Date.now();
+  const ordered = (known ? [known, ...models.filter((m) => m !== known)] : models).filter((m) => !(coolingUntil[m] > now));
+  // Stay well inside the 60s function limit, whatever happens upstream.
+  const deadline = now + (opts.budgetMs ?? 40_000);
+  for (const model of ordered.length ? ordered : models) {
+    const left = deadline - Date.now();
+    if (left < 3000) break;
     try {
-      const res = await c.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-          ...(opts.system ? { systemInstruction: opts.system } : {}),
-          ...(opts.urlContext
-            ? { tools: [{ urlContext: {} }], temperature: 0.1 }
-            : opts.text
-              ? { temperature: 0.3 }
-              : { responseMimeType: "application/json", responseJsonSchema: schema ?? undefined, temperature: 0.2 }),
-        },
-      });
+      const call = (withThinking: boolean) =>
+        c.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            abortSignal: AbortSignal.timeout(Math.min(deadline - Date.now(), opts.smart ? 30_000 : 15_000)),
+            // These tasks need little deliberation; low thinking keeps answers fast.
+            ...(withThinking ? (/gemini-3/.test(model) ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : { thinkingConfig: { thinkingBudget: 0 } }) : {}),
+            ...(opts.system ? { systemInstruction: opts.system } : {}),
+            ...(opts.urlContext
+              ? { tools: [{ urlContext: {} }], temperature: 0.1 }
+              : opts.text
+                ? { temperature: 0.3 }
+                : { responseMimeType: "application/json", responseJsonSchema: schema ?? undefined, temperature: 0.2 }),
+          },
+        });
+      let res;
+      try {
+        res = await call(true);
+      } catch (e) {
+        // A model that rejects the thinking setting → same model, default thinking.
+        if (/thinking/i.test(String((e as Error)?.message ?? e))) res = await call(false);
+        else throw e;
+      }
       const text = res.text;
       if (!text) continue;
       workingModel[tier] = model;
@@ -83,9 +103,13 @@ async function generate(prompt: string, schema: object | null, opts: GenOpts = {
     } catch (e) {
       const msg = String((e as Error)?.message ?? e);
       lastAiErrors[model] = `${new Date().toISOString()} ${msg.slice(0, 300)}`;
-      // Unknown / retired model or per-model quota → try the next one.
-      // Also temporary server-side trouble (503 "high demand", 500, timeouts) → next model.
-      if (/not found|404|not supported|NOT_FOUND|deprecated|no longer available|RESOURCE_EXHAUSTED|429|quota|503|UNAVAILABLE|overloaded|high demand|500|INTERNAL|DEADLINE|timeout/i.test(msg)) continue;
+      if (TEMPORARY.test(msg)) {
+        coolingUntil[model] = Date.now() + 5 * 60_000;
+        if (workingModel[tier] === model) workingModel[tier] = null;
+        continue;
+      }
+      // Unknown / retired model → try the next one.
+      if (/not found|404|not supported|NOT_FOUND|deprecated|no longer available|quota/i.test(msg)) continue;
       console.warn("[ai] generate failed:", model, msg.slice(0, 200));
       return null;
     }
