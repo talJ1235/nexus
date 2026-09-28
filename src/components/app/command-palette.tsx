@@ -11,6 +11,8 @@ import { CURRENCIES } from "@/lib/money";
 import { ProductImage } from "./item-card";
 import { useStore } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
+import { Segmented } from "./settings-dialog";
+import type { Currency } from "@/lib/money";
 
 const itemCls =
   "flex h-11 cursor-default select-none items-center gap-3 rounded-lg px-3 text-sm text-fg outline-none data-[selected=true]:bg-sunken [&_svg]:size-4 [&_svg]:text-muted";
@@ -30,7 +32,7 @@ function paletteFilter(value: string, search: string) {
 export function CommandPalette() {
   const s = useStore();
   const { t, locale, setLocale } = useI18n();
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -180,6 +182,46 @@ export function CommandPalette() {
               </Command.Group>
             </Command.List>
           </Command>
+
+          {/* Quick settings: always visible the moment the palette opens; changes apply live. */}
+          <div className="flex flex-wrap items-center gap-2 border-t border-line bg-surface/60 px-3 py-2.5">
+            <Segmented
+              size="sm"
+              label={t.settings.theme}
+              value={(theme ?? "system") as "system" | "dark" | "light"}
+              onChange={setTheme}
+              options={[
+                { value: "system", label: <Monitor />, title: `${t.settings.theme}: ${t.settings.system}` },
+                { value: "dark", label: <Moon />, title: `${t.settings.theme}: ${t.settings.dark}` },
+                { value: "light", label: <Sun />, title: `${t.settings.theme}: ${t.settings.light}` },
+              ]}
+            />
+            <Segmented<Currency>
+              size="sm"
+              label={t.settings.currency}
+              value={s.currency}
+              onChange={s.setCurrency}
+              options={CURRENCIES.map((c) => ({ value: c, label: c === "ILS" ? "₪" : c === "USD" ? "$" : "€", title: `${t.settings.currency} ${c}` }))}
+            />
+            <Segmented
+              size="sm"
+              label={t.settings.language}
+              value={locale}
+              onChange={(l) => l !== locale && setLocale(l)}
+              options={[
+                { value: "en", label: "EN", title: "English" },
+                { value: "he", label: "עב", title: "עברית" },
+              ]}
+            />
+            <button
+              type="button"
+              onClick={() => run(() => s.setSettingsOpen(true))}
+              className="ms-auto inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-muted transition hover:bg-sunken hover:text-fg [&_svg]:size-4"
+            >
+              <Settings2 />
+              {t.settings.title}
+            </button>
+          </div>
         </D.Content>
       </D.Portal>
     </D.Root>

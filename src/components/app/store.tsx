@@ -37,6 +37,8 @@ type Store = {
   setSort: (s: SortKey) => void;
   view: View;
   setView: (v: View) => void;
+  /** Increments on every user-initiated view change; 0 on first load (so the first paint isn't animated). */
+  navSeq: number;
   query: string;
   setQuery: (q: string) => void;
   tagFilter: string | null;
@@ -108,6 +110,7 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
   const [layout, setLayoutState] = useState<Layout>("cards");
   const [sort, setSortState] = useState<SortKey>("newest");
   const [view, setViewState] = useState<View>({ type: "to_buy" });
+  const [navSeq, setNavSeq] = useState(0);
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
@@ -136,6 +139,7 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
 
   const setView = useCallback((v: View) => {
     setViewState(v);
+    setNavSeq((n) => n + 1);
     setSelectedState(new Set());
     setTagFilter(null);
     setNavOpen(false);
@@ -251,6 +255,7 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
       setSort,
       view,
       setView,
+      navSeq,
       query,
       setQuery,
       tagFilter,
@@ -274,7 +279,7 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
       setNavOpen,
       focusAdd,
     }),
-    [items, collections, altGroups, upsertAltGroup, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, focusAdd],
+    [items, collections, altGroups, upsertAltGroup, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

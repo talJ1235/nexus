@@ -11,17 +11,40 @@ import { BookmarkletDialog } from "./bookmarklet";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 
-function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: { value: T; label: React.ReactNode }[]; onChange: (v: T) => void; label: string }) {
+export function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+  size = "md",
+}: {
+  value: T;
+  options: { value: T; label: React.ReactNode; title?: string }[];
+  onChange: (v: T) => void;
+  label: string;
+  size?: "md" | "sm";
+}) {
   return (
-    <div role="radiogroup" aria-label={label} className="grid rounded-lg border border-line-strong bg-bg p-0.5 text-[13px]" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className={cn("grid rounded-lg border border-line-strong bg-bg p-0.5", size === "sm" ? "text-xs" : "text-[13px]")}
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           role="radio"
           aria-checked={value === o.value}
+          aria-label={o.title}
+          title={o.title}
           onClick={() => onChange(o.value)}
-          className={cn("inline-flex h-8 items-center justify-center gap-1.5 rounded-md transition [&_svg]:size-3.5", value === o.value ? "bg-fg text-bg" : "text-muted hover:text-fg")}
+          className={cn(
+            "inline-flex items-center justify-center gap-1.5 rounded-md transition [&_svg]:size-3.5",
+            size === "sm" ? "h-7 min-w-8 px-2" : "h-8",
+            value === o.value ? "bg-fg text-bg" : "text-muted hover:text-fg",
+          )}
         >
           {o.label}
         </button>

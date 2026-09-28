@@ -18,7 +18,21 @@ export function ProductImage({ src, alt, className, iconClass }: { src: string |
     <div className={cn("relative grid place-items-center overflow-hidden bg-tile", className)}>
       {src && !failed ? (
         // eslint-disable-next-line @next/next/no-img-element -- remote store images; thumbnails are pre-sized WebP
-        <img src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} className="size-full object-contain p-[9%] mix-blend-multiply" />
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          // Fade in once decoded. Cached images may finish before hydration, so check `complete` on mount too.
+          ref={(el) => {
+            if (el?.complete && el.naturalWidth) el.dataset.loaded = "";
+          }}
+          onLoad={(e) => {
+            e.currentTarget.dataset.loaded = "";
+          }}
+          onError={() => setFailed(true)}
+          className="product-img size-full object-contain p-[9%] mix-blend-multiply"
+        />
       ) : (
         <Package className={cn("size-8 text-[#b9b4a8]", iconClass)} strokeWidth={1.4} />
       )}

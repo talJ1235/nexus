@@ -62,19 +62,17 @@ function Shell({ incoming }: { incoming?: Incoming }) {
           </div>
         </header>
         <main className="mx-auto max-w-[1400px] px-4 pb-24 pt-6 sm:px-6 lg:px-8">
-          {s.view.type === "spending" ? (
-            <div key="spending" className="content-in">
+          {/* Header + content switch together as one soft cross-fade; the very first paint is not animated. */}
+          <div key={viewKey(s.view)} className={s.navSeq > 0 ? "view-in" : undefined}>
+            {s.view.type === "spending" ? (
               <SpendingView />
-            </div>
-          ) : (
-            <>
-              <ViewHeader />
-              {/* Re-keyed per view so switching views fades the new content in once. */}
-              <div key={viewKey(s.view) + s.layout} className="content-in">
+            ) : (
+              <>
+                <ViewHeader />
                 <Content />
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
         </main>
       </div>
 

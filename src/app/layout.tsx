@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
-import "@fontsource-variable/rubik";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { rubikHebrew, rubikLatin } from "./fonts";
 import { SwRegister } from "@/components/sw-register";
 import { isLocale, LOCALE_COOKIE } from "@/lib/i18n";
 
@@ -31,7 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const raw = jar.get(LOCALE_COOKIE)?.value;
   const locale = isLocale(raw) ? raw : "en";
   return (
-    <html lang={locale} dir={locale === "he" ? "rtl" : "ltr"} suppressHydrationWarning>
+    <html lang={locale} dir={locale === "he" ? "rtl" : "ltr"} className={`${rubikLatin.variable} ${rubikHebrew.variable}`} suppressHydrationWarning>
       <body>
         <Providers locale={locale}>{children}</Providers>
         <SwRegister />
