@@ -3,16 +3,17 @@ import { getTableColumns, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 // Everything needed to rebuild Nexus. Secrets (Telegram token, etc.) in `kv` are never exported.
-const EXPORTABLE_KV = /^(pref:|fx_rates$)/;
+const EXPORTABLE_KV = /^(pref:|fx_rates$|telegram_bot$)/;
 
 export async function buildBackup() {
-  const [collections, items, sources, pricePoints, attachments, altGroups, kv] = await Promise.all([
+  const [collections, items, sources, pricePoints, attachments, altGroups, alerts, kv] = await Promise.all([
     db.select().from(schema.collections),
     db.select().from(schema.items),
     db.select().from(schema.sources),
     db.select().from(schema.pricePoints),
     db.select().from(schema.attachments),
     db.select().from(schema.altGroups),
+    db.select().from(schema.alerts),
     db.select().from(schema.kv),
   ]);
   return {
@@ -20,13 +21,13 @@ export async function buildBackup() {
     version: 1,
     exportedAt: new Date().toISOString(),
     counts: { collections: collections.length, items: items.length, sources: sources.length },
-    data: { collections, items, sources, pricePoints, attachments, altGroups, kv: kv.filter((r) => EXPORTABLE_KV.test(r.key)) },
+    data: { collections, items, sources, pricePoints, attachments, altGroups, alerts, kv: kv.filter((r) => EXPORTABLE_KV.test(r.key)) },
   };
 }
 
 export type Backup = Awaited<ReturnType<typeof buildBackup>>;
 
-const TABLES = ["collections", "items", "sources", "pricePoints", "attachments", "altGroups", "kv"] as const;
+const TABLES = ["collections", "items", "sources", "pricePoints", "attachments", "altGroups", "alerts", "kv"] as const;
 type TableName = (typeof TABLES)[number];
 
 function table(name: TableName) {
@@ -42,7 +43,7 @@ export async function restoreBackup(raw: unknown, mode: "merge" | "replace") {
 
   if (mode === "replace") {
     // Children first.
-    for (const name of ["pricePoints", "attachments", "sources", "items", "altGroups", "collections"] as const) {
+    for (const name of ["alerts", "pricePoints", "attachments", "sources", "items", "altGroups", "collections"] as const) {
       await db.delete(table(name));
     }
   }

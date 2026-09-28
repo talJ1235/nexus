@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionValue } from "@/lib/session";
 
-// /api/ext/* authenticates with the extension token inside the route.
-const PUBLIC_PREFIXES = ["/login", "/api/login", "/s/", "/api/share/", "/api/ext/", "/manifest.webmanifest", "/sw.js", "/nexus-extension.zip"];
+// /api/ext/* authenticates with the extension token and /api/cron/* with CRON_SECRET, inside the routes.
+const PUBLIC_PREFIXES = ["/login", "/api/login", "/s/", "/api/share/", "/api/ext/", "/api/cron/", "/manifest.webmanifest", "/sw.js", "/nexus-extension.zip"];
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;

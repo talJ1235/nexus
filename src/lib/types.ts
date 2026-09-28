@@ -1,7 +1,7 @@
-import type { AltGroup, Attachment, Collection, Item, PricePoint, Source } from "@/db/schema";
+import type { Alert, AltGroup, Attachment, Collection, Item, PricePoint, Source } from "@/db/schema";
 import type { Rates } from "./money";
 
-export type { AltGroup, Attachment, Collection, Item, PricePoint, Source };
+export type { Alert, AltGroup, Attachment, Collection, Item, PricePoint, Source };
 export type ItemWithSources = Item & { sources: Source[]; points: PricePoint[]; attachments: Attachment[] };
 
 export type AppData = {

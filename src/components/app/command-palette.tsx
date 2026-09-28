@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { Command } from "cmdk";
 import { Dialog as D } from "radix-ui";
-import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download } from "lucide-react";
+import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Kbd } from "@/components/ui/button";
@@ -117,6 +117,9 @@ export function CommandPalette() {
                     <Coins /> {t.settings.currency} {c}
                   </Command.Item>
                 ))}
+                <Command.Item value={`alerts price telegram notifications ${t.alerts.title}`} onSelect={() => run(() => s.setPanel("alerts"))} className={itemCls}>
+                  <Bell /> {t.alerts.title}
+                </Command.Item>
                 <Command.Item value={`import excel csv spreadsheet ${t.io.importSheet}`} onSelect={() => run(() => s.setPanel("import"))} className={itemCls}>
                   <FileSpreadsheet /> {t.io.importSheet}
                 </Command.Item>

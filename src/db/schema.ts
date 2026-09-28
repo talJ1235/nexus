@@ -50,6 +50,10 @@ export const items = sqliteTable(
     carrier: text("carrier"),
     eta: integer("eta"),
     altGroupId: text("alt_group_id"),
+    // Price tracking: alert when the price reaches this (in targetCurrency). `watch` = include in daily checks.
+    targetPrice: real("target_price"),
+    targetCurrency: text("target_currency"),
+    watch: integer("watch", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
     updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
@@ -72,6 +76,8 @@ export const sources = sqliteTable(
     rawTitle: text("raw_title"),
     extractMethod: text("extract_method"),
     fetchedAt: integer("fetched_at"),
+    // Consecutive failed server-side checks (blocked store) — those get checked through the browser extension.
+    checkFails: integer("check_fails").notNull().default(0),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
   (t) => [index("sources_item_idx").on(t.itemId), index("sources_norm_idx").on(t.normalizedUrl)],
@@ -114,6 +120,24 @@ export const attachments = sqliteTable(
   (t) => [index("attachments_item_idx").on(t.itemId)],
 );
 
+/** Something worth telling the user about a watched item. */
+export const alerts = sqliteTable(
+  "alerts",
+  {
+    id: text("id").primaryKey(),
+    itemId: text("item_id").notNull(),
+    sourceId: text("source_id"),
+    kind: text("kind", { enum: ["drop", "target", "back_in_stock", "out_of_stock"] }).notNull(),
+    oldPrice: real("old_price"),
+    newPrice: real("new_price"),
+    currency: text("currency"),
+    sentAt: integer("sent_at"),
+    readAt: integer("read_at"),
+    createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => [index("alerts_item_idx").on(t.itemId), index("alerts_created_idx").on(t.createdAt)],
+);
+
 export const kv = sqliteTable("kv", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
@@ -126,3 +150,4 @@ export type Source = typeof sources.$inferSelect;
 export type AltGroup = typeof altGroups.$inferSelect;
 export type PricePoint = typeof pricePoints.$inferSelect;
 export type Attachment = typeof attachments.$inferSelect;
+export type Alert = typeof alerts.$inferSelect;

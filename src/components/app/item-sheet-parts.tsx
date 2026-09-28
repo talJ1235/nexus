@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
-import { ExternalLink, FileText, Loader2, Paperclip, Split, Trash2, TrendingDown, Truck } from "lucide-react";
+import { BellRing, ExternalLink, FileText, Loader2, Paperclip, Split, Trash2, TrendingDown, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { addAttachment, deleteAttachment, updateItem } from "@/app/actions";
 import { useI18n } from "@/components/providers";
@@ -361,5 +361,61 @@ export function AltLink({ item }: { item: ItemWithSources }) {
       </span>
       <span className="shrink-0 text-xs">{f(t.alt.badge, { n })}</span>
     </button>
+  );
+}
+
+/** Watch toggle + target price. The daily check alerts when the price drops or reaches the target. */
+export function PriceWatch({ item, save }: { item: ItemWithSources; save: (p: { watch?: boolean; targetPrice?: number | null; targetCurrency?: string | null }) => Promise<void> }) {
+  const s = useStore();
+  const { t } = useI18n();
+  const cur = item.targetCurrency ?? s.currency;
+  return (
+    <section className="mt-6 px-4">
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-line p-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <BellRing className="size-4 text-muted" />
+            {t.alerts.watch}
+          </div>
+          <div className="mt-0.5 text-xs text-muted">{t.alerts.watchHint}</div>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={item.watch}
+          aria-label={t.alerts.watch}
+          onClick={() => void save({ watch: !item.watch })}
+          className={cn("relative h-6 w-11 shrink-0 rounded-full transition", item.watch ? "bg-accent" : "bg-line-strong")}
+        >
+          <span className={cn("absolute top-0.5 size-5 rounded-full bg-white shadow transition-[inset-inline-start]", item.watch ? "start-[22px]" : "start-0.5")} />
+        </button>
+      </div>
+      {item.watch && (
+        <div className="mt-2 flex items-center gap-2">
+          <label htmlFor="target" className="shrink-0 text-[13px] text-muted">
+            {t.alerts.target}
+          </label>
+          <div className="flex">
+            <input
+              id="target"
+              key={item.targetPrice ?? "none"}
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              defaultValue={item.targetPrice ?? ""}
+              placeholder={t.alerts.targetPlaceholder}
+              onBlur={(e) => {
+                const v = e.target.value.trim() === "" ? null : Math.max(0, Number(e.target.value));
+                if (v !== item.targetPrice && !Number.isNaN(v)) void save({ targetPrice: v, targetCurrency: v == null ? null : cur });
+              }}
+              onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+              className="tabular h-8 w-28 rounded-s-md border border-line bg-bg px-2 text-sm outline-none focus:border-accent"
+            />
+            <span className="grid h-8 place-items-center rounded-e-md border border-s-0 border-line bg-sunken px-2 text-xs text-muted">{cur}</span>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

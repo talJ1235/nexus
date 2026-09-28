@@ -11,6 +11,7 @@
     if (e.source !== window || e.origin !== location.origin || !e.data || e.data.source !== "nexus-app") return;
     const { id, type, url } = e.data;
     if (type === "ping") return announce();
+    if (type === "check-prices") return chrome.runtime.sendMessage({ type: "check-prices" });
     if (type === "resolve") {
       chrome.runtime.sendMessage({ type: "resolve", url }, (res) => {
         window.postMessage({ source: "nexus-ext", type: "resolved", id, ok: !!(res && res.ok), data: res && res.data, error: res && res.error }, location.origin);

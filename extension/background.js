@@ -44,7 +44,7 @@ async function imageToDataUrl(url) {
 }
 
 /** Open a URL in a background tab, read the product, close the tab. */
-async function resolveUrl(url) {
+async function resolveUrl(url, opts = { keepImage: true }) {
   const tab = await chrome.tabs.create({ url, active: false });
   try {
     await new Promise((resolve) => {
@@ -61,12 +61,67 @@ async function resolveUrl(url) {
       }, 20000);
     });
     const data = await extractInTab(tab.id);
-    data.image = await imageToDataUrl(data.image);
+    if (opts.keepImage) data.image = await imageToDataUrl(data.image);
     return data;
   } finally {
     chrome.tabs.remove(tab.id).catch(() => {});
   }
 }
+
+async function api(path, init = {}) {
+  const { origin, token } = await getConfig();
+  if (!origin || !token) throw new Error("not_paired");
+  const res = await fetch(`${origin}${path}`, { ...init, headers: { ...(init.headers || {}), authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`http_${res.status}`);
+  return res.json();
+}
+
+const HAS_PRODUCT_DATA = /application\/ld\+json|product:price:amount|itemprop=["']price["']|og:price:amount/i;
+
+/**
+ * Price checks for links the Nexus server can't read (stores that block servers).
+ * Scheduled runs only fetch pages quietly with the user's connection; a manual "Check now"
+ * (thorough) may also open app-style store pages in a background tab.
+ */
+let checking = false;
+async function checkPrices(thorough) {
+  if (checking) return { skipped: true };
+  checking = true;
+  let done = 0;
+  try {
+    const { sources } = await api("/api/ext/stale");
+    for (const src of sources) {
+      try {
+        const res = await fetch(src.url, { credentials: "include", redirect: "follow" });
+        const html = res.ok ? await res.text() : "";
+        if (html && HAS_PRODUCT_DATA.test(html) && html.length < 2_900_000) {
+          await api("/api/ext/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sourceId: src.id, html, finalUrl: res.url }) });
+          done++;
+          continue;
+        }
+        if (thorough) {
+          const data = await resolveUrl(src.url, { keepImage: false });
+          if (data && data.price) {
+            await api("/api/ext/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sourceId: src.id, payload: { price: data.price, currency: data.currency || null } }) });
+            done++;
+          }
+        }
+      } catch (e) {}
+      await sleep(1200 + Math.random() * 1500); // be gentle with stores
+    }
+    if (done) await api("/api/ext/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ done: true }) });
+  } catch (e) {
+  } finally {
+    checking = false;
+  }
+  return { checked: done };
+}
+
+chrome.runtime.onInstalled.addListener(() => chrome.alarms.create("nexus-prices", { delayInMinutes: 3, periodInMinutes: 360 }));
+chrome.runtime.onStartup.addListener(() => chrome.alarms.create("nexus-prices", { delayInMinutes: 3, periodInMinutes: 360 }));
+chrome.alarms.onAlarm.addListener((a) => {
+  if (a.name === "nexus-prices") checkPrices(false);
+});
 
 async function send(path, body) {
   const { origin, token } = await getConfig();
@@ -94,6 +149,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       return { ok: true, data };
     }
     if (msg.type === "save") return { ok: true, ...(await send("/api/ext/save", msg.body)) };
+    if (msg.type === "check-prices") return { ok: true, ...(await checkPrices(true)) };
     if (msg.type === "config") return { ok: true, ...(await getConfig()) };
     return { ok: false, error: "unknown" };
   })()

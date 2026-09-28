@@ -12,7 +12,7 @@ import { convert, formatMoney } from "@/lib/money";
 import type { ItemWithSources, Source } from "@/lib/types";
 import { cn, isHttpUrl } from "@/lib/utils";
 import { PriceTag, ProductImage } from "./item-card";
-import { AltLink, PriceHistory, ReceiptsSection, ShippingSection, StatusControl } from "./item-sheet-parts";
+import { AltLink, PriceHistory, PriceWatch, ReceiptsSection, ShippingSection, StatusControl } from "./item-sheet-parts";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 import { COLLECTION_COLORS } from "./view-items";
@@ -410,6 +410,8 @@ export function ItemSheet() {
             </section>
 
             <PriceHistory item={item} />
+
+            {item.status === "to_buy" && item.sources.some((x) => x.url) && <PriceWatch item={item} save={save} />}
 
             <section className="mt-6 space-y-4 px-4">
               <div>

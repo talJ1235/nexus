@@ -15,6 +15,7 @@ import { CollectionDialog } from "./collection-dialog";
 import { CommandPalette } from "./command-palette";
 import { SettingsDialog } from "./settings-dialog";
 import { ImportDialog } from "./import-dialog";
+import { AlertsBell, AlertsPanel } from "./alerts-panel";
 import { AltGroupCard, ItemCard } from "./item-card";
 import { AltSheet } from "./alt-sheet";
 import { OrdersView } from "./orders-view";
@@ -57,6 +58,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
             <div className="min-w-0 flex-1">
               <AddBar incoming={incoming} />
             </div>
+            <AlertsBell />
             <Button variant="ghost" size="icon" className="mt-1.5 lg:hidden" onClick={() => s.setPaletteOpen(true)} aria-label={t.view.search}>
               <Command />
             </Button>
@@ -84,6 +86,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <CommandPalette />
       <SettingsDialog />
       <ImportDialog />
+      <AlertsPanel />
     </div>
   );
 }

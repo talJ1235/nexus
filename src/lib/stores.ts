@@ -43,6 +43,7 @@ export function storeFromUrl(url: string, siteName?: string | null) {
   const host = hostOf(url);
   const def = STORES.find((s) => s.match.test(host));
   if (def) return { key: def.key, name: def.name, currency: def.currency };
+  if (/^[\d.]+$|^\[?[0-9a-f:]+\]?$/i.test(host)) return { key: host || "store", name: "Store", currency: undefined };
   const base = host.split(".").filter((p) => !["co", "com", "il", "net", "org", "shop", "store"].includes(p));
   const keyPart = base[base.length - 1] || host || "store";
   const pretty = siteName?.trim() && siteName.length <= 32 ? siteName.trim() : keyPart.charAt(0).toUpperCase() + keyPart.slice(1);

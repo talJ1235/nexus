@@ -15,6 +15,13 @@
       "when": 1790546491031,
       "tag": "0001_orders_history_alts_receipts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790587258441,
+      "tag": "0002_price_tracking",
+      "breakpoints": true
     }
   ]
 }

@@ -109,6 +109,9 @@ const itemPatch = z
     trackingNumber: z.string().max(80).nullable(),
     carrier: z.string().max(40).nullable(),
     eta: z.number().int().nullable(),
+    targetPrice: z.number().nonnegative().nullable(),
+    targetCurrency: z.string().min(3).max(3).nullable(),
+    watch: z.boolean(),
   })
   .partial();
 
