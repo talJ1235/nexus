@@ -84,7 +84,8 @@ async function generate(prompt: string, schema: object | null, opts: GenOpts = {
       const msg = String((e as Error)?.message ?? e);
       lastAiErrors[model] = `${new Date().toISOString()} ${msg.slice(0, 300)}`;
       // Unknown / retired model or per-model quota → try the next one.
-      if (/not found|404|not supported|NOT_FOUND|deprecated|no longer available|RESOURCE_EXHAUSTED|429|quota/i.test(msg)) continue;
+      // Also temporary server-side trouble (503 "high demand", 500, timeouts) → next model.
+      if (/not found|404|not supported|NOT_FOUND|deprecated|no longer available|RESOURCE_EXHAUSTED|429|quota|503|UNAVAILABLE|overloaded|high demand|500|INTERNAL|DEADLINE|timeout/i.test(msg)) continue;
       console.warn("[ai] generate failed:", model, msg.slice(0, 200));
       return null;
     }
