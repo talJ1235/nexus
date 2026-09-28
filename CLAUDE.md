@@ -20,10 +20,12 @@
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)
+- Local server: `bash scripts/serve.sh [--build]` (restarts cleanly, waits until ready).
 - Verify with `npm run -s check` (quiet: prints one OK line or only the errors). Never paste full build logs.
 - UI verification: `npm run smoke` (Playwright, PASS/FAIL lines, screenshots to `$SMOKE_OUT`). Extend
   `scripts/smoke.mjs` for new features instead of writing throwaway scripts or clicking through a browser.
   Look at a screenshot only when a visual judgment is needed.
+- Telegram webhook: `node --env-file=.env.local scripts/test-telegram.mjs` (local DB only, self-contained fake store).
 - Use the live browser (Claude in Chrome) only for things no script can reach, and batch actions.
 - Read only the files a change touches (use the map above, `rg -n` for symbols); prefer Edit over rewriting files.
 - Model routing: stay on the main model for planning, design, security (auth/sharing/guest), and bugs with an

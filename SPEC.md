@@ -101,6 +101,12 @@ Failure at any step degrades gracefully to a partially filled, editable item.
 - Skeleton loading, short action-driven transitions, respects reduced motion.
 - Mobile responsive; installable PWA.
 
+## Telegram bot input (shipped)
+Send a product link to the linked bot → it's added (same extraction + duplicate rules as the app: same URL → "already saved",
+same product from another store → added as another source). `#name` in the message files it into the matching list/project.
+`/list` replies with what's left to buy. Webhook `/api/telegram`: secret header (HMAC of SESSION_SECRET) + must come from the
+linked chat. The webhook is (re)set after linking, whenever the alerts state loads, and by the daily cron.
+
 ## Non-goals (for now)
 Carrier API tracking sync, full multi-user accounts (guests cover sharing).
 

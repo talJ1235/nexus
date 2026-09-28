@@ -83,7 +83,7 @@ function AlertRow({ a, onOpen }: { a: Alert; onOpen: (id: string) => void }) {
 }
 
 function TelegramSetup({ st, reload }: { st: AlertsState; reload: () => Promise<void> }) {
-  const { t } = useI18n();
+  const { t, f } = useI18n();
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [waiting, setWaiting] = useState(false);
@@ -94,6 +94,7 @@ function TelegramSetup({ st, reload }: { st: AlertsState; reload: () => Promise<
   if (st.telegram.connected) {
     return (
       <div className="flex flex-wrap items-center gap-2">
+        <p className="order-last w-full text-xs text-muted">{f(t.alerts.tgAddHint, { bot: st.telegram.bot ?? "" })}</p>
         <span className="inline-flex items-center gap-1.5 text-sm text-ok">
           <Check className="size-4" /> {t.alerts.tgConnected} @{st.telegram.bot}
         </span>

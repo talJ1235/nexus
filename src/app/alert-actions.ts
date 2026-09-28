@@ -6,7 +6,9 @@ import { db, schema } from "@/db";
 import { assertOwner } from "@/lib/auth";
 import { loadItems } from "@/lib/data";
 import { kvGet } from "@/lib/kv";
-import { disconnect, finishLink, saveBotToken, sendTelegram, startLink, telegramStatus } from "@/lib/telegram";
+import { headers } from "next/headers";
+import { after } from "next/server";
+import { disconnect, ensureWebhook, finishLink, saveBotToken, sendTelegram, startLink, telegramStatus } from "@/lib/telegram";
 import { getAlertPrefs, runServerChecks, sendAlertDigest, setAlertPrefs, type AlertPrefs } from "@/lib/tracker";
 import type { Alert, ItemWithSources } from "@/lib/types";
 
@@ -21,6 +23,9 @@ export type AlertsState = {
 
 export async function getAlertsState(): Promise<AlertsState> {
   await assertOwner();
+  // Make sure an already-linked bot receives messages (webhook), without delaying the response.
+  const origin = await requestOrigin();
+  after(() => ensureWebhook(origin).catch(() => false));
   const [alerts, prefs, telegram, last] = await Promise.all([
     db.select().from(schema.alerts).orderBy(desc(schema.alerts.createdAt)).limit(60),
     getAlertPrefs(),
@@ -68,9 +73,16 @@ export async function tgStartLink() {
   return startLink();
 }
 
+async function requestOrigin() {
+  const h = await headers();
+  return `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+}
+
 export async function tgFinishLink() {
   await assertOwner();
-  return finishLink();
+  const ok = await finishLink();
+  if (ok) await ensureWebhook(await requestOrigin());
+  return ok;
 }
 
 export async function tgDisconnect() {
