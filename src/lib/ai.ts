@@ -77,7 +77,7 @@ async function generate(prompt: string, schema: object | null, opts: GenOpts = {
           model,
           contents: prompt,
           config: {
-            abortSignal: AbortSignal.timeout(Math.min(deadline - Date.now(), opts.smart ? 30_000 : 15_000)),
+            abortSignal: AbortSignal.timeout(Math.min(deadline - Date.now(), opts.smart ? 20_000 : 12_000)),
             // These tasks need little deliberation; low thinking keeps answers fast.
             ...(withThinking ? (/gemini-3/.test(model) ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : { thinkingConfig: { thinkingBudget: 0 } }) : {}),
             ...(opts.system ? { systemInstruction: opts.system } : {}),
