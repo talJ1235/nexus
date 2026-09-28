@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ArrowDownWideNarrow, Download, LayoutGrid, Menu as MenuIcon, Pencil, Rows3, Search, Share2, X, Command } from "lucide-react";
+import { ArrowDownWideNarrow, Download, LayoutGrid, Menu as MenuIcon, Pencil, Rows3, Search, Share2, Sparkles, X, Command } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { CommandPalette } from "./command-palette";
 import { SettingsDialog } from "./settings-dialog";
 import { ImportDialog } from "./import-dialog";
 import { AlertsBell, AlertsPanel } from "./alerts-panel";
+import { AssistantPanel } from "./assistant-panel";
 import { AltGroupCard, ItemCard } from "./item-card";
 import { AltSheet } from "./alt-sheet";
 import { OrdersView } from "./orders-view";
@@ -58,6 +59,11 @@ function Shell({ incoming }: { incoming?: Incoming }) {
             <div className="min-w-0 flex-1">
               <AddBar incoming={incoming} />
             </div>
+            {s.aiEnabled && (
+              <Button variant="ghost" size="icon" className="mt-1.5" onClick={() => s.setPanel("assistant")} aria-label={t.ai.title} title={t.ai.openAssistant}>
+                <Sparkles />
+              </Button>
+            )}
             <AlertsBell />
             <Button variant="ghost" size="icon" className="mt-1.5 lg:hidden" onClick={() => s.setPaletteOpen(true)} aria-label={t.view.search}>
               <Command />
@@ -87,6 +93,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <SettingsDialog />
       <ImportDialog />
       <AlertsPanel />
+      <AssistantPanel />
     </div>
   );
 }

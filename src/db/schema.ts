@@ -54,6 +54,8 @@ export const items = sqliteTable(
     targetPrice: real("target_price"),
     targetCurrency: text("target_currency"),
     watch: integer("watch", { mode: "boolean" }).notNull().default(true),
+    // For items planned without a link yet (AI planner): what to search for in stores.
+    searchQuery: text("search_query"),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
     updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
   },

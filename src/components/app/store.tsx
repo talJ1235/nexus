@@ -63,6 +63,9 @@ type Store = {
   /** One secondary panel at a time (Round 3 dialogs). */
   panel: Panel;
   setPanel: (p: Panel) => void;
+  /** Question handed from the command palette to the assistant. */
+  askSeed: string | null;
+  askAssistant: (q: string) => void;
   setExtOpen: (o: boolean) => void;
   setNavOpen: (o: boolean) => void;
   focusAdd: () => void;
@@ -125,6 +128,12 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [extOpen, setExtOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
+  const [askSeed, setAskSeed] = useState<string | null>(null);
+  const askAssistant = useCallback((q: string) => {
+    // Suffix keeps repeated identical questions distinct.
+    setAskSeed(`${q}\u200b${Date.now() % 1000}`);
+    setPanel("assistant");
+  }, []);
 
   // Restore per-device UI prefs + view from URL after mount.
   useEffect(() => {
@@ -283,11 +292,13 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
       extOpen,
       panel,
       setPanel,
+      askSeed,
+      askAssistant,
       setExtOpen,
       setNavOpen,
       focusAdd,
     }),
-    [items, collections, altGroups, upsertAltGroup, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, focusAdd],
+    [items, collections, altGroups, upsertAltGroup, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

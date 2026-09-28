@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
-import { BellRing, ExternalLink, FileText, Loader2, Paperclip, Split, Trash2, TrendingDown, Truck } from "lucide-react";
+import { BellRing, ExternalLink, Search, FileText, Loader2, Paperclip, Split, Trash2, TrendingDown, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { addAttachment, deleteAttachment, updateItem } from "@/app/actions";
 import { useI18n } from "@/components/providers";
@@ -13,6 +13,7 @@ import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useStatusFlow, type Status } from "./item-card";
 import { useStore } from "./store";
+import { storeSearches } from "@/lib/search-links";
 
 /** To buy → Ordered → Received as one segmented control. */
 export function StatusControl({ item }: { item: ItemWithSources }) {
@@ -416,6 +417,39 @@ export function PriceWatch({ item, save }: { item: ItemWithSources; save: (p: { 
           </div>
         </div>
       )}
+    </section>
+  );
+}
+
+/** For items without a store link yet: jump to store searches, then paste the link into the item. */
+export function FindIt({ query }: { query: string }) {
+  const { t } = useI18n();
+  return (
+    <section className="mt-5 px-4">
+      <div className="rounded-xl border border-dashed border-accent/50 bg-accent-soft/30 p-3">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Search className="size-4 text-accent-ink" />
+          {t.ai.findIn}
+        </div>
+        <p className="mt-0.5 text-xs text-muted">{t.ai.findHint}</p>
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {storeSearches(query).map((st) => (
+            <a
+              key={st.name}
+              href={st.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-[13px] font-medium transition hover:border-accent hover:text-accent-ink"
+            >
+              {st.name}
+              <ExternalLink className="size-3.5 opacity-60" />
+            </a>
+          ))}
+        </div>
+        <p className="mt-2 truncate text-[11px] text-faint" dir="ltr">
+          “{query}”
+        </p>
+      </div>
     </section>
   );
 }

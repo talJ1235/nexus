@@ -24,6 +24,8 @@ export const CATEGORIES = [
 ] as const;
 
 const DEFAULT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash-lite"];
+// Planning / Q&A need more reasoning than tagging: prefer full Flash, fall back to Lite.
+const SMART_MODELS = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"];
 
 let client: GoogleGenAI | null = null;
 function ai() {
@@ -36,7 +38,7 @@ export function aiEnabled() {
   return Boolean(process.env.GEMINI_API_KEY);
 }
 
-let workingModel: string | null = null;
+const workingModel: Record<"fast" | "smart", string | null> = { fast: null, smart: null };
 
 function parseLooseJson<T>(text: string): T | null {
   const m = text.match(/\{[\s\S]*\}/);
@@ -48,33 +50,58 @@ function parseLooseJson<T>(text: string): T | null {
   }
 }
 
-async function generateJson<T>(prompt: string, schema: object | null, opts: { urlContext?: boolean } = {}): Promise<T | null> {
+type GenOpts = { urlContext?: boolean; smart?: boolean; text?: boolean; system?: string };
+
+async function generate(prompt: string, schema: object | null, opts: GenOpts = {}): Promise<string | null> {
   const c = ai();
   if (!c) return null;
-  const models = process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL, ...DEFAULT_MODELS] : DEFAULT_MODELS;
-  const ordered = workingModel ? [workingModel, ...models.filter((m) => m !== workingModel)] : models;
+  const tier = opts.smart ? "smart" : "fast";
+  const base = opts.smart ? SMART_MODELS : DEFAULT_MODELS;
+  const models = process.env.GEMINI_MODEL && !opts.smart ? [process.env.GEMINI_MODEL, ...base] : base;
+  const known = workingModel[tier];
+  const ordered = known ? [known, ...models.filter((m) => m !== known)] : models;
   for (const model of ordered) {
     try {
       const res = await c.models.generateContent({
         model,
         contents: prompt,
-        config: opts.urlContext
-          ? { tools: [{ urlContext: {} }], temperature: 0.1 }
-          : { responseMimeType: "application/json", responseJsonSchema: schema ?? undefined, temperature: 0.2 },
+        config: {
+          ...(opts.system ? { systemInstruction: opts.system } : {}),
+          ...(opts.urlContext
+            ? { tools: [{ urlContext: {} }], temperature: 0.1 }
+            : opts.text
+              ? { temperature: 0.3 }
+              : { responseMimeType: "application/json", responseJsonSchema: schema ?? undefined, temperature: 0.2 }),
+        },
       });
       const text = res.text;
       if (!text) continue;
-      workingModel = model;
-      return opts.urlContext ? parseLooseJson<T>(text) : (JSON.parse(text) as T);
+      workingModel[tier] = model;
+      return text;
     } catch (e) {
       const msg = String((e as Error)?.message ?? e);
-      // Unknown / retired model → try the next one. Rate limits or other errors → give up quietly.
-      if (/not found|404|not supported|NOT_FOUND|deprecated|no longer available/i.test(msg)) continue;
+      // Unknown / retired model or per-model quota → try the next one.
+      if (/not found|404|not supported|NOT_FOUND|deprecated|no longer available|RESOURCE_EXHAUSTED|429|quota/i.test(msg)) continue;
       console.warn("[ai] generate failed:", model, msg.slice(0, 200));
       return null;
     }
   }
   return null;
+}
+
+export async function generateJson<T>(prompt: string, schema: object | null, opts: GenOpts = {}): Promise<T | null> {
+  const text = await generate(prompt, schema, opts);
+  if (!text) return null;
+  if (opts.urlContext) return parseLooseJson<T>(text);
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return parseLooseJson<T>(text);
+  }
+}
+
+export async function generateText(prompt: string, opts: Omit<GenOpts, "text" | "urlContext"> = {}) {
+  return generate(prompt, null, { ...opts, text: true });
 }
 
 export type Categorization = {

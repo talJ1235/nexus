@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Command } from "cmdk";
 import { Dialog as D } from "radix-ui";
-import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell } from "lucide-react";
+import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell, Sparkles, Wand2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Kbd } from "@/components/ui/button";
@@ -33,6 +33,7 @@ export function CommandPalette() {
   const s = useStore();
   const { t, locale, setLocale } = useI18n();
   const { theme, resolvedTheme, setTheme } = useTheme();
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -65,11 +66,18 @@ export function CommandPalette() {
 
   const run = (fn: () => void) => {
     s.setPaletteOpen(false);
+    setSearch("");
     setTimeout(fn, 10);
   };
 
   return (
-    <D.Root open={s.paletteOpen} onOpenChange={s.setPaletteOpen}>
+    <D.Root
+      open={s.paletteOpen}
+      onOpenChange={(o) => {
+        s.setPaletteOpen(o);
+        if (!o) setSearch("");
+      }}
+    >
       <D.Portal>
         <D.Overlay className="overlay-in fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
         <D.Content className="fixed inset-x-0 top-[10vh] z-50 mx-auto w-[calc(100vw-24px)] max-w-[600px] animate-pop-in overflow-hidden rounded-2xl border border-line bg-raised shadow-pop outline-none">
@@ -78,16 +86,32 @@ export function CommandPalette() {
           <Command loop filter={paletteFilter} label={t.cmd.placeholder} className="flex max-h-[min(560px,75vh)] flex-col">
             <div className="flex items-center gap-3 border-b border-line px-4">
               <Search className="size-4 text-faint" />
-              <Command.Input autoFocus placeholder={t.cmd.placeholder} className="h-13 flex-1 bg-transparent py-4 text-[15px] outline-none placeholder:text-faint" />
+              <Command.Input autoFocus value={search} onValueChange={setSearch} placeholder={t.cmd.placeholder} className="h-13 flex-1 bg-transparent py-4 text-[15px] outline-none placeholder:text-faint" />
               <Kbd>Esc</Kbd>
             </div>
             <Command.List className="overflow-y-auto p-1.5">
               <Command.Empty className="py-10 text-center text-sm text-muted">{t.cmd.noResults}</Command.Empty>
 
+              {s.aiEnabled && search.trim().length > 2 && (
+                <Command.Group heading={t.ai.title} className={groupCls} forceMount>
+                  <Command.Item value={`ask ${search}`} forceMount onSelect={() => run(() => s.askAssistant(search.trim()))} className={itemCls}>
+                    <Sparkles className="!text-accent-ink" />
+                    <span className="min-w-0 truncate">
+                      {t.ai.askPalette}: <span className="text-muted">“{search.trim()}”</span>
+                    </span>
+                  </Command.Item>
+                </Command.Group>
+              )}
+
               <Command.Group heading={t.cmd.actions} className={groupCls}>
                 <Command.Item value={`add ${t.cmd.addLink}`} onSelect={() => run(s.focusAdd)} className={itemCls}>
                   <Link2 /> {t.cmd.addLink}
                 </Command.Item>
+                {s.aiEnabled && (
+                  <Command.Item value={`plan project ai parts bom ${t.ai.planTab}`} onSelect={() => run(() => s.setPanel("planner"))} className={itemCls}>
+                    <Wand2 /> {t.ai.planTab}
+                  </Command.Item>
+                )}
                 <Command.Item value={`project ${t.nav.newProject}`} onSelect={() => run(() => s.setEditor({ mode: "create", kind: "project" }))} className={itemCls}>
                   <FolderPlus /> {t.nav.newProject}
                 </Command.Item>

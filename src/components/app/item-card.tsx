@@ -126,7 +126,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
   const moved = item.sources.some((src) => new Set(item.points.filter((p) => p.sourceId === src.id).map((p) => p.price)).size > 1);
   const low = moved ? lowestSeen(item, s.rates, s.currency) : null;
   const atLowest = item.status === "to_buy" && low != null && unit != null && unit <= low * 1.005;
-  const stores = Array.from(new Set(item.sources.map((x) => x.store)));
+  const stores = Array.from(new Set(item.sources.filter((x) => x.url).map((x) => x.store)));
   const selecting = s.selected.size > 0;
   const isSelected = s.selected.has(item.id);
 
@@ -223,7 +223,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
 
       <div className="flex flex-1 flex-col gap-2 p-3.5 pt-3">
         <div className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted">
-          <span className="truncate font-medium">{stores[0] ?? "—"}</span>
+          {stores[0] && <span className="truncate font-medium">{stores[0]}</span>}
           {stores.length > 1 && (
             <span dir="ltr" className="shrink-0 rounded bg-sunken px-1 text-[11px] text-muted">
               +{stores.length - 1}
@@ -231,7 +231,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
           )}
           {collection && (
             <>
-              <span className="text-faint">·</span>
+              {stores[0] && <span className="text-faint">·</span>}
               <span className="flex min-w-0 items-center gap-1 truncate">
                 <span className="size-1.5 shrink-0 rounded-full" style={{ background: COLLECTION_COLORS[collection.color] }} />
                 <span className="truncate">{collection.name}</span>

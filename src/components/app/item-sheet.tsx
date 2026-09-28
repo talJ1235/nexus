@@ -12,7 +12,7 @@ import { convert, formatMoney } from "@/lib/money";
 import type { ItemWithSources, Source } from "@/lib/types";
 import { cn, isHttpUrl } from "@/lib/utils";
 import { PriceTag, ProductImage } from "./item-card";
-import { AltLink, PriceHistory, PriceWatch, ReceiptsSection, ShippingSection, StatusControl } from "./item-sheet-parts";
+import { AltLink, FindIt, PriceHistory, PriceWatch, ReceiptsSection, ShippingSection, StatusControl } from "./item-sheet-parts";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 import { COLLECTION_COLORS } from "./view-items";
@@ -376,6 +376,7 @@ export function ItemSheet() {
               </div>
             </div>
 
+            {!item.sources.some((x) => x.url) && item.status === "to_buy" && <FindIt query={item.searchQuery || item.title} />}
             <section className="mt-6 px-4">
               <div className="mb-2 flex items-baseline justify-between">
                 <h3 className="text-sm font-semibold">{t.item.sources}</h3>
