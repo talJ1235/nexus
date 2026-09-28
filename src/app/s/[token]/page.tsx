@@ -87,7 +87,7 @@ export default async function SharedPage({ params }: { params: Promise<{ token: 
                 {unit != null && <span className="price-tag text-[14px]">{formatMoney(unit, currency, locale)}</span>}
                 {i.quantity > 1 && line != null && <div className="tabular mt-1 text-xs text-muted">{formatMoney(line, currency, locale)}</div>}
               </div>
-              {src && (
+              {src?.url && (
                 <a href={src.url} target="_blank" rel="noopener noreferrer" className="grid size-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-sunken hover:text-fg" aria-label={t.item.openStore}>
                   <ExternalLink className="size-4" />
                 </a>

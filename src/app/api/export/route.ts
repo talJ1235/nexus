@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
       unit: unitPrice(i, data.rates, currency),
       total: lineTotal(i, data.rates, currency),
       store: src?.store ?? "",
-      link: src ? { text: src.url, hyperlink: src.url } : "",
+      link: src?.url ? { text: src.url, hyperlink: src.url } : "",
       priority: pr[i.priority],
       collection: data.collections.find((c) => c.id === i.collectionId)?.name ?? "",
       tags: (i.tags ?? []).join(", "),

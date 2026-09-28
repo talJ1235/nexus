@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { Command } from "cmdk";
 import { Dialog as D } from "radix-ui";
-import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn } from "lucide-react";
+import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Kbd } from "@/components/ui/button";
@@ -117,6 +117,24 @@ export function CommandPalette() {
                     <Coins /> {t.settings.currency} {c}
                   </Command.Item>
                 ))}
+                <Command.Item value={`import excel csv spreadsheet ${t.io.importSheet}`} onSelect={() => run(() => s.setPanel("import"))} className={itemCls}>
+                  <FileSpreadsheet /> {t.io.importSheet}
+                </Command.Item>
+                <Command.Item
+                  value={`backup export download ${t.io.backup}`}
+                  onSelect={() =>
+                    run(() => {
+                      // A file download, not a page navigation.
+                      const a = document.createElement("a");
+                      a.href = "/api/backup";
+                      a.download = "";
+                      a.click();
+                    })
+                  }
+                  className={itemCls}
+                >
+                  <Download /> {t.io.backup}
+                </Command.Item>
                 <Command.Item value={`extension clipper chrome ${t.settings.extension}`} onSelect={() => run(() => s.setExtOpen(true))} className={itemCls}>
                   <Puzzle /> {t.settings.extension}
                 </Command.Item>

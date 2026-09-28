@@ -71,14 +71,21 @@ function SourceRow({ item, source }: { item: ItemWithSources; source: Source }) 
             {isChosen && <span className="rounded bg-fg px-1.5 py-px text-[11px] font-semibold text-bg">{t.item.chosen}</span>}
             {source.availability && /OutOfStock|Discontinued|SoldOut/i.test(source.availability) && <span className="rounded bg-danger-soft px-1.5 py-px text-[11px] text-danger">{source.availability}</span>}
           </div>
-          <a href={source.url} target="_blank" rel="noopener noreferrer" className="mt-0.5 block truncate text-xs text-faint hover:text-accent-ink" dir="ltr">
-            {source.url.replace(/^https?:\/\/(www\.)?/, "").slice(0, 70)}
-          </a>
+          {source.url ? (
+            <a href={source.url} target="_blank" rel="noopener noreferrer" className="mt-0.5 block truncate text-xs text-faint hover:text-accent-ink" dir="ltr">
+              {source.url.replace(/^https?:\/\/(www\.)?/, "").slice(0, 70)}
+            </a>
+          ) : (
+            <span className="mt-0.5 block text-xs text-faint">{t.item.manualPrice}</span>
+          )}
         </div>
         <div className="flex shrink-0 gap-0.5">
+          {source.url && (
           <a href={source.url} target="_blank" rel="noopener noreferrer" className="grid size-8 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" title={t.item.openStore} aria-label={t.item.openStore}>
             <ExternalLink className="size-4" />
           </a>
+          )}
+          {source.url && (
           <button
             type="button"
             disabled={busy}
@@ -99,6 +106,7 @@ function SourceRow({ item, source }: { item: ItemWithSources; source: Source }) 
           >
             <RefreshCw className={cn("size-4", busy && "animate-spin")} />
           </button>
+          )}
           <button
             type="button"
             onClick={async () => {
@@ -232,7 +240,7 @@ export function ItemSheet() {
   const [repairing, setRepairing] = useState(false);
   const total = item ? lineTotal(item, s.rates, s.currency) : null;
   const firstSource = item?.sources[0];
-  const missing = !!item && !!firstSource && (!item.imageUrl || !firstSource.rawTitle || item.sources.every((x) => x.price == null));
+  const missing = !!item && !!firstSource?.url && (!item.imageUrl || !firstSource.rawTitle || item.sources.every((x) => x.price == null));
   const repair = async () => {
     if (!item || !firstSource) return;
     setRepairing(true);

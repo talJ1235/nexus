@@ -7,6 +7,8 @@ import type { View } from "@/lib/views";
 
 export type { View };
 
+export type Panel = "import" | "planner" | "assistant" | "alerts" | "share" | null;
+
 export type Layout = "cards" | "table";
 export type SortKey = "newest" | "price" | "priority" | "name";
 
@@ -58,6 +60,9 @@ type Store = {
   settingsOpen: boolean;
   setSettingsOpen: (o: boolean) => void;
   extOpen: boolean;
+  /** One secondary panel at a time (Round 3 dialogs). */
+  panel: Panel;
+  setPanel: (p: Panel) => void;
   setExtOpen: (o: boolean) => void;
   setNavOpen: (o: boolean) => void;
   focusAdd: () => void;
@@ -119,6 +124,7 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
   const [navOpen, setNavOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [extOpen, setExtOpen] = useState(false);
+  const [panel, setPanel] = useState<Panel>(null);
 
   // Restore per-device UI prefs + view from URL after mount.
   useEffect(() => {
@@ -275,11 +281,13 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
       settingsOpen,
       setSettingsOpen,
       extOpen,
+      panel,
+      setPanel,
       setExtOpen,
       setNavOpen,
       focusAdd,
     }),
-    [items, collections, altGroups, upsertAltGroup, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, focusAdd],
+    [items, collections, altGroups, upsertAltGroup, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

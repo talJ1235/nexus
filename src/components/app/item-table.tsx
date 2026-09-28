@@ -143,7 +143,7 @@ export function ItemTable({ items }: { items: ItemWithSources[] }) {
                 </td>
                 <td className="py-2 pe-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex justify-end gap-0.5">
-                    {src && (
+                    {src?.url && (
                       <a href={src.url} target="_blank" rel="noopener noreferrer" aria-label={t.item.openStore} title={t.item.openStore} className="grid size-8 place-items-center rounded-md text-muted hover:bg-line hover:text-fg">
                         <ExternalLink className="size-4" />
                       </a>

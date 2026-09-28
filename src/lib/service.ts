@@ -216,7 +216,7 @@ export async function refreshSourceCore(sourceId: string, payload?: ClientPayloa
   const firstReadFailed = !src.rawTitle;
   const patch: Record<string, unknown> = { updatedAt: t };
   if (firstReadFailed && draft.source.rawTitle) {
-    patch.title = draft.title;
+    if (src.extractMethod !== "import-titled") patch.title = draft.title;
     if (!item.tags?.length) patch.tags = draft.tags;
     if (!item.category) patch.category = draft.category;
     if (!item.brand) patch.brand = draft.brand;

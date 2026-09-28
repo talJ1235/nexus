@@ -14,6 +14,7 @@ import { AddBar, type Incoming } from "./add-bar";
 import { CollectionDialog } from "./collection-dialog";
 import { CommandPalette } from "./command-palette";
 import { SettingsDialog } from "./settings-dialog";
+import { ImportDialog } from "./import-dialog";
 import { AltGroupCard, ItemCard } from "./item-card";
 import { AltSheet } from "./alt-sheet";
 import { OrdersView } from "./orders-view";
@@ -82,6 +83,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <CollectionDialog />
       <CommandPalette />
       <SettingsDialog />
+      <ImportDialog />
     </div>
   );
 }

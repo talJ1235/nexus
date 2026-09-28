@@ -1,6 +1,8 @@
 "use client";
 
-import { LogOut, Monitor, Moon, Puzzle, Sun } from "lucide-react";
+import { useRef, useState } from "react";
+import { Download, FileSpreadsheet, Loader2, LogOut, Monitor, Moon, Puzzle, Sun, Upload } from "lucide-react";
+import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";
@@ -113,6 +115,8 @@ export function SettingsDialog() {
             </Row>
           </section>
 
+          <DataSection />
+
           <section className="space-y-4 border-t border-line pt-5">
             <h3 className="text-xs font-medium text-faint">{t.settings.account}</h3>
             <Row title={t.settings.extension} hint={ext.available ? `${t.ext.connected} · v${ext.version}` : t.ext.notInstalled}>
@@ -135,5 +139,79 @@ export function SettingsDialog() {
       </Modal>
       <BookmarkletDialog open={s.extOpen} onOpenChange={s.setExtOpen} />
     </>
+  );
+}
+
+function DataSection() {
+  const s = useStore();
+  const { t, f } = useI18n();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<"merge" | "replace">("merge");
+  const [busy, setBusy] = useState(false);
+
+  const restore = async (file: File | undefined) => {
+    if (!file) return;
+    if (mode === "replace" && !window.confirm(t.io.replaceConfirm)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/backup?mode=${mode}`, { method: "POST", headers: { "content-type": "application/json" }, body: await file.text() });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      toast.success(f(t.io.restored, { n: json.counts.items ?? 0 }));
+      setTimeout(() => window.location.reload(), 900);
+    } catch (e) {
+      toast.error(String((e as Error).message) === "not_a_backup" ? t.io.notBackup : t.errors.generic);
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  return (
+    <section className="space-y-4 border-t border-line pt-5">
+      <h3 className="text-xs font-medium text-faint">{t.io.data}</h3>
+      <Row title={t.io.importSheet} hint={t.io.importSheetHint}>
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              s.setSettingsOpen(false);
+              s.setPanel("import");
+            }}
+          >
+            <FileSpreadsheet />
+            {t.io.open}
+          </Button>
+        </div>
+      </Row>
+      <Row title={t.io.backup} hint={t.io.backupHint}>
+        <div className="flex justify-end">
+          <a href="/api/backup" download className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-[13px] font-medium transition hover:bg-sunken [&_svg]:size-4">
+            <Download />
+            {t.io.download}
+          </a>
+        </div>
+      </Row>
+      <Row title={t.io.restore} hint={t.io.restoreHint}>
+        <div className="flex items-center justify-end gap-2">
+          <Segmented
+            size="sm"
+            label={t.io.restore}
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: "merge", label: t.io.merge },
+              { value: "replace", label: t.io.replace },
+            ]}
+          />
+          <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={busy}>
+            {busy ? <Loader2 className="animate-spin" /> : <Upload />}
+            {t.io.restore}
+          </Button>
+          <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => void restore(e.target.files?.[0])} />
+        </div>
+      </Row>
+    </section>
   );
 }

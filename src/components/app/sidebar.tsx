@@ -133,7 +133,7 @@ export function Sidebar() {
       if (i.status !== "to_buy") continue;
       const seen = new Set<string>();
       for (const src of i.sources) {
-        if (seen.has(src.storeKey)) continue;
+        if (seen.has(src.storeKey) || src.storeKey === "manual") continue;
         seen.add(src.storeKey);
         const e = m.get(src.storeKey) ?? { name: src.store, count: 0 };
         e.count++;

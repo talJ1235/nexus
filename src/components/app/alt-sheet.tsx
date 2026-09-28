@@ -116,7 +116,7 @@ export function AltSheet() {
                         <Button size="sm" variant={picked ? "outline" : "accent"} className="flex-1" onClick={() => void pick(picked ? null : m.id)}>
                           {picked ? t.alt.unpick : (<><Check />{t.alt.pick}</>)}
                         </Button>
-                        {src && (
+                        {src?.url && (
                           <a href={src.url} target="_blank" rel="noopener noreferrer" aria-label={t.item.openStore} title={t.item.openStore} className="grid size-8 place-items-center rounded-lg border border-line-strong text-muted hover:bg-sunken hover:text-fg">
                             <ExternalLink className="size-4" />
                           </a>

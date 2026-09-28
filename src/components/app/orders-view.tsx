@@ -20,8 +20,8 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
   const groups = new Map<string, { store: string; items: ItemWithSources[] }>();
   for (const i of list) {
     const src = activeSource(i, s.rates);
-    const key = src?.storeKey ?? "—";
-    const g = groups.get(key) ?? { store: src?.store ?? "—", items: [] };
+    const key = src?.url ? src.storeKey : "—";
+    const g = groups.get(key) ?? { store: src?.url ? src.store : "—", items: [] };
     g.items.push(i);
     groups.set(key, g);
   }
@@ -98,7 +98,7 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
                     </div>
                   </button>
                   <div className="tabular w-24 shrink-0 text-end text-sm font-semibold">{line != null ? formatMoney(line, s.currency, locale) : "—"}</div>
-                  {src && (
+                  {src?.url && (
                     <a href={src.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-line-strong px-2.5 text-xs font-medium text-muted hover:bg-sunken hover:text-fg">
                       <ExternalLink className="size-3.5" />
                       {t.orders.openStore}

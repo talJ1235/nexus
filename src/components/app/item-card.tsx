@@ -193,7 +193,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
 
         {!selecting && (
           <div className="absolute bottom-2.5 end-2.5 z-[2] flex gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-100">
-            {src && (
+            {src?.url && (
               <a
                 href={src.url}
                 target="_blank"
