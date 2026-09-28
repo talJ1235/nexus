@@ -103,7 +103,7 @@ export function CollectionDialog() {
         <div>
           <Label htmlFor="c-name">{t.collection.name}</Label>
           <div className="flex gap-2">
-            <Input id="c-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} dir="auto" maxLength={80} />
+            <Input id="c-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} className="bidi" maxLength={80} />
           </div>
           <div className="mt-2 flex gap-1.5" role="radiogroup" aria-label="Color">
             {COLOR_KEYS.map((k) => (
@@ -122,7 +122,7 @@ export function CollectionDialog() {
         </div>
         <div>
           <Label htmlFor="c-desc">{t.collection.description}</Label>
-          <Textarea id="c-desc" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} dir="auto" maxLength={500} />
+          <Textarea id="c-desc" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} className="bidi" maxLength={500} />
         </div>
         {kind === "project" && (
           <div>

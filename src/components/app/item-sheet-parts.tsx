@@ -2,7 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
-import { BellRing, ExternalLink, Search, FileText, Loader2, Paperclip, Split, Trash2, TrendingDown, Truck } from "lucide-react";
+import { BellRing, ExternalLink, Search, FileText, Paperclip, Split, Trash2, TrendingDown, Truck } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { addAttachment, deleteAttachment, updateItem } from "@/app/actions";
 import { useI18n } from "@/components/providers";
@@ -14,6 +15,32 @@ import { cn } from "@/lib/utils";
 import { useStatusFlow, type Status } from "./item-card";
 import { useStore } from "./store";
 import { storeSearches } from "@/lib/search-links";
+
+/** A titled card inside the item sheet. */
+export function Group({ title, icon: Icon, aside, children, className }: { title: string; icon: React.ComponentType<{ className?: string }>; aside?: React.ReactNode; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={cn("rounded-2xl border border-line bg-surface", className)}>
+      <header className="flex min-h-11 items-center justify-between gap-2 px-4 pt-1">
+        <h3 className="flex items-center gap-2 text-[13px] font-semibold text-fg">
+          <Icon className="size-4 text-faint" />
+          {title}
+        </h3>
+        {aside}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+/** A label/control row inside a Group (settings-list style). */
+export function Row({ label, children, className }: { label: React.ReactNode; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("flex min-h-12 items-center justify-between gap-3 border-t border-line/70 px-4 py-2", className)}>
+      <span className="shrink-0 text-[13.5px] text-muted">{label}</span>
+      {children}
+    </div>
+  );
+}
 
 /** To buy → Ordered → Received as one segmented control. */
 export function StatusControl({ item }: { item: ItemWithSources }) {
@@ -83,7 +110,7 @@ export function ShippingSection({ item }: { item: ItemWithSources }) {
   };
   const etaValue = item.eta ? new Date(item.eta).toISOString().slice(0, 10) : "";
   return (
-    <section className="mx-4 mt-4 rounded-xl border border-info/30 bg-info/5 p-3">
+    <section className="rounded-2xl border border-info/30 bg-info/5 p-4">
       <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
         <Truck className="size-4 text-info" />
         {t.track.title}
@@ -172,14 +199,7 @@ export function PriceHistory({ item }: { item: ItemWithSources }) {
   );
   const low = lowestSeen(item, s.rates, s.currency);
 
-  if (pts.length < 2) {
-    return (
-      <section className="mx-4 mt-6">
-        <h3 className="mb-1.5 text-sm font-semibold">{t.history.title}</h3>
-        <p className="text-xs leading-relaxed text-muted">{t.history.empty}</p>
-      </section>
-    );
-  }
+  if (pts.length < 2) return <p className="px-4 pb-3.5 text-xs leading-relaxed text-muted">{t.history.empty}</p>;
 
   const W = 440;
   const H = 96;
@@ -197,17 +217,8 @@ export function PriceHistory({ item }: { item: ItemWithSources }) {
   const date = (ms: number) => new Date(ms).toLocaleDateString(locale === "he" ? "he-IL" : "en-GB", { day: "numeric", month: "short", year: "2-digit" });
 
   return (
-    <section className="mx-4 mt-6">
-      <div className="mb-2 flex items-baseline justify-between gap-2">
-        <h3 className="text-sm font-semibold">{t.history.title}</h3>
-        {low != null && (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-ok">
-            <TrendingDown className="size-3.5" />
-            {f(t.history.lowest, { amount: formatMoney(low, s.currency, locale) })}
-          </span>
-        )}
-      </div>
-      <div className="relative rounded-xl border border-line bg-bg/40 p-2" dir="ltr">
+    <div className="px-3 pb-3">
+      <div className="relative rounded-xl bg-sunken/60 p-2" dir="ltr">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${W} ${H}`}
@@ -248,7 +259,21 @@ export function PriceHistory({ item }: { item: ItemWithSources }) {
           <span>{date(t1)}</span>
         </div>
       </div>
-    </section>
+    </div>
+  );
+}
+
+/** Lowest price seen, for the price section header. */
+export function LowestBadge({ item }: { item: ItemWithSources }) {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const low = item.points.length > 1 ? lowestSeen(item, s.rates, s.currency) : null;
+  if (low == null) return null;
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-ok">
+      <TrendingDown className="size-3.5" />
+      {f(t.history.lowest, { amount: formatMoney(low, s.currency, locale) })}
+    </span>
   );
 }
 
@@ -280,20 +305,23 @@ export function ReceiptsSection({ item }: { item: ItemWithSources }) {
   };
 
   return (
-    <section className="mx-4 mt-6">
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold">{t.receipts.title}</h3>
+    <Group
+      title={t.receipts.title}
+      icon={Paperclip}
+      aside={
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={busy}
           className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-accent-ink hover:bg-accent-soft disabled:opacity-60"
         >
-          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Paperclip className="size-3.5" />}
+          {busy ? <Spinner className="size-3.5" /> : <Paperclip className="size-3.5" />}
           {busy ? t.receipts.uploading : t.receipts.add}
         </button>
-        <input ref={inputRef} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => void onFiles(e.target.files)} />
-      </div>
+      }
+    >
+      <input ref={inputRef} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => void onFiles(e.target.files)} />
+      <div className="px-4 pb-4">
       {item.attachments.length > 0 ? (
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {item.attachments.map((a) => (
@@ -307,7 +335,7 @@ export function ReceiptsSection({ item }: { item: ItemWithSources }) {
                     <FileText className="size-7 text-muted" strokeWidth={1.5} />
                   </div>
                 )}
-                <div className="truncate px-2 py-1.5 text-[11px] text-muted" dir="auto">
+                <div className="truncate px-2 py-1.5 text-[11px] text-muted bidi">
                   {a.name}
                 </div>
               </a>
@@ -337,7 +365,8 @@ export function ReceiptsSection({ item }: { item: ItemWithSources }) {
           {t.receipts.add}
         </button>
       )}
-    </section>
+      </div>
+    </Group>
   );
 }
 
@@ -354,10 +383,10 @@ export function AltLink({ item }: { item: ItemWithSources }) {
         s.openItem(null);
         s.openAlt(group.id);
       }}
-      className="mx-4 mt-3 flex w-[calc(100%-2rem)] items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft/50 px-3 py-2 text-start text-sm text-accent-ink transition hover:bg-accent-soft"
+      className="mt-3 flex w-full items-center gap-2 rounded-xl border border-accent/40 bg-accent-soft/50 px-3 py-2 text-start text-sm text-accent-ink transition hover:bg-accent-soft"
     >
       <Split className="size-4 shrink-0" />
-      <span className="min-w-0 flex-1 truncate" dir="auto">
+      <span className="min-w-0 flex-1 truncate bidi">
         {group.name}
       </span>
       <span className="shrink-0 text-xs">{f(t.alt.badge, { n })}</span>
@@ -371,15 +400,18 @@ export function PriceWatch({ item, save }: { item: ItemWithSources; save: (p: { 
   const { t } = useI18n();
   const cur = item.targetCurrency ?? s.currency;
   return (
-    <section className="mt-6 px-4">
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-line p-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <BellRing className="size-4 text-muted" />
-            {t.alerts.watch}
-          </div>
-          <div className="mt-0.5 text-xs text-muted">{t.alerts.watchHint}</div>
-        </div>
+    <>
+      <Row
+        label={
+          <span className="flex flex-col">
+            <span className="flex items-center gap-2 text-fg">
+              <BellRing className="size-4 text-faint" />
+              {t.alerts.watch}
+            </span>
+            <span className="mt-0.5 text-xs text-faint">{t.alerts.watchHint}</span>
+          </span>
+        }
+      >
         <button
           type="button"
           role="switch"
@@ -390,12 +422,9 @@ export function PriceWatch({ item, save }: { item: ItemWithSources; save: (p: { 
         >
           <span className={cn("absolute top-0.5 size-5 rounded-full bg-white shadow transition-[inset-inline-start]", item.watch ? "start-[22px]" : "start-0.5")} />
         </button>
-      </div>
+      </Row>
       {item.watch && (
-        <div className="mt-2 flex items-center gap-2">
-          <label htmlFor="target" className="shrink-0 text-[13px] text-muted">
-            {t.alerts.target}
-          </label>
+        <Row label={<label htmlFor="target">{t.alerts.target}</label>}>
           <div className="flex">
             <input
               id="target"
@@ -411,13 +440,13 @@ export function PriceWatch({ item, save }: { item: ItemWithSources; save: (p: { 
                 if (v !== item.targetPrice && !Number.isNaN(v)) void save({ targetPrice: v, targetCurrency: v == null ? null : cur });
               }}
               onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-              className="tabular h-8 w-28 rounded-s-md border border-line bg-bg px-2 text-sm outline-none focus:border-accent"
+              className="tabular h-9 w-28 rounded-s-lg border border-line-strong bg-bg px-2.5 text-sm outline-none focus:border-accent"
             />
-            <span className="grid h-8 place-items-center rounded-e-md border border-s-0 border-line bg-sunken px-2 text-xs text-muted">{cur}</span>
+            <span className="grid h-9 place-items-center rounded-e-lg border border-s-0 border-line-strong bg-sunken px-2.5 text-xs text-muted">{cur}</span>
           </div>
-        </div>
+        </Row>
       )}
-    </section>
+    </>
   );
 }
 
@@ -425,8 +454,8 @@ export function PriceWatch({ item, save }: { item: ItemWithSources; save: (p: { 
 export function FindIt({ query }: { query: string }) {
   const { t } = useI18n();
   return (
-    <section className="mt-5 px-4">
-      <div className="rounded-xl border border-dashed border-accent/50 bg-accent-soft/30 p-3">
+    <section>
+      <div className="rounded-2xl border border-dashed border-accent/50 bg-accent-soft/30 p-4">
         <div className="flex items-center gap-2 text-sm font-medium">
           <Search className="size-4 text-accent-ink" />
           {t.ai.findIn}

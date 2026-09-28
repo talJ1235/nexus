@@ -218,7 +218,7 @@ export function CommandPalette() {
                     className={itemCls}
                   >
                     <ProductImage src={i.imageUrl} alt="" className="size-7 shrink-0 rounded-md" iconClass="size-3.5" />
-                    <span className="min-w-0 flex-1 truncate" dir="auto">
+                    <span className="min-w-0 flex-1 truncate bidi">
                       {i.title}
                     </span>
                     <span className="shrink-0 text-xs text-faint">{i.status === "purchased" ? t.flow.received : i.status === "ordered" ? t.flow.ordered : i.sources[0]?.store}</span>

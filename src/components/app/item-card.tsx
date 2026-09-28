@@ -34,7 +34,7 @@ export function ProductImage({ src, alt, className, iconClass }: { src: string |
           className="product-img size-full object-contain p-[9%] mix-blend-multiply"
         />
       ) : (
-        <Package className={cn("size-8 text-[#b9b4a8]", iconClass)} strokeWidth={1.4} />
+        <Package className={cn("size-8 text-tile-ink", iconClass)} strokeWidth={1.4} />
       )}
     </div>
   );
@@ -129,6 +129,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
   const stores = Array.from(new Set(item.sources.filter((x) => x.url).map((x) => x.store)));
   const selecting = s.selected.size > 0;
   const isSelected = s.selected.has(item.id);
+  const fresh = s.fresh.get(item.id);
 
   // Savings hint: how much cheaper the best store is than the priciest one.
   let spread: number | null = null;
@@ -148,8 +149,10 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
         e.dataTransfer.effectAllowed = "move";
       }}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-[var(--radius-card)] border bg-surface transition-[border-color,box-shadow]",
-        isSelected ? "border-accent shadow-[0_0_0_1px_var(--accent)]" : "border-line hover:border-line-strong hover:shadow-card",
+        "group relative flex flex-col overflow-hidden rounded-[var(--radius-card)] border bg-surface transition-[border-color,box-shadow,transform] duration-200 ease-out",
+        isSelected ? "border-accent shadow-[0_0_0_1px_var(--accent)]" : "border-line hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card",
+        fresh === "new" && "fill-in",
+        fresh === "bump" && "bump",
       )}
     >
       <button
@@ -162,21 +165,11 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
       <div className="relative">
         <ProductImage src={item.imageUrl} alt="" className="aspect-[5/4] w-full" />
         <div className="pointer-events-none absolute inset-x-2.5 top-2.5 flex items-start justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-1">
-            <SelectBox
-              checked={isSelected}
-              onToggle={(e) => s.toggleSelect(item.id, e.shiftKey ? { range: order } : undefined)}
-              className={cn("pointer-events-auto relative z-[2]", !selecting && !isSelected && "opacity-0 group-hover:opacity-100 max-sm:hidden")}
-            />
-            {item.priority === "urgent" && item.status === "to_buy" && <span className="rounded-md bg-danger px-1.5 py-0.5 text-[11px] font-semibold text-white">{t.item.urgent}</span>}
-            {item.priority === "someday" && item.status === "to_buy" && <span className="rounded-md bg-black/55 px-1.5 py-0.5 text-[11px] font-medium text-white backdrop-blur">{t.item.someday}</span>}
-            {item.status === "ordered" && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-info px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                <Truck className="size-3" />
-                {t.flow.ordered}
-              </span>
-            )}
-          </div>
+          <SelectBox
+            checked={isSelected}
+            onToggle={(e) => s.toggleSelect(item.id, e.shiftKey ? { range: order } : undefined)}
+            className={cn("pointer-events-auto relative z-[2]", !selecting && !isSelected && "opacity-0 group-hover:opacity-100 max-sm:hidden")}
+          />
           <div className="flex gap-1">
             {item.status === "purchased" && (
               <span className="grid size-6 place-items-center rounded-md bg-ok text-white" title={t.flow.received}>
@@ -189,6 +182,23 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
               </span>
             )}
           </div>
+        </div>
+
+        <div className="pointer-events-none absolute bottom-2.5 start-2.5 flex max-w-[calc(100%-5.5rem)] flex-wrap items-center gap-1">
+          {item.priority === "urgent" && item.status === "to_buy" && <span className="rounded-md bg-danger px-1.5 py-0.5 text-[11px] font-semibold text-white shadow-sm">{t.item.urgent}</span>}
+          {item.priority === "someday" && item.status === "to_buy" && <span className="rounded-md bg-black/55 px-1.5 py-0.5 text-[11px] font-medium text-white backdrop-blur">{t.item.someday}</span>}
+          {item.status === "ordered" && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-info px-1.5 py-0.5 text-[11px] font-semibold text-white shadow-sm">
+              <Truck className="size-3" />
+              {t.flow.ordered}
+            </span>
+          )}
+          {atLowest && (
+            <span title={t.history.atLowest} className="inline-flex items-center gap-0.5 rounded-md bg-ok px-1.5 py-0.5 text-[11px] font-semibold text-white shadow-sm">
+              <TrendingDown className="size-3" />
+              {t.item.lowestShort}
+            </span>
+          )}
         </div>
 
         {!selecting && (
@@ -221,9 +231,10 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-3.5 pt-3">
-        <div className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted">
-          {stores[0] && <span className="truncate font-medium">{stores[0]}</span>}
+      <div className="flex flex-1 flex-col p-3.5 pt-3">
+        <h3 className="bidi line-clamp-2 min-h-[2.6em] text-[14.5px] font-medium leading-[1.3] text-fg">{item.title}</h3>
+        <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[12px] text-muted">
+          {stores[0] && <span className="truncate">{stores[0]}</span>}
           {stores.length > 1 && (
             <span dir="ltr" className="shrink-0 rounded bg-sunken px-1 text-[11px] text-muted">
               +{stores.length - 1}
@@ -233,36 +244,25 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
             <>
               {stores[0] && <span className="text-faint">·</span>}
               <span className="flex min-w-0 items-center gap-1 truncate">
-                <span className="size-1.5 shrink-0 rounded-full" style={{ background: COLLECTION_COLORS[collection.color] }} />
-                <span className="truncate">{collection.name}</span>
+                <span className={cn("size-1.5 shrink-0", collection.kind === "project" ? "rounded-[2px]" : "rounded-full")} style={{ background: COLLECTION_COLORS[collection.color] }} />
+                <span className="bidi truncate">{collection.name}</span>
               </span>
             </>
           )}
         </div>
-        <h3 className="line-clamp-2 text-[14.5px] font-medium leading-snug text-fg" dir="auto">
-          {item.title}
-        </h3>
-        <div className="mt-auto flex items-end justify-between gap-2 pt-1">
-          <div className="flex flex-col items-start gap-1">
-            {atLowest && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ok">
-                <TrendingDown className="size-3" />
-                {t.history.atLowest}
-              </span>
-            )}
-            <PriceTag item={item} />
-          </div>
-          <div className="text-end text-[11.5px] leading-tight text-faint">
+        <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+          <PriceTag item={item} />
+          <div className="min-w-0 truncate text-end text-[11.5px] leading-tight text-faint">
             {item.status === "purchased" && item.purchasedAt ? (
               <span className="text-ok">{f(t.flow.receivedOn, { date: shortDate(item.purchasedAt, locale) })}</span>
             ) : item.status === "ordered" ? (
               <span className="text-info">{item.eta ? f(t.flow.arrives, { date: shortDate(item.eta, locale) }) : item.orderedAt ? f(t.flow.orderedOn, { date: shortDate(item.orderedAt, locale) }) : null}</span>
             ) : item.quantity > 1 && total != null ? (
               <span className="tabular">
-                {t.item.total} {formatMoney(total, s.currency, locale)}
+                {t.item.total} <b className="font-semibold text-muted">{formatMoney(total, s.currency, locale)}</b>
               </span>
             ) : spread != null && spread > 0 ? (
-              <span className="tabular font-medium text-accent-ink">{f(t.item.saveUpTo, { amount: formatMoney(Math.round(spread), s.currency, locale) })}</span>
+              <span className="tabular font-medium text-ok">{f(t.item.saveUpTo, { amount: formatMoney(Math.round(spread), s.currency, locale) })}</span>
             ) : src?.shipping == null && src?.price != null ? (
               <span>{t.item.shippingUnknown}</span>
             ) : null}
@@ -310,7 +310,7 @@ export function AltGroupCard({ groupId, members }: { groupId: string; members: I
             <Split className="size-3.5" />
             {f(t.alt.badge, { n: members.length })}
           </div>
-          <h3 className="line-clamp-2 text-[14.5px] font-medium leading-snug" dir="auto">
+          <h3 className="bidi line-clamp-2 text-[14.5px] font-medium leading-snug">
             {group?.name ?? t.alt.title}
           </h3>
           <div className="mt-auto flex items-end justify-between gap-2 pt-1">

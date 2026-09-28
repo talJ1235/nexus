@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Download, FileSpreadsheet, Loader2, LogOut, Monitor, Moon, Puzzle, Sun, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, LogOut, Monitor, Moon, Puzzle, Sun, Upload } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
@@ -206,7 +207,7 @@ function DataSection() {
             ]}
           />
           <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={busy}>
-            {busy ? <Loader2 className="animate-spin" /> : <Upload />}
+            {busy ? <Spinner /> : <Upload />}
             {t.io.restore}
           </Button>
           <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => void restore(e.target.files?.[0])} />

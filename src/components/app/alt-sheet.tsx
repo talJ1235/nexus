@@ -52,11 +52,10 @@ export function AltSheet() {
           <input
             key={group.id + group.name}
             defaultValue={group.name}
-            dir="auto"
-            aria-label={t.alt.rename}
+                        aria-label={t.alt.rename}
             onBlur={(e) => void rename(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-            className="-mx-1.5 mb-4 w-[calc(100%+12px)] rounded-md border border-transparent bg-transparent px-1.5 py-1 text-xl font-semibold outline-none hover:border-line focus:border-accent"
+            className="bidi -mx-1.5 mb-4 w-[calc(100%+12px)] rounded-md border border-transparent bg-transparent px-1.5 py-1 text-xl font-semibold outline-none hover:border-line focus:border-accent"
           />
           <div className="-mx-5 overflow-x-auto px-5 pb-1">
             <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${members.length}, minmax(210px, 280px))` }}>
@@ -87,7 +86,7 @@ export function AltSheet() {
                       </div>
                     </div>
                     <div className="flex flex-1 flex-col gap-2 p-3">
-                      <button type="button" onClick={() => { s.openAlt(null); s.openItem(m.id); }} className="line-clamp-3 text-start text-sm font-medium hover:underline" dir="auto">
+                      <button type="button" onClick={() => { s.openAlt(null); s.openItem(m.id); }} className="line-clamp-3 text-start text-sm font-medium hover:underline bidi">
                         {m.title}
                       </button>
                       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
@@ -105,7 +104,7 @@ export function AltSheet() {
                         )}
                       </dl>
                       {m.notes && (
-                        <p className="line-clamp-3 rounded-md bg-sunken px-2 py-1.5 text-xs text-muted" dir="auto">
+                        <p className="line-clamp-3 rounded-md bg-sunken px-2 py-1.5 text-xs text-muted bidi">
                           {m.notes}
                         </p>
                       )}

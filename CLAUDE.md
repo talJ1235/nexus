@@ -20,7 +20,8 @@
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)
-- Local server: `bash scripts/serve.sh [--build]` (restarts cleanly, waits until ready).
+- Local server: `bash scripts/serve.sh [--build]` (restarts cleanly, waits until ready). Demo data: `node --env-file=.env.local scripts/seed-local.mjs`.
+- Write-path UI checks (localhost only): `SMOKE_WRITE=1 NEXUS_PASSWORD=... npm run smoke`.
 - Verify with `npm run -s check` (quiet: prints one OK line or only the errors). Never paste full build logs.
 - UI verification: `npm run smoke` (Playwright, PASS/FAIL lines, screenshots to `$SMOKE_OUT`). Extend
   `scripts/smoke.mjs` for new features instead of writing throwaway scripts or clicking through a browser.

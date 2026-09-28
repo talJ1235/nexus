@@ -10,7 +10,8 @@ import { budgetStats, countable, sumTotals } from "@/lib/calc";
 import { formatMoney } from "@/lib/money";
 import type { AppData } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { AddBar, type Incoming } from "./add-bar";
+import { AddBar, SHOWS_PENDING, type Incoming } from "./add-bar";
+import { PendingCard } from "./pending";
 import { CollectionDialog } from "./collection-dialog";
 import { CommandPalette } from "./command-palette";
 import { SettingsDialog } from "./settings-dialog";
@@ -170,7 +171,7 @@ function ViewHeader() {
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
             {collection && <span className={cn("size-3", collection.kind === "project" ? "rounded-[4px]" : "rounded-full")} style={{ background: COLLECTION_COLORS[collection.color] }} />}
-            <h1 className="truncate text-[26px] font-semibold tracking-[-0.02em]" dir="auto">
+            <h1 className="truncate text-[26px] font-semibold tracking-[-0.02em] bidi">
               {title}
             </h1>
             {collection && (
@@ -186,7 +187,7 @@ function ViewHeader() {
             )}
           </div>
           {collection?.description && (
-            <p className="mt-1 max-w-[70ch] text-sm text-muted" dir="auto">
+            <p className="mt-1 max-w-[70ch] text-sm text-muted bidi">
               {collection.description}
             </p>
           )}
@@ -327,8 +328,9 @@ function Content() {
   const s = useStore();
   const { t } = useI18n();
   const items = useViewItems();
+  const pending = SHOWS_PENDING.includes(s.view.type) ? s.pending : [];
 
-  if (!items.length) {
+  if (!items.length && !pending.length) {
     return (
       <div className="grid place-items-center rounded-2xl border border-dashed border-line-strong px-6 py-20 text-center">
         <EmptyArt />
@@ -342,12 +344,12 @@ function Content() {
     );
   }
   if (s.view.type === "orders") return <OrdersView items={items} />;
-  if (s.layout === "table") return <ItemTable items={items} />;
+  if (s.layout === "table") return <ItemTable items={items} pending={pending} />;
 
   // Alternatives that are still open collapse into one card, placed where the first option would be.
   const known = new Set(s.altGroups.map((g) => g.id));
   const seen = new Set<string>();
-  const cells: React.ReactNode[] = [];
+  const cells: React.ReactNode[] = pending.map((p) => <PendingCard key={p.id} p={p} />);
   const order = items.map((i) => i.id);
   for (const i of items) {
     if (i.status === "to_buy" && i.altGroupId && known.has(i.altGroupId)) {

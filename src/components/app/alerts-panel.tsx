@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, BellRing, Check, ExternalLink, Loader2, RefreshCw, Send, Unlink } from "lucide-react";
+import { Bell, BellRing, Check, ExternalLink, RefreshCw, Send, Unlink } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { checkPricesNow, getAlertsState, markAlertsRead, saveAlertPrefs, tgDisconnect, tgFinishLink, tgSaveToken, tgStartLink, tgTest, type AlertsState } from "@/app/alert-actions";
 import { useI18n } from "@/components/providers";
@@ -72,7 +73,7 @@ function AlertRow({ a, onOpen }: { a: Alert; onOpen: (id: string) => void }) {
     <button type="button" onClick={() => onOpen(a.itemId)} className={cn("flex w-full items-center gap-3 rounded-xl p-2.5 text-start transition hover:bg-sunken", !a.readAt && "bg-accent-soft/40")}>
       <ProductImage src={item?.imageUrl ?? null} alt="" className="size-11 shrink-0 rounded-lg" iconClass="size-4" />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium" dir="auto">
+        <div className="truncate text-sm font-medium bidi">
           {item?.title ?? "—"}
         </div>
         <div className="tabular mt-0.5 text-[13px] text-muted">{line}</div>
@@ -152,7 +153,7 @@ function TelegramSetup({ st, reload }: { st: AlertsState; reload: () => Promise<
               await reload();
             }}
           >
-            {waiting ? <Loader2 className="animate-spin" /> : <Send />}
+            {waiting ? <Spinner /> : <Send />}
             {t.alerts.tgConnect} @{st.telegram.bot}
           </Button>
         </div>
@@ -186,7 +187,7 @@ function TelegramSetup({ st, reload }: { st: AlertsState; reload: () => Promise<
       >
         <Input type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder="123456789:AA…" dir="ltr" className="h-9" />
         <Button type="submit" size="sm" variant="accent" className="h-9" disabled={busy || token.length < 20}>
-          {busy ? <Loader2 className="animate-spin" /> : t.item.save}
+          {busy ? <Spinner /> : t.item.save}
         </Button>
       </form>
     </div>
@@ -252,7 +253,7 @@ export function AlertsPanel() {
           </h2>
           <div className="flex items-center gap-1">
             <Button size="sm" variant="outline" onClick={checkNow} disabled={checking}>
-              <RefreshCw className={cn(checking && "animate-spin")} />
+              {checking ? <Spinner /> : <RefreshCw />}
               {t.alerts.checkNow}
             </Button>
             <SheetClose className="grid size-8 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label="Close">

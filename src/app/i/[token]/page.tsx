@@ -28,7 +28,7 @@ export default async function InvitePage({ params, searchParams }: { params: Pro
         <form action="/api/invite/accept" method="post" className="relative w-full max-w-[380px] animate-pop-in rounded-2xl border border-line bg-surface p-7 shadow-pop">
           <LogoMark className="size-10" />
           <p className="mt-5 text-sm text-muted">{t.share.invitedTo}</p>
-          <h1 className="mt-1 text-xl font-semibold tracking-tight" dir="auto">
+          <h1 className="mt-1 text-xl font-semibold tracking-tight bidi">
             {found.collection.name}
           </h1>
           <p className="mt-1 text-sm text-muted">{found.invite.role === "editor" ? t.share.canEdit : t.share.canView}</p>
@@ -42,8 +42,7 @@ export default async function InvitePage({ params, searchParams }: { params: Pro
             maxLength={40}
             autoFocus
             autoComplete="given-name"
-            dir="auto"
-            className="mt-1.5 h-11 w-full rounded-lg border border-line-strong bg-bg px-3 text-[15px] outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                        className="bidi mt-1.5 h-11 w-full rounded-lg border border-line-strong bg-bg px-3 text-[15px] outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
           <input type="hidden" name="token" value={token} />
           {error && <p className="mt-2 text-sm text-danger">{t.share.inviteGone}</p>}

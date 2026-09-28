@@ -381,6 +381,55 @@ export async function moveItems(ids: string[], collectionId: string | null) {
   await db.update(schema.items).set({ collectionId, updatedAt: now() }).where(inArray(schema.items.id, ids));
 }
 
+/**
+ * Move some units of an item to another project/list. Moving every unit just moves the item; moving fewer
+ * splits it: a copy with `count` units (same store links and price history) goes to the target, the rest stay.
+ */
+export async function splitItem(id: string, count: number, collectionId: string | null): Promise<{ original: ItemWithSources; moved: ItemWithSources }> {
+  await assertAuth();
+  const n = z.number().int().min(1).parse(count);
+  z.string().nullable().parse(collectionId);
+  const cur = await getItem(id);
+  if (!cur) throw new Error("not_found");
+  const t = now();
+  if (n >= cur.quantity) {
+    await db.update(schema.items).set({ collectionId, updatedAt: t }).where(eq(schema.items.id, id));
+    const it = (await getItem(id))!;
+    return { original: it, moved: it };
+  }
+  const { sources, points, attachments: _receipts, ...item } = cur; // receipts stay with the original line
+  const newId = nanoid();
+  const srcIds = new Map(sources.map((x) => [x.id, nanoid()]));
+  await db.insert(schema.items).values({
+    ...item,
+    id: newId,
+    collectionId,
+    quantity: n,
+    altGroupId: null,
+    chosenSourceId: item.chosenSourceId ? (srcIds.get(item.chosenSourceId) ?? null) : null,
+    createdAt: t,
+    updatedAt: t,
+  });
+  if (sources.length) await db.insert(schema.sources).values(sources.map((x) => ({ ...x, id: srcIds.get(x.id)!, itemId: newId })));
+  const pts = (points ?? []).filter((p) => srcIds.has(p.sourceId));
+  if (pts.length) await db.insert(schema.pricePoints).values(pts.map((p) => ({ ...p, id: nanoid(), itemId: newId, sourceId: srcIds.get(p.sourceId)! })));
+  await db.update(schema.items).set({ quantity: cur.quantity - n, updatedAt: t }).where(eq(schema.items.id, id));
+  return { original: (await getItem(id))!, moved: (await getItem(newId))! };
+}
+
+/** Undo a split: fold the moved units back into the original line. */
+export async function unsplitItem(originalId: string, movedId: string): Promise<ItemWithSources> {
+  await assertAuth();
+  if (originalId === movedId) throw new Error("same_item");
+  const [orig, moved] = await Promise.all([getItem(originalId), getItem(movedId)]);
+  if (!orig || !moved) throw new Error("not_found");
+  await db.delete(schema.pricePoints).where(eq(schema.pricePoints.itemId, movedId));
+  await db.delete(schema.sources).where(eq(schema.sources.itemId, movedId));
+  await db.delete(schema.items).where(eq(schema.items.id, movedId));
+  await db.update(schema.items).set({ quantity: orig.quantity + moved.quantity, updatedAt: now() }).where(eq(schema.items.id, originalId));
+  return (await getItem(originalId))!;
+}
+
 export async function reloadAll(): Promise<ItemWithSources[]> {
   await assertAuth();
   return loadItems();

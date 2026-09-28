@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Check, FileSpreadsheet, Loader2, Upload, Wand2 } from "lucide-react";
+import { Check, FileSpreadsheet, Upload, Wand2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { refetchSource } from "@/app/actions";
 import { importRows, needsDetails, type ImportRow } from "@/app/import-actions";
@@ -177,7 +178,7 @@ export function ImportDialog() {
           <FileSpreadsheet className="size-9 text-faint" strokeWidth={1.4} />
           <p className="mt-3 text-sm text-muted">{t.io.drop}</p>
           <Button variant="accent" className="mt-4" onClick={() => fileRef.current?.click()} disabled={busy}>
-            {busy ? <Loader2 className="animate-spin" /> : <Upload />}
+            {busy ? <Spinner /> : <Upload />}
             {t.io.choose}
           </Button>
           <input ref={fileRef} type="file" accept=".csv,.tsv,.txt,.xlsx" hidden onChange={(e) => void onFile(e.target.files?.[0])} />
@@ -223,7 +224,7 @@ export function ImportDialog() {
               <tbody>
                 {mapped.slice(0, 5).map((r, i) => (
                   <tr key={i} className="border-b border-line last:border-0">
-                    <td className="max-w-[220px] truncate px-3 py-2" dir="auto">
+                    <td className="max-w-[220px] truncate px-3 py-2 bidi">
                       {r.title || <span className="text-faint">{r.url ? t.io.fromLink : "—"}</span>}
                     </td>
                     <td className="max-w-[200px] truncate px-3 py-2 text-xs text-muted" dir="ltr">
@@ -256,7 +257,7 @@ export function ImportDialog() {
                 {t.io.back}
               </Button>
               <Button variant="accent" onClick={runImport} disabled={busy || !usable}>
-                {busy ? <Loader2 className="animate-spin" /> : <Check />}
+                {busy ? <Spinner /> : <Check />}
                 {f(t.io.importN, { n: usable })}
               </Button>
             </div>

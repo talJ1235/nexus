@@ -3,56 +3,62 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------- Design tokens ----------
-   Graphite workbench + amber "price tag" accent.
-   Product images sit on a light swatch in both themes so they read like a catalog. */
+   "Ink & Iris": cool graphite neutrals, one calm iris accent for actions and focus,
+   prices on a soft iris tag. Product images sit on a light neutral swatch in both themes (catalog look). */
 :root {
-  --bg: #f4f5f7;
+  --bg: #f5f6f8;
   --surface: #ffffff;
   --raised: #ffffff;
-  --sunken: #eceef1;
-  --line: #e2e5e9;
-  --line-strong: #cbd0d7;
-  --fg: #14171b;
-  --muted: #5d6570;
-  --faint: #939ba6;
-  --accent: #f2a93b;
-  --accent-strong: #e4951c;
-  --accent-ink: #8f5600;
-  --accent-fg: #1f1403;
-  --accent-soft: #fdf0db;
-  --ok: #1f9d63;
-  --ok-soft: #dff4ea;
+  --sunken: #eef0f3;
+  --line: #e4e7ec;
+  --line-strong: #d0d5dd;
+  --fg: #12151b;
+  --muted: #5b6472;
+  --faint: #969dab;
+  --accent: #5b5bd6;
+  --accent-strong: #4b4ac4;
+  --accent-ink: #4643b8;
+  --accent-fg: #ffffff;
+  --accent-soft: #efefff;
+  --tag: #ecebfe;
+  --tag-fg: #2f2c8f;
+  --ok: #16925a;
+  --ok-soft: #e1f5ea;
   --danger: #d9463a;
-  --danger-soft: #fbe5e2;
-  --info: #3b7be0;
-  --tile: #f3f1ec;
-  --shadow: 0 1px 2px rgb(20 23 27 / 0.06), 0 4px 16px -6px rgb(20 23 27 / 0.12);
-  --shadow-pop: 0 12px 40px -12px rgb(20 23 27 / 0.28), 0 2px 6px rgb(20 23 27 / 0.08);
+  --danger-soft: #fce8e5;
+  --info: #2f7fd8;
+  --tile: #f1f2f5;
+  --tile-ink: #aab0bc;
+  --shadow: 0 1px 2px rgb(18 21 27 / 0.05), 0 6px 18px -8px rgb(18 21 27 / 0.12);
+  --shadow-pop: 0 18px 44px -14px rgb(18 21 27 / 0.26), 0 2px 6px rgb(18 21 27 / 0.06);
 }
 
 .dark {
-  --bg: #111316;
-  --surface: #171a1e;
-  --raised: #1e2227;
-  --sunken: #0d0f11;
-  --line: #262b31;
-  --line-strong: #363c44;
-  --fg: #eceef1;
-  --muted: #8d949e;
-  --faint: #5d646e;
-  --accent: #f2a93b;
-  --accent-strong: #ffbd57;
-  --accent-ink: #f7bd62;
-  --accent-fg: #1f1403;
-  --accent-soft: #2e2413;
-  --ok: #3fb97f;
-  --ok-soft: #15291f;
+  --bg: #0f1115;
+  --surface: #15181d;
+  --raised: #1b1f25;
+  --sunken: #0b0d10;
+  --line: #22262e;
+  --line-strong: #30353f;
+  --fg: #e9ebf0;
+  --muted: #8d95a3;
+  --faint: #5b6271;
+  --accent: #6b6ce8;
+  --accent-strong: #7f80f2;
+  --accent-ink: #a9abff;
+  --accent-fg: #ffffff;
+  --accent-soft: #1f2040;
+  --tag: #262852;
+  --tag-fg: #d3d4ff;
+  --ok: #3cbf82;
+  --ok-soft: #12271d;
   --danger: #ef6457;
-  --danger-soft: #331a18;
-  --info: #6aa8ff;
-  --tile: #eeece6;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 20px -8px rgb(0 0 0 / 0.6);
-  --shadow-pop: 0 16px 48px -12px rgb(0 0 0 / 0.75), 0 0 0 1px rgb(255 255 255 / 0.04);
+  --danger-soft: #321a18;
+  --info: #5ea4f5;
+  --tile: #e6e8ec;
+  --tile-ink: #a3a9b4;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -10px rgb(0 0 0 / 0.6);
+  --shadow-pop: 0 18px 50px -14px rgb(0 0 0 / 0.75), 0 0 0 1px rgb(255 255 255 / 0.04);
 }
 
 @theme inline {
@@ -76,6 +82,9 @@
   --color-danger-soft: var(--danger-soft);
   --color-info: var(--info);
   --color-tile: var(--tile);
+  --color-tile-ink: var(--tile-ink);
+  --color-tag: var(--tag);
+  --color-tag-fg: var(--tag-fg);
   --shadow-card: var(--shadow);
   --shadow-pop: var(--shadow-pop);
   --font-sans: var(--font-rubik-latin), var(--font-rubik-hebrew), ui-sans-serif, system-ui, sans-serif;
@@ -134,44 +143,97 @@ body {
   to { opacity: 1; }
 }
 
+/* The single loading indicator (components/ui/spinner.tsx). Only `transform` animates. */
+.spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background:
+    conic-gradient(from 0turn, transparent 0turn, currentColor 0.8turn, transparent 0.8turn),
+    color-mix(in srgb, currentColor 16%, transparent);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+  animation: spin-smooth 1.15s linear infinite;
+  will-change: transform;
+}
+@keyframes spin-smooth { to { transform: rotate(1turn); } }
+
+.thinking-dots { display: inline-flex; align-items: center; gap: 4px; height: 1em; }
+.thinking-dots > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: dot-wave 1.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  will-change: transform, opacity;
+}
+.thinking-dots > span:nth-child(2) { animation-delay: 0.18s; }
+.thinking-dots > span:nth-child(3) { animation-delay: 0.36s; }
+@keyframes dot-wave {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+
+/* Placeholder while a pasted link is being read: a soft light sweep across the skeleton (transform only). */
+.shimmer { position: relative; overflow: hidden; }
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fg) 7%, transparent), transparent);
+  animation: shimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
+}
+@keyframes shimmer { to { transform: translateX(100%); } }
+
+/* A freshly added product settles in once its details arrive. */
+.fill-in { animation: fill-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes fill-in {
+  from { opacity: 0; transform: scale(0.97); filter: blur(3px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
 /* Product photos fade in once decoded instead of popping. */
 .product-img { opacity: 0; transition: opacity 280ms ease-out; }
 .product-img[data-loaded] { opacity: 1; }
 
-/* Price tag: notched shape on the leading edge (flips in RTL). */
+/* Price tag: soft iris tag with a notched leading edge (flips in RTL). */
 .price-tag {
-  --notch: 9px;
+  --notch: 8px;
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding-block: 0.2rem;
-  padding-inline: calc(var(--notch) + 0.55rem) 0.65rem;
-  background: var(--accent);
-  color: var(--accent-fg);
-  font-weight: 600;
+  padding-block: 0.18rem;
+  padding-inline: calc(var(--notch) + 0.5rem) 0.6rem;
+  background: var(--tag);
+  color: var(--tag-fg);
+  font-weight: 650;
+  letter-spacing: -0.005em;
   font-variant-numeric: tabular-nums;
   clip-path: polygon(var(--notch) 0, 100% 0, 100% 100%, var(--notch) 100%, 0 50%);
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 7px 7px 0;
 }
 .price-tag::before {
   content: "";
   position: absolute;
   inset-inline-start: calc(var(--notch) - 1px);
   top: 50%;
-  width: 5px;
-  height: 5px;
-  margin-top: -2.5px;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--accent-fg) 70%, transparent);
+  background: color-mix(in srgb, var(--tag-fg) 45%, transparent);
 }
 [dir="rtl"] .price-tag {
   clip-path: polygon(0 0, calc(100% - var(--notch)) 0, 100% 50%, calc(100% - var(--notch)) 100%, 0 100%);
-  border-radius: 6px 0 0 6px;
+  border-radius: 7px 0 0 7px;
 }
 .price-tag.muted {
   background: var(--sunken);
   color: var(--muted);
+  font-weight: 500;
 }
 .price-tag.muted::before { background: var(--faint); }
 
@@ -183,6 +245,9 @@ body {
     animation-duration: 1ms !important;
     transition-duration: 1ms !important;
   }
+  /* Loaders must still read as "working", just calmer. */
+  .spinner { animation-duration: 2.4s !important; }
+  .thinking-dots > span, .shimmer::after { animation: none !important; }
 }
 
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
@@ -193,3 +258,16 @@ body {
 .sheet-in-start[data-state="open"] { animation: slide-from-left 220ms cubic-bezier(0.2, 0.9, 0.3, 1); }
 [dir="rtl"] .sheet-in-end[data-state="open"] { animation-name: slide-from-left; }
 [dir="rtl"] .sheet-in-start[data-state="open"] { animation-name: slide-from-right; }
+
+/* ---------- Mixed Hebrew/English text ----------
+   Product and user titles work out their own reading order (so "Elegoo PLA 1.75mm אדום" keeps
+   its runs in place) but are always aligned to the PAGE's start edge, never flipped by their first letter. */
+.bidi { unicode-bidi: plaintext; text-align: left; }
+:root[dir="rtl"] .bidi { text-align: right; }
+
+/* Same link pasted again: the existing card glows once to show where the +1 went. */
+.bump { animation: bump 1.2s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes bump {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); border-color: var(--accent); }
+  100% { box-shadow: 0 0 0 10px transparent; }
+}

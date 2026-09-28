@@ -1,84 +1,148 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, Link2, ListPlus, Loader2, Plus, X } from "lucide-react";
+import { AlertTriangle, Link2, ListPlus, Plus, X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
-import { addSource, createItem, previewFromClient, previewUrl } from "@/app/actions";
+import { addSource, createItem, previewFromClient, previewUrl, updateItem } from "@/app/actions";
 import type { ClientPayload } from "@/lib/service";
 import { useI18n } from "@/components/providers";
 import { Button, Textarea } from "@/components/ui/button";
 import { Modal } from "@/components/ui/overlays";
-import type { PreviewResult } from "@/lib/types";
+import type { ItemWithSources, PreviewResult } from "@/lib/types";
 import { cn, extractUrls, isHttpUrl } from "@/lib/utils";
-import { hostOf } from "@/lib/stores";
+import { hostOf, normalizeUrl } from "@/lib/stores";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 
-type Job = { id: string; label: string; state: "working" | "done" | "partial" | "skipped" | "failed"; itemId?: string };
 export type Incoming = { url?: string; payload?: ClientPayload } | null;
 
 type DupPrompt = { preview: PreviewResult; resolve: (choice: "source" | "separate" | "cancel") => void };
+
+/** Views whose grid/table shows placeholder cards for links being read. Elsewhere the add bar shows a small status line. */
+export const SHOWS_PENDING = ["to_buy", "urgent", "unsorted", "collection", "store"];
 
 export function AddBar({ incoming }: { incoming?: Incoming }) {
   const s = useStore();
   const { t, f } = useI18n();
   const [value, setValue] = useState("");
   const [bulk, setBulk] = useState(false);
-  const [jobs, setJobs] = useState<Job[]>([]);
   const [dup, setDup] = useState<DupPrompt | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const ext = useExtension();
   const started = useRef(false);
+  // Latest items for duplicate checks inside long-running adds (avoids stale closures).
+  const itemsRef = useRef(s.items);
+  useEffect(() => {
+    itemsRef.current = s.items;
+  }, [s.items]);
+  const viewRef = useRef(s.view);
+  useEffect(() => {
+    viewRef.current = s.view;
+  }, [s.view]);
 
   const hintCollection = s.view.type === "collection" ? s.view.id : null;
-
-  const patchJob = (id: string, patch: Partial<Job>) => setJobs((js) => js.map((j) => (j.id === id ? { ...j, ...patch } : j)));
 
   const askDuplicate = (preview: PreviewResult) =>
     new Promise<"source" | "separate" | "cancel">((resolve) => setDup({ preview, resolve }));
 
+  /** The exact link is already on the to-buy list: one more of it, with undo. */
+  const bump = useCallback(
+    async (existing: ItemWithSources) => {
+      const current = itemsRef.current.find((i) => i.id === existing.id) ?? existing;
+      const qty = current.quantity + 1;
+      s.upsertItem({ ...current, quantity: qty });
+      s.markFresh(current.id, "bump");
+      try {
+        s.upsertItem(await updateItem(current.id, { quantity: qty }));
+        toast.success(f(t.add.bumped, { n: qty }), {
+          description: current.title,
+          action: {
+            label: t.item.undo,
+            onClick: async () => {
+              const now = itemsRef.current.find((i) => i.id === current.id);
+              const back = Math.max(1, (now?.quantity ?? qty) - 1);
+              if (now) s.upsertItem({ ...now, quantity: back });
+              s.upsertItem(await updateItem(current.id, { quantity: back }));
+            },
+          },
+        });
+      } catch {
+        s.upsertItem(current);
+        toast.error(t.errors.generic);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [s.upsertItem, s.markFresh, t, f],
+  );
+
+  type Runner = (input: { url?: string; payload?: ClientPayload }, interactive: boolean) => Promise<void>;
+  const runRef = useRef<Runner | null>(null);
   const run = useCallback(
-    async (input: { url?: string; payload?: ClientPayload }, interactive: boolean) => {
+    async (input: { url?: string; payload?: ClientPayload }, interactive: boolean): Promise<void> => {
       const id = Math.random().toString(36).slice(2);
-      const label = hostOf(input.url ?? input.payload?.url ?? "") || "…";
-      setJobs((js) => [...js, { id, label, state: "working" }]);
+      const url = input.url ?? input.payload?.url ?? null;
+      const label = hostOf(url ?? "") || "…";
+      // Same link already waiting to be bought → +1, instantly and without reading the page again.
+      if (url) {
+        const key = normalizeUrl(url);
+        const existing = itemsRef.current.find((i) => i.status === "to_buy" && i.sources.some((x) => x.normalizedUrl === key));
+        if (existing) return bump(existing);
+      }
+      s.addPending({ id, label, url, state: "working", collectionId: hintCollection });
       try {
         let payload = input.payload ?? null;
         // With the extension installed, read the page in this browser first: real sessions, no bot walls.
         if (!payload && input.url && ext.available) {
-          patchJob(id, { label: `${label} · ${t.add.viaBrowser}` });
+          s.patchPending(id, { label: `${label} · ${t.add.viaBrowser}` });
           const got = await ext.resolve(input.url);
           if (got?.title) payload = { ...got, url: got.url || input.url };
         }
         const preview = payload ? await previewFromClient(payload, hintCollection) : await previewUrl(input.url!, hintCollection);
         let choice: "source" | "separate" | "cancel" = "separate";
-        if (preview.duplicate) {
-          if (interactive) choice = await askDuplicate(preview);
-          else choice = preview.duplicate.reason === "url" ? "cancel" : "separate";
+        const d = preview.duplicate;
+        if (d?.reason === "url") {
+          const existing = itemsRef.current.find((i) => i.id === d.itemId);
+          // Still to buy → +1. Already ordered/received → buying it again is a new line.
+          if (existing?.status === "to_buy") {
+            s.dropPending(id);
+            return bump(existing);
+          }
+        } else if (d && interactive) {
+          choice = await askDuplicate(preview);
         }
         if (choice === "cancel") {
-          patchJob(id, { state: "skipped", label: preview.duplicate?.title ?? label, itemId: preview.duplicate?.itemId });
+          s.dropPending(id);
           return;
         }
-        const item =
-          choice === "source" && preview.duplicate
-            ? await addSource(preview.duplicate.itemId, preview.draft.source, preview.draft.imageUrl)
-            : await createItem(preview.draft);
+        const item = choice === "source" && d ? await addSource(d.itemId, preview.draft.source, preview.draft.imageUrl) : await createItem(preview.draft);
+        s.dropPending(id);
         s.upsertItem(item);
+        s.markFresh(item.id);
         const partial = preview.draft.quality !== "full";
-        patchJob(id, { state: partial ? "partial" : "done", label: item.title, itemId: item.id });
-        if (interactive) {
-          if (preview.draft.quality === "failed") toast.warning(t.add.failed, { action: { label: t.item.edit, onClick: () => s.openItem(item.id) } });
-          else if (partial) toast(t.add.partial, { description: item.title, action: { label: t.item.edit, onClick: () => s.openItem(item.id) } });
-        }
+        const v = viewRef.current;
+        const visible = v.type === "to_buy" || (v.type === "collection" && v.id === item.collectionId) || (v.type === "unsorted" && !item.collectionId);
+        if (preview.draft.quality === "failed") toast.warning(t.add.failed, { action: { label: t.item.edit, onClick: () => s.openItem(item.id) } });
+        else if (partial && interactive) toast(t.add.partial, { description: item.title, action: { label: t.item.edit, onClick: () => s.openItem(item.id) } });
+        else if (!visible) toast.success(t.add.added, { description: item.title, action: { label: t.dup.open, onClick: () => s.openItem(item.id) } });
       } catch (e) {
-        patchJob(id, { state: "failed" });
-        toast.error(String((e as Error)?.message) === "invalid_url" ? t.add.invalidUrl : t.errors.generic);
+        s.patchPending(id, {
+          state: "failed",
+          retry: () => {
+            s.dropPending(id);
+            void runRef.current?.(input, interactive);
+          },
+        });
+        if (String((e as Error)?.message) === "invalid_url") toast.error(t.add.invalidUrl);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hintCollection, s.upsertItem, s.openItem, t, ext.available, ext.resolve],
+    [hintCollection, s.upsertItem, s.openItem, s.addPending, s.patchPending, s.dropPending, s.markFresh, bump, t, ext.available, ext.resolve],
   );
+
+  useEffect(() => {
+    runRef.current = run;
+  }, [run]);
 
   const runMany = useCallback(
     async (urls: string[]) => {
@@ -129,8 +193,7 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const working = jobs.some((j) => j.state === "working");
-  const visibleJobs = jobs.slice(-6);
+  const working = s.pending.some((p) => p.state === "working");
 
   return (
     <div className="w-full">
@@ -173,7 +236,7 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
             <span className="hidden md:inline">{t.add.bulk}</span>
           </button>
           <Button type="submit" variant="accent" size="sm" className="me-1.5 h-9 px-3.5" disabled={!isHttpUrl(value.trim()) && !extractUrls(value).length}>
-            {working ? <Loader2 className="animate-spin" /> : <Plus />}
+            {working ? <Spinner /> : <Plus />}
             <span className="hidden sm:inline">{t.add.add}</span>
           </Button>
         </form>
@@ -209,22 +272,20 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
         </form>
       )}
 
-      {visibleJobs.length > 0 && (
+      {!SHOWS_PENDING.includes(s.view.type) && s.pending.length > 0 && (
         <ul className="mt-2 flex flex-wrap gap-1.5" aria-live="polite">
-          {visibleJobs.map((j) => (
+          {s.pending.slice(0, 4).map((p) => (
             <li
-              key={j.id}
+              key={p.id}
               className={cn(
-                "flex max-w-[280px] animate-pop-in items-center gap-1.5 rounded-full border py-1 pe-1 ps-2.5 text-xs",
-                j.state === "failed" ? "border-danger/40 bg-danger-soft text-danger" : j.state === "partial" || j.state === "skipped" ? "border-accent/40 bg-accent-soft text-accent-ink" : "border-line bg-surface text-muted",
+                "flex max-w-[300px] animate-pop-in items-center gap-2 rounded-full border py-1 pe-1.5 ps-2.5 text-xs",
+                p.state === "failed" ? "border-danger/40 bg-danger-soft text-danger" : "border-accent/40 bg-accent-soft text-accent-ink",
               )}
             >
-              {j.state === "working" ? <Loader2 className="size-3.5 shrink-0 animate-spin" /> : j.state === "done" ? <Check className="size-3.5 shrink-0 text-ok" /> : <AlertTriangle className="size-3.5 shrink-0" />}
-              <button type="button" disabled={!j.itemId} onClick={() => j.itemId && s.openItem(j.itemId)} className="min-w-0 truncate text-start disabled:cursor-default">
-                {j.state === "working" ? `${t.add.fetching} ${j.label}` : j.label}
-              </button>
-              {j.state !== "working" && (
-                <button type="button" aria-label={t.view.clear} onClick={() => setJobs((js) => js.filter((x) => x.id !== j.id))} className="rounded-full p-0.5 opacity-60 hover:bg-sunken hover:opacity-100">
+              {p.state === "working" ? <Spinner className="size-3.5" /> : <AlertTriangle className="size-3.5 shrink-0" />}
+              <span className="min-w-0 truncate">{p.state === "working" ? `${t.add.fetching} ${p.label}` : `${t.add.couldNotRead} · ${p.label}`}</span>
+              {p.state === "failed" && (
+                <button type="button" aria-label={t.view.clear} onClick={() => s.dropPending(p.id)} className="rounded-full p-0.5 opacity-70 hover:opacity-100">
                   <X className="size-3" />
                 </button>
               )}

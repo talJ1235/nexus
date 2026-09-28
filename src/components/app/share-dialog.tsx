@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Copy, Globe, Link2, Loader2, UserMinus, Users } from "lucide-react";
+import { Copy, Globe, Link2, UserMinus, Users } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { setSharing } from "@/app/actions";
 import { createInvite, getSharing, removeMember, revokeInvite, setMemberRole, type SharingState } from "@/app/share-actions";
@@ -108,7 +109,7 @@ export function ShareDialog() {
                 }
               }}
             >
-              {busy ? <Loader2 className="animate-spin" /> : <Link2 />}
+              {busy ? <Spinner /> : <Link2 />}
               {t.share.createLink}
             </Button>
           </div>
@@ -152,7 +153,7 @@ export function ShareDialog() {
                 <li key={m.id} className="flex items-center gap-3 rounded-xl border border-line px-3 py-2">
                   <span className="grid size-8 shrink-0 place-items-center rounded-full bg-sunken text-sm font-semibold">{m.name.slice(0, 1).toUpperCase()}</span>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium" dir="auto">
+                    <div className="truncate text-sm font-medium bidi">
                       {m.name}
                     </div>
                     <div className="text-xs text-faint">{m.lastSeenAt ? f(t.share.lastSeen, { time: ago(m.lastSeenAt, locale) }) : t.share.never}</div>

@@ -160,7 +160,7 @@ export function SelectionBar() {
                 <label htmlFor="alt-name" className="text-sm font-medium">
                   {t.alt.namePrompt}
                 </label>
-                <Input id="alt-name" autoFocus value={altName} onChange={(e) => setAltName(e.target.value)} placeholder={t.alt.namePlaceholder} className="mt-2 h-9" dir="auto" />
+                <Input id="alt-name" autoFocus value={altName} onChange={(e) => setAltName(e.target.value)} placeholder={t.alt.namePlaceholder} className="mt-2 h-9 bidi"  />
                 <p className="mt-2 text-xs leading-relaxed text-muted">{t.alt.hint}</p>
                 <Button type="submit" size="sm" variant="accent" className="mt-3 w-full">
                   {t.alt.create}

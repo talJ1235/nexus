@@ -8,7 +8,8 @@ import { formatMoney } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { dragIds, ProductImage, useStatusFlow } from "./item-card";
-import { useStore } from "./store";
+import { useStore, type PendingAdd } from "./store";
+import { PendingRow } from "./pending";
 import { COLLECTION_COLORS } from "./view-items";
 
 function QtyCell({ item }: { item: ItemWithSources }) {
@@ -33,7 +34,7 @@ function QtyCell({ item }: { item: ItemWithSources }) {
   );
 }
 
-export function ItemTable({ items }: { items: ItemWithSources[] }) {
+export function ItemTable({ items, pending = [] }: { items: ItemWithSources[]; pending?: PendingAdd[] }) {
   const s = useStore();
   const { t, locale } = useI18n();
   const flow = useStatusFlow();
@@ -67,6 +68,9 @@ export function ItemTable({ items }: { items: ItemWithSources[] }) {
           </tr>
         </thead>
         <tbody>
+          {pending.map((p) => (
+            <PendingRow key={p.id} p={p} cols={10} />
+          ))}
           {items.map((i) => {
             const src = activeSource(i, s.rates);
             const unit = unitPrice(i, s.rates, s.currency);
@@ -86,7 +90,7 @@ export function ItemTable({ items }: { items: ItemWithSources[] }) {
                   e.dataTransfer.effectAllowed = "move";
                 }}
                 onClick={(e) => (s.selected.size || e.metaKey || e.ctrlKey ? s.toggleSelect(i.id, e.shiftKey ? { range: order } : undefined) : s.openItem(i.id))}
-                className={cn("cursor-pointer border-b border-line transition last:border-0", checked ? "bg-accent-soft/50" : "hover:bg-sunken/60", purchased && "text-muted")}
+                className={cn("cursor-pointer border-b border-line transition last:border-0", s.fresh.has(i.id) && "fill-in", checked ? "bg-accent-soft/50" : "hover:bg-sunken/60", purchased && "text-muted")}
               >
                 <td className="py-1.5 ps-3" onClick={(e) => e.stopPropagation()}>
                   <input
@@ -102,7 +106,7 @@ export function ItemTable({ items }: { items: ItemWithSources[] }) {
                   <ProductImage src={i.imageUrl} alt="" className="size-10 rounded-md" iconClass="size-4" />
                 </td>
                 <td className="max-w-[340px] py-2 ps-2">
-                  <div className="truncate font-medium" dir="auto">
+                  <div className="bidi truncate font-medium">
                     {i.title}
                   </div>
                   <div className="flex items-center gap-2 truncate text-xs text-faint">

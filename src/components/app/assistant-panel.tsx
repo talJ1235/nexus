@@ -1,7 +1,8 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, Check, FolderPlus, Lightbulb, Loader2, MessageSquare, Sparkles, Wand2, X } from "lucide-react";
+import { ArrowUp, Check, FolderPlus, Lightbulb, MessageSquare, Sparkles, Wand2, X } from "lucide-react";
+import { Spinner, ThinkingDots } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { addPlannedParts, ask, planWithAi } from "@/app/ai-actions";
 import { useI18n } from "@/components/providers";
@@ -157,11 +158,14 @@ function AskTab({ seed, seedKey }: { seed: string | null; seedKey: string | null
           ),
         )}
         {busy && (
-          <div className="flex items-center gap-2.5 text-sm text-muted">
+          <div className="flex animate-pop-in items-center gap-2.5 text-sm text-muted" role="status" aria-label={t.ai.thinking}>
             <span className="grid size-6 place-items-center rounded-full bg-accent-soft text-accent-ink">
-              <Sparkles className="size-3.5 animate-pulse" />
+              <Sparkles className="size-3.5" />
             </span>
-            {t.ai.thinking}
+            <span className="inline-flex items-center gap-2 rounded-2xl rounded-ss-md bg-sunken px-3.5 py-2.5">
+              <ThinkingDots className="text-accent-ink" />
+              <span className="text-[13px]">{t.ai.thinking}</span>
+            </span>
           </div>
         )}
         <div ref={endRef} />
@@ -188,7 +192,7 @@ function AskTab({ seed, seedKey }: { seed: string | null; seedKey: string | null
           className="field-sizing-content max-h-32 min-h-10 flex-1 resize-none rounded-xl border border-line-strong bg-bg px-3 py-2.5 text-sm outline-none focus:border-accent"
         />
         <Button type="submit" variant="accent" size="icon" className="size-10 rounded-xl" disabled={busy || !q.trim()} aria-label={t.ai.send}>
-          {busy ? <Loader2 className="animate-spin" /> : <ArrowUp />}
+          {busy ? <Spinner /> : <ArrowUp />}
         </Button>
       </form>
     </div>
@@ -272,10 +276,10 @@ function PlanTab() {
         <div className="flex-1 overflow-y-auto p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="font-semibold" dir="auto">
+              <h3 className="font-semibold bidi">
                 {plan.projectName}
               </h3>
-              <p className="mt-0.5 text-sm text-muted" dir="auto">
+              <p className="mt-0.5 text-sm text-muted bidi">
                 {plan.summary}
               </p>
             </div>
@@ -303,7 +307,7 @@ function PlanTab() {
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                        <span className="text-sm font-medium" dir="auto">
+                        <span className="text-sm font-medium bidi">
                           {p.name}
                           {p.qty > 1 && <span className="tabular ms-1.5 text-muted">×{p.qty}</span>}
                         </span>
@@ -313,7 +317,7 @@ function PlanTab() {
                           </span>
                         )}
                       </div>
-                      <p className="mt-0.5 text-xs text-muted" dir="auto">
+                      <p className="mt-0.5 text-xs text-muted bidi">
                         {p.spec}
                       </p>
                       <div className="mt-1 flex gap-1.5">
@@ -333,7 +337,7 @@ function PlanTab() {
                 <Lightbulb className="size-3.5" />
                 {t.ai.tips}
               </div>
-              <ul className="list-disc space-y-1 ps-5 text-[13px] text-muted" dir="auto">
+              <ul className="list-disc space-y-1 ps-5 text-[13px] text-muted bidi">
                 {plan.tips.map((tip, i) => (
                   <li key={i}>{tip}</li>
                 ))}
@@ -347,7 +351,7 @@ function PlanTab() {
             {est.max > est.min ? `–${formatMoney(est.max, plan.currency, locale)}` : ""}
           </span>
           <Button variant="accent" onClick={add} disabled={adding || !picked.size}>
-            {adding ? <Loader2 className="animate-spin" /> : <Check />}
+            {adding ? <Spinner /> : <Check />}
             {target === "new" ? t.ai.createProject : f(t.ai.addTo, { n: picked.size })}
           </Button>
         </div>
@@ -381,7 +385,7 @@ function PlanTab() {
         </label>
       </div>
       <Button variant="accent" className="w-full" onClick={run} disabled={busy || desc.trim().length < 8}>
-        {busy ? <Loader2 className="animate-spin" /> : <Wand2 />}
+        {busy ? <Spinner /> : <Wand2 />}
         {busy ? t.ai.planning : t.ai.plan}
       </Button>
       {busy && <p className="text-center text-xs text-faint">{t.ai.planningHint}</p>}

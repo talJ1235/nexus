@@ -93,6 +93,29 @@ Failure at any step degrades gracefully to a partially filled, editable item.
   their own items. Every guest action re-checks signature, revocation and the specific item's grant.
   Guests never see receipts or items outside shared collections. Owner sees "Added by".
 
+## Round 4 — Session A: look & feel (shipped)
+- **Palette "Ink & Iris"** (tokens only, `globals.css`): cool graphite neutrals, one iris accent for actions/focus,
+  prices on a soft iris tag (`--tag`/`--tag-fg`), neutral image swatch (`--tile`, `--tile-ink`).
+- **Mixed Hebrew/English text**: titles and user text use the `.bidi` class (`unicode-bidi: plaintext` + alignment to
+  the page's start edge). No `dir="auto"` on titles; only assistant chat text keeps it.
+- **One loader**: `components/ui/spinner.tsx` — `Spinner` (masked conic ring, transform-only, 1.15 s) and `ThinkingDots`
+  for the AI. No `animate-spin` anywhere.
+- **Add-link feedback**: a pasted link becomes a placeholder card/row at once (shimmer, `store.pending`), which gives way to
+  the real card with a settle-in animation; failures stay on the card with Retry/Dismiss. Views without a grid
+  (history, orders, spending) show a small status line under the add bar instead.
+- **Same link twice** (still to buy) → quantity +1 with undo, detected client-side before any fetch (server early check as
+  backup); the card glows once. Same link of an ordered/received item → new line. Other-store duplicates keep the dialog.
+  (Telegram input keeps its own "already saved" rule.)
+- **Cards**: title first, store · list below, price tag + total/savings in one row, status/priority/"Lowest" badges on
+  the image.
+- **Item sheet**: hero (image, title, store/brand, price, open-in-store) + grouped cards: Plan (qty stepper, priority,
+  project/list picker), Stores, Price history + watch/target, Tags & notes, Receipts, Advanced.
+- **Partial move**: choosing a project/list for an item with qty > 1 asks how many units move (default all). Fewer →
+  `splitItem` copies the item (links + price history, not receipts) with N units to the target, the rest stay; undo
+  folds it back (`unsplitItem`). Bulk move still moves whole items.
+- Dev: `scripts/seed-local.mjs` seeds a demo catalog into the local DB; `SMOKE_WRITE=1 npm run smoke` (localhost only)
+  checks the placeholder card, +1 and the partial move.
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Dark + light (system default), no flash on load.

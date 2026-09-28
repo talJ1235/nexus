@@ -31,7 +31,7 @@ function RankBars({ title, rows, fmt }: { title: string; rows: Row[]; fmt: (v: n
           <li key={r.key} className="grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-3 text-sm" title={`${r.label}: ${fmt(r.value)}`}>
             <span className="flex min-w-0 items-center gap-1.5">
               {r.dot && <span className="size-2 shrink-0 rounded-full" style={{ background: r.dot }} />}
-              <span className="truncate text-muted" dir="auto">
+              <span className="truncate text-muted bidi">
                 {r.label}
               </span>
             </span>

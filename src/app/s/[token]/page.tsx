@@ -41,11 +41,11 @@ export default async function SharedPage({ params }: { params: Promise<{ token: 
         </span>
         <span>{t.shared.readOnly}</span>
       </div>
-      <h1 className="mt-8 text-3xl font-semibold tracking-[-0.02em]" dir="auto">
+      <h1 className="mt-8 text-3xl font-semibold tracking-[-0.02em] bidi">
         {collection.name}
       </h1>
       {collection.description && (
-        <p className="mt-2 max-w-[65ch] text-muted" dir="auto">
+        <p className="mt-2 max-w-[65ch] text-muted bidi">
           {collection.description}
         </p>
       )}
@@ -71,11 +71,11 @@ export default async function SharedPage({ params }: { params: Promise<{ token: 
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={i.imageUrl} alt="" loading="lazy" className="size-full object-contain p-1.5 mix-blend-multiply" />
                 ) : (
-                  <Package className="size-6 text-[#b9b4a8]" strokeWidth={1.4} />
+                  <Package className="size-6 text-tile-ink" strokeWidth={1.4} />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className={`line-clamp-2 font-medium ${i.status === "purchased" ? "line-through" : ""}`} dir="auto">
+                <p className={`bidi line-clamp-2 font-medium ${i.status === "purchased" ? "line-through" : ""}`}>
                   {i.title}
                 </p>
                 <p className="mt-0.5 text-sm text-muted">

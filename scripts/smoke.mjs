@@ -3,6 +3,7 @@
 //
 //   BASE=http://localhost:3100 NEXUS_PASSWORD=... node scripts/smoke.mjs
 //   SMOKE_AI=1 also calls the (owner-only) AI health endpoint. SMOKE_OUT=dir saves screenshots.
+//   SMOKE_WRITE=1 (localhost only) also exercises adding: placeholder card, same link → +1, partial move.
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
 
@@ -128,6 +129,51 @@ try {
         const j = await r.json().catch(() => ({}));
         ok(r.status() === 200 && JSON.stringify(j).includes("ok"), "AI health", JSON.stringify(j).slice(0, 200));
       });
+    }
+
+    if (process.env.SMOKE_WRITE) {
+      if (!/localhost|127\.0\.0\.1/.test(BASE)) {
+        console.log("SKIP write checks (SMOKE_WRITE only runs against localhost)");
+      } else {
+        const link = `https://example.com/smoke-${Date.now()}`;
+        const paste = async () => {
+          await page.fill("#add-input", link);
+          await page.press("#add-input", "Enter");
+        };
+        await step("pasted link shows a placeholder card at once", async () => {
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector("main h1");
+          await page.evaluate(() => localStorage.setItem("nexus.layout", "cards"));
+          await paste();
+          await page.waitForSelector("main article[aria-busy=true]", { timeout: 1500 });
+          await shot(page, "pending-card");
+          await page.waitForSelector("main article[aria-busy=true]", { state: "detached", timeout: 30000 });
+          ok(true, "pasted link shows a placeholder card at once");
+        });
+        await step("same link again → quantity +1", async () => {
+          await paste();
+          await page.getByText(/quantity is now 2|הכמות עודכנה ל־2/).first().waitFor({ timeout: 10000 });
+          ok((await page.locator("main article[aria-busy=true]").count()) === 0, "same link again → quantity +1 (no duplicate card)");
+          await shot(page, "bumped");
+        });
+        await step("partial move splits the item", async () => {
+          const before = await page.locator("main article").count();
+          await page.locator("main article button[aria-label]").first().click();
+          const sheet = page.getByRole("dialog");
+          await sheet.waitFor();
+          await shot(page, "sheet");
+          await sheet.locator("button[aria-haspopup=menu]").first().click();
+          await page.getByRole("menuitemradio").nth(1).click();
+          await sheet.getByRole("button", { name: /^−$/ }).last().click();
+          await shot(page, "split-panel");
+          await sheet.getByRole("button", { name: /Move 1|העבר 1/ }).click();
+          await page.getByText(/Moved 1 to|הועברו 1 אל/).first().waitFor({ timeout: 10000 });
+          await page.keyboard.press("Escape");
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector("main h1");
+          ok((await page.locator("main article").count()) === before + 1, "partial move splits the item", `${before} → ${await page.locator("main article").count()}`);
+        });
+      }
     }
 
     ok(errors.length === 0, "no page/console errors", errors.slice(0, 5).join(" | "));

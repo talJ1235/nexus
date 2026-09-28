@@ -88,7 +88,7 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
                 <li key={i.id} className="flex items-center gap-3 px-4 py-2.5">
                   <ProductImage src={i.imageUrl} alt="" className="size-11 shrink-0 rounded-md" iconClass="size-4" />
                   <button type="button" onClick={() => s.openItem(i.id)} className="min-w-0 flex-1 text-start">
-                    <div className="truncate text-sm font-medium hover:underline" dir="auto">
+                    <div className="truncate text-sm font-medium hover:underline bidi">
                       {i.title}
                     </div>
                     <div className="tabular text-xs text-muted">

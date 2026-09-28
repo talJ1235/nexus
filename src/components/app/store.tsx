@@ -10,6 +10,9 @@ export type { View };
 export type Panel = "import" | "planner" | "assistant" | "alerts" | "share" | null;
 
 export type Layout = "cards" | "table";
+
+/** A pasted link that is still being read (or failed): shown as a placeholder card/row until the item exists. */
+export type PendingAdd = { id: string; label: string; url: string | null; state: "working" | "failed"; collectionId: string | null; retry?: () => void };
 export type SortKey = "newest" | "price" | "priority" | "name";
 
 type Editor = { mode: "create"; kind: "project" | "list" } | { mode: "edit"; collection: Collection } | null;
@@ -69,6 +72,13 @@ type Store = {
   setExtOpen: (o: boolean) => void;
   setNavOpen: (o: boolean) => void;
   focusAdd: () => void;
+  pending: PendingAdd[];
+  addPending: (p: PendingAdd) => void;
+  patchPending: (id: string, patch: Partial<PendingAdd>) => void;
+  dropPending: (id: string) => void;
+  /** Items that just arrived from a pasted link; their card plays a one-time "settle in" animation. */
+  fresh: Map<string, "new" | "bump">;
+  markFresh: (id: string, kind?: "new" | "bump") => void;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -241,6 +251,24 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
     setItems((prev) => prev.map((i) => (i.collectionId === id ? { ...i, collectionId: null } : i)));
   }, []);
 
+  const [pending, setPending] = useState<PendingAdd[]>([]);
+  const addPending = useCallback((p: PendingAdd) => setPending((prev) => [p, ...prev.filter((x) => x.id !== p.id)]), []);
+  const patchPending = useCallback((id: string, patch: Partial<PendingAdd>) => setPending((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x))), []);
+  const dropPending = useCallback((id: string) => setPending((prev) => prev.filter((x) => x.id !== id)), []);
+  const [fresh, setFresh] = useState<Map<string, "new" | "bump">>(() => new Map());
+  const markFresh = useCallback((id: string, kind: "new" | "bump" = "new") => {
+    setFresh((prev) => new Map(prev).set(id, kind));
+    setTimeout(
+      () =>
+        setFresh((prev) => {
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        }),
+      1400,
+    );
+  }, []);
+
   const focusAdd = useCallback(() => {
     document.getElementById("add-input")?.focus();
   }, []);
@@ -297,8 +325,14 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
       setExtOpen,
       setNavOpen,
       focusAdd,
+      pending,
+      addPending,
+      patchPending,
+      dropPending,
+      fresh,
+      markFresh,
     }),
-    [items, collections, altGroups, upsertAltGroup, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, focusAdd],
+    [pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

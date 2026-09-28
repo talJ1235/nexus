@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, ExternalLink, Languages, Link2, Loader2, Minus, Moon, Plus, Sun, Trash2, Truck, Undo2 } from "lucide-react";
+import { Check, ExternalLink, Languages, Link2, Minus, Moon, Plus, Sun, Trash2, Truck, Undo2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { guestAddItem, guestDeleteItem, guestSetStatus, guestUpdateItem } from "@/app/guest-actions";
@@ -77,7 +78,7 @@ export function GuestApp({ data, initialCollection, initialCurrency }: { data: G
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
           <LogoMark />
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium" dir="auto">
+            <div className="truncate text-sm font-medium bidi">
               {data.member.name}
             </div>
             <div className="text-xs text-faint">{t.share.sharedBy}</div>
@@ -115,11 +116,11 @@ export function GuestApp({ data, initialCollection, initialCurrency }: { data: G
 
       {collection && (
         <main className="view-in mx-auto max-w-3xl px-4 pb-24 pt-6" key={collection.id}>
-          <h1 className="text-[26px] font-semibold tracking-[-0.02em]" dir="auto">
+          <h1 className="text-[26px] font-semibold tracking-[-0.02em] bidi">
             {collection.name}
           </h1>
           {collection.description && (
-            <p className="mt-1 text-sm text-muted" dir="auto">
+            <p className="mt-1 text-sm text-muted bidi">
               {collection.description}
             </p>
           )}
@@ -159,7 +160,7 @@ export function GuestApp({ data, initialCollection, initialCurrency }: { data: G
                 className="h-full min-w-0 flex-1 bg-transparent px-3 text-[15px] outline-none placeholder:text-faint"
               />
               <Button type="submit" variant="accent" size="sm" className="me-1.5 h-9" disabled={adding || !link.trim()}>
-                {adding ? <Loader2 className="animate-spin" /> : <Plus />}
+                {adding ? <Spinner /> : <Plus />}
               </Button>
             </form>
           )}
@@ -174,7 +175,7 @@ export function GuestApp({ data, initialCollection, initialCurrency }: { data: G
                 <li key={i.id} className={cn("flex items-center gap-3 p-3 sm:p-4", done && "opacity-60")}>
                   <ProductImage src={i.imageUrl} alt="" className="size-14 shrink-0 rounded-lg" iconClass="size-5" />
                   <div className="min-w-0 flex-1">
-                    <p className={cn("line-clamp-2 text-sm font-medium", done && "line-through")} dir="auto">
+                    <p className={cn("bidi line-clamp-2 text-sm font-medium", done && "line-through")}>
                       {i.title}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-muted">
