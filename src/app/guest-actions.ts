@@ -37,7 +37,8 @@ export async function guestAddItem(url: string, collectionId: string): Promise<{
     .limit(1);
   if (same[0]) return { item: strip((await getItem(same[0].itemId))!), existed: true };
 
-  const draft = await buildDraft(await extractFromUrl(clean), collectionId, clean);
+  const started = Date.now();
+  const draft = await buildDraft(await extractFromUrl(clean), collectionId, clean, started);
   const created = await createItemCore({ ...draft, collectionId });
   await db.update(schema.items).set({ addedByMemberId: g.member.id, addedByName: g.member.name }).where(eq(schema.items.id, created.id));
   return { item: strip((await getItem(created.id))!), existed: false };

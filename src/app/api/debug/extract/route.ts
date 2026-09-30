@@ -2,8 +2,6 @@ import { type NextRequest } from "next/server";
 import { desc } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { previewUrl } from "@/app/actions";
-import { extractWithUrlContext } from "@/lib/ai";
-import { debugFetch, debugVariants, extractFromUrl } from "@/lib/extract";
 import { sourcesNeedingDetails } from "@/lib/service";
 
 export const maxDuration = 60;
@@ -18,39 +16,6 @@ export async function GET(req: NextRequest) {
     return Response.json({ recent, incomplete });
   }
   const started = Date.now();
-  // ?variants=1 → AliExpress item via several hosts × preview-bot identities (research).
-  if (req.nextUrl.searchParams.get("variants")) {
-    const id = url.match(/item\/(\d+)/)?.[1] ?? "";
-    const us = id ? String(BigInt(id) + BigInt(2) ** BigInt(51)) : "";
-    const uas = ["facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)", "Twitterbot/1.0", "TelegramBot (like TwitterBot)", "WhatsApp/2.23.20.0", "LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com)", "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36"];
-    const hosts = [`https://www.aliexpress.com/item/${id}.html`, `https://m.aliexpress.com/item/${id}.html`, `https://www.aliexpress.us/item/${us}.html`, `https://he.aliexpress.com/item/${id}.html`];
-    const pairs = hosts.flatMap((u) => uas.map((ua) => ({ url: u, ua })));
-    return Response.json({ region: process.env.VERCEL_REGION ?? null, variants: await debugVariants(pairs) });
-  }
-  // ?probe=1 → each strategy separately, as seen from Vercel (used by scripts/probe-extract.mjs).
-  if (req.nextUrl.searchParams.get("probe")) {
-    const t = async <T,>(fn: () => Promise<T>) => {
-      const s0 = Date.now();
-      try {
-        return { ...(await fn()), ms: Date.now() - s0 };
-      } catch (e) {
-        return { err: String(e).slice(0, 120), ms: Date.now() - s0 };
-      }
-    };
-    const pick = (x: { title: string | null; image: string | null; price: number | null; currency: string | null; method: string; blocked: boolean; url: string }) => ({
-      title: x.title?.slice(0, 60) ?? null, img: Boolean(x.image), price: x.price, cur: x.currency, method: x.method, blocked: x.blocked, url: x.url.slice(0, 70),
-    });
-    const [direct, social, extract, gemini] = await Promise.all([
-      t(() => debugFetch(url, false)),
-      t(() => debugFetch(url, true)),
-      t(async () => pick(await extractFromUrl(url))),
-      t(async () => {
-        const r = await extractWithUrlContext(url);
-        return r ? { title: r.title?.slice(0, 60) ?? null, img: Boolean(r.imageUrl), price: r.price, cur: r.currency } : { none: true };
-      }),
-    ]);
-    return Response.json({ probe: { direct, social, extract, gemini } });
-  }
   if (req.nextUrl.searchParams.get("full")) {
     try {
       return Response.json({ ms: 0, ...(await previewUrl(url)), took: Date.now() - started });

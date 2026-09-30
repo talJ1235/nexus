@@ -6,7 +6,6 @@ import { db, schema } from "@/db";
 import { categorize, extractWithAi, extractWithUrlContext } from "@/lib/ai";
 import { getItem, recordPrice } from "@/lib/data";
 import { extractFromUrl, hintsFromUrl, type Extracted } from "@/lib/extract";
-import { requestHeal } from "@/lib/heal";
 import { storeThumbnail } from "@/lib/images";
 import { parsePrice } from "@/lib/money";
 import { titleSimilarity } from "@/lib/similarity";
@@ -48,7 +47,16 @@ export async function findDuplicate(normalizedUrl: string, title: string | null)
   return best ? { itemId: best.id, title: best.title, reason: "title" } : null;
 }
 
-export async function buildDraft(ex: Extracted, hintCollectionId: string | null, originalUrl?: string): Promise<ItemDraft> {
+/**
+ * Whole add must finish well inside Vercel's 60 s function limit: past it the platform kills the request and the
+ * user loses the link ("couldn't read"). Each AI step gets only what's left of this budget and is skipped when
+ * too little remains, so a slow store/AI yields a partial item (self-heal fills it later) instead of an error.
+ */
+const DRAFT_BUDGET_MS = 38_000;
+
+export async function buildDraft(ex: Extracted, hintCollectionId: string | null, originalUrl?: string, startedAt = Date.now()): Promise<ItemDraft> {
+  const deadline = startedAt + DRAFT_BUDGET_MS;
+  const left = () => deadline - Date.now();
   let { title, price, currency, brand, image } = ex;
   let method: string = ex.method;
   const hints = hintsFromUrl(originalUrl ?? ex.url);
@@ -60,8 +68,8 @@ export async function buildDraft(ex: Extracted, hintCollectionId: string | null,
   }
 
   // 1) Page was readable but thin → let the model read the page text.
-  if ((!title || price == null) && ex.pageText && !ex.blocked) {
-    const ai = await extractWithAi(ex.url, ex.pageText);
+  if ((!title || price == null) && ex.pageText && !ex.blocked && left() > 12_000) {
+    const ai = await extractWithAi(ex.url, ex.pageText, Math.min(12_000, left() - 8_000));
     if (ai) {
       if (!title && ai.title) {
         title = ai.title;
@@ -77,8 +85,8 @@ export async function buildDraft(ex: Extracted, hintCollectionId: string | null,
   }
 
   // 2) Store blocked us or data still missing → ask Gemini to open the page itself.
-  if (ex.method === "client" ? !title || price == null : !title || price == null || !image) {
-    const uc = await extractWithUrlContext(originalUrl ?? ex.url);
+  if ((ex.method === "client" ? !title || price == null : !title || price == null || !image) && left() > 14_000) {
+    const uc = await extractWithUrlContext(originalUrl ?? ex.url, left() - 8_000);
     if (uc) {
       if (!title && uc.title) title = uc.title;
       if (price == null && uc.price != null) {
@@ -107,7 +115,8 @@ export async function buildDraft(ex: Extracted, hintCollectionId: string | null,
     const counts = new Map<string, number>();
     for (const r of tagRows) for (const t of r.tags ?? []) counts.set(t, (counts.get(t) ?? 0) + 1);
     const knownTags = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
-    const cat = await categorize({ title: rawTitle, description: ex.description, store: ex.store.name, url: ex.url, collections, knownTags });
+    // Tidy name / tags are nice-to-have: with little time left the raw title is used as is.
+    const cat = left() > 4_000 ? await categorize({ title: rawTitle, description: ex.description, store: ex.store.name, url: ex.url, collections, knownTags }, Math.min(15_000, left())) : null;
     if (cat) {
       cleanTitle = cat.title;
       brand ??= cat.brand;
@@ -157,8 +166,9 @@ export async function previewUrlCore(url: string, hintCollectionId: string | nul
       },
     };
   }
+  const started = Date.now();
   const ex = await extractFromUrl(clean);
-  const draft = await buildDraft(ex, hintCollectionId, clean);
+  const draft = await buildDraft(ex, hintCollectionId, clean, started);
   const duplicate = await findDuplicate(draft.source.normalizedUrl, draft.source.rawTitle ? draft.title : null);
   return { draft, duplicate };
 }
@@ -262,7 +272,6 @@ export async function repairIncomplete(budgetMs = 20_000) {
   const started = now();
   let repaired = 0;
   let tried = 0;
-  const still: { id: string; url: string }[] = [];
   for (const src of await sourcesNeedingDetails(10)) {
     if (now() - started > budgetMs) break;
     tried++;
@@ -270,12 +279,10 @@ export async function repairIncomplete(budgetMs = 20_000) {
       const item = await refreshSourceCore(src.id);
       const s = item.sources.find((x) => x.id === src.id);
       if (s && !missingDetails(s, item)) repaired++;
-      else still.push({ id: src.id, url: src.url });
     } catch {
       /* next one */
     }
   }
-  await requestHeal(still);
   return { tried, repaired };
 }
 
@@ -330,8 +337,6 @@ export async function createItemCore(input: z.input<typeof draftSchema>): Promis
     const sourceId = nanoid(12);
     await db.insert(schema.sources).values({ id: sourceId, itemId: id, ...d.source, fetchedAt: t, createdAt: t });
     await recordPrice(sourceId, id, d.source.price, d.source.currency);
-    // First read incomplete → ask the helper fetcher (no-op unless configured).
-    if (missingDetails(d.source, { imageUrl })) await requestHeal([{ id: sourceId, url: d.source.url }]);
   }
   return (await getItem(id))!;
 }

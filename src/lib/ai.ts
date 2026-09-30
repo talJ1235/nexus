@@ -211,8 +211,8 @@ async function generate(prompt: string, schema: object | null, opts: GenOpts = {
   try {
     for (const r of queue) {
       for (let attempt = 0; attempt < 2; attempt++) {
-        // Keep ~12s in reserve for a fallback provider when one is configured.
-        const reserve = r.provider === "gemini" && hasFallback ? 12_000 : 0;
+        // Keep part of the budget (≤12 s) for a fallback provider when one is configured.
+        const reserve = r.provider === "gemini" && hasFallback ? Math.min(12_000, (opts.budgetMs ?? 45_000) * 0.3) : 0;
         const left = deadline - Date.now() - reserve;
         if (left < 3000) break;
         const timeout = Math.min(left, opts.smart || opts.urlContext ? 22_000 : 12_000);
@@ -286,7 +286,7 @@ export async function categorize(input: {
   url: string;
   collections: { id: string; name: string; kind: string; description: string | null }[];
   knownTags: string[];
-}): Promise<Categorization | null> {
+}, budgetMs?: number): Promise<Categorization | null> {
   const prompt = `You organize a personal shopping/procurement list for a maker (electronics, mechatronics, 3D printing, video) who also buys for home and a startup.
 
 Product:
@@ -314,7 +314,7 @@ User's collections: ${JSON.stringify(input.collections.map((c) => ({ id: c.id, n
     },
     required: ["title", "brand", "category", "tags", "collectionId"],
   };
-  const out = await generateJson<Categorization>(prompt, schema);
+  const out = await generateJson<Categorization>(prompt, schema, { budgetMs });
   if (!out) return null;
   const validIds = new Set(input.collections.map((c) => c.id));
   return {
@@ -326,7 +326,7 @@ User's collections: ${JSON.stringify(input.collections.map((c) => ({ id: c.id, n
   };
 }
 
-export async function extractWithAi(url: string, pageText: string) {
+export async function extractWithAi(url: string, pageText: string, budgetMs?: number) {
   const prompt = `Extract the main product on this web page. Return null fields when unsure — never guess a price.
 URL: ${url}
 Page text:
@@ -341,20 +341,20 @@ ${pageText.slice(0, 10000)}`;
     },
     required: ["title", "price", "currency", "brand"],
   };
-  return generateJson<{ title: string | null; price: number | null; currency: string | null; brand: string | null }>(prompt, schema);
+  return generateJson<{ title: string | null; price: number | null; currency: string | null; brand: string | null }>(prompt, schema, { budgetMs });
 }
 
 export type UrlContextResult = { title: string | null; price: number | null; currency: string | null; imageUrl: string | null; brand: string | null };
 
 /** Let Gemini fetch the page itself (Google's fetcher is blocked less often than serverless IPs). */
-export async function extractWithUrlContext(url: string): Promise<UrlContextResult | null> {
+export async function extractWithUrlContext(url: string, budgetMs = 25_000): Promise<UrlContextResult | null> {
   const prompt = `Open this product page and read it: ${url}
 
 Return ONLY a JSON object, no prose, with these keys:
 {"title": string|null, "price": number|null, "currency": "ISO 4217 code"|null, "imageUrl": "absolute URL of the main product image"|null, "brand": string|null}
 
 Rules: "title" is the product's real name as shown on the page. "price" is the current selling price for one unit (the discounted price if on sale), as a plain number. Use null for anything you cannot see on the page — never guess.`;
-  const out = await generateJson<UrlContextResult>(prompt, null, { urlContext: true, budgetMs: 25_000 });
+  const out = await generateJson<UrlContextResult>(prompt, null, { urlContext: true, budgetMs: Math.min(budgetMs, 25_000) });
   if (!out) return null;
   const price = typeof out.price === "number" && out.price > 0 ? out.price : null;
   const imageUrl = typeof out.imageUrl === "string" && /^https?:\/\//.test(out.imageUrl) ? out.imageUrl : null;

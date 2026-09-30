@@ -117,6 +117,56 @@ Failure at any step degrades gracefully to a partially filled, editable item.
   checks the placeholder card, +1 and the partial move.
 
 ## Round 4 — Session B: reliability (shipped)
+Research (2026-09-30): from Vercel, AliExpress answers with a script-only "punish"/x5sec challenge; Amazon/KSP/eBay are
+blocked for server requests. Gemini url-context usually reads title + price, never the image. Workarounds that
+impersonate other clients or route through third-party fetchers were tried and **dropped by decision** (unreliable, not
+wanted) — don't reintroduce them. The owner's browser (extension) is the dependable source for blocked stores.
+
+**Reading a pasted link**
+- `extract.ts` detects challenge pages (`blocked`). `buildDraft` then uses Gemini (page text / url-context) and the
+  categorizer inside one **38 s budget** (`DRAFT_BUDGET_MS`): each AI step gets only what's left and is skipped when too
+  little remains, so a slow store or busy AI yields a partial item instead of a request killed at Vercel's 60 s limit
+  (which used to show "couldn't read" and lose the link).
+- Self-heal of incomplete links (no real title, no price or no image; to-buy, last 21 days), no one's action needed:
+  (1) the guest page re-reads its own incomplete additions after 4 s / 25 s / 50 s (`guestRepairItem`, own recent items
+  only, ≥15 s apart); (2) the owner's extension (v1.2.0, every 30 min) fetches them with the owner's browser and posts the
+  HTML (`/api/ext/stale` flags them `details`, `/api/ext/check` repairs via `refreshSourceCore`); (3) daily cron
+  `repairIncomplete`.
+- Diagnostics (owner): `/api/debug/extract` (recent + incomplete links), `?url=…&full=1` (full pipeline).
+
+**AI assistant** (Gemini Flash, free tier): "Ask" answers questions about the user's own data with
+  linked item chips; "Plan a project" drafts a parts list with quantities and price estimates → adds
+  link-less items with store search buttons (AliExpress, Amazon, Zap, Google Shopping).
+- **Sharing with permissions**: per-collection invite links (viewer/editor, hashed tokens, revocable);
+  guests enter a name once → signed guest cookie (separate HMAC context from the owner's) → `/g`
+  shows only granted collections. Editors add links, change qty/priority/notes, move status, delete only
+  their own items. Every guest action re-checks signature, revocation and the specific item's grant.
+  Guests never see receipts or items outside shared collections. Owner sees "Added by".
+
+## Round 4 — Session A: look & feel (shipped)
+- **Palette "Ink & Teal"** (tokens only, `globals.css`): cool graphite neutrals, one teal accent for actions/focus, stronger bg↔card contrast,
+  prices on a soft teal tag (`--tag`/`--tag-fg`), neutral image swatch (`--tile`, `--tile-ink`).
+- **Mixed Hebrew/English text**: titles and user text use the `.bidi` class (`unicode-bidi: plaintext` + alignment to
+  the page's start edge). No `dir="auto"` on titles; only assistant chat text keeps it.
+- **One loader**: `components/ui/spinner.tsx` — `Spinner` (masked conic ring, transform-only, 1.15 s) and `ThinkingDots`
+  for the AI. No `animate-spin` anywhere.
+- **Add-link feedback**: a pasted link becomes a placeholder card/row at once (shimmer, `store.pending`), which gives way to
+  the real card with a settle-in animation; failures stay on the card with Retry/Dismiss. Views without a grid
+  (history, orders, spending) show a small status line under the add bar instead.
+- **Same link twice** (still to buy) → quantity +1 with undo, detected client-side before any fetch (server early check as
+  backup); the card glows once. Same link of an ordered/received item → new line. Other-store duplicates keep the dialog.
+  (Telegram input keeps its own "already saved" rule.)
+- **Cards**: title first, store · list below, price tag + total/savings in one row, status/priority/"Lowest" badges on
+  the image.
+- **Item sheet**: hero (image, title, store/brand, price, open-in-store) + grouped cards: Plan (qty stepper, priority,
+  project/list picker), Stores, Price history + watch/target, Tags & notes, Receipts, Advanced.
+- **Partial move**: choosing a project/list for an item with qty > 1 asks how many units move (default all). Fewer →
+  `splitItem` copies the item (links + price history, not receipts) with N units to the target, the rest stay; undo
+  folds it back (`unsplitItem`). Bulk move still moves whole items.
+- Dev: `scripts/seed-local.mjs` seeds a demo catalog into the local DB; `SMOKE_WRITE=1 npm run smoke` (localhost only)
+  checks the placeholder card, +1 and the partial move.
+
+## Round 4 — Session B: reliability (shipped)
 Research (2026-09-30, `scripts/probe-extract.mjs` + `probe` workflow; results land on branch `probe/results`):
 - From Vercel (fra1) AliExpress answers normal requests with a script-only "punish"/x5sec challenge. Link-preview
   identities (facebookexternalhit, Twitterbot, WhatsApp) *sometimes* get the real page with og:title/og:image (no price)
@@ -173,7 +223,6 @@ Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 | `GEMINI_MODEL` | optional override, default tries `gemini-3.5-flash-lite` then fallbacks |
 | `GROQ_API_KEY` | optional second free AI provider (console.groq.com), used when Gemini is busy |
 | `OPENROUTER_API_KEY` | optional third free AI provider (`openrouter/free`) |
-| `GITHUB_DISPATCH_TOKEN` | optional: fine-grained PAT (this repo, Contents read/write) so incomplete links trigger `heal.yml` |
 | `APP_PASSWORD` | login password |
 | `SESSION_SECRET` | ≥32 random chars, signs the session cookie |
 | `BLOB_READ_WRITE_TOKEN` | auto-added when a Blob store is connected |
