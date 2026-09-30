@@ -124,3 +124,14 @@ Acceptance: smoke triggers a toast and checks the close button; mobile screensho
 - Round 6: new features + upgrades (list to be written with Tal).
 - UI "next level": research tools/workflow to go from "amateur+" to professional (design system, reference
   products, component libraries, motion, visual QA). Output will be a separate brief.
+
+---
+
+## Open
+- (A1) Clicks made in the streamed loading shell before the data arrives are lost when the app replaces it
+  (e.g. opening the assistant during a slow load). Only matters on slow loads; could disable the header/sidebar
+  buttons while `loading`, or lift panel state above the Suspense boundary.
+- (A1) Sidebar "Unsorted" entry and a project's budget bar appear only once data is in (their existence is data),
+  so on those the sidebar / project header can shift a little after a slow load.
+- (A1) Reduced-motion rules and the boot screen in a real installed PWA (Android splash → boot hand-off) were not
+  checked on a device — only in Playwright at 390×844 and via CSS review.
