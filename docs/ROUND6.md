@@ -9,7 +9,7 @@ Follow CLAUDE.md "Session workflow". Mock mode (`NEXUS_AI_MOCK=1`) must cover ev
 
 ## Session B1 — assistant that can act
 
-### 1. [ ] Actions from the chat, always confirmed
+### 1. [x] Actions from the chat, always confirmed
 Today "Ask" (`askNexus` in `src/lib/assistant.ts`, `ask` in `src/app/ai-actions.ts`) only answers. Wanted: "mark all
 Railcam parts as ordered", "move everything from AliExpress to project X", "set the fan to urgent, qty 2" → the
 assistant proposes the change, the user confirms, it happens, with undo.
@@ -98,3 +98,6 @@ banner visible, edits disabled; logout clears the snapshot.
 ---
 
 ## Open
+- (B1) A proposal is all-or-nothing: one hallucinated id or unknown action drops the whole card (the text answer still
+  shows). Stricter than filtering per action, so the summary always matches what Apply does.
+- (B1) Undo restores the values from Apply time; edits made to the same items between Apply and Undo are overwritten.

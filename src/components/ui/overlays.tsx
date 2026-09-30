@@ -24,6 +24,7 @@ export function Modal({
       <D.Portal>
         <D.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] overlay-in" />
         <D.Content
+          onInteractOutside={keepOpenForToasts}
           onOpenAutoFocus={(e) => {
             // Focus the first field if the dialog has one; otherwise the dialog itself (no stray ring on the close button).
             const root = e.currentTarget as HTMLElement;
@@ -53,6 +54,11 @@ export function Modal({
   );
 }
 
+// A modal dialog/sheet treats clicks on a toast (Undo, close) as "outside" and would close; toasts sit above it.
+const keepOpenForToasts = (e: Event) => {
+  if ((e.target as Element | null)?.closest?.("[data-sonner-toaster]")) e.preventDefault();
+};
+
 /** Side sheet: slides from the inline-end edge (right in LTR, left in RTL). Full screen on mobile. */
 export function Sheet({
   open,
@@ -74,6 +80,7 @@ export function Sheet({
       <D.Portal>
         <D.Overlay className="fixed inset-0 z-40 bg-black/35 overlay-in" />
         <D.Content
+          onInteractOutside={keepOpenForToasts}
           className={cn(
             "fixed inset-y-0 z-40 flex w-full flex-col bg-surface shadow-pop outline-none sm:max-w-[520px]",
             side === "end" ? "end-0 border-s border-line sheet-in-end" : "start-0 border-e border-line sheet-in-start",

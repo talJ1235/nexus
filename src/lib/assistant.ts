@@ -1,5 +1,6 @@
 import "server-only";
 import { CATEGORIES, generateJson, generateText } from "./ai";
+import { ACTION_FENCE, MAX_ACTION_ITEMS } from "./assistant-actions";
 import { budgetStats, lineTotal, unitPrice } from "./calc";
 import { convert, formatMoney, type Rates } from "./money";
 import type { AppData } from "./types";
@@ -124,7 +125,7 @@ function snapshot(data: AppData, currency: string, rates: Rates) {
   });
   const projects = data.collections.map((c) => {
     const b = budgetStats(c, data.items, data.altGroups, rates, currency);
-    return `- ${c.kind} "${c.name}"${c.description ? ` (${c.description.slice(0, 80)})` : ""}: ${b.count} items, planned ${Math.round(b.planned)}, spent ${Math.round(b.spent)}${b.budget != null ? `, budget ${Math.round(b.budget)}` : ""}`;
+    return `- [${c.id}] ${c.kind} "${c.name}"${c.description ? ` (${c.description.slice(0, 80)})` : ""}: ${b.count} items, planned ${Math.round(b.planned)}, spent ${Math.round(b.spent)}${b.budget != null ? `, budget ${Math.round(b.budget)}` : ""}`;
   });
   return { lines, projects };
 }
@@ -132,6 +133,12 @@ function snapshot(data: AppData, currency: string, rates: Rates) {
 export async function askNexus(input: { question: string; history: { role: "user" | "assistant"; text: string }[]; data: AppData; currency: string; locale: "en" | "he" }) {
   if (mockAi()) {
     const first = input.data.items.find((i) => i.status === "to_buy");
+    // Change requests get a proposal: the first two to-buy items → ordered (exercises propose → apply → undo).
+    if (/\b(mark|move|set)\b|סמן|העבר/i.test(input.question)) {
+      const ids = input.data.items.filter((i) => i.status === "to_buy").slice(0, 2).map((i) => i.id);
+      const json = JSON.stringify({ summary: `Mark ${ids.length} items as ordered`, actions: [{ type: "setStatus", itemIds: ids, status: "ordered" }] });
+      return `Marking ${ids.length} items as ordered.\n\n\`\`\`${ACTION_FENCE}\n${json}\n\`\`\``;
+    }
     return `You have **${input.data.items.filter((i) => i.status === "to_buy").length} items** left to buy.\n\n- Most urgent: ${first?.title ?? "—"} [[${first?.id ?? "x"}]]\n- Total planned: **${formatMoney(1234.5, input.currency, input.locale)}**`;
   }
   const { lines, projects } = snapshot(input.data, input.currency, input.data.rates);
@@ -142,9 +149,28 @@ Rules:
 - When you mention a specific item, cite it as [[itemId]] right after its name so the app can link it.
 - Be concise: short paragraphs or bullet lists (markdown "- "), **bold** for key numbers. No headings, no tables.
 - Reply in ${input.locale === "he" ? "Hebrew" : "English"} unless the user writes in the other language.
+- Only when the user asks you to CHANGE their data (mark as ordered/bought, move, set priority or quantity, tag, create a project), propose the change: one short sentence, then exactly one fenced block \`\`\`${ACTION_FENCE} with JSON {"summary": string, "actions": [...]}. Nothing changes until the user clicks Apply, so never say it's done. Never propose deletes.
+  Allowed actions (nothing else):
+  {"type":"move","itemIds":[…],"collectionId":"<project id>" or null for Unsorted}
+  {"type":"setStatus","itemIds":[…],"status":"to_buy"|"ordered"|"purchased"}
+  {"type":"setPriority","itemIds":[…],"priority":"urgent"|"normal"|"someday"}
+  {"type":"setQty","itemIds":[…],"qty":2}
+  {"type":"addTag"|"removeTag","itemIds":[…],"tag":"…"}
+  {"type":"createCollection","ref":"n1","name":"…","kind":"project"|"list","budget":null} — then move to it with "collectionId":"new:n1"
+  Use only ids from the data below ([[itemId]] for items, [id] for projects), at most ${MAX_ACTION_ITEMS} items. "summary" is one line in the reply language.
+  Example 1 — "set the fan to urgent, qty 2":
+  Setting the fan to urgent with quantity 2.
+  \`\`\`${ACTION_FENCE}
+  {"summary":"Fan → urgent, qty 2","actions":[{"type":"setPriority","itemIds":["aB3dE5fG7h"],"priority":"urgent"},{"type":"setQty","itemIds":["aB3dE5fG7h"],"qty":2}]}
+  \`\`\`
+  Example 2 — "move everything from AliExpress to a new project Drone":
+  3 AliExpress items go to a new project, Drone.
+  \`\`\`${ACTION_FENCE}
+  {"summary":"Create Drone and move 3 AliExpress items there","actions":[{"type":"createCollection","ref":"n1","name":"Drone","kind":"project","budget":null},{"type":"move","itemIds":["k1","k2","k3"],"collectionId":"new:n1"}]}
+  \`\`\`
 Today is ${new Date().toISOString().slice(0, 10)}.
 
-PROJECTS & LISTS
+PROJECTS & LISTS ([id] kind "name")
 ${projects.join("\n") || "(none)"}
 
 ITEMS (status: to_buy / ordered / purchased)

@@ -5,7 +5,7 @@
 //   SMOKE_AI=1 also calls the (owner-only) AI health endpoint. SMOKE_OUT=dir saves screenshots.
 //   SMOKE_SLOW=1 (server started with NEXUS_TRACE_DELAY_MS) checks that a click in the loading shell carries over.
 //   SMOKE_WRITE=1 (localhost only) also exercises adding: placeholder card, same link → +1 (+ its toast's close
-//     button), partial move.
+//     button), partial move, and (server started with NEXUS_AI_MOCK=1) assistant action propose → apply → undo.
 //   SMOKE_MOBILE=1 runs the owner checks in a 390×844 touch phone context; screenshots get a "-m" suffix.
 //   SMOKE_TRACE=1 records every painted frame of the first 2.5 s after goto("/") (CDP screencast, timestamped)
 //     into $SMOKE_OUT/trace[-m]/ plus one contact sheet (trace[-m].png) to judge load flashes from frames.
@@ -306,6 +306,36 @@ try {
           await page.goto(`${BASE}/`);
           await page.waitForSelector(READY);
           ok((await page.locator("main article").count()) === before + 1, "partial move splits the item", `${before} → ${await page.locator("main article").count()}`);
+        });
+        // Needs the server started with NEXUS_AI_MOCK=1 (the mock proposes "first two to-buy items → ordered").
+        await step("assistant action: propose → apply → undo", async () => {
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY);
+          const btn = page.locator("header button[title='Ask Nexus'], header button[aria-label='Assistant']").filter({ visible: true }).first();
+          if (!(await btn.count())) return ok(true, "assistant action (AI off or not in this layout, skipped)");
+          await btn.click();
+          const dlg = page.getByRole("dialog");
+          await dlg.locator("textarea").fill("Mark my first two to-buy items as ordered");
+          await dlg.locator("textarea").press("Enter");
+          const card = dlg.locator("[data-testid=ai-action-card]");
+          await card.waitFor({ timeout: 60000 });
+          const ids = await card.locator("[data-item-id]").evaluateAll((els) => els.map((e) => e.getAttribute("data-item-id")));
+          const statuses = async () => {
+            const b = await (await ctx.request.get(`${BASE}/api/backup`)).json();
+            return ids.map((id) => b.data.items.find((i) => i.id === id)?.status);
+          };
+          const before = await statuses();
+          await page.waitForTimeout(300);
+          await shot(page, "ai-action");
+          await card.getByRole("button", { name: /^(Apply|החל)$/ }).click();
+          await dlg.locator("[data-testid=ai-action-card][data-state=applied]").waitFor({ timeout: 15000 });
+          const after = await statuses();
+          await page.locator("[data-sonner-toast]").filter({ hasText: /Done:|בוצע:/ }).getByRole("button", { name: /^(Undo|ביטול)$/ }).click();
+          await dlg.locator("[data-testid=ai-action-card][data-state=undone]").waitFor({ timeout: 15000 });
+          const undone = await statuses();
+          const all = (list, s) => list.length > 0 && list.every((x) => x === s);
+          ok(all(before, "to_buy") && all(after, "ordered") && all(undone, "to_buy"), "assistant action: propose → apply → undo", JSON.stringify({ before, after, undone }));
+          await page.keyboard.press("Escape");
         });
       }
     }

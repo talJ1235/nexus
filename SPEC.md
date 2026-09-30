@@ -178,6 +178,25 @@ Brief and checklist: `docs/ROUND5.md`. Sessions A1 + A2 shipped:
 - Smoke: assistant chips (count, 40 px + nowrap on phones), orders cards↔table toggle, and with `SMOKE_WRITE` the toast
   close button + swipe (real touch events on mobile).
 
+## Round 6 — features
+Brief and checklist: `docs/ROUND6.md`. Session B1 shipped:
+- **Assistant actions** (`lib/assistant-actions.ts`, pure, test: `npm run test:actions`): for change requests the model
+  appends one ```` ```nexus-actions ```` block `{ summary, actions }` (provider-neutral, no function calling). Whitelist:
+  `move` (→ project id, `null` = Unsorted, or `new:<ref>`), `setStatus`, `setPriority`, `setQty`, `addTag`/`removeTag`,
+  `createCollection` (`ref`, name, kind, budget?); no deletes, ≤50 items. Anything malformed, unknown, foreign
+  (item/project id not in the owner's data) or a no-op drops the whole proposal; the text answer still shows.
+- `ask` returns `{ text, proposal }`; the Ask tab shows a confirmation card (summary, new projects, each item with
+  before → after, "+n more", Apply / Cancel). Apply → owner-only `applyAssistant` re-validates on fresh data, creates
+  projects, runs `updateItem` / `bulkSetStatus` (leaving "to buy" records the active store's price as paid, like the
+  selection bar), returns the previous values; toast + card both offer Undo (`undoAssistant` restores status dates,
+  paid price, project, priority, qty, tags and removes created projects that are still empty).
+- Prompt lists project ids (`[id]`) and teaches the format with 2 examples. Mock mode proposes "first two to-buy →
+  ordered" for mark/move/set questions. The "unsorted" suggestion chip is now action-style ("Sort my unsorted items
+  into projects").
+- Toasts stay clickable above modal sheets/dialogs (they set `pointer-events: none` on body) and clicking one doesn't
+  close the sheet (`onInteractOutside` in `components/ui/overlays.tsx`).
+- Smoke (`SMOKE_WRITE`, server with `NEXUS_AI_MOCK=1`): propose → apply → toast Undo, statuses checked via `/api/backup`.
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Dark + light (system default), no flash on load.

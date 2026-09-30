@@ -9,9 +9,11 @@ import { useI18n } from "@/components/providers";
 import { Button, Textarea } from "@/components/ui/button";
 import { Sheet, SheetClose } from "@/components/ui/overlays";
 import type { Plan, PlannedPart } from "@/lib/assistant";
+import type { Proposal } from "@/lib/assistant-actions";
 import { readRecent, recordRecent, suggestQuestions, type Suggestion } from "@/lib/assistant-suggestions";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { ActionCard } from "./assistant-action-card";
 import { useStore } from "./store";
 
 // ---------- tiny, safe markdown: paragraphs, "- " lists, **bold**, [[itemId]] chips ----------
@@ -112,7 +114,7 @@ function Chips({ list, onPick, label, testId }: { list: Suggestion[]; onPick: (t
 
 // ---------- Ask ----------
 
-type Msg = { role: "user" | "assistant"; text: string };
+type Msg = { role: "user" | "assistant"; text: string; proposal?: Proposal | null };
 
 function AskTab({ seed, seedKey }: { seed: string | null; seedKey: string | null }) {
   const s = useStore();
@@ -142,13 +144,13 @@ function AskTab({ seed, seedKey }: { seed: string | null; seedKey: string | null
     const text = question.trim();
     if (!text || busy) return;
     setRecent(recordRecent(text));
-    const history = msgs;
+    const history = msgs.map(({ role, text }) => ({ role, text }));
     setMsgs((m) => [...m, { role: "user", text }]);
     setQ("");
     setBusy(true);
     try {
       const r = await ask({ question: text, history, currency: s.currency, locale });
-      setMsgs((m) => [...m, { role: "assistant", text: "text" in r ? r.text : r.error === "no_ai" ? t.ai.noAi : t.ai.failed }]);
+      setMsgs((m) => [...m, "text" in r ? { role: "assistant", text: r.text, proposal: r.proposal } : { role: "assistant", text: r.error === "no_ai" ? t.ai.noAi : t.ai.failed }]);
     } catch {
       setMsgs((m) => [...m, { role: "assistant", text: t.ai.failed }]);
     } finally {
@@ -194,7 +196,10 @@ function AskTab({ seed, seedKey }: { seed: string | null; seedKey: string | null
               <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-accent-soft text-accent-ink">
                 <Sparkles className="size-3.5" />
               </span>
-              <Markdown text={m.text} onItem={openItem} />
+              <div className="min-w-0 flex-1 space-y-3">
+                <Markdown text={m.text} onItem={openItem} />
+                {m.proposal && <ActionCard proposal={m.proposal} onItem={openItem} />}
+              </div>
             </div>
           ),
         )}
