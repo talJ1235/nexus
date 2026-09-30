@@ -50,7 +50,7 @@
 - End: update SPEC.md by **editing** the round's section (never append a second copy — Round 4 was duplicated once),
   write anything left open (bugs, skipped parts, questions for Tal) under "## Open" at the end of the brief,
   `git pull --rebase`, push to `main` (auto-deploys), and reply with: items done, commits, anything left open.
-- Docs-only commits (`docs/`, `*.md`, `.claude/`) don't trigger a Vercel build (`vercel.json` ignoreCommand).
+- Docs-only pushes (`docs/`, `*.md`, `.claude/`) don't trigger a Vercel build (`vercel.json` ignoreCommand diffs against the last deployed commit, `VERCEL_GIT_PREVIOUS_SHA`, so a push that ends with a docs commit still deploys its code).
 
 # Compact instructions
 Keep: files changed, decisions made, open bugs, test results. Drop: tool output, screenshots, logs.
