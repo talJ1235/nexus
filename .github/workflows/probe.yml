@@ -1,0 +1,20 @@
+# Research probe (manual): which fetch strategies read store pages from datacenter IPs.
+name: probe
+on:
+  workflow_dispatch:
+    inputs:
+      urls: { description: "Space-separated URLs (optional)", required: false, default: "" }
+  push:
+    branches: ["probe/**"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node scripts/probe-extract.mjs ${{ github.event.inputs.urls }}
+        env:
+          BASE: https://nexus-ashen-beta.vercel.app
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}

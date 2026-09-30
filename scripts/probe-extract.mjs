@@ -1,0 +1,93 @@
+// Research probe: which fetch strategies return real product data for a store link?
+// Runs from GitHub Actions (datacenter IPs, like Vercel). Optional: BASE + NEXUS_PASSWORD also ask prod
+// (/api/debug/extract) so we see what Vercel itself gets. Prints one compact line per (url, strategy).
+// Usage: node scripts/probe-extract.mjs [url ...]
+
+const URLS = process.argv.slice(2).length
+  ? process.argv.slice(2)
+  : [
+      "https://www.aliexpress.com/item/1005006173693585.html",
+      "https://he.aliexpress.com/item/1005006173693585.html",
+      "https://www.aliexpress.us/item/3256803490630385.html",
+      "https://www.amazon.com/dp/B07BHHG5GZ",
+      "https://ksp.co.il/web/item/254425",
+      "https://www.ebay.com/itm/266328557536",
+    ];
+
+const CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
+const UAS = {
+  browser: CHROME,
+  facebook: "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+  twitter: "Twitterbot/1.0",
+  telegram: "TelegramBot (like TwitterBot)",
+  whatsapp: "WhatsApp/2.23.20.0",
+  slack: "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)",
+  discord: "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)",
+};
+const BLOCK = /captcha|access denied|robot check|are you a human|verify you are human|pardon our interruption|cf-chl|just a moment|attention required|punish|slide to verify|x5sec|baxia/i;
+
+function summarize(html) {
+  const m = (re) => html.match(re)?.[1]?.slice(0, 70) ?? null;
+  return {
+    og: m(/property=["']og:title["'][^>]*content=["']([^"']+)/i) ?? m(/content=["']([^"']+)["'][^>]*property=["']og:title/i),
+    img: Boolean(m(/property=["']og:image["'][^>]*content=["']([^"']+)/i) ?? m(/content=["']([^"']+)["'][^>]*property=["']og:image/i)),
+    ld: html.includes("application/ld+json"),
+    title: m(/<title[^>]*>([^<]*)/i),
+    blocked: BLOCK.test(html.slice(0, 20000)),
+  };
+}
+
+async function timed(fn) {
+  const t = Date.now();
+  try {
+    return { ...(await fn()), ms: Date.now() - t };
+  } catch (e) {
+    return { err: String(e?.cause?.code ?? e?.message ?? e).slice(0, 60), ms: Date.now() - t };
+  }
+}
+
+async function direct(url, ua) {
+  const res = await fetch(url, { headers: { "user-agent": ua, accept: "text/html,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" }, redirect: "follow", signal: AbortSignal.timeout(12000) });
+  const html = await res.text();
+  return { status: res.status, len: html.length, final: new URL(res.url).host + new URL(res.url).pathname.slice(0, 30), ...summarize(html) };
+}
+
+async function jina(url) {
+  const res = await fetch(`https://r.jina.ai/${url}`, { headers: { accept: "application/json", "x-return-format": "html" }, signal: AbortSignal.timeout(25000) });
+  const j = await res.json().catch(() => ({}));
+  const html = j?.data?.html ?? j?.data?.content ?? "";
+  return { status: res.status, len: html.length, jtitle: j?.data?.title?.slice(0, 70) ?? null, ...summarize(html) };
+}
+
+async function microlink(url) {
+  const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(25000) });
+  const j = await res.json().catch(() => ({}));
+  return { status: res.status, mstatus: j.status, title: j?.data?.title?.slice(0, 70) ?? null, img: Boolean(j?.data?.image?.url), msg: j?.message?.slice(0, 60) };
+}
+
+let cookie = null;
+async function prod(url) {
+  const BASE = process.env.BASE;
+  if (!BASE || !process.env.NEXUS_PASSWORD) return { skip: "no BASE" };
+  if (!cookie) {
+    const form = new FormData();
+    form.set("password", process.env.NEXUS_PASSWORD);
+    const r = await fetch(`${BASE}/api/login`, { method: "POST", body: form, redirect: "manual" });
+    cookie = (r.headers.getSetCookie?.() ?? []).map((c) => c.split(";")[0]).join("; ");
+  }
+  const res = await fetch(`${BASE}/api/debug/extract?url=${encodeURIComponent(url)}&probe=1`, { headers: { cookie }, signal: AbortSignal.timeout(60000) });
+  const j = await res.json().catch(() => ({ status: res.status }));
+  return j.probe ? { strategies: j.probe } : { status: j.status, len: j.length, og: j.ogTitle?.slice(0, 60) ?? null, img: Boolean(j.ogImage), title: j.title?.slice(0, 60) ?? null };
+}
+
+const line = (url, name, r) => console.log(`${new URL(url).host.padEnd(22)} ${name.padEnd(10)} ${JSON.stringify(r)}`);
+
+for (const url of URLS) {
+  console.log(`\n== ${url}`);
+  for (const [name, ua] of Object.entries(UAS)) line(url, name, await timed(() => direct(url, ua)));
+  line(url, "jina", await timed(() => jina(url)));
+  line(url, "microlink", await timed(() => microlink(url)));
+  const p = await timed(() => prod(url));
+  if (p.strategies) for (const [k, v] of Object.entries(p.strategies)) line(url, `vercel:${k}`.slice(0, 18), v);
+  else line(url, "vercel", p);
+}
