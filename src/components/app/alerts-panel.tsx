@@ -318,6 +318,20 @@ export function AlertsPanel() {
                   />
                 </div>
                 <p className="text-xs text-muted">{t.alerts.targetHint}</p>
+                <div className="flex flex-wrap items-center justify-between gap-3" data-weekly-pref={st.prefs.weekly ? "on" : "off"}>
+                  <span className="text-sm">{t.weekly.toggle}</span>
+                  <Segmented
+                    size="sm"
+                    label={t.weekly.toggle}
+                    value={st.prefs.weekly ? "on" : "off"}
+                    onChange={async (v) => setSt({ ...st, prefs: await saveAlertPrefs({ weekly: v === "on" }) })}
+                    options={[
+                      { value: "on", label: t.alerts.on },
+                      { value: "off", label: t.alerts.off },
+                    ]}
+                  />
+                </div>
+                <p className="text-xs text-muted">{t.weekly.toggleHint}</p>
               </section>
 
               <section className="space-y-3 border-t border-line p-4">

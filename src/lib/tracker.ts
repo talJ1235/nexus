@@ -10,11 +10,14 @@ import { convert, formatMoney, parsePrice } from "./money";
 import { getRates } from "./rates";
 import { storeFromUrl } from "./stores";
 import { escapeHtml, sendTelegram } from "./telegram";
+import { isLocale } from "./i18n";
+import { CURRENCIES } from "./money";
+import { weeklySummary } from "./weekly";
 import type { Alert, Source } from "./types";
 
-export type AlertPrefs = { minDropPct: number; telegram: boolean; backInStock: boolean };
+export type AlertPrefs = { minDropPct: number; telegram: boolean; backInStock: boolean; weekly: boolean };
 const PREFS_KEY = "pref:alerts";
-export const DEFAULT_PREFS: AlertPrefs = { minDropPct: 5, telegram: true, backInStock: true };
+export const DEFAULT_PREFS: AlertPrefs = { minDropPct: 5, telegram: true, backInStock: true, weekly: true };
 
 export async function getAlertPrefs(): Promise<AlertPrefs> {
   try {
@@ -223,4 +226,59 @@ export async function sendAlertDigest(origin: string) {
   return { sent: ok ? pending.length : 0, budget: ok && !!budget };
 }
 
+// ---------- Weekly summary (Sundays, Israel time) ----------
 
+const OWNER_KEY = "pref:owner";
+
+/** The owner's language and display currency, remembered from app loads (the cron has no cookies). */
+export async function rememberOwner(locale: string, currency: string) {
+  const next = JSON.stringify({ locale, currency });
+  if ((await kvGet(OWNER_KEY)) !== next) await kvSet(OWNER_KEY, next);
+}
+async function ownerPrefs() {
+  try {
+    const v = JSON.parse((await kvGet(OWNER_KEY)) ?? "{}") as { locale?: string; currency?: string };
+    return { locale: isLocale(v.locale) ? v.locale : "en", currency: (CURRENCIES as readonly string[]).includes(v.currency ?? "") ? v.currency! : "ILS" };
+  } catch {
+    return { locale: "en" as const, currency: "ILS" };
+  }
+}
+
+/** YYYY-MM-DD and weekday (0 = Sunday) of `ms` in Israel. */
+function israelDay(ms: number) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", weekday: "short" }).formatToParts(ms).map((p) => [p.type, p.value]));
+  return { key: `${parts.year}-${parts.month}-${parts.day}`, sunday: parts.weekday === "Sun" };
+}
+
+/**
+ * Send the weekly summary once per Sunday (daily cron). Skipped when turned off, not a Sunday, already sent this
+ * Sunday, or there's nothing worth saying. `force` (local tests via the cron secret) ignores the day and the once-rule.
+ */
+export async function sendWeeklySummary(origin: string, opts: { force?: boolean; now?: number } = {}) {
+  const now = opts.now ?? Date.now();
+  const prefs = await getAlertPrefs();
+  if (!prefs.telegram || !prefs.weekly) return { weekly: "off" as const };
+  const day = israelDay(now);
+  const sentKey = "weekly:sent";
+  if (!opts.force && (!day.sunday || (await kvGet(sentKey)) === day.key)) return { weekly: "not_due" as const };
+  const { locale, currency } = await ownerPrefs();
+  const month = monthKeyIn(now, TZ);
+  const [items, altGroups, storeSettings, rates, history, alerts] = await Promise.all([
+    loadItems(),
+    db.select().from(schema.altGroups),
+    db.select().from(schema.storeSettings),
+    getRates(),
+    loadBudgetHistory(),
+    db.select().from(schema.alerts).where(gt(schema.alerts.createdAt, now - 7 * 86_400_000)),
+  ]);
+  const cap = capFor(month, history);
+  const fc = monthForecast({ items, altGroups, rates, currency, from: monthStartIn(month, TZ), to: monthStartIn(nextMonthKey(month), TZ), cap, includeNormal: false });
+  const html = weeklySummary({ items, altGroups, storeSettings, alerts, rates, currency, locale, now, origin, timeZone: TZ, month: fc });
+  if (!html) {
+    await kvSet(sentKey, day.key);
+    return { weekly: "empty" as const };
+  }
+  const ok = await sendTelegram(html);
+  if (ok) await kvSet(sentKey, day.key);
+  return { weekly: ok ? ("sent" as const) : ("failed" as const) };
+}

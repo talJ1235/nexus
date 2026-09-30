@@ -76,7 +76,7 @@ end-to-end in `SMOKE_WRITE`.
 
 ## Session B4 — weekly digest + offline
 
-### 5. [ ] Weekly Telegram summary
+### 5. [x] Weekly Telegram summary
 - Sent by the existing daily cron on Sundays (Israel week start; no new cron entry — Vercel Hobby limits).
 - Content, short and scannable, Hebrew/English per the user's locale: price drops and targets hit this week; urgent
   items not ordered; orders overdue/arriving this week; stores close to free shipping; month vs budget. Each item
@@ -124,3 +124,12 @@ banner visible, edits disabled; logout clears the snapshot.
 - (B3) Dates: an order confirmation sets ordered at the document date; a store receipt for an item that was never
   ordered sets purchased at the document date, otherwise received = now. A price-history point is logged only when
   the item's link (at the receipt's store, else its active link) is in the receipt's currency.
+- (B4) Weekly summary: the daily cron (05:00 UTC = 08:00 Israel) sends it on Sundays, once per Sunday (kv
+  `weekly:sent`). "This week" = the last 7 days. The cron has no cookies, so the owner's language and display currency
+  are remembered in kv `pref:owner` on every app load (written only on change) — until the app is opened once after
+  this deploy it falls back to English / ILS. "Close to free shipping" = at most 25 % of the threshold missing. The
+  month line is shown whenever there is a cap or spending, but on its own it only triggers a message when the month
+  is near/over the cap.
+- (B4) Tested locally against a fake Telegram API (`TELEGRAM_API_BASE`, ignored on Vercel) via the cron route with
+  `?only=weekly&force=1` (needs `CRON_SECRET`); not sent to real Telegram. The link checks in
+  `scripts/test-telegram.mjs` now skip when the fake store can't bind 192.0.2.2 (this Windows PC can't; set STORE_HOST).

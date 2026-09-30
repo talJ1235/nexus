@@ -49,7 +49,7 @@ export async function markAlertsRead() {
 
 export async function saveAlertPrefs(p: Partial<AlertPrefs>) {
   await assertOwner();
-  return setAlertPrefs(z.object({ minDropPct: z.number().min(1).max(90), telegram: z.boolean(), backInStock: z.boolean() }).partial().parse(p));
+  return setAlertPrefs(z.object({ minDropPct: z.number().min(1).max(90), telegram: z.boolean(), backInStock: z.boolean(), weekly: z.boolean() }).partial().parse(p));
 }
 
 export async function checkPricesNow(origin: string): Promise<{ checked: number; blocked: number; alerts: number; items: ItemWithSources[] }> {

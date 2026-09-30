@@ -7,8 +7,11 @@ export const TG = { token: "secret:telegram_token", bot: "telegram_bot", chat: "
 
 type TgResult<T> = { ok: boolean; result?: T; description?: string };
 
+// Local tests only (scripts/test-telegram.mjs): point the bot at a fake Telegram API. Ignored on Vercel.
+const apiBase = () => (!process.env.VERCEL && process.env.TELEGRAM_API_BASE) || "https://api.telegram.org";
+
 async function call<T>(token: string, method: string, body?: object): Promise<TgResult<T>> {
-  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+  const res = await fetch(`${apiBase()}/bot${token}/${method}`, {
     method: body ? "POST" : "GET",
     headers: body ? { "content-type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,

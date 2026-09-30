@@ -218,6 +218,16 @@ try {
       await page.keyboard.press("Escape");
     });
 
+    await step("alerts panel: weekly summary toggle", async () => {
+      await page.goto(`${BASE}/?panel=alerts`);
+      const pref = page.locator("[data-weekly-pref]");
+      await pref.waitFor({ timeout: 15000 });
+      await pref.scrollIntoViewIfNeeded();
+      await shot(page, "alerts-weekly");
+      ok(["on", "off"].includes(await pref.getAttribute("data-weekly-pref")), "alerts panel: weekly summary toggle");
+      await page.keyboard.press("Escape");
+    });
+
     await step("owner backup endpoint", async () => {
       const r = await ctx.request.get(`${BASE}/api/backup`);
       ok(r.status() === 200 && (r.headers()["content-type"] || "").includes("json"), "owner backup endpoint", String(r.status()));

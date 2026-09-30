@@ -2,6 +2,10 @@
 export const maxDuration = 60;
 
 import { Suspense } from "react";
+import { cookies } from "next/headers";
+import { after } from "next/server";
+import { LOCALE_COOKIE } from "@/lib/i18n";
+import { rememberOwner } from "@/lib/tracker";
 import { NexusApp, type AppBoot } from "@/components/app/nexus-app";
 import { aiEnabled } from "@/lib/ai";
 import { getAppData } from "@/lib/data";
@@ -15,6 +19,9 @@ import { extensionToken } from "@/lib/ext-token";
 export default async function Home({ searchParams }: { searchParams: Promise<{ v?: string }> }) {
   const [{ v }, currency, prefs, token] = await Promise.all([searchParams, getCurrencyPref(), getUiPrefs(), extensionToken()]);
   const boot: AppBoot = { currency, ...prefs, view: typeof v === "string" ? v : null, aiEnabled: aiEnabled() };
+  // The weekly Telegram summary is written in the owner's language and currency (the cron has no cookies).
+  const locale = (await cookies()).get(LOCALE_COOKIE)?.value === "he" ? "he" : "en";
+  after(() => rememberOwner(locale, currency).catch(() => {}));
   return (
     <>
       {/* Read by the Nexus Clipper extension to pair itself with this site. */}

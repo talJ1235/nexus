@@ -18,7 +18,8 @@
     "test:actions": "tsx scripts/test-assistant-actions.ts",
     "test:ship": "tsx scripts/test-shipping.ts",
     "test:budget": "tsx scripts/test-budget.ts",
-    "test:receipt": "tsx scripts/test-receipt.ts"
+    "test:receipt": "tsx scripts/test-receipt.ts",
+    "test:weekly": "tsx scripts/test-weekly.ts"
   },
   "dependencies": {
     "@fontsource-variable/rubik": "^5.3.0",
