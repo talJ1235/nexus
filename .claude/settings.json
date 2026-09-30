@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run -s check)",
+      "Bash(npm run check)",
+      "Bash(npm run smoke)",
+      "Bash(npm run test)",
+      "Bash(SMOKE_MOBILE=1 npm run smoke)",
+      "Bash(SMOKE_TRACE=1 npm run smoke)",
+      "Bash(SMOKE_MOBILE=1 SMOKE_TRACE=1 npm run smoke)",
+      "Bash(bash scripts/serve.sh:*)",
+      "Bash(node --env-file=.env.local scripts/seed-local.mjs)",
+      "Bash(rg:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git pull --rebase:*)"
+    ]
+  }
+}

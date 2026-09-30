@@ -35,5 +35,19 @@
   Small edits (a few lines) are cheaper to do directly than to delegate.
 - One feature/round per session. At the end, update SPEC.md ("shipped") so the next session starts from it.
 
+## Session workflow (how Tal works)
+- Planning happens in a separate chat; it writes the task as `docs/ROUND<n>.md` (the brief is the source of truth
+  for the task — don't ask for chat history). A session prompt is usually just "Round N, session X".
+- Start: read CLAUDE.md (auto), the brief's section for this session, and only the files it names. For items touching
+  3+ files or with open design choices, use plan mode and show a plan of ≤10 lines before editing.
+- Per item: implement → `npm run -s check` → smoke for UI (add `SMOKE_MOBILE=1` for anything visible on phones) →
+  one commit per item (`R5.3: …`) → tick `[x]` in the brief. Run `/compact` between items on long sessions.
+- Every UI change must work on a phone (390 px wide, touch targets ≥40 px, safe-area insets), not only desktop.
+- Brief says "confirm with the trace/frames first" → measure before changing. If the brief is wrong or a choice needs
+  Tal, stop and ask in one short question instead of guessing.
+- End: update SPEC.md by **editing** the round's section (never append a second copy — Round 4 was duplicated once),
+  `git pull --rebase`, push to `main` (auto-deploys), and reply with: items done, commits, anything left open.
+- Docs-only commits (`docs/`, `*.md`, `.claude/`) don't trigger a Vercel build (`vercel.json` ignoreCommand).
+
 # Compact instructions
 Keep: files changed, decisions made, open bugs, test results. Drop: tool output, screenshots, logs.

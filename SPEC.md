@@ -134,64 +134,15 @@ wanted) — don't reintroduce them. The owner's browser (extension) is the depen
   `repairIncomplete`.
 - Diagnostics (owner): `/api/debug/extract` (recent + incomplete links), `?url=…&full=1` (full pipeline).
 
-**AI assistant** (Gemini Flash, free tier): "Ask" answers questions about the user's own data with
-  linked item chips; "Plan a project" drafts a parts list with quantities and price estimates → adds
-  link-less items with store search buttons (AliExpress, Amazon, Zap, Google Shopping).
-- **Sharing with permissions**: per-collection invite links (viewer/editor, hashed tokens, revocable);
-  guests enter a name once → signed guest cookie (separate HMAC context from the owner's) → `/g`
-  shows only granted collections. Editors add links, change qty/priority/notes, move status, delete only
-  their own items. Every guest action re-checks signature, revocation and the specific item's grant.
-  Guests never see receipts or items outside shared collections. Owner sees "Added by".
-
-## Round 4 — Session A: look & feel (shipped)
-- **Palette "Ink & Teal"** (tokens only, `globals.css`): cool graphite neutrals, one teal accent for actions/focus, stronger bg↔card contrast,
-  prices on a soft teal tag (`--tag`/`--tag-fg`), neutral image swatch (`--tile`, `--tile-ink`).
-- **Mixed Hebrew/English text**: titles and user text use the `.bidi` class (`unicode-bidi: plaintext` + alignment to
-  the page's start edge). No `dir="auto"` on titles; only assistant chat text keeps it.
-- **One loader**: `components/ui/spinner.tsx` — `Spinner` (masked conic ring, transform-only, 1.15 s) and `ThinkingDots`
-  for the AI. No `animate-spin` anywhere.
-- **Add-link feedback**: a pasted link becomes a placeholder card/row at once (shimmer, `store.pending`), which gives way to
-  the real card with a settle-in animation; failures stay on the card with Retry/Dismiss. Views without a grid
-  (history, orders, spending) show a small status line under the add bar instead.
-- **Same link twice** (still to buy) → quantity +1 with undo, detected client-side before any fetch (server early check as
-  backup); the card glows once. Same link of an ordered/received item → new line. Other-store duplicates keep the dialog.
-  (Telegram input keeps its own "already saved" rule.)
-- **Cards**: title first, store · list below, price tag + total/savings in one row, status/priority/"Lowest" badges on
-  the image.
-- **Item sheet**: hero (image, title, store/brand, price, open-in-store) + grouped cards: Plan (qty stepper, priority,
-  project/list picker), Stores, Price history + watch/target, Tags & notes, Receipts, Advanced.
-- **Partial move**: choosing a project/list for an item with qty > 1 asks how many units move (default all). Fewer →
-  `splitItem` copies the item (links + price history, not receipts) with N units to the target, the rest stay; undo
-  folds it back (`unsplitItem`). Bulk move still moves whole items.
-- Dev: `scripts/seed-local.mjs` seeds a demo catalog into the local DB; `SMOKE_WRITE=1 npm run smoke` (localhost only)
-  checks the placeholder card, +1 and the partial move.
-
-## Round 4 — Session B: reliability (shipped)
-Research (2026-09-30, `scripts/probe-extract.mjs` + `probe` workflow; results land on branch `probe/results`):
-- From Vercel (fra1) AliExpress answers normal requests with a script-only "punish"/x5sec challenge. Link-preview
-  identities (facebookexternalhit, Twitterbot, WhatsApp) *sometimes* get the real page with og:title/og:image (no price)
-  — intermittent on Vercel and on GitHub runners alike, and it tightens under repeated hits. Gemini url-context reads
-  title + price most of the time, never the image. Amazon/KSP/eBay: blocked for every server route; jina/microlink useless.
-- So there is no single dependable server-side source; the fix is layered and self-healing.
-
-**Guest links (and any link read without the extension)**
-- `extract.ts`: challenge pages are detected (`blocked`); a blocked/thin read retries as several preview bots
-  (AliExpress: www / m / .us host × identities, ~100 ms per miss), merging title/image; then `buildDraft` runs Gemini
-  url-context (25 s cap) for what's still missing.
-- Self-heal, no one's action needed: (1) the guest page re-reads its own incomplete additions after 4 s / 25 s / 50 s
-  (`guestRepairItem`, own recent items only, ≥15 s apart); (2) the owner's extension (v1.2.0, every 30 min, needs
-  reinstall) fetches incomplete links with the owner's browser and posts the HTML (`/api/ext/stale` flags them
-  `details`, `/api/ext/check` repairs via `refreshSourceCore`); (3) daily cron `repairIncomplete`; (4) optional GitHub
-  helper: `createItemCore` dispatches `heal.yml` (`GITHUB_DISPATCH_TOKEN`), which reads the link from a runner and
-  posts it to owner-only `/api/heal`. "Incomplete" = no real title, no price or no image; to-buy, last 21 days.
-- Diagnostics (owner): `/api/debug/extract` (lists incomplete links), `?probe=1`, `?variants=1`, `?full=1`.
-
 **AI assistant**
 - `ai.ts` routing: Gemini models → Groq (`GROQ_API_KEY`, gpt-oss-120b/20b) → OpenRouter (`OPENROUTER_API_KEY`,
   `openrouter/free`); page reading (url-context) stays Gemini-only. Overload → one jittered retry on the same model;
   errors classified (`classify`): per-minute 429 cools for the stated retry delay, daily quota 1 h, "limit: 0" 6 h, retired
   models 2 h. Working model + cooldowns are shared across function instances in kv (`ai:health`). ~12 s of the 45 s
   budget is reserved for a fallback provider. `/api/debug/ai` shows providers, errors and health.
+
+## Round 5 — UX polish
+In progress — brief and checklist: `docs/ROUND5.md`. Replace this line with the shipped summary.
 
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
