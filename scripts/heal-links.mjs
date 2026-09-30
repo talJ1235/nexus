@@ -48,21 +48,24 @@ async function read(url) {
   return null;
 }
 
+// Also surfaced as run annotations, readable through the API without the log archive.
+const say = (msg) => console.log(process.env.GITHUB_ACTIONS ? `::notice title=heal::${msg}` : msg);
+
 const form = new FormData();
 form.set("password", process.env.NEXUS_PASSWORD);
 const login = await fetch(`${BASE}/api/login`, { method: "POST", body: form, redirect: "manual" });
 const cookie = (login.headers.getSetCookie?.() ?? []).map((c) => c.split(";")[0]).join("; ");
 if (!cookie) {
-  console.log("login failed", login.status);
+  console.log(`::error title=heal::login failed ${login.status}`);
   process.exit(1);
 }
 
 for (const s of sources.slice(0, 20)) {
   const page = await read(s.url);
   if (!page) {
-    console.log(`MISS ${s.id} ${new URL(s.url).host}`);
+    say(`MISS ${s.id} ${new URL(s.url).host}`);
     continue;
   }
   const res = await fetch(`${BASE}/api/heal`, { method: "POST", headers: { cookie, "content-type": "application/json" }, body: JSON.stringify({ sourceId: s.id, ...page }), signal: AbortSignal.timeout(65000) });
-  console.log(`${res.ok ? "OK  " : "FAIL"} ${s.id} ${new URL(s.url).host} ${(await res.text()).slice(0, 200)}`);
+  say(`${res.ok ? "OK  " : "FAIL"} ${s.id} ${new URL(s.url).host} ${(await res.text()).slice(0, 200)}`);
 }
