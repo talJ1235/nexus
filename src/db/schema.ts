@@ -49,6 +49,7 @@ export const items = sqliteTable(
     trackingNumber: text("tracking_number"),
     carrier: text("carrier"),
     eta: integer("eta"),
+    orderNumber: text("order_number"),
     altGroupId: text("alt_group_id"),
     // Price tracking: alert when the price reaches this (in targetCurrency). `watch` = include in daily checks.
     targetPrice: real("target_price"),
@@ -205,3 +206,21 @@ export const storeSettings = sqliteTable("store_settings", {
   updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
 });
 export type StoreSetting = typeof storeSettings.$inferSelect;
+
+/**
+ * An uploaded receipt / order confirmation (file in Vercel Blob, or pasted email text) and what was read from it.
+ * Kept when extraction fails so it can be retried; `appliedAt` once its lines were matched to items.
+ */
+export const receipts = sqliteTable("receipts", {
+  id: text("id").primaryKey(),
+  url: text("url"),
+  name: text("name").notNull(),
+  contentType: text("content_type"),
+  size: integer("size"),
+  text: text("text"),
+  status: text("status", { enum: ["new", "extracted", "failed", "applied"] }).notNull().default("new"),
+  data: text("data", { mode: "json" }).$type<unknown>(),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+  appliedAt: integer("applied_at"),
+});
+export type Receipt = typeof receipts.$inferSelect;

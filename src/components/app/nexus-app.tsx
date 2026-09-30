@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { ArrowDownWideNarrow, Download, LayoutGrid, Menu as MenuIcon, Pencil, Rows3, Search, Share2, Sparkles, X, Command } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowDownWideNarrow, Download, LayoutGrid, Menu as MenuIcon, Pencil, ReceiptText, Rows3, Search, Share2, Sparkles, X, Command } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { ImportDialog } from "./import-dialog";
 import { AlertsBell, AlertsPanel } from "./alerts-panel";
 import { AssistantPanel } from "./assistant-panel";
 import { ShareDialog } from "./share-dialog";
+import { ReceiptDialog } from "./receipt-dialog";
 import { PanelBoundary } from "@/components/panel-boundary";
 import { AltGroupCard, ItemCard } from "./item-card";
 import { AltSheet } from "./alt-sheet";
@@ -114,6 +115,61 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <PanelBoundary label="Share">
         <ShareDialog />
       </PanelBoundary>
+      <PanelBoundary label="Receipt">
+        <ReceiptDialog />
+      </PanelBoundary>
+      <ReceiptDrop />
+    </div>
+  );
+}
+
+/** Drop an image/PDF anywhere on the app → read it as a receipt. Drop zones that handle files themselves win. */
+function ReceiptDrop() {
+  const s = useStore();
+  const { t } = useI18n();
+  const [over, setOver] = useState(false);
+  useEffect(() => {
+    const hasFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes("Files");
+    let depth = 0;
+    const enter = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      depth++;
+      setOver(true);
+    };
+    const leave = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      depth = Math.max(0, depth - 1);
+      if (!depth) setOver(false);
+    };
+    const overFn = (e: DragEvent) => {
+      if (hasFiles(e)) e.preventDefault();
+    };
+    const drop = (e: DragEvent) => {
+      depth = 0;
+      setOver(false);
+      if (!hasFiles(e) || e.defaultPrevented || s.openItemId) return;
+      e.preventDefault();
+      const file = [...(e.dataTransfer?.files ?? [])].find((x) => /^(image\/|application\/pdf$)/.test(x.type));
+      if (file) s.openReceipt(file);
+    };
+    window.addEventListener("dragenter", enter);
+    window.addEventListener("dragleave", leave);
+    window.addEventListener("dragover", overFn);
+    window.addEventListener("drop", drop);
+    return () => {
+      window.removeEventListener("dragenter", enter);
+      window.removeEventListener("dragleave", leave);
+      window.removeEventListener("dragover", overFn);
+      window.removeEventListener("drop", drop);
+    };
+  }, [s]);
+  if (!over || s.panel || s.openItemId) return null;
+  return (
+    <div className="pointer-events-none fixed inset-3 z-40 grid place-items-center rounded-2xl border-2 border-dashed border-accent bg-bg/70 backdrop-blur-[2px]">
+      <div className="flex items-center gap-2 text-base font-medium text-accent-ink">
+        <ReceiptText className="size-5" />
+        {t.scan.dropHint}
+      </div>
     </div>
   );
 }
@@ -234,6 +290,12 @@ function ViewHeader() {
               </button>
             )}
           </div>
+          {spentView && (
+            <Button variant="outline" className="h-9 max-sm:w-10 max-sm:px-0" onClick={() => s.openReceipt()} aria-label={t.scan.title} title={t.scan.title} data-receipt-open="view">
+              <ReceiptText />
+              <span className="max-sm:hidden">{t.scan.button}</span>
+            </Button>
+          )}
           {!spentView && s.view.type !== "orders" && (
             <Menu>
               <MenuTrigger asChild>

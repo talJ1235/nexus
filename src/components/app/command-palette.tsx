@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Command } from "cmdk";
 import { Dialog as D } from "radix-ui";
-import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell, Sparkles, Wand2 } from "lucide-react";
+import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell, Sparkles, Wand2, ReceiptText } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Kbd } from "@/components/ui/button";
@@ -106,6 +106,9 @@ export function CommandPalette() {
               <Command.Group heading={t.cmd.actions} className={groupCls}>
                 <Command.Item value={`add ${t.cmd.addLink}`} onSelect={() => run(s.focusAdd)} className={itemCls}>
                   <Link2 /> {t.cmd.addLink}
+                </Command.Item>
+                <Command.Item value={`receipt invoice order confirmation purchased ${t.scan.title}`} onSelect={() => run(() => s.openReceipt())} className={itemCls}>
+                  <ReceiptText /> {t.scan.title}
                 </Command.Item>
                 {s.aiEnabled && (
                   <Command.Item value={`plan project ai parts bom ${t.ai.planTab}`} onSelect={() => run(() => s.setPanel("planner"))} className={itemCls}>

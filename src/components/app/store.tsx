@@ -9,7 +9,7 @@ import type { BudgetHistory } from "@/lib/budget";
 
 export type { View };
 
-export type Panel = "import" | "planner" | "assistant" | "alerts" | "share" | null;
+export type Panel = "import" | "planner" | "assistant" | "alerts" | "share" | "receipt" | null;
 
 export type Layout = "cards" | "table";
 
@@ -86,6 +86,9 @@ type Store = {
   /** Question handed from the command palette to the assistant. */
   askSeed: string | null;
   askAssistant: (q: string) => void;
+  /** File handed to the receipt dialog (dropped on the app); null when it was opened empty. */
+  receiptSeed: { file: File; at: number } | null;
+  openReceipt: (file?: File | null) => void;
   setExtOpen: (o: boolean) => void;
   setNavOpen: (o: boolean) => void;
   focusAdd: () => void;
@@ -181,6 +184,11 @@ export function StoreProvider({
     // Suffix keeps repeated identical questions distinct.
     setAskSeed(`${q}\u200b${Date.now() % 1000}`);
     setPanel("assistant");
+  }, []);
+  const [receiptSeed, setReceiptSeed] = useState<{ file: File; at: number } | null>(null);
+  const openReceipt = useCallback((file?: File | null) => {
+    setReceiptSeed(file ? { file, at: Date.now() } : null);
+    setPanel("receipt");
   }, []);
 
   // The app has its data: the phone boot screen can hand off.
@@ -393,6 +401,8 @@ export function StoreProvider({
       setPanel,
       askSeed,
       askAssistant,
+      receiptSeed,
+      openReceipt,
       setExtOpen,
       setNavOpen,
       focusAdd,
@@ -403,7 +413,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

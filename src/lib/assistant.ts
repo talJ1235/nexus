@@ -185,7 +185,7 @@ ${lines.join("\n") || "(none)"}`;
 }
 
 // Local UI testing without network access to Gemini. Never active in production builds.
-function mockAi() {
+export function mockAi() {
   return process.env.NEXUS_AI_MOCK === "1" && !process.env.VERCEL;
 }
 const MOCK_PLAN = (currency: string): Plan => ({

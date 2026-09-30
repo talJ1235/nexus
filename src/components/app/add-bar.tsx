@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, Link2, ListPlus, Plus, X } from "lucide-react";
+import { AlertTriangle, Link2, ListPlus, Plus, ReceiptText, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
 import { addSource, createItem, previewFromClient, previewUrl, updateItem } from "@/app/actions";
@@ -240,6 +240,17 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
           >
             <ListPlus className="size-4" />
             <span className="hidden md:inline">{t.add.bulk}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => s.openReceipt()}
+            className="me-1 hidden size-10 items-center justify-center rounded-lg sm:inline-flex text-muted transition hover:bg-sunken hover:text-fg md:w-auto md:gap-1.5 md:px-2.5 md:text-[13px]"
+            title={t.scan.title}
+            aria-label={t.scan.title}
+            data-receipt-open="add"
+          >
+            <ReceiptText className="size-4" />
+            <span className="hidden md:inline">{t.scan.button}</span>
           </button>
           <Button type="submit" variant="accent" size="sm" className="me-1.5 h-9 px-3.5" disabled={!isHttpUrl(value.trim()) && !extractUrls(value).length}>
             {working ? <Spinner /> : <Plus />}

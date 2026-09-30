@@ -98,7 +98,7 @@ export function trackingUrl(num: string) {
 
 export function ShippingSection({ item }: { item: ItemWithSources }) {
   const s = useStore();
-  const { t } = useI18n();
+  const { t, f } = useI18n();
   const save = async (patch: Parameters<typeof updateItem>[1]) => {
     s.upsertItem({ ...item, ...patch } as ItemWithSources);
     try {
@@ -114,6 +114,11 @@ export function ShippingSection({ item }: { item: ItemWithSources }) {
       <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
         <Truck className="size-4 text-info" />
         {t.track.title}
+        {item.orderNumber && (
+          <span className="tabular ms-auto truncate text-xs font-normal text-muted" data-order-number>
+            {f(t.track.orderNo, { n: item.orderNumber })}
+          </span>
+        )}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">

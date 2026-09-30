@@ -18,6 +18,20 @@ async function main() {
     shipping_fee real,
     updated_at integer DEFAULT (unixepoch() * 1000) NOT NULL
   )`);
+  await client.execute(`CREATE TABLE IF NOT EXISTS receipts (
+    id text PRIMARY KEY NOT NULL,
+    url text,
+    name text NOT NULL,
+    content_type text,
+    size integer,
+    text text,
+    status text DEFAULT 'new' NOT NULL,
+    data text,
+    created_at integer DEFAULT (unixepoch() * 1000) NOT NULL,
+    applied_at integer
+  )`);
+  const itemCols = (await client.execute("PRAGMA table_info(items)")).rows.map((r) => String(r.name));
+  if (!itemCols.includes("order_number")) await client.execute("ALTER TABLE items ADD COLUMN order_number text");
   console.log("[migrate] done:", url.replace(/\/\/.*@/, "//***@").split("?")[0]);
   client.close();
 }

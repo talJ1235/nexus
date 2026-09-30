@@ -394,6 +394,39 @@ try {
           ok(all(before, "to_buy") && all(after, "ordered") && all(undone, "to_buy"), "assistant action: propose → apply → undo", JSON.stringify({ before, after, undone }));
           await page.keyboard.press("Escape");
         });
+        // Needs NEXUS_AI_MOCK=1: the mock reads "1 x Name @ price" lines instead of calling Gemini.
+        await step("receipt: paste order email → review matches → apply → undo", async () => {
+          const backup = async () => (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
+          const open = (await backup()).filter((i) => i.status === "to_buy" && !i.altGroupId && i.title.length > 6);
+          const picks = [...open.filter((i) => i.quantity === 1), ...open.filter((i) => i.quantity > 1)].slice(0, 2);
+          if (picks.length < 2) return ok(true, "receipt (fewer than two to-buy items, skipped)");
+          const orderNo = `SMOKE-${Date.now()}`;
+          const text = [`Store: Smoke store`, `Order: ${orderNo}`, ...picks.map((p, i) => `1 x ${p.title} @ ${10 * (i + 1)}`), `1 x Zzqx gift wrapping service @ 3`].join("\n");
+          // Desktop: the add bar button; phone: the History header button (the add bar keeps its room for the link).
+          await page.goto(`${BASE}/${MOBILE ? "?v=history" : ""}`);
+          await page.waitForSelector(READY);
+          await page.locator(`[data-receipt-open=${MOBILE ? "view" : "add"}]`).click();
+          const dlg = page.getByRole("dialog");
+          await dlg.locator("#receipt-text").fill(text);
+          await dlg.getByRole("button", { name: /^(Read|קריאה)$/ }).click();
+          await dlg.locator("[data-receipt-review]").waitFor({ timeout: 30000 });
+          const modes = await dlg.locator("[data-receipt-line]").evaluateAll((els) => els.map((e) => e.getAttribute("data-receipt-line")));
+          await shot(page, "receipt-review");
+          await dlg.locator("[data-receipt-apply]").click();
+          const toastEl = page.locator("[data-sonner-toast]").filter({ hasText: /updated from the receipt|עודכנו מהקבלה/ });
+          await toastEl.waitFor({ timeout: 15000 });
+          const applied = (await backup()).filter((i) => i.orderNumber === orderNo);
+          await toastEl.getByRole("button", { name: /^(Undo|ביטול)$/ }).click();
+          await page.waitForTimeout(1500);
+          const after = await backup();
+          const left = after.filter((i) => i.orderNumber === orderNo);
+          const restored = picks.every((p) => after.find((i) => i.id === p.id)?.status === "to_buy" && after.find((i) => i.id === p.id)?.quantity === p.quantity);
+          ok(
+            modes.join() === "match,match,ignore" && applied.length === 2 && applied.every((i) => i.status === "purchased" && i.purchasedPrice > 0) && left.length === 0 && restored,
+            "receipt: paste order email → review matches → apply → undo",
+            JSON.stringify({ modes, applied: applied.map((i) => [i.title, i.status, i.purchasedPrice]), left: left.length, restored }),
+          );
+        });
       }
     }
 

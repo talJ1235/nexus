@@ -58,7 +58,7 @@ Acceptance: unit test for the forecast function; smoke renders the bar with seed
 
 ## Session B3 — receipts → purchases
 
-### 4. [ ] Upload a receipt or order confirmation, Nexus marks what was bought
+### 4. [x] Upload a receipt or order confirmation, Nexus marks what was bought
 - Entry points: a "Receipt" button in the add bar menu and in "On the way"/History; also drop a file on the app.
   Accepts image, PDF, or pasted email text. Files go to Vercel Blob with the existing client-upload flow.
 - Extraction: Gemini (vision/PDF) returns structured JSON: store, order date, order number, currency, lines
@@ -109,3 +109,18 @@ banner visible, edits disabled; logout clears the snapshot.
 - (B2) The budget line in the Telegram digest is covered by unit tests of its rules (state, once per state per month,
   Israel month boundaries) but was not sent end-to-end locally (no Telegram from the dev machine); watch the first
   real near/over month. B4's weekly summary can reuse `monthForecast` for "month vs budget".
+- (B3) There is no add-bar menu, so "Receipt" is a button in the add bar (hidden below 640 px so the link field keeps
+  its room), plus On the way / History headers, the command palette, and dropping an image/PDF anywhere on the app
+  (not while an item sheet is open — a drop there attaches to that item, as before).
+- (B3) The file path (image/PDF → Blob → Gemini) is not tested end to end: the dev machine has no
+  BLOB_READ_WRITE_TOKEN and mock mode replaces Gemini. The pasted-email path is covered by smoke (mock). Watch the
+  first real receipt on prod. Pasted text is stored as a .txt in Blob on prod so it attaches like a file; without a
+  Blob token (local) text receipts are not attached to the items.
+- (B3) Retry lives in the receipt dialog ("Not applied yet" list: retry / discard), not on the item — a receipt is
+  not linked to items until it is applied.
+- (B3) Quantities: fewer units bought than an item needs → the item is split and only the bought units move on
+  (Undo folds them back). More units than needed → the rest goes to other items with a clearly similar title (same
+  part in two projects); anything beyond that is ignored.
+- (B3) Dates: an order confirmation sets ordered at the document date; a store receipt for an item that was never
+  ordered sets purchased at the document date, otherwise received = now. A price-history point is logged only when
+  the item's link (at the receipt's store, else its active link) is in the receipt's currency.

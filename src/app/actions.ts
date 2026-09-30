@@ -263,10 +263,17 @@ export async function deleteAttachment(id: string): Promise<ItemWithSources> {
   await assertAuth();
   const [row] = await db.delete(schema.attachments).where(eq(schema.attachments.id, id)).returning();
   if (!row) throw new Error("not_found");
-  try {
-    await del(row.url);
-  } catch {
-    /* file may already be gone */
+  // A receipt read from a document is attached to every item it paid for: keep the file while anything uses it.
+  const [att, rec] = await Promise.all([
+    db.select({ id: schema.attachments.id }).from(schema.attachments).where(eq(schema.attachments.url, row.url)).limit(1),
+    db.select({ id: schema.receipts.id }).from(schema.receipts).where(eq(schema.receipts.url, row.url)).limit(1),
+  ]);
+  if (!att.length && !rec.length) {
+    try {
+      await del(row.url);
+    } catch {
+      /* file may already be gone */
+    }
   }
   return (await getItem(row.itemId))!;
 }
