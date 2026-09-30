@@ -1,0 +1,52 @@
+
+== https://www.aliexpress.com/item/1005003676945137.html
+www.aliexpress.com     browser    {"err":"fetch failed","ms":3045}
+www.aliexpress.com     facebook   {"status":200,"len":76992,"final":"www.aliexpress.com/item/1005003676945137.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":160}
+www.aliexpress.com     twitter    {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":250}
+www.aliexpress.com     telegram   {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":253}
+www.aliexpress.com     whatsapp   {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":249}
+www.aliexpress.com     slack      {"status":403,"len":638,"final":"www.aliexpress.com/item/1005003676945137.html","og":null,"img":false,"ld":false,"title":"403 Forbidden","blocked":false,"ms":90}
+www.aliexpress.com     discord    {"err":"fetch failed","ms":2250}
+www.aliexpress.com     jina       {"status":200,"len":2358,"jtitle":"","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":722}
+www.aliexpress.com     microlink  {"status":200,"mstatus":"success","title":"1005003676945137.html","img":false,"ms":7509}
+www.aliexpress.com     vercel:extract {"title":null,"img":false,"price":null,"cur":null,"method":"none","blocked":false,"url":"https://www.aliexpress.com/item/1005003676945137.html","ms":184}
+www.aliexpress.com     vercel:gemini {"none":true,"ms":23536}
+
+== https://he.aliexpress.com/item/1005003676945137.html?spm=a2g0o.productlist&pdp_npi=4%40dis%21ILS%2150.00%2135.00%21%21%21
+he.aliexpress.com      browser    {"err":"fetch failed","ms":2795}
+he.aliexpress.com      facebook   {"status":200,"len":74935,"final":"he.aliexpress.com/item/1005003676945137.html","og":"מנוע צעד Nema 17, יחס תיבת הילוכים 5:1/10:1/50:1/100:1, גיר Φ8mm","img":true,"ld":false,"title":"","blocked":false,"ms":117}
+he.aliexpress.com      twitter    {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":241}
+he.aliexpress.com      telegram   {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":243}
+he.aliexpress.com      whatsapp   {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":221}
+he.aliexpress.com      slack      {"status":403,"len":710,"final":"he.aliexpress.com/item/1005003676945137.html","og":null,"img":false,"ld":false,"title":"403 Forbidden","blocked":false,"ms":89}
+he.aliexpress.com      discord    {"status":200,"len":1949,"final":"he.aliexpress.com/item/1005003676945137.html","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":268}
+he.aliexpress.com      jina       {"status":200,"len":1928,"jtitle":"","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":667}
+he.aliexpress.com      microlink  {"status":200,"mstatus":"success","title":"1005003676945137.html?spm=a2g0o.productlist&pdp_npi=4%40dis%21ILS%2150","img":false,"ms":100}
+he.aliexpress.com      vercel:extract {"title":null,"img":false,"price":null,"cur":null,"method":"none","blocked":false,"url":"https://www.aliexpress.com/item/1005003676945137.html","ms":176}
+he.aliexpress.com      vercel:gemini {"title":"Nema 17 Stepper Motor Planetary Gearbox Ratio 5:1/10:1/50:1/","img":false,"price":24.94,"cur":"USD","ms":16007}
+
+== https://www.amazon.com/dp/B07BHHG5GZ
+www.amazon.com         browser    {"status":200,"len":3781,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"Amazon.com","blocked":true,"ms":98}
+www.amazon.com         facebook   {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":170}
+www.amazon.com         twitter    {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":83}
+www.amazon.com         telegram   {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":78}
+www.amazon.com         whatsapp   {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":78}
+www.amazon.com         slack      {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":81}
+www.amazon.com         discord    {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":79}
+www.amazon.com         jina       {"status":200,"len":2245,"jtitle":"Page Not Found","og":null,"img":false,"ld":false,"title":"\n      Page Not Found\n    ","blocked":false,"ms":302}
+www.amazon.com         microlink  {"status":200,"mstatus":"success","title":"Page Not Found","img":true,"ms":102}
+www.amazon.com         vercel:extract {"title":"Amazon.com","img":false,"price":null,"cur":null,"method":"title","blocked":false,"url":"https://www.amazon.com/dp/B07BHHG5GZ","ms":289}
+www.amazon.com         vercel:gemini {"title":null,"img":false,"price":null,"cur":null,"ms":17435}
+
+== https://ksp.co.il/web/item/254425
+ksp.co.il              browser    {"status":403,"len":21030,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":90}
+ksp.co.il              facebook   {"status":403,"len":21030,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":9}
+ksp.co.il              twitter    {"status":403,"len":21030,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":8}
+ksp.co.il              telegram   {"status":403,"len":21030,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":8}
+ksp.co.il              whatsapp   {"status":403,"len":21030,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":7}
+ksp.co.il              slack      {"status":403,"len":21030,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":8}
+ksp.co.il              discord    {"status":403,"len":21030,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":8}
+ksp.co.il              jina       {"status":200,"len":19633,"jtitle":"KSP – אימות אבטחה","og":null,"img":false,"ld":false,"title":"KSP – אימות אבטחה","blocked":false,"ms":449}
+ksp.co.il              microlink  {"status":200,"mstatus":"success","title":"KSP Forbidden 403","img":true,"ms":98}
+ksp.co.il              vercel:extract {"title":null,"img":false,"price":null,"cur":"ILS","method":"title","blocked":true,"url":"https://ksp.co.il/web/item/254425","ms":68}
+ksp.co.il              vercel:gemini {"title":null,"img":false,"price":null,"cur":null,"ms":7862}
