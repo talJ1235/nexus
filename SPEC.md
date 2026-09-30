@@ -179,7 +179,7 @@ Brief and checklist: `docs/ROUND5.md`. Sessions A1 + A2 shipped:
   close button + swipe (real touch events on mobile).
 
 ## Round 6 — features
-Brief and checklist: `docs/ROUND6.md`. Sessions B1 + B2 shipped:
+Brief and checklist: `docs/ROUND6.md`. Sessions B1 + B2 + B3 shipped:
 - **Assistant actions** (`lib/assistant-actions.ts`, pure, test: `npm run test:actions`): for change requests the model
   appends one ```` ```nexus-actions ```` block `{ summary, actions }` (provider-neutral, no function calling). Whitelist:
   `move` (→ project id, `null` = Unsorted, or `new:<ref>`), `setStatus`, `setPriority`, `setQty`, `addTag`/`removeTag`,
@@ -211,6 +211,22 @@ Brief and checklist: `docs/ROUND6.md`. Sessions B1 + B2 shipped:
   ok / near (≥90 %) / over. 12-month bars show the cap each month had (tick; red when over). The Telegram digest
   (cron + extension check) adds one near/over line (spent + ordered + urgent), once per state per month
   (kv `budget:notified:YYYY-MM`), and sends even without price alerts.
+- **Receipts → purchases**: `receipts` table (file URL in Blob or pasted text, status new / extracted / failed /
+  applied, extraction JSON; in backup/restore) and `items.order_number` (both added idempotently in `db/migrate.ts`).
+  `lib/receipt.ts` reads store, order date, order number, currency, lines, shipping, total: files go to Gemini only
+  (`AiFile` inline data in `lib/ai.ts`, never falls back), pasted text to any provider; mock mode parses
+  `Store:` / `Order:` / `1 x Name @ price` lines. `lib/receipt-match.ts` (pure, test: `npm run test:receipt`) scores
+  each line against to-buy/ordered items (title tokens incl. Hebrew one/two-letter prefixes and glued model numbers,
+  store name, price proximity), assigns greedily (one line per item) and splits a line's quantity across similar
+  items. Owner-only `app/receipt-actions.ts`: `createReceipt` (Blob URLs only; pasted text also saved as a .txt in Blob
+  when a token is set), `readReceipt` (receipt kept as failed when AI is off or reading fails), `listReceipts` /
+  `deleteReceipt`, `applyReceipt` → received (or ordered, for an order confirmation), unit price paid, order number,
+  date, receipt attached to each item, price point, partial purchases split the item, chosen unmatched lines become
+  new items; `undoReceipt` reverses all of it. Deleting an attachment keeps the Blob file while another item or the
+  receipt still uses it. `receipt-dialog.tsx`: pick / paste → review (per line: match, changeable via search / add as
+  new / ignore; received vs ordered) → Apply → toast Undo; "Not applied yet" list with retry / discard. Entry points:
+  add bar (≥640 px), On the way / History headers, command palette, a file dropped on the app. The item sheet's
+  shipping card shows the order number. Smoke (`SMOKE_WRITE` + mock): paste → review → apply → undo.
 
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
