@@ -179,7 +179,7 @@ Brief and checklist: `docs/ROUND5.md`. Sessions A1 + A2 shipped:
   close button + swipe (real touch events on mobile).
 
 ## Round 6 — features
-Brief and checklist: `docs/ROUND6.md`. Sessions B1 + B2 + B3 shipped:
+Brief and checklist: `docs/ROUND6.md`. All four sessions (B1–B4) shipped:
 - **Assistant actions** (`lib/assistant-actions.ts`, pure, test: `npm run test:actions`): for change requests the model
   appends one ```` ```nexus-actions ```` block `{ summary, actions }` (provider-neutral, no function calling). Whitelist:
   `move` (→ project id, `null` = Unsorted, or `new:<ref>`), `setStatus`, `setPriority`, `setQty`, `addTag`/`removeTag`,
@@ -227,6 +227,25 @@ Brief and checklist: `docs/ROUND6.md`. Sessions B1 + B2 + B3 shipped:
   new / ignore; received vs ordered) → Apply → toast Undo; "Not applied yet" list with retry / discard. Entry points:
   add bar (≥640 px), On the way / History headers, command palette, a file dropped on the app. The item sheet's
   shipping card shows the order number. Smoke (`SMOKE_WRITE` + mock): paste → review → apply → undo.
+- **Weekly Telegram summary** (`lib/weekly.ts`, pure, test: `npm run test:weekly`): `sendWeeklySummary` (tracker) runs
+  from the daily cron on Sundays (Israel), once per Sunday (kv `weekly:sent`), when Telegram alerts and
+  `prefs.weekly` (Alerts panel toggle, default on) are on. Sections (≤5 rows each, "…and n more"): price drops /
+  targets hit in the last 7 days (to-buy items), urgent not ordered, orders overdue / arriving within 7 days, stores
+  within 25 % of free shipping (Order-by-store grouping), month vs budget; items link to `?item=<id>`. Nothing worth
+  sending → skipped (a month line alone counts only when near/over the cap). Written in the owner's locale and
+  currency, remembered in kv `pref:owner` from app loads. Local test: `scripts/test-telegram.mjs` with a fake
+  Telegram API (`TELEGRAM_API_BASE`, ignored on Vercel) and `/api/cron/prices?only=weekly&force=1` (cron secret).
+- **Offline, read-only v1**: `public/sw.js` registered as `/sw.js?v=<build>` (`NEXT_PUBLIC_BUILD_ID` in
+  `next.config.ts`): `/_next/static` cache-first per build; navigations to "/" network-first, falling back (redirect)
+  to the cached `/offline` shell, which the SW caches (HTML + its CSS/JS/fonts) when the owner app posts
+  `cache-shell`. Guests, share/invite pages, login and APIs: network only. `lib/offline.ts` keeps the owner's
+  `AppData` in IndexedDB (`nexus-offline`), saved debounced by the store on every online load/change; the login page
+  clears it and the shell cache (every logout lands there). `/offline` (`offline-app.tsx`) renders `NexusApp` from the
+  snapshot with `offline={{ at }}`: banner "Offline — showing data from <time>" (`offline-banner.tsx`), read-only via
+  `useReadOnly()` (add bar, card status/select, item sheet fieldsets, selection bar, receipt/assistant, file drop);
+  back online → "/". An online page that loses its connection also goes read-only and refreshes items when back. A
+  new SW takes over and the page reloads once. Smoke: `setOffline` after an online load (with
+  `PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1`) → snapshot renders, banner, edits disabled, logout clears it.
 
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
@@ -262,3 +281,5 @@ Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 | `SESSION_SECRET` | ≥32 random chars, signs the session cookie |
 | `BLOB_READ_WRITE_TOKEN` | auto-added when a Blob store is connected |
 | `CRON_SECRET` | authorizes the daily price-check cron (Vercel sends it automatically) |
+| `TELEGRAM_API_BASE` | local tests only: send bot messages to a fake Telegram API (ignored on Vercel) |
+| `NEXUS_AI_MOCK` | local tests only (`=1`): offline AI mock for the assistant, planner and receipts |

@@ -98,6 +98,15 @@ banner visible, edits disabled; logout clears the snapshot.
 ---
 
 ## Open
+**Overnight run (2026-10-01, B3 + B4, unattended): all of items 4–6 shipped and pushed.** Commits: R6.4 receipts
+(`25b8c19`), B3 SPEC (`ff95018`), R6.5 weekly summary (`d96e3cd`), R6.6 offline (`45fc4cd`), plus the B4 SPEC commit.
+Verified locally: `npm run -s check`, unit tests (receipt, weekly, actions, ship, budget, sug), smoke desktop +
+phone incl. `SMOKE_WRITE` with `NEXUS_AI_MOCK=1`, `test-telegram.mjs` weekly checks against a fake Telegram API.
+Not verified (no keys/services locally, nothing was skipped for that reason beyond testing): a real receipt
+image/PDF through Blob + Gemini, a real Telegram weekly message, the SW on the deployed site. Worth a look first:
+the three "not verified" paths above on prod, and the offline decisions below (read-only coverage, `/offline` URL).
+Unrelated to the brief: the local DB has many leftover "Smoke Detector" items from smoke runs (seeded data, local only).
+
 - (B1) A proposal is all-or-nothing: one hallucinated id or unknown action drops the whole card (the text answer still
   shows). Stricter than filtering per action, so the summary always matches what Apply does.
 - (B1) Undo restores the values from Apply time; edits made to the same items between Apply and Undo are overwritten.
