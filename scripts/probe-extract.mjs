@@ -6,12 +6,9 @@
 const URLS = process.argv.slice(2).length
   ? process.argv.slice(2)
   : [
-      "https://www.aliexpress.com/item/1005006173693585.html",
-      "https://he.aliexpress.com/item/1005006173693585.html",
-      "https://www.aliexpress.us/item/3256803490630385.html",
-      "https://www.amazon.com/dp/B07BHHG5GZ",
-      "https://ksp.co.il/web/item/254425",
-      "https://www.ebay.com/itm/266328557536",
+      "https://www.aliexpress.com/item/1005003676945137.html",
+      "https://he.aliexpress.com/item/1005003676945137.html?spm=a2g0o.productlist&pdp_npi=4%40dis%21ILS%2150.00%2135.00%21%21%21",
+      "https://a.aliexpress.com/_mKXYZ12",
     ];
 
 const CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
@@ -46,9 +43,14 @@ async function timed(fn) {
   }
 }
 
+const DUMP = process.env.DUMP === "1";
 async function direct(url, ua) {
   const res = await fetch(url, { headers: { "user-agent": ua, accept: "text/html,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" }, redirect: "follow", signal: AbortSignal.timeout(12000) });
   const html = await res.text();
+  if (DUMP && ua.startsWith("facebook")) {
+    console.log("   META:", [...html.matchAll(/<meta[^>]+(?:og:|twitter:|description)[^>]*>/gi)].map((m) => m[0].slice(0, 220)).join("\n         "));
+    for (const re of [/formatedActivityPrice[^,]{0,60}/, /formatedAmount[^,]{0,60}/, /"price"[^,]{0,60}/i, /currencyCode[^,]{0,30}/, /"subject"[^,]{0,120}/, /ld\+json/]) console.log("   PAT:", re.source, "→", html.match(re)?.[0] ?? null);
+  }
   return { status: res.status, len: html.length, final: new URL(res.url).host + new URL(res.url).pathname.slice(0, 30), ...summarize(html) };
 }
 
