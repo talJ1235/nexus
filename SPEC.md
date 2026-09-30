@@ -139,8 +139,8 @@ Research (2026-09-30, `scripts/probe-extract.mjs` + `probe` workflow; results la
 **AI assistant**
 - `ai.ts` routing: Gemini models → Groq (`GROQ_API_KEY`, gpt-oss-120b/20b) → OpenRouter (`OPENROUTER_API_KEY`,
   `openrouter/free`); page reading (url-context) stays Gemini-only. Overload → one jittered retry on the same model;
-  errors classified (`classify`): per-minute 429 cools for the stated retry delay, daily quota 1 h, "limit: 0"/retired
-  models 12 h. Working model + cooldowns are shared across function instances in kv (`ai:health`). ~12 s of the 45 s
+  errors classified (`classify`): per-minute 429 cools for the stated retry delay, daily quota 1 h, "limit: 0" 6 h, retired
+  models 2 h. Working model + cooldowns are shared across function instances in kv (`ai:health`). ~12 s of the 45 s
   budget is reserved for a fallback provider. `/api/debug/ai` shows providers, errors and health.
 
 ## UI

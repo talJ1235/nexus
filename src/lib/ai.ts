@@ -108,9 +108,9 @@ type Failure = { kind: "retry" | "skip" | "fatal"; coolMs: number };
 export function classify(msg: string): Failure {
   const m = msg.toLowerCase();
   // Model doesn't exist for this key / was retired → don't try it again for a long time.
-  if (/not[ _]found|404|not supported|deprecated|no longer available|decommissioned|does not exist/.test(m)) return { kind: "skip", coolMs: 12 * 3600_000 };
+  if (/not[ _]found|404|not supported|deprecated|no longer available|decommissioned|does not exist/.test(m)) return { kind: "skip", coolMs: 2 * 3600_000 };
   if (/429|resource_exhausted|quota|rate.?limit|too many requests/.test(m)) {
-    if (/limit: ?0\b/.test(m)) return { kind: "skip", coolMs: 12 * 3600_000 }; // not on the free tier
+    if (/limit: ?0\b/.test(m)) return { kind: "skip", coolMs: 6 * 3600_000 }; // not on the free tier
     if (/per ?day|perday|daily|rpd/.test(m)) return { kind: "skip", coolMs: 60 * 60_000 };
     const secs = Number(m.match(/retry (?:in|after) ([\d.]+)\s*s/)?.[1] ?? m.match(/retrydelay"?:\s*"?([\d.]+)s/)?.[1] ?? 0);
     return { kind: "skip", coolMs: Math.min(Math.max(secs * 1000, 20_000), 10 * 60_000) };
