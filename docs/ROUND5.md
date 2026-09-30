@@ -120,6 +120,12 @@ Acceptance: smoke triggers a toast and checks the close button; mobile screensho
 
 ---
 
+### 6. [ ] Small carry-over from A1 (see Open)
+Clicks in the streamed loading shell are lost when the data arrives (e.g. opening the assistant during a slow load).
+Lift panel/dialog open-state above the Suspense boundary so a click made while loading takes effect once the app is
+in; if that's more than a small change, disable those header/sidebar buttons while `loading` instead. Remove the
+Open line when done.
+
 ## Next (planned in chat, not for Claude Code yet)
 - Round 6: new features + upgrades (list to be written with Tal).
 - UI "next level": research tools/workflow to go from "amateur+" to professional (design system, reference
