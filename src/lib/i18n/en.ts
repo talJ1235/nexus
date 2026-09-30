@@ -257,6 +257,7 @@ export const en = {
     search: "Search",
     itemsTotal: "Total to buy",
     clear: "Clear",
+    dismiss: "Dismiss",
   },
   cmd: {
     placeholder: "Search items, projects, actions…",

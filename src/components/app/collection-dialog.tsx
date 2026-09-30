@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Copy, Link2, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { createCollection, deleteCollection, setSharing, updateCollection } from "@/app/actions";
 import { useI18n } from "@/components/providers";
 import { Button, Input, Label, Textarea } from "@/components/ui/button";

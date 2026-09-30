@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ExternalLink, LogOut, Trophy } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { leaveAltGroup, updateAltGroup } from "@/app/actions";
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, ExternalLink, Package, PackageCheck, Split, TrendingDown, Truck, Undo2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { setStatus } from "@/app/actions";
 import { useI18n } from "@/components/providers";
 import { activeSource, cheapestSource, lineTotal, lowestSeen, unitPrice } from "@/lib/calc";
@@ -63,16 +63,30 @@ export function useStatusFlow() {
   const setTo = async (item: ItemWithSources, status: Status) => {
     const paid = status !== "to_buy" && item.status === "to_buy" ? paidFor(item, s.rates) : null;
     s.upsertItem(optimisticStatus(item, status, paid));
+    // The toast shows at once (the change is already on screen); Undo waits for the save before reverting it.
+    const req = setStatus(item.id, status, paid);
+    let undone = false;
+    const id =
+      status !== "to_buy"
+        ? toast.success(status === "ordered" ? t.flow.markedOrdered : t.flow.markedReceived, {
+            description: item.title,
+            action: {
+              label: t.item.undo,
+              onClick: async () => {
+                undone = true;
+                s.upsertItem(item);
+                await req.catch(() => null);
+                s.upsertItem(await setStatus(item.id, item.status));
+              },
+            },
+          })
+        : undefined;
     try {
-      s.upsertItem(await setStatus(item.id, status, paid));
-      if (status !== "to_buy")
-        toast.success(status === "ordered" ? t.flow.markedOrdered : t.flow.markedReceived, {
-          description: item.title,
-          action: { label: t.item.undo, onClick: async () => s.upsertItem(await setStatus(item.id, item.status)) },
-        });
+      const saved = await req;
+      if (!undone) s.upsertItem(saved);
     } catch {
       s.upsertItem(item);
-      toast.error(t.errors.generic);
+      toast.error(t.errors.generic, { id });
     }
   };
   return { setTo, advance: (item: ItemWithSources) => setTo(item, NEXT[item.status]), paidFor: (item: ItemWithSources) => paidFor(item, s.rates) };

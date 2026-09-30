@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowRightLeft, CircleDot, Flag, Split, Trash2, X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { bulkDelete, bulkSetStatus, bulkUpdate, createAltGroup, restoreItems } from "@/app/actions";
 import { useI18n } from "@/components/providers";
 import { Button, Input } from "@/components/ui/button";
@@ -35,12 +35,20 @@ export function SelectionBar() {
   const setPatch = (patch: { collectionId?: string | null; priority?: "urgent" | "normal" | "someday" }) =>
     run(async () => {
       s.upsertItems(chosen.map((i) => ({ ...i, ...patch })));
-      s.upsertItems(await bulkUpdate(ids, patch));
+      const req = bulkUpdate(ids, patch);
+      let id: string | number | undefined;
       if (patch.collectionId !== undefined) {
         const name = patch.collectionId ? s.collections.find((c) => c.id === patch.collectionId)?.name ?? "" : t.nav.unsorted;
-        toast.success(f(t.select.moved, { name }), { description: f(t.collection.itemsCount, { n }) });
+        id = toast.success(f(t.select.moved, { name }), { description: f(t.collection.itemsCount, { n }) });
       }
       s.clearSelection();
+      try {
+        s.upsertItems(await req);
+      } catch (e) {
+        s.upsertItems(chosen);
+        if (id != null) toast.dismiss(id);
+        throw e;
+      }
     });
 
   const setStatusAll = (status: Status) =>
@@ -58,10 +66,17 @@ export function SelectionBar() {
   const remove = () =>
     run(async () => {
       s.removeItems(ids);
-      const snaps = await bulkDelete(ids);
-      toast(f(t.select.deleted, { n }), {
-        action: { label: t.item.undo, onClick: async () => s.upsertItems(await restoreItems(snaps)) },
+      const req = bulkDelete(ids);
+      const id = toast(f(t.select.deleted, { n }), {
+        action: { label: t.item.undo, onClick: async () => s.upsertItems(await restoreItems(await req)) },
       });
+      try {
+        await req;
+      } catch (e) {
+        s.upsertItems(chosen);
+        toast.dismiss(id);
+        throw e;
+      }
     });
 
   const compare = () =>
@@ -80,7 +95,7 @@ export function SelectionBar() {
   const collections = s.collections.filter((c) => !c.archived);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-3 lg:ps-[264px]" role="toolbar" aria-label={f(t.select.selected, { n })}>
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-3 lg:ps-[264px]" role="toolbar" data-selection-bar aria-label={f(t.select.selected, { n })}>
       <div className="pointer-events-auto flex max-w-full animate-pop-in items-center gap-1 overflow-x-auto rounded-2xl border border-line bg-raised p-1.5 shadow-pop">
         <Button size="icon-sm" variant="ghost" onClick={s.clearSelection} aria-label={t.select.clear} title={t.select.clear}>
           <X />

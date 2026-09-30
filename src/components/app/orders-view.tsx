@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink, Truck } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { bulkSetStatus } from "@/app/actions";
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";
@@ -48,14 +48,25 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
       return { item: i, paid: src?.price != null ? { price: src.price + (src.shipping ?? 0), currency: src.currency } : null };
     });
     s.upsertItems(entries.map((e) => optimisticStatus(e.item, "ordered", e.paid)));
+    const req = bulkSetStatus(entries.map((e) => ({ id: e.item.id, paid: e.paid })), "ordered");
+    let undone = false;
+    const id = toast.success(f(t.orders.markedAll, { n: group.length }), {
+      action: {
+        label: t.item.undo,
+        onClick: async () => {
+          undone = true;
+          s.upsertItems(group);
+          await req.catch(() => null);
+          s.upsertItems(await bulkSetStatus(group.map((i) => ({ id: i.id, paid: null })), "to_buy"));
+        },
+      },
+    });
     try {
-      s.upsertItems(await bulkSetStatus(entries.map((e) => ({ id: e.item.id, paid: e.paid })), "ordered"));
-      toast.success(f(t.orders.markedAll, { n: group.length }), {
-        action: { label: t.item.undo, onClick: async () => s.upsertItems(await bulkSetStatus(group.map((i) => ({ id: i.id, paid: null })), "to_buy")) },
-      });
+      const saved = await req;
+      if (!undone) s.upsertItems(saved);
     } catch {
       s.upsertItems(group);
-      toast.error(t.errors.generic);
+      toast.error(t.errors.generic, { id });
     }
   };
 

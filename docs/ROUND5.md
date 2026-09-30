@@ -107,7 +107,7 @@ Today stores differ only by name, and the cards ↔ table toggle does nothing in
   toggle; hide it where a view has no second layout.
 Acceptance: smoke switches the toggle in the orders view and asserts the layout changed; screenshots desktop + mobile.
 
-### 5. [ ] Toasts: faster, obvious close, swipe away
+### 5. [x] Toasts: faster, obvious close, swipe away
 Today toasts (sonner, `src/components/providers.tsx`) appear a bit slowly and it's unclear they can be dismissed.
 - Appear faster: shorten sonner's enter animation to ~180–200 ms (override its CSS in `globals.css`), and make sure
   toasts for optimistic actions fire immediately, not after the server action returns.

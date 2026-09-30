@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { moveItems } from "@/app/actions";
 import { ChartColumn, History, Inbox, Plus, Settings2, ShoppingBag, Store, Truck, Zap } from "lucide-react";
 import { useI18n } from "@/components/providers";
@@ -109,23 +109,26 @@ export function Sidebar() {
   const move = async (ids: string[], collectionId: string | null) => {
     const prev = s.items.filter((i) => ids.includes(i.id));
     s.upsertItems(prev.map((i) => ({ ...i, collectionId })));
+    const req = moveItems(ids, collectionId);
+    const name = collectionId ? s.collections.find((c) => c.id === collectionId)?.name ?? "" : t.nav.unsorted;
+    let id: string | number | undefined;
     try {
-      await moveItems(ids, collectionId);
-      const name = collectionId ? s.collections.find((c) => c.id === collectionId)?.name ?? "" : t.nav.unsorted;
-      toast.success(f(t.select.moved, { name }), {
+      id = toast.success(f(t.select.moved, { name }), {
         description: ids.length > 1 ? (ids.length === 1 ? t.collection.itemsCountOne : f(t.collection.itemsCount, { n: ids.length })) : prev[0]?.title,
         action: {
           label: t.item.undo,
           onClick: async () => {
             s.upsertItems(prev);
+            await req.catch(() => null);
             for (const p of prev) await moveItems([p.id], p.collectionId);
           },
         },
       });
       s.clearSelection();
+      await req;
     } catch {
       s.upsertItems(prev);
-      toast.error(t.errors.generic);
+      toast.error(t.errors.generic, { id });
     }
   };
 

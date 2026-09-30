@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { Download, FileSpreadsheet, LogOut, Monitor, Moon, Puzzle, Sun, Upload } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";

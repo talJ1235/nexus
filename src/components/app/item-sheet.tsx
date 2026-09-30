@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRightLeft, ChevronDown, ClipboardList, ExternalLink, Inbox, LineChart, Minus, NotebookPen, Plus, RefreshCw, Store, Trash2, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { addSourceFromUrl, deleteItem, deleteSource, refetchSource, restoreItem, splitItem, unsplitItem, updateItem, updateSource } from "@/app/actions";
 import { useI18n } from "@/components/providers";
 import { Button, Input, Label, Textarea } from "@/components/ui/button";
@@ -370,11 +370,23 @@ export function ItemSheet() {
     if (!item) return;
     s.openItem(null);
     s.removeItem(item.id);
-    const snap = await deleteItem(item.id);
-    toast(t.item.deleted, {
+    const req = deleteItem(item.id);
+    const id = toast(t.item.deleted, {
       description: item.title,
-      action: snap ? { label: t.item.undo, onClick: async () => s.upsertItem(await restoreItem(snap)) } : undefined,
+      action: {
+        label: t.item.undo,
+        onClick: async () => {
+          const snap = await req.catch(() => null);
+          if (snap) s.upsertItem(await restoreItem(snap));
+        },
+      },
     });
+    try {
+      await req;
+    } catch {
+      s.upsertItem(item);
+      toast.error(t.errors.generic, { id });
+    }
   };
 
   const ext = useExtension();

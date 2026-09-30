@@ -3,7 +3,8 @@
 //
 //   BASE=http://localhost:3100 NEXUS_PASSWORD=... node scripts/smoke.mjs
 //   SMOKE_AI=1 also calls the (owner-only) AI health endpoint. SMOKE_OUT=dir saves screenshots.
-//   SMOKE_WRITE=1 (localhost only) also exercises adding: placeholder card, same link → +1, partial move.
+//   SMOKE_WRITE=1 (localhost only) also exercises adding: placeholder card, same link → +1 (+ its toast's close
+//     button), partial move.
 //   SMOKE_MOBILE=1 runs the owner checks in a 390×844 touch phone context; screenshots get a "-m" suffix.
 //   SMOKE_TRACE=1 records every painted frame of the first 2.5 s after goto("/") (CDP screencast, timestamped)
 //     into $SMOKE_OUT/trace[-m]/ plus one contact sheet (trace[-m].png) to judge load flashes from frames.
@@ -237,6 +238,41 @@ try {
           await page.getByText(/quantity is now 2|הכמות עודכנה ל־2/).first().waitFor({ timeout: 10000 });
           ok((await page.locator("main article[aria-busy=true]").count()) === 0, "same link again → quantity +1 (no duplicate card)");
           await shot(page, "bumped");
+        });
+        await step("toast has a clear close button that dismisses it", async () => {
+          const toastEl = page.locator("[data-sonner-toast]").filter({ hasText: /quantity is now 2|הכמות עודכנה ל־2/ }).first();
+          await toastEl.waitFor({ timeout: 5000 });
+          if (!MOBILE) await toastEl.hover();
+          await page.waitForTimeout(300);
+          const close = toastEl.locator("[data-close-button]");
+          const label = await close.getAttribute("aria-label");
+          const box = await close.boundingBox();
+          const opacity = await close.evaluate((el) => getComputedStyle(el).opacity);
+          await shot(page, "toast");
+          await close.click();
+          await toastEl.waitFor({ state: "detached", timeout: 3000 });
+          ok(!!label && opacity === "1" && (box?.width ?? 0) >= (MOBILE ? 40 : 28), "toast has a clear close button that dismisses it", `label=${label} opacity=${opacity} w=${box?.width}`);
+        });
+        await step("toast swipes away sideways", async () => {
+          const other = page.locator("[data-sonner-toast]").first();
+          if (!(await other.count())) return ok(true, "toast swipe (no second toast on screen, skipped)");
+          const b = await other.boundingBox();
+          const y = b.y + b.height / 2;
+          const x = b.x + 8; // start in the padding: a drag over the text selects it, and sonner ignores that
+          if (MOBILE) {
+            // Real touch events (Playwright's mouse inside a touch context doesn't drive pointer moves).
+            const cdp = await page.context().newCDPSession(page);
+            await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+            for (let dx = 8; dx <= 160; dx += 8) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + dx, y }] });
+            await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+          } else {
+            await page.mouse.move(x, y);
+            await page.mouse.down();
+            for (let dx = 10; dx <= 160; dx += 10) await page.mouse.move(x + dx, y);
+            await page.mouse.up();
+          }
+          await other.waitFor({ state: "detached", timeout: 3000 });
+          ok(true, "toast swipes away sideways");
         });
         await step("partial move splits the item", async () => {
           const before = await page.locator("main article").count();

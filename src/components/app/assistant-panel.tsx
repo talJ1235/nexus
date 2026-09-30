@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Check, FolderPlus, Lightbulb, MessageSquare, Sparkles, Wand2, X } from "lucide-react";
 import { Spinner, ThinkingDots } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { addPlannedParts, ask, planWithAi } from "@/app/ai-actions";
 import { useI18n } from "@/components/providers";
 import { Button, Textarea } from "@/components/ui/button";

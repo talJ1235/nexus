@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Copy, Globe, Link2, UserMinus, Users } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { setSharing } from "@/app/actions";
 import { createInvite, getSharing, removeMember, revokeInvite, setMemberRole, type SharingState } from "@/app/share-actions";
 import { useI18n } from "@/components/providers";

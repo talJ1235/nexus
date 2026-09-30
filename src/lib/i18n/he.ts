@@ -259,6 +259,7 @@ export const he: Dict = {
     search: "חיפוש",
     itemsTotal: "סה״כ לקנייה",
     clear: "נקה",
+    dismiss: "סגירה",
   },
   cmd: {
     placeholder: "חפש פריטים, פרויקטים, פעולות…",

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Link2, ListPlus, Plus, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { addSource, createItem, previewFromClient, previewUrl, updateItem } from "@/app/actions";
 import type { ClientPayload } from "@/lib/service";
 import { useI18n } from "@/components/providers";
@@ -53,13 +53,17 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
       const qty = current.quantity + 1;
       s.upsertItem({ ...current, quantity: qty });
       s.markFresh(current.id, "bump");
+      const req = updateItem(current.id, { quantity: qty });
+      let undone = false;
+      let id: string | number | undefined;
       try {
-        s.upsertItem(await updateItem(current.id, { quantity: qty }));
-        toast.success(f(t.add.bumped, { n: qty }), {
+        id = toast.success(f(t.add.bumped, { n: qty }), {
           description: current.title,
           action: {
             label: t.item.undo,
             onClick: async () => {
+              undone = true;
+              await req.catch(() => null);
               const now = itemsRef.current.find((i) => i.id === current.id);
               const back = Math.max(1, (now?.quantity ?? qty) - 1);
               if (now) s.upsertItem({ ...now, quantity: back });
@@ -67,9 +71,11 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
             },
           },
         });
+        const saved = await req;
+        if (!undone) s.upsertItem(saved);
       } catch {
         s.upsertItem(current);
-        toast.error(t.errors.generic);
+        toast.error(t.errors.generic, { id });
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps

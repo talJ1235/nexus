@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Check, ExternalLink, Languages, Link2, Minus, Moon, Plus, Sun, Trash2, Truck, Undo2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useTheme } from "next-themes";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { guestAddItem, guestDeleteItem, guestRepairItem, guestSetStatus, guestUpdateItem } from "@/app/guest-actions";
 import { ProductImage } from "@/components/app/item-card";
 import { COLLECTION_COLORS } from "@/components/app/view-items";

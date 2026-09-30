@@ -311,6 +311,48 @@ body {
 .store-tint { background: color-mix(in oklab, var(--store) 7%, var(--surface)); }
 .store-line { border-inline-start: 2px solid color-mix(in oklab, var(--store) 45%, transparent); }
 
+/* ---------- Toasts (sonner overrides; config in components/providers.tsx) ----------
+   Faster enter (~200 ms instead of 400), a clear ✕ on the end side (hover on desktop, always on touch),
+   and on phones: bottom-centre above the safe area / selection bar, one line of title. ":root" outranks sonner's
+   runtime-injected rules; its own reduced-motion rule (transition: none !important) still wins. */
+:root [data-sonner-toaster] [data-sonner-toast] {
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out, height 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms;
+}
+:root [data-sonner-toaster] [data-sonner-toast][data-swiping="true"] { transition: none; }
+/* A drag over selectable text would select it (and sonner then ignores the swipe). */
+:root [data-sonner-toaster] [data-sonner-toast] { user-select: none; -webkit-user-select: none; }
+:root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] { padding-inline-end: 46px; }
+:root [data-sonner-toaster] [data-sonner-toast] [data-content] { min-width: 0; flex: 1 1 auto; }
+:root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] {
+  left: auto;
+  right: auto;
+  inset-inline-end: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  transition: opacity 150ms, background-color 150ms, color 150ms;
+}
+:root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button]:hover { background: var(--sunken); color: var(--fg); }
+:root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] svg { width: 14px; height: 14px; }
+@media (hover: hover) and (pointer: fine) {
+  :root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] { opacity: 0; }
+  :root [data-sonner-toaster] [data-sonner-toast][data-styled="true"]:is(:hover, :focus-within) [data-close-button] { opacity: 1; }
+}
+@media (pointer: coarse) {
+  :root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] { padding-inline-end: 52px; }
+  :root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] { width: 40px; height: 40px; inset-inline-end: 6px; }
+}
+@media (max-width: 768px) {
+  :root [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(12px + env(safe-area-inset-bottom)) !important; }
+  :root body:has([data-selection-bar]) [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
+  .nx-toast-title, .nx-toast-desc { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+}
+
 /* Same link pasted again: the existing card glows once to show where the +1 went. */
 .bump { animation: bump 1.2s cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes bump {

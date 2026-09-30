@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { markBooted } from "@/lib/boot";
@@ -15,6 +15,13 @@ export function useI18n() {
   return v;
 }
 
+const PHONE = "(max-width: 768px)";
+const subscribePhone = (cb: () => void) => {
+  const mq = window.matchMedia(PHONE);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+};
+
 export function Providers({ locale, children }: { locale: Locale; children: React.ReactNode }) {
   const setLocale = useCallback((l: Locale) => {
     document.cookie = `${LOCALE_COOKIE}=${l}; path=/; max-age=31536000; samesite=lax`;
@@ -24,6 +31,7 @@ export function Providers({ locale, children }: { locale: Locale; children: Reac
   useEffect(() => {
     if (!document.querySelector("[data-app-shell]")) markBooted();
   }, []);
+  const phone = useSyncExternalStore(subscribePhone, () => window.matchMedia(PHONE).matches, () => false);
   const value = useMemo<I18n>(
     () => ({ locale, t: dictionaries[locale], f: fmt, setLocale, dir: locale === "he" ? "rtl" : "ltr" }),
     [locale, setLocale],
@@ -32,13 +40,18 @@ export function Providers({ locale, children }: { locale: Locale; children: Reac
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <I18nContext.Provider value={value}>
         {children}
+        {/* Look + motion overrides live in globals.css ("Toasts"). Normal 4 s, with an action (Undo) 7 s; hover pauses. */}
         <Toaster
-          position={locale === "he" ? "bottom-left" : "bottom-right"}
+          position={phone ? "bottom-center" : locale === "he" ? "bottom-left" : "bottom-right"}
           dir={value.dir}
+          closeButton
+          swipeDirections={phone ? ["left", "right", "bottom"] : ["left", "right"]}
           toastOptions={{
+            closeButtonAriaLabel: value.t.view.dismiss,
             classNames: {
               toast: "!bg-raised !text-fg !border !border-line !shadow-pop !rounded-xl !font-sans",
-              description: "!text-muted",
+              title: "nx-toast-title",
+              description: "!text-muted nx-toast-desc",
               actionButton: "!bg-accent !text-accent-fg",
             },
           }}

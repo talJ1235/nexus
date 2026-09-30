@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Check, FileSpreadsheet, Upload, Wand2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { refetchSource } from "@/app/actions";
 import { importRows, needsDetails, type ImportRow } from "@/app/import-actions";
 import { useI18n } from "@/components/providers";

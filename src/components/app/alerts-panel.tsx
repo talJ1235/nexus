@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, BellRing, Check, ExternalLink, RefreshCw, Send, Unlink } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { checkPricesNow, getAlertsState, markAlertsRead, saveAlertPrefs, tgDisconnect, tgFinishLink, tgSaveToken, tgStartLink, tgTest, type AlertsState } from "@/app/alert-actions";
 import { useI18n } from "@/components/providers";
 import { Button, Input } from "@/components/ui/button";

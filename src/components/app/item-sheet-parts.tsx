@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { BellRing, ExternalLink, Search, FileText, Paperclip, Split, Trash2, TrendingDown, Truck } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { addAttachment, deleteAttachment, updateItem } from "@/app/actions";
 import { useI18n } from "@/components/providers";
 import { Input, Label } from "@/components/ui/button";
