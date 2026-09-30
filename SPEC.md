@@ -179,7 +179,7 @@ Brief and checklist: `docs/ROUND5.md`. Sessions A1 + A2 shipped:
   close button + swipe (real touch events on mobile).
 
 ## Round 6 — features
-Brief and checklist: `docs/ROUND6.md`. Session B1 shipped:
+Brief and checklist: `docs/ROUND6.md`. Sessions B1 + B2 shipped:
 - **Assistant actions** (`lib/assistant-actions.ts`, pure, test: `npm run test:actions`): for change requests the model
   appends one ```` ```nexus-actions ```` block `{ summary, actions }` (provider-neutral, no function calling). Whitelist:
   `move` (→ project id, `null` = Unsorted, or `new:<ref>`), `setStatus`, `setPriority`, `setQty`, `addTag`/`removeTag`,
@@ -196,6 +196,21 @@ Brief and checklist: `docs/ROUND6.md`. Session B1 shipped:
 - Toasts stay clickable above modal sheets/dialogs (they set `pointer-events: none` on body) and clicking one doesn't
   close the sheet (`onInteractOutside` in `components/ui/overlays.tsx`).
 - Smoke (`SMOKE_WRITE`, server with `NEXUS_AI_MOCK=1`): propose → apply → toast Undo, statuses checked via `/api/backup`.
+- **Free shipping per store** (`lib/shipping.ts`, pure, test: `npm run test:ship`): table `store_settings` (`storeKey`
+  PK, `freeShippingMin`, `currency`, `shippingFee`; created in `db/migrate.ts`, in backup/restore), saved by owner-only
+  `saveStoreSetting` (`app/money-actions.ts`). Amazon ($49), AliExpress ($10), iHerb ($45) are pre-filled until saved.
+  Order by store: someday items are **left out** of the order and its subtotal (listed per store, "Include" → normal);
+  each store group shows a progress bar in its hue ("₪23 more for free shipping" / "Free shipping ✓"), the fee is added
+  to the subtotal while under the threshold; settings popover from the group (header button when no rule yet).
+  "Close the gap": (a) items ordered elsewhere with a priced source here → "Buy here" (switch chosen source, price
+  difference shown), then (b) someday items from this store → "Include"; each with toast Undo.
+- **Monthly budget** (`lib/budget.ts`, pure, test: `npm run test:budget`): optional cap + currency, set in Settings or on
+  Spending (`saveMonthlyBudget`), stored as kv `pref:budget:YYYY-MM` (Israel month; later months carry it forward, a
+  cleared cap is stored as null). Spending card "This month's budget": received + ordered (dated this month) + forecast
+  (urgent to-buy, one per alternatives group; normal too with a per-device toggle; someday never) in one 3-segment bar,
+  ok / near (≥90 %) / over. 12-month bars show the cap each month had (tick; red when over). The Telegram digest
+  (cron + extension check) adds one near/over line (spent + ordered + urgent), once per state per month
+  (kv `budget:notified:YYYY-MM`), and sends even without price alerts.
 
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.

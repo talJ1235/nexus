@@ -101,3 +101,11 @@ banner visible, edits disabled; logout clears the snapshot.
 - (B1) A proposal is all-or-nothing: one hallucinated id or unknown action drops the whole card (the text answer still
   shows). Stricter than filtering per action, so the summary always matches what Apply does.
 - (B1) Undo restores the values from Apply time; edits made to the same items between Apply and Undo are overwritten.
+- (B2) "Left out of the order" = someday items (Tal's pick): they no longer count in Order by store subtotals and are
+  listed per store with "Include" (→ normal priority).
+- (B2) Free-shipping thresholds compare against item lines as shown (per-item shipping from the store page included);
+  the store's flat fee is added on top while under the threshold. Pre-filled defaults (Amazon $49, AliExpress $10,
+  iHerb $45) are rough guesses — correct them from the popover.
+- (B2) The budget line in the Telegram digest is covered by unit tests of its rules (state, once per state per month,
+  Israel month boundaries) but was not sent end-to-end locally (no Telegram from the dev machine); watch the first
+  real near/over month. B4's weekly summary can reuse `monthForecast` for "month vs budget".
