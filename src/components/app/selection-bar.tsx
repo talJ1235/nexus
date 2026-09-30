@@ -22,7 +22,7 @@ export function SelectionBar() {
   const ids = [...s.selected];
   const chosen = s.items.filter((i) => s.selected.has(i.id));
   const n = ids.length;
-  if (!n) return null;
+  if (!n || s.offlineAt != null) return null;
 
   const run = async (fn: () => Promise<void>) => {
     try {

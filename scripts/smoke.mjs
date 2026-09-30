@@ -17,6 +17,8 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import sharp from "sharp";
 
+// Service-worker fetches only see context.setOffline() with this flag (the offline check needs the SW fallback).
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS ??= "1";
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
 const PASSWORD = process.env.NEXUS_PASSWORD;
 const MOBILE = !!process.env.SMOKE_MOBILE;
@@ -439,6 +441,63 @@ try {
         });
       }
     }
+
+    // Own context: goes offline, then logs out. Read-only (nothing is edited).
+    await step("offline: renders from the snapshot, read-only; logout clears it", async () => {
+      const oc = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, colorScheme: "dark" });
+      try {
+        const p = await oc.newPage();
+        await p.goto(`${BASE}/login`);
+        await p.fill("#password", PASSWORD);
+        await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), p.click("button[type=submit]")]);
+        await p.waitForSelector(READY, { timeout: 15000 });
+        const online = await p.locator("main article").count();
+        const stored = () =>
+          p.evaluate(async () => {
+            const shell = (await caches.keys()).some((k) => k.startsWith("nexus-shell"));
+            const dbs = (await indexedDB.databases()).some((d) => d.name === "nexus-offline");
+            return { controlled: !!navigator.serviceWorker.controller, shell, dbs };
+          });
+        // SW takes control, caches the shell; the store saves the snapshot (debounced).
+        await p.waitForFunction(async () => !!navigator.serviceWorker.controller && (await caches.keys()).some((k) => k.startsWith("nexus-shell")) && (await indexedDB.databases()).some((d) => d.name === "nexus-offline"), null, { timeout: 20000, polling: 500 });
+        await p.waitForTimeout(1500);
+        await oc.setOffline(true);
+        await p.goto(`${BASE}/`);
+        await p.waitForSelector("[data-offline-banner=snapshot]", { timeout: 10000 });
+        await p.waitForSelector(READY, { timeout: 10000 });
+        const offlineCount = await p.locator("main article").count();
+        const addDisabled = await p.locator("#add-input").isDisabled();
+        await shot(p, "offline");
+        await p.locator("main article button[aria-label]").first().click();
+        const fields = p.locator("[data-sheet-fields]");
+        await fields.waitFor({ timeout: 5000 });
+        const sheetDisabled = await fields.locator("textarea").first().isDisabled();
+        await shot(p, "offline-sheet");
+        await p.keyboard.press("Escape");
+        // Back online: the shell goes back to the live app by itself.
+        await oc.setOffline(false);
+        await p.waitForURL((u) => u.pathname === "/", { timeout: 15000 });
+        await p.waitForSelector(READY, { timeout: 15000 });
+        const banner = await p.locator("[data-offline-banner]").count();
+        await p.evaluate(() => {
+          const f = document.createElement("form");
+          f.method = "post";
+          f.action = "/api/logout";
+          document.body.appendChild(f);
+          f.submit();
+        });
+        await p.waitForURL((u) => u.pathname.startsWith("/login"), { timeout: 10000 });
+        await p.waitForTimeout(1000);
+        const after = await stored();
+        ok(
+          offlineCount > 0 && offlineCount === online && addDisabled && sheetDisabled && banner === 0 && !after.shell && !after.dbs,
+          "offline: renders from the snapshot, read-only; logout clears it",
+          JSON.stringify({ online, offlineCount, addDisabled, sheetDisabled, banner, after }),
+        );
+      } finally {
+        await oc.close();
+      }
+    });
 
     await step("boot screen", async () => {
       // Fresh tab (sessionStorage is per tab): phones see the opening animation once, then it hands off; desktop never.

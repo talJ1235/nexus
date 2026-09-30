@@ -20,6 +20,7 @@ import { AlertsBell, AlertsPanel } from "./alerts-panel";
 import { AssistantPanel } from "./assistant-panel";
 import { ShareDialog } from "./share-dialog";
 import { ReceiptDialog } from "./receipt-dialog";
+import { OfflineBanner, useReadOnly } from "./offline-banner";
 import { PanelBoundary } from "@/components/panel-boundary";
 import { AltGroupCard, ItemCard } from "./item-card";
 import { AltSheet } from "./alt-sheet";
@@ -38,10 +39,11 @@ import { FALLBACK_RATES, type Currency } from "@/lib/money";
 export type AppBoot = UiInit & { currency: Currency; aiEnabled: boolean };
 
 /** Without `initial` the app renders as the streamed loading shell: real chrome, skeleton content. */
-export function NexusApp({ boot, initial, incoming }: { boot: AppBoot; initial?: AppData; incoming?: Incoming }) {
+/** `offline` = rendering the offline shell from the device snapshot (read-only). */
+export function NexusApp({ boot, initial, incoming, offline }: { boot: AppBoot; initial?: AppData; incoming?: Incoming; offline?: { at: number } }) {
   const data = initial ?? { items: [], collections: [], altGroups: [], storeSettings: [], budget: {}, rates: FALLBACK_RATES, aiEnabled: boot.aiEnabled };
   return (
-    <StoreProvider initial={data} initialCurrency={boot.currency} ui={boot} loading={!initial}>
+    <StoreProvider initial={data} initialCurrency={boot.currency} ui={boot} loading={!initial} offline={offline ?? null}>
       <Shell incoming={incoming} />
     </StoreProvider>
   );
@@ -51,7 +53,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
   const s = useStore();
   const { t } = useI18n();
   return (
-    <div className="flex min-h-dvh" data-app-shell data-ready={s.loading ? undefined : ""}>
+    <div className="flex min-h-dvh" data-app-shell data-ready={s.loading ? undefined : ""} data-offline={s.offlineAt != null ? "" : undefined}>
       <aside className="sticky top-0 hidden h-dvh w-[264px] shrink-0 border-e border-line bg-bg lg:block">
         <Sidebar />
       </aside>
@@ -61,6 +63,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
 
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-20 border-b border-line/70 bg-bg/85 backdrop-blur-md">
+          <OfflineBanner />
           <div className="mx-auto flex max-w-[1400px] items-start gap-2 px-4 py-3 sm:px-6 lg:px-8">
             <Button variant="ghost" size="icon" className="mt-1.5 lg:hidden" onClick={() => s.setNavOpen(true)} aria-label="Menu" data-carry="nav">
               <MenuIcon />
@@ -70,7 +73,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
               <AddBar incoming={incoming} />
             </div>
             {s.aiEnabled && (
-              <Button variant="ghost" size="icon" className="mt-1.5" onClick={() => s.setPanel("assistant")} aria-label={t.ai.title} title={t.ai.openAssistant} data-carry="panel:assistant">
+              <Button variant="ghost" size="icon" className="mt-1.5" disabled={s.offlineAt != null} onClick={() => s.setPanel("assistant")} aria-label={t.ai.title} title={t.ai.openAssistant} data-carry="panel:assistant">
                 <Sparkles />
               </Button>
             )}
@@ -147,7 +150,7 @@ function ReceiptDrop() {
     const drop = (e: DragEvent) => {
       depth = 0;
       setOver(false);
-      if (!hasFiles(e) || e.defaultPrevented || s.openItemId) return;
+      if (!hasFiles(e) || e.defaultPrevented || s.openItemId || s.offlineAt != null) return;
       e.preventDefault();
       const file = [...(e.dataTransfer?.files ?? [])].find((x) => /^(image\/|application\/pdf$)/.test(x.type));
       if (file) s.openReceipt(file);
@@ -163,7 +166,7 @@ function ReceiptDrop() {
       window.removeEventListener("drop", drop);
     };
   }, [s]);
-  if (!over || s.panel || s.openItemId) return null;
+  if (!over || s.panel || s.openItemId || s.offlineAt != null) return null;
   return (
     <div className="pointer-events-none fixed inset-3 z-40 grid place-items-center rounded-2xl border-2 border-dashed border-accent bg-bg/70 backdrop-blur-[2px]">
       <div className="flex items-center gap-2 text-base font-medium text-accent-ink">
@@ -180,6 +183,7 @@ function viewKey(v: ReturnType<typeof useStore>["view"]) {
 
 function ViewHeader() {
   const s = useStore();
+  const ro = useReadOnly();
   const { t, f, locale } = useI18n();
   const items = useViewItems();
   const collection = s.view.type === "collection" ? s.collections.find((c) => c.id === (s.view as { id: string }).id) : null;
@@ -291,7 +295,7 @@ function ViewHeader() {
             )}
           </div>
           {spentView && (
-            <Button variant="outline" className="h-9 max-sm:w-10 max-sm:px-0" onClick={() => s.openReceipt()} aria-label={t.scan.title} title={t.scan.title} data-receipt-open="view">
+            <Button variant="outline" className="h-9 max-sm:w-10 max-sm:px-0" disabled={ro.ro} onClick={() => s.openReceipt()} aria-label={t.scan.title} title={ro.title ?? t.scan.title} data-receipt-open="view">
               <ReceiptText />
               <span className="max-sm:hidden">{t.scan.button}</span>
             </Button>

@@ -5,6 +5,8 @@ import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
 import type { AltGroup, AppData, Collection, ItemWithSources, StoreSetting } from "@/lib/types";
 import type { View } from "@/lib/views";
 import { markBooted } from "@/lib/boot";
+import { reloadAll } from "@/app/actions";
+import { cacheShell, saveSnapshot } from "@/lib/offline";
 import type { BudgetHistory } from "@/lib/budget";
 
 export type { View };
@@ -88,6 +90,10 @@ type Store = {
   askAssistant: (q: string) => void;
   /** File handed to the receipt dialog (dropped on the app); null when it was opened empty. */
   receiptSeed: { file: File; at: number } | null;
+  /** Read-only offline mode: when the shown data is from (null = online, editing allowed). */
+  offlineAt: number | null;
+  /** Rendering the offline shell from the device snapshot (vs. an online page that lost its connection). */
+  offlineShell: boolean;
   openReceipt: (file?: File | null) => void;
   setExtOpen: (o: boolean) => void;
   setNavOpen: (o: boolean) => void;
@@ -148,12 +154,15 @@ export function StoreProvider({
   initialCurrency,
   ui,
   loading = false,
+  offline = null,
   children,
 }: {
   initial: AppData;
   initialCurrency: Currency;
   ui: UiInit;
   loading?: boolean;
+  /** Set when rendering the offline shell: the snapshot's time. */
+  offline?: { at: number } | null;
   children: React.ReactNode;
 }) {
   const [items, setItems] = useState(initial.items);
@@ -190,6 +199,39 @@ export function StoreProvider({
     setReceiptSeed(file ? { file, at: Date.now() } : null);
     setPanel("receipt");
   }, []);
+
+  // Offline (read-only v1): the shell shows the device snapshot; an online page that loses its connection keeps
+  // what it has and turns read-only until it's back, then refreshes.
+  const [online, setOnline] = useState(true);
+  const [loadedAt] = useState(() => Date.now());
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only state */
+    setOnline(navigator.onLine);
+    const up = () => {
+      setOnline(true);
+      if (offline) window.location.replace(`/${window.location.search}`);
+      else reloadAll().then(setItems, () => {});
+    };
+    const down = () => setOnline(false);
+    window.addEventListener("online", up);
+    window.addEventListener("offline", down);
+    return () => {
+      window.removeEventListener("online", up);
+      window.removeEventListener("offline", down);
+    };
+  }, [offline]);
+  const offlineAt = offline ? offline.at : online ? null : loadedAt;
+
+  // Owner app, online: keep the device snapshot fresh (debounced) and make sure the offline shell is cached.
+  useEffect(() => {
+    if (loading || offline) return;
+    cacheShell();
+  }, [loading, offline]);
+  useEffect(() => {
+    if (loading || offline || !online) return;
+    const t = setTimeout(() => void saveSnapshot({ data: { ...initial, items, collections, altGroups, storeSettings, budget }, at: Date.now(), currency }), 1200);
+    return () => clearTimeout(t);
+  }, [loading, offline, online, initial, items, collections, altGroups, storeSettings, budget, currency]);
 
   // The app has its data: the phone boot screen can hand off.
   useEffect(() => {
@@ -403,6 +445,8 @@ export function StoreProvider({
       askAssistant,
       receiptSeed,
       openReceipt,
+      offlineAt,
+      offlineShell: !!offline,
       setExtOpen,
       setNavOpen,
       focusAdd,
@@ -413,7 +457,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

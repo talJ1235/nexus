@@ -590,6 +590,12 @@ export const en = {
     guestEmpty: "Nothing here yet.",
     shareBtn: "Share",
   },
+  offline: {
+    banner: "Offline — showing data from {time}",
+    readOnly: "You're offline — editing is back when you reconnect",
+    none: "You're offline and this device has no saved copy of your list yet. Open Nexus once online to keep one here.",
+    retry: "Try again",
+  },
   errors: {
     generic: "Something went wrong. Try again.",
     offline: "You're offline.",

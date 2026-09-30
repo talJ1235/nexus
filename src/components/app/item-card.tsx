@@ -11,6 +11,7 @@ import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { StoreMark } from "@/components/ui/store-mark";
 import { useStore } from "./store";
+import { useReadOnly } from "./offline-banner";
 import { COLLECTION_COLORS } from "./view-items";
 
 export function ProductImage({ src, alt, className, iconClass }: { src: string | null; alt: string; className?: string; iconClass?: string }) {
@@ -108,11 +109,14 @@ export function dragIds(id: string, selected: Set<string>) {
 }
 
 export function SelectBox({ checked, onToggle, className }: { checked: boolean; onToggle: (e: React.MouseEvent) => void; className?: string }) {
+  const ro = useReadOnly();
   return (
     <button
       type="button"
       role="checkbox"
       aria-checked={checked}
+      disabled={ro.ro}
+      title={ro.title}
       onClick={(e) => {
         e.stopPropagation();
         onToggle(e);
@@ -132,6 +136,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
   const s = useStore();
   const { t, f, locale } = useI18n();
   const flow = useStatusFlow();
+  const ro = useReadOnly();
   const src = activeSource(item, s.rates);
   const cheapest = cheapestSource(item, s.rates);
   const collection = item.collectionId ? s.collections.find((c) => c.id === item.collectionId) : null;
@@ -234,7 +239,8 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
             <button
               type="button"
               onClick={() => void flow.setTo(item, next)}
-              title={nextLabel}
+              disabled={ro.ro}
+              title={ro.title ?? nextLabel}
               aria-label={nextLabel}
               className={cn(
                 "grid size-8 place-items-center rounded-lg shadow-card backdrop-blur transition",

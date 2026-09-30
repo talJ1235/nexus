@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { ClearOffline } from "@/components/clear-offline";
 import { LogoMark } from "@/components/logo";
 import { dictionaries, isLocale, LOCALE_COOKIE } from "@/lib/i18n";
 
@@ -9,6 +10,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   return (
     <main className="relative grid min-h-dvh place-items-center overflow-hidden px-4">
+      <ClearOffline />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.5] [background-image:radial-gradient(var(--line-strong)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)]"

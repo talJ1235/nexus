@@ -83,7 +83,7 @@ end-to-end in `SMOKE_WRITE`.
   links to `?item=<id>`. Skipped when there's nothing worth sending. Toggle in the Alerts panel (default on).
 - Reuse the Telegram sender; test with `scripts/test-telegram.mjs` (extend it).
 
-### 6. [ ] Works offline (read-only v1)
+### 6. [x] Works offline (read-only v1)
 Today `public/sw.js` is intentionally network-only. Wanted: the list opens and reads with no signal (e.g. inside a
 store).
 - Service worker caches the app shell and static assets (versioned per build); the latest app data snapshot is kept
@@ -133,3 +133,17 @@ banner visible, edits disabled; logout clears the snapshot.
 - (B4) Tested locally against a fake Telegram API (`TELEGRAM_API_BASE`, ignored on Vercel) via the cron route with
   `?only=weekly&force=1` (needs `CRON_SECRET`); not sent to real Telegram. The link checks in
   `scripts/test-telegram.mjs` now skip when the fake store can't bind 192.0.2.2 (this Windows PC can't; set STORE_HOST).
+- (B4) Offline: when the network fails, "/" redirects to a cached `/offline` shell (a real route, cached by the SW when
+  the owner app asks after an online load) that renders the IndexedDB snapshot. So offline the address bar shows
+  `/offline?…`; back online it returns to "/" by itself. The snapshot is saved (debounced) on every online load and
+  change. It is cleared on the login page (every logout lands there, also an expired session), not in the logout
+  route itself (server can't reach IndexedDB).
+- (B4) Read-only = add bar, card status/select buttons, item sheet fields (a disabled fieldset; its tooltip covers
+  the sheet), selection bar, receipt/assistant buttons and file drop. Other rarer edit paths (drag to a project in
+  the sidebar, rename/share project, budget/shipping popovers) aren't disabled; offline they fail with the usual
+  error toast. The disabled sheet controls aren't dimmed (visual polish left to UI v2).
+- (B4) An online page that loses its connection also turns read-only with the banner ("showing data from" = when it
+  loaded) and refreshes its items when the connection is back.
+- (B4) "New SW reloads once": each build registers `/sw.js?v=<commit>`; the new worker takes over and the page reloads
+  once (not on the very first install). Smoke needs Playwright's `PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1`
+  (set inside smoke.mjs) — without it `setOffline` doesn't reach the service worker's own fetches.
