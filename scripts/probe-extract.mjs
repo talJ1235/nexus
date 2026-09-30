@@ -97,6 +97,8 @@ if (process.argv[2] === "list") {
   await prod("https://example.com"); // logs in
   const j = await fetch(`${process.env.BASE}/api/debug/extract`, { headers: { cookie } }).then((r) => r.json());
   console.log("INCOMPLETE", JSON.stringify(j.incomplete ?? j));
+  const ai = await fetch(`${process.env.BASE}/api/debug/ai`, { headers: { cookie } }).then((r) => r.json()).catch((e) => ({ error: String(e) }));
+  console.log("AI", JSON.stringify(ai).slice(0, 1500));
   process.exit(0);
 }
 

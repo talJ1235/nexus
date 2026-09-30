@@ -8,6 +8,6 @@ export async function GET(req: Request) {
   if (!(await verifyExtensionRequest(req))) return Response.json({ error: "unauthorized" }, { status: 401 });
   const [stale, incomplete] = await Promise.all([sourcesForExtension(), sourcesNeedingDetails(8, 3 * 3600_000)]);
   const seen = new Set(stale.map((s) => s.id));
-  const extra = incomplete.filter((s) => !seen.has(s.id)).map((s) => ({ id: s.id, url: s.url, storeKey: s.storeKey }));
+  const extra = incomplete.filter((s) => !seen.has(s.id)).map((s) => ({ id: s.id, url: s.url, storeKey: s.storeKey, details: true }));
   return Response.json({ sources: [...stale, ...extra] });
 }

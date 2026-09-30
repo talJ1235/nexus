@@ -94,7 +94,8 @@ async function checkPrices(thorough) {
       try {
         const res = await fetch(src.url, { credentials: "include", redirect: "follow" });
         const html = res.ok ? await res.text() : "";
-        if (html && HAS_PRODUCT_DATA.test(html) && html.length < 2_900_000) {
+        // Links still missing their name/picture (src.details) are worth posting even with only OpenGraph tags.
+        if (html && (HAS_PRODUCT_DATA.test(html) || (src.details && /og:title/i.test(html))) && html.length < 2_900_000) {
           await api("/api/ext/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sourceId: src.id, html, finalUrl: res.url }) });
           done++;
           continue;
@@ -117,8 +118,10 @@ async function checkPrices(thorough) {
   return { checked: done };
 }
 
-chrome.runtime.onInstalled.addListener(() => chrome.alarms.create("nexus-prices", { delayInMinutes: 3, periodInMinutes: 360 }));
-chrome.runtime.onStartup.addListener(() => chrome.alarms.create("nexus-prices", { delayInMinutes: 3, periodInMinutes: 360 }));
+// Every 30 min: the server only hands out links that are due (blocked price checks ~daily, incomplete
+// links every few hours), so most runs are a single cheap request.
+chrome.runtime.onInstalled.addListener(() => chrome.alarms.create("nexus-prices", { delayInMinutes: 2, periodInMinutes: 30 }));
+chrome.runtime.onStartup.addListener(() => chrome.alarms.create("nexus-prices", { delayInMinutes: 2, periodInMinutes: 30 }));
 chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === "nexus-prices") checkPrices(false);
 });

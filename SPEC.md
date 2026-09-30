@@ -116,6 +116,33 @@ Failure at any step degrades gracefully to a partially filled, editable item.
 - Dev: `scripts/seed-local.mjs` seeds a demo catalog into the local DB; `SMOKE_WRITE=1 npm run smoke` (localhost only)
   checks the placeholder card, +1 and the partial move.
 
+## Round 4 — Session B: reliability (shipped)
+Research (2026-09-30, `scripts/probe-extract.mjs` + `probe` workflow; results land on branch `probe/results`):
+- From Vercel (fra1) AliExpress answers normal requests with a script-only "punish"/x5sec challenge. Link-preview
+  identities (facebookexternalhit, Twitterbot, WhatsApp) *sometimes* get the real page with og:title/og:image (no price)
+  — intermittent on Vercel and on GitHub runners alike, and it tightens under repeated hits. Gemini url-context reads
+  title + price most of the time, never the image. Amazon/KSP/eBay: blocked for every server route; jina/microlink useless.
+- So there is no single dependable server-side source; the fix is layered and self-healing.
+
+**Guest links (and any link read without the extension)**
+- `extract.ts`: challenge pages are detected (`blocked`); a blocked/thin read retries as several preview bots
+  (AliExpress: www / m / .us host × identities, ~100 ms per miss), merging title/image; then `buildDraft` runs Gemini
+  url-context (25 s cap) for what's still missing.
+- Self-heal, no one's action needed: (1) the guest page re-reads its own incomplete additions after 4 s / 25 s / 50 s
+  (`guestRepairItem`, own recent items only, ≥15 s apart); (2) the owner's extension (v1.2.0, every 30 min, needs
+  reinstall) fetches incomplete links with the owner's browser and posts the HTML (`/api/ext/stale` flags them
+  `details`, `/api/ext/check` repairs via `refreshSourceCore`); (3) daily cron `repairIncomplete`; (4) optional GitHub
+  helper: `createItemCore` dispatches `heal.yml` (`GITHUB_DISPATCH_TOKEN`), which reads the link from a runner and
+  posts it to owner-only `/api/heal`. "Incomplete" = no real title, no price or no image; to-buy, last 21 days.
+- Diagnostics (owner): `/api/debug/extract` (lists incomplete links), `?probe=1`, `?variants=1`, `?full=1`.
+
+**AI assistant**
+- `ai.ts` routing: Gemini models → Groq (`GROQ_API_KEY`, gpt-oss-120b/20b) → OpenRouter (`OPENROUTER_API_KEY`,
+  `openrouter/free`); page reading (url-context) stays Gemini-only. Overload → one jittered retry on the same model;
+  errors classified (`classify`): per-minute 429 cools for the stated retry delay, daily quota 1 h, "limit: 0"/retired
+  models 12 h. Working model + cooldowns are shared across function instances in kv (`ai:health`). ~12 s of the 45 s
+  budget is reserved for a fallback provider. `/api/debug/ai` shows providers, errors and health.
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Dark + light (system default), no flash on load.
@@ -134,7 +161,7 @@ linked chat. The webhook is (re)set after linking, whenever the alerts state loa
 Carrier API tracking sync, full multi-user accounts (guests cover sharing).
 
 ## Stack (all free tier)
-Next.js 16 (App Router) on Vercel · Turso (libSQL) + Drizzle · Gemini Flash-Lite ·
+Next.js 16 (App Router) on Vercel · Turso (libSQL) + Drizzle · Gemini Flash-Lite (+ optional Groq/OpenRouter) ·
 Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 
 ## Environment variables
@@ -144,6 +171,9 @@ Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 | `TURSO_AUTH_TOKEN` | Turso token |
 | `GEMINI_API_KEY` | Google AI Studio key (optional: AI features off without it) |
 | `GEMINI_MODEL` | optional override, default tries `gemini-3.5-flash-lite` then fallbacks |
+| `GROQ_API_KEY` | optional second free AI provider (console.groq.com), used when Gemini is busy |
+| `OPENROUTER_API_KEY` | optional third free AI provider (`openrouter/free`) |
+| `GITHUB_DISPATCH_TOKEN` | optional: fine-grained PAT (this repo, Contents read/write) so incomplete links trigger `heal.yml` |
 | `APP_PASSWORD` | login password |
 | `SESSION_SECRET` | ≥32 random chars, signs the session cookie |
 | `BLOB_READ_WRITE_TOKEN` | auto-added when a Blob store is connected |

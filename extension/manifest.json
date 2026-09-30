@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Nexus Clipper",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Save any product page to Nexus in one click \u2014 reads the page in your own browser, so it works on every store.",
   "icons": {
     "16": "icons/icon-16.png",
