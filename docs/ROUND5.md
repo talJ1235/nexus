@@ -141,3 +141,8 @@ Open line when done.
   so on those the sidebar / project header can shift a little after a slow load.
 - (A1) Reduced-motion rules and the boot screen in a real installed PWA (Android splash → boot hand-off) were not
   checked on a device — only in Playwright at 390×844 and via CSS review.
+- (A2) Store favicons come from Google's s2 service (the brief's choice), so store hosts are sent to Google when a
+  store mark renders; unknown hosts (16 px globe) keep the monogram. Tell me if you'd rather proxy/cache them.
+- (A2) Toast check and swipe run only with `SMOKE_WRITE` (they need a real toast); the read-only prod smoke can't
+  trigger one. Toast swipe on a real phone was only checked with Playwright CDP touch events at 390×844.
+- (A2) On phones the toast description is clamped to one line (with the title) rather than hidden.

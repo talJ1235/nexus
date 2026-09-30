@@ -142,7 +142,7 @@ wanted) — don't reintroduce them. The owner's browser (extension) is the depen
   budget is reserved for a fallback provider. `/api/debug/ai` shows providers, errors and health.
 
 ## Round 5 — UX polish
-Brief and checklist: `docs/ROUND5.md`. Session A1 shipped (A2 — assistant suggestions, order by store, toasts — next):
+Brief and checklist: `docs/ROUND5.md`. Sessions A1 + A2 shipped:
 - **First load**: `/` streams the real shell at once (same `NexusApp`, empty store, `loading`) inside a Suspense
   fallback; the app with data replaces it in the same response. Skeletons match the grid/table/spending/sidebar rows,
   lit by one slow soft sweep, eased in after 140 ms (fast loads never see them). Data fades in (opacity, 220 ms);
@@ -156,6 +156,22 @@ Brief and checklist: `docs/ROUND5.md`. Session A1 shipped (A2 — assistant sugg
 - **Smoke**: `SMOKE_MOBILE=1` (390×844 touch, `-m` screenshots), `SMOKE_TRACE=1` (every painted frame of a load +
   contact sheet, in the OS temp dir), `SMOKE_THROTTLE`, `SMOKE_TRACE_PATH`, `SMOKE_TRACE_LAYOUT`;
   `NEXUS_TRACE_DELAY_MS` on the local server simulates a slow database.
+- **Assistant suggestions** (`lib/assistant-suggestions.ts`, pure, test: `npm run test:sug`): the Ask tab's chips come
+  from the user's data (current project, budget ≥90 %, urgent, top store, late/this-week orders, price drop/at target,
+  undecided alternatives, unsorted, recent additions, month-over-month spend), top 4 with one per rule family; the last 5
+  asked questions (localStorage `nexus_ai_recent`) aren't repeated; names are bidi-isolated; empty account → the 4
+  static questions. 2–3 follow-up chips after each answer. Phones: one snap-scrolling row, 40 px chips.
+- **Store identity** (`components/ui/store-mark.tsx`): favicon (Google s2, lazy) fading in over a monogram tile in one
+  of 8 muted store hues (`--store-1…8`, both themes; known stores fixed, others hashed from `storeKey`). Used in the
+  orders view group headers (3 px start bar + light tint, thin start line on each row), cards, table and item sheet.
+  The orders view now honours cards/table: table = one aligned `ItemTable` per store on desktop, compact stacked rows
+  on phones. Every view with the toggle has both layouts (spending has no toolbar).
+- **Toasts**: `@/lib/toast` wraps sonner (toasts with an action stay 7 s, others 4 s, hover pauses). ~200 ms enter,
+  end-side ✕ (hover on desktop, always + 40 px on touch), swipe left/right (and down on phones), phones: bottom-centre
+  above the safe area and the selection bar, one-line title/description. Optimistic actions (status, mark all ordered,
+  move, delete, +1) toast immediately; Undo waits for the save, a failed save turns the toast into an error.
+- Smoke: assistant chips (count, 40 px + nowrap on phones), orders cards↔table toggle, and with `SMOKE_WRITE` the toast
+  close button + swipe (real touch events on mobile).
 
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
