@@ -1,0 +1,72 @@
+
+== https://www.aliexpress.com/item/1005006173693585.html
+www.aliexpress.com     browser    {"err":"fetch failed","ms":2346}
+www.aliexpress.com     facebook   {"status":200,"len":75214,"final":"www.aliexpress.com/item/1005006173693585.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":67}
+www.aliexpress.com     twitter    {"status":200,"len":75158,"final":"www.aliexpress.us/item/3256805987378833.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":98}
+www.aliexpress.com     telegram   {"status":200,"len":75158,"final":"www.aliexpress.us/item/3256805987378833.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":87}
+www.aliexpress.com     whatsapp   {"status":200,"len":75158,"final":"www.aliexpress.us/item/3256805987378833.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":102}
+www.aliexpress.com     slack      {"status":403,"len":638,"final":"www.aliexpress.com/item/1005006173693585.html","og":null,"img":false,"ld":false,"title":"403 Forbidden","blocked":false,"ms":25}
+www.aliexpress.com     discord    {"err":"fetch failed","ms":940}
+www.aliexpress.com     jina       {"status":200,"len":2316,"jtitle":"","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":1756}
+www.aliexpress.com     microlink  {"status":200,"mstatus":"success","title":"1005006173693585.html","img":false,"ms":60}
+www.aliexpress.com     vercel     {"status":200,"len":2337,"og":null,"img":false,"title":null,"ms":483}
+
+== https://he.aliexpress.com/item/1005006173693585.html
+he.aliexpress.com      browser    {"err":"fetch failed","ms":1882}
+he.aliexpress.com      facebook   {"status":200,"len":73449,"final":"he.aliexpress.com/item/1005006173693585.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":88}
+he.aliexpress.com      twitter    {"status":200,"len":75158,"final":"www.aliexpress.us/item/3256805987378833.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":109}
+he.aliexpress.com      telegram   {"status":200,"len":75158,"final":"www.aliexpress.us/item/3256805987378833.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":143}
+he.aliexpress.com      whatsapp   {"status":200,"len":75158,"final":"www.aliexpress.us/item/3256805987378833.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":103}
+he.aliexpress.com      slack      {"status":403,"len":637,"final":"he.aliexpress.com/item/1005006173693585.html","og":null,"img":false,"ld":false,"title":"403 Forbidden","blocked":false,"ms":21}
+he.aliexpress.com      discord    {"status":200,"len":1949,"final":"he.aliexpress.com/item/1005006173693585.html","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":98}
+he.aliexpress.com      jina       {"status":200,"len":1928,"jtitle":"","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":291}
+he.aliexpress.com      microlink  {"status":200,"mstatus":"success","title":"1005006173693585.html","img":false,"ms":21}
+he.aliexpress.com      vercel     {"status":200,"len":1949,"og":null,"img":false,"title":null,"ms":526}
+
+== https://www.aliexpress.us/item/3256803490630385.html
+www.aliexpress.us      browser    {"status":200,"len":1735,"final":"www.aliexpress.us/item/3256803490630385.html","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":27}
+www.aliexpress.us      facebook   {"status":200,"len":76935,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":49}
+www.aliexpress.us      twitter    {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":55}
+www.aliexpress.us      telegram   {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":97}
+www.aliexpress.us      whatsapp   {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":57}
+www.aliexpress.us      slack      {"status":403,"len":637,"final":"www.aliexpress.us/item/3256803490630385.html","og":null,"img":false,"ld":false,"title":"403 Forbidden","blocked":false,"ms":18}
+www.aliexpress.us      discord    {"status":200,"len":1735,"final":"www.aliexpress.us/item/3256803490630385.html","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":63}
+www.aliexpress.us      jina       {"status":200,"len":1714,"jtitle":"","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":587}
+www.aliexpress.us      microlink  {"status":200,"mstatus":"success","title":"3256803490630385.html","img":false,"ms":19}
+www.aliexpress.us      vercel     {"status":200,"len":1735,"og":null,"img":false,"title":null,"ms":207}
+
+== https://www.amazon.com/dp/B07BHHG5GZ
+www.amazon.com         browser    {"status":200,"len":3781,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"Amazon.com","blocked":true,"ms":52}
+www.amazon.com         facebook   {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":60}
+www.amazon.com         twitter    {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":34}
+www.amazon.com         telegram   {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":25}
+www.amazon.com         whatsapp   {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":27}
+www.amazon.com         slack      {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":25}
+www.amazon.com         discord    {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":29}
+www.amazon.com         jina       {"status":200,"len":2245,"jtitle":"Page Not Found","og":null,"img":false,"ld":false,"title":"\n      Page Not Found\n    ","blocked":false,"ms":378}
+www.amazon.com         microlink  {"status":200,"mstatus":"success","title":"Page Not Found","img":true,"ms":18}
+www.amazon.com         vercel     {"status":200,"len":3781,"og":null,"img":false,"title":"Amazon.com","ms":265}
+
+== https://ksp.co.il/web/item/254425
+ksp.co.il              browser    {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":197}
+ksp.co.il              facebook   {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":13}
+ksp.co.il              twitter    {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":13}
+ksp.co.il              telegram   {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":14}
+ksp.co.il              whatsapp   {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":13}
+ksp.co.il              slack      {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":12}
+ksp.co.il              discord    {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":12}
+ksp.co.il              jina       {"status":200,"len":19633,"jtitle":"KSP – אימות אבטחה","og":null,"img":false,"ld":false,"title":"KSP – אימות אבטחה","blocked":false,"ms":198}
+ksp.co.il              microlink  {"status":200,"mstatus":"success","title":"KSP Forbidden 403","img":true,"ms":24}
+ksp.co.il              vercel     {"status":403,"len":21029,"og":null,"img":false,"title":"KSP Forbidden 403","ms":216}
+
+== https://www.ebay.com/itm/266328557536
+www.ebay.com           browser    {"status":403,"len":1831,"final":"www.ebay.com/itm/266328557536","og":null,"img":false,"ld":false,"title":"Error Page | eBay","blocked":false,"ms":108}
+www.ebay.com           facebook   {"err":"The operation was aborted due to timeout","ms":12000}
+www.ebay.com           twitter    {"err":"The operation was aborted due to timeout","ms":12000}
+www.ebay.com           telegram   {"err":"The operation was aborted due to timeout","ms":12000}
+www.ebay.com           whatsapp   {"status":403,"len":1977,"final":"www.ebay.com/itm/266328557536","og":null,"img":false,"ld":false,"title":"Error Page | eBay","blocked":false,"ms":140}
+www.ebay.com           slack      {"status":403,"len":1831,"final":"www.ebay.com/itm/266328557536","og":null,"img":false,"ld":false,"title":"Error Page | eBay","blocked":false,"ms":96}
+www.ebay.com           discord    {"status":403,"len":1831,"final":"www.ebay.com/itm/266328557536","og":null,"img":false,"ld":false,"title":"Error Page | eBay","blocked":false,"ms":31}
+www.ebay.com           jina       {"status":200,"len":1815,"jtitle":"Error Page | eBay","og":null,"img":false,"ld":false,"title":"Error Page | eBay","blocked":false,"ms":274}
+www.ebay.com           microlink  {"status":200,"mstatus":"success","title":"266328557536","img":false,"ms":54}
+www.ebay.com           vercel     {"status":403,"len":1830,"og":null,"img":false,"title":"Error Page | eBay","ms":309}
