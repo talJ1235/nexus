@@ -120,7 +120,7 @@ Acceptance: smoke triggers a toast and checks the close button; mobile screensho
 
 ---
 
-### 6. [ ] Small carry-over from A1 (see Open)
+### 6. [x] Small carry-over from A1 (see Open)
 Clicks in the streamed loading shell are lost when the data arrives (e.g. opening the assistant during a slow load).
 Lift panel/dialog open-state above the Suspense boundary so a click made while loading takes effect once the app is
 in; if that's more than a small change, disable those header/sidebar buttons while `loading` instead. Remove the
@@ -134,9 +134,6 @@ Open line when done.
 ---
 
 ## Open
-- (A1) Clicks made in the streamed loading shell before the data arrives are lost when the app replaces it
-  (e.g. opening the assistant during a slow load). Only matters on slow loads; could disable the header/sidebar
-  buttons while `loading`, or lift panel state above the Suspense boundary.
 - (A1) Sidebar "Unsorted" entry and a project's budget bar appear only once data is in (their existence is data),
   so on those the sidebar / project header can shift a little after a slow load.
 - (A1) Reduced-motion rules and the boot screen in a real installed PWA (Android splash → boot hand-off) were not

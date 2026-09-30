@@ -30,6 +30,7 @@ function NavItem({
   count,
   children,
   onDropItems,
+  carry,
 }: {
   active: boolean;
   onClick: () => void;
@@ -39,6 +40,7 @@ function NavItem({
   count?: number | null;
   children?: React.ReactNode;
   onDropItems?: (ids: string[]) => void;
+  carry?: string;
 }) {
   const [over, setOver] = useState(false);
   const accepts = (e: React.DragEvent) => !!onDropItems && e.dataTransfer.types.includes(DRAG_TYPE);
@@ -46,6 +48,7 @@ function NavItem({
     <button
       type="button"
       onClick={onClick}
+      data-carry={carry}
       aria-current={active ? "page" : undefined}
       onDragOver={(e) => {
         if (!accepts(e)) return;
@@ -78,12 +81,12 @@ function NavItem({
   );
 }
 
-function SectionHeader({ label, onAdd, addLabel }: { label: string; onAdd?: () => void; addLabel?: string }) {
+function SectionHeader({ label, onAdd, addLabel, carry }: { label: string; onAdd?: () => void; addLabel?: string; carry?: string }) {
   return (
     <div className="mb-1 mt-5 flex items-center justify-between px-2.5">
       <span className="text-xs font-medium text-faint">{label}</span>
       {onAdd && (
-        <button type="button" onClick={onAdd} aria-label={addLabel} title={addLabel} className="rounded-md p-0.5 text-faint transition hover:bg-sunken hover:text-fg">
+        <button type="button" onClick={onAdd} aria-label={addLabel} title={addLabel} data-carry={carry} className="rounded-md p-0.5 text-faint transition hover:bg-sunken hover:text-fg">
           <Plus className="size-3.5" />
         </button>
       )}
@@ -164,6 +167,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => s.setPaletteOpen(true)}
+          data-carry="palette"
           className="hidden items-center gap-1 rounded-md px-1.5 py-1 text-faint transition hover:bg-sunken hover:text-fg lg:flex"
           title={t.cmd.placeholder}
         >
@@ -173,18 +177,18 @@ export function Sidebar() {
 
       <div className="flex-1 overflow-y-auto px-2 pb-4">
         <div className="mt-2 space-y-0.5">
-          <NavItem active={active({ type: "to_buy" })} onClick={() => s.setView({ type: "to_buy" })} icon={<ShoppingBag />} label={t.nav.toBuy} count={n(counts.to_buy)} />
-          <NavItem active={active({ type: "urgent" })} onClick={() => s.setView({ type: "urgent" })} icon={<Zap />} label={t.nav.urgent} count={n(counts.urgent)} />
+          <NavItem active={active({ type: "to_buy" })} onClick={() => s.setView({ type: "to_buy" })} carry="view:to_buy" icon={<ShoppingBag />} label={t.nav.toBuy} count={n(counts.to_buy)} />
+          <NavItem active={active({ type: "urgent" })} onClick={() => s.setView({ type: "urgent" })} carry="view:urgent" icon={<Zap />} label={t.nav.urgent} count={n(counts.urgent)} />
           {counts.unsorted > 0 && (
-            <NavItem active={active({ type: "unsorted" })} onClick={() => s.setView({ type: "unsorted" })} icon={<Inbox />} label={t.nav.unsorted} count={counts.unsorted} onDropItems={(ids) => move(ids, null)} />
+            <NavItem active={active({ type: "unsorted" })} onClick={() => s.setView({ type: "unsorted" })} carry="view:unsorted" icon={<Inbox />} label={t.nav.unsorted} count={counts.unsorted} onDropItems={(ids) => move(ids, null)} />
           )}
-          <NavItem active={active({ type: "orders" })} onClick={() => s.setView({ type: "orders" })} icon={<Store />} label={t.nav.orders} />
-          <NavItem active={active({ type: "ordered" })} onClick={() => s.setView({ type: "ordered" })} icon={<Truck />} label={t.nav.onTheWay} count={n(counts.ordered)} />
-          <NavItem active={active({ type: "history" })} onClick={() => s.setView({ type: "history" })} icon={<History />} label={t.nav.history} count={n(counts.history)} />
-          <NavItem active={active({ type: "spending" })} onClick={() => s.setView({ type: "spending" })} icon={<ChartColumn />} label={t.nav.spending} />
+          <NavItem active={active({ type: "orders" })} onClick={() => s.setView({ type: "orders" })} carry="view:orders" icon={<Store />} label={t.nav.orders} />
+          <NavItem active={active({ type: "ordered" })} onClick={() => s.setView({ type: "ordered" })} carry="view:ordered" icon={<Truck />} label={t.nav.onTheWay} count={n(counts.ordered)} />
+          <NavItem active={active({ type: "history" })} onClick={() => s.setView({ type: "history" })} carry="view:history" icon={<History />} label={t.nav.history} count={n(counts.history)} />
+          <NavItem active={active({ type: "spending" })} onClick={() => s.setView({ type: "spending" })} carry="view:spending" icon={<ChartColumn />} label={t.nav.spending} />
         </div>
 
-        <SectionHeader label={t.nav.projects} onAdd={() => s.setEditor({ mode: "create", kind: "project" })} addLabel={t.nav.newProject} />
+        <SectionHeader label={t.nav.projects} carry="editor:project" onAdd={() => s.setEditor({ mode: "create", kind: "project" })} addLabel={t.nav.newProject} />
         {s.loading && <NavRowsSkeleton rows={[58, 42]} />}
         <div className={cn("space-y-0.5", fade)}>
           {projects.map((c) => {
@@ -217,7 +221,7 @@ export function Sidebar() {
           )}
         </div>
 
-        <SectionHeader label={t.nav.lists} onAdd={() => s.setEditor({ mode: "create", kind: "list" })} addLabel={t.nav.newList} />
+        <SectionHeader label={t.nav.lists} carry="editor:list" onAdd={() => s.setEditor({ mode: "create", kind: "list" })} addLabel={t.nav.newList} />
         {s.loading && <NavRowsSkeleton rows={[46, 62]} round />}
         <div className={cn("space-y-0.5", fade)}>
           {lists.map((c) => (
@@ -254,6 +258,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => s.setSettingsOpen(true)}
+          data-carry="settings"
           className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] text-muted transition hover:bg-sunken hover:text-fg"
         >
           <Settings2 className="size-4" />

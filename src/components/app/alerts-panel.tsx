@@ -41,7 +41,7 @@ export function AlertsBell() {
     };
   }, [s.panel, s.loading]);
   return (
-    <Button variant="ghost" size="icon" className="relative mt-1.5" onClick={() => s.setPanel("alerts")} aria-label={t.alerts.title} title={t.alerts.title}>
+    <Button variant="ghost" size="icon" className="relative mt-1.5" onClick={() => s.setPanel("alerts")} aria-label={t.alerts.title} title={t.alerts.title} data-carry="panel:alerts">
       {unread ? <BellRing /> : <Bell />}
       {unread > 0 && (
         <span className="tabular absolute -end-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-fg">{unread > 9 ? "9+" : unread}</span>

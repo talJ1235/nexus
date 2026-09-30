@@ -129,6 +129,12 @@ function readLocal<T extends string>(key: string, allowed: readonly T[], fallbac
   }
 }
 
+declare global {
+  interface Window {
+    __nexusCarry?: string;
+  }
+}
+
 export function StoreProvider({
   initial,
   initialCurrency,
@@ -224,6 +230,25 @@ export function StoreProvider({
     setCurrencyState(c);
     document.cookie = `${CURRENCY_COOKIE}=${c}; path=/; max-age=31536000; samesite=lax`;
   }, []);
+
+  // The streamed loading shell is plain HTML until the data arrives (React doesn't hydrate a pending Suspense
+  // fallback). page.tsx's inline script remembers the last click on a [data-carry] control there; do it now.
+  useEffect(() => {
+    const c = loading ? undefined : window.__nexusCarry;
+    if (!c) return;
+    delete window.__nexusCarry;
+    const [kind, arg] = c.split(":");
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time hand-over from the loading shell */
+    if (kind === "panel") setPanel(arg as Panel);
+    else if (kind === "palette") setPaletteOpen(true);
+    else if (kind === "settings") setSettingsOpen(true);
+    else if (kind === "nav") setNavOpen(true);
+    else if (kind === "editor") setEditor({ mode: "create", kind: arg === "list" ? "list" : "project" });
+    else if (kind === "layout") setLayout(arg === "table" ? "table" : "cards");
+    else if (kind === "view") setView(paramToView(arg));
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   const upsertItem = useCallback((i: ItemWithSources) => {
     setItems((prev) => {

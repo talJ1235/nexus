@@ -3,6 +3,7 @@
 //
 //   BASE=http://localhost:3100 NEXUS_PASSWORD=... node scripts/smoke.mjs
 //   SMOKE_AI=1 also calls the (owner-only) AI health endpoint. SMOKE_OUT=dir saves screenshots.
+//   SMOKE_SLOW=1 (server started with NEXUS_TRACE_DELAY_MS) checks that a click in the loading shell carries over.
 //   SMOKE_WRITE=1 (localhost only) also exercises adding: placeholder card, same link → +1 (+ its toast's close
 //     button), partial move.
 //   SMOKE_MOBILE=1 runs the owner checks in a 390×844 touch phone context; screenshots get a "-m" suffix.
@@ -164,6 +165,21 @@ try {
       const marks = await page.locator("[data-orders-layout] section header .store-bar, [data-orders-layout] section > header.store-bar").count();
       ok(before !== after && marks > 0, "orders view: cards ↔ table toggle switches layout", `${before}→${after}, store headers=${marks}`);
     });
+
+    if (process.env.SMOKE_SLOW) {
+      // Needs a server started with NEXUS_TRACE_DELAY_MS (slow data): a click in the loading shell must survive.
+      await step("panel opened while loading stays open when the data arrives", async () => {
+        await page.goto(`${BASE}/`, { waitUntil: "commit" });
+        const btn = page.locator("[data-app-shell]:not([data-ready]) header button[title='Ask Nexus'], [data-app-shell]:not([data-ready]) header button[aria-label='Assistant']").filter({ visible: true }).first();
+        await btn.waitFor({ timeout: 10000 });
+        await page.waitForTimeout(400); // let the shell hydrate
+        await btn.click();
+        await page.waitForSelector(READY, { timeout: 20000 });
+        await page.waitForTimeout(300);
+        ok(await page.getByRole("dialog").isVisible(), "panel opened while loading stays open when the data arrives");
+        await page.keyboard.press("Escape");
+      });
+    }
 
     await step("assistant panel opens", async () => {
       await page.goto(`${BASE}/`);

@@ -170,6 +170,11 @@ Brief and checklist: `docs/ROUND5.md`. Sessions A1 + A2 shipped:
   end-side ✕ (hover on desktop, always + 40 px on touch), swipe left/right (and down on phones), phones: bottom-centre
   above the safe area and the selection bar, one-line title/description. Optimistic actions (status, mark all ordered,
   move, delete, +1) toast immediately; Undo waits for the save, a failed save turns the toast into an error.
+- **Clicks during a slow load**: the streamed shell is static HTML until the data arrives (React doesn't hydrate a
+  pending Suspense fallback), so an inline capture script in `page.tsx` (outside the boundary) remembers the last click
+  on a `[data-carry]` control (assistant, alerts, palette, menu, settings, fixed views, new project/list, layout), shows
+  it pressed, and the loaded store replays it once (`window.__nexusCarry`). Smoke: `SMOKE_SLOW=1` with a server started
+  with `NEXUS_TRACE_DELAY_MS`.
 - Smoke: assistant chips (count, 40 px + nowrap on phones), orders cards↔table toggle, and with `SMOKE_WRITE` the toast
   close button + swipe (real touch events on mobile).
 

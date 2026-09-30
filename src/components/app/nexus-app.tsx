@@ -61,7 +61,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-20 border-b border-line/70 bg-bg/85 backdrop-blur-md">
           <div className="mx-auto flex max-w-[1400px] items-start gap-2 px-4 py-3 sm:px-6 lg:px-8">
-            <Button variant="ghost" size="icon" className="mt-1.5 lg:hidden" onClick={() => s.setNavOpen(true)} aria-label="Menu">
+            <Button variant="ghost" size="icon" className="mt-1.5 lg:hidden" onClick={() => s.setNavOpen(true)} aria-label="Menu" data-carry="nav">
               <MenuIcon />
             </Button>
             <LogoMark className="mt-2.5 hidden size-7 sm:block lg:hidden" />
@@ -69,12 +69,12 @@ function Shell({ incoming }: { incoming?: Incoming }) {
               <AddBar incoming={incoming} />
             </div>
             {s.aiEnabled && (
-              <Button variant="ghost" size="icon" className="mt-1.5" onClick={() => s.setPanel("assistant")} aria-label={t.ai.title} title={t.ai.openAssistant}>
+              <Button variant="ghost" size="icon" className="mt-1.5" onClick={() => s.setPanel("assistant")} aria-label={t.ai.title} title={t.ai.openAssistant} data-carry="panel:assistant">
                 <Sparkles />
               </Button>
             )}
             <AlertsBell />
-            <Button variant="ghost" size="icon" className="mt-1.5 lg:hidden" onClick={() => s.setPaletteOpen(true)} aria-label={t.view.search}>
+            <Button variant="ghost" size="icon" className="mt-1.5 lg:hidden" onClick={() => s.setPaletteOpen(true)} aria-label={t.view.search} data-carry="palette">
               <Command />
             </Button>
           </div>
@@ -260,6 +260,7 @@ function ViewHeader() {
                 role="radio"
                 aria-checked={s.layout === l}
                 onClick={() => s.setLayout(l)}
+                data-carry={`layout:${l}`}
                 title={l === "cards" ? t.view.cards : t.view.table}
                 className={cn("grid size-8 place-items-center rounded-md transition", s.layout === l ? "bg-fg text-bg" : "text-muted hover:text-fg")}
               >

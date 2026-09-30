@@ -19,12 +19,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
     <>
       {/* Read by the Nexus Clipper extension to pair itself with this site. */}
       <meta name="nexus-ext-token" content={token} />
+      {/* The loading shell below is static HTML until the data streams in: remember its last [data-carry] click
+          (shown as pressed) for the store to replay once the app is ready (store.tsx). */}
+      <script dangerouslySetInnerHTML={{ __html: CARRY_SCRIPT }} />
       <Suspense fallback={<NexusApp boot={boot} />}>
         <LoadedApp boot={boot} />
       </Suspense>
     </>
   );
 }
+
+const CARRY_SCRIPT = `document.addEventListener("click",function(e){var el=e.target.closest&&e.target.closest("[data-carry]");var shell=el&&el.closest("[data-app-shell]");if(!shell||shell.hasAttribute("data-ready"))return;e.preventDefault();var p=document.querySelector("[data-carry-armed]");if(p)p.removeAttribute("data-carry-armed");el.setAttribute("data-carry-armed","");window.__nexusCarry=el.getAttribute("data-carry")},true)`;
 
 async function LoadedApp({ boot }: { boot: AppBoot }) {
   // Local load traces only (scripts/smoke.mjs): simulate a slow database. Unset in production.
