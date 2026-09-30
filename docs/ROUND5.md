@@ -90,7 +90,7 @@ own data and activity — instant and free (client-side, no AI call).
 - Phone: chips in one horizontally scrollable row (snap, no wrap into 4 lines), 40 px tap height.
 Acceptance: a tiny unit test for the module (pure input → expected questions) via `tsx`; smoke checks chips render.
 
-### 4. [ ] Order by store: tell stores apart at a glance + make the cards/table toggle work
+### 4. [x] Order by store: tell stores apart at a glance + make the cards/table toggle work
 Today stores differ only by name, and the cards ↔ table toggle does nothing in this view (`orders-view.tsx` never reads
 `s.layout`).
 - Store identity, one component `StoreMark` (`src/components/ui/store-mark.tsx`) used in the orders view group headers

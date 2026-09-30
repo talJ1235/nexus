@@ -31,6 +31,16 @@
   --tile-ink: #aab0bc;
   --shadow: 0 1px 2px rgb(18 21 27 / 0.05), 0 6px 18px -8px rgb(18 21 27 / 0.12);
   --shadow-pop: 0 18px 44px -14px rgb(18 21 27 / 0.26), 0 2px 6px rgb(18 21 27 / 0.06);
+  /* Store identity hues (components/ui/store-mark.tsx): muted, tuned to Ink & Teal. */
+  --store-1: #bf6a34;
+  --store-2: #a97c1c;
+  --store-3: #3f6fb8;
+  --store-4: #7a5fbf;
+  --store-5: #c0506a;
+  --store-6: #3f8a5c;
+  --store-7: #2f879b;
+  --store-8: #5b6ba3;
+  --store-fg: #ffffff;
 }
 
 .dark {
@@ -59,6 +69,15 @@
   --tile-ink: #a3a9b4;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -10px rgb(0 0 0 / 0.6);
   --shadow-pop: 0 18px 50px -14px rgb(0 0 0 / 0.75), 0 0 0 1px rgb(255 255 255 / 0.04);
+  --store-1: #d98a58;
+  --store-2: #cfa54c;
+  --store-3: #6f98dc;
+  --store-4: #a28be0;
+  --store-5: #dc7e95;
+  --store-6: #68b487;
+  --store-7: #5cb0c2;
+  --store-8: #8c9bd0;
+  --store-fg: #0b0d10;
 }
 
 @theme inline {
@@ -285,6 +304,12 @@ body {
    its runs in place) but are always aligned to the PAGE's start edge, never flipped by their first letter. */
 .bidi { unicode-bidi: plaintext; text-align: left; }
 :root[dir="rtl"] .bidi { text-align: right; }
+
+/* ---------- Store identity (set --store via storeVar()) ---------- */
+.store-mono { background: var(--store); color: var(--store-fg); }
+.store-bar { border-inline-start: 3px solid var(--store); }
+.store-tint { background: color-mix(in oklab, var(--store) 7%, var(--surface)); }
+.store-line { border-inline-start: 2px solid color-mix(in oklab, var(--store) 45%, transparent); }
 
 /* Same link pasted again: the existing card glows once to show where the +1 went. */
 .bump { animation: bump 1.2s cubic-bezier(0.22, 1, 0.36, 1); }

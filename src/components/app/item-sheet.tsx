@@ -14,6 +14,7 @@ import type { ItemWithSources, Source } from "@/lib/types";
 import { cn, isHttpUrl } from "@/lib/utils";
 import { PriceTag, ProductImage } from "./item-card";
 import { AltLink, FindIt, Group, LowestBadge, PriceHistory, PriceWatch, ReceiptsSection, Row, ShippingSection, StatusControl } from "./item-sheet-parts";
+import { StoreMark } from "@/components/ui/store-mark";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 import { COLLECTION_COLORS } from "./view-items";
@@ -67,6 +68,7 @@ function SourceRow({ item, source }: { item: ItemWithSources; source: Source }) 
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
+            {source.url && <StoreMark store={source.store} storeKey={source.storeKey} url={source.url} size={20} />}
             <span className="font-medium">{source.store}</span>
             {isCheapest && <span className="rounded bg-accent px-1.5 py-px text-[11px] font-semibold text-accent-fg">{t.item.cheapest}</span>}
             {isChosen && <span className="rounded bg-fg px-1.5 py-px text-[11px] font-semibold text-bg">{t.item.chosen}</span>}

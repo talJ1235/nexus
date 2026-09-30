@@ -147,6 +147,23 @@ try {
       });
     }
 
+    await step("orders view: cards ↔ table toggle switches layout", async () => {
+      await page.goto(`${BASE}/?v=orders`);
+      await page.waitForSelector("[data-orders-layout]", { timeout: 15000 });
+      const layout = () => page.locator("[data-orders-layout]").getAttribute("data-orders-layout");
+      const radio = (i) => page.locator("[role=radiogroup] [role=radio]").nth(i);
+      const before = await layout();
+      await radio(before === "table" ? 0 : 1).click();
+      await page.waitForFunction((b) => document.querySelector("[data-orders-layout]")?.getAttribute("data-orders-layout") !== b, before, { timeout: 5000 });
+      const after = await layout();
+      await shot(page, `orders-${after}`);
+      await radio(after === "table" ? 0 : 1).click();
+      await page.waitForFunction((b) => document.querySelector("[data-orders-layout]")?.getAttribute("data-orders-layout") === b, before, { timeout: 5000 });
+      await shot(page, `orders-${before}`);
+      const marks = await page.locator("[data-orders-layout] section header .store-bar, [data-orders-layout] section > header.store-bar").count();
+      ok(before !== after && marks > 0, "orders view: cards ↔ table toggle switches layout", `${before}→${after}, store headers=${marks}`);
+    });
+
     await step("assistant panel opens", async () => {
       await page.goto(`${BASE}/`);
       await page.waitForSelector(READY, { timeout: 15000 });

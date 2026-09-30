@@ -9,6 +9,7 @@ import { activeSource, cheapestSource, lineTotal, lowestSeen, unitPrice } from "
 import { convert, formatMoney } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { StoreMark } from "@/components/ui/store-mark";
 import { useStore } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
 
@@ -127,6 +128,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
   const low = moved ? lowestSeen(item, s.rates, s.currency) : null;
   const atLowest = item.status === "to_buy" && low != null && unit != null && unit <= low * 1.005;
   const stores = Array.from(new Set(item.sources.filter((x) => x.url).map((x) => x.store)));
+  const firstSrc = item.sources.find((x) => x.url);
   const selecting = s.selected.size > 0;
   const isSelected = s.selected.has(item.id);
   const fresh = s.fresh.get(item.id);
@@ -234,6 +236,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
       <div className="flex flex-1 flex-col p-3.5 pt-3">
         <h3 className="bidi line-clamp-2 min-h-[2.6em] text-[14.5px] font-medium leading-[1.3] text-fg">{item.title}</h3>
         <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[12px] text-muted">
+          {stores[0] && firstSrc && <StoreMark store={firstSrc.store} storeKey={firstSrc.storeKey} url={firstSrc.url} size={16} />}
           {stores[0] && <span className="truncate">{stores[0]}</span>}
           {stores.length > 1 && (
             <span dir="ltr" className="shrink-0 rounded bg-sunken px-1 text-[11px] text-muted">

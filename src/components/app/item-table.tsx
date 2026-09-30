@@ -3,6 +3,7 @@
 import { ExternalLink, PackageCheck, Split, Truck, Undo2 } from "lucide-react";
 import { updateItem } from "@/app/actions";
 import { useI18n } from "@/components/providers";
+import { StoreMark } from "@/components/ui/store-mark";
 import { activeSource, lineTotal, unitPrice } from "@/lib/calc";
 import { formatMoney } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
@@ -34,7 +35,7 @@ function QtyCell({ item }: { item: ItemWithSources }) {
   );
 }
 
-export function ItemTable({ items, pending = [] }: { items: ItemWithSources[]; pending?: PendingAdd[] }) {
+export function ItemTable({ items, pending = [], bare = false }: { items: ItemWithSources[]; pending?: PendingAdd[]; bare?: boolean }) {
   const s = useStore();
   const { t, locale } = useI18n();
   const flow = useStatusFlow();
@@ -43,8 +44,8 @@ export function ItemTable({ items, pending = [] }: { items: ItemWithSources[]; p
   const pr = { urgent: t.item.urgent, normal: t.item.normal, someday: t.item.someday };
 
   return (
-    <div className="overflow-x-auto rounded-[var(--radius-card)] border border-line bg-surface">
-      <table className="w-full min-w-[760px] text-sm">
+    <div className={cn("overflow-x-auto", !bare && "rounded-[var(--radius-card)] border border-line bg-surface")}>
+      <table className={cn("w-full min-w-[760px] text-sm", bare && "table-fixed")}>
         <thead>
           <tr className="border-b border-line text-start text-xs text-faint">
             <th className="w-10 py-2.5 ps-3">
@@ -58,12 +59,12 @@ export function ItemTable({ items, pending = [] }: { items: ItemWithSources[]; p
             </th>
             <th className="w-12 py-2.5" />
             <th className="py-2.5 ps-2 text-start font-medium">{t.table.item}</th>
-            <th className="py-2.5 ps-2 text-start font-medium">{t.table.store}</th>
-            <th className="py-2.5 pe-2 text-end font-medium">{t.table.price}</th>
-            <th className="py-2.5 text-center font-medium">{t.table.qty}</th>
-            <th className="py-2.5 pe-3 text-end font-medium">{t.table.total}</th>
-            <th className="py-2.5 ps-2 text-start font-medium">{t.table.priority}</th>
-            <th className="py-2.5 ps-2 text-start font-medium">{t.table.collection}</th>
+            <th className={cn("py-2.5 ps-2 text-start font-medium", bare && "w-40")}>{t.table.store}</th>
+            <th className={cn("py-2.5 pe-2 text-end font-medium", bare && "w-24")}>{t.table.price}</th>
+            <th className={cn("py-2.5 text-center font-medium", bare && "w-16")}>{t.table.qty}</th>
+            <th className={cn("py-2.5 pe-3 text-end font-medium", bare && "w-28")}>{t.table.total}</th>
+            <th className={cn("py-2.5 ps-2 text-start font-medium", bare && "w-24")}>{t.table.priority}</th>
+            <th className={cn("py-2.5 ps-2 text-start font-medium", bare && "w-36")}>{t.table.collection}</th>
             <th className="w-20 py-2.5 pe-3" />
           </tr>
         </thead>
@@ -121,8 +122,11 @@ export function ItemTable({ items, pending = [] }: { items: ItemWithSources[]; p
                   </div>
                 </td>
                 <td className="py-2 ps-2 text-muted">
-                  {src?.store ?? "—"}
-                  {i.sources.length > 1 && <span dir="ltr" className="ms-1 inline-block text-xs text-faint">+{i.sources.length - 1}</span>}
+                  <span className="flex min-w-0 items-center gap-2">
+                    {src?.url && <StoreMark store={src.store} storeKey={src.storeKey} url={src.url} size={18} />}
+                    <span className="truncate">{src?.store ?? "—"}</span>
+                    {i.sources.length > 1 && <span dir="ltr" className="inline-block text-xs text-faint">+{i.sources.length - 1}</span>}
+                  </span>
                 </td>
                 <td className="tabular py-2 pe-2 text-end">{unit == null ? <span className="text-faint">—</span> : formatMoney(unit, s.currency, locale)}</td>
                 <td className="py-1 text-center">
