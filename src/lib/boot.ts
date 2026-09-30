@@ -1,7 +1,8 @@
-/** Hide the phone boot screen (components/boot-screen.tsx) once the app is ready: let its first sequence (~900 ms)
- *  finish, but never hold a ready app for more than ~400 ms. Safe to call many times / on pages without it. */
-const SEQUENCE_MS = 900;
-const MAX_HOLD_MS = 400;
+/** Hide the phone boot screen (components/boot-screen.tsx) once the app is ready. The sequence (~1.4 s, plus the
+ *  start of one heartbeat) always plays to the end — Tal wants it seen, even when the app is ready sooner.
+ *  Safe to call many times / on pages without it. */
+const SEQUENCE_MS = 1700;
+const MAX_HOLD_MS = SEQUENCE_MS;
 let done = false;
 
 export function markBooted() {
@@ -19,6 +20,6 @@ export function markBooted() {
   setTimeout(() => {
     el.classList.add("boot-out");
     el.addEventListener("animationend", (e) => e.target === el && el.classList.add("boot-gone"));
-    setTimeout(() => el.classList.add("boot-gone"), 600);
+    setTimeout(() => el.classList.add("boot-gone"), 800);
   }, wait);
 }

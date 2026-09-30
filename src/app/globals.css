@@ -294,7 +294,7 @@ body {
 }
 
 /* ---------- Phone opening animation (components/boot-screen.tsx) ----------
-   Hub pops in with a small overshoot → links draw out → outer nodes pop in one by one with the wordmark fading in (~900 ms).
+   Hub pops in with a small overshoot → links draw out → outer nodes pop in one by one with the wordmark fading in (~1.4 s).
    While the app is still loading, the hub gives a soft heartbeat. On ready: mark eases down, screen fades into the app. */
 #boot { display: none; }
 @media (max-width: 768px), (display-mode: standalone) {
@@ -312,14 +312,14 @@ body {
   html.boot-skip #boot { display: none; }
 }
 #boot.boot-gone { display: none !important; }
-#boot.boot-out { pointer-events: none; animation: boot-fade-out 320ms cubic-bezier(0.4, 0, 1, 1) both; }
-#boot.boot-out .boot-inner { animation: boot-settle 320ms cubic-bezier(0.4, 0, 0.2, 1) both; }
+#boot.boot-out { pointer-events: none; animation: boot-fade-out 450ms cubic-bezier(0.4, 0, 0.2, 1) both; }
+#boot.boot-out .boot-inner { animation: boot-settle 450ms cubic-bezier(0.4, 0, 0.2, 1) both; }
 .boot-inner { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: -6vh; }
 .boot-mark { width: 88px; height: 88px; overflow: visible; }
 .boot-tile { fill: var(--surface); }
 .boot-hub, .boot-node, .boot-glow { transform-box: fill-box; transform-origin: center; }
-.boot-hub { fill: var(--accent); animation: boot-pop 340ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.boot-node { fill: var(--fg); animation: boot-pop 280ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.boot-hub { fill: var(--accent); animation: boot-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.boot-node { fill: var(--fg); animation: boot-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 /* Visible dash sits "before" the path start, hidden under the hub, until it is drawn out. */
 .boot-link {
   fill: none;
@@ -328,15 +328,15 @@ body {
   stroke-linecap: round;
   stroke-dasharray: 1 2;
   stroke-dashoffset: 1;
-  animation: boot-draw 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: boot-draw 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
-.boot-glow { fill: var(--accent); opacity: 0; animation: boot-beat 1.5s cubic-bezier(0.22, 1, 0.36, 1) 900ms infinite; }
+.boot-glow { fill: var(--accent); opacity: 0; animation: boot-beat 1.5s cubic-bezier(0.22, 1, 0.36, 1) 1350ms infinite; }
 .boot-word {
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--fg);
-  animation: boot-word 380ms ease-out 380ms both;
+  animation: boot-word 500ms ease-out 900ms both;
 }
 @keyframes boot-pop {
   from { transform: scale(0); opacity: 0; }

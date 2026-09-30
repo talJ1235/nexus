@@ -12,12 +12,12 @@ export function BootScreen() {
         <svg viewBox="0 0 32 32" className="boot-mark">
           <rect width="32" height="32" rx="9" className="boot-tile" />
           <circle cx="16" cy="16" r="4" className="boot-glow" />
-          <path d="M16 16 9 9" pathLength={1} className="boot-link" style={{ animationDelay: "160ms" }} />
-          <path d="M16 16l7-7" pathLength={1} className="boot-link" style={{ animationDelay: "230ms" }} />
-          <path d="M16 16v8.5" pathLength={1} className="boot-link" style={{ animationDelay: "300ms" }} />
-          <circle cx="9" cy="9" r="2.6" className="boot-node" style={{ animationDelay: "420ms" }} />
-          <circle cx="23" cy="9" r="2.6" className="boot-node" style={{ animationDelay: "520ms" }} />
-          <circle cx="16" cy="24.5" r="2.6" className="boot-node" style={{ animationDelay: "620ms" }} />
+          <path d="M16 16 9 9" pathLength={1} className="boot-link" style={{ animationDelay: "300ms" }} />
+          <path d="M16 16l7-7" pathLength={1} className="boot-link" style={{ animationDelay: "400ms" }} />
+          <path d="M16 16v8.5" pathLength={1} className="boot-link" style={{ animationDelay: "500ms" }} />
+          <circle cx="9" cy="9" r="2.6" className="boot-node" style={{ animationDelay: "750ms" }} />
+          <circle cx="23" cy="9" r="2.6" className="boot-node" style={{ animationDelay: "900ms" }} />
+          <circle cx="16" cy="24.5" r="2.6" className="boot-node" style={{ animationDelay: "1050ms" }} />
           <circle cx="16" cy="16" r="4" className="boot-hub" />
         </svg>
         <div className="boot-word">Nexus</div>

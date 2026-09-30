@@ -9,10 +9,11 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     background_color: "#08090c",
     theme_color: "#08090c",
+    // ?v= bumps make Android notice new icons (installed app splash/launcher) on its next manifest check.
     icons: [
-      { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-      { src: "/icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/icons/icon-192.png?v=2", sizes: "192x192", type: "image/png" },
+      { src: "/icons/icon-512.png?v=2", sizes: "512x512", type: "image/png" },
+      { src: "/icons/maskable-512.png?v=2", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     share_target: {
       action: "/share",
