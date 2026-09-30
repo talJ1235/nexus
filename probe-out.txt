@@ -1,72 +1,74 @@
 
-== https://www.aliexpress.com/item/1005006173693585.html
-www.aliexpress.com     browser    {"err":"fetch failed","ms":2346}
-www.aliexpress.com     facebook   {"status":200,"len":75214,"final":"www.aliexpress.com/item/1005006173693585.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":67}
-www.aliexpress.com     twitter    {"status":200,"len":75158,"final":"www.aliexpress.us/item/3256805987378833.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":98}
-www.aliexpress.com     telegram   {"status":200,"len":75158,"final":"www.aliexpress.us/item/3256805987378833.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":87}
-www.aliexpress.com     whatsapp   {"status":200,"len":75158,"final":"www.aliexpress.us/item/3256805987378833.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":102}
-www.aliexpress.com     slack      {"status":403,"len":638,"final":"www.aliexpress.com/item/1005006173693585.html","og":null,"img":false,"ld":false,"title":"403 Forbidden","blocked":false,"ms":25}
-www.aliexpress.com     discord    {"err":"fetch failed","ms":940}
-www.aliexpress.com     jina       {"status":200,"len":2316,"jtitle":"","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":1756}
-www.aliexpress.com     microlink  {"status":200,"mstatus":"success","title":"1005006173693585.html","img":false,"ms":60}
-www.aliexpress.com     vercel     {"status":200,"len":2337,"og":null,"img":false,"title":null,"ms":483}
+== https://www.aliexpress.com/item/1005003676945137.html
+www.aliexpress.com     browser    {"err":"fetch failed","ms":3295}
+   META: <meta property="og:url" content="//www.aliexpress.com/item/1005003676945137.html?src=ibdm_d03p0558e02r02&sk=&aff_platform=&aff_trace_key=&af=&cv=&cn=&dp=&aff_short_key=" />
+         <meta property="og:title" content="Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1" />
+         <meta property="og:type" content="product" />
+         <meta property="og:image" content="https://ae-pic-a1.aliexpress-media.com/kf/Sf269f3581e9645c6a05a968e1032ee29b.jpg"/>
+         <meta property="og:description" content="Smarter Shopping, Better Living! Aliexpress.com" />
+         <meta property="og:site_name" content="aliexpress." />
+         <meta name="description" content="" />
+   PAT: formatedActivityPrice[^,]{0,60} → null
+   PAT: formatedAmount[^,]{0,60} → null
+   PAT: "price"[^,]{0,60} → null
+   PAT: currencyCode[^,]{0,30} → null
+   PAT: "subject"[^,]{0,120} → null
+   PAT: ld\+json → null
+www.aliexpress.com     facebook   {"status":200,"len":76992,"final":"www.aliexpress.com/item/1005003676945137.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":108}
+www.aliexpress.com     twitter    {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":200}
+www.aliexpress.com     telegram   {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":261}
+www.aliexpress.com     whatsapp   {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":247}
+www.aliexpress.com     slack      {"status":403,"len":638,"final":"www.aliexpress.com/item/1005003676945137.html","og":null,"img":false,"ld":false,"title":"403 Forbidden","blocked":false,"ms":75}
+www.aliexpress.com     discord    {"err":"fetch failed","ms":2560}
+www.aliexpress.com     jina       {"status":200,"len":2316,"jtitle":"","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":686}
+www.aliexpress.com     microlink  {"status":400,"mstatus":"fail","title":null,"img":false,"msg":"The request has been not processed. See the errors above to ","ms":5699}
+www.aliexpress.com     vercel     {"status":200,"len":2337,"og":null,"img":false,"title":null,"ms":2562}
 
-== https://he.aliexpress.com/item/1005006173693585.html
-he.aliexpress.com      browser    {"err":"fetch failed","ms":1882}
-he.aliexpress.com      facebook   {"status":200,"len":73449,"final":"he.aliexpress.com/item/1005006173693585.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":88}
-he.aliexpress.com      twitter    {"status":200,"len":75158,"final":"www.aliexpress.us/item/3256805987378833.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":109}
-he.aliexpress.com      telegram   {"status":200,"len":75158,"final":"www.aliexpress.us/item/3256805987378833.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":143}
-he.aliexpress.com      whatsapp   {"status":200,"len":75158,"final":"www.aliexpress.us/item/3256805987378833.html","og":null,"img":false,"ld":false,"title":"","blocked":false,"ms":103}
-he.aliexpress.com      slack      {"status":403,"len":637,"final":"he.aliexpress.com/item/1005006173693585.html","og":null,"img":false,"ld":false,"title":"403 Forbidden","blocked":false,"ms":21}
-he.aliexpress.com      discord    {"status":200,"len":1949,"final":"he.aliexpress.com/item/1005006173693585.html","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":98}
-he.aliexpress.com      jina       {"status":200,"len":1928,"jtitle":"","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":291}
-he.aliexpress.com      microlink  {"status":200,"mstatus":"success","title":"1005006173693585.html","img":false,"ms":21}
-he.aliexpress.com      vercel     {"status":200,"len":1949,"og":null,"img":false,"title":null,"ms":526}
+== https://he.aliexpress.com/item/1005003676945137.html?spm=a2g0o.productlist&pdp_npi=4%40dis%21ILS%2150.00%2135.00%21%21%21
+he.aliexpress.com      browser    {"err":"fetch failed","ms":2570}
+   META: <meta property="og:url" content="//he.aliexpress.com/item/1005003676945137.html?src=ibdm_d03p0558e02r02&sk=&aff_platform=&aff_trace_key=&af=&cv=&cn=&dp=&aff_short_key=" />
+         <meta property="og:title" content="מנוע צעד Nema 17, יחס תיבת הילוכים 5:1/10:1/50:1/100:1, גיר Φ8mm" />
+         <meta property="og:type" content="product" />
+         <meta property="og:image" content="https://ae-pic-a1.aliexpress-media.com/kf/Sf269f3581e9645c6a05a968e1032ee29b.jpg"/>
+         <meta property="og:description" content="Smarter Shopping, Better Living! Aliexpress.com" />
+         <meta property="og:site_name" content="aliexpress." />
+         <meta name="description" content="" />
+   PAT: formatedActivityPrice[^,]{0,60} → null
+   PAT: formatedAmount[^,]{0,60} → null
+   PAT: "price"[^,]{0,60} → null
+   PAT: currencyCode[^,]{0,30} → null
+   PAT: "subject"[^,]{0,120} → null
+   PAT: ld\+json → null
+he.aliexpress.com      facebook   {"status":200,"len":74935,"final":"he.aliexpress.com/item/1005003676945137.html","og":"מנוע צעד Nema 17, יחס תיבת הילוכים 5:1/10:1/50:1/100:1, גיר Φ8mm","img":true,"ld":false,"title":"","blocked":false,"ms":166}
+he.aliexpress.com      twitter    {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":216}
+he.aliexpress.com      telegram   {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":191}
+he.aliexpress.com      whatsapp   {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":197}
+he.aliexpress.com      slack      {"status":403,"len":710,"final":"he.aliexpress.com/item/1005003676945137.html","og":null,"img":false,"ld":false,"title":"403 Forbidden","blocked":false,"ms":65}
+he.aliexpress.com      discord    {"status":200,"len":1949,"final":"he.aliexpress.com/item/1005003676945137.html","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":131}
+he.aliexpress.com      jina       {"status":422,"len":0,"jtitle":null,"og":null,"img":false,"ld":false,"title":null,"blocked":false,"ms":3585}
+he.aliexpress.com      microlink  {"status":200,"mstatus":"success","title":"1005003676945137.html?spm=a2g0o.productlist&pdp_npi=4%40dis%21ILS%2150","img":false,"ms":8537}
+he.aliexpress.com      vercel     {"status":200,"len":1949,"og":null,"img":false,"title":null,"ms":707}
 
-== https://www.aliexpress.us/item/3256803490630385.html
-www.aliexpress.us      browser    {"status":200,"len":1735,"final":"www.aliexpress.us/item/3256803490630385.html","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":27}
-www.aliexpress.us      facebook   {"status":200,"len":76935,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":49}
-www.aliexpress.us      twitter    {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":55}
-www.aliexpress.us      telegram   {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":97}
-www.aliexpress.us      whatsapp   {"status":200,"len":76936,"final":"www.aliexpress.us/item/3256803490630385.html","og":"Nema 17 Stepper Motor Gearbox 5:1 10:1 50:1 100:1","img":true,"ld":false,"title":"","blocked":false,"ms":57}
-www.aliexpress.us      slack      {"status":403,"len":637,"final":"www.aliexpress.us/item/3256803490630385.html","og":null,"img":false,"ld":false,"title":"403 Forbidden","blocked":false,"ms":18}
-www.aliexpress.us      discord    {"status":200,"len":1735,"final":"www.aliexpress.us/item/3256803490630385.html","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":63}
-www.aliexpress.us      jina       {"status":200,"len":1714,"jtitle":"","og":null,"img":false,"ld":false,"title":null,"blocked":true,"ms":587}
-www.aliexpress.us      microlink  {"status":200,"mstatus":"success","title":"3256803490630385.html","img":false,"ms":19}
-www.aliexpress.us      vercel     {"status":200,"len":1735,"og":null,"img":false,"title":null,"ms":207}
-
-== https://www.amazon.com/dp/B07BHHG5GZ
-www.amazon.com         browser    {"status":200,"len":3781,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"Amazon.com","blocked":true,"ms":52}
-www.amazon.com         facebook   {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":60}
-www.amazon.com         twitter    {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":34}
-www.amazon.com         telegram   {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":25}
-www.amazon.com         whatsapp   {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":27}
-www.amazon.com         slack      {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":25}
-www.amazon.com         discord    {"status":500,"len":2340,"final":"www.amazon.com/dp/B07BHHG5GZ","og":null,"img":false,"ld":false,"title":"\n      503 - Service Unavailable Error","blocked":false,"ms":29}
-www.amazon.com         jina       {"status":200,"len":2245,"jtitle":"Page Not Found","og":null,"img":false,"ld":false,"title":"\n      Page Not Found\n    ","blocked":false,"ms":378}
-www.amazon.com         microlink  {"status":200,"mstatus":"success","title":"Page Not Found","img":true,"ms":18}
-www.amazon.com         vercel     {"status":200,"len":3781,"og":null,"img":false,"title":"Amazon.com","ms":265}
-
-== https://ksp.co.il/web/item/254425
-ksp.co.il              browser    {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":197}
-ksp.co.il              facebook   {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":13}
-ksp.co.il              twitter    {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":13}
-ksp.co.il              telegram   {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":14}
-ksp.co.il              whatsapp   {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":13}
-ksp.co.il              slack      {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":12}
-ksp.co.il              discord    {"status":403,"len":21032,"final":"ksp.co.il/web/item/254425","og":null,"img":false,"ld":false,"title":"KSP Forbidden 403","blocked":false,"ms":12}
-ksp.co.il              jina       {"status":200,"len":19633,"jtitle":"KSP – אימות אבטחה","og":null,"img":false,"ld":false,"title":"KSP – אימות אבטחה","blocked":false,"ms":198}
-ksp.co.il              microlink  {"status":200,"mstatus":"success","title":"KSP Forbidden 403","img":true,"ms":24}
-ksp.co.il              vercel     {"status":403,"len":21029,"og":null,"img":false,"title":"KSP Forbidden 403","ms":216}
-
-== https://www.ebay.com/itm/266328557536
-www.ebay.com           browser    {"status":403,"len":1831,"final":"www.ebay.com/itm/266328557536","og":null,"img":false,"ld":false,"title":"Error Page | eBay","blocked":false,"ms":108}
-www.ebay.com           facebook   {"err":"The operation was aborted due to timeout","ms":12000}
-www.ebay.com           twitter    {"err":"The operation was aborted due to timeout","ms":12000}
-www.ebay.com           telegram   {"err":"The operation was aborted due to timeout","ms":12000}
-www.ebay.com           whatsapp   {"status":403,"len":1977,"final":"www.ebay.com/itm/266328557536","og":null,"img":false,"ld":false,"title":"Error Page | eBay","blocked":false,"ms":140}
-www.ebay.com           slack      {"status":403,"len":1831,"final":"www.ebay.com/itm/266328557536","og":null,"img":false,"ld":false,"title":"Error Page | eBay","blocked":false,"ms":96}
-www.ebay.com           discord    {"status":403,"len":1831,"final":"www.ebay.com/itm/266328557536","og":null,"img":false,"ld":false,"title":"Error Page | eBay","blocked":false,"ms":31}
-www.ebay.com           jina       {"status":200,"len":1815,"jtitle":"Error Page | eBay","og":null,"img":false,"ld":false,"title":"Error Page | eBay","blocked":false,"ms":274}
-www.ebay.com           microlink  {"status":200,"mstatus":"success","title":"266328557536","img":false,"ms":54}
-www.ebay.com           vercel     {"status":403,"len":1830,"og":null,"img":false,"title":"Error Page | eBay","ms":309}
+== https://a.aliexpress.com/_mKXYZ12
+a.aliexpress.com       browser    {"status":200,"len":147028,"final":"best.aliexpress.com/","og":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","img":true,"ld":false,"title":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","blocked":false,"ms":1392}
+   META: <meta name="description" content="Online shopping for the latest electronics, fashion, phone accessories, computer electronics, toys, home&garden, home appliances, tools, home improvement and more."/>
+         <meta property="og:title" content="AliExpress - Online Shopping for Popular Electronics, Fashion, Home & Garden, Toys & Sports, Automobiles and More."/>
+         <meta property="og:type" content="website"/>
+         <meta property="og:url" content="https://best.aliexpress.com"/>
+         <meta property="og:image" content="https://ae-pic-a1.aliexpress-media.com/kf/Sa0202ec8a96a4085962acfc27e9ffd04F/1080x1080.jpg"/>
+         <meta property="og:site_name" content="AliExpress - Online Shopping for Popular Electronics, Fashion, Home & Garden, Toys & Sports, Automobiles and More."/>
+   PAT: formatedActivityPrice[^,]{0,60} → null
+   PAT: formatedAmount[^,]{0,60} → null
+   PAT: "price"[^,]{0,60} → null
+   PAT: currencyCode[^,]{0,30} → null
+   PAT: "subject"[^,]{0,120} → null
+   PAT: ld\+json → null
+a.aliexpress.com       facebook   {"status":200,"len":145315,"final":"best.aliexpress.com/","og":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","img":true,"ld":false,"title":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","blocked":false,"ms":555}
+a.aliexpress.com       twitter    {"status":200,"len":146988,"final":"best.aliexpress.com/","og":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","img":true,"ld":false,"title":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","blocked":false,"ms":737}
+a.aliexpress.com       telegram   {"status":200,"len":146988,"final":"best.aliexpress.com/","og":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","img":true,"ld":false,"title":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","blocked":false,"ms":702}
+a.aliexpress.com       whatsapp   {"status":200,"len":146996,"final":"best.aliexpress.com/","og":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","img":true,"ld":false,"title":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","blocked":false,"ms":610}
+a.aliexpress.com       slack      {"status":403,"len":618,"final":"a.aliexpress.com/_mKXYZ12","og":null,"img":false,"ld":false,"title":"403 Forbidden","blocked":false,"ms":56}
+a.aliexpress.com       discord    {"status":200,"len":146988,"final":"best.aliexpress.com/","og":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","img":true,"ld":false,"title":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","blocked":false,"ms":718}
+a.aliexpress.com       jina       {"status":200,"len":146043,"jtitle":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","og":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","img":true,"ld":false,"title":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","blocked":false,"ms":2579}
+a.aliexpress.com       microlink  {"status":200,"mstatus":"success","title":"AliExpress - Online Shopping for Popular Electronics, Fashion, Home & ","img":true,"ms":9591}
+a.aliexpress.com       vercel     {"status":200,"len":142969,"og":"AliExpress - Online Shopping für Elektronik, Mode, Haus & Ga","img":true,"title":"AliExpress - Online Shopping für Elektronik, Mode, Haus & Ga","ms":1305}
