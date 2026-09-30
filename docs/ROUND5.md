@@ -9,7 +9,7 @@ never append a second copy).
 
 ---
 
-## Session A1 — first load (desktop + phone)
+## Session A1 — first load + logo (desktop + phone). Order: 0 → 1 → 2b → 2
 
 ### 0. [ ] Tooling first: mobile smoke
 `SMOKE_MOBILE=1 npm run smoke` runs the existing read-only checks in a 390×844 touch context (isMobile, hasTouch) and
@@ -54,9 +54,20 @@ the app is ready.
 - Timing: first sequence ~900 ms; it never delays a ready app beyond finishing that sequence (max hold ~400 ms after
   ready); if loading takes longer, the heartbeat loops. Hidden via a class set when the store has mounted.
 - Reduced motion: static mark + simple fade.
-- Note for Tal (don't change without asking): the logo's center node is orange (#f2a93b) while the app accent is teal
-  since Round 4.
+- The animation uses the teal logo from item 2b.
 Acceptance: `SMOKE_MOBILE=1 SMOKE_TRACE=1` frames show the sequence and a clean hand-off; desktop never shows it.
+
+### 2b. [ ] Logo accent: orange → teal (decided by Tal) — do this before item 2
+The logo's center node is still the old orange (#f2a93b) while the app accent is teal since Round 4. Align everywhere:
+- `public/icons/icon.svg`, `public/icons/maskable.svg`: center node → dark-theme `--accent` (#14a898).
+- `src/components/logo.tsx`: center node uses `var(--accent)` (follows light/dark), not a hard-coded colour.
+- Regenerate the PNGs from the SVGs at the same sizes: `favicon-48.png`, `icon-192.png`, `icon-512.png`,
+  `maskable-512.png` (sharp is fine; a one-off script under `scripts/` that can be re-run, e.g. `scripts/icons.mjs`).
+- Extension: `extension/icons/*` and `extension/popup.css` (`--accent`, `--accent-fg` → the teal pair from
+  `globals.css`); bump the extension version (patch).
+- Leave `src/components/app/view-items.ts` `amber` alone — it's a collection colour choice, not the brand.
+Acceptance: `rg -n "f2a93b" public src extension` returns only the `amber` collection colour; icons look right at
+16/48/192 px (one screenshot of the favicons side by side).
 
 ---
 
