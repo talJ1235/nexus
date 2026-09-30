@@ -2,9 +2,12 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { verifyExtensionRequest } from "@/lib/ext-token";
+import { getItem } from "@/lib/data";
+import { parseHtml } from "@/lib/extract";
+import { missingDetails, refreshSourceCore } from "@/lib/service";
 import { checkSourceFromHtml, checkSourceFromPayload, sendAlertDigest } from "@/lib/tracker";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const body = z.union([
   z.object({ done: z.literal(true) }),
@@ -27,6 +30,15 @@ export async function POST(req: Request) {
   if ("done" in b) return Response.json(await sendAlertDigest(new URL(req.url).origin));
   const src = await db.query.sources.findFirst({ where: eq(schema.sources.id, b.sourceId) });
   if (!src) return Response.json({ error: "not_found" }, { status: 404 });
+  // Incomplete link (name/price/picture missing) → repair the whole item from what the browser read.
+  const item = await getItem(src.itemId);
+  if (item && b.html && missingDetails(src, item)) {
+    const p = parseHtml(b.html, b.finalUrl || src.url);
+    if (p.title || p.price != null) {
+      const fixed = await refreshSourceCore(src.id, { url: src.url, title: p.title, price: p.price, currency: p.currency, image: p.image, brand: p.brand, siteName: p.siteName, description: p.description });
+      return Response.json({ ok: true, repaired: !missingDetails(fixed.sources.find((s) => s.id === src.id) ?? src, fixed), alerts: 0 });
+    }
+  }
   const alerts = b.payload ? await checkSourceFromPayload(src, b.payload) : b.html ? await checkSourceFromHtml(src, b.html, b.finalUrl) : null;
   return Response.json({ ok: alerts != null, alerts: alerts?.length ?? 0 });
 }

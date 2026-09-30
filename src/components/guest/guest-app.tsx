@@ -5,7 +5,7 @@ import { Check, ExternalLink, Languages, Link2, Minus, Moon, Plus, Sun, Trash2, 
 import { Spinner } from "@/components/ui/spinner";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
-import { guestAddItem, guestDeleteItem, guestSetStatus, guestUpdateItem } from "@/app/guest-actions";
+import { guestAddItem, guestDeleteItem, guestRepairItem, guestSetStatus, guestUpdateItem } from "@/app/guest-actions";
 import { ProductImage } from "@/components/app/item-card";
 import { COLLECTION_COLORS } from "@/components/app/view-items";
 import { LogoMark } from "@/components/logo";
@@ -48,6 +48,21 @@ export function GuestApp({ data, initialCollection, initialCurrency }: { data: G
     rememberCurrency(c);
   };
 
+  // A link whose name/price/picture didn't come through gets re-read quietly in the background.
+  const heal = async (item: ItemWithSources, attempt = 0) => {
+    const src = item.sources.find((x) => x.url);
+    const incomplete = src && (!src.rawTitle || src.price == null || !item.imageUrl);
+    if (!incomplete || attempt >= 2) return;
+    await new Promise((r) => setTimeout(r, attempt === 0 ? 4000 : 25000));
+    try {
+      const fixed = await guestRepairItem(item.id);
+      upsert(fixed);
+      void heal(fixed, attempt + 1);
+    } catch {
+      /* the daily repair pass will try again */
+    }
+  };
+
   const add = async (text: string) => {
     const url = extractUrls(text)[0];
     if (!url || !collection) return toast.error(t.add.invalidUrl);
@@ -56,6 +71,7 @@ export function GuestApp({ data, initialCollection, initialCurrency }: { data: G
     try {
       const r = await guestAddItem(url, collection.id);
       upsert(r.item);
+      if (!r.existed) void heal(r.item);
       toast[r.existed ? "info" : "success"](r.existed ? t.share.exists : t.add.added, { description: r.item.title });
     } catch {
       toast.error(t.errors.generic);

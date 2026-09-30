@@ -407,7 +407,7 @@ export const he: Dict = {
     askPlaceholder: "שאל על הרכישות שלך…",
     send: "שליחה",
     thinking: "חושב…",
-    noAi: "ה־AI לא מוגדר (חסר GEMINI_API_KEY).",
+    noAi: "ה־AI לא מוגדר (חסר מפתח: GEMINI_API_KEY, GROQ_API_KEY או OPENROUTER_API_KEY).",
     failed: "העוזר לא הצליח לענות כרגע. נסה שוב בעוד רגע.",
     planIntro: "תאר מה אתה בונה. Nexus ינסח רשימת רכיבים עם כמויות ומחירים משוערים — ואתה תבחר מה להוסיף.",
     planPlaceholder: "לדוגמה: סליידר מצלמה ממונע באורך 1.5 מ׳ על פרופיל V-slot, מנוע NEMA 17, שלט ESP32 ב־Wi‑Fi, סוללת 12V.",

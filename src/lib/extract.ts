@@ -16,7 +16,7 @@ export type Extracted = {
   availability: string | null;
   siteName: string | null;
   store: { key: string; name: string };
-  method: "jsonld" | "microdata" | "meta" | "title" | "ai" | "client" | "none";
+  method: "jsonld" | "microdata" | "meta" | "title" | "ai" | "client" | "social" | "none";
   pageText: string | null; // trimmed visible text, for AI fallback
   blocked: boolean;
 };
@@ -30,9 +30,23 @@ const HEADERS: Record<string, string> = {
   "upgrade-insecure-requests": "1",
 };
 
+/**
+ * Link-preview crawler identity. Many stores (AliExpress in particular) block datacenter IPs for normal
+ * browser requests but deliberately serve OpenGraph title/image to chat-app preview bots, because they
+ * want shared links to unfurl. We use it only for the same purpose: previewing a link a user pasted.
+ * Verified from GitHub Actions + Vercel (scripts/probe-extract.mjs, 2026-09-30).
+ */
+const SOCIAL_HEADERS: Record<string, string> = {
+  "user-agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+  accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
+  "accept-language": "en-US,en;q=0.9",
+};
+
 /** Some stores answer better on a canonical URL (no tracking junk, global English site). */
-function fetchTarget(url: string): { url: string; headers: Record<string, string> } {
+function fetchTarget(url: string, social = false): { url: string; headers: Record<string, string> } {
   const ali = url.match(/aliexpress\.[a-z.]+\/item\/(\d+)\.html/i);
+  if (ali && social) return { url: `https://www.aliexpress.com/item/${ali[1]}.html`, headers: SOCIAL_HEADERS };
+  if (social) return { url: stripTracking(url), headers: SOCIAL_HEADERS };
   if (ali) {
     return {
       url: `https://www.aliexpress.com/item/${ali[1]}.html`,
@@ -52,9 +66,9 @@ function stripTracking(url: string) {
   }
 }
 
-async function fetchHtml(inputUrl: string) {
+async function fetchHtml(inputUrl: string, social = false) {
   if (!isPublicHttpUrl(inputUrl)) throw new Error("blocked_host");
-  const target = fetchTarget(inputUrl);
+  const target = fetchTarget(inputUrl, social);
   const url = target.url;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 9000);
@@ -310,6 +324,40 @@ function storeSpecific(html: string, storeKey: string): { price: number | null; 
 }
 
 export async function extractFromUrl(inputUrl: string): Promise<Extracted> {
+  const direct = await extractDirect(inputUrl);
+  if (direct.title && direct.image && !direct.blocked) return direct;
+  // Blocked or thin → ask again as a link-preview bot (fills title/image/description; rarely price).
+  const isProduct = (u: string) => /\/item\/|\/dp\/|\/itm\/|\/product/i.test(u);
+  const social = await extractDirect(direct.url !== inputUrl && isProduct(direct.url) ? direct.url : inputUrl, true);
+  if (!social.title || social.blocked || isGenericTitle(social.title)) return direct;
+  // Keep the pasted link unless only the bot fetch resolved a short link to a real product page.
+  const useSocialUrl = direct.url === inputUrl && social.url !== inputUrl && !isProduct(inputUrl) && isProduct(social.url);
+  return {
+    ...direct,
+    title: direct.title && !direct.blocked ? direct.title : social.title,
+    image: direct.image ?? social.image,
+    description: direct.description ?? social.description,
+    brand: direct.brand ?? social.brand,
+    price: direct.price ?? social.price,
+    currency: direct.price != null ? direct.currency : (social.currency ?? direct.currency),
+    availability: direct.availability ?? social.availability,
+    siteName: direct.siteName ?? social.siteName,
+    url: useSocialUrl ? social.url : direct.url,
+    normalizedUrl: useSocialUrl ? social.normalizedUrl : direct.normalizedUrl,
+    store: useSocialUrl ? social.store : direct.store,
+    method: direct.title && !direct.blocked ? direct.method : "social",
+    // Page text from a bot view is just boilerplate; don't feed it to the text-extraction model.
+    pageText: direct.blocked ? null : direct.pageText,
+    blocked: false,
+  };
+}
+
+/** Store home pages / category pages a short link may land on — not a product. */
+function isGenericTitle(t: string) {
+  return /^(aliexpress|amazon\.[a-z.]+|ebay)\b.*(online shopping|shop online)|^(home|homepage|404|page not found|error page)/i.test(t.trim());
+}
+
+async function extractDirect(inputUrl: string, social = false): Promise<Extracted> {
   const base = {
     url: inputUrl,
     normalizedUrl: normalizeUrl(inputUrl),
@@ -327,7 +375,7 @@ export async function extractFromUrl(inputUrl: string): Promise<Extracted> {
   };
   let fetched: Awaited<ReturnType<typeof fetchHtml>>;
   try {
-    fetched = await fetchHtml(inputUrl);
+    fetched = await fetchHtml(inputUrl, social);
   } catch {
     const s = storeFromUrl(inputUrl);
     return { ...base, store: { key: s.key, name: s.name }, blocked: true };
@@ -349,6 +397,8 @@ export async function extractFromUrl(inputUrl: string): Promise<Extracted> {
     if (!parsed.title && extra.title) parsed.title = extra.title;
   }
   if (parsed.title) parsed.title = parsed.title.replace(/\s*-\s*AliExpress(\s*\d+)?\s*$/i, "").trim();
+  // AliExpress bot view: the description is a store slogan, not the product.
+  if (storeWithSite.key === "aliexpress" && parsed.description && /smarter shopping|aliexpress\.com$/i.test(parsed.description)) parsed.description = null;
   return {
     ...parsed,
     title: blocked && parsed.method === "title" ? null : parsed.title,

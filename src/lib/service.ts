@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, asc, eq, gt, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db, schema } from "@/db";
@@ -224,6 +224,55 @@ export async function refreshSourceCore(sourceId: string, payload?: ClientPayloa
   if (!item.imageUrl && draft.imageUrl) patch.imageUrl = await storeThumbnail(draft.imageUrl, item.id);
   await db.update(schema.items).set(patch).where(eq(schema.items.id, item.id));
   return (await getItem(item.id))!;
+}
+
+// ---------- Self-heal: links whose first read came back incomplete ----------
+
+/** A store link still missing its real name, price or the item's picture. */
+export function missingDetails(src: { url: string | null; rawTitle: string | null; price: number | null }, item: { imageUrl: string | null }) {
+  return Boolean(src.url) && (!src.rawTitle || src.price == null || !item.imageUrl);
+}
+
+const REPAIR_WINDOW_MS = 21 * 86400_000;
+
+/** Recent incomplete links, oldest attempt first, not retried within `minGapMs`. */
+export async function sourcesNeedingDetails(limit = 20, minGapMs = 6 * 3600_000) {
+  const t = now();
+  const rows = await db
+    .select({ source: schema.sources, imageUrl: schema.items.imageUrl })
+    .from(schema.sources)
+    .innerJoin(schema.items, eq(schema.items.id, schema.sources.itemId))
+    .where(
+      and(
+        gt(schema.sources.createdAt, t - REPAIR_WINDOW_MS),
+        eq(schema.items.status, "to_buy"),
+        or(isNull(schema.sources.rawTitle), isNull(schema.sources.price), isNull(schema.items.imageUrl)),
+        or(isNull(schema.sources.fetchedAt), lt(schema.sources.fetchedAt, t - minGapMs)),
+        isNotNull(schema.sources.url),
+      ),
+    )
+    .orderBy(asc(schema.sources.fetchedAt))
+    .limit(limit);
+  return rows.filter((r) => missingDetails(r.source, { imageUrl: r.imageUrl })).map((r) => r.source);
+}
+
+/** Server-side repair pass (daily cron): re-read incomplete links until the time budget runs out. */
+export async function repairIncomplete(budgetMs = 20_000) {
+  const started = now();
+  let repaired = 0;
+  let tried = 0;
+  for (const src of await sourcesNeedingDetails(10)) {
+    if (now() - started > budgetMs) break;
+    tried++;
+    try {
+      const item = await refreshSourceCore(src.id);
+      const s = item.sources.find((x) => x.id === src.id);
+      if (s && !missingDetails(s, item)) repaired++;
+    } catch {
+      /* next one */
+    }
+  }
+  return { tried, repaired };
 }
 
 // ---------- Writes ----------

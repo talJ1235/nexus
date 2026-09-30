@@ -405,7 +405,7 @@ export const en = {
     askPlaceholder: "Ask about your purchases…",
     send: "Send",
     thinking: "Thinking…",
-    noAi: "AI isn't set up (GEMINI_API_KEY is missing).",
+    noAi: "AI isn't set up (no GEMINI_API_KEY, GROQ_API_KEY or OPENROUTER_API_KEY).",
     failed: "The assistant couldn't answer right now. Try again in a moment.",
     planIntro: "Describe what you're building. Nexus drafts a parts list with quantities and rough prices — you pick what to add.",
     planPlaceholder: "e.g. A motorized 1.5 m camera slider on V-slot rail, NEMA 17 stepper, ESP32 remote over Wi-Fi, 12V battery powered.",

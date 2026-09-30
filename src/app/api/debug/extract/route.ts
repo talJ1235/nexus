@@ -2,6 +2,8 @@ import { type NextRequest } from "next/server";
 import { desc } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { previewUrl } from "@/app/actions";
+import { extractWithUrlContext } from "@/lib/ai";
+import { extractFromUrl } from "@/lib/extract";
 
 export const maxDuration = 60;
 
@@ -13,6 +15,28 @@ export async function GET(req: NextRequest) {
     return Response.json({ recent });
   }
   const started = Date.now();
+  // ?probe=1 → each strategy separately, as seen from Vercel (used by scripts/probe-extract.mjs).
+  if (req.nextUrl.searchParams.get("probe")) {
+    const t = async <T,>(fn: () => Promise<T>) => {
+      const s0 = Date.now();
+      try {
+        return { ...(await fn()), ms: Date.now() - s0 };
+      } catch (e) {
+        return { err: String(e).slice(0, 120), ms: Date.now() - s0 };
+      }
+    };
+    const pick = (x: { title: string | null; image: string | null; price: number | null; currency: string | null; method: string; blocked: boolean; url: string }) => ({
+      title: x.title?.slice(0, 60) ?? null, img: Boolean(x.image), price: x.price, cur: x.currency, method: x.method, blocked: x.blocked, url: x.url.slice(0, 70),
+    });
+    const [extract, gemini] = await Promise.all([
+      t(async () => pick(await extractFromUrl(url))),
+      t(async () => {
+        const r = await extractWithUrlContext(url);
+        return r ? { title: r.title?.slice(0, 60) ?? null, img: Boolean(r.imageUrl), price: r.price, cur: r.currency } : { none: true };
+      }),
+    ]);
+    return Response.json({ probe: { extract, gemini } });
+  }
   if (req.nextUrl.searchParams.get("full")) {
     try {
       return Response.json({ ms: 0, ...(await previewUrl(url)), took: Date.now() - started });

@@ -8,7 +8,7 @@ import { getItem } from "@/lib/data";
 import { extractFromUrl } from "@/lib/extract";
 import { getGuestData, guestItem, requireGuest, roleFor, type GuestData } from "@/lib/guest";
 import { getRates } from "@/lib/rates";
-import { buildDraft, createItemCore } from "@/lib/service";
+import { buildDraft, createItemCore, missingDetails, refreshSourceCore } from "@/lib/service";
 import { normalizeUrl } from "@/lib/stores";
 import type { ItemWithSources } from "@/lib/types";
 import { isHttpUrl } from "@/lib/utils";
@@ -41,6 +41,21 @@ export async function guestAddItem(url: string, collectionId: string): Promise<{
   const created = await createItemCore({ ...draft, collectionId });
   await db.update(schema.items).set({ addedByMemberId: g.member.id, addedByName: g.member.name }).where(eq(schema.items.id, created.id));
   return { item: strip((await getItem(created.id))!), existed: false };
+}
+
+/**
+ * Self-heal for a link the guest just added: if its name/price/picture didn't come through on the first
+ * read (store blocked us, AI busy), try again a moment later. Called automatically by the guest page.
+ * Only for the guest's own recent additions, and at most once every 15s per link.
+ */
+export async function guestRepairItem(itemId: string): Promise<ItemWithSources> {
+  const g = await requireGuest();
+  const item = await guestItem(g, z.string().max(40).parse(itemId), "edit");
+  const full = (await getItem(item.id))!;
+  const src = full.sources.find((s) => s.url);
+  const recent = Date.now() - full.createdAt < 3600_000;
+  if (!src || item.addedByMemberId !== g.member.id || !recent || !missingDetails(src, full) || (src.fetchedAt && Date.now() - src.fetchedAt < 15_000)) return strip(full);
+  return strip(await refreshSourceCore(src.id));
 }
 
 const patch = z

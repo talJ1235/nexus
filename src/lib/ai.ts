@@ -1,5 +1,6 @@
 import "server-only";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { kvGet, kvSet } from "./kv";
 
 export const CATEGORIES = [
   "electronics",
@@ -23,27 +24,103 @@ export const CATEGORIES = [
   "other",
 ] as const;
 
-const DEFAULT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash-lite"];
+// ---------- Providers ----------
+// Gemini (free tier) first; when it is overloaded or out of quota, fall back to other free,
+// OpenAI-compatible providers if their keys are set in Vercel (GROQ_API_KEY, OPENROUTER_API_KEY).
+// Only Gemini can open web pages (url-context), so page-reading calls never fall back.
+
+const GEMINI_FAST = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-2.5-flash-lite"];
 // Planning / Q&A need more reasoning than tagging: prefer full Flash, fall back to Lite.
-const SMART_MODELS = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"];
+const GEMINI_SMART = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"];
+const list = (env: string | undefined, dflt: string[]) => (env ? env.split(",").map((s) => s.trim()).filter(Boolean) : dflt);
+
+type Route = { provider: "gemini" | "groq" | "openrouter"; model: string };
+
+function routes(tier: "fast" | "smart", urlContext: boolean): Route[] {
+  const gem = tier === "smart" ? GEMINI_SMART : GEMINI_FAST;
+  const gemModels = process.env.GEMINI_MODEL && tier === "fast" ? [process.env.GEMINI_MODEL, ...gem] : gem;
+  const out: Route[] = process.env.GEMINI_API_KEY ? gemModels.map((model) => ({ provider: "gemini", model })) : [];
+  if (urlContext) return out;
+  if (process.env.GROQ_API_KEY)
+    out.push(...list(process.env.GROQ_MODELS, tier === "smart" ? ["openai/gpt-oss-120b", "openai/gpt-oss-20b"] : ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]).map((model) => ({ provider: "groq" as const, model })));
+  if (process.env.OPENROUTER_API_KEY) out.push(...list(process.env.OPENROUTER_MODELS, ["openrouter/free"]).map((model) => ({ provider: "openrouter" as const, model })));
+  return out;
+}
 
 let client: GoogleGenAI | null = null;
-function ai() {
+function gemini() {
   if (!process.env.GEMINI_API_KEY) return null;
   client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   return client;
 }
 
 export function aiEnabled() {
-  return Boolean(process.env.GEMINI_API_KEY);
+  return Boolean(process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY || process.env.OPENROUTER_API_KEY);
 }
 
-const workingModel: Record<"fast" | "smart", string | null> = { fast: null, smart: null };
-/** Last failure per model (owner-only diagnostics at /api/debug/ai). */
+/** Which providers have keys, plus current routing health (owner diagnostics). */
+export function aiProviders() {
+  return [process.env.GEMINI_API_KEY && "gemini", process.env.GROQ_API_KEY && "groq", process.env.OPENROUTER_API_KEY && "openrouter"].filter(Boolean) as string[];
+}
+export const aiHealth = () => health;
+
+// ---------- Health state (per warm instance, shared across instances through kv) ----------
+
+type Health = { working: Partial<Record<"fast" | "smart", string>>; cooling: Record<string, number> };
+let health: Health = { working: {}, cooling: {} };
+let healthLoadedAt = 0;
+let healthDirty = false;
+/** Last failure per route (owner-only diagnostics at /api/debug/ai). */
 export const lastAiErrors: Record<string, string> = {};
-/** Models that were overloaded recently are skipped for a few minutes (per warm function instance). */
-const coolingUntil: Record<string, number> = {};
-const TEMPORARY = /503|UNAVAILABLE|overloaded|high demand|500|INTERNAL|DEADLINE|timeout|aborted|RESOURCE_EXHAUSTED|429/i;
+const key = (r: Route) => `${r.provider}:${r.model}`;
+
+async function loadHealth() {
+  if (Date.now() - healthLoadedAt < 60_000) return;
+  healthLoadedAt = Date.now();
+  try {
+    const raw = await kvGet("ai:health");
+    if (!raw) return;
+    const shared = JSON.parse(raw) as Health;
+    const cooling = { ...shared.cooling };
+    for (const [k, v] of Object.entries(health.cooling)) cooling[k] = Math.max(v, cooling[k] ?? 0);
+    health = { working: { ...shared.working, ...health.working }, cooling };
+  } catch {
+    /* kv unavailable — per-instance state only */
+  }
+}
+
+async function saveHealth() {
+  if (!healthDirty) return;
+  healthDirty = false;
+  const now = Date.now();
+  health.cooling = Object.fromEntries(Object.entries(health.cooling).filter(([, v]) => v > now));
+  await kvSet("ai:health", JSON.stringify(health)).catch(() => {});
+}
+
+function cool(r: Route, ms: number) {
+  health.cooling[key(r)] = Date.now() + ms;
+  healthDirty = true;
+}
+
+type Failure = { kind: "retry" | "skip" | "fatal"; coolMs: number };
+
+/** Classify an upstream error: retry the same route once, skip to the next route (cooling it), or give up. */
+export function classify(msg: string): Failure {
+  const m = msg.toLowerCase();
+  // Model doesn't exist for this key / was retired → don't try it again for a long time.
+  if (/not[ _]found|404|not supported|deprecated|no longer available|decommissioned|does not exist/.test(m)) return { kind: "skip", coolMs: 12 * 3600_000 };
+  if (/429|resource_exhausted|quota|rate.?limit|too many requests/.test(m)) {
+    if (/limit: ?0\b/.test(m)) return { kind: "skip", coolMs: 12 * 3600_000 }; // not on the free tier
+    if (/per ?day|perday|daily|rpd/.test(m)) return { kind: "skip", coolMs: 60 * 60_000 };
+    const secs = Number(m.match(/retry (?:in|after) ([\d.]+)\s*s/)?.[1] ?? m.match(/retrydelay"?:\s*"?([\d.]+)s/)?.[1] ?? 0);
+    return { kind: "skip", coolMs: Math.min(Math.max(secs * 1000, 20_000), 10 * 60_000) };
+  }
+  // Overload / transient server errors: usually clear within seconds.
+  if (/503|unavailable|overloaded|high demand|500|502|504|internal|deadline|timeout|timed out|aborted|fetch failed|econnreset|socket/.test(m)) return { kind: "retry", coolMs: 90_000 };
+  if (/413|too large|context length|maximum context|tokens? per minute|tpm/.test(m)) return { kind: "skip", coolMs: 0 };
+  if (/401|403|permission|api key|unauthorized/.test(m)) return { kind: "skip", coolMs: 30 * 60_000 };
+  return { kind: "fatal", coolMs: 0 };
+}
 
 function parseLooseJson<T>(text: string): T | null {
   const m = text.match(/\{[\s\S]*\}/);
@@ -57,64 +134,126 @@ function parseLooseJson<T>(text: string): T | null {
 
 type GenOpts = { urlContext?: boolean; smart?: boolean; text?: boolean; system?: string; budgetMs?: number };
 
-async function generate(prompt: string, schema: object | null, opts: GenOpts = {}): Promise<string | null> {
-  const c = ai();
-  if (!c) return null;
-  const tier = opts.smart ? "smart" : "fast";
-  const base = opts.smart ? SMART_MODELS : DEFAULT_MODELS;
-  const models = process.env.GEMINI_MODEL && !opts.smart ? [process.env.GEMINI_MODEL, ...base] : base;
-  const known = workingModel[tier];
-  const now = Date.now();
-  const ordered = (known ? [known, ...models.filter((m) => m !== known)] : models).filter((m) => !(coolingUntil[m] > now));
-  // Stay well inside the 60s function limit, whatever happens upstream.
-  const deadline = now + (opts.budgetMs ?? 40_000);
-  for (const model of ordered.length ? ordered : models) {
-    const left = deadline - Date.now();
-    if (left < 3000) break;
-    try {
-      const call = (withThinking: boolean) =>
-        c.models.generateContent({
-          model,
-          contents: prompt,
-          config: {
-            abortSignal: AbortSignal.timeout(Math.min(deadline - Date.now(), opts.smart ? 20_000 : 12_000)),
-            // These tasks need little deliberation; low thinking keeps answers fast.
-            ...(withThinking ? (/gemini-3/.test(model) ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : { thinkingConfig: { thinkingBudget: 0 } }) : {}),
-            ...(opts.system ? { systemInstruction: opts.system } : {}),
-            ...(opts.urlContext
-              ? { tools: [{ urlContext: {} }], temperature: 0.1 }
-              : opts.text
-                ? { temperature: 0.3 }
-                : { responseMimeType: "application/json", responseJsonSchema: schema ?? undefined, temperature: 0.2 }),
-          },
-        });
-      let res;
-      try {
-        res = await call(true);
-      } catch (e) {
-        // A model that rejects the thinking setting → same model, default thinking.
-        if (/thinking/i.test(String((e as Error)?.message ?? e))) res = await call(false);
-        else throw e;
-      }
-      const text = res.text;
-      if (!text) continue;
-      workingModel[tier] = model;
-      return text;
-    } catch (e) {
-      const msg = String((e as Error)?.message ?? e);
-      lastAiErrors[model] = `${new Date().toISOString()} ${msg.slice(0, 300)}`;
-      if (TEMPORARY.test(msg)) {
-        coolingUntil[model] = Date.now() + 5 * 60_000;
-        if (workingModel[tier] === model) workingModel[tier] = null;
-        continue;
-      }
-      // Unknown / retired model → try the next one.
-      if (/not found|404|not supported|NOT_FOUND|deprecated|no longer available|quota/i.test(msg)) continue;
-      console.warn("[ai] generate failed:", model, msg.slice(0, 200));
-      return null;
-    }
+async function callGemini(model: string, prompt: string, schema: object | null, opts: GenOpts, timeoutMs: number) {
+  const c = gemini()!;
+  const call = (withThinking: boolean) =>
+    c.models.generateContent({
+      model,
+      contents: prompt,
+      config: {
+        abortSignal: AbortSignal.timeout(timeoutMs),
+        // These tasks need little deliberation; low thinking keeps answers fast.
+        ...(withThinking ? (/gemini-3/.test(model) ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : { thinkingConfig: { thinkingBudget: 0 } }) : {}),
+        ...(opts.system ? { systemInstruction: opts.system } : {}),
+        ...(opts.urlContext
+          ? { tools: [{ urlContext: {} }], temperature: 0.1 }
+          : opts.text
+            ? { temperature: 0.3 }
+            : { responseMimeType: "application/json", responseJsonSchema: schema ?? undefined, temperature: 0.2 }),
+      },
+    });
+  try {
+    return (await call(true)).text ?? null;
+  } catch (e) {
+    // A model that rejects the thinking setting → same model, default thinking.
+    if (/thinking/i.test(String((e as Error)?.message ?? e))) return (await call(false)).text ?? null;
+    throw e;
   }
-  return null;
+}
+
+const OPENAI_BASE = { groq: "https://api.groq.com/openai/v1", openrouter: "https://openrouter.ai/api/v1" } as const;
+
+async function callOpenAiCompatible(r: Route, prompt: string, schema: object | null, opts: GenOpts, timeoutMs: number) {
+  const provider = r.provider as keyof typeof OPENAI_BASE;
+  const keyEnv = provider === "groq" ? process.env.GROQ_API_KEY : process.env.OPENROUTER_API_KEY;
+  const jsonRule = opts.text ? "" : `\n\nRespond with ONLY a JSON object${schema ? ` that matches this JSON Schema: ${JSON.stringify(schema)}` : ""}. No prose, no code fences.`;
+  const system = `${opts.system ?? ""}${jsonRule}`.trim();
+  const res = await fetch(`${OPENAI_BASE[provider]}/chat/completions`, {
+    method: "POST",
+    signal: AbortSignal.timeout(timeoutMs),
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${keyEnv}`,
+      ...(provider === "openrouter" ? { "x-title": "Nexus" } : {}),
+    },
+    body: JSON.stringify({
+      model: r.model,
+      messages: [...(system ? [{ role: "system", content: system }] : []), { role: "user", content: prompt }],
+      temperature: opts.text ? 0.3 : 0.2,
+      max_tokens: 6000,
+      ...(opts.text ? {} : { response_format: { type: "json_object" } }),
+      ...(/gpt-oss/.test(r.model) ? { reasoning_effort: "low" } : {}),
+    }),
+  });
+  const body = await res.text();
+  if (!res.ok) throw new Error(`${res.status} ${body.slice(0, 300)}`);
+  const json = JSON.parse(body) as { choices?: { message?: { content?: string } }[]; error?: { message?: string } };
+  if (json.error) throw new Error(json.error.message ?? "error");
+  const text = json.choices?.[0]?.message?.content?.trim() ?? null;
+  // Some reasoning models leak their <think> block into content.
+  return text ? text.replace(/<think>[\s\S]*?<\/think>/g, "").trim() || null : null;
+}
+
+async function generate(prompt: string, schema: object | null, opts: GenOpts = {}): Promise<string | null> {
+  const tier = opts.smart ? "smart" : "fast";
+  const all = routes(tier, !!opts.urlContext);
+  if (!all.length) return null;
+  await loadHealth();
+  const now = Date.now();
+  const known = health.working[tier];
+  const ordered = known ? [...all.filter((r) => key(r) === known), ...all.filter((r) => key(r) !== known)] : all;
+  const ready = ordered.filter((r) => !(health.cooling[key(r)] > now));
+  // Everything is cooling → still try, least-recently-cooled first, rather than failing outright.
+  const queue = ready.length ? ready : [...ordered].sort((a, b) => (health.cooling[key(a)] ?? 0) - (health.cooling[key(b)] ?? 0));
+  // Stay well inside the 60s function limit, whatever happens upstream.
+  const deadline = now + (opts.budgetMs ?? 45_000);
+  const hasFallback = queue.some((r) => r.provider !== "gemini");
+  try {
+    for (const r of queue) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        // Keep ~12s in reserve for a fallback provider when one is configured.
+        const reserve = r.provider === "gemini" && hasFallback ? 12_000 : 0;
+        const left = deadline - Date.now() - reserve;
+        if (left < 3000) break;
+        const timeout = Math.min(left, opts.smart || opts.urlContext ? 22_000 : 12_000);
+        try {
+          const text = r.provider === "gemini" ? await callGemini(r.model, prompt, schema, opts, timeout) : await callOpenAiCompatible(r, prompt, schema, opts, timeout);
+          if (!text) break; // empty answer → next route
+          if (health.working[tier] !== key(r)) {
+            health.working[tier] = key(r);
+            healthDirty = true;
+          }
+          if (health.cooling[key(r)]) {
+            delete health.cooling[key(r)];
+            healthDirty = true;
+          }
+          return text;
+        } catch (e) {
+          const msg = String((e as Error)?.message ?? e);
+          lastAiErrors[key(r)] = `${new Date().toISOString()} ${msg.slice(0, 300)}`;
+          const f = classify(msg);
+          if (f.kind === "fatal") {
+            console.warn("[ai] generate failed:", key(r), msg.slice(0, 200));
+            break;
+          }
+          if (f.kind === "retry" && attempt === 0 && !/timeout|timed out|aborted/i.test(msg)) {
+            // Brief, jittered pause: free-tier overload spikes often clear within a second or two.
+            await new Promise((res) => setTimeout(res, 700 + Math.random() * 900));
+            continue;
+          }
+          if (f.coolMs) cool(r, f.coolMs);
+          if (health.working[tier] === key(r)) {
+            delete health.working[tier];
+            healthDirty = true;
+          }
+          break;
+        }
+      }
+    }
+    return null;
+  } finally {
+    await saveHealth();
+  }
 }
 
 export async function generateJson<T>(prompt: string, schema: object | null, opts: GenOpts = {}): Promise<T | null> {
@@ -122,7 +261,7 @@ export async function generateJson<T>(prompt: string, schema: object | null, opt
   if (!text) return null;
   if (opts.urlContext) return parseLooseJson<T>(text);
   try {
-    return JSON.parse(text) as T;
+    return JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "")) as T;
   } catch {
     return parseLooseJson<T>(text);
   }
@@ -215,7 +354,7 @@ Return ONLY a JSON object, no prose, with these keys:
 {"title": string|null, "price": number|null, "currency": "ISO 4217 code"|null, "imageUrl": "absolute URL of the main product image"|null, "brand": string|null}
 
 Rules: "title" is the product's real name as shown on the page. "price" is the current selling price for one unit (the discounted price if on sale), as a plain number. Use null for anything you cannot see on the page — never guess.`;
-  const out = await generateJson<UrlContextResult>(prompt, null, { urlContext: true });
+  const out = await generateJson<UrlContextResult>(prompt, null, { urlContext: true, budgetMs: 25_000 });
   if (!out) return null;
   const price = typeof out.price === "number" && out.price > 0 ? out.price : null;
   const imageUrl = typeof out.imageUrl === "string" && /^https?:\/\//.test(out.imageUrl) ? out.imageUrl : null;
