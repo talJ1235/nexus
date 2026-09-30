@@ -35,14 +35,21 @@ function targets(url) {
   ];
 }
 
+const tries = [];
 async function read(url) {
-  for (const [u, ua] of targets(url)) {
-    try {
-      const res = await fetch(u, { headers: { "user-agent": ua, accept: "text/html,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" }, redirect: "follow", signal: AbortSignal.timeout(12000) });
-      const html = await res.text();
-      if (res.ok && /og:title/i.test(html) && !/_____tmd_____|x5secdata/.test(html.slice(0, 6000))) return { html: html.slice(0, 380_000), finalUrl: res.url };
-    } catch {
-      /* next identity */
+  // Challenges are intermittent: a second round after a pause often gets through.
+  for (const round of [0, 1]) {
+    if (round) await new Promise((r) => setTimeout(r, 20000));
+    for (const [u, ua] of targets(url)) {
+      try {
+        const res = await fetch(u, { headers: { "user-agent": ua, accept: "text/html,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" }, redirect: "follow", signal: AbortSignal.timeout(12000) });
+        const html = await res.text();
+        const challenged = /_____tmd_____|x5secdata/.test(html.slice(0, 6000));
+        tries.push(`${ua.slice(0, 8)}@${new URL(u).host}:${res.status}${challenged ? "C" : ""}${/og:title/i.test(html) ? "+og" : ""}`);
+        if (res.ok && /og:title/i.test(html) && !challenged) return { html: html.slice(0, 380_000), finalUrl: res.url };
+      } catch (e) {
+        tries.push(`${ua.slice(0, 8)}@${new URL(u).host}:ERR`);
+      }
     }
   }
   return null;
@@ -63,9 +70,9 @@ if (!cookie) {
 for (const s of sources.slice(0, 20)) {
   const page = await read(s.url);
   if (!page) {
-    say(`MISS ${s.id} ${new URL(s.url).host}`);
+    say(`MISS ${s.id} ${new URL(s.url).host} ${tries.splice(0).join(" ")}`);
     continue;
   }
   const res = await fetch(`${BASE}/api/heal`, { method: "POST", headers: { cookie, "content-type": "application/json" }, body: JSON.stringify({ sourceId: s.id, ...page }), signal: AbortSignal.timeout(65000) });
-  say(`${res.ok ? "OK  " : "FAIL"} ${s.id} ${new URL(s.url).host} ${(await res.text()).slice(0, 200)}`);
+  say(`${res.ok ? "OK  " : "FAIL"} ${s.id} ${new URL(s.url).host} ${(await res.text()).slice(0, 200)} [${tries.splice(0).join(" ")}]`);
 }
