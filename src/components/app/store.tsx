@@ -17,7 +17,18 @@ export type SortKey = "newest" | "price" | "priority" | "name";
 
 type Editor = { mode: "create"; kind: "project" | "list" } | { mode: "edit"; collection: Collection } | null;
 
+/** Server-known state for the first paint: prefs from cookies, `?v=` from the URL. */
+export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null };
+
+const LAYOUT_COOKIE = "nexus_layout";
+const SORT_COOKIE = "nexus_sort";
+const setCookie = (k: string, v: string) => {
+  document.cookie = `${k}=${v}; path=/; max-age=31536000; samesite=lax`;
+};
+
 type Store = {
+  /** True while the shell is streamed before the data: content regions render skeletons. */
+  loading: boolean;
   items: ItemWithSources[];
   collections: Collection[];
   altGroups: AltGroup[];
@@ -117,7 +128,19 @@ function readLocal<T extends string>(key: string, allowed: readonly T[], fallbac
   }
 }
 
-export function StoreProvider({ initial, initialCurrency, children }: { initial: AppData; initialCurrency: Currency; children: React.ReactNode }) {
+export function StoreProvider({
+  initial,
+  initialCurrency,
+  ui,
+  loading = false,
+  children,
+}: {
+  initial: AppData;
+  initialCurrency: Currency;
+  ui: UiInit;
+  loading?: boolean;
+  children: React.ReactNode;
+}) {
   const [items, setItems] = useState(initial.items);
   const [collections, setCollections] = useState(initial.collections);
   const [altGroups, setAltGroups] = useState(initial.altGroups);
@@ -125,9 +148,9 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
   const [lastSelected, setLastSelected] = useState<string | null>(null);
   const [altOpenId, setAltOpenId] = useState<string | null>(null);
   const [currency, setCurrencyState] = useState<Currency>(initialCurrency);
-  const [layout, setLayoutState] = useState<Layout>("cards");
-  const [sort, setSortState] = useState<SortKey>("newest");
-  const [view, setViewState] = useState<View>({ type: "to_buy" });
+  const [layout, setLayoutState] = useState<Layout>(ui.layout ?? "cards");
+  const [sort, setSortState] = useState<SortKey>(ui.sort ?? "newest");
+  const [view, setViewState] = useState<View>(() => paramToView(ui.view));
   const [navSeq, setNavSeq] = useState(0);
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
@@ -145,13 +168,21 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
     setPanel("assistant");
   }, []);
 
-  // Restore per-device UI prefs + view from URL after mount.
+  // One-time migration of prefs saved in localStorage before they moved to cookies, and `?item=` deep links.
   useEffect(() => {
+    if (loading) return;
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration from browser-only storage */
-    setLayoutState(readLocal("nexus.layout", ["cards", "table"] as const, "cards"));
-    setSortState(readLocal("nexus.sort", ["newest", "price", "priority", "name"] as const, "newest"));
+    if (!ui.layout) {
+      const l = readLocal("nexus.layout", ["cards", "table"] as const, "cards");
+      setCookie(LAYOUT_COOKIE, l);
+      if (l !== "cards") setLayoutState(l);
+    }
+    if (!ui.sort) {
+      const so = readLocal("nexus.sort", ["newest", "price", "priority", "name"] as const, "newest");
+      setCookie(SORT_COOKIE, so);
+      if (so !== "newest") setSortState(so);
+    }
     const params = new URLSearchParams(window.location.search);
-    setViewState(paramToView(params.get("v")));
     const itemParam = params.get("item");
     if (itemParam) {
       setOpenItemId(itemParam);
@@ -160,7 +191,7 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
       window.history.replaceState(null, "", url);
     }
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, []);
+  }, [loading, ui.layout, ui.sort]);
 
   const setView = useCallback((v: View) => {
     setViewState(v);
@@ -177,15 +208,11 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
 
   const setLayout = useCallback((l: Layout) => {
     setLayoutState(l);
-    try {
-      localStorage.setItem("nexus.layout", l);
-    } catch {}
+    setCookie(LAYOUT_COOKIE, l);
   }, []);
   const setSort = useCallback((s: SortKey) => {
     setSortState(s);
-    try {
-      localStorage.setItem("nexus.sort", s);
-    } catch {}
+    setCookie(SORT_COOKIE, s);
   }, []);
   const setCurrency = useCallback((c: Currency) => {
     setCurrencyState(c);
@@ -275,6 +302,7 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
 
   const value = useMemo<Store>(
     () => ({
+      loading,
       items,
       collections,
       altGroups,
@@ -332,7 +360,7 @@ export function StoreProvider({ initial, initialCurrency, children }: { initial:
       fresh,
       markFresh,
     }),
-    [pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -148,9 +148,9 @@ export function SpendingView() {
         <p className="mt-1 text-sm text-muted">{t.spending.note}</p>
       </div>
       {data.count === 0 ? (
-        <div className="grid place-items-center rounded-2xl border border-dashed border-line-strong px-6 py-20 text-center text-[15px] text-muted">{t.spending.empty}</div>
+        <div className="load-in grid place-items-center rounded-2xl border border-dashed border-line-strong px-6 py-20 text-center text-[15px] text-muted">{t.spending.empty}</div>
       ) : (
-        <div className="space-y-4">
+        <div className="load-in space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <Tile label={t.spending.thisMonth} value={fmt(data.thisMonth)} />
             <Tile label={t.spending.lastMonth} value={fmt(data.lastMonth)} />

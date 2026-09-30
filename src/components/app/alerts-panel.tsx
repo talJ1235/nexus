@@ -31,6 +31,7 @@ export function AlertsBell() {
   const { t } = useI18n();
   const [unread, setUnread] = useState(0);
   useEffect(() => {
+    if (s.loading) return;
     let alive = true;
     getAlertsState()
       .then((st) => alive && setUnread(st.unread))
@@ -38,7 +39,7 @@ export function AlertsBell() {
     return () => {
       alive = false;
     };
-  }, [s.panel]);
+  }, [s.panel, s.loading]);
   return (
     <Button variant="ghost" size="icon" className="relative mt-1.5" onClick={() => s.setPanel("alerts")} aria-label={t.alerts.title} title={t.alerts.title}>
       {unread ? <BellRing /> : <Bell />}
@@ -264,7 +265,7 @@ export function AlertsPanel() {
 
         <div className="flex-1 overflow-y-auto">
           {!st ? (
-            <div className="skeleton-pulse space-y-2 p-4">
+            <div className="space-y-2 p-4">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="skeleton h-14 rounded-xl" />
               ))}

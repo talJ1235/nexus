@@ -11,6 +11,7 @@ import { budgetStats } from "@/lib/calc";
 import { cn } from "@/lib/utils";
 import { useStore, type View } from "./store";
 import { COLLECTION_COLORS, itemsForView } from "./view-items";
+import { NavRowsSkeleton, Skel } from "./skeletons";
 
 function sameView(a: View, b: View) {
   if (a.type !== b.type) return false;
@@ -34,7 +35,8 @@ function NavItem({
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
-  count?: number;
+  /** null = still loading (placeholder); undefined = no count for this entry. */
+  count?: number | null;
   children?: React.ReactNode;
   onDropItems?: (ids: string[]) => void;
 }) {
@@ -69,7 +71,7 @@ function NavItem({
       <span className="flex w-full items-center gap-2.5">
         <span className={cn("flex size-4 shrink-0 items-center justify-center [&_svg]:size-4", active ? "text-fg" : "text-faint group-hover:text-muted")}>{icon}</span>
         <span className="min-w-0 flex-1 truncate">{label}</span>
-        {count != null && count > 0 && <span className="tabular text-xs text-faint">{count}</span>}
+        {count === null ? <Skel className="skeleton-in h-2.5 w-3.5" /> : count != null && count > 0 && <span className="tabular load-in text-xs text-faint">{count}</span>}
       </span>
       {children}
     </button>
@@ -144,6 +146,8 @@ export function Sidebar() {
   }, [s.items]);
 
   const active = (v: View) => sameView(s.view, v);
+  const n = (v: number) => (s.loading ? null : v);
+  const fade = s.navSeq === 0 ? "load-in" : undefined;
   const projects = s.collections.filter((c) => c.kind === "project" && !c.archived);
   const lists = s.collections.filter((c) => c.kind === "list" && !c.archived);
 
@@ -166,19 +170,20 @@ export function Sidebar() {
 
       <div className="flex-1 overflow-y-auto px-2 pb-4">
         <div className="mt-2 space-y-0.5">
-          <NavItem active={active({ type: "to_buy" })} onClick={() => s.setView({ type: "to_buy" })} icon={<ShoppingBag />} label={t.nav.toBuy} count={counts.to_buy} />
-          <NavItem active={active({ type: "urgent" })} onClick={() => s.setView({ type: "urgent" })} icon={<Zap />} label={t.nav.urgent} count={counts.urgent} />
+          <NavItem active={active({ type: "to_buy" })} onClick={() => s.setView({ type: "to_buy" })} icon={<ShoppingBag />} label={t.nav.toBuy} count={n(counts.to_buy)} />
+          <NavItem active={active({ type: "urgent" })} onClick={() => s.setView({ type: "urgent" })} icon={<Zap />} label={t.nav.urgent} count={n(counts.urgent)} />
           {counts.unsorted > 0 && (
             <NavItem active={active({ type: "unsorted" })} onClick={() => s.setView({ type: "unsorted" })} icon={<Inbox />} label={t.nav.unsorted} count={counts.unsorted} onDropItems={(ids) => move(ids, null)} />
           )}
           <NavItem active={active({ type: "orders" })} onClick={() => s.setView({ type: "orders" })} icon={<Store />} label={t.nav.orders} />
-          <NavItem active={active({ type: "ordered" })} onClick={() => s.setView({ type: "ordered" })} icon={<Truck />} label={t.nav.onTheWay} count={counts.ordered} />
-          <NavItem active={active({ type: "history" })} onClick={() => s.setView({ type: "history" })} icon={<History />} label={t.nav.history} count={counts.history} />
+          <NavItem active={active({ type: "ordered" })} onClick={() => s.setView({ type: "ordered" })} icon={<Truck />} label={t.nav.onTheWay} count={n(counts.ordered)} />
+          <NavItem active={active({ type: "history" })} onClick={() => s.setView({ type: "history" })} icon={<History />} label={t.nav.history} count={n(counts.history)} />
           <NavItem active={active({ type: "spending" })} onClick={() => s.setView({ type: "spending" })} icon={<ChartColumn />} label={t.nav.spending} />
         </div>
 
         <SectionHeader label={t.nav.projects} onAdd={() => s.setEditor({ mode: "create", kind: "project" })} addLabel={t.nav.newProject} />
-        <div className="space-y-0.5">
+        {s.loading && <NavRowsSkeleton rows={[58, 42]} />}
+        <div className={cn("space-y-0.5", fade)}>
           {projects.map((c) => {
             const b = budgetStats(c, s.items, s.altGroups, s.rates, s.currency);
             return (
@@ -202,7 +207,7 @@ export function Sidebar() {
               </NavItem>
             );
           })}
-          {projects.length === 0 && (
+          {projects.length === 0 && !s.loading && (
             <button type="button" onClick={() => s.setEditor({ mode: "create", kind: "project" })} className="w-full rounded-lg px-2.5 py-1.5 text-start text-[13px] text-faint hover:bg-sunken hover:text-muted">
               + {t.nav.newProject}
             </button>
@@ -210,7 +215,8 @@ export function Sidebar() {
         </div>
 
         <SectionHeader label={t.nav.lists} onAdd={() => s.setEditor({ mode: "create", kind: "list" })} addLabel={t.nav.newList} />
-        <div className="space-y-0.5">
+        {s.loading && <NavRowsSkeleton rows={[46, 62]} round />}
+        <div className={cn("space-y-0.5", fade)}>
           {lists.map((c) => (
             <NavItem
               key={c.id}
@@ -222,7 +228,7 @@ export function Sidebar() {
               count={s.items.filter((i) => i.collectionId === c.id && i.status === "to_buy").length}
             />
           ))}
-          {lists.length === 0 && (
+          {lists.length === 0 && !s.loading && (
             <button type="button" onClick={() => s.setEditor({ mode: "create", kind: "list" })} className="w-full rounded-lg px-2.5 py-1.5 text-start text-[13px] text-faint hover:bg-sunken hover:text-muted">
               + {t.nav.newList}
             </button>
@@ -232,7 +238,7 @@ export function Sidebar() {
         {stores.length > 0 && (
           <>
             <SectionHeader label={t.nav.stores} />
-            <div className="space-y-0.5">
+            <div className={cn("space-y-0.5", fade)}>
               {stores.map(([key, v]) => (
                 <NavItem key={key} active={active({ type: "store", key })} onClick={() => s.setView({ type: "store", key })} icon={<Store />} label={v.name} count={v.count} />
               ))}

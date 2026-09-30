@@ -7,7 +7,11 @@
 //   SMOKE_MOBILE=1 runs the owner checks in a 390×844 touch phone context; screenshots get a "-m" suffix.
 //   SMOKE_TRACE=1 records every painted frame of the first 2.5 s after goto("/") (CDP screencast, timestamped)
 //     into $SMOKE_OUT/trace[-m]/ plus one contact sheet (trace[-m].png) to judge load flashes from frames.
+//     SMOKE_TRACE_PATH=/?v=urgent traces another URL; SMOKE_THROTTLE=1 emulates a slow phone network (Fast 3G-ish)
+//     and SMOKE_TRACE_LAYOUT=table stores that layout preference first (to catch a cards→table second render).
 import { mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { chromium } from "playwright";
 import sharp from "sharp";
 
@@ -15,7 +19,7 @@ const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
 const PASSWORD = process.env.NEXUS_PASSWORD;
 const MOBILE = !!process.env.SMOKE_MOBILE;
 const TRACE = !!process.env.SMOKE_TRACE;
-const OUT = process.env.SMOKE_OUT || (TRACE ? ".next/smoke" : "");
+const OUT = process.env.SMOKE_OUT || (TRACE ? join(tmpdir(), "nexus-smoke") : "");
 if (OUT) mkdirSync(OUT, { recursive: true });
 const SUFFIX = MOBILE ? "-m" : "";
 const VIEWPORT = MOBILE ? { width: 390, height: 844 } : { width: 1366, height: 860 };
@@ -44,6 +48,10 @@ async function traceLoad(ctx, url, ms = 2500) {
   mkdirSync(dir, { recursive: true });
   const frames = [];
   let t0 = 0;
+  if (process.env.SMOKE_THROTTLE) {
+    await cdp.send("Network.enable");
+    await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 150, downloadThroughput: (1.6 * 1024 * 1024) / 8, uploadThroughput: (750 * 1024) / 8 });
+  }
   cdp.on("Page.screencastFrame", ({ data, sessionId, metadata }) => {
     frames.push({ t: Math.round(metadata.timestamp * 1000), data });
     cdp.send("Page.screencastFrameAck", { sessionId }).catch(() => {});
@@ -225,7 +233,12 @@ try {
 
     if (TRACE) {
       await step("load trace", async () => {
-        const frames = await traceLoad(ctx, `${BASE}/`);
+        const layout = process.env.SMOKE_TRACE_LAYOUT;
+        if (layout) {
+          await page.evaluate((l) => localStorage.setItem("nexus.layout", l), layout);
+          await ctx.addCookies([{ name: "nexus_layout", value: layout, url: BASE }]);
+        }
+        const frames = await traceLoad(ctx, `${BASE}${process.env.SMOKE_TRACE_PATH || "/"}`, process.env.SMOKE_THROTTLE ? 5000 : 2500);
         console.log(`INFO trace: ${frames.length} frames → ${OUT}/trace${SUFFIX}.png (${frames.map((f) => f.ms).join(",")} ms)`);
         ok(frames.length > 0, "load trace recorded");
       });

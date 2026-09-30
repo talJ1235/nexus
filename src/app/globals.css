@@ -123,18 +123,37 @@ body {
    Principles: nothing flashes on fast loads, everything that does move is composited
    (opacity/transform only — no background repaints), and the page appears as one piece. */
 
-/* Skeleton blocks are flat shapes; the whole group breathes together as ONE layer. */
-.skeleton { background-color: var(--sunken); }
-.skeleton-pulse {
-  animation: breathe 1.8s cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
-  will-change: opacity;
+/* Skeletons: flat blocks lit by ONE slow, soft light sweep. The gradient is fixed to the viewport, so every block
+   shows the same band at the same moment (reads as one sweep across the page, like YouTube), start → end. */
+.skeleton {
+  background-color: var(--sunken);
+  background-image: linear-gradient(100deg, transparent 42%, color-mix(in srgb, var(--fg) 5%, transparent) 50%, transparent 58%);
+  background-size: 300vw 100%;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  animation: skeleton-sweep 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
-@keyframes breathe {
-  from { opacity: 1; }
-  to { opacity: 0.45; }
+[dir="rtl"] .skeleton { animation-direction: reverse; }
+@keyframes skeleton-sweep {
+  from { background-position: 100% 0; }
+  to { background-position: 0% 0; }
 }
-/* The skeleton screen only shows if a load takes longer than ~0.45s, then eases in. */
-.loading-shell { animation: fade 400ms ease-out 450ms both; }
+/* Skeleton regions ease in after a beat, so fast loads go straight from shell to content without a blink. */
+.skeleton-in { animation: fade 240ms ease-out 140ms both; }
+
+/* First paint of data after the streamed shell: opacity only. Card and table frames stay solid (they sit exactly
+   where the skeleton frames were) and only their contents fade, so the swap never passes through an empty frame.
+   Cards stagger lightly (≤150 ms in total). */
+.load-in, .load-in-stagger > * > *, .load-in-rows tr { animation: fade 220ms ease-out both; }
+.load-in-stagger > :nth-child(2) > * { animation-delay: 17ms; }
+.load-in-stagger > :nth-child(3) > * { animation-delay: 34ms; }
+.load-in-stagger > :nth-child(4) > * { animation-delay: 51ms; }
+.load-in-stagger > :nth-child(5) > * { animation-delay: 68ms; }
+.load-in-stagger > :nth-child(6) > * { animation-delay: 85ms; }
+.load-in-stagger > :nth-child(7) > * { animation-delay: 102ms; }
+.load-in-stagger > :nth-child(8) > * { animation-delay: 119ms; }
+.load-in-stagger > :nth-child(9) > * { animation-delay: 136ms; }
+.load-in-stagger > :nth-child(n + 10) > * { animation-delay: 150ms; }
 
 /* Switching views: a short, soft cross-fade of header + content together (never a blank frame). */
 .view-in { animation: view-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -247,7 +266,9 @@ body {
   }
   /* Loaders must still read as "working", just calmer. */
   .spinner { animation-duration: 2.4s !important; }
-  .thinking-dots > span, .shimmer::after { animation: none !important; }
+  .thinking-dots > span, .shimmer::after, .skeleton { animation: none !important; }
+  /* Data swaps in instantly. */
+  .load-in, .load-in-stagger > * > *, .load-in-rows tr, .skeleton-in { animation: none !important; }
 }
 
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }

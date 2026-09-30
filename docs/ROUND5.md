@@ -16,7 +16,7 @@ never append a second copy).
 saves screenshots with a `-m` suffix. Also add `SMOKE_TRACE=1`: record a Playwright video (or 60 ms screenshot
 series) of the first 2.5 s after `goto("/")`, so load flashes can be judged from frames instead of by eye.
 
-### 1. [ ] Load like YouTube: shell first, soft skeletons, data fades in — no "refresh flash"
+### 1. [x] Load like YouTube: shell first, soft skeletons, data fades in — no "refresh flash"
 Today: opening the site shows a quick flashing/refresh-like animation that looks amateur.
 Known causes to confirm with the trace before changing anything (fix what the frames show, don't guess):
 - `src/app/page.tsx` awaits `getAppData()` before sending any HTML. `loading.tsx` stays invisible for 450 ms

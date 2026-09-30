@@ -144,7 +144,7 @@ export function ShareDialog() {
             {t.share.people}
           </h3>
           {!st ? (
-            <div className="skeleton-pulse mt-3 space-y-2">
+            <div className="mt-3 space-y-2">
               <div className="skeleton h-10 rounded-lg" />
             </div>
           ) : st.members.length ? (

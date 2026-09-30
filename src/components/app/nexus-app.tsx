@@ -28,13 +28,19 @@ import { SpendingView } from "./spending-view";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
-import { StoreProvider, useStore, type SortKey } from "./store";
+import { StoreProvider, useStore, type SortKey, type UiInit } from "./store";
+import { ContentSkeleton, Skel, TagsSkeleton } from "./skeletons";
 import { COLLECTION_COLORS, useViewItems } from "./view-items";
-import type { Currency } from "@/lib/money";
+import { FALLBACK_RATES, type Currency } from "@/lib/money";
 
-export function NexusApp({ initial, currency, incoming }: { initial: AppData; currency: Currency; incoming?: Incoming }) {
+/** Everything the first paint needs that the server knows without loading data. */
+export type AppBoot = UiInit & { currency: Currency; aiEnabled: boolean };
+
+/** Without `initial` the app renders as the streamed loading shell: real chrome, skeleton content. */
+export function NexusApp({ boot, initial, incoming }: { boot: AppBoot; initial?: AppData; incoming?: Incoming }) {
+  const data = initial ?? { items: [], collections: [], altGroups: [], rates: FALLBACK_RATES, aiEnabled: boot.aiEnabled };
   return (
-    <StoreProvider initial={initial} initialCurrency={currency}>
+    <StoreProvider initial={data} initialCurrency={boot.currency} ui={boot} loading={!initial}>
       <Shell incoming={incoming} />
     </StoreProvider>
   );
@@ -76,7 +82,9 @@ function Shell({ incoming }: { incoming?: Incoming }) {
         <main className="mx-auto max-w-[1400px] px-4 pb-24 pt-6 sm:px-6 lg:px-8">
           {/* Header + content switch together as one soft cross-fade; the very first paint is not animated. */}
           <div key={viewKey(s.view)} className={s.navSeq > 0 ? "view-in" : undefined}>
-            {s.view.type === "spending" ? (
+            {s.loading && s.view.type === "spending" ? (
+              <ContentSkeleton />
+            ) : s.view.type === "spending" ? (
               <SpendingView />
             ) : (
               <>
@@ -164,6 +172,9 @@ function ViewHeader() {
   })();
 
   const sortLabels: Record<SortKey, string> = { newest: t.view.sortNewest, price: t.view.sortPrice, priority: t.view.sortPriority, name: t.view.sortName };
+  // Data-dependent parts fade in on the first paint after the streamed shell (never on view switches).
+  const fadeIn = s.navSeq === 0 ? "load-in" : undefined;
+  const titleUnknown = s.loading && (s.view.type === "collection" || s.view.type === "store");
 
   return (
     <div className="mb-5">
@@ -171,8 +182,8 @@ function ViewHeader() {
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
             {collection && <span className={cn("size-3", collection.kind === "project" ? "rounded-[4px]" : "rounded-full")} style={{ background: COLLECTION_COLORS[collection.color] }} />}
-            <h1 className="truncate text-[26px] font-semibold tracking-[-0.02em] bidi">
-              {title}
+            <h1 className={cn("truncate text-[26px] font-semibold tracking-[-0.02em] bidi", (s.view.type === "collection" || s.view.type === "store") && fadeIn)}>
+              {titleUnknown ? <Skel className="skeleton-in my-[5px] h-7 w-44 rounded-lg" /> : title}
             </h1>
             {collection && (
               <>
@@ -191,7 +202,10 @@ function ViewHeader() {
               {collection.description}
             </p>
           )}
-          <p className="tabular mt-1 text-sm text-muted">
+          {s.loading ? (
+            <Skel className="skeleton-in mt-[7px] h-3.5 w-52" />
+          ) : (
+          <p className={cn("tabular mt-1 text-sm text-muted", fadeIn)}>
             {(items.length === 1 ? t.collection.itemsCountOne : f(t.collection.itemsCount, { n: items.length }))}
             {totals.total > 0 && (
               <>
@@ -201,6 +215,7 @@ function ViewHeader() {
               </>
             )}
           </p>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -252,7 +267,7 @@ function ViewHeader() {
               </button>
             ))}
           </div>
-          {items.length > 0 && (
+          {(items.length > 0 || s.loading) && (
             <a href={exportHref} className="grid size-9 place-items-center rounded-lg border border-line-strong bg-surface text-fg transition hover:bg-sunken" title={t.collection.export} aria-label={t.collection.export}>
               <Download className="size-4" />
             </a>
@@ -262,8 +277,9 @@ function ViewHeader() {
 
       {budget && budget.budget != null && <BudgetBar stats={budget} />}
 
+      {s.loading && <TagsSkeleton />}
       {tagCounts.length > 1 && (
-        <div className="-mx-1 mt-4 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        <div className={cn("-mx-1 mt-4 flex gap-1.5 overflow-x-auto px-1 pb-1", fadeIn)}>
           <button
             type="button"
             onClick={() => s.setTagFilter(null)}
@@ -330,9 +346,11 @@ function Content() {
   const items = useViewItems();
   const pending = SHOWS_PENDING.includes(s.view.type) ? s.pending : [];
 
+  if (s.loading) return <ContentSkeleton />;
+  const fadeIn = s.navSeq === 0 ? "load-in" : undefined;
   if (!items.length && !pending.length) {
     return (
-      <div className="grid place-items-center rounded-2xl border border-dashed border-line-strong px-6 py-20 text-center">
+      <div className={cn("grid place-items-center rounded-2xl border border-dashed border-line-strong px-6 py-20 text-center", fadeIn)}>
         <EmptyArt />
         <p className="mt-5 max-w-sm text-[15px] text-muted">{s.query || s.tagFilter ? t.cmd.noResults : s.view.type === "history" || s.view.type === "ordered" ? t.collection.emptyHistory : t.collection.empty}</p>
         {!s.query && s.view.type !== "history" && s.view.type !== "ordered" && (
@@ -343,8 +361,18 @@ function Content() {
       </div>
     );
   }
-  if (s.view.type === "orders") return <OrdersView items={items} />;
-  if (s.layout === "table") return <ItemTable items={items} pending={pending} />;
+  if (s.view.type === "orders")
+    return (
+      <div className={fadeIn}>
+        <OrdersView items={items} />
+      </div>
+    );
+  if (s.layout === "table")
+    return (
+      <div className={s.navSeq === 0 ? "load-in-rows" : undefined}>
+        <ItemTable items={items} pending={pending} />
+      </div>
+    );
 
   // Alternatives that are still open collapse into one card, placed where the first option would be.
   const known = new Set(s.altGroups.map((g) => g.id));
@@ -363,7 +391,7 @@ function Content() {
     }
     cells.push(<ItemCard key={i.id} item={i} order={order} />);
   }
-  return <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] sm:gap-4">{cells}</div>;
+  return <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] sm:gap-4", s.navSeq === 0 && "load-in-stagger")}>{cells}</div>;
 }
 
 /** Empty-state illustration: a price tag hanging from a node. */
