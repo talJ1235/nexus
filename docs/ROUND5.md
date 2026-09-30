@@ -126,12 +126,8 @@ Lift panel/dialog open-state above the Suspense boundary so a click made while l
 in; if that's more than a small change, disable those header/sidebar buttons while `loading` instead. Remove the
 Open line when done.
 
-## Next (planned in chat, not for Claude Code yet)
-- Round 6: new features + upgrades (list to be written with Tal).
-- UI "next level": research tools/workflow to go from "amateur+" to professional (design system, reference
-  products, component libraries, motion, visual QA). Output will be a separate brief.
-
----
+## Next
+Round 6 (features): `docs/ROUND6.md`. Then UI v2: `docs/UI-V2.md` (plan only).
 
 ## Open
 - (A1) Sidebar "Unsorted" entry and a project's budget bar appear only once data is in (their existence is data),
