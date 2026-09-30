@@ -3,6 +3,9 @@
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { assertOwner } from "@/lib/auth";
+import { BUDGET_KV_PREFIX, monthKeyIn, type BudgetHistory } from "@/lib/budget";
+import { loadBudgetHistory } from "@/lib/data";
+import { kvSet } from "@/lib/kv";
 import type { StoreSetting } from "@/lib/types";
 
 const storeSettingInput = z.object({
@@ -19,4 +22,13 @@ export async function saveStoreSetting(input: z.input<typeof storeSettingInput>)
   const row = { ...p, currency: p.currency.toUpperCase(), updatedAt: Date.now() };
   await db.insert(schema.storeSettings).values(row).onConflictDoUpdate({ target: schema.storeSettings.storeKey, set: row });
   return row;
+}
+
+/** Monthly spending cap (null = none). Stored for the current month so past months keep the cap they had. */
+export async function saveMonthlyBudget(cap: number | null, currency: string): Promise<BudgetHistory> {
+  await assertOwner();
+  const c = z.number().positive().max(10_000_000).nullable().parse(cap);
+  const cur = z.string().min(3).max(3).parse(currency).toUpperCase();
+  await kvSet(`${BUDGET_KV_PREFIX}${monthKeyIn(Date.now(), "Asia/Jerusalem")}`, JSON.stringify({ cap: c, currency: cur }));
+  return loadBudgetHistory();
 }

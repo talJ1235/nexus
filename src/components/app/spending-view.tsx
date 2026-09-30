@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { useI18n } from "@/components/providers";
+import { capFor, monthKey } from "@/lib/budget";
 import { activeSource, lineTotal, spendDate } from "@/lib/calc";
-import { formatMoney } from "@/lib/money";
+import { convert, formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { MonthBudget } from "./budget-card";
 import { useStore } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
 
@@ -46,9 +48,10 @@ function RankBars({ title, rows, fmt }: { title: string; rows: Row[]; fmt: (v: n
   );
 }
 
-function MonthBars({ months, fmt, locale }: { months: { at: Date; value: number }[]; fmt: (v: number) => string; locale: string }) {
+/** Spend per month; a tick marks the cap that month had (bars over it turn red). */
+function MonthBars({ months, fmt, locale, capLabel }: { months: { at: Date; value: number; cap: number | null }[]; fmt: (v: number) => string; locale: string; capLabel: string }) {
   const [hover, setHover] = useState<number | null>(null);
-  const max = Math.max(1, ...months.map((m) => m.value));
+  const max = Math.max(1, ...months.map((m) => Math.max(m.value, m.cap ?? 0)));
   const label = (d: Date) => d.toLocaleDateString(locale === "he" ? "he-IL" : "en-GB", { month: "short" });
   return (
     <div className="relative" dir="ltr">
@@ -59,13 +62,17 @@ function MonthBars({ months, fmt, locale }: { months: { at: Date; value: number 
             type="button"
             onMouseEnter={() => setHover(i)}
             onFocus={() => setHover(i)}
-            aria-label={`${label(m.at)} ${m.at.getFullYear()}: ${fmt(m.value)}`}
+            aria-label={`${label(m.at)} ${m.at.getFullYear()}: ${fmt(m.value)}${m.cap != null ? ` · ${capLabel.replace("{amount}", fmt(m.cap))}` : ""}`}
             className="group relative flex h-full flex-1 items-end outline-none"
           >
             <span
-              className={cn("block w-full rounded-t-[4px] transition-[height,background-color] duration-300", m.value > 0 ? (hover === i ? "bg-accent-strong" : "bg-accent") : "bg-transparent")}
+              className={cn(
+                "block w-full rounded-t-[4px] transition-[height,background-color] duration-300",
+                m.value <= 0 ? "bg-transparent" : m.cap != null && m.value > m.cap ? "bg-danger" : hover === i ? "bg-accent-strong" : "bg-accent",
+              )}
               style={{ height: `${m.value > 0 ? Math.max(3, (m.value / max) * 100) : 0}%` }}
             />
+            {m.cap != null && <span aria-hidden data-cap-tick className="absolute inset-x-0 h-0.5 rounded-full bg-fg/60" style={{ bottom: `${(m.cap / max) * 100}%` }} />}
           </button>
         ))}
       </div>
@@ -85,6 +92,7 @@ function MonthBars({ months, fmt, locale }: { months: { at: Date; value: number 
           <div className="text-muted">
             {label(months[hover].at)} {months[hover].at.getFullYear()}
           </div>
+          {months[hover].cap != null && <div className="tabular text-muted">{capLabel.replace("{amount}", fmt(months[hover].cap!))}</div>}
         </div>
       )}
     </div>
@@ -110,7 +118,8 @@ export function SpendingView() {
     const months = Array.from({ length: 12 }, (_, k) => {
       const at = new Date(now.getFullYear(), now.getMonth() - 11 + k, 1);
       const end = new Date(at.getFullYear(), at.getMonth() + 1, 1).getTime();
-      return { at, value: sum(at.getTime(), end) };
+      const cap = capFor(monthKey(at), s.budget);
+      return { at, value: sum(at.getTime(), end), cap: cap ? convert(cap.cap!, cap.currency, s.currency, s.rates) : null };
     });
 
     const byCollection = new Map<string, number>();
@@ -139,13 +148,16 @@ export function SpendingView() {
       .slice(0, 8);
 
     return { count: spent.length, thisMonth: sum(thisMonth), lastMonth: sum(lastMonth, thisMonth), thisYear: sum(thisYear), months, projects, stores };
-  }, [s.items, s.rates, s.currency, s.collections, t.spending.unsorted]);
+  }, [s.items, s.rates, s.currency, s.collections, s.budget, t.spending.unsorted]);
 
   return (
     <div>
       <div className="mb-5">
         <h1 className="text-[26px] font-semibold tracking-[-0.02em]">{t.spending.title}</h1>
         <p className="mt-1 text-sm text-muted">{t.spending.note}</p>
+      </div>
+      <div className="mb-4">
+        <MonthBudget />
       </div>
       {data.count === 0 ? (
         <div className="load-in grid place-items-center rounded-2xl border border-dashed border-line-strong px-6 py-20 text-center text-[15px] text-muted">{t.spending.empty}</div>
@@ -158,7 +170,7 @@ export function SpendingView() {
           </div>
           <section className="rounded-[var(--radius-card)] border border-line bg-surface p-4">
             <h3 className="mb-4 text-sm font-semibold">{t.spending.byMonth}</h3>
-            <MonthBars months={data.months} fmt={fmt} locale={locale} />
+            <MonthBars months={data.months} fmt={fmt} locale={locale} capLabel={t.budget.capLine} />
           </section>
           <div className="grid gap-4 lg:grid-cols-2">
             <RankBars title={t.spending.byProject} rows={data.projects} fmt={fmt} />

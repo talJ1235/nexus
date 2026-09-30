@@ -1,0 +1,197 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Pencil } from "lucide-react";
+import { toast } from "@/lib/toast";
+import { saveMonthlyBudget } from "@/app/money-actions";
+import { useI18n } from "@/components/providers";
+import { Button, Input } from "@/components/ui/button";
+import { Pop, PopContent, PopTrigger } from "@/components/ui/overlays";
+import { capFor, monthForecast, monthKey } from "@/lib/budget";
+import { CURRENCIES, formatMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
+import { useStore } from "./store";
+
+const NORMAL_KEY = "nexus.budget.normal";
+
+/** Amount + currency + Save. Used in Settings and in the Spending view's popover. */
+export function BudgetEditor({ onSaved, autoFocus }: { onSaved?: () => void; autoFocus?: boolean }) {
+  const s = useStore();
+  const { t } = useI18n();
+  const cur = capFor(monthKey(new Date()), s.budget);
+  const [amount, setAmount] = useState(cur?.cap != null ? String(cur.cap) : "");
+  const [currency, setCurrency] = useState(cur?.currency ?? s.currency);
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    const v = amount.trim() ? Number(amount) : null;
+    if (v != null && !(v > 0)) return;
+    setBusy(true);
+    try {
+      s.setBudget(await saveMonthlyBudget(v, currency));
+      toast.success(t.budget.saved);
+      onSaved?.();
+    } catch {
+      toast.error(t.errors.generic);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save();
+      }}
+      className="flex gap-2"
+    >
+      <div className="flex min-w-0 flex-1">
+        <Input
+          type="number"
+          min={0}
+          step="any"
+          inputMode="decimal"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder={t.budget.none}
+          aria-label={t.budget.cap}
+          name="monthlyBudget"
+          autoFocus={autoFocus}
+          className="tabular min-w-0 rounded-e-none"
+        />
+        <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="h-10 rounded-e-lg border border-s-0 border-line-strong bg-sunken px-2 text-sm text-fg outline-none" aria-label={t.item.currency}>
+          {[...new Set([...CURRENCIES, currency])].map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+      <Button type="submit" variant="accent" disabled={busy}>
+        {t.item.save}
+      </Button>
+    </form>
+  );
+}
+
+function readNormal() {
+  try {
+    return localStorage.getItem(NORMAL_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** This month: received + ordered + forecast (urgent, optionally normal to-buy) against the monthly cap. */
+export function MonthBudget() {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const [includeNormal, setIncludeNormal] = useState(false);
+  // Per-device toggle, read after hydration (the server can't see localStorage).
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration from browser-only storage
+  useEffect(() => setIncludeNormal(readNormal()), []);
+  const [editOpen, setEditOpen] = useState(false);
+  const m = (v: number) => formatMoney(Math.round(v), s.currency, locale);
+
+  const fc = useMemo(() => {
+    const now = new Date();
+    return monthForecast({
+      items: s.items,
+      altGroups: s.altGroups,
+      rates: s.rates,
+      currency: s.currency,
+      from: new Date(now.getFullYear(), now.getMonth(), 1).getTime(),
+      to: new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime(),
+      cap: capFor(monthKey(now), s.budget),
+      includeNormal,
+    });
+  }, [s.items, s.altGroups, s.rates, s.currency, s.budget, includeNormal]);
+
+  const toggleNormal = () => {
+    const next = !includeNormal;
+    setIncludeNormal(next);
+    try {
+      localStorage.setItem(NORMAL_KEY, next ? "1" : "0");
+    } catch {
+      // per-device convenience only
+    }
+  };
+
+  // Bar scale: the cap, or the total once it's over (then a marker shows where the cap is).
+  const scale = Math.max(fc.cap ?? 0, fc.total, 1);
+  const pct = (v: number) => `${(v / scale) * 100}%`;
+  const segs = [
+    { key: "spent", value: fc.spent, label: t.budget.spent, cls: "bg-ok" },
+    { key: "committed", value: fc.committed, label: t.budget.committed, cls: "bg-info" },
+    { key: "forecast", value: fc.forecast, label: includeNormal ? t.budget.forecastAll : t.budget.forecast, cls: fc.state === "over" ? "bg-danger" : "bg-accent" },
+  ];
+  const status =
+    fc.state === "over"
+      ? f(t.budget.over, { amount: m(fc.total - fc.cap!) })
+      : fc.state === "near"
+        ? f(t.budget.near, { pct: Math.round(fc.pct ?? 0) })
+        : fc.state === "ok"
+          ? f(t.budget.left, { amount: m(fc.cap! - fc.total) })
+          : null;
+
+  return (
+    <section
+      data-month-budget={fc.state}
+      className={cn("rounded-[var(--radius-card)] border p-4", fc.state === "over" ? "border-danger/50 bg-danger-soft/50" : "border-line bg-surface")}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold">{t.budget.title}</h3>
+          <div className="tabular mt-1.5 flex flex-wrap items-baseline gap-x-2 text-[28px] font-semibold leading-none tracking-[-0.02em]">
+            {m(fc.total)}
+            {fc.cap != null && <span className="text-sm font-normal tracking-normal text-muted">{f(t.budget.of, { amount: m(fc.cap) })}</span>}
+          </div>
+        </div>
+        <Pop open={editOpen} onOpenChange={setEditOpen}>
+          <PopTrigger asChild>
+            <Button size="sm" variant={fc.cap == null ? "accent" : "outline"} className="max-sm:h-10" data-budget-edit>
+              <Pencil />
+              {fc.cap == null ? t.budget.set : t.budget.edit}
+            </Button>
+          </PopTrigger>
+          <PopContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-2">
+            <div className="text-sm font-medium">{t.budget.cap}</div>
+            <p className="text-xs leading-relaxed text-muted">{t.budget.capHint}</p>
+            <BudgetEditor autoFocus onSaved={() => setEditOpen(false)} />
+          </PopContent>
+        </Pop>
+      </div>
+
+      <div className="relative mt-4">
+        <div className="flex h-3 overflow-hidden rounded-full bg-sunken" role="img" aria-label={`${t.budget.title}: ${m(fc.total)}${fc.cap != null ? ` / ${m(fc.cap)}` : ""}`}>
+          {segs.map((sg) => (
+            <div key={sg.key} className={cn("h-full transition-[width] duration-500", sg.cls, sg.key === "forecast" && "opacity-60")} style={{ width: pct(sg.value) }} />
+          ))}
+        </div>
+        {fc.cap != null && fc.total > fc.cap && <span aria-hidden className="absolute -top-1 -bottom-1 w-0.5 rounded-full bg-fg" style={{ insetInlineStart: pct(fc.cap) }} />}
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-5 gap-y-2 text-sm">
+        <div className="flex flex-wrap gap-x-5 gap-y-1">
+          {segs.map((sg) => (
+            <span key={sg.key} className="flex items-center gap-1.5 text-muted">
+              <span className={cn("size-2 rounded-full", sg.cls, sg.key === "forecast" && "opacity-60")} /> {sg.label} <b className="tabular font-semibold text-fg">{m(sg.value)}</b>
+            </span>
+          ))}
+          {fc.unpriced > 0 && <span className="text-xs text-faint">{f(t.budget.unpriced, { n: fc.unpriced })}</span>}
+        </div>
+        {status && <span className={cn("tabular font-medium", fc.state === "over" ? "text-danger" : fc.state === "near" ? "text-accent-ink" : "text-muted")}>{status}</span>}
+      </div>
+
+      <label className="mt-3 flex min-h-10 cursor-pointer items-center gap-3 text-sm text-muted">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={includeNormal}
+          onClick={toggleNormal}
+          className={cn("relative h-6 w-11 shrink-0 rounded-full transition", includeNormal ? "bg-accent" : "bg-line-strong")}
+        >
+          <span className={cn("absolute top-0.5 size-5 rounded-full bg-white shadow transition-[inset-inline-start]", includeNormal ? "start-[22px]" : "start-0.5")} />
+        </button>
+        {t.budget.includeNormal}
+      </label>
+    </section>
+  );
+}

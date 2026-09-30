@@ -166,7 +166,18 @@ try {
       ok(before !== after && marks > 0, "orders view: cards ↔ table toggle switches layout", `${before}→${after}, store headers=${marks}`);
     });
 
+    await step("spending view: this month's budget bar", async () => {
+      await page.goto(`${BASE}/?v=spending`);
+      const card = page.locator("[data-month-budget]");
+      await card.waitFor({ timeout: 15000 });
+      await shot(page, "spending-budget");
+      const segs = await card.locator("[role=img] > div").count();
+      ok(segs === 3, "spending view: this month's budget bar", `state=${await card.getAttribute("data-month-budget")}, segments=${segs}`);
+    });
+
     await step("orders view: free-shipping row per store", async () => {
+      await page.goto(`${BASE}/?v=orders`);
+      await page.waitForSelector("[data-store-group]", { timeout: 15000 });
       const groups = await page.locator("[data-store-group]:not([data-store-group='—'])").count();
       const edits = await page.locator("[data-store-group] [data-shipping-edit]").count();
       const bars = await page.locator("[data-store-group] [data-shipping] [role=progressbar]").count();
@@ -334,6 +345,24 @@ try {
           await pop.locator("button[type=submit]").click();
           await group.locator("[data-shipping]").waitFor({ state: "detached", timeout: 8000 });
           ok(/free shipping|למשלוח חינם/.test(text), "free-shipping threshold: set from the store header → bar shows the gap", text.replace(/\s+/g, " "));
+        });
+        await step("monthly budget: a small cap turns the bar over, clearing it removes the cap", async () => {
+          await page.goto(`${BASE}/?v=spending`);
+          const card = page.locator("[data-month-budget]");
+          await card.waitFor({ timeout: 15000 });
+          const setCap = async (v) => {
+            await card.locator("[data-budget-edit]").click();
+            const pop = page.locator("[data-radix-popper-content-wrapper]");
+            await pop.locator("input[name=monthlyBudget]").fill(v);
+            await pop.locator("button[type=submit]").click();
+            await pop.waitFor({ state: "detached", timeout: 8000 });
+          };
+          await setCap("1");
+          await page.locator("[data-month-budget=over]").waitFor({ timeout: 8000 });
+          await shot(page, "spending-over");
+          await setCap("");
+          await page.locator("[data-month-budget=none]").waitFor({ timeout: 8000 });
+          ok(true, "monthly budget: a small cap turns the bar over, clearing it removes the cap");
         });
         // Needs the server started with NEXUS_AI_MOCK=1 (the mock proposes "first two to-buy items → ordered").
         await step("assistant action: propose → apply → undo", async () => {

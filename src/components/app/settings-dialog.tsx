@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/overlays";
 import { CURRENCIES, type Currency } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { BookmarkletDialog } from "./bookmarklet";
+import { BudgetEditor } from "./budget-card";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 
@@ -90,6 +91,9 @@ export function SettingsDialog() {
                 onChange={s.setCurrency}
                 options={CURRENCIES.map((c) => ({ value: c, label: c === "ILS" ? "₪ ILS" : c === "USD" ? "$ USD" : "€ EUR" }))}
               />
+            </Row>
+            <Row title={t.budget.cap} hint={t.budget.capHint}>
+              <BudgetEditor />
             </Row>
             <Row title={t.settings.theme}>
               <Segmented

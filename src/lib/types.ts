@@ -1,4 +1,5 @@
 import type { Alert, AltGroup, Attachment, Collection, Grant, Invite, Item, Member, PricePoint, Source, StoreSetting } from "@/db/schema";
+import type { BudgetHistory } from "./budget";
 import type { Rates } from "./money";
 
 export type { Alert, AltGroup, Attachment, Collection, Grant, Invite, Item, Member, PricePoint, Source, StoreSetting };
@@ -9,6 +10,8 @@ export type AppData = {
   items: ItemWithSources[];
   altGroups: AltGroup[];
   storeSettings: StoreSetting[];
+  /** Monthly spending cap per month it was set (see lib/budget). */
+  budget: BudgetHistory;
   rates: Rates;
   aiEnabled: boolean;
 };

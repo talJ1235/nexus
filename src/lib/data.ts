@@ -1,7 +1,8 @@
 import "server-only";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, like } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { aiEnabled } from "./ai";
+import { BUDGET_KV_PREFIX, type BudgetHistory } from "./budget";
 import { getRates } from "./rates";
 import type { AppData, ItemWithSources } from "./types";
 
@@ -29,14 +30,29 @@ export async function loadItems(): Promise<ItemWithSources[]> {
 }
 
 export async function getAppData(): Promise<AppData> {
-  const [collections, items, altGroups, storeSettings, rates] = await Promise.all([
+  const [collections, items, altGroups, storeSettings, budget, rates] = await Promise.all([
     db.select().from(schema.collections).orderBy(asc(schema.collections.sortOrder), asc(schema.collections.createdAt)),
     loadItems(),
     db.select().from(schema.altGroups),
     db.select().from(schema.storeSettings),
+    loadBudgetHistory(),
     getRates(),
   ]);
-  return { collections, items, altGroups, storeSettings, rates, aiEnabled: aiEnabled() };
+  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled() };
+}
+
+export async function loadBudgetHistory(): Promise<BudgetHistory> {
+  const rows = await db.select().from(schema.kv).where(like(schema.kv.key, `${BUDGET_KV_PREFIX}%`));
+  const out: BudgetHistory = {};
+  for (const r of rows) {
+    try {
+      const v = JSON.parse(r.value);
+      out[r.key.slice(BUDGET_KV_PREFIX.length)] = { cap: typeof v.cap === "number" ? v.cap : null, currency: typeof v.currency === "string" ? v.currency : "ILS" };
+    } catch {
+      // ignore a malformed row
+    }
+  }
+  return out;
 }
 
 export async function getSharedCollection(token: string) {

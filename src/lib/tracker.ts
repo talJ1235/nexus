@@ -2,7 +2,8 @@ import "server-only";
 import { and, asc, desc, eq, gt, inArray, isNull, lt, ne, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db, schema } from "@/db";
-import { recordPrice } from "./data";
+import { capFor, monthForecast, monthKeyIn, monthStartIn, nextMonthKey, shouldNotifyBudget } from "./budget";
+import { loadBudgetHistory, loadItems, recordPrice } from "./data";
 import { extractFromUrl, parseHtml, type Extracted } from "./extract";
 import { kvGet, kvSet } from "./kv";
 import { convert, formatMoney, parsePrice } from "./money";
@@ -173,13 +174,37 @@ const KIND_LINE: Record<Alert["kind"], (a: Alert, fmt: (n: number | null) => str
   out_of_stock: () => `⛔ Out of stock`,
 };
 
-/** Send all unsent alerts as ONE Telegram digest; mark them sent. */
+const TZ = "Asia/Jerusalem";
+
+/** One line when this month (received + ordered + urgent to buy) is near/over the cap, once per state per month. */
+async function budgetNotice(): Promise<{ line: string; commit: () => Promise<void> } | null> {
+  const month = monthKeyIn(Date.now(), TZ);
+  const cap = capFor(month, await loadBudgetHistory());
+  if (!cap) return null;
+  const sentKey = `budget:notified:${month}`;
+  const [items, altGroups, rates, sentRaw] = await Promise.all([loadItems(), db.select().from(schema.altGroups), getRates(), kvGet(sentKey)]);
+  const fc = monthForecast({ items, altGroups, rates, currency: cap.currency, from: monthStartIn(month, TZ), to: monthStartIn(nextMonthKey(month), TZ), cap, includeNormal: false });
+  const sent = (sentRaw ?? "").split(",").filter(Boolean);
+  if (!shouldNotifyBudget(fc.state, sent)) return null;
+  const m = (n: number) => formatMoney(Math.round(n), cap.currency, "en");
+  const incl = fc.forecast > 0 ? " (incl. urgent to buy)" : "";
+  const line =
+    fc.state === "over"
+      ? `💸 <b>Over budget:</b> ${m(fc.total)} of ${m(fc.cap!)} this month${incl} — ${m(fc.total - fc.cap!)} over`
+      : `⚠️ <b>Budget:</b> ${Math.round(fc.pct ?? 0)}% of ${m(fc.cap!)} used this month${incl}`;
+  return { line, commit: () => kvSet(sentKey, [...sent, fc.state].join(",")) };
+}
+
+/** Send all unsent alerts (and the budget line, when due) as ONE Telegram digest; mark them sent. */
 export async function sendAlertDigest(origin: string) {
   const prefs = await getAlertPrefs();
+  if (!prefs.telegram) return { sent: 0 };
   const pending = await db.select().from(schema.alerts).where(isNull(schema.alerts.sentAt)).orderBy(desc(schema.alerts.createdAt)).limit(30);
-  if (!pending.length || !prefs.telegram) return { sent: 0 };
-  const items = await db.select().from(schema.items).where(inArray(schema.items.id, [...new Set(pending.map((a) => a.itemId))]));
-  const sources = await db.select().from(schema.sources).where(inArray(schema.sources.id, pending.map((a) => a.sourceId).filter(Boolean) as string[]));
+  const budget = await budgetNotice().catch(() => null);
+  if (!pending.length && !budget) return { sent: 0 };
+  const items = pending.length ? await db.select().from(schema.items).where(inArray(schema.items.id, [...new Set(pending.map((a) => a.itemId))])) : [];
+  const sourceIds = pending.map((a) => a.sourceId).filter(Boolean) as string[];
+  const sources = sourceIds.length ? await db.select().from(schema.sources).where(inArray(schema.sources.id, sourceIds)) : [];
   const lines = pending.map((a) => {
     const it = items.find((i) => i.id === a.itemId);
     const src = sources.find((s) => s.id === a.sourceId);
@@ -188,10 +213,14 @@ export async function sendAlertDigest(origin: string) {
     const link = src?.url ? ` · <a href="${escapeHtml(src.url)}">${escapeHtml(src.store)}</a>` : "";
     return `<b>${name}</b>\n${KIND_LINE[a.kind](a, m)}${link}`;
   });
-  const html = `<b>Nexus · ${pending.length} price update${pending.length > 1 ? "s" : ""}</b>\n\n${lines.join("\n\n")}\n\n<a href="${origin}/?panel=alerts">Open Nexus</a>`;
+  const title = pending.length ? `Nexus · ${pending.length} price update${pending.length > 1 ? "s" : ""}` : "Nexus · budget";
+  const body = [budget?.line, ...lines].filter(Boolean).join("\n\n");
+  const link = pending.length ? `${origin}/?panel=alerts` : `${origin}/?v=spending`;
+  const html = `<b>${title}</b>\n\n${body}\n\n<a href="${link}">Open Nexus</a>`;
   const ok = await sendTelegram(html);
-  if (ok) await db.update(schema.alerts).set({ sentAt: Date.now() }).where(inArray(schema.alerts.id, pending.map((a) => a.id)));
-  return { sent: ok ? pending.length : 0 };
+  if (ok && pending.length) await db.update(schema.alerts).set({ sentAt: Date.now() }).where(inArray(schema.alerts.id, pending.map((a) => a.id)));
+  if (ok && budget) await budget.commit();
+  return { sent: ok ? pending.length : 0, budget: ok && !!budget };
 }
 
 

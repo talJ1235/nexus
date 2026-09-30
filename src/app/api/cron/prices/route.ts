@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const repair = await repairIncomplete(16_000).catch(() => ({ tried: 0, repaired: 0 }));
   const digest = await sendAlertDigest(req.nextUrl.origin);
   await ensureWebhook(req.nextUrl.origin).catch(() => false); // self-heal the bot webhook daily
-  const summary = { at: Date.now(), checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, sent: digest.sent, repair };
+  const summary = { at: Date.now(), checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, sent: digest.sent, budget: "budget" in digest ? digest.budget : false, repair };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }

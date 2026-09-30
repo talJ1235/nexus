@@ -46,7 +46,7 @@ In "Order by store", show how far each store is from free shipping and how to ge
   One click applies (switch source / include).
 Acceptance: pure function for gap + suggestions with a unit test; smoke checks the bar renders.
 
-### 3. [ ] Monthly budget + forecast
+### 3. [x] Monthly budget + forecast
 - Setting: monthly spending cap (currency-aware, optional), in Settings and on the Spending view.
 - Spending view, this month: spent (purchased) + committed (ordered) + a forecast (urgent to-buy, and normal to-buy
   if the user toggles it) against the cap: one bar with three segments + clear numbers. States: ok / near (≥90 %) /

@@ -38,7 +38,7 @@ export type AppBoot = UiInit & { currency: Currency; aiEnabled: boolean };
 
 /** Without `initial` the app renders as the streamed loading shell: real chrome, skeleton content. */
 export function NexusApp({ boot, initial, incoming }: { boot: AppBoot; initial?: AppData; incoming?: Incoming }) {
-  const data = initial ?? { items: [], collections: [], altGroups: [], storeSettings: [], rates: FALLBACK_RATES, aiEnabled: boot.aiEnabled };
+  const data = initial ?? { items: [], collections: [], altGroups: [], storeSettings: [], budget: {}, rates: FALLBACK_RATES, aiEnabled: boot.aiEnabled };
   return (
     <StoreProvider initial={data} initialCurrency={boot.currency} ui={boot} loading={!initial}>
       <Shell incoming={incoming} />
