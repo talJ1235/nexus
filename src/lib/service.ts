@@ -6,6 +6,7 @@ import { db, schema } from "@/db";
 import { categorize, extractWithAi, extractWithUrlContext } from "@/lib/ai";
 import { getItem, recordPrice } from "@/lib/data";
 import { extractFromUrl, hintsFromUrl, type Extracted } from "@/lib/extract";
+import { requestHeal } from "@/lib/heal";
 import { storeThumbnail } from "@/lib/images";
 import { parsePrice } from "@/lib/money";
 import { titleSimilarity } from "@/lib/similarity";
@@ -261,6 +262,7 @@ export async function repairIncomplete(budgetMs = 20_000) {
   const started = now();
   let repaired = 0;
   let tried = 0;
+  const still: { id: string; url: string }[] = [];
   for (const src of await sourcesNeedingDetails(10)) {
     if (now() - started > budgetMs) break;
     tried++;
@@ -268,10 +270,12 @@ export async function repairIncomplete(budgetMs = 20_000) {
       const item = await refreshSourceCore(src.id);
       const s = item.sources.find((x) => x.id === src.id);
       if (s && !missingDetails(s, item)) repaired++;
+      else still.push({ id: src.id, url: src.url });
     } catch {
       /* next one */
     }
   }
+  await requestHeal(still);
   return { tried, repaired };
 }
 
@@ -326,6 +330,8 @@ export async function createItemCore(input: z.input<typeof draftSchema>): Promis
     const sourceId = nanoid(12);
     await db.insert(schema.sources).values({ id: sourceId, itemId: id, ...d.source, fetchedAt: t, createdAt: t });
     await recordPrice(sourceId, id, d.source.price, d.source.currency);
+    // First read incomplete → ask the helper fetcher (no-op unless configured).
+    if (missingDetails(d.source, { imageUrl })) await requestHeal([{ id: sourceId, url: d.source.url }]);
   }
   return (await getItem(id))!;
 }

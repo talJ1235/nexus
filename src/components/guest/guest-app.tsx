@@ -52,8 +52,9 @@ export function GuestApp({ data, initialCollection, initialCurrency }: { data: G
   const heal = async (item: ItemWithSources, attempt = 0) => {
     const src = item.sources.find((x) => x.url);
     const incomplete = src && (!src.rawTitle || src.price == null || !item.imageUrl);
-    if (!incomplete || attempt >= 2) return;
-    await new Promise((r) => setTimeout(r, attempt === 0 ? 4000 : 25000));
+    if (!incomplete || attempt >= 3) return;
+    // Retries also pick up what the background helper fetcher filled in meanwhile (~30–60 s).
+    await new Promise((r) => setTimeout(r, [4000, 25000, 50000][attempt]));
     try {
       const fixed = await guestRepairItem(item.id);
       upsert(fixed);

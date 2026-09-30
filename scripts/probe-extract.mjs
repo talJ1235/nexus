@@ -93,6 +93,13 @@ async function prod(url) {
   return j.probe ? { strategies: j.probe } : { status: j.status, len: j.length, og: j.ogTitle?.slice(0, 60) ?? null, img: Boolean(j.ogImage), title: j.title?.slice(0, 60) ?? null };
 }
 
+if (process.argv[2] === "list") {
+  await prod("https://example.com"); // logs in
+  const j = await fetch(`${process.env.BASE}/api/debug/extract`, { headers: { cookie } }).then((r) => r.json());
+  console.log("INCOMPLETE", JSON.stringify(j.incomplete ?? j));
+  process.exit(0);
+}
+
 const line = (url, name, r) => console.log(`${new URL(url).host.padEnd(22)} ${name.padEnd(10)} ${JSON.stringify(r)}`);
 
 for (const url of URLS) {

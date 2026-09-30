@@ -4,6 +4,7 @@ import { db, schema } from "@/db";
 import { previewUrl } from "@/app/actions";
 import { extractWithUrlContext } from "@/lib/ai";
 import { debugFetch, debugVariants, extractFromUrl } from "@/lib/extract";
+import { sourcesNeedingDetails } from "@/lib/service";
 
 export const maxDuration = 60;
 
@@ -12,7 +13,9 @@ export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url");
   if (!url) {
     const recent = await db.select({ url: schema.sources.url, method: schema.sources.extractMethod }).from(schema.sources).orderBy(desc(schema.sources.createdAt)).limit(10);
-    return Response.json({ recent });
+    // Links still waiting for their name/price/picture (what the self-heal passes work on).
+    const incomplete = (await sourcesNeedingDetails(20, 0)).map((s) => ({ id: s.id, url: s.url, method: s.extractMethod, title: s.rawTitle, price: s.price }));
+    return Response.json({ recent, incomplete });
   }
   const started = Date.now();
   // ?variants=1 → AliExpress item via several hosts × preview-bot identities (research).

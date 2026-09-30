@@ -1,0 +1,26 @@
+# Helper fetcher: the app dispatches this (repository_dispatch "heal") when a store link came in without its
+# name/picture — GitHub's runners can read link previews that Vercel's IPs get blocked on. Needs the
+# NEXUS_PASSWORD repo secret (same one the smoke test uses) and GITHUB_DISPATCH_TOKEN in Vercel.
+name: heal
+on:
+  repository_dispatch:
+    types: [heal]
+  workflow_dispatch:
+    inputs:
+      sources: { description: 'JSON [{"id":"…","url":"…"}]', required: true }
+concurrency: { group: heal, cancel-in-progress: false }
+jobs:
+  heal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: scripts }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node scripts/heal-links.mjs
+        env:
+          BASE: https://nexus-ashen-beta.vercel.app
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+          # Passed through env (never interpolated into the shell).
+          HEAL_SOURCES: ${{ github.event_name == 'repository_dispatch' && toJson(github.event.client_payload.sources) || github.event.inputs.sources }}

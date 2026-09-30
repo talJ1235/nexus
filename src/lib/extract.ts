@@ -269,6 +269,8 @@ export function parseHtml(html: string, pageUrl: string): Omit<Extracted, "url" 
     method = "meta";
   }
   description ??= meta("og:description") ?? meta("description");
+  // AliExpress preview pages carry a store slogan instead of a product description.
+  if (description && /smarter shopping, better living/i.test(description)) description = null;
   image ??= meta("og:image:secure_url") ?? meta("og:image") ?? meta("twitter:image");
   if (price == null) {
     const cur = meta("product:price:currency") ?? meta("og:price:currency") ?? meta("priceCurrency");
@@ -453,8 +455,6 @@ async function extractDirect(inputUrl: string, target?: Target): Promise<Extract
     if (!parsed.title && extra.title) parsed.title = extra.title;
   }
   if (parsed.title) parsed.title = parsed.title.replace(/\s*-\s*AliExpress(\s*\d+)?\s*$/i, "").trim();
-  // AliExpress bot view: the description is a store slogan, not the product.
-  if (storeWithSite.key === "aliexpress" && parsed.description && /smarter shopping|aliexpress\.com$/i.test(parsed.description)) parsed.description = null;
   return {
     ...parsed,
     title: blocked && parsed.method === "title" ? null : parsed.title,
