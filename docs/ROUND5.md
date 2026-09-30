@@ -57,7 +57,7 @@ the app is ready.
 - The animation uses the teal logo from item 2b.
 Acceptance: `SMOKE_MOBILE=1 SMOKE_TRACE=1` frames show the sequence and a clean hand-off; desktop never shows it.
 
-### 2b. [ ] Logo accent: orange → teal (decided by Tal) — do this before item 2
+### 2b. [x] Logo accent: orange → teal (decided by Tal) — do this before item 2
 The logo's center node is still the old orange (#f2a93b) while the app accent is teal since Round 4. Align everywhere:
 - `public/icons/icon.svg`, `public/icons/maskable.svg`: center node → dark-theme `--accent` (#14a898).
 - `src/components/logo.tsx`: center node uses `var(--accent)` (follows light/dark), not a hard-coded colour.

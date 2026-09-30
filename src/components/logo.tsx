@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Nexus mark: three nodes linked to a hub; the hub is the amber "price tag" dot. */
+/** Nexus mark: three nodes linked to a hub; the hub is the accent (teal) "price tag" dot. */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={cn("size-7", className)} aria-hidden="true">

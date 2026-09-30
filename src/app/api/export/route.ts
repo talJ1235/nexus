@@ -67,8 +67,8 @@ export async function GET(req: NextRequest) {
   const totalRow = ws.addRow({ title: t.item.total, qty: { formula: `SUM(C2:C${last})` }, total: { formula: `SUM(E2:E${last})` } });
   totalRow.font = { bold: true };
   const header = ws.getRow(1);
-  header.font = { bold: true, color: { argb: "FF1F1403" } };
-  header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2A93B" } };
+  header.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF14A898" } };
   ws.autoFilter = { from: "A1", to: `L${Math.max(1, last)}` };
 
   const buf = await wb.xlsx.writeBuffer();
