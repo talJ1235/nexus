@@ -99,6 +99,13 @@ async function fetchHtml(inputUrl: string, social = false) {
   }
 }
 
+/** Owner diagnostics: raw response for one fetch mode. */
+export async function debugFetch(url: string, social: boolean) {
+  const r = await fetchHtml(url, social);
+  const html = r.html ?? "";
+  return { status: r.status, len: html.length, final: r.finalUrl.slice(0, 80), og: html.match(/og:title["'][^>]*content=["']([^"']{0,60})/i)?.[1] ?? null, head: html.replace(/\s+/g, " ").slice(0, 300) };
+}
+
 type Json = Record<string, unknown>;
 
 function asArray<T>(v: T | T[] | undefined | null): T[] {

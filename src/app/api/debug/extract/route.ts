@@ -3,7 +3,7 @@ import { desc } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { previewUrl } from "@/app/actions";
 import { extractWithUrlContext } from "@/lib/ai";
-import { extractFromUrl } from "@/lib/extract";
+import { debugFetch, extractFromUrl } from "@/lib/extract";
 
 export const maxDuration = 60;
 
@@ -28,14 +28,16 @@ export async function GET(req: NextRequest) {
     const pick = (x: { title: string | null; image: string | null; price: number | null; currency: string | null; method: string; blocked: boolean; url: string }) => ({
       title: x.title?.slice(0, 60) ?? null, img: Boolean(x.image), price: x.price, cur: x.currency, method: x.method, blocked: x.blocked, url: x.url.slice(0, 70),
     });
-    const [extract, gemini] = await Promise.all([
+    const [direct, social, extract, gemini] = await Promise.all([
+      t(() => debugFetch(url, false)),
+      t(() => debugFetch(url, true)),
       t(async () => pick(await extractFromUrl(url))),
       t(async () => {
         const r = await extractWithUrlContext(url);
         return r ? { title: r.title?.slice(0, 60) ?? null, img: Boolean(r.imageUrl), price: r.price, cur: r.currency } : { none: true };
       }),
     ]);
-    return Response.json({ probe: { extract, gemini } });
+    return Response.json({ probe: { direct, social, extract, gemini } });
   }
   if (req.nextUrl.searchParams.get("full")) {
     try {
