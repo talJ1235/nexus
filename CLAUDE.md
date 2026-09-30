@@ -46,6 +46,7 @@
 - Brief says "confirm with the trace/frames first" → measure before changing. If the brief is wrong or a choice needs
   Tal, stop and ask in one short question instead of guessing.
 - End: update SPEC.md by **editing** the round's section (never append a second copy — Round 4 was duplicated once),
+  write anything left open (bugs, skipped parts, questions for Tal) under "## Open" at the end of the brief,
   `git pull --rebase`, push to `main` (auto-deploys), and reply with: items done, commits, anything left open.
 - Docs-only commits (`docs/`, `*.md`, `.claude/`) don't trigger a Vercel build (`vercel.json` ignoreCommand).
 
