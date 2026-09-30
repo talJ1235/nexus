@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { rubikHebrew, rubikLatin } from "./fonts";
 import { SwRegister } from "@/components/sw-register";
+import { BootScreen } from "@/components/boot-screen";
 import { isLocale, LOCALE_COOKIE } from "@/lib/i18n";
 
 export const metadata: Metadata = {
@@ -33,6 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} dir={locale === "he" ? "rtl" : "ltr"} className={`${rubikLatin.variable} ${rubikHebrew.variable}`} suppressHydrationWarning>
       <body>
+        <BootScreen />
         <Providers locale={locale}>{children}</Providers>
         <SwRegister />
       </body>

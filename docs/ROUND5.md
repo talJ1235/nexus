@@ -39,7 +39,7 @@ Wanted:
 Acceptance: trace frames at desktop + mobile show shell → skeleton → content with no blank frame, no second layout,
 no jump; `npm run -s check` OK; smoke PASS.
 
-### 2. [ ] Phone opening animation (PWA + mobile browser)
+### 2. [x] Phone opening animation (PWA + mobile browser)
 Today the phone shows only the static logo while the app loads. Wanted: a short, cute, cool opening animation until
 the app is ready.
 - The Android native splash (manifest icon on `background_color`) cannot animate. So: an in-app boot screen that is in

@@ -50,7 +50,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
   const s = useStore();
   const { t } = useI18n();
   return (
-    <div className="flex min-h-dvh">
+    <div className="flex min-h-dvh" data-app-shell data-ready={s.loading ? undefined : ""}>
       <aside className="sticky top-0 hidden h-dvh w-[264px] shrink-0 border-e border-line bg-bg lg:block">
         <Sidebar />
       </aside>

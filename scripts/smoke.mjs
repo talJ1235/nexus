@@ -9,7 +9,7 @@
 //     into $SMOKE_OUT/trace[-m]/ plus one contact sheet (trace[-m].png) to judge load flashes from frames.
 //     SMOKE_TRACE_PATH=/?v=urgent traces another URL; SMOKE_THROTTLE=1 emulates a slow phone network (Fast 3G-ish)
 //     and SMOKE_TRACE_LAYOUT=table stores that layout preference first (to catch a cards→table second render).
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
@@ -37,6 +37,8 @@ const step = async (msg, fn) => {
     ok(false, msg, String(e?.message || e).split("\n")[0].slice(0, 200));
   }
 };
+// The app with its data (not the streamed loading shell, whose clicks are replaced when the data arrives).
+const READY = "[data-app-shell][data-ready] main h1";
 const shot = async (page, name) => OUT && page.screenshot({ path: `${OUT}/${name}${SUFFIX}.png` });
 
 // Record every frame Chromium paints during `ms` after navigating to `url` (screencast only emits on change,
@@ -45,6 +47,7 @@ async function traceLoad(ctx, url, ms = 2500) {
   const page = await ctx.newPage();
   const cdp = await ctx.newCDPSession(page);
   const dir = `${OUT}/trace${SUFFIX}`;
+  rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   const frames = [];
   let t0 = 0;
@@ -120,7 +123,7 @@ try {
     });
 
     await step("app renders items", async () => {
-      await page.waitForSelector("main h1", { timeout: 15000 });
+      await page.waitForSelector(READY, { timeout: 15000 });
       ok(true, "app renders", "");
       await shot(page, "home");
     });
@@ -146,7 +149,7 @@ try {
 
     await step("assistant panel opens", async () => {
       await page.goto(`${BASE}/`);
-      await page.waitForSelector("main h1", { timeout: 15000 });
+      await page.waitForSelector(READY, { timeout: 15000 });
       const btn = page.locator("header button[title='Ask Nexus'], header button[aria-label='Assistant']").filter({ visible: true }).first();
       if (!(await btn.count())) return ok(true, "assistant panel (AI off or not in this layout, skipped)");
       await btn.click();
@@ -197,7 +200,7 @@ try {
         };
         await step("pasted link shows a placeholder card at once", async () => {
           await page.goto(`${BASE}/`);
-          await page.waitForSelector("main h1");
+          await page.waitForSelector(READY);
           await page.evaluate(() => localStorage.setItem("nexus.layout", "cards"));
           await paste();
           await page.waitForSelector("main article[aria-busy=true]", { timeout: 1500 });
@@ -225,11 +228,26 @@ try {
           await page.getByText(/Moved 1 to|הועברו 1 אל/).first().waitFor({ timeout: 10000 });
           await page.keyboard.press("Escape");
           await page.goto(`${BASE}/`);
-          await page.waitForSelector("main h1");
+          await page.waitForSelector(READY);
           ok((await page.locator("main article").count()) === before + 1, "partial move splits the item", `${before} → ${await page.locator("main article").count()}`);
         });
       }
     }
+
+    await step("boot screen", async () => {
+      // Fresh tab (sessionStorage is per tab): phones see the opening animation once, then it hands off; desktop never.
+      const p = await ctx.newPage();
+      await p.goto(`${BASE}/`, { waitUntil: "commit" });
+      await p.waitForSelector("#boot", { state: "attached", timeout: 10000 });
+      if (MOBILE) {
+        const shown = await p.locator("#boot").isVisible();
+        await p.waitForSelector("#boot.boot-gone", { state: "attached", timeout: 10000 });
+        ok(shown && (await p.locator(READY).isVisible()), "boot screen: shown on phone, hands off to the app");
+      } else {
+        ok(!(await p.locator("#boot").isVisible()), "boot screen: never shown on desktop");
+      }
+      await p.close();
+    });
 
     if (TRACE) {
       await step("load trace", async () => {

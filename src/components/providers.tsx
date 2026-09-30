@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { markBooted } from "@/lib/boot";
 import { dictionaries, fmt, LOCALE_COOKIE, type Dict, type Locale } from "@/lib/i18n";
 
 type I18n = { locale: Locale; t: Dict; f: typeof fmt; setLocale: (l: Locale) => void; dir: "ltr" | "rtl" };
@@ -18,6 +19,10 @@ export function Providers({ locale, children }: { locale: Locale; children: Reac
   const setLocale = useCallback((l: Locale) => {
     document.cookie = `${LOCALE_COOKIE}=${l}; path=/; max-age=31536000; samesite=lax`;
     window.location.reload();
+  }, []);
+  // Pages without the app shell (login, shared lists) are ready once hydrated; the app marks itself when its data is in.
+  useEffect(() => {
+    if (!document.querySelector("[data-app-shell]")) markBooted();
   }, []);
   const value = useMemo<I18n>(
     () => ({ locale, t: dictionaries[locale], f: fmt, setLocale, dir: locale === "he" ? "rtl" : "ltr" }),

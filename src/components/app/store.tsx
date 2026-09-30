@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
 import type { AltGroup, AppData, Collection, ItemWithSources } from "@/lib/types";
 import type { View } from "@/lib/views";
+import { markBooted } from "@/lib/boot";
 
 export type { View };
 
@@ -167,6 +168,11 @@ export function StoreProvider({
     setAskSeed(`${q}\u200b${Date.now() % 1000}`);
     setPanel("assistant");
   }, []);
+
+  // The app has its data: the phone boot screen can hand off.
+  useEffect(() => {
+    if (!loading) markBooted();
+  }, [loading]);
 
   // One-time migration of prefs saved in localStorage before they moved to cookies, and `?item=` deep links.
   useEffect(() => {
