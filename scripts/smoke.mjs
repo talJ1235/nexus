@@ -155,6 +155,13 @@ try {
       await btn.click();
       await page.getByRole("dialog").waitFor({ timeout: 5000 });
       ok(true, "assistant panel opens");
+      const chips = page.locator("[data-testid=ai-suggestions] button");
+      await chips.first().waitFor({ timeout: 5000 });
+      const n = await chips.count();
+      const h = (await chips.first().boundingBox())?.height ?? 0;
+      const row = await page.locator("[data-testid=ai-suggestions]").evaluate((el) => getComputedStyle(el).flexWrap);
+      ok(n >= 1 && n <= 4 && (!MOBILE || (h >= 40 && row === "nowrap")), "assistant suggestion chips render", `n=${n} h=${h} wrap=${row}`);
+      await page.waitForTimeout(400); // let the sheet finish sliding in before the screenshot
       await shot(page, "assistant");
       await page.keyboard.press("Escape");
     });

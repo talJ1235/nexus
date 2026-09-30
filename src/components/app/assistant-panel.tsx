@@ -9,6 +9,7 @@ import { useI18n } from "@/components/providers";
 import { Button, Textarea } from "@/components/ui/button";
 import { Sheet, SheetClose } from "@/components/ui/overlays";
 import type { Plan, PlannedPart } from "@/lib/assistant";
+import { readRecent, recordRecent, suggestQuestions, type Suggestion } from "@/lib/assistant-suggestions";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { useStore } from "./store";
@@ -79,6 +80,36 @@ function Markdown({ text, onItem }: { text: string; onItem: (id: string) => void
   );
 }
 
+// ---------- Suggestion chips (one scrollable row on phones, wrapping on desktop) ----------
+
+function Chips({ list, onPick, label, testId }: { list: Suggestion[]; onPick: (text: string) => void; label: string; testId: string }) {
+  if (!list.length) return null;
+  return (
+    <div role="group" aria-label={label} data-testid={testId} className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
+      {list.map((sug) => (
+        <button
+          key={sug.text}
+          type="button"
+          onClick={() => onPick(sug.text)}
+          className="inline-flex h-10 shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-line px-3.5 text-start text-[13px] text-muted transition hover:border-line-strong hover:text-fg active:bg-sunken md:h-auto md:min-h-8 md:shrink md:whitespace-normal md:py-1.5"
+        >
+          <span>
+            {sug.parts.map((p, i) =>
+              p.name ? (
+                <span key={i} className="bidi font-medium text-fg">
+                  {p.text}
+                </span>
+              ) : (
+                <Fragment key={i}>{p.text}</Fragment>
+              ),
+            )}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ---------- Ask ----------
 
 type Msg = { role: "user" | "assistant"; text: string };
@@ -91,10 +122,26 @@ function AskTab({ seed, seedKey }: { seed: string | null; seedKey: string | null
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const seeded = useRef<string | null>(null);
+  const [recent, setRecent] = useState<string[]>(() => (typeof window === "undefined" ? [] : readRecent()));
+  const [now] = useState(() => Date.now());
+
+  const base = { items: s.items, collections: s.collections, altGroups: s.altGroups, view: s.view, now, rates: s.rates, currency: s.currency, t: t.ai.sug };
+  const suggestions = useMemo(
+    () => suggestQuestions({ ...base, recent, fallback: [t.ai.ex1, t.ai.ex2, t.ai.ex3, t.ai.ex4] }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [s.items, s.collections, s.altGroups, s.view, s.rates, s.currency, t, recent, now],
+  );
+  const lastIsAnswer = !busy && msgs.length > 0 && msgs[msgs.length - 1].role === "assistant";
+  const followUps = useMemo(
+    () => (lastIsAnswer ? suggestQuestions({ ...base, recent: [...msgs.filter((m) => m.role === "user").map((m) => m.text), ...recent], fallback: [t.ai.ex1, t.ai.ex2, t.ai.ex3, t.ai.ex4], limit: 3 }) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lastIsAnswer, msgs, s.items, s.collections, s.altGroups, s.view, s.rates, s.currency, t, recent, now],
+  );
 
   const send = async (question: string) => {
     const text = question.trim();
     if (!text || busy) return;
+    setRecent(recordRecent(text));
     const history = msgs;
     setMsgs((m) => [...m, { role: "user", text }]);
     setQ("");
@@ -134,13 +181,7 @@ function AskTab({ seed, seedKey }: { seed: string | null; seedKey: string | null
         {!msgs.length && (
           <div className="space-y-3">
             <p className="text-sm text-muted">{t.ai.askIntro}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {[t.ai.ex1, t.ai.ex2, t.ai.ex3, t.ai.ex4].map((ex) => (
-                <button key={ex} type="button" onClick={() => void send(ex)} className="rounded-full border border-line px-3 py-1.5 text-start text-[13px] text-muted transition hover:border-line-strong hover:text-fg">
-                  {ex}
-                </button>
-              ))}
-            </div>
+            <Chips list={suggestions} onPick={(q) => void send(q)} label={t.ai.suggestions} testId="ai-suggestions" />
           </div>
         )}
         {msgs.map((m, i) =>
@@ -166,6 +207,11 @@ function AskTab({ seed, seedKey }: { seed: string | null; seedKey: string | null
               <ThinkingDots className="text-accent-ink" />
               <span className="text-[13px]">{t.ai.thinking}</span>
             </span>
+          </div>
+        )}
+        {followUps.length > 0 && (
+          <div className="animate-pop-in ps-8.5">
+            <Chips list={followUps} onPick={(q) => void send(q)} label={t.ai.followUps} testId="ai-followups" />
           </div>
         )}
         <div ref={endRef} />

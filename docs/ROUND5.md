@@ -73,7 +73,7 @@ Acceptance: `rg -n "f2a93b" public src extension` returns only the `amber` colle
 
 ## Session A2 — assistant, order by store, toasts (desktop + phone)
 
-### 3. [ ] Assistant suggestions that fit me
+### 3. [x] Assistant suggestions that fit me
 Today `assistant-panel.tsx` shows 4 fixed questions (`t.ai.ex1..ex4`). Wanted: suggestions generated from the user's
 own data and activity — instant and free (client-side, no AI call).
 - New pure module `src/lib/assistant-suggestions.ts`: `(items, collections, view, recentQuestions, now) → Suggestion[]`.
