@@ -18,5 +18,19 @@
       "Bash(git commit:*)",
       "Bash(git pull --rebase:*)"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git pull --rebase --autostash && git log -1 --oneline",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
   }
 }
