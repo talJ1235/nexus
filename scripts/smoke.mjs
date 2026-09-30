@@ -4,13 +4,22 @@
 //   BASE=http://localhost:3100 NEXUS_PASSWORD=... node scripts/smoke.mjs
 //   SMOKE_AI=1 also calls the (owner-only) AI health endpoint. SMOKE_OUT=dir saves screenshots.
 //   SMOKE_WRITE=1 (localhost only) also exercises adding: placeholder card, same link → +1, partial move.
-import { mkdirSync } from "node:fs";
+//   SMOKE_MOBILE=1 runs the owner checks in a 390×844 touch phone context; screenshots get a "-m" suffix.
+//   SMOKE_TRACE=1 records every painted frame of the first 2.5 s after goto("/") (CDP screencast, timestamped)
+//     into $SMOKE_OUT/trace[-m]/ plus one contact sheet (trace[-m].png) to judge load flashes from frames.
+import { mkdirSync, writeFileSync } from "node:fs";
 import { chromium } from "playwright";
+import sharp from "sharp";
 
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
 const PASSWORD = process.env.NEXUS_PASSWORD;
-const OUT = process.env.SMOKE_OUT;
+const MOBILE = !!process.env.SMOKE_MOBILE;
+const TRACE = !!process.env.SMOKE_TRACE;
+const OUT = process.env.SMOKE_OUT || (TRACE ? ".next/smoke" : "");
 if (OUT) mkdirSync(OUT, { recursive: true });
+const SUFFIX = MOBILE ? "-m" : "";
+const VIEWPORT = MOBILE ? { width: 390, height: 844 } : { width: 1366, height: 860 };
+const DEVICE = MOBILE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {};
 
 let failed = 0;
 const ok = (cond, msg, extra = "") => {
@@ -24,7 +33,44 @@ const step = async (msg, fn) => {
     ok(false, msg, String(e?.message || e).split("\n")[0].slice(0, 200));
   }
 };
-const shot = async (page, name) => OUT && page.screenshot({ path: `${OUT}/${name}.png` });
+const shot = async (page, name) => OUT && page.screenshot({ path: `${OUT}/${name}${SUFFIX}.png` });
+
+// Record every frame Chromium paints during `ms` after navigating to `url` (screencast only emits on change,
+// so each saved frame is a visible state). Writes frames + a labelled contact sheet; returns the frame list.
+async function traceLoad(ctx, url, ms = 2500) {
+  const page = await ctx.newPage();
+  const cdp = await ctx.newCDPSession(page);
+  const dir = `${OUT}/trace${SUFFIX}`;
+  mkdirSync(dir, { recursive: true });
+  const frames = [];
+  let t0 = 0;
+  cdp.on("Page.screencastFrame", ({ data, sessionId, metadata }) => {
+    frames.push({ t: Math.round(metadata.timestamp * 1000), data });
+    cdp.send("Page.screencastFrameAck", { sessionId }).catch(() => {});
+  });
+  await cdp.send("Page.startScreencast", { format: "jpeg", quality: 70, maxWidth: VIEWPORT.width, maxHeight: VIEWPORT.height, everyNthFrame: 1 });
+  t0 = Date.now();
+  await page.goto(url, { waitUntil: "commit" });
+  await page.waitForTimeout(Math.max(0, ms - (Date.now() - t0)));
+  await cdp.send("Page.stopScreencast");
+  const start = frames[0]?.t ?? 0;
+  const list = frames.map((f, i) => ({ ...f, ms: f.t - start, name: `${String(i).padStart(3, "0")}-${String(f.t - start).padStart(4, "0")}ms.jpg` }));
+  for (const f of list) writeFileSync(`${dir}/${f.name}`, Buffer.from(f.data, "base64"));
+  if (list.length) {
+    const w = MOBILE ? 195 : 342, h = Math.round((w * VIEWPORT.height) / VIEWPORT.width), cols = MOBILE ? 8 : 5, lab = 18;
+    const tiles = await Promise.all(list.map(async (f) => {
+      const img = await sharp(Buffer.from(f.data, "base64")).resize(w, h, { fit: "contain", background: "#888" }).toBuffer();
+      const label = Buffer.from(`<svg width="${w}" height="${lab}"><rect width="100%" height="100%" fill="#000"/><text x="4" y="13" font-size="12" font-family="monospace" fill="#fff">${f.name.replace(".jpg", "")}</text></svg>`);
+      return sharp({ create: { width: w, height: h + lab, channels: 3, background: "#000" } }).composite([{ input: label, top: 0, left: 0 }, { input: img, top: lab, left: 0 }]).png().toBuffer();
+    }));
+    const rows = Math.ceil(tiles.length / cols);
+    await sharp({ create: { width: cols * (w + 4), height: rows * (h + lab + 4), channels: 3, background: "#f0f" } })
+      .composite(tiles.map((input, i) => ({ input, left: (i % cols) * (w + 4), top: Math.floor(i / cols) * (h + lab + 4) })))
+      .png().toFile(`${OUT}/trace${SUFFIX}.png`);
+  }
+  await page.close();
+  return list;
+}
 
 try {
   await fetch(`${BASE}/login`, { redirect: "manual" });
@@ -52,7 +98,7 @@ try {
   if (!PASSWORD) {
     console.log("SKIP owner checks (NEXUS_PASSWORD not set)");
   } else {
-    const ctx = await browser.newContext({ viewport: { width: 1366, height: 860 }, colorScheme: "dark" });
+    const ctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, colorScheme: "dark" });
     const page = await ctx.newPage();
     const errors = [];
     page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
@@ -92,8 +138,9 @@ try {
 
     await step("assistant panel opens", async () => {
       await page.goto(`${BASE}/`);
-      const btn = page.locator("header button[title='Ask Nexus'], header button[aria-label='Assistant']").first();
-      if (!(await btn.count())) return ok(true, "assistant panel (AI off, skipped)");
+      await page.waitForSelector("main h1", { timeout: 15000 });
+      const btn = page.locator("header button[title='Ask Nexus'], header button[aria-label='Assistant']").filter({ visible: true }).first();
+      if (!(await btn.count())) return ok(true, "assistant panel (AI off or not in this layout, skipped)");
       await btn.click();
       await page.getByRole("dialog").waitFor({ timeout: 5000 });
       ok(true, "assistant panel opens");
@@ -174,6 +221,14 @@ try {
           ok((await page.locator("main article").count()) === before + 1, "partial move splits the item", `${before} → ${await page.locator("main article").count()}`);
         });
       }
+    }
+
+    if (TRACE) {
+      await step("load trace", async () => {
+        const frames = await traceLoad(ctx, `${BASE}/`);
+        console.log(`INFO trace: ${frames.length} frames → ${OUT}/trace${SUFFIX}.png (${frames.map((f) => f.ms).join(",")} ms)`);
+        ok(frames.length > 0, "load trace recorded");
+      });
     }
 
     ok(errors.length === 0, "no page/console errors", errors.slice(0, 5).join(" | "));

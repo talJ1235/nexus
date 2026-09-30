@@ -11,7 +11,7 @@ never append a second copy).
 
 ## Session A1 — first load + logo (desktop + phone). Order: 0 → 1 → 2b → 2
 
-### 0. [ ] Tooling first: mobile smoke
+### 0. [x] Tooling first: mobile smoke
 `SMOKE_MOBILE=1 npm run smoke` runs the existing read-only checks in a 390×844 touch context (isMobile, hasTouch) and
 saves screenshots with a `-m` suffix. Also add `SMOKE_TRACE=1`: record a Playwright video (or 60 ms screenshot
 series) of the first 2.5 s after `goto("/")`, so load flashes can be judged from frames instead of by eye.
