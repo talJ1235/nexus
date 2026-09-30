@@ -31,22 +31,44 @@ const HEADERS: Record<string, string> = {
 };
 
 /**
- * Link-preview crawler identity. Many stores (AliExpress in particular) block datacenter IPs for normal
+ * Link-preview crawler identities. Many stores (AliExpress in particular) block datacenter IPs for normal
  * browser requests but deliberately serve OpenGraph title/image to chat-app preview bots, because they
- * want shared links to unfurl. We use it only for the same purpose: previewing a link a user pasted.
- * Verified from GitHub Actions + Vercel (scripts/probe-extract.mjs, 2026-09-30).
+ * want shared links to unfurl. We use them only for that purpose: previewing a link a user pasted.
+ * From Vercel it's flaky per host/identity (429s, occasional challenge), so several are tried in turn;
+ * each miss costs ~100 ms. Measured with scripts/probe-extract.mjs (2026-09-30).
  */
-const SOCIAL_HEADERS: Record<string, string> = {
-  "user-agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
-  accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
-  "accept-language": "en-US,en;q=0.9",
+const BOT = {
+  facebook: "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+  twitter: "Twitterbot/1.0",
+  whatsapp: "WhatsApp/2.23.20.0",
 };
+const botHeaders = (ua: string) => ({ "user-agent": ua, accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" });
+type Target = { url: string; headers: Record<string, string> };
+
+function socialTargets(url: string): Target[] {
+  const ali = url.match(/aliexpress\.[a-z.]+\/item\/(\d+)\.html/i);
+  if (ali) {
+    const id = ali[1];
+    // .us item ids are the global id + 2^51.
+    const us = id.startsWith("1005") ? String(BigInt(id) + BigInt(2) ** BigInt(51)) : null;
+    return [
+      { url: `https://www.aliexpress.com/item/${id}.html`, headers: botHeaders(BOT.facebook) },
+      { url: `https://m.aliexpress.com/item/${id}.html`, headers: botHeaders(BOT.facebook) },
+      ...(us ? [{ url: `https://www.aliexpress.us/item/${us}.html`, headers: botHeaders(BOT.facebook) }] : []),
+      { url: `https://www.aliexpress.com/item/${id}.html`, headers: botHeaders(BOT.twitter) },
+      ...(us ? [{ url: `https://www.aliexpress.us/item/${us}.html`, headers: botHeaders(BOT.whatsapp) }] : []),
+    ];
+  }
+  const clean = stripTracking(url);
+  return [
+    { url: clean, headers: botHeaders(BOT.facebook) },
+    { url: clean, headers: botHeaders(BOT.twitter) },
+  ];
+}
 
 /** Some stores answer better on a canonical URL (no tracking junk, global English site). */
-function fetchTarget(url: string, social = false): { url: string; headers: Record<string, string> } {
+function fetchTarget(url: string): Target {
   const ali = url.match(/aliexpress\.[a-z.]+\/item\/(\d+)\.html/i);
-  if (ali && social) return { url: `https://www.aliexpress.com/item/${ali[1]}.html`, headers: SOCIAL_HEADERS };
-  if (social) return { url: stripTracking(url), headers: SOCIAL_HEADERS };
   if (ali) {
     return {
       url: `https://www.aliexpress.com/item/${ali[1]}.html`,
@@ -66,9 +88,9 @@ function stripTracking(url: string) {
   }
 }
 
-async function fetchHtml(inputUrl: string, social = false) {
-  if (!isPublicHttpUrl(inputUrl)) throw new Error("blocked_host");
-  const target = fetchTarget(inputUrl, social);
+async function fetchHtml(inputUrl: string, explicit?: Target) {
+  if (!isPublicHttpUrl(inputUrl) || (explicit && !isPublicHttpUrl(explicit.url))) throw new Error("blocked_host");
+  const target = explicit ?? fetchTarget(inputUrl);
   const url = target.url;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 9000);
@@ -116,7 +138,7 @@ export async function debugVariants(pairs: { url: string; ua: string }[]) {
 
 /** Owner diagnostics: raw response for one fetch mode. */
 export async function debugFetch(url: string, social: boolean) {
-  const r = await fetchHtml(url, social);
+  const r = await fetchHtml(url, social ? socialTargets(url)[0] : undefined);
   const html = r.html ?? "";
   return { status: r.status, len: html.length, final: r.finalUrl.slice(0, 80), og: html.match(/og:title["'][^>]*content=["']([^"']{0,60})/i)?.[1] ?? null, head: html.replace(/\s+/g, " ").slice(0, 300) };
 }
@@ -350,8 +372,16 @@ export async function extractFromUrl(inputUrl: string): Promise<Extracted> {
   if (direct.title && direct.image && !direct.blocked) return direct;
   // Blocked or thin → ask again as a link-preview bot (fills title/image/description; rarely price).
   const isProduct = (u: string) => /\/item\/|\/dp\/|\/itm\/|\/product/i.test(u);
-  const social = await extractDirect(direct.url !== inputUrl && isProduct(direct.url) ? direct.url : inputUrl, true);
-  if (!social.title || social.blocked || isGenericTitle(social.title)) return direct;
+  const base = direct.url !== inputUrl && isProduct(direct.url) ? direct.url : inputUrl;
+  let social: Extracted | null = null;
+  for (const target of socialTargets(base)) {
+    const r = await extractDirect(base, target);
+    if (r.title && !r.blocked && !isGenericTitle(r.title)) {
+      social = r;
+      break;
+    }
+  }
+  if (!social) return direct;
   // Keep the pasted link unless only the bot fetch resolved a short link to a real product page.
   const useSocialUrl = direct.url === inputUrl && social.url !== inputUrl && !isProduct(inputUrl) && isProduct(social.url);
   return {
@@ -379,7 +409,7 @@ function isGenericTitle(t: string) {
   return /^(aliexpress|amazon\.[a-z.]+|ebay)\b.*(online shopping|shop online)|^(home|homepage|404|page not found|error page)/i.test(t.trim());
 }
 
-async function extractDirect(inputUrl: string, social = false): Promise<Extracted> {
+async function extractDirect(inputUrl: string, target?: Target): Promise<Extracted> {
   const base = {
     url: inputUrl,
     normalizedUrl: normalizeUrl(inputUrl),
@@ -397,7 +427,7 @@ async function extractDirect(inputUrl: string, social = false): Promise<Extracte
   };
   let fetched: Awaited<ReturnType<typeof fetchHtml>>;
   try {
-    fetched = await fetchHtml(inputUrl, social);
+    fetched = await fetchHtml(inputUrl, target);
   } catch {
     const s = storeFromUrl(inputUrl);
     return { ...base, store: { key: s.key, name: s.name }, blocked: true };
@@ -408,7 +438,11 @@ async function extractDirect(inputUrl: string, social = false): Promise<Extracte
     return { ...base, url: finalUrl, normalizedUrl: normalizeUrl(finalUrl), store: { key: store.key, name: store.name }, blocked: fetched.status >= 400 };
   }
   const parsed = parseHtml(fetched.html, finalUrl);
-  const blocked = fetched.status >= 400 || (!parsed.price && BLOCK_HINTS.test((parsed.title ?? "") + " " + (parsed.pageText ?? "").slice(0, 400)));
+  const blocked =
+    fetched.status >= 400 ||
+    // Script-only challenge pages (AliExpress "punish"/x5sec, etc.) have no visible text to match.
+    (!parsed.title && !parsed.price && /_____tmd_____|x5secdata|\/punish\?|captcha|challenge-platform/i.test(fetched.html.slice(0, 6000))) ||
+    (!parsed.price && BLOCK_HINTS.test((parsed.title ?? "") + " " + (parsed.pageText ?? "").slice(0, 400)));
   const storeWithSite = storeFromUrl(finalUrl, parsed.siteName);
   if (!blocked) {
     const extra = storeSpecific(fetched.html, storeWithSite.key);

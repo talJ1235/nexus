@@ -19,7 +19,7 @@ jobs:
         env:
           BASE: https://nexus-ashen-beta.vercel.app
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-          VARIANTS: "1"
+          FULL: "1"
       # Results committed back to the branch (logs are hard to reach from the agent sandbox).
       - if: always()
         run: |

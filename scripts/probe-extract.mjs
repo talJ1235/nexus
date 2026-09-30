@@ -83,6 +83,11 @@ async function prod(url) {
     console.log("   region:", v.region);
     for (const x of v.variants ?? []) console.log("   VAR", JSON.stringify(x));
   }
+  if (process.env.FULL === "1") {
+    const f = await fetch(`${BASE}/api/debug/extract?url=${encodeURIComponent(url)}&full=1`, { headers: { cookie }, signal: AbortSignal.timeout(65000) }).then((r) => r.json()).catch((e) => ({ error: String(e) }));
+    const d = f.draft;
+    console.log("   FULL", JSON.stringify(d ? { title: d.title, img: Boolean(d.imageUrl), price: d.source?.price, cur: d.source?.currency, method: d.source?.extractMethod, quality: d.quality, dup: Boolean(f.duplicate), took: f.took } : f));
+  }
   const res = await fetch(`${BASE}/api/debug/extract?url=${encodeURIComponent(url)}&probe=1`, { headers: { cookie }, signal: AbortSignal.timeout(60000) });
   const j = await res.json().catch(() => ({ status: res.status }));
   return j.probe ? { strategies: j.probe } : { status: j.status, len: j.length, og: j.ogTitle?.slice(0, 60) ?? null, img: Boolean(j.ogImage), title: j.title?.slice(0, 60) ?? null };
