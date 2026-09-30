@@ -78,6 +78,11 @@ async function prod(url) {
     const r = await fetch(`${BASE}/api/login`, { method: "POST", body: form, redirect: "manual" });
     cookie = (r.headers.getSetCookie?.() ?? []).map((c) => c.split(";")[0]).join("; ");
   }
+  if (process.env.VARIANTS === "1" && /aliexpress/.test(url)) {
+    const v = await fetch(`${BASE}/api/debug/extract?url=${encodeURIComponent(url)}&variants=1`, { headers: { cookie }, signal: AbortSignal.timeout(60000) }).then((r) => r.json());
+    console.log("   region:", v.region);
+    for (const x of v.variants ?? []) console.log("   VAR", JSON.stringify(x));
+  }
   const res = await fetch(`${BASE}/api/debug/extract?url=${encodeURIComponent(url)}&probe=1`, { headers: { cookie }, signal: AbortSignal.timeout(60000) });
   const j = await res.json().catch(() => ({ status: res.status }));
   return j.probe ? { strategies: j.probe } : { status: j.status, len: j.length, og: j.ogTitle?.slice(0, 60) ?? null, img: Boolean(j.ogImage), title: j.title?.slice(0, 60) ?? null };

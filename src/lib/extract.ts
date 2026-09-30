@@ -99,6 +99,21 @@ async function fetchHtml(inputUrl: string, social = false) {
   }
 }
 
+/** Owner diagnostics: try arbitrary URL + user-agent pairs. */
+export async function debugVariants(pairs: { url: string; ua: string }[]) {
+  return Promise.all(
+    pairs.map(async ({ url, ua }) => {
+      try {
+        const res = await fetch(url, { headers: { "user-agent": ua, accept: "text/html,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" }, redirect: "follow", signal: AbortSignal.timeout(9000), cache: "no-store" });
+        const html = await res.text();
+        return { ua: ua.slice(0, 14), url: url.slice(8, 60), status: res.status, len: html.length, final: res.url.slice(8, 50), og: html.match(/og:title["'][^>]*content=["']([^"']{0,50})/i)?.[1] ?? null, img: /og:image/.test(html), punish: /punish|x5sec/.test(html) };
+      } catch (e) {
+        return { ua: ua.slice(0, 14), url: url.slice(8, 60), err: String(e).slice(0, 60) };
+      }
+    }),
+  );
+}
+
 /** Owner diagnostics: raw response for one fetch mode. */
 export async function debugFetch(url: string, social: boolean) {
   const r = await fetchHtml(url, social);

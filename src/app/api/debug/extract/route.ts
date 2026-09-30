@@ -3,7 +3,7 @@ import { desc } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { previewUrl } from "@/app/actions";
 import { extractWithUrlContext } from "@/lib/ai";
-import { debugFetch, extractFromUrl } from "@/lib/extract";
+import { debugFetch, debugVariants, extractFromUrl } from "@/lib/extract";
 
 export const maxDuration = 60;
 
@@ -15,6 +15,15 @@ export async function GET(req: NextRequest) {
     return Response.json({ recent });
   }
   const started = Date.now();
+  // ?variants=1 → AliExpress item via several hosts × preview-bot identities (research).
+  if (req.nextUrl.searchParams.get("variants")) {
+    const id = url.match(/item\/(\d+)/)?.[1] ?? "";
+    const us = id ? String(BigInt(id) + BigInt(2) ** BigInt(51)) : "";
+    const uas = ["facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)", "Twitterbot/1.0", "TelegramBot (like TwitterBot)", "WhatsApp/2.23.20.0", "LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com)", "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36"];
+    const hosts = [`https://www.aliexpress.com/item/${id}.html`, `https://m.aliexpress.com/item/${id}.html`, `https://www.aliexpress.us/item/${us}.html`, `https://he.aliexpress.com/item/${id}.html`];
+    const pairs = hosts.flatMap((u) => uas.map((ua) => ({ url: u, ua })));
+    return Response.json({ region: process.env.VERCEL_REGION ?? null, variants: await debugVariants(pairs) });
+  }
   // ?probe=1 → each strategy separately, as seen from Vercel (used by scripts/probe-extract.mjs).
   if (req.nextUrl.searchParams.get("probe")) {
     const t = async <T,>(fn: () => Promise<T>) => {
