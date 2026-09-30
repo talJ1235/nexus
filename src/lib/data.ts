@@ -29,13 +29,14 @@ export async function loadItems(): Promise<ItemWithSources[]> {
 }
 
 export async function getAppData(): Promise<AppData> {
-  const [collections, items, altGroups, rates] = await Promise.all([
+  const [collections, items, altGroups, storeSettings, rates] = await Promise.all([
     db.select().from(schema.collections).orderBy(asc(schema.collections.sortOrder), asc(schema.collections.createdAt)),
     loadItems(),
     db.select().from(schema.altGroups),
+    db.select().from(schema.storeSettings),
     getRates(),
   ]);
-  return { collections, items, altGroups, rates, aiEnabled: aiEnabled() };
+  return { collections, items, altGroups, storeSettings, rates, aiEnabled: aiEnabled() };
 }
 
 export async function getSharedCollection(token: string) {

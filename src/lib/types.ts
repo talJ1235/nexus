@@ -1,13 +1,14 @@
-import type { Alert, AltGroup, Attachment, Collection, Grant, Invite, Item, Member, PricePoint, Source } from "@/db/schema";
+import type { Alert, AltGroup, Attachment, Collection, Grant, Invite, Item, Member, PricePoint, Source, StoreSetting } from "@/db/schema";
 import type { Rates } from "./money";
 
-export type { Alert, AltGroup, Attachment, Collection, Grant, Invite, Item, Member, PricePoint, Source };
+export type { Alert, AltGroup, Attachment, Collection, Grant, Invite, Item, Member, PricePoint, Source, StoreSetting };
 export type ItemWithSources = Item & { sources: Source[]; points: PricePoint[]; attachments: Attachment[] };
 
 export type AppData = {
   collections: Collection[];
   items: ItemWithSources[];
   altGroups: AltGroup[];
+  storeSettings: StoreSetting[];
   rates: Rates;
   aiEnabled: boolean;
 };

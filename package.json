@@ -15,7 +15,8 @@
     "check": "bash scripts/check.sh",
     "smoke": "node scripts/smoke.mjs",
     "test:sug": "tsx scripts/test-suggestions.ts",
-    "test:actions": "tsx scripts/test-assistant-actions.ts"
+    "test:actions": "tsx scripts/test-assistant-actions.ts",
+    "test:ship": "tsx scripts/test-shipping.ts"
   },
   "dependencies": {
     "@fontsource-variable/rubik": "^5.3.0",

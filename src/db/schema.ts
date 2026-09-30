@@ -195,3 +195,13 @@ export type Alert = typeof alerts.$inferSelect;
 export type Member = typeof members.$inferSelect;
 export type Grant = typeof grants.$inferSelect;
 export type Invite = typeof invites.$inferSelect;
+
+/** Per-store order settings (free-shipping threshold, flat shipping fee), keyed by the sources' storeKey. */
+export const storeSettings = sqliteTable("store_settings", {
+  storeKey: text("store_key").primaryKey(),
+  freeShippingMin: real("free_shipping_min"),
+  currency: text("currency").notNull().default("ILS"),
+  shippingFee: real("shipping_fee"),
+  updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
+});
+export type StoreSetting = typeof storeSettings.$inferSelect;

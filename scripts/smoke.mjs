@@ -166,6 +166,13 @@ try {
       ok(before !== after && marks > 0, "orders view: cards ↔ table toggle switches layout", `${before}→${after}, store headers=${marks}`);
     });
 
+    await step("orders view: free-shipping row per store", async () => {
+      const groups = await page.locator("[data-store-group]:not([data-store-group='—'])").count();
+      const edits = await page.locator("[data-store-group] [data-shipping-edit]").count();
+      const bars = await page.locator("[data-store-group] [data-shipping] [role=progressbar]").count();
+      ok(groups > 0 && edits === groups, "orders view: free-shipping row per store", `stores=${groups}, settings=${edits}, bars=${bars}`);
+    });
+
     if (process.env.SMOKE_SLOW) {
       // Needs a server started with NEXUS_TRACE_DELAY_MS (slow data): a click in the loading shell must survive.
       await step("panel opened while loading stays open when the data arrives", async () => {
@@ -306,6 +313,27 @@ try {
           await page.goto(`${BASE}/`);
           await page.waitForSelector(READY);
           ok((await page.locator("main article").count()) === before + 1, "partial move splits the item", `${before} → ${await page.locator("main article").count()}`);
+        });
+        await step("free-shipping threshold: set from the store header → bar shows the gap", async () => {
+          await page.goto(`${BASE}/?v=orders`);
+          const free = page.locator("[data-store-group]:not(:has([data-shipping]))").filter({ has: page.locator("[data-shipping-edit]") }).first();
+          await free.waitFor({ timeout: 15000 });
+          const group = page.locator(`[data-store-group="${await free.getAttribute("data-store-group")}"]`);
+          await group.locator("[data-shipping-edit]").click();
+          const pop = page.locator("[data-radix-popper-content-wrapper]");
+          await pop.locator("input[name=freeShippingMin]").fill("100000");
+          await pop.locator("input[name=shippingFee]").fill("25");
+          await pop.locator("button[type=submit]").click();
+          await group.locator("[data-shipping=gap] [role=progressbar]").waitFor({ timeout: 8000 });
+          await shot(page, "orders-shipping-gap");
+          const text = await group.locator("[data-shipping]").innerText();
+          // Put it back (empty = no threshold, no fee).
+          await group.locator("[data-shipping-edit]").click();
+          await pop.locator("input[name=freeShippingMin]").fill("");
+          await pop.locator("input[name=shippingFee]").fill("");
+          await pop.locator("button[type=submit]").click();
+          await group.locator("[data-shipping]").waitFor({ state: "detached", timeout: 8000 });
+          ok(/free shipping|למשלוח חינם/.test(text), "free-shipping threshold: set from the store header → bar shows the gap", text.replace(/\s+/g, " "));
         });
         // Needs the server started with NEXUS_AI_MOCK=1 (the mock proposes "first two to-buy items → ordered").
         await step("assistant action: propose → apply → undo", async () => {

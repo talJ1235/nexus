@@ -6,7 +6,7 @@ import { db, schema } from "@/db";
 const EXPORTABLE_KV = /^(pref:|fx_rates$|telegram_bot$)/;
 
 export async function buildBackup() {
-  const [collections, items, sources, pricePoints, attachments, altGroups, alerts, members, grants, invites, kv] = await Promise.all([
+  const [collections, items, sources, pricePoints, attachments, altGroups, alerts, members, grants, invites, storeSettings, kv] = await Promise.all([
     db.select().from(schema.collections),
     db.select().from(schema.items),
     db.select().from(schema.sources),
@@ -17,6 +17,7 @@ export async function buildBackup() {
     db.select().from(schema.members),
     db.select().from(schema.grants),
     db.select().from(schema.invites),
+    db.select().from(schema.storeSettings),
     db.select().from(schema.kv),
   ]);
   return {
@@ -24,13 +25,13 @@ export async function buildBackup() {
     version: 1,
     exportedAt: new Date().toISOString(),
     counts: { collections: collections.length, items: items.length, sources: sources.length },
-    data: { collections, items, sources, pricePoints, attachments, altGroups, alerts, members, grants, invites, kv: kv.filter((r) => EXPORTABLE_KV.test(r.key)) },
+    data: { collections, items, sources, pricePoints, attachments, altGroups, alerts, members, grants, invites, storeSettings, kv: kv.filter((r) => EXPORTABLE_KV.test(r.key)) },
   };
 }
 
 export type Backup = Awaited<ReturnType<typeof buildBackup>>;
 
-const TABLES = ["collections", "items", "sources", "pricePoints", "attachments", "altGroups", "alerts", "members", "grants", "invites", "kv"] as const;
+const TABLES = ["collections", "items", "sources", "pricePoints", "attachments", "altGroups", "alerts", "members", "grants", "invites", "storeSettings", "kv"] as const;
 type TableName = (typeof TABLES)[number];
 
 function table(name: TableName) {
@@ -46,7 +47,7 @@ export async function restoreBackup(raw: unknown, mode: "merge" | "replace") {
 
   if (mode === "replace") {
     // Children first.
-    for (const name of ["invites", "grants", "members", "alerts", "pricePoints", "attachments", "sources", "items", "altGroups", "collections"] as const) {
+    for (const name of ["storeSettings", "invites", "grants", "members", "alerts", "pricePoints", "attachments", "sources", "items", "altGroups", "collections"] as const) {
       await db.delete(table(name));
     }
   }
@@ -56,13 +57,13 @@ export async function restoreBackup(raw: unknown, mode: "merge" | "replace") {
     const safe = name === "kv" ? rows.filter((r) => typeof r.key === "string" && EXPORTABLE_KV.test(r.key)) : rows;
     counts[name] = safe.length;
     const t = table(name);
-    const pk = name === "kv" ? schema.kv.key : (t as typeof schema.items).id;
+    const pk = name === "kv" ? schema.kv.key : name === "storeSettings" ? schema.storeSettings.storeKey : (t as typeof schema.items).id;
     // libSQL has a variable limit per statement; insert in modest chunks.
     for (let i = 0; i < safe.length; i += 40) {
       const chunk = safe.slice(i, i + 40);
       const cols = Object.keys(chunk[0] ?? {});
       if (!cols.length) continue;
-      const set = Object.fromEntries(cols.filter((c) => c !== "id" && c !== "key").map((c) => [c, sqlExcluded(t, c)]));
+      const set = Object.fromEntries(cols.filter((c) => c !== "id" && c !== "key" && c !== "storeKey").map((c) => [c, sqlExcluded(t, c)]));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (db.insert(t) as any).values(chunk).onConflictDoUpdate({ target: pk, set });
     }

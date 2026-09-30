@@ -34,7 +34,7 @@ Acceptance: unit test for the parser/validator (valid, unknown action, foreign i
 
 ## Session B2 — money planning
 
-### 2. [ ] Free-shipping threshold per store
+### 2. [x] Free-shipping threshold per store
 In "Order by store", show how far each store is from free shipping and how to get there.
 - Per-store settings (new table `store_settings`: `storeKey` PK, `freeShippingMin` real null, `currency`,
   `shippingFee` real null, `updatedAt`; created idempotently in `src/db/migrate.ts`, included in backup/restore).

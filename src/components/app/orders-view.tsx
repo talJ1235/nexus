@@ -8,39 +8,49 @@ import { Button } from "@/components/ui/button";
 import { StoreMark, storeVar } from "@/components/ui/store-mark";
 import { activeSource, countable, lineTotal, unitPrice } from "@/lib/calc";
 import { formatMoney } from "@/lib/money";
+import { gapSuggestions, shippingGap, shippingRule } from "@/lib/shipping";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { optimisticStatus, ProductImage } from "./item-card";
 import { ItemTable } from "./item-table";
+import { GapList, ShippingRow, ShippingSettings } from "./orders-shipping";
 import { useStore } from "./store";
 
-/** Everything left to buy, grouped by the store each item will be ordered from. */
+/**
+ * Everything left to buy, grouped by the store each item will be ordered from. Someday items are left out of the
+ * order (and its subtotal) but listed under their store, where they can be included to reach free shipping.
+ */
 export function OrdersView({ items }: { items: ItemWithSources[] }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
   const list = countable(items, s.altGroups, s.rates);
+  const order = list.filter((i) => i.priority !== "someday");
+  const leftOut = list.filter((i) => i.priority === "someday");
 
   const table = s.layout === "table";
-  const groups = new Map<string, { store: string; url: string | null; items: ItemWithSources[] }>();
+  const groups = new Map<string, { store: string; url: string | null; items: ItemWithSources[]; leftOut: ItemWithSources[] }>();
   for (const i of list) {
     const src = activeSource(i, s.rates);
     const key = src?.url ? src.storeKey : "—";
-    const g = groups.get(key) ?? { store: src?.url ? src.store : "—", url: src?.url || null, items: [] };
-    g.items.push(i);
+    const g = groups.get(key) ?? { store: src?.url ? src.store : "—", url: src?.url || null, items: [], leftOut: [] };
+    (i.priority === "someday" ? g.leftOut : g.items).push(i);
     groups.set(key, g);
   }
   const rows = [...groups.entries()]
     .map(([key, g]) => {
-      let subtotal = 0;
+      let itemsTotal = 0;
       let missing = 0;
       for (const i of g.items) {
         const l = lineTotal(i, s.rates, s.currency);
         if (l == null) missing++;
-        else subtotal += l;
+        else itemsTotal += l;
       }
-      return { key, ...g, subtotal, missing };
+      const rule = key === "—" ? null : shippingRule(key, s.storeSettings);
+      const gap = shippingGap(itemsTotal, rule, s.rates, s.currency);
+      const suggestions = key === "—" ? [] : gapSuggestions(key, gap, order, leftOut, s.rates, s.currency);
+      return { key, ...g, subtotal: gap.subtotal, missing, rule, gap, suggestions };
     })
-    .sort((a, b) => b.subtotal - a.subtotal);
+    .sort((a, b) => b.subtotal - a.subtotal || b.leftOut.length - a.leftOut.length);
 
   const markAll = async (group: ItemWithSources[]) => {
     const entries = group.map((i) => {
@@ -76,7 +86,7 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
       {rows.map((g) => {
         const known = g.key !== "—";
         return (
-          <section key={g.key} style={known ? storeVar(g.key) : undefined} className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
+          <section key={g.key} data-store-group={g.key} style={known ? storeVar(g.key) : undefined} className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
             <header className={cn("flex items-center justify-between gap-3 border-b border-line px-4 py-3", known && "store-bar store-tint")}>
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 {known && <StoreMark store={g.store} storeKey={g.key} url={g.url} size={24} />}
@@ -84,21 +94,24 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
                   <h2 className="truncate text-base font-semibold">{g.store}</h2>
                   <p className="tabular text-xs text-muted">
                     {g.items.length === 1 ? t.collection.itemsCountOne : f(t.orders.items, { n: g.items.length })}
+                    {g.gap.fee > 0 && <span> · {f(t.orders.fee, { amount: formatMoney(g.gap.fee, s.currency, locale) })}</span>}
                     {g.missing > 0 && <span className="text-accent-ink"> · {f(t.orders.noPrice, { n: g.missing })}</span>}
                   </p>
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-3">
+              <div className="flex shrink-0 items-center gap-3 max-sm:gap-2">
+                {known && g.gap.threshold == null && g.gap.fee === 0 && <ShippingSettings storeKey={g.key} store={g.store} rule={g.rule} />}
                 <div className="text-end">
                   <div className="text-[11px] text-faint">{t.orders.subtotal}</div>
                   <div className="tabular text-lg font-semibold max-sm:text-base">{formatMoney(g.subtotal, s.currency, locale)}</div>
                 </div>
-                <Button size="sm" variant="outline" className="max-sm:size-10 max-sm:px-0" onClick={() => void markAll(g.items)} aria-label={t.orders.markAll} title={t.orders.markAll}>
+                <Button size="sm" variant="outline" className="max-sm:size-10 max-sm:px-0" disabled={!g.items.length} onClick={() => void markAll(g.items)} aria-label={t.orders.markAll} title={t.orders.markAll}>
                   <Truck />
                   <span className="max-sm:hidden">{t.orders.markAll}</span>
                 </Button>
               </div>
             </header>
+            {known && <ShippingRow storeKey={g.key} store={g.store} gap={g.gap} rule={g.rule} />}
             {table ? (
               <>
                 <div className="hidden md:block">
@@ -156,6 +169,7 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
                 })}
               </ul>
             )}
+            <GapList suggestions={g.suggestions} leftOut={g.leftOut} />
           </section>
         );
       })}
