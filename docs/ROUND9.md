@@ -16,8 +16,9 @@ phone top bar (or a gear in the top bar if that reads better — decide by scree
 Settings, Palette + Theme quick switch, Reports, Extension status, Telegram, Export, Log out. 44 px targets.
 
 ### A2. [ ] Dock order and a dock that never moves
-- New order, in reading direction start → end: **To buy · On the way · + · Projects · Stats**
-  (Tal asked for this left → right in English; in Hebrew the bar mirrors like every RTL app — note it in Open).
+- New order, **physically left → right in every language (decided by Tal: do NOT mirror in Hebrew/RTL)**:
+  **To buy · On the way · + · Projects · Stats**. Implement with `dir="ltr"` on the dock's container (labels inside
+  keep their own direction), and add a smoke check that the order is the same in `en` and `he`.
 - The dock must stay perfectly still when switching sections (today it "jumps down" e.g. On the way → Projects).
   Find the cause (dock inside the animated/transformed view container, a `transform` on an ancestor making
   `position: fixed` relative to it, height changes / `100vh` vs `dvh`, scrollbar or safe-area changes, the view
