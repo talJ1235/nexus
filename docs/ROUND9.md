@@ -89,7 +89,7 @@ entry points that opened it ("Plan with Nexus" in the + menu, project page) open
 - Used by: Ask answers (context), Plan mode (prefer his stores, his brands, his price range; say which store per line),
   compare (rank his usual stores first when prices tie), suggestions (C4).
 
-### C4. [ ] Suggestions that follow history
+### C4. [x] Suggestions that follow history
 Suggested questions and follow-ups use: recent conversations (don't repeat what was just asked; offer the natural next
 step), the profile (e.g. "Plan the next Railcam stage at AliExpress"), and current data (as today). After a **help**
 answer, follow-ups are help-related (Round 8 left this as data questions). Unit test the ranking.

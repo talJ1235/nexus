@@ -6,7 +6,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { LogoMark } from "@/components/logo";
 import { toast } from "@/lib/toast";
 import { planWithAi } from "@/app/ai-actions";
-import { getConversation, latestConversation, saveExchange, titleConversation, type MessageView } from "@/app/chat-actions";
+import { getConversation, latestConversation, listConversations, saveExchange, titleConversation, type MessageView } from "@/app/chat-actions";
+import { computeProfile } from "@/lib/profile";
 import { HistoryList } from "./assistant-history";
 import { saveMemoryNote } from "@/app/memory-actions";
 import { PlanCard } from "./assistant-plan-card";
@@ -88,6 +89,8 @@ type Msg = {
   target?: string | null;
   /** A note the assistant offers to remember (R9 C3). */
   memory?: string | null;
+  /** How the question was routed (data / help / unsure) — help answers get how-to follow-ups (R9 C4). */
+  route?: string | null;
   mode?: ChatMode;
   question?: string;
   streaming?: boolean;
@@ -441,15 +444,38 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
   const [recent, setRecent] = useState<string[]>(() => (typeof window === "undefined" ? [] : readRecent()));
   const [now] = useState(() => Date.now());
 
-  const base = { items: s.items, collections: s.collections, altGroups: s.altGroups, view: s.view, now, rates: s.rates, currency: s.currency, t: t.ai.sug };
+  // His usual store, from the same profile the assistant uses (pure, computed from data already here) — R9 C4.
+  const topStore = useMemo(() => computeProfile(s.items, s.collections, s.rates, s.currency, now).stores[0]?.store ?? null, [s.items, s.collections, s.rates, s.currency, now]);
+  // Titles of recent conversations count as "recently asked" (don't offer what was just discussed).
+  const [recentTitles, setRecentTitles] = useState<string[]>([]);
+  useEffect(() => {
+    let gone = false;
+    void listConversations({ limit: 8 })
+      .then((r) => !gone && setRecentTitles(r.map((c) => c.title).filter(Boolean)))
+      .catch(() => {});
+    return () => {
+      gone = true;
+    };
+  }, []);
+  const base = { items: s.items, collections: s.collections, altGroups: s.altGroups, view: s.view, now, rates: s.rates, currency: s.currency, t: t.ai.sug, topStore, helpQuestions: t.ai.helpSug };
   const suggestions = useMemo(
-    () => suggestQuestions({ ...base, recent, fallback: [t.ai.ex1, t.ai.ex2, t.ai.ex3, t.ai.ex4] }),
+    () => suggestQuestions({ ...base, recent: [...recent, ...recentTitles], fallback: [t.ai.ex1, t.ai.ex2, t.ai.ex3, t.ai.ex4] }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s.items, s.collections, s.altGroups, s.view, s.rates, s.currency, t, recent, now],
+    [s.items, s.collections, s.altGroups, s.view, s.rates, s.currency, t, recent, recentTitles, now, topStore],
   );
   const lastIsAnswer = !busy && msgs.length > 0 && msgs[msgs.length - 1].role === "assistant" && !msgs[msgs.length - 1].error;
+  const lastMsg = msgs[msgs.length - 1];
   const followUps = useMemo(
-    () => (lastIsAnswer ? suggestQuestions({ ...base, recent: [...msgs.filter((m) => m.role === "user").map((m) => m.text), ...recent], fallback: [t.ai.ex1, t.ai.ex2, t.ai.ex3, t.ai.ex4], limit: 3 }) : []),
+    () =>
+      lastIsAnswer
+        ? suggestQuestions({
+            ...base,
+            recent: [...msgs.filter((m) => m.role === "user").map((m) => m.text), ...recent],
+            last: { question: lastMsg.question ?? msgs.filter((m) => m.role === "user").at(-1)?.text ?? "", route: lastMsg.route ?? null },
+            fallback: [t.ai.ex1, t.ai.ex2, t.ai.ex3, t.ai.ex4],
+            limit: 3,
+          })
+        : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [lastIsAnswer, msgs, s.items, s.collections, s.altGroups, s.view, s.rates, s.currency, t, recent, now],
   );
@@ -552,8 +578,8 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
               setMsgs((m) => [...m, { role: "assistant", text: ev.text, streaming: true }]);
             } else patchLast((m) => ({ ...m, text: m.text + ev.text }));
           } else if (ev.t === "done") {
-            if (!started) setMsgs((m) => [...m, { role: "assistant", text: ev.text, proposal: ev.proposal, report: ev.report, memory: ev.memory, question: text }]);
-            else patchLast((m) => ({ ...m, text: ev.text, proposal: ev.proposal, report: ev.report, memory: ev.memory, question: text, streaming: false }));
+            if (!started) setMsgs((m) => [...m, { role: "assistant", text: ev.text, proposal: ev.proposal, report: ev.report, memory: ev.memory, route: ev.route ?? null, question: text }]);
+            else patchLast((m) => ({ ...m, text: ev.text, proposal: ev.proposal, report: ev.report, memory: ev.memory, route: ev.route ?? null, question: text, streaming: false }));
             setLastExchange(text, ev.text);
             // Proposals and report drafts are kept as text only: reopened later they must not be applied/sent twice.
             void persist("chat", text, ev.text, { route: ev.route ?? null });

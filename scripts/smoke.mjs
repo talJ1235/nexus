@@ -854,7 +854,7 @@ try {
           await page.keyboard.press("Escape");
         });
         // Round 8 D2 (mock): a how-to question is routed to the help, answered with an action button that works.
-        await step("assistant help: how-to question → help answer with a working action button", async () => {
+        await step("assistant help: how-to question → help answer with a working action button + how-to follow-ups", async () => {
           await page.goto(`${BASE}/`);
           await page.waitForSelector(READY);
           await page.locator("[data-ask]").filter({ visible: true }).first().click();
@@ -864,11 +864,15 @@ try {
           await dlg.locator("textarea").press("Enter");
           const btn = dlg.locator("[data-ai-action=receipt]");
           await btn.waitFor({ timeout: 15000 });
+          // R9 C4: after a help answer the follow-ups are how-to questions, not data questions.
+          await dlg.getByTestId("ai-followups").waitFor({ timeout: 8000 });
+          const follow = await dlg.getByTestId("ai-followups").locator("button").allInnerTexts();
+          if (!follow.length || !follow.every((x) => /^(How|איך)/.test(x.trim()))) throw new Error(`follow-ups after help: ${JSON.stringify(follow)}`);
           await shot(page, "assistant-help");
           await btn.click();
           // Phones open the receipt camera, desktop the receipt dialog.
           await page.locator(MOBILE ? "[data-receipt-camera]" : "[data-receipt-dialog]").waitFor({ timeout: 8000 });
-          ok(true, "assistant help: how-to question → help answer with a working action button");
+          ok(true, "assistant help: how-to question → help answer with a working action button + how-to follow-ups");
           await page.keyboard.press("Escape");
         });
         // Round 8 D3 (mock): a complaint gets a report card; sent, it shows up in Reports with its diagnostics.

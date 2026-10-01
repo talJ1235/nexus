@@ -29,7 +29,8 @@ const run = (items: ItemWithSources[], collections: Collection[] = [], extra: Pa
 // Empty account → the static questions.
 assert.deepEqual(run([]), fallback);
 
-// Project context + over budget + urgent + store, one per family, best first.
+// Project context + over budget + plan the next stage + urgent, one per family, best first (R9 C4: on a project's page
+// planning its next stage outranks the store question).
 const slider = col("c1", "Camera slider", 150);
 const items = [
   item({ collectionId: "c1", store: "AliExpress", price: 100, priority: "urgent" }),
@@ -38,16 +39,16 @@ const items = [
 assert.deepEqual(run(items, [slider], { view: { type: "collection", id: "c1" } }), [
   "How much is left to buy for Camera slider?",
   "Camera slider is over budget — what can I cut?",
+  "Plan the next Camera slider stage",
   "What's urgent and still not ordered?",
-  "What should I order from AliExpress?",
 ]);
 
-// Recently asked questions are skipped; fallback fills the gap.
+// Recently asked questions are skipped; the plan suggestion and then the fallback fill the gap.
 assert.deepEqual(run(items, [slider], { recent: ["what's urgent and still not ordered?"] }), [
   "Camera slider is over budget — what can I cut?",
   "What should I order from AliExpress?",
+  "Plan the next Camera slider stage",
   fallback[0],
-  fallback[1],
 ]);
 
 // Late order, alternatives without a winner, names kept as separate parts for bidi isolation.
@@ -57,5 +58,22 @@ const late = item({ status: "ordered", eta: now - 3 * DAY });
 const r = suggestQuestions({ items: [a, b, late], collections: [], altGroups: [{ id: "g1", name: "motor", chosenItemId: null } as AltGroup], view: { type: "to_buy" }, recent: [], now, rates: FALLBACK_RATES, currency: "ILS", t: en.ai.sug, fallback, limit: 2 });
 assert.deepEqual(r.map((s) => s.text), ["Which of my orders are late?", "Help me choose between מנוע NEMA 17 and Stepper 42mm"]);
 assert.deepEqual(r[1].parts.filter((p) => p.name).map((p) => p.text), ["מנוע NEMA 17", "Stepper 42mm"]);
+
+// R9 C4 — with the profile's usual store, the plan suggestion names it.
+assert.ok(run(items, [slider], { view: { type: "collection", id: "c1" }, topStore: "AliExpress" }).includes("Plan the next Camera slider stage at AliExpress"));
+
+// R9 C4 — after "how much is left…", the natural next steps (what's missing, plan the next stage) come first and the
+// question just asked isn't repeated.
+const next = run(items, [slider], { view: { type: "collection", id: "c1" }, last: { question: "How much is left to buy for Camera slider?", route: "data" } });
+assert.deepEqual(next.slice(0, 2), ["What's still missing to finish Camera slider?", "Plan the next Camera slider stage"]);
+assert.ok(!next.includes("How much is left to buy for Camera slider?"));
+
+// R9 C4 — after a help answer the follow-ups are how-to questions: the ones after the topic just asked, never it again.
+const helpQs: readonly string[] = en.ai.helpSug;
+const h = run(items, [slider], { last: { question: "How do I add a receipt?", route: "help" }, helpQuestions: helpQs, limit: 3 });
+assert.deepEqual(h, [helpQs[1], helpQs[2], helpQs[3]]);
+assert.deepEqual(run(items, [slider], { last: { question: "where are settings?", route: "help" }, helpQuestions: helpQs, recent: [helpQs[0]], limit: 2 }), [helpQs[1], helpQs[2]]);
+// A data answer keeps data follow-ups.
+assert.ok(!run(items, [slider], { last: { question: "How much is left?", route: "data" }, helpQuestions: helpQs }).some((q) => helpQs.includes(q)));
 
 console.log("OK suggestions");

@@ -30,6 +30,27 @@ export type SuggestionInput = {
   /** Fallback questions for new/empty accounts and to fill up to `limit`. */
   fallback: string[];
   limit?: number;
+  /** R9 C4: the question just answered and how it was routed — follow-ups offer the natural next step. */
+  last?: { question: string; route?: string | null } | null;
+  /** R9 C4: how-to questions, shown as the follow-ups of a help answer. */
+  helpQuestions?: readonly string[];
+  /** R9 C4: his usual store (shopping profile), for "plan the next stage at …". */
+  topStore?: string | null;
+};
+
+/** After a question of one family, these families are the natural next step (boosted). */
+const NEXT: Record<string, string[]> = {
+  context: ["plan", "context", "store"],
+  budget: ["store", "plan"],
+  urgent: ["store", "eta"],
+  store: ["eta", "spend"],
+  price: ["price", "store"],
+  eta: ["urgent", "store"],
+  spend: ["budget", "store"],
+  plan: ["context", "store"],
+  alt: ["price", "store"],
+  recent: ["unsorted", "context"],
+  unsorted: ["context", "plan"],
 };
 
 const DAY = 86_400_000;
@@ -54,8 +75,20 @@ const norm = (s: string) => s.trim().toLowerCase();
 export function suggestQuestions(input: SuggestionInput): Suggestion[] {
   const { items, collections, altGroups, view, now, rates, currency, t } = input;
   const limit = input.limit ?? 4;
-  const seen = new Set(input.recent.map(norm));
+  const seen = new Set([...input.recent, ...(input.last ? [input.last.question] : [])].map(norm));
   const out: Suggestion[] = [];
+
+  // After a how-to answer the follow-ups are how-to questions too: the next ones after the one just asked.
+  if (input.last?.route === "help" && input.helpQuestions?.length) {
+    const qs = input.helpQuestions;
+    const words = new Set(norm(input.last.question).split(/\W+/).filter((w) => w.length > 3));
+    const near = qs.findIndex((q) => norm(q).split(/\W+/).some((w) => words.has(w)));
+    const order = near < 0 ? qs : [...qs.slice(near + 1), ...qs.slice(0, near + 1)];
+    return order
+      .filter((q) => !seen.has(norm(q)))
+      .slice(0, limit)
+      .map((text, i) => ({ family: "help", text, parts: [{ text }], score: 50 - i }));
+  }
 
   if (items.length) {
     const c: Suggestion[] = [];
@@ -163,6 +196,21 @@ export function suggestQuestions(input: SuggestionInput): Suggestion[] {
     }
     if (thisMonth && lastMonth) c.push(render("spend", "spendCompare", t, 45 + (view.type === "spending" ? 40 : 0)));
     else if (thisMonth) c.push(render("spend", "spendMonth", t, 38 + (view.type === "spending" ? 40 : 0)));
+
+    // Plan the next stage of the current (or busiest) project — at his usual store when the profile knows it.
+    const planCol =
+      view.type === "collection" ? active.find((x) => x.id === view.id && x.kind === "project") : active.filter((x) => x.kind === "project").sort((a, b) => toBuy.filter((i) => i.collectionId === b.id).length - toBuy.filter((i) => i.collectionId === a.id).length)[0];
+    if (planCol) {
+      const score = 46 + (view.type === "collection" ? 35 : 0);
+      c.push(input.topStore ? render("plan", "planNextAt", t, score, { project: short(planCol.name), store: short(input.topStore) }) : render("plan", "planNext", t, score, { project: short(planCol.name) }));
+    }
+
+    // The natural next step after what was just asked (its family, found among today's candidates).
+    if (input.last) {
+      const q = norm(input.last.question);
+      const asked = c.find((x) => norm(x.text) === q)?.family;
+      for (const x of c) if (asked && NEXT[asked]?.includes(x.family)) x.score += 45;
+    }
 
     // Top per family, highest score first, skipping what was asked recently.
     const families = new Set<string>();
