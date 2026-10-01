@@ -1,26 +1,38 @@
 import { cn } from "@/lib/utils";
 
-/** Nexus mark: three nodes linked to a hub; the hub is the accent (teal) "price tag" dot. */
-export function LogoMark({ className }: { className?: string }) {
+/** Nexus "Box" mark: an open-box cube from three faces. Colours come from CSS vars (--logo-c1..3, globals.css), so it
+ *  follows the palette and mode. `onBrand`: drawn on a brand-coloured pill, where the left face uses --on-brand. */
+export function LogoMark({ className, onBrand }: { className?: string; onBrand?: boolean }) {
   return (
-    <svg viewBox="0 0 32 32" className={cn("size-7", className)} aria-hidden="true">
-      <rect x="1" y="1" width="30" height="30" rx="9" className="fill-fg" />
-      <g className="stroke-bg" strokeWidth="2.2" strokeLinecap="round">
-        <path d="M16 16 9 9M16 16l7-7M16 16v8.5" />
-      </g>
-      <circle cx="9" cy="9" r="2.6" className="fill-bg" />
-      <circle cx="23" cy="9" r="2.6" className="fill-bg" />
-      <circle cx="16" cy="24.5" r="2.6" className="fill-bg" />
-      <circle cx="16" cy="16" r="4" className="fill-accent" />
+    <svg viewBox="0 0 64 64" className={cn("size-7 shrink-0", className)} aria-hidden="true">
+      <path d="M32 8 54 20 32 32 10 20z" fill="var(--logo-c3)" />
+      <path d="M10 20l22 12v24L10 44z" fill={onBrand ? "var(--on-brand)" : "var(--logo-c1)"} />
+      <path d="M54 20 32 32v24l22-12z" fill="var(--logo-c2)" />
     </svg>
   );
 }
 
-export function Logo({ className }: { className?: string }) {
+export function Logo({ className, markClassName }: { className?: string; markClassName?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <LogoMark />
-      <span className="text-[17px] font-semibold tracking-[-0.01em]">Nexus</span>
+    <span className={cn("inline-flex items-center gap-2", className)}>
+      <LogoMark className={markClassName} />
+      <span className="text-[19px] font-extrabold tracking-[-0.02em]">Nexus</span>
+    </span>
+  );
+}
+
+/** Logo pill (brand background) used at the top of the sidebar and the phone top bar. */
+export function LogoPill({ className, collapsed }: { className?: string; collapsed?: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-12 shrink-0 items-center gap-2 overflow-hidden whitespace-nowrap rounded-full bg-brand ps-2.5 text-on-brand transition-[width,padding] duration-[450ms] ease-[var(--ease-out)]",
+        collapsed ? "w-12 pe-2.5" : "pe-4",
+        className,
+      )}
+    >
+      <LogoMark onBrand className="size-[30px]" />
+      <span className={cn("text-[19px] font-extrabold tracking-[-0.02em] transition-opacity duration-200", collapsed && "opacity-0")}>Nexus</span>
     </span>
   );
 }

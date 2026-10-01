@@ -57,7 +57,7 @@ Font: Heebo (Hebrew + Latin) 400–900 via next/font, replacing Rubik; numbers `
 30 big cards, 26 cards, 21 image tiles, 16 small. Motion tokens: `--ease-out: cubic-bezier(.2,.8,.2,1)`,
 `--ease-spring: cubic-bezier(.2,1.4,.4,1)`, durations 120/200/320/450 ms.
 
-### A2. [ ] New logo "Box" everywhere
+### A2. [x] New logo "Box" everywhere
 Mark (viewBox 0 0 64 64): top face `M32 8 54 20 32 32 10 20z` (c3), left face `M10 20l22 12v24L10 44z` (c1), right
 face `M54 20 32 32v24l22-12z` (c2). Colours per context:
 - Graphite light: c1 #171717, c2 #f59e0b, c3 #fb7a3c · Graphite dark: c1 #f2f2f0, c2 #f59e0b, c3 #fb7a3c

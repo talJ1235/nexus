@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: "Nexus",
   description: "Everything you plan to buy, in one place",
   manifest: "/manifest.webmanifest",
-  icons: { icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }, { url: "/icons/favicon-48.png", sizes: "48x48" }], apple: "/icons/icon-192.png" },
+  icons: { icon: [{ url: "/icons/favicon.svg?v=3", type: "image/svg+xml" }, { url: "/icons/favicon-48.png?v=3", sizes: "48x48" }], apple: "/icons/apple-touch-icon.png?v=3" },
   robots: { index: false, follow: false },
   other: { "nexus-app": "1" },
   appleWebApp: { capable: true, title: "Nexus", statusBarStyle: "black-translucent" },
