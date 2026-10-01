@@ -59,6 +59,18 @@ const keepOpenForToasts = (e: Event) => {
   if ((e.target as Element | null)?.closest?.("[data-sonner-toaster]")) e.preventDefault();
 };
 
+// Radix focuses the first tabbable element inside the sheet synchronously on mount; that focus() forces a full
+// style + layout of the freshly mounted sheet inside the same task as React's commit (~half the "open item" long
+// task under CPU ×4). Focus the sheet itself on the next frame instead (no scroll), so the commit and the first
+// layout land in separate tasks. The focus trap still holds; Tab moves to the first control as before.
+const deferredSheetFocus = (e: Event) => {
+  e.preventDefault();
+  const root = e.currentTarget as HTMLElement;
+  requestAnimationFrame(() => {
+    if (root.isConnected && !root.contains(document.activeElement)) root.focus({ preventScroll: true });
+  });
+};
+
 /** Side sheet: slides from the inline-end edge (right in LTR, left in RTL). Full screen on mobile. */
 export function Sheet({
   open,
@@ -81,6 +93,7 @@ export function Sheet({
         <D.Overlay className="fixed inset-0 z-40 bg-black/35 overlay-in" />
         <D.Content
           onInteractOutside={keepOpenForToasts}
+          onOpenAutoFocus={deferredSheetFocus}
           className={cn(
             "fixed inset-y-0 z-40 flex w-full flex-col bg-surface shadow-pop outline-none sm:max-w-[520px]",
             side === "end" ? "end-0 border-s border-line sheet-in-end" : "start-0 border-e border-line sheet-in-start",
