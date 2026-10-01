@@ -25,6 +25,10 @@ function nexusExtract() {
           out.currency = f.priceCurrency || (f.priceSpecification || {}).priceCurrency || inner.priceCurrency;
           out.image = S([].concat(o.image || [])[0]);
           out.brand = S(o.brand);
+          for (const k of ["gtin13", "gtin12", "gtin8", "gtin14", "gtin"]) {
+            const d = String(o[k] || f[k] || "").replace(/\D/g, "");
+            if (!out.gtin && d.length >= 8 && d.length <= 14) out.gtin = d;
+          }
           out.description = S(o.description);
         }
         [].concat(o["@graph"] || []).forEach(walk);

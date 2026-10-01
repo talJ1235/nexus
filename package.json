@@ -20,7 +20,8 @@
     "test:budget": "tsx scripts/test-budget.ts",
     "test:receipt": "tsx scripts/test-receipt.ts",
     "test:weekly": "tsx scripts/test-weekly.ts",
-    "test:contrast": "node scripts/contrast.mjs"
+    "test:contrast": "node scripts/contrast.mjs",
+    "test:barcode": "tsx scripts/test-barcode.ts"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
@@ -43,7 +44,8 @@
     "sharp": "^0.35.5",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "zxing-wasm": "^3.1.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

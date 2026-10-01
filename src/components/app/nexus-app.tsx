@@ -30,6 +30,7 @@ import { OrdersView } from "./orders-view";
 import { SelectionBar } from "./selection-bar";
 import { SpendingView } from "./spending-view";
 import { ProjectsView } from "./projects-view";
+import { BarcodeScanner } from "./barcode-scanner";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
@@ -118,6 +119,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <AddBar incoming={incoming} collapsed={collapsed} />
       <Dock />
       <PlusMenu />
+      <BarcodeScanner open={s.scanner === "barcode"} onClose={() => s.setScanner(null)} />
 
       <ItemSheet />
       <AltSheet />

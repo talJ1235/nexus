@@ -15,6 +15,8 @@ export type Extracted = {
   currency: string | null;
   availability: string | null;
   siteName: string | null;
+  /** Barcode from JSON-LD (gtin13/12/8/gtin/gtin14, or a numeric mpn), digits only. */
+  gtin?: string | null;
   store: { key: string; name: string };
   method: "jsonld" | "microdata" | "meta" | "title" | "ai" | "client" | "none";
   pageText: string | null; // trimmed visible text, for AI fallback
@@ -162,6 +164,7 @@ export function parseHtml(html: string, pageUrl: string): Omit<Extracted, "url" 
   let price: number | null = null;
   let currency: string | null = null;
   let availability: string | null = null;
+  let gtin: string | null = null;
   let method: Extracted["method"] = "none";
 
   // 1) JSON-LD
@@ -174,6 +177,7 @@ export function parseHtml(html: string, pageUrl: string): Omit<Extracted, "url" 
         title ??= str(p.name);
         description ??= str(p.description);
         brand ??= str(p.brand);
+        gtin ??= gtinFrom(p);
         image ??= imageFrom(p.image);
         if (price == null) {
           const o = offerFrom(p);
@@ -251,9 +255,23 @@ export function parseHtml(html: string, pageUrl: string): Omit<Extracted, "url" 
     currency: currency ? currency.toUpperCase() : null,
     availability,
     siteName,
+    gtin,
     method,
     pageText,
   };
+}
+
+/** GTIN from a JSON-LD Product (or its first offer): digits only, 8–14 long. */
+export function gtinFrom(p: Record<string, unknown>): string | null {
+  const offer = (Array.isArray(p.offers) ? p.offers[0] : p.offers) as Record<string, unknown> | undefined;
+  for (const o of [p, offer]) {
+    if (!o) continue;
+    for (const k of ["gtin13", "gtin12", "gtin8", "gtin14", "gtin", "mpn"]) {
+      const d = String(o[k] ?? "").replace(/\D/g, "");
+      if (d.length >= 8 && d.length <= 14 && (k !== "mpn" || /^\d+$/.test(String(o[k]).trim()))) return d;
+    }
+  }
+  return null;
 }
 
 function cleanTitle(t: string, siteName: string | null) {

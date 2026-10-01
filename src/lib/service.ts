@@ -26,6 +26,7 @@ export const clientPayload = z.object({
   brand: z.string().max(120).nullish(),
   siteName: z.string().max(120).nullish(),
   description: z.string().max(1000).nullish(),
+  gtin: z.string().max(20).nullish(),
 });
 export type ClientPayload = z.infer<typeof clientPayload>;
 
@@ -147,6 +148,7 @@ export async function buildDraft(ex: Extracted, hintCollectionId: string | null,
       availability: ex.availability,
       rawTitle: title,
       extractMethod: method,
+      gtin: ex.gtin ?? null,
     },
   };
 }
@@ -188,6 +190,7 @@ export function extractedFromPayload(payload: ClientPayload): Extracted {
     currency: parsed?.currency ?? p.currency ?? store.currency ?? null,
     availability: null,
     siteName: p.siteName ?? null,
+    gtin: p.gtin && /^\d{8,14}$/.test(p.gtin.replace(/\D/g, "")) ? p.gtin.replace(/\D/g, "") : null,
     store: { key: store.key, name: store.name },
     method: "client",
     pageText: null,
@@ -299,6 +302,7 @@ export const sourceDraftSchema = z.object({
   availability: z.string().nullable(),
   rawTitle: z.string().nullable(),
   extractMethod: z.string(),
+  gtin: z.string().regex(/^\d{8,14}$/).nullable().optional(),
 });
 
 export const draftSchema = z.object({
@@ -312,6 +316,7 @@ export const draftSchema = z.object({
   quantity: z.number().int().min(1).max(100000).optional(),
   priority: z.enum(["urgent", "normal", "someday"]).optional(),
   notes: z.string().max(4000).nullable().optional(),
+  gtin: z.string().regex(/^\d{8,14}$/).nullable().optional(),
 });
 
 export async function createItemCore(input: z.input<typeof draftSchema>): Promise<ItemWithSources> {
@@ -330,6 +335,7 @@ export async function createItemCore(input: z.input<typeof draftSchema>): Promis
     quantity: d.quantity ?? 1,
     priority: d.priority ?? "normal",
     notes: d.notes ?? null,
+    gtin: d.gtin ?? null,
     createdAt: t,
     updatedAt: t,
   });

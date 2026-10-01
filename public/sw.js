@@ -7,7 +7,7 @@ const V = new URL(self.location.href).searchParams.get("v") || "dev";
 const STATIC = `nexus-static-${V}`;
 const SHELL = `nexus-shell-${V}`;
 const OWNER_PAGES = new Set(["/", "/offline"]);
-const ASSET = /^\/(_next\/static\/|icons\/|favicon\.ico$|icon|apple-icon|manifest\.webmanifest$)/;
+const ASSET = /^\/(_next\/static\/|icons\/|vendor\/|favicon\.ico$|icon|apple-icon|manifest\.webmanifest$)/;
 
 self.addEventListener("install", () => self.skipWaiting());
 

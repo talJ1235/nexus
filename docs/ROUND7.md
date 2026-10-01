@@ -141,7 +141,7 @@ cheaper stores, biggest purchases. Charts follow the theme tokens; numbers tick 
 
 ## Part D — barcode and shopping mode
 
-### D1. [ ] Barcode scanning
+### D1. [x] Barcode scanning
 - Scanner component: live camera (`getUserMedia`, back camera), native `BarcodeDetector` where available, otherwise
   `zxing-wasm` (lazy-loaded). Frame overlay, torch toggle if supported, haptic tick on read. EAN-13/8, UPC-A/E, Code 128.
 - Store barcodes on sources: extract `gtin13/gtin12/gtin8/gtin/mpn` from JSON-LD in `extract.ts` (and the extension

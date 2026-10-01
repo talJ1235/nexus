@@ -27,6 +27,7 @@ export type SourceDraft = {
   availability: string | null;
   rawTitle: string | null;
   extractMethod: string;
+  gtin?: string | null;
 };
 
 export type ItemDraft = {

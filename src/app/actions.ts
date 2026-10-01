@@ -90,6 +90,7 @@ export async function addSourceFromUrl(itemId: string, url: string): Promise<Ite
       availability: ex.availability,
       rawTitle: ex.title,
       extractMethod: ex.method,
+      gtin: ex.gtin ?? null,
     },
     image,
   );

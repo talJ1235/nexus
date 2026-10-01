@@ -444,7 +444,7 @@ try {
         await step("assistant action: propose → apply → undo", async () => {
           await page.goto(`${BASE}/`);
           await page.waitForSelector(READY);
-          const btn = page.locator("header button[title='Ask Nexus'], header button[aria-label='Assistant']").filter({ visible: true }).first();
+          const btn = page.locator("[data-ask]").filter({ visible: true }).first();
           if (!(await btn.count())) return ok(true, "assistant action (AI off or not in this layout, skipped)");
           await btn.click();
           const dlg = page.getByRole("dialog");
@@ -469,6 +469,36 @@ try {
           const all = (list, s) => list.length > 0 && list.every((x) => x === s);
           ok(all(before, "to_buy") && all(after, "ordered") && all(undone, "to_buy"), "assistant action: propose → apply → undo", JSON.stringify({ before, after, undone }));
           await page.keyboard.press("Escape");
+        });
+        // Needs NEXUS_AI_MOCK=1 (lookups answer "Mock product" without the network). No camera in headless: type it.
+        await step("barcode: type a code → found → add to list (with its barcode)", async () => {
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY);
+          if (MOBILE) {
+            await page.click("[data-plus]");
+            await page.click("[data-plus-action=barcode]");
+          } else {
+            await page.keyboard.press("Escape");
+            await page.getByRole("dialog").getByText(/Scan a barcode|סריקת ברקוד/).first().click();
+          }
+          const sc = page.locator("[data-barcode-scanner]");
+          await sc.waitFor({ timeout: 8000 });
+          if (!(await sc.locator("[data-barcode-input]").count())) await sc.locator("[data-barcode-type]").click();
+          const code = "4006381333931";
+          await sc.locator("[data-barcode-input]").fill(code);
+          await sc.locator("[data-barcode-input]").press("Enter");
+          const res = sc.locator("[data-barcode-result]");
+          await res.waitFor({ timeout: 15000 });
+          const kind = await res.getAttribute("data-barcode-result");
+          if (kind === "found") {
+            await sc.locator("[data-barcode-add]").click();
+            await page.locator("[data-sonner-toast]").filter({ hasText: /Added to your list|נוסף לרשימה/ }).waitFor({ timeout: 10000 });
+          }
+          await shot(page, "barcode");
+          await page.keyboard.press("Escape");
+          const items = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
+          const saved = items.find((i) => i.gtin === code);
+          ok((kind === "found" || kind === "own") && !!saved, "barcode: type a code → found → add to list (with its barcode)", `result=${kind} saved=${!!saved}`);
         });
         // Needs NEXUS_AI_MOCK=1: the mock reads "1 x Name @ price" lines instead of calling Gemini.
         await step("receipt: paste order email → review matches → apply → undo", async () => {

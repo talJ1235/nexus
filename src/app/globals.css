@@ -566,7 +566,10 @@ body {
 .grow-y { transform-origin: center bottom; animation: grow-y 700ms var(--ease-out) both; }
 @keyframes grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .rise-in { animation: rise-in 600ms var(--ease-out) both; }
+/* Barcode scanner: a soft line sweeping the frame. */
+.scan-line { animation: scan-line 1.8s ease-in-out infinite alternate; }
+@keyframes scan-line { from { transform: translateY(-60px); opacity: 0.5; } to { transform: translateY(60px); opacity: 1; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .flow-border, .grow-x, .grow-y, .rise-in { animation: none !important; }
+  .flow-border, .grow-x, .grow-y, .rise-in, .scan-line { animation: none !important; }
 }

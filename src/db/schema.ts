@@ -50,6 +50,8 @@ export const items = sqliteTable(
     carrier: text("carrier"),
     eta: integer("eta"),
     orderNumber: text("order_number"),
+    // Barcode (GTIN, digits) when the item was added by scanning; store links keep theirs on sources.gtin.
+    gtin: text("gtin"),
     altGroupId: text("alt_group_id"),
     // Price tracking: alert when the price reaches this (in targetCurrency). `watch` = include in daily checks.
     targetPrice: real("target_price"),
@@ -81,6 +83,8 @@ export const sources = sqliteTable(
     availability: text("availability"),
     rawTitle: text("raw_title"),
     extractMethod: text("extract_method"),
+    // Barcode from the store page's JSON-LD (gtin13/12/8/gtin), digits only.
+    gtin: text("gtin"),
     fetchedAt: integer("fetched_at"),
     // Consecutive failed server-side checks (blocked store) — those get checked through the browser extension.
     checkFails: integer("check_fails").notNull().default(0),

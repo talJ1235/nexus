@@ -33,6 +33,10 @@ async function main() {
   )`);
   const itemCols = (await client.execute("PRAGMA table_info(items)")).rows.map((r) => String(r.name));
   if (!itemCols.includes("order_number")) await client.execute("ALTER TABLE items ADD COLUMN order_number text");
+  // Round 7: barcodes (D1).
+  if (!itemCols.includes("gtin")) await client.execute("ALTER TABLE items ADD COLUMN gtin text");
+  const sourceCols = (await client.execute("PRAGMA table_info(sources)")).rows.map((r) => String(r.name));
+  if (!sourceCols.includes("gtin")) await client.execute("ALTER TABLE sources ADD COLUMN gtin text");
   // Round 7: the short fixed category list. Idempotent (only rows still holding an old value change).
   const legacy = Object.entries(LEGACY_CATEGORIES);
   await client.execute({
