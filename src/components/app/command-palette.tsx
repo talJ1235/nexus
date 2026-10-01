@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Command } from "cmdk";
 import { Dialog as D } from "radix-ui";
-import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell, Sparkles, Wand2, ReceiptText, Check, ScanBarcode } from "lucide-react";
+import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell, Sparkles, Wand2, ReceiptText, Check, ScanBarcode, ShoppingCart } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Kbd } from "@/components/ui/button";
@@ -112,6 +112,9 @@ export function CommandPalette() {
                 </Command.Item>
                 <Command.Item value={`receipt invoice order confirmation purchased ${t.scan.title}`} onSelect={() => run(() => s.openReceipt())} className={itemCls}>
                   <ReceiptText /> {t.scan.title}
+                </Command.Item>
+                <Command.Item value={`shopping mode store supermarket list ${t.shop.title}`} onSelect={() => run(() => s.setShop("pick"))} className={itemCls}>
+                  <ShoppingCart /> {t.shop.title}
                 </Command.Item>
                 <Command.Item value={`scan barcode ean upc ${t.barcode.title}`} onSelect={() => run(() => s.setScanner("barcode"))} className={itemCls}>
                   <ScanBarcode /> {t.barcode.title}

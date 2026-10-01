@@ -43,6 +43,8 @@ const step = async (msg, fn) => {
 };
 // The app with its data (not the streamed loading shell, whose clicks are replaced when the data arrives).
 const READY = "[data-app-shell][data-ready] main h1";
+// Esc opens the command menu once the app's key handler is attached (right after READY it can still be hydrating).
+let openPalette;
 const shot = async (page, name) => OUT && page.screenshot({ path: `${OUT}/${name}${SUFFIX}.png` });
 
 // Record every frame Chromium paints during `ms` after navigating to `url` (screencast only emits on change,
@@ -125,6 +127,13 @@ try {
       await Promise.all([page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), page.click("button[type=submit]")]);
       ok(true, "owner login");
     });
+
+    openPalette = async () => {
+      for (let k = 0; k < 6; k++) {
+        await page.keyboard.press("Escape");
+        if (await page.getByRole("dialog").waitFor({ timeout: 1000 }).then(() => true, () => false)) return;
+      }
+    };
 
     await step("app renders items", async () => {
       await page.waitForSelector(READY, { timeout: 15000 });
@@ -478,8 +487,8 @@ try {
             await page.click("[data-plus]");
             await page.click("[data-plus-action=barcode]");
           } else {
-            await page.keyboard.press("Escape");
-            await page.getByRole("dialog").getByText(/Scan a barcode|סריקת ברקוד/).first().click();
+            await openPalette();
+            await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Scan a barcode|סריקת ברקוד/ }).first().click();
           }
           const sc = page.locator("[data-barcode-scanner]");
           await sc.waitFor({ timeout: 8000 });
@@ -499,6 +508,55 @@ try {
           const items = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
           const saved = items.find((i) => i.gtin === code);
           ok((kind === "found" || kind === "own") && !!saved, "barcode: type a code → found → add to list (with its barcode)", `result=${kind} saved=${!!saved}`);
+        });
+        await step("shopping mode: check → finish → undo; offline finish queues and syncs", async () => {
+          const backup = async () => (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
+          const openTrip = async () => {
+            await page.goto(`${BASE}/`);
+            await page.waitForSelector(READY);
+            await openPalette();
+            await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Shopping mode|מצב קנייה/ }).first().click();
+            await page.locator("[data-shop-scope=all]").click();
+            await page.locator("[data-shop-add]").waitFor({ timeout: 8000 });
+          };
+          await openTrip();
+          const name = `Smoke shop ${Date.now()}`;
+          await page.locator("[data-shop-add]").fill(name);
+          await page.locator("[data-shop-add]").press("Enter");
+          await page.locator("[data-shop-row=done]").filter({ hasText: name }).waitFor({ timeout: 10000 });
+          const firstOpen = page.locator("[data-shop-row=open]").first();
+          const otherTitle = (await firstOpen.innerText()).split("\n")[0].trim();
+          await firstOpen.click();
+          await page.waitForTimeout(400);
+          const progress = await page.locator("[data-shop-progress]").innerText();
+          await shot(page, "shopping");
+          await page.locator("[data-shop-finish]").click();
+          await page.locator("[data-shop-confirm]").click();
+          const toastEl = page.locator("[data-sonner-toast]").filter({ hasText: /marked as bought|סומנו כנקנו/ });
+          await toastEl.waitFor({ timeout: 15000 });
+          const mid = (await backup()).find((i) => i.title === name)?.status;
+          await toastEl.getByRole("button", { name: /^(Undo|ביטול)$/ }).click();
+          await page.waitForTimeout(2500);
+          const after = (await backup()).find((i) => i.title === name)?.status;
+          const okOnline = /^2 /.test(progress) && mid === "purchased" && after === "to_buy";
+
+          // Offline: the finish is queued on the device and sent once the connection is back.
+          await openTrip();
+          const off = `Smoke offline ${Date.now()}`;
+          await page.locator("[data-shop-add]").fill(off);
+          await page.locator("[data-shop-add]").press("Enter");
+          await page.locator("[data-shop-row=done]").filter({ hasText: off }).waitFor({ timeout: 10000 });
+          await ctx.setOffline(true);
+          await page.locator("[data-shop-finish]").click();
+          await page.locator("[data-shop-confirm]").click();
+          await page.locator("[data-sonner-toast]").filter({ hasText: /sync when|יסונכרן/ }).waitFor({ timeout: 8000 });
+          await ctx.setOffline(false);
+          let synced = false;
+          for (let k = 0; k < 20 && !synced; k++) {
+            await page.waitForTimeout(500);
+            synced = (await backup()).find((i) => i.title === off)?.status === "purchased";
+          }
+          ok(okOnline && synced, "shopping mode: check → finish → undo; offline finish queues and syncs", JSON.stringify({ progress, mid, after, synced, otherTitle }));
         });
         // Needs NEXUS_AI_MOCK=1: the mock reads "1 x Name @ price" lines instead of calling Gemini.
         await step("receipt: paste order email → review matches → apply → undo", async () => {

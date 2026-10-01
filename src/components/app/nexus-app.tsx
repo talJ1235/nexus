@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Pencil, ReceiptText, Share2, Sparkles } from "lucide-react";
+import { Pencil, ReceiptText, Share2, ShoppingCart, Sparkles } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/overlays";
@@ -31,6 +31,7 @@ import { SelectionBar } from "./selection-bar";
 import { SpendingView } from "./spending-view";
 import { ProjectsView } from "./projects-view";
 import { BarcodeScanner } from "./barcode-scanner";
+import { ShoppingMode, ShopOutboxSync } from "./shopping-mode";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
@@ -120,6 +121,8 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <Dock />
       <PlusMenu />
       <BarcodeScanner open={s.scanner === "barcode"} onClose={() => s.setScanner(null)} />
+      <ShoppingMode />
+      <ShopOutboxSync />
 
       <ItemSheet />
       <AltSheet />
@@ -258,6 +261,10 @@ function ViewHeader() {
                 <Button variant="outline" size="sm" className="ms-1 h-8 px-3" onClick={() => s.setPanel("share")}>
                   <Share2 className="!size-3.5" />
                   <span className="max-sm:hidden">{t.share.shareBtn}</span>
+                </Button>
+                <Button variant="outline" size="sm" className="h-8 px-3" onClick={() => s.setShop({ kind: "collection", id: collection.id })} data-shop-open>
+                  <ShoppingCart className="!size-3.5" />
+                  <span className="max-sm:hidden">{t.shop.open}</span>
                 </Button>
                 {collection.kind === "project" && s.aiEnabled && (
                   <Button variant="outline" size="sm" className="ask-hairline h-8 px-3" disabled={ro.ro} onClick={() => s.askAssistant(f(t.projects.planSeed, { name: collection.name }))} data-plan-project>

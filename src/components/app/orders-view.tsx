@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Truck } from "lucide-react";
+import { ExternalLink, ShoppingCart, Truck } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { bulkSetStatus } from "@/app/actions";
 import { useI18n } from "@/components/providers";
@@ -105,6 +105,12 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
                   <div className="text-[11px] text-faint">{t.orders.subtotal}</div>
                   <div className="tabular text-lg font-semibold max-sm:text-base">{formatMoney(g.subtotal, s.currency, locale)}</div>
                 </div>
+                {known && (
+                  <Button size="sm" variant="outline" className="max-sm:size-10 max-sm:px-0" onClick={() => s.setShop({ kind: "store", key: g.key, name: g.store })} aria-label={f(t.shop.at, { store: g.store })} title={f(t.shop.at, { store: g.store })} data-shop-store={g.key}>
+                    <ShoppingCart />
+                    <span className="max-sm:hidden">{t.shop.open}</span>
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" className="max-sm:size-10 max-sm:px-0" disabled={!g.items.length} onClick={() => void markAll(g.items)} aria-label={t.orders.markAll} title={t.orders.markAll}>
                   <Truck />
                   <span className="max-sm:hidden">{t.orders.markAll}</span>

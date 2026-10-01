@@ -8,6 +8,7 @@ import { markBooted } from "@/lib/boot";
 import { reloadAll } from "@/app/actions";
 import { cacheShell, saveSnapshot } from "@/lib/offline";
 import type { BudgetHistory } from "@/lib/budget";
+import type { ShopScope } from "@/lib/shop-outbox";
 
 export type { View };
 
@@ -79,6 +80,9 @@ type Store = {
   setPlusOpen: (o: boolean) => void;
   pasteOpen: boolean;
   setPasteOpen: (o: boolean) => void;
+  /** Shopping mode (D2): "pick" shows the scope picker. */
+  shop: ShopScope | "pick" | null;
+  setShop: (s: ShopScope | "pick" | null) => void;
   /** Full-screen camera: barcode scanner (D1) or receipt capture (E2). */
   scanner: "barcode" | "receipt" | null;
   setScanner: (k: "barcode" | "receipt" | null) => void;
@@ -204,6 +208,7 @@ export function StoreProvider({
   const [plusOpen, setPlusOpen] = useState(false);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [scanner, setScanner] = useState<"barcode" | "receipt" | null>(null);
+  const [shop, setShop] = useState<ShopScope | "pick" | null>(null);
   const [sidebarCollapsed, setSidebarCollapsedState] = useState(!!ui.sidebarCollapsed);
   const setSidebarCollapsed = useCallback((c: boolean) => {
     setSidebarCollapsedState(c);
@@ -466,6 +471,8 @@ export function StoreProvider({
       setPasteOpen,
       scanner,
       setScanner,
+      shop,
+      setShop,
       sidebarCollapsed,
       setSidebarCollapsed,
       upsertItem,
@@ -501,7 +508,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

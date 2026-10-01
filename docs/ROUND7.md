@@ -153,7 +153,7 @@ cheaper stores, biggest purchases. Charts follow the theme tokens; numbers tick 
 - Results: found on my list → mark bought / ordered / open; not on the list → add (title, image, category; choose
   list/project). Cache lookups in kv.
 
-### D2. [ ] Shopping mode (new full-screen UI, phone first)
+### D2. [x] Shopping mode (new full-screen UI, phone first)
 A focused mode for being in a store (supermarket included). Enter from the command menu, a project/list page, or
 Order by store ("Shop at <store>").
 - Pick scope: a store, a project/list, or everything to buy. Rows grouped by category (or store), big touch rows
