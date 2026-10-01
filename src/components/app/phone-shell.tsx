@@ -22,7 +22,7 @@ export function PhoneTopBar() {
   const open = searching || !!s.query;
 
   return (
-    <div className="flex h-[46px] items-center gap-2" data-phone-top>
+    <div className="flex h-[46px] items-center gap-1.5 min-[380px]:gap-2" data-phone-top>
       {open ? (
         <label className="flex h-[46px] min-w-0 flex-1 animate-pop-in items-center gap-2 rounded-full border border-line bg-surface pe-1 ps-4 text-muted">
           <Search className="size-[19px] shrink-0" />
@@ -50,6 +50,16 @@ export function PhoneTopBar() {
         </label>
       ) : (
         <>
+          {/* Settings, look, reports, extension, Telegram, export and log out (Round 9 A1). */}
+          <button
+            type="button"
+            onClick={() => s.setMeOpen(true)}
+            className="grid size-10 shrink-0 place-items-center rounded-full bg-ink text-[15px] font-extrabold text-bg active:scale-95"
+            aria-label={t.me.open}
+            data-me-open
+          >
+            {t.shell.owner.slice(0, 1).toUpperCase()}
+          </button>
           <button type="button" onClick={() => s.setView({ type: "to_buy" })} className="me-auto" aria-label={t.nav.toBuy}>
             <LogoPill className="h-[46px] text-[18px]" />
           </button>

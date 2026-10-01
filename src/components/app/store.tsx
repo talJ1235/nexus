@@ -131,6 +131,9 @@ type Store = {
   closeReport: () => void;
   reportsOpen: boolean;
   setReportsOpen: (o: boolean) => void;
+  /** Round 9 A1: the phone "Me" sheet (settings, look, reports, extension, Telegram, export, log out). */
+  meOpen: boolean;
+  setMeOpen: (o: boolean) => void;
   /** One secondary panel at a time (Round 3 dialogs). */
   panel: Panel;
   setPanel: (p: Panel) => void;
@@ -272,6 +275,7 @@ export function StoreProvider({
   const openReport = useCallback((d?: ReportDraft) => setReportDraft(d ?? {}), []);
   const closeReport = useCallback(() => setReportDraft(null), []);
   const [reportsOpen, setReportsOpen] = useState(false);
+  const [meOpen, setMeOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
   const [askSeed, setAskSeed] = useState<string | null>(null);
   const askAssistant = useCallback((q: string) => {
@@ -579,6 +583,8 @@ export function StoreProvider({
       closeReport,
       reportsOpen,
       setReportsOpen,
+      meOpen,
+      setMeOpen,
       panel,
       setPanel,
       askSeed,
@@ -597,7 +603,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

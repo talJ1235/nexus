@@ -3,6 +3,16 @@ import type { Dict } from "./en";
 export const he: Dict = {
   appName: "Nexus",
   tagline: "כל מה שאתה מתכנן לקנות, במקום אחד",
+  me: {
+    open: "את/ה וההגדרות",
+    look: "מראה",
+    telegram: "טלגרם",
+    telegramOn: "מחובר",
+    telegramOff: "לא מחובר",
+    export: "ייצוא לאקסל",
+    exportHint: "כל מה שנשאר לקנות",
+    exportProject: "ייצוא לאקסל",
+  },
   report: {
     title: "דיווח על בעיה",
     menu: "דיווח על בעיה",

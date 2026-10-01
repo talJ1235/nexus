@@ -17,6 +17,7 @@ import { CommandPalette } from "./command-palette";
 import { SettingsDialog } from "./settings-dialog";
 import { ReportDialog } from "./report-dialog";
 import { ReportsSheet } from "./reports-sheet";
+import { MeSheet } from "./me-sheet";
 import { ImportDialog } from "./import-dialog";
 import { AlertsPanel } from "./alerts-panel";
 import { TopBar } from "./top-bar";
@@ -173,6 +174,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <SettingsDialog />
       <ReportDialog />
       <ReportsSheet />
+      <MeSheet />
       <PanelBoundary label="Import">
         <ImportDialog />
       </PanelBoundary>

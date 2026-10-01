@@ -1,6 +1,16 @@
 export const en = {
   appName: "Nexus",
   tagline: "Everything you plan to buy, in one place",
+  me: {
+    open: "You and settings",
+    look: "Look",
+    telegram: "Telegram",
+    telegramOn: "Linked",
+    telegramOff: "Not linked",
+    export: "Export to Excel",
+    exportHint: "Everything left to buy",
+    exportProject: "Export to Excel",
+  },
   report: {
     title: "Report a problem",
     menu: "Report a problem",

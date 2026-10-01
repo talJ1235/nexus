@@ -354,6 +354,11 @@ try {
             await go("/");
             await openPalette();
           }],
+          ["me sheet", async () => {
+            await go("/");
+            await page.locator("[data-me-open]").click();
+            await page.locator("[data-me]").waitFor({ timeout: 8000 });
+          }],
           ["report form", async () => {
             await go("/");
             await openPalette();

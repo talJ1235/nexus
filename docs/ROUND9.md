@@ -10,7 +10,7 @@ merge to `main` with `--ff-only` only when everything is green, don't touch powe
 
 ## Part A — phone shell
 
-### A1. [ ] Settings within reach on the phone
+### A1. [x] Settings within reach on the phone
 Today there's no visible way into Settings on the phone. Add a clear entry: the avatar/"T" button at the start of the
 phone top bar (or a gear in the top bar if that reads better — decide by screenshot) opens a phone "Me" sheet:
 Settings, Palette + Theme quick switch, Reports, Extension status, Telegram, Export, Log out. 44 px targets.
