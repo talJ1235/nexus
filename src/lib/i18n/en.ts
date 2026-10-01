@@ -268,6 +268,7 @@ export const en = {
     newTitle: "Start a new project",
     newHint: "Describe it to Nexus for a parts list, or add links as you go.",
     shop: "Shop this project",
+    more: "More",
   },
   shell: {
     owner: "Tal",

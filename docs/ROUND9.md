@@ -129,7 +129,7 @@ A project is something big — cards should feel substantial, colourful and frie
 ---
 
 ## Part F — small leftovers from Round 8
-### F1. [ ] Export to Excel button
+### F1. [x] Export to Excel button
 SPEC lists "Export collection to Excel" but there's no button (endpoint `/api/export` exists). Add it to the project
 page menu, list menu and the command menu; update the help file.
 

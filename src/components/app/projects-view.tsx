@@ -1,10 +1,12 @@
 "use client";
 
-import { Flag, FolderPlus, ListPlus, Pencil, Plus, Share2, ShoppingCart, Sparkles, Truck } from "lucide-react";
+import { FileSpreadsheet, Flag, FolderPlus, ListPlus, MoreHorizontal, Pencil, Plus, Share2, ShoppingCart, Sparkles, Truck } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { Ring } from "@/components/ui/ring";
+import { download, exportUrl } from "@/lib/export-url";
 import { formatMoney } from "@/lib/money";
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "@/components/ui/overlays";
 import type { Collection } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProjectCover, openProject, projectColor, useProjectStats } from "./project-cover";
@@ -197,9 +199,22 @@ export function ProjectHeader({ c }: { c: Collection }) {
           <Button variant="outline" className="h-10 px-4" onClick={() => s.setPanel("share")}>
             <Share2 /> <span className="max-sm:sr-only">{t.share.shareBtn}</span>
           </Button>
-          <Button variant="outline" className="h-10 w-10 px-0" onClick={() => s.setEditor({ mode: "edit", collection: c })} aria-label={t.collection.rename} title={t.collection.rename}>
-            <Pencil />
-          </Button>
+          {/* The project/list menu (Round 9 F1): Excel export + edit. */}
+          <Menu>
+            <MenuTrigger asChild>
+              <Button variant="outline" className="h-10 w-10 px-0" aria-label={t.projects.more} title={t.projects.more} data-project-menu>
+                <MoreHorizontal />
+              </Button>
+            </MenuTrigger>
+            <MenuContent align="end">
+              <MenuItem onSelect={() => download(exportUrl({ collection: c.id }, s.currency, locale))} data-project-export>
+                <FileSpreadsheet className="size-4" /> {t.me.exportProject}
+              </MenuItem>
+              <MenuItem onSelect={() => s.setEditor({ mode: "edit", collection: c })}>
+                <Pencil className="size-4" /> {t.collection.rename}
+              </MenuItem>
+            </MenuContent>
+          </Menu>
         </div>
       </div>
     </header>

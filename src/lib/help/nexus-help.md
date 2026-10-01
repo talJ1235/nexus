@@ -23,13 +23,15 @@ turns them into buttons; only these addresses work:
 Example: `[Open settings → Palette](nexus:settings)`.
 
 ## Where things are
-<!-- spec: UI, Desktop shell, Phone shell, Collections -->
+<!-- spec: UI, Desktop shell, Phone shell, Collections, Phone fit, Home hierarchy -->
 - **Desktop**: sidebar with To buy (לקנות), Urgent (דחוף), Unsorted (לא משויך), On the way (בדרך), Order by store
   (הזמנה לפי חנות), History (היסטוריה), Spending (הוצאות), then Projects (פרויקטים) and Lists (רשימות). The sidebar
   collapses with the arrow at its top. Top bar: search, "Ask Nexus", alerts bell. The paste bar floats at the bottom.
-- **Phone**: top bar (logo, search, Ask, alerts) and a dock at the bottom: To buy · Projects · **+** · On the way ·
-  Stats (נתונים). **+** opens: Scan a barcode (סריקת ברקוד), Scan a receipt (סריקת קבלה), Paste a link (הדבקת
-  קישור), Plan with Nexus (תכנון עם Nexus).
+- **Phone**: top bar (your initial, logo, search, Ask, alerts) and a dock at the bottom, the same order in every
+  language: To buy · On the way · **+** · Projects · Stats (נתונים). **+** opens four coloured tiles: Scan a barcode
+  (סריקת ברקוד), Scan a receipt (סריקת קבלה), Paste a link (הדבקת קישור), Plan with Nexus (תכנון עם Nexus).
+- **Settings on the phone**: tap your initial (the round button at the start of the top bar) → the "Me" sheet:
+  Settings, palette and theme, Browser extension, Telegram, Reports, Report a problem, Export to Excel, Backup, Sign out.
 - **Command menu**: press **Esc** (or Ctrl/⌘+K) anywhere — search items, jump to views, change settings, run actions.
 - **Home (To buy)**: the totals card (what's left, total, split by project, Urgent · On the way · Spent this month —
   each is tappable), then the "To buy" header with project chips, Category, Sort and the layout switch. Desktop: cards
@@ -74,7 +76,8 @@ Example: `[Open settings → Palette](nexus:settings)`.
   the end (rows layout). Undo is always offered.
 - Priority: Urgent, Normal, Someday. Someday items are left out of store orders and the monthly forecast.
 - Projects have a budget (ring in the sidebar: planned + spent vs budget); lists don't. Create one with **+** next to
-  Projects/Lists. Move items by dragging cards onto a project in the sidebar, from the item sheet, or with the
+  Projects/Lists, or the "New project" card on the Projects page. A project's page shows its cover, ring and numbers,
+  with Plan with Nexus, Shop this project, Share and the ⋯ menu (Export to Excel, Edit). Move items by dragging cards onto a project in the sidebar, from the item sheet, or with the
   selection bar. Moving part of a quantity asks how many units move.
 - Select several: hover a card and tick its box (or Ctrl/⌘-click, Shift for a range; on phones swipe a row toward the
   start). The bar at the bottom moves, sets status/priority, groups as alternatives, or deletes (with Undo).
@@ -103,7 +106,7 @@ Example: `[Open settings → Palette](nexus:settings)`.
   forecast (urgent to-buy; a toggle adds normal items). Near (90 %) / over shows in colour and on Telegram.
 
 ## Receipts
-<!-- spec: Receipts → purchases, Receipts v2 -->
+<!-- spec: Receipts → purchases, Receipts v2, Receipt edge detection, Receipt camera -->
 - Add a receipt: phones **+ → Scan a receipt** (סריקת קבלה); desktop the **Receipt** (קבלה) button in the paste bar; also On the way /
   History headers, the command menu, or drop a file (photo or PDF) onto the app. You can paste an order email's text.
 - The camera finds the edges by itself and takes the photo when it's steady and sharp (or press the shutter). Drag a
@@ -124,12 +127,19 @@ Example: `[Open settings → Palette](nexus:settings)`.
   The trip works offline and syncs when you're back online. Finish marks the checked items as received.
 
 ## The assistant (Ask Nexus)
-<!-- spec: AI assistant, Assistant actions, Assistant v2, Assistant suggestions -->
+<!-- spec: AI assistant, Assistant actions, Assistant v2, Assistant suggestions, Assistant -->
 - Ask about your data ("how much is left for Railcam?") or how to use Nexus. Tap a suggested question to ask it.
 - Ask it to change things ("mark the NEMA motors as ordered", "move these to a new project Drone"): it proposes the
   change and nothing happens until you press **Apply** (Undo after). It never deletes.
-- **Plan a project** (tab in the assistant, or + → Plan with Nexus): describe the project, get a parts list with
-  quantities and price estimates, add it as a new project.
+- **One chat, two modes**: under the chat box switch **Chat** / **Plan a project**. In Plan mode the next message is a
+  project description → a parts list card in the chat (quantities, estimates, the store you'd usually buy from, budget
+  fit) with **Add** per line and **Add all to…** a project. "Plan with Nexus" (+ menu, project page) opens Plan mode.
+- **History**: the clock button in the assistant's header lists past conversations (search, rename, delete with
+  Undo); the pencil starts a new chat. A conversation from the last 2 hours reopens by itself. You can ask "how did I
+  … last time?" and Nexus looks through earlier conversations.
+- **Memory** ("What Nexus knows about you", in Settings): Nexus works out your usual stores, categories, price ranges
+  and brands from your purchases, and when you say something like "I prefer Wera tools" it offers to remember it
+  (tap Remember). Notes can be edited or deleted there, and memory can be switched off. It never keeps personal data.
 - **"AI busy" / no answer**: the free AI providers hit their limits; Nexus switches between Gemini, Groq and
   OpenRouter automatically. Wait a minute and ask again. Without any AI key the assistant is off.
 
@@ -166,8 +176,19 @@ Example: `[Open settings → Palette](nexus:settings)`.
 <!-- spec: Import & backup -->
 - Import a parts or shopping list from Excel/CSV (command menu → Import): Nexus detects columns (English or Hebrew
   headers), creates missing projects, and can fill in details from links.
+- **Export to Excel** (a BOM: item, qty, unit price, total, store, link, priority, status): a project or list page →
+  the ⋯ menu → Export to Excel; the command menu → Export to Excel (the current project/list, or everything to buy);
+  phones: the Me sheet → Export to Excel.
 - Full JSON backup (download) and restore (merge or replace): Settings, or the command menu → Backup. Secrets are never
-  in a backup. (There is no Excel export button in the app at the moment.)
+  in a backup.
+
+## Report a problem
+<!-- spec: Reports -->
+- From the assistant (it drafts the report when you say something is broken or have an idea), the command menu,
+  Settings, or the phone's Me sheet: choose Bug / Complaint / Idea, write what happened in one box (for a bug also
+  what you expected), optionally add a screenshot, Send. What's attached automatically is listed under "Included
+  automatically" (screen, device, versions, recent errors — never personal data or prices).
+- Your reports and their status (open / in progress / fixed / won't fix): Settings → Reports, or the command menu.
 
 ## Common problems
 - **A product is missing its picture or price** → the store blocked the server; install/connect the extension, wait a

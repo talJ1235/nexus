@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Kbd } from "@/components/ui/button";
 import { CURRENCIES } from "@/lib/money";
+import { download, exportUrl } from "@/lib/export-url";
 import { ProductImage } from "./item-card";
 import { useStore } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
@@ -161,6 +162,16 @@ export function CommandPalette() {
                 ))}
                 <Command.Item value={`alerts price telegram notifications ${t.alerts.title}`} onSelect={() => run(() => s.setPanel("alerts"))} className={itemCls}>
                   <Bell /> {t.alerts.title}
+                </Command.Item>
+                <Command.Item
+                  value={`export excel xlsx bom download ${t.me.export}`}
+                  onSelect={() =>
+                    run(() => download(exportUrl(s.view.type === "collection" ? { collection: s.view.id } : { view: ["urgent", "history", "unsorted"].includes(s.view.type) ? s.view.type : "to_buy" }, s.currency, locale)))
+                  }
+                  className={itemCls}
+                  data-cmd-export
+                >
+                  <FileSpreadsheet /> {t.me.export}
                 </Command.Item>
                 <Command.Item value={`import excel csv spreadsheet ${t.io.importSheet}`} onSelect={() => run(() => s.setPanel("import"))} className={itemCls}>
                   <FileSpreadsheet /> {t.io.importSheet}

@@ -528,7 +528,7 @@ try {
       });
     }
 
-    await step("projects screen: cards with covers + new-project card → project page with its header", async () => {
+    await step("projects screen: cards with covers + new-project card → project page with its header → Excel export", async () => {
       await page.goto(`${BASE}/?v=projects`);
       await page.waitForSelector("[data-projects-view]", { timeout: 15000 });
       const n = await page.locator("[data-project-card]").count();
@@ -541,8 +541,16 @@ try {
         // The cover morphs (View Transition): the page updates a frame later.
         await page.waitForSelector("[data-project-header]", { timeout: 10000 });
         header = await page.locator("[data-project-header] [data-project-cover]").count();
+        // R9 F1: the project menu exports the project to Excel.
+        await page.locator("[data-project-menu]").click();
+        const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 15000 }), page.locator("[data-project-export]").click()]);
+        if (!/\.xlsx$/i.test(dl.suggestedFilename())) throw new Error(`export file: ${dl.suggestedFilename()}`);
+        await openPalette();
+        const cmd = await page.locator("[data-cmd-export]").count();
+        await page.keyboard.press("Escape");
+        if (cmd !== 1) throw new Error("no Export to Excel in the command menu");
       }
-      ok(n > 0 && covers === n && add === 1 && header === 1 && /v=c%3A|v=c:/.test(page.url()), "projects screen: cards with covers + new-project card → project page with its header", `cards=${n} covers=${covers} add=${add} header=${header} url=${page.url()}`);
+      ok(n > 0 && covers === n && add === 1 && header === 1 && /v=c%3A|v=c:/.test(page.url()), "projects screen: cards with covers + new-project card → project page with its header → Excel export", `cards=${n} covers=${covers} add=${add} header=${header} url=${page.url()}`);
       await page.goto(`${BASE}/`);
       await page.waitForSelector(READY, { timeout: 15000 });
     });

@@ -270,6 +270,7 @@ export const he: Dict = {
     newTitle: "פרויקט חדש",
     newHint: "תאר/י אותו ל-Nexus לרשימת רכיבים, או הוסיפ/י קישורים תוך כדי.",
     shop: "קניות לפרויקט",
+    more: "עוד",
   },
   shell: {
     owner: "טל",
