@@ -5,6 +5,7 @@ import type { MonthForecast } from "./budget";
 import { dictionaries, fmt, type Locale } from "./i18n";
 import { formatMoney, type Rates } from "./money";
 import { shippingGap, shippingRule } from "./shipping";
+import { overLimitStores } from "./import-vat";
 import type { Alert, AltGroup, ItemWithSources, StoreSetting } from "./types";
 
 const DAY = 86_400_000;
@@ -26,6 +27,8 @@ export type WeeklyInput = {
   timeZone: string;
   /** This month against the cap (null = no data). */
   month: MonthForecast | null;
+  /** VAT-free import limit (USD); foreign-store orders above it get a line. */
+  importLimitUsd?: number;
 };
 
 const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
@@ -85,6 +88,12 @@ export function weeklySummary(input: WeeklyInput): string | null {
     t.shipping,
     close.sort((a, b) => a.remaining - b.remaining).map((c) => fmt(t.shipGap, { store: esc(c.name), amount: m(Math.ceil(c.remaining)) })),
   );
+
+  // 4b. Orders from abroad over the VAT-free import limit.
+  if (input.importLimitUsd) {
+    const over = overLimitStores(items, { rates, currency, limitUsd: input.importLimitUsd });
+    section(t.importVat, over.map((g) => fmt(t.importLine, { store: esc(g.store), total: `$${Math.round(g.check.totalUsd)}`, vat: m(Math.round(g.check.vat)), remove: `$${Math.ceil(g.check.removeUsd)}` })));
+  }
 
   // Worth sending only with something above, or a month that is near/over its cap.
   const month = input.month;

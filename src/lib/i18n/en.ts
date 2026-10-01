@@ -1,6 +1,15 @@
 export const en = {
   appName: "Nexus",
   tagline: "Everything you plan to buy, in one place",
+  importVat: {
+    title: "VAT-free import limit",
+    hint: "In USD. Israel changed it several times in 2025–26 — check the current figure.",
+    over: "Over the VAT-free import limit (${limit})",
+    detail: "This order is ${total}: about {vat} VAT (18 %) on all of it. Move ${remove} to another order to stay under.",
+    split: "Split off: {names}",
+    toast: "Over the VAT-free import limit",
+    saved: "Import limit saved",
+  },
   compare: {
     title: "Compare stores",
     button: "Compare stores",
@@ -630,6 +639,8 @@ export const en = {
     into: "→ {name}",
   },
   weekly: {
+    importVat: "🧾 Over the VAT-free import limit",
+    importLine: "{store}: {total} — about {vat} VAT; move {remove} to another order",
     title: "🗓 Nexus · your week",
     drops: "📉 Price drops & targets",
     drop: "{title}: {old} → <b>{new}</b>",

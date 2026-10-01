@@ -3,6 +3,7 @@ import { asc, desc, eq, like } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { aiEnabled } from "./ai";
 import { BUDGET_KV_PREFIX, type BudgetHistory } from "./budget";
+import { DEFAULT_IMPORT_LIMIT_USD, IMPORT_LIMIT_KEY } from "./import-vat";
 import { getRates } from "./rates";
 import type { AppData, ItemWithSources } from "./types";
 
@@ -30,15 +31,22 @@ export async function loadItems(): Promise<ItemWithSources[]> {
 }
 
 export async function getAppData(): Promise<AppData> {
-  const [collections, items, altGroups, storeSettings, budget, rates] = await Promise.all([
+  const [collections, items, altGroups, storeSettings, budget, rates, importLimitUsd] = await Promise.all([
     db.select().from(schema.collections).orderBy(asc(schema.collections.sortOrder), asc(schema.collections.createdAt)),
     loadItems(),
     db.select().from(schema.altGroups),
     db.select().from(schema.storeSettings),
     loadBudgetHistory(),
     getRates(),
+    loadImportLimit(),
   ]);
-  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled() };
+  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd };
+}
+
+export async function loadImportLimit(): Promise<number> {
+  const row = await db.query.kv.findFirst({ where: eq(schema.kv.key, IMPORT_LIMIT_KEY) });
+  const v = Number(row?.value);
+  return Number.isFinite(v) && v > 0 ? v : DEFAULT_IMPORT_LIMIT_USD;
 }
 
 export async function loadBudgetHistory(): Promise<BudgetHistory> {

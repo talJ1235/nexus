@@ -22,7 +22,8 @@
     "test:weekly": "tsx scripts/test-weekly.ts",
     "test:contrast": "node scripts/contrast.mjs",
     "test:barcode": "tsx scripts/test-barcode.ts",
-    "test:receipt-check": "tsx scripts/test-receipt-check.ts"
+    "test:receipt-check": "tsx scripts/test-receipt-check.ts",
+    "test:import-vat": "tsx scripts/test-import-vat.ts"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

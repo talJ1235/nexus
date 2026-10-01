@@ -12,6 +12,7 @@ import { CURRENCIES, type Currency } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { BookmarkletDialog } from "./bookmarklet";
 import { BudgetEditor } from "./budget-card";
+import { saveImportLimit } from "@/app/money-actions";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 import { usePalette } from "@/components/use-palette";
@@ -81,6 +82,38 @@ function Row({ title, hint, children }: { title: string; hint?: string; children
   );
 }
 
+function ImportLimitField() {
+  const s = useStore();
+  const { t } = useI18n();
+  return (
+    <label className="flex items-center gap-2">
+      <span className="text-sm font-semibold text-muted">$</span>
+      <input
+        key={s.importLimitUsd}
+        type="number"
+        min={1}
+        step={1}
+        inputMode="numeric"
+        defaultValue={s.importLimitUsd}
+        aria-label={t.importVat.title}
+        data-import-limit
+        onBlur={async (e) => {
+          const v = Number(e.target.value);
+          if (!(v > 0) || v === s.importLimitUsd) return;
+          try {
+            s.setImportLimitUsd(await saveImportLimit(v));
+            toast.success(t.importVat.saved);
+          } catch {
+            toast.error(t.errors.generic);
+          }
+        }}
+        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+        className="tabular h-10 w-full rounded-full border border-line-strong bg-bg px-4 text-sm outline-none focus:border-ink/40"
+      />
+    </label>
+  );
+}
+
 export function SettingsDialog() {
   const s = useStore();
   const { t, f, locale, setLocale } = useI18n();
@@ -107,6 +140,9 @@ export function SettingsDialog() {
             </Row>
             <Row title={t.budget.cap} hint={t.budget.capHint}>
               <BudgetEditor />
+            </Row>
+            <Row title={t.importVat.title} hint={t.importVat.hint}>
+              <ImportLimitField />
             </Row>
             <Row title={t.settings.theme}>
               <Segmented

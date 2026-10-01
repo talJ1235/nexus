@@ -477,6 +477,27 @@ try {
           await page.locator("[data-month-budget=none]").waitFor({ timeout: 8000 });
           ok(true, "monthly budget: a small cap turns the bar over, clearing it removes the cap");
         });
+        await step("import VAT: a low limit shows the notice in Order by store", async () => {
+          const setLimit = async (v) => {
+            await page.goto(`${BASE}/`);
+            await page.waitForSelector(READY);
+            await openPalette();
+            await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Open settings|פתיחת ההגדרות|Settings/ }).first().click();
+            const f = page.locator("[data-import-limit]");
+            await f.waitFor({ timeout: 8000 });
+            await f.fill(String(v));
+            await f.press("Enter");
+            await page.waitForTimeout(800);
+            await page.keyboard.press("Escape");
+          };
+          await setLimit(10);
+          await page.goto(`${BASE}/?v=orders`);
+          await page.waitForSelector("[data-orders-layout]", { timeout: 15000 });
+          const n = await page.locator("[data-import-vat]").count();
+          await shot(page, "import-vat");
+          await setLimit(130);
+          ok(n > 0, "import VAT: a low limit shows the notice in Order by store", `notices=${n}`);
+        });
         // Needs NEXUS_AI_MOCK=1 without a search key: two mock offers, sorted by total.
         await step("compare stores: item sheet → results sorted by price", async () => {
           const items = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;

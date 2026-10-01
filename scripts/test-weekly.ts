@@ -76,4 +76,10 @@ msg = weeklySummary(base({ locale: "he", items: [item("u", { priority: "urgent" 
 assert.match(msg, /השבוע שלך/);
 assert.match(msg, /דחוף, עוד לא הוזמן/);
 
+// Orders from abroad over the VAT-free import limit (AliExpress ₪600 ≈ $162 > $130).
+msg = weeklySummary(base({ items: [item("x", {}, [src("x", "aliexpress", 600)])], importLimitUsd: 130 }))!;
+assert.match(msg, /Over the VAT-free import limit/);
+assert.match(msg, /ALIEXPRESS: \$162/);
+assert.equal(weeklySummary(base({ items: [item("y", {}, [src("y", "aliexpress", 300)])], importLimitUsd: 130 })), null);
+
 console.log("OK weekly summary");

@@ -249,7 +249,7 @@ Mock mode streams a canned answer.
 - Results sheet: sorted by total price, store mark, delivery hint, "Add as another store" (existing alt-source flow),
   "Open". Cache per item for 24 h. Never auto-add.
 
-### G2. [ ] Import VAT alert
+### G2. [x] Import VAT alert
 Setting "VAT-free import limit" in USD, **default 130** (Israel changed it several times in 2025–26 — note in the
 setting that the user should check the current figure). Foreign stores (non-ILS currency or a known foreign store)
 in Order by store and on "mark as ordered": if the order total (items + shipping, in USD) exceeds the limit, show a

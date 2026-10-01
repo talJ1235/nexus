@@ -3,6 +3,15 @@ import type { Dict } from "./en";
 export const he: Dict = {
   appName: "Nexus",
   tagline: "כל מה שאתה מתכנן לקנות, במקום אחד",
+  importVat: {
+    title: "תקרת פטור ממע״מ ביבוא",
+    hint: "בדולרים. התקרה השתנתה כמה פעמים ב-2025–26 — כדאי לבדוק את הסכום העדכני.",
+    over: "מעל תקרת הפטור ממע״מ (${limit})",
+    detail: "ההזמנה הזאת ${total}: מע״מ של כ-{vat} (18%) על כולה. כדי להישאר מתחת, להעביר ${remove} להזמנה אחרת.",
+    split: "לפצל: {names}",
+    toast: "מעל תקרת הפטור ממע״מ ביבוא",
+    saved: "התקרה נשמרה",
+  },
   compare: {
     title: "השוואת חנויות",
     button: "השוואת חנויות",
@@ -632,6 +641,8 @@ export const he: Dict = {
     into: "← {name}",
   },
   weekly: {
+    importVat: "🧾 מעל תקרת הפטור ממע״מ ביבוא",
+    importLine: "{store}: {total} — מע״מ של כ-{vat}; להעביר {remove} להזמנה אחרת",
     title: "🗓 Nexus · השבוע שלך",
     drops: "📉 ירידות מחיר ויעדים",
     drop: "{title}: {old} ← <b>{new}</b>",

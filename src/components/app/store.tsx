@@ -84,6 +84,9 @@ type Store = {
   /** Items whose picture is being looked for (E4): their image tile shimmers until it fills in. */
   imagePending: Set<string>;
   fillImages: (ids: string[]) => void;
+  /** VAT-free import limit, USD (G2). */
+  importLimitUsd: number;
+  setImportLimitUsd: (v: number) => void;
   /** Compare-stores sheet (G1) for this item. */
   compareItemId: string | null;
   setCompareItemId: (id: string | null) => void;
@@ -218,6 +221,7 @@ export function StoreProvider({
   const [shop, setShop] = useState<ShopScope | "pick" | null>(null);
   const [imagePending, setImagePending] = useState<Set<string>>(() => new Set());
   const [compareItemId, setCompareItemId] = useState<string | null>(null);
+  const [importLimitUsd, setImportLimitUsd] = useState(initial.importLimitUsd ?? 130);
   const [sidebarCollapsed, setSidebarCollapsedState] = useState(!!ui.sidebarCollapsed);
   const setSidebarCollapsed = useCallback((c: boolean) => {
     setSidebarCollapsedState(c);
@@ -271,9 +275,9 @@ export function StoreProvider({
   }, [loading, offline]);
   useEffect(() => {
     if (loading || offline || !online) return;
-    const t = setTimeout(() => void saveSnapshot({ data: { ...initial, items, collections, altGroups, storeSettings, budget }, at: Date.now(), currency }), 1200);
+    const t = setTimeout(() => void saveSnapshot({ data: { ...initial, items, collections, altGroups, storeSettings, budget, importLimitUsd }, at: Date.now(), currency }), 1200);
     return () => clearTimeout(t);
-  }, [loading, offline, online, initial, items, collections, altGroups, storeSettings, budget, currency]);
+  }, [loading, offline, online, initial, items, collections, altGroups, storeSettings, budget, currency, importLimitUsd]);
 
   // The app has its data: the phone boot screen can hand off.
   useEffect(() => {
@@ -501,6 +505,8 @@ export function StoreProvider({
       fillImages,
       compareItemId,
       setCompareItemId,
+      importLimitUsd,
+      setImportLimitUsd,
       sidebarCollapsed,
       setSidebarCollapsed,
       upsertItem,
@@ -536,7 +542,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, imagePending, fillImages, compareItemId, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -3,7 +3,7 @@ import { and, asc, desc, eq, gt, inArray, isNull, lt, ne, or } from "drizzle-orm
 import { nanoid } from "nanoid";
 import { db, schema } from "@/db";
 import { capFor, monthForecast, monthKeyIn, monthStartIn, nextMonthKey, shouldNotifyBudget } from "./budget";
-import { loadBudgetHistory, loadItems, recordPrice } from "./data";
+import { loadBudgetHistory, loadItems, recordPrice, loadImportLimit } from "./data";
 import { extractFromUrl, parseHtml, type Extracted } from "./extract";
 import { kvGet, kvSet } from "./kv";
 import { convert, formatMoney, parsePrice } from "./money";
@@ -271,9 +271,10 @@ export async function sendWeeklySummary(origin: string, opts: { force?: boolean;
     loadBudgetHistory(),
     db.select().from(schema.alerts).where(gt(schema.alerts.createdAt, now - 7 * 86_400_000)),
   ]);
+  const importLimitUsd = await loadImportLimit().catch(() => undefined);
   const cap = capFor(month, history);
   const fc = monthForecast({ items, altGroups, rates, currency, from: monthStartIn(month, TZ), to: monthStartIn(nextMonthKey(month), TZ), cap, includeNormal: false });
-  const html = weeklySummary({ items, altGroups, storeSettings, alerts, rates, currency, locale, now, origin, timeZone: TZ, month: fc });
+  const html = weeklySummary({ items, altGroups, storeSettings, alerts, rates, currency, locale, now, origin, timeZone: TZ, month: fc, importLimitUsd });
   if (!html) {
     await kvSet(sentKey, day.key);
     return { weekly: "empty" as const };

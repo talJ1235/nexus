@@ -14,6 +14,8 @@ export type AppData = {
   budget: BudgetHistory;
   rates: Rates;
   aiEnabled: boolean;
+  /** VAT-free personal import limit in USD (G2); missing in older offline snapshots → the default. */
+  importLimitUsd?: number;
 };
 
 export type SourceDraft = {

@@ -1,6 +1,7 @@
 "use client";
 
-import { ExternalLink, ShoppingCart, Truck } from "lucide-react";
+import { ExternalLink, ReceiptText, ShoppingCart, Truck } from "lucide-react";
+import { importCheck, isForeignStore } from "@/lib/import-vat";
 import { toast } from "@/lib/toast";
 import { bulkSetStatus } from "@/app/actions";
 import { useI18n } from "@/components/providers";
@@ -11,7 +12,7 @@ import { formatMoney } from "@/lib/money";
 import { gapSuggestions, shippingGap, shippingRule } from "@/lib/shipping";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { optimisticStatus, ProductImage } from "./item-card";
+import { optimisticStatus, ProductImage, useImportWarning } from "./item-card";
 import { ItemTable } from "./item-table";
 import { GapList, ShippingRow, ShippingSettings } from "./orders-shipping";
 import { useStore } from "./store";
@@ -20,8 +21,27 @@ import { useStore } from "./store";
  * Everything left to buy, grouped by the store each item will be ordered from. Someday items are left out of the
  * order (and its subtotal) but listed under their store, where they can be included to reach free shipping.
  */
+/** Foreign-store order over the VAT-free import limit: estimated VAT and what to split into another order. */
+export function ImportVatNotice({ items, shipping }: { items: ItemWithSources[]; shipping?: number }) {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const c = importCheck(items, { rates: s.rates, currency: s.currency, limitUsd: s.importLimitUsd, shipping });
+  if (!c.over) return null;
+  return (
+    <div className="flex gap-2.5 border-b border-line bg-tint px-4 py-3 text-sm text-tint-ink" role="status" data-import-vat>
+      <ReceiptText className="mt-0.5 size-4 shrink-0" />
+      <div className="min-w-0">
+        <div className="font-bold">{f(t.importVat.over, { limit: Math.round(c.limitUsd) })}</div>
+        <div className="tabular">{f(t.importVat.detail, { total: Math.round(c.totalUsd), vat: formatMoney(Math.round(c.vat), s.currency, locale), remove: Math.ceil(c.removeUsd) })}</div>
+        {c.split.length > 0 && <div className="mt-0.5 truncate bidi">{f(t.importVat.split, { names: c.split.map((i) => i.title.split(/\s+/).slice(0, 4).join(" ")).join(", ") })}</div>}
+      </div>
+    </div>
+  );
+}
+
 export function OrdersView({ items }: { items: ItemWithSources[] }) {
   const s = useStore();
+  const warnImport = useImportWarning();
   const { t, f, locale } = useI18n();
   const list = countable(items, s.altGroups, s.rates);
   const order = list.filter((i) => i.priority !== "someday");
@@ -53,6 +73,7 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
     .sort((a, b) => b.subtotal - a.subtotal || b.leftOut.length - a.leftOut.length);
 
   const markAll = async (group: ItemWithSources[]) => {
+    warnImport(group);
     const entries = group.map((i) => {
       const src = activeSource(i, s.rates);
       return { item: i, paid: src?.price != null ? { price: src.price + (src.shipping ?? 0), currency: src.currency } : null };
@@ -118,6 +139,7 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
               </div>
             </header>
             {known && <ShippingRow storeKey={g.key} store={g.store} gap={g.gap} rule={g.rule} />}
+            {known && g.items.length > 0 && isForeignStore(g.key, activeSource(g.items[0], s.rates)?.currency) && <ImportVatNotice items={g.items} shipping={g.gap.fee} />}
             {table ? (
               <>
                 <div className="hidden md:block">

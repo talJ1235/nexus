@@ -10,6 +10,7 @@ import { convert, formatMoney } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { normalizeCategory } from "@/lib/categories";
+import { importCheck, isForeignStore } from "@/lib/import-vat";
 import { useStore } from "./store";
 import { useReadOnly } from "./offline-banner";
 import { COLLECTION_COLORS } from "./view-items";
@@ -61,8 +62,10 @@ export function optimisticStatus(item: ItemWithSources, status: Status, paid: Re
 export function useStatusFlow() {
   const s = useStore();
   const { t } = useI18n();
+  const warnImport = useImportWarning();
   const setTo = async (item: ItemWithSources, status: Status) => {
     const paid = status !== "to_buy" && item.status === "to_buy" ? paidFor(item, s.rates) : null;
+    if (status === "ordered") warnImport([item]);
     s.upsertItem(optimisticStatus(item, status, paid));
     // The toast shows at once (the change is already on screen); Undo waits for the save before reverting it.
     const req = setStatus(item.id, status, paid);
@@ -91,6 +94,27 @@ export function useStatusFlow() {
     }
   };
   return { setTo, advance: (item: ItemWithSources) => setTo(item, NEXT[item.status]), paidFor: (item: ItemWithSources) => paidFor(item, s.rates) };
+}
+
+/**
+ * Marking items as ordered from a foreign store: if that store's order (these + what was ordered there in the last
+ * day) is over the VAT-free import limit, say so — with the estimated VAT.
+ */
+export function useImportWarning() {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  return (items: ItemWithSources[]) => {
+    const src = items[0] ? activeSource(items[0], s.rates) : null;
+    if (!src || !isForeignStore(src.storeKey, src.currency)) return;
+    const ids = new Set(items.map((i) => i.id));
+    const recent = s.items.filter((i) => !ids.has(i.id) && i.status === "ordered" && (i.orderedAt ?? 0) > Date.now() - 86_400_000 && activeSource(i, s.rates)?.storeKey === src.storeKey);
+    const c = importCheck([...items, ...recent], { rates: s.rates, currency: s.currency, limitUsd: s.importLimitUsd });
+    if (!c.over) return;
+    toast.warning(t.importVat.toast, {
+      description: f(t.importVat.detail, { total: Math.round(c.totalUsd), vat: formatMoney(Math.round(c.vat), s.currency, locale), remove: Math.ceil(c.removeUsd) }),
+      duration: 10_000,
+    });
+  };
 }
 
 export function PriceTag({ item, size = "md" }: { item: ItemWithSources; size?: "md" | "lg" }) {

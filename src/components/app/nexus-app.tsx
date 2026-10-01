@@ -41,6 +41,7 @@ import { StoreProvider, useStore, type UiInit } from "./store";
 import { ContentSkeleton, Skel } from "./skeletons";
 import { COLLECTION_COLORS, useViewItems } from "./view-items";
 import { FALLBACK_RATES, type Currency } from "@/lib/money";
+import { DEFAULT_IMPORT_LIMIT_USD } from "@/lib/import-vat";
 
 /** Everything the first paint needs that the server knows without loading data. */
 export type AppBoot = UiInit & { currency: Currency; aiEnabled: boolean };
@@ -48,7 +49,7 @@ export type AppBoot = UiInit & { currency: Currency; aiEnabled: boolean };
 /** Without `initial` the app renders as the streamed loading shell: real chrome, skeleton content. */
 /** `offline` = rendering the offline shell from the device snapshot (read-only). */
 export function NexusApp({ boot, initial, incoming, offline }: { boot: AppBoot; initial?: AppData; incoming?: Incoming; offline?: { at: number } }) {
-  const data = initial ?? { items: [], collections: [], altGroups: [], storeSettings: [], budget: {}, rates: FALLBACK_RATES, aiEnabled: boot.aiEnabled };
+  const data = initial ?? { items: [], collections: [], altGroups: [], storeSettings: [], budget: {}, rates: FALLBACK_RATES, aiEnabled: boot.aiEnabled, importLimitUsd: DEFAULT_IMPORT_LIMIT_USD };
   return (
     <StoreProvider initial={data} initialCurrency={boot.currency} ui={boot} loading={!initial} offline={offline ?? null}>
       <Shell incoming={incoming} />
