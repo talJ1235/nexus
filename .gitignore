@@ -44,3 +44,4 @@ next-env.d.ts
 # local db
 local.db*
 .claude/settings.local.json
+test-data/
