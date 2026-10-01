@@ -1,13 +1,14 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ArrowUpRight, Bug, Check, CornerDownRight, History, MessageSquare, MessageSquareWarning, Send, Square, SquarePen, Wand2, X } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Brain, Bug, Check, CornerDownRight, History, MessageSquare, MessageSquareWarning, Send, Square, SquarePen, Wand2, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { LogoMark } from "@/components/logo";
 import { toast } from "@/lib/toast";
 import { planWithAi } from "@/app/ai-actions";
 import { getConversation, latestConversation, saveExchange, titleConversation, type MessageView } from "@/app/chat-actions";
 import { HistoryList } from "./assistant-history";
+import { saveMemoryNote } from "@/app/memory-actions";
 import { PlanCard } from "./assistant-plan-card";
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,8 @@ type Msg = {
   /** Plan mode (R9 C1): the drafted parts list, shown as a card; `target` = the project it was asked for. */
   plan?: Plan | null;
   target?: string | null;
+  /** A note the assistant offers to remember (R9 C3). */
+  memory?: string | null;
   mode?: ChatMode;
   question?: string;
   streaming?: boolean;
@@ -167,6 +170,43 @@ function Inline({ text, onItem, base }: { text: string; onItem: (id: string) => 
         );
       })}
     </>
+  );
+}
+
+/** "Remember this?" (R9 C3): a preference the user stated, saved only when confirmed. */
+function MemoryChip({ note }: { note: string }) {
+  const { t } = useI18n();
+  const [state, setState] = useState<"ask" | "saving" | "saved" | "gone">("ask");
+  if (state === "gone") return null;
+  const save = async () => {
+    setState("saving");
+    const r = await saveMemoryNote(note, "chat").catch(() => null);
+    if (!r || "error" in r) {
+      setState("gone");
+      toast.error(r ? t.memory.sensitive : t.errors.generic);
+    } else setState("saved");
+  };
+  return (
+    <div className="rise-in flex flex-wrap items-center gap-2 rounded-[18px] border border-line bg-surface px-3.5 py-2.5" data-ai-memory={state}>
+      <Brain className="size-4 shrink-0 text-muted" />
+      <span className="min-w-0 flex-1 text-[13px]">
+        <span className="text-muted">{t.memory.rememberQ}</span> <b className="font-semibold bidi">“{note}”</b>
+      </span>
+      {state === "saved" ? (
+        <span className="flex items-center gap-1 text-[13px] font-semibold text-ok">
+          <Check className="size-4" /> {t.memory.remembered}
+        </span>
+      ) : (
+        <span className="flex gap-1.5">
+          <Button size="sm" variant="accent" className="h-9" disabled={state === "saving"} onClick={() => void save()} data-ai-memory-save>
+            {state === "saving" ? <Spinner /> : <Check />} {t.memory.remember}
+          </Button>
+          <Button size="sm" variant="ghost" className="h-9" onClick={() => setState("gone")}>
+            {t.memory.notNow}
+          </Button>
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -504,7 +544,7 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
         buf = lines.pop() ?? "";
         for (const line of lines) {
           if (!line.trim()) continue;
-          const ev = JSON.parse(line) as { t: "route"; fallback: boolean } | { t: "delta"; text: string } | { t: "done"; text: string; proposal: Proposal | null; report?: ReportFields | null; route?: string } | { t: "error"; error: string };
+          const ev = JSON.parse(line) as { t: "route"; fallback: boolean } | { t: "delta"; text: string } | { t: "done"; text: string; proposal: Proposal | null; report?: ReportFields | null; memory?: string | null; route?: string } | { t: "error"; error: string };
           if (ev.t === "route") onModel(ev.fallback ? "busy" : "ok");
           else if (ev.t === "delta") {
             if (!started) {
@@ -512,8 +552,8 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
               setMsgs((m) => [...m, { role: "assistant", text: ev.text, streaming: true }]);
             } else patchLast((m) => ({ ...m, text: m.text + ev.text }));
           } else if (ev.t === "done") {
-            if (!started) setMsgs((m) => [...m, { role: "assistant", text: ev.text, proposal: ev.proposal, report: ev.report, question: text }]);
-            else patchLast((m) => ({ ...m, text: ev.text, proposal: ev.proposal, report: ev.report, question: text, streaming: false }));
+            if (!started) setMsgs((m) => [...m, { role: "assistant", text: ev.text, proposal: ev.proposal, report: ev.report, memory: ev.memory, question: text }]);
+            else patchLast((m) => ({ ...m, text: ev.text, proposal: ev.proposal, report: ev.report, memory: ev.memory, question: text, streaming: false }));
             setLastExchange(text, ev.text);
             // Proposals and report drafts are kept as text only: reopened later they must not be applied/sent twice.
             void persist("chat", text, ev.text, { route: ev.route ?? null });
@@ -579,6 +619,7 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
             <div key={i} className="space-y-3">
               {m.error ? <p className="text-sm text-muted">{m.text}</p> : m.plan ? <PlanCard plan={m.plan} defaultTarget={m.target ?? null} /> : <Answer text={m.text} streaming={m.streaming} onItem={openItem} />}
               {m.proposal && <ActionCard proposal={m.proposal} onItem={openItem} />}
+              {m.memory && <MemoryChip note={m.memory} />}
               {m.report && <ReportDraftCard draft={m.report} exchange={{ question: m.question ?? "", answer: m.text }} />}
             </div>
           ),

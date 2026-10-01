@@ -113,7 +113,12 @@ export async function sameProduct(item: ItemWithSources, reads: Read[]): Promise
   return reads.filter((_, i) => keep.has(i));
 }
 
-export function toResults(reads: Read[], currency: string, rates: Rates): CompareResult[] {
+/** Cheapest first; when totals tie (within 1 %), the user's usual stores (`preferred` storeKeys, R9 C3) come first. */
+export function toResults(reads: Read[], currency: string, rates: Rates, preferred: string[] = []): CompareResult[] {
+  const rank = (k: string) => {
+    const i = preferred.indexOf(k);
+    return i < 0 ? preferred.length : i;
+  };
   return reads
     .map((r) => {
       const cur = (r.ex.currency ?? storeFromUrl(r.url).currency ?? "USD").toUpperCase();
@@ -132,5 +137,5 @@ export function toResults(reads: Read[], currency: string, rates: Rates): Compar
       };
     })
     .filter((r, i, all) => all.findIndex((x) => normalizeUrl(x.url) === normalizeUrl(r.url)) === i)
-    .sort((a, b) => a.total - b.total);
+    .sort((a, b) => (Math.abs(a.total - b.total) <= Math.min(a.total, b.total) * 0.01 ? rank(a.storeKey) - rank(b.storeKey) || a.total - b.total : a.total - b.total));
 }

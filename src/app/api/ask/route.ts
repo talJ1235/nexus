@@ -9,6 +9,8 @@ import { clientDiagSchema } from "@/lib/diag-schema";
 import { classifyQuestion } from "@/lib/help/route";
 import { parseReportBlock } from "@/lib/reports";
 import { pastSnippets } from "@/lib/conversations";
+import { parseMemoryBlock } from "@/lib/memory";
+import { memoryContext, memoryEnabled } from "@/lib/profile-server";
 import { diagLines, helpText, serverDiag } from "@/lib/help/server";
 
 export const maxDuration = 60;
@@ -60,7 +62,10 @@ export async function POST(req: Request) {
         const diag = route === "data" ? undefined : diagLines(input.diag, await serverDiag());
         // "How did I fix X last time?" → snippets from earlier conversations.
         const past = await pastSnippets(input.question, input.conversationId ?? null).catch(() => null);
-        const p = askPrompt({ ...input, data, route, help, diag, complaint, past });
+        // What Nexus knows about the user (profile + confirmed notes) when memory is on (R9 C3).
+        const memoryOn = await memoryEnabled().catch(() => false);
+        const memory = memoryOn && route !== "help" ? await memoryContext(input.currency, input.locale).catch(() => null) : null;
+        const p = askPrompt({ ...input, data, route, help, diag, complaint, past, memoryOn, memory });
         let full = "";
         if ("mock" in p) {
           send({ t: "route", provider: "mock", fallback: false });
@@ -88,9 +93,12 @@ export async function POST(req: Request) {
         const parsed = parseAnswer(full, ids);
         const proposal = parsed.proposal;
         // A drafted problem report (```nexus-report) → the report card (R8 D3).
-        const { text, report } = parseReportBlock(parsed.text);
+        const fromReport = parseReportBlock(parsed.text);
+        // A note to remember (```nexus-memory) → the "Remember?" chip (R9 C3); sensitive ones are dropped.
+        const { text, note: memoryNote } = parseMemoryBlock(fromReport.text);
+        const report = fromReport.report;
         const useful = proposal && (newCollections(proposal).length > 0 || planChanges(proposal, data.items).length > 0);
-        send({ t: "done", text: text || proposal?.summary || "", proposal: useful ? proposal : null, report, route });
+        send({ t: "done", text: text || proposal?.summary || "", proposal: useful ? proposal : null, report, memory: memoryOn ? memoryNote : null, route });
       } catch {
         send({ t: "error", error: "failed" });
       } finally {

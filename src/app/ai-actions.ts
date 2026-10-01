@@ -9,6 +9,7 @@ import { bulkSetStatus, createCollection, deleteCollection, updateItem } from "@
 import { askNexus, planProject, type Plan } from "@/lib/assistant";
 import { changedKeys, isNewRef, newCollections, newRef, parseAnswer, planChanges, validateProposal, type ItemFields, type Proposal } from "@/lib/assistant-actions";
 import { assertOwner } from "@/lib/auth";
+import { getProfile, memoryContext } from "@/lib/profile-server";
 import { activeSource } from "@/lib/calc";
 import { getAppData, getItem, loadItems } from "@/lib/data";
 import { CURRENCIES } from "@/lib/money";
@@ -26,7 +27,10 @@ export async function planWithAi(raw: { description: string; budget: number | nu
   const existing = input.collectionId
     ? (await db.select({ title: schema.items.title }).from(schema.items).where(eq(schema.items.collectionId, input.collectionId))).map((r) => r.title)
     : [];
-  const plan = await planProject({ description: input.description, budget: input.budget, currency: input.currency, locale: input.locale, existing });
+  // With memory on: his habits and usual stores steer the plan (R9 C3).
+  const habits = await memoryContext(input.currency, input.locale === "he" ? "he" : "en").catch(() => null);
+  const stores = habits ? (await getProfile(input.currency).catch(() => null))?.stores.map((x) => x.store) ?? [] : [];
+  const plan = await planProject({ description: input.description, budget: input.budget, currency: input.currency, locale: input.locale, existing, habits, stores });
   return plan ?? { error: "failed" };
 }
 

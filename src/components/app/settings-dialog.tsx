@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { BookmarkletDialog } from "./bookmarklet";
 import { BudgetEditor } from "./budget-card";
 import { saveImportLimit } from "@/app/money-actions";
+import { MemorySection } from "./memory-section";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 import { usePalette } from "@/components/use-palette";
@@ -178,6 +179,8 @@ export function SettingsDialog() {
           </section>
 
           <DataSection />
+
+          <MemorySection />
 
           <section className="space-y-4 border-t border-line pt-5">
             <h3 className="text-xs font-medium text-faint">{t.settings.account}</h3>

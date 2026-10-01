@@ -274,3 +274,13 @@ export const conversationMessages = sqliteTable("conversation_messages", {
   createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
 });
 export type ConversationMessage = typeof conversationMessages.$inferSelect;
+
+/** Things Nexus learned about the owner's shopping (Round 9 C3): confirmed in chat or typed in Settings. */
+export const memories = sqliteTable("memories", {
+  id: text("id").primaryKey(),
+  text: text("text").notNull(),
+  source: text("source", { enum: ["chat", "manual"] }).notNull().default("chat"),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
+});
+export type Memory = typeof memories.$inferSelect;

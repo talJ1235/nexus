@@ -6,6 +6,7 @@ import { budgetStats, lineTotal, unitPrice } from "./calc";
 import { convert, formatMoney, type Rates } from "./money";
 import type { AskRoute } from "./help/route";
 import { REPORT_FENCE } from "./reports";
+import { MEMORY_FENCE, PREFERENCE } from "./memory";
 import type { AppData } from "./types";
 
 // ---------- Project planner ----------
@@ -32,8 +33,11 @@ export async function planProject(input: {
   currency: string;
   locale: "en" | "he";
   existing: string[];
+  /** With memory on (R9 C3): the shopping profile + notes, and his usual stores (most used first). */
+  habits?: string | null;
+  stores?: string[];
 }): Promise<Plan | null> {
-  if (mockAi()) return MOCK_PLAN(input.currency);
+  if (mockAi()) return MOCK_PLAN(input.currency, input.stores?.[0] ?? null);
   const lang = input.locale === "he" ? "Hebrew" : "English";
   const prompt = `You help a maker plan purchases for a project. The user has a strong electronics/mechatronics background, owns a 3D printer and common hand tools, and shops mostly on AliExpress plus Israeli stores (KSP, Ivory, Bug, local maker shops).
 
@@ -53,7 +57,15 @@ Rules:
 - "essential": false for nice-to-have upgrades.
 - "searchQuery": the best short ENGLISH search query to find this exact part on AliExpress/Amazon.
 - "tips": 2–5 short practical tips in ${lang} (what to 3D print, what to buy as a kit, common pitfalls).
-- "projectName": short name for the project (in ${lang}); "summary": one sentence (in ${lang}).`;
+- "projectName": short name for the project (in ${lang}); "summary": one sentence (in ${lang}).
+- "store": the store the user would most likely buy this part from${input.stores?.length ? ` — prefer his usual stores (${input.stores.join(", ")}) when they carry such parts` : ""}; null if unsure.${
+    input.habits
+      ? `
+
+What you know about this user's shopping (use it: his stores, brands he trusts, his usual price range per category):
+${input.habits}`
+      : ""
+  }`;
 
   const schema = {
     type: "object",
@@ -73,6 +85,7 @@ Rules:
             category: { type: "string" },
             essential: { type: "boolean" },
             searchQuery: { type: "string" },
+            store: { type: ["string", "null"] },
             have: { type: "boolean" },
           },
           required: ["name", "qty", "spec", "estMin", "estMax", "category", "essential", "searchQuery", "have"],
@@ -98,6 +111,7 @@ Rules:
       category: normalizeCategory(p.category) ?? "other",
       essential: p.essential !== false,
       searchQuery: (p.searchQuery || p.name || "").slice(0, 120),
+      store: typeof p.store === "string" && p.store.trim() ? p.store.trim().slice(0, 40) : null,
       have: !!p.have,
     })),
   };
@@ -150,6 +164,9 @@ type AskInput = {
   complaint?: boolean;
   /** Round 9 C2: snippets from earlier conversations, for "how did I … last time?" questions. */
   past?: string | null;
+  /** Round 9 C3: memory on (offer to remember preferences) and what's known (profile lines + notes). */
+  memoryOn?: boolean;
+  memory?: string | null;
 };
 
 /** Earlier conversations for "last time" questions (empty when there are none). */
@@ -185,6 +202,14 @@ export function askPrompt(input: AskInput): { mock: string } | { prompt: string;
     return { mock: `${lead}\n\n\`\`\`${REPORT_FENCE}\n${JSON.stringify(draft)}\n\`\`\`` };
   }
   if (mockAi() && input.route === "help") return { mock: mockHelp(input.question, input.locale) };
+  if (mockAi() && input.memoryOn && PREFERENCE.test(input.question)) {
+    const note = input.question.replace(/^(i|אני)\s+/i, "").replace(/[.!]+$/, "").slice(0, 120);
+    return { mock: `Got it — want me to remember that?
+
+\`\`\`${MEMORY_FENCE}
+${JSON.stringify({ note: `Says: ${note}` })}
+\`\`\`` };
+  }
   if (mockAi()) {
     const first = input.data.items.find((i) => i.status === "to_buy");
     // Change requests get a proposal: the first two to-buy items → ordered (exercises propose → apply → undo).
@@ -254,7 +279,15 @@ Rules:
   \`\`\`${ACTION_FENCE}
   {"summary":"Create Drone and move 3 AliExpress items there","actions":[{"type":"createCollection","ref":"n1","name":"Drone","kind":"project","budget":null},{"type":"move","itemIds":["k1","k2","k3"],"collectionId":"new:n1"}]}
   \`\`\`
-Today is ${new Date().toISOString().slice(0, 10)}.
+${
+    input.memoryOn
+      ? `- When the user states a lasting shopping preference or habit (stores, brands, quality, budget, shipping), offer to remember it: end with exactly one fenced block \`\`\`${MEMORY_FENCE} {"note":"<one short line, e.g. 'Prefers Wera tools'>"}\`\`\`. Shopping habits only — never contact details, addresses, ids, health or other personal data. Nothing is saved until the user confirms.
+`
+      : ""
+  }${input.memory ? `WHAT YOU KNOW ABOUT THE USER (computed from their data, plus notes they confirmed — use it, don't recite it)
+${input.memory}
+
+` : ""}Today is ${new Date().toISOString().slice(0, 10)}.
 
 PROJECTS & LISTS ([id] kind "name")
 ${projects.join("\n") || "(none)"}
@@ -288,14 +321,14 @@ ${input.help}`
 export function mockAi() {
   return process.env.NEXUS_AI_MOCK === "1" && !process.env.VERCEL;
 }
-const MOCK_PLAN = (currency: string): Plan => ({
+const MOCK_PLAN = (currency: string, store: string | null): Plan => ({
   projectName: "Camera slider",
   summary: "Motorized 1.5 m slider on V-slot with ESP32 control.",
   currency,
   tips: ["Print the carriage plates in PETG.", "Buy the V-slot cut to length."],
   parts: [
-    { name: "NEMA 17 stepper motor 42-40, 1.5A", qty: 1, spec: "Enough torque for a 2 kg camera", estMin: 30, estMax: 45, category: "mechanical", essential: true, searchQuery: "nema 17 stepper 42-40", have: false },
-    { name: "TMC2209 stepper driver", qty: 1, spec: "Silent operation for video", estMin: 12, estMax: 20, category: "electronics", essential: true, searchQuery: "tmc2209 driver", have: false },
+    { name: "NEMA 17 stepper motor 42-40, 1.5A", qty: 1, spec: "Enough torque for a 2 kg camera", estMin: 30, estMax: 45, category: "mechanical", essential: true, searchQuery: "nema 17 stepper 42-40", have: false, store },
+    { name: "TMC2209 stepper driver", qty: 1, spec: "Silent operation for video", estMin: 12, estMax: 20, category: "electronics", essential: true, searchQuery: "tmc2209 driver", have: false, store },
     { name: "Wireless follow-focus motor", qty: 1, spec: "Upgrade for focus pulls", estMin: 150, estMax: 300, category: "camera-audio", essential: false, searchQuery: "wireless follow focus motor", have: false },
   ],
 });

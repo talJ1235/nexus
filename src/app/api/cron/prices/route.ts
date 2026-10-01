@@ -1,7 +1,8 @@
 import { type NextRequest } from "next/server";
-import { kvSet } from "@/lib/kv";
+import { kvGet, kvSet } from "@/lib/kv";
 import { ensureWebhook, publicOrigin } from "@/lib/telegram";
 import { repairIncomplete } from "@/lib/service";
+import { getProfile } from "@/lib/profile-server";
 import { runServerChecks, sendAlertDigest, sendWeeklySummary } from "@/lib/tracker";
 import { backfillImages } from "@/lib/product-image";
 
@@ -24,6 +25,9 @@ export async function GET(req: NextRequest) {
   // Sundays (Israel): the weekly summary, after the day's alerts went out.
   const weekly = await sendWeeklySummary(publicOrigin(req.nextUrl.origin)).catch(() => ({ weekly: "failed" as const }));
   await ensureWebhook(req.nextUrl.origin).catch(() => false); // self-heal the bot webhook daily
+  // The shopping profile the assistant uses (Round 9 C3), refreshed once a day in the owner's currency.
+  const owner = JSON.parse((await kvGet("pref:owner").catch(() => null)) ?? "{}") as { currency?: string };
+  await getProfile(owner.currency ?? "ILS", true).catch(() => null);
   const summary = { at: Date.now(), checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, sent: digest.sent, budget: "budget" in digest ? digest.budget : false, weekly: weekly.weekly, repair, images };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);

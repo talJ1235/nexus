@@ -954,6 +954,32 @@ try {
           ok(reopened && rows === 1 && back && fresh, "assistant history: reopen continues, history search, delete + undo, new chat", JSON.stringify({ reopened, rows, back, fresh }));
           await page.keyboard.press("Escape");
         });
+        // Round 9 C3 (mock): a stated preference → "Remember?" chip → saved → listed in Settings with the profile.
+        await step("assistant memory: preference → remember chip → in Settings with the profile", async () => {
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY);
+          await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          await page.locator("[data-ai-new]").click();
+          const dlg = page.getByRole("dialog");
+          const marker = `Smoke${Date.now() % 100000}`;
+          await dlg.locator("textarea").fill(`I always order ${marker} parts from AliExpress`);
+          await dlg.locator("textarea").press("Enter");
+          await dlg.locator("[data-ai-memory=ask]").waitFor({ timeout: 15000 });
+          await dlg.locator("[data-ai-memory-save]").click();
+          await dlg.locator("[data-ai-memory=saved]").waitFor({ timeout: 8000 });
+          await page.keyboard.press("Escape");
+          await openPalette();
+          await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Open settings|פתיחת ההגדרות|Settings/ }).first().click();
+          const note = page.locator("[data-memory-note]").filter({ hasText: marker });
+          await note.waitFor({ timeout: 10000 });
+          await note.scrollIntoViewIfNeeded();
+          const profile = await page.locator("[data-memory-profile]").count();
+          await shot(page, "memory-settings");
+          await note.getByRole("button", { name: /Delete|מחיקה/ }).click();
+          await note.waitFor({ state: "detached", timeout: 8000 });
+          ok(profile === 1, "assistant memory: preference → remember chip → in Settings with the profile", `profile=${profile}`);
+          await page.keyboard.press("Escape");
+        });
         // Needs the server started with NEXUS_AI_MOCK=1 (the mock proposes "first two to-buy items → ordered").
         await step("assistant action: propose → apply → undo", async () => {
           await page.goto(`${BASE}/`);

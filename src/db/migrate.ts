@@ -63,6 +63,14 @@ async function main() {
     created_at integer DEFAULT (unixepoch() * 1000) NOT NULL
   )`);
   await client.execute("CREATE INDEX IF NOT EXISTS conversation_messages_conv ON conversation_messages (conversation_id, created_at)");
+  // Round 9 C3: learned notes.
+  await client.execute(`CREATE TABLE IF NOT EXISTS memories (
+    id text PRIMARY KEY NOT NULL,
+    text text NOT NULL,
+    source text DEFAULT 'chat' NOT NULL,
+    created_at integer DEFAULT (unixepoch() * 1000) NOT NULL,
+    updated_at integer DEFAULT (unixepoch() * 1000) NOT NULL
+  )`);
   const itemCols = (await client.execute("PRAGMA table_info(items)")).rows.map((r) => String(r.name));
   if (!itemCols.includes("order_number")) await client.execute("ALTER TABLE items ADD COLUMN order_number text");
   // Round 7: barcodes (D1).

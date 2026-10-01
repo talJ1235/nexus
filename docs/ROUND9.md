@@ -77,7 +77,7 @@ entry points that opened it ("Plan with Nexus" in the + menu, project page) open
 - The model gets the current conversation; it can also be asked "how did I fix X last time?" — search past
   conversations (simple text search over titles + messages, top few snippets into context).
 
-### C3. [ ] Nexus learns Tal's habits (memory)
+### C3. [x] Nexus learns Tal's habits (memory)
 - A **shopping profile** computed from data (deterministic, refreshed daily and on demand): favourite stores (by
   count/spend, last 6 months), typical categories, price ranges per category, brands, shipping/threshold habits,
   usual project types, typical order size, preferred currency. Stored in kv.

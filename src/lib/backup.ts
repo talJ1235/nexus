@@ -6,7 +6,7 @@ import { db, schema } from "@/db";
 const EXPORTABLE_KV = /^(pref:|fx_rates$|telegram_bot$)/;
 
 export async function buildBackup() {
-  const [collections, items, sources, pricePoints, attachments, altGroups, alerts, members, grants, invites, storeSettings, receipts, reports, conversations, conversationMessages, kv] = await Promise.all([
+  const [collections, items, sources, pricePoints, attachments, altGroups, alerts, members, grants, invites, storeSettings, receipts, reports, conversations, conversationMessages, memories, kv] = await Promise.all([
     db.select().from(schema.collections),
     db.select().from(schema.items),
     db.select().from(schema.sources),
@@ -22,6 +22,7 @@ export async function buildBackup() {
     db.select().from(schema.reports),
     db.select().from(schema.conversations),
     db.select().from(schema.conversationMessages),
+    db.select().from(schema.memories),
     db.select().from(schema.kv),
   ]);
   return {
@@ -29,13 +30,13 @@ export async function buildBackup() {
     version: 1,
     exportedAt: new Date().toISOString(),
     counts: { collections: collections.length, items: items.length, sources: sources.length },
-    data: { collections, items, sources, pricePoints, attachments, altGroups, alerts, members, grants, invites, storeSettings, receipts, reports, conversations, conversationMessages, kv: kv.filter((r) => EXPORTABLE_KV.test(r.key)) },
+    data: { collections, items, sources, pricePoints, attachments, altGroups, alerts, members, grants, invites, storeSettings, receipts, reports, conversations, conversationMessages, memories, kv: kv.filter((r) => EXPORTABLE_KV.test(r.key)) },
   };
 }
 
 export type Backup = Awaited<ReturnType<typeof buildBackup>>;
 
-const TABLES = ["collections", "items", "sources", "pricePoints", "attachments", "altGroups", "alerts", "members", "grants", "invites", "storeSettings", "receipts", "reports", "conversations", "conversationMessages", "kv"] as const;
+const TABLES = ["collections", "items", "sources", "pricePoints", "attachments", "altGroups", "alerts", "members", "grants", "invites", "storeSettings", "receipts", "reports", "conversations", "conversationMessages", "memories", "kv"] as const;
 type TableName = (typeof TABLES)[number];
 
 function table(name: TableName) {
@@ -51,7 +52,7 @@ export async function restoreBackup(raw: unknown, mode: "merge" | "replace") {
 
   if (mode === "replace") {
     // Children first.
-    for (const name of ["conversationMessages", "conversations", "reports", "receipts", "storeSettings", "invites", "grants", "members", "alerts", "pricePoints", "attachments", "sources", "items", "altGroups", "collections"] as const) {
+    for (const name of ["memories", "conversationMessages", "conversations", "reports", "receipts", "storeSettings", "invites", "grants", "members", "alerts", "pricePoints", "attachments", "sources", "items", "altGroups", "collections"] as const) {
       await db.delete(table(name));
     }
   }
