@@ -60,7 +60,7 @@ Keep scanic but make detection robust, choosing by bench numbers:
 - Smoke: feed a fake camera video made from synthetic receipts (`--use-file-for-fake-video-capture` with a
   generated `.mjpeg`/`.y4m`) and assert the outline appears and auto-capture fires.
 
-### A4. [ ] End-to-end check of reading
+### A4. [x] End-to-end check of reading
 After A2/A3, run the full path on the bench images in mock mode up to the upload, and with `GEMINI_API_KEY` if the
 machine has one, on 5 real images (if present): crop → enhance → tiles → read → checks. Note results in Open.
 
@@ -160,3 +160,24 @@ Reports with diagnostics; suggestions wrap at 360 px. Unit test the classifier f
 ---
 
 ## Open
+
+### Part A — receipts (results and decisions)
+- **Bench numbers** (`npm run test:receipt-detect`, synthetic set of 64): still 95.3 % (61/64), live 93.8 % (60/64),
+  median corner error 0.35 %; live median 38 ms on this desktop, 177 ms at CPU ×4 (budgets 60 / 200 ms). Scanic alone
+  (even tuned) got 45 %. The remaining misses are pale tablecloth stripes as bright as the paper and running parallel
+  to it, and one nearly invisible white-on-white receipt.
+- **No real photos yet**: `test-data/receipts/` doesn't exist on this machine, so the real-set bench and the real-photo
+  read didn't run. To add them: drop ~10 phone photos of receipts there (git-ignored); then either label them
+  (`labels.json`: `{ "file.jpg": [[x,y] TL, TR, BR, BL] }`) and run the bench, or ask a session to label them. The real
+  set's target is 85 %. Tuning so far is synthetic-only, so the first real photos are the most valuable next input,
+  especially for the auto-capture sharpness ratio (70 %) and the guidance thresholds.
+- **Deviation from the brief**: quads are accepted from **2.5 %** of the frame (brief: 5–95 %). A long receipt
+  photographed whole from arm's length covers ~3 %; "Move closer" shows below 10 %.
+- **ML detector**: scanic's ML model is self-hosted (`/scanic-ml/`, 3.4 MB, copied from the `scanic-ml` npm package
+  at dev/build, never from a CDN). It loads lazily on the first scan; stills wait for it, live frames use it only once
+  loaded and only when the classical detectors are unsure. Offline or missing assets → the classical detectors alone.
+- **A4 end-to-end** (`npm run test:receipt-e2e`): mock run over all 64 photos — every one goes through detect → crop
+  → enhance → tiles (53 split, all JPEG ≤ 2000 px, under the 20 MB upload limit) → mock read; median 150 ms in the
+  browser. Real Gemini read on 5 sharp synthetic receipts at phone size (2 Hebrew, 3 English, 3 tiled): **5/5 exact**
+  — every line, every price and the total; 3–9 s each.
+- Older browsers without OffscreenCanvas (Safari < 16.4) run detection on the main thread (same code).

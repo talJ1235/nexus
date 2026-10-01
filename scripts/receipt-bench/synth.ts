@@ -53,35 +53,40 @@ export function specFor(i: number): Spec {
 const HE = ["חלב 3%", "לחם אחיד", "ביצים L", "גבינה צהובה", "עגבניות", "מלפפון", "שמן זית", "קפה טורקי", "סוכר", "אורז", "במבה", "קוטג'"];
 const EN = ["MILK 1L", "BREAD", "EGGS L x12", "CHEDDAR", "TOMATOES", "CUCUMBER", "OLIVE OIL", "COFFEE", "SUGAR 1KG", "RICE", "CHIPS", "YOGURT"];
 
-function drawPaper(s: Spec, r: () => number): HTMLCanvasElement {
-  const W = 360;
-  const H = Math.round(W * s.ratio);
+export type Printed = { lines: { name: string; price: number }[]; total: number };
+
+function drawPaper(s: Spec, r: () => number, printed: Printed, res = 1): HTMLCanvasElement {
+  const LW = 360; // drawing units
+  const W = LW * res;
   const c = document.createElement("canvas");
   c.width = W;
-  c.height = H;
+  c.height = Math.round(W * s.ratio);
+  // Draw in 360-wide units; `res` only sharpens the bitmap.
+  const H = Math.round(360 * s.ratio);
   const x = c.getContext("2d")!;
+  x.scale(res, res);
   const base = 238 + r() * 16;
   const tint = r() * 6 - 3;
   x.fillStyle = `rgb(${base + tint},${base},${base - tint - 3})`;
-  x.fillRect(0, 0, W, H);
+  x.fillRect(0, 0, LW, H);
   const ink = 30 + r() * 60;
   x.fillStyle = `rgba(${ink},${ink},${ink + 10},${0.6 + r() * 0.35})`;
   const rtl = s.hebrew;
   x.direction = rtl ? "rtl" : "ltr";
-  const left = rtl ? W - 24 : 24;
-  const right = rtl ? 24 : W - 24;
+  const left = rtl ? LW - 24 : 24;
+  const right = rtl ? 24 : LW - 24;
   let y = 46;
   x.textAlign = "center";
   x.font = `bold ${26 + r() * 8}px Arial`;
-  x.fillText(rtl ? "סופר השכונה" : "CORNER MARKET", W / 2, y);
+  x.fillText(rtl ? "סופר השכונה" : "CORNER MARKET", LW / 2, y);
   y += 26;
   x.font = "14px 'Courier New', monospace";
-  x.fillText(rtl ? "רחוב הרצל 12, תל אביב" : "12 HIGH ST, SPRINGFIELD", W / 2, y);
+  x.fillText(rtl ? "רחוב הרצל 12, תל אביב" : "12 HIGH ST, SPRINGFIELD", LW / 2, y);
   y += 22;
-  x.fillText("01/10/2026 14:32", W / 2, y);
+  x.fillText("01/10/2026 14:32", LW / 2, y);
   const dash = () => {
     y += 16;
-    x.fillText("- - - - - - - - - - - - - - - - - - -", W / 2, y);
+    x.fillText("- - - - - - - - - - - - - - - - - - -", LW / 2, y);
     y += 10;
   };
   dash();
@@ -91,8 +96,10 @@ function drawPaper(s: Spec, r: () => number): HTMLCanvasElement {
     y += 22;
     const price = Math.round((3 + r() * 60) * 100) / 100;
     total += price;
+    const name = names[Math.floor(r() * names.length)];
+    printed.lines.push({ name, price });
     x.textAlign = rtl ? "right" : "left";
-    x.fillText(names[Math.floor(r() * names.length)], left, y);
+    x.fillText(name, left, y);
     x.textAlign = rtl ? "left" : "right";
     x.fillText(price.toFixed(2), right, y);
   }
@@ -103,17 +110,18 @@ function drawPaper(s: Spec, r: () => number): HTMLCanvasElement {
   x.fillText(rtl ? 'סה"כ' : "TOTAL", left, y);
   x.textAlign = rtl ? "left" : "right";
   x.fillText(total.toFixed(2), right, y);
+  printed.total = Math.round(total * 100) / 100;
   y += 30;
   // Barcode
   let bx = 60;
-  while (bx < W - 60) {
+  while (bx < LW - 60) {
     const bw = 1 + Math.floor(r() * 3);
     if (r() < 0.55) x.fillRect(bx, y, bw, 46);
     bx += bw + 1;
   }
   x.textAlign = "center";
   x.font = "14px Arial";
-  x.fillText(rtl ? "תודה ולהתראות" : "THANK YOU", W / 2, Math.min(H - 14, y + 70));
+  x.fillText(rtl ? "תודה ולהתראות" : "THANK YOU", LW / 2, Math.min(H - 14, y + 70));
   return c;
 }
 
@@ -209,10 +217,14 @@ const apply = (H: number[], p: Pt): Pt => {
   return { x: (H[0] * p.x + H[1] * p.y + H[2]) / z, y: (H[3] * p.x + H[4] * p.y + H[5]) / z };
 };
 
-/** Render one synthetic photo. Returns a JPEG data URL and the true corners (TL, TR, BR, BL of the paper). */
-export function render(s: Spec): { url: string; corners: Pt[] } {
+/**
+ * Render one synthetic photo. Returns a JPEG data URL, the true corners (TL, TR, BR, BL of the paper) and what is
+ * printed on it. `res` > 1 draws the paper sharper (for reading checks on enlarged frames).
+ */
+export function render(s: Spec, res = 1): { url: string; corners: Pt[]; printed: Printed } {
   const r = rng(s.seed * 31 + 7);
-  const paper = drawPaper(s, r);
+  const printed: Printed = { lines: [], total: 0 };
+  const paper = drawPaper(s, r, printed, res);
   const PW = paper.width;
   const PH = paper.height;
   const { w, h } = s.frame;
@@ -362,5 +374,5 @@ export function render(s: Spec): { url: string; corners: Pt[] } {
     }
     x.putImageData(im, 0, 0);
   }
-  return { url: c.toDataURL("image/jpeg", s.quality), corners };
+  return { url: c.toDataURL("image/jpeg", s.quality), corners, printed };
 }
