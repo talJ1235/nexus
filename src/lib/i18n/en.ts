@@ -746,6 +746,8 @@ export const en = {
       spendCompare: "Am I spending more this month than last month?",
       spendMonth: "What did I spend this month, by project?",
     },
+    moreSuggestions: "More suggestions",
+    showAll: "Show all ({n})",
     followUps: "Follow-up questions",
     suggestions: "Suggested questions",
     askPlaceholder: "Ask about your purchases…",

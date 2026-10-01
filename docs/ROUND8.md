@@ -111,7 +111,7 @@ home screen. The products and the To-buy section must stand out too.
 
 ## Part D — assistant: full suggestions, help & bug reports
 
-### D1. [ ] Suggestions without sideways scrolling
+### D1. [x] Suggestions without sideways scrolling
 Suggested questions (and follow-ups) never scroll horizontally: they wrap into a vertical list of full-width,
 left/start-aligned chips (max 4, "More suggestions" reveals the rest), full text visible (2 lines max, then ellipsis).
 Same for the item mini-cards row in answers: a 2-column grid on phone (first 4 + "Show all"), a wrapping row on

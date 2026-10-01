@@ -748,6 +748,8 @@ export const he: Dict = {
       spendCompare: "האם אני מוציא החודש יותר מבחודש שעבר?",
       spendMonth: "כמה הוצאתי החודש, לפי פרויקט?",
     },
+    moreSuggestions: "הצעות נוספות",
+    showAll: "הצגת הכול ({n})",
     followUps: "שאלות המשך",
     suggestions: "שאלות מוצעות",
     askPlaceholder: "שאל על הרכישות שלך…",

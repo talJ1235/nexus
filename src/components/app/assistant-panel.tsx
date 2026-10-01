@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, Check, FolderPlus, Lightbulb, MessageSquare, Square, SquarePen, Wand2, X } from "lucide-react";
+import { ArrowUp, Check, CornerDownRight, FolderPlus, Lightbulb, MessageSquare, Square, SquarePen, Wand2, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { LogoMark } from "@/components/logo";
 import { toast } from "@/lib/toast";
@@ -9,6 +9,7 @@ import { addPlannedParts, planWithAi } from "@/app/ai-actions";
 import { useI18n } from "@/components/providers";
 import { Button, Textarea } from "@/components/ui/button";
 import { Sheet, SheetClose } from "@/components/ui/overlays";
+import { PHONE, useMedia } from "@/components/ui/use-media";
 import type { Plan, PlannedPart } from "@/lib/assistant";
 import type { Proposal } from "@/lib/assistant-actions";
 import { readRecent, recordRecent, suggestQuestions, type Suggestion } from "@/lib/assistant-suggestions";
@@ -19,20 +20,28 @@ import { ProductImage } from "./item-card";
 import { ActionCard } from "./assistant-action-card";
 import { useStore } from "./store";
 
-// ---------- Suggestion chips (one scrollable row on phones, wrapping on desktop) ----------
+// ---------- Suggestion chips (Round 8 D1: a vertical list, never a sideways scroll) ----------
+
+const CHIPS_SHOWN = 4;
 
 function Chips({ list, onPick, label, testId }: { list: Suggestion[]; onPick: (text: string) => void; label: string; testId: string }) {
+  const { t } = useI18n();
+  const [all, setAll] = useState(false);
   if (!list.length) return null;
+  const shown = all ? list : list.slice(0, CHIPS_SHOWN);
   return (
-    <div role="group" aria-label={label} data-testid={testId} className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
-      {list.map((sug) => (
+    <div role="group" aria-label={label} data-testid={testId} className="flex flex-col items-stretch gap-1.5">
+      {shown.map((sug) => (
         <button
           key={sug.text}
           type="button"
           onClick={() => onPick(sug.text)}
-          className="inline-flex h-10 shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-line px-3.5 text-start text-[13px] text-muted transition hover:border-line-strong hover:text-fg active:bg-sunken md:h-auto md:min-h-8 md:shrink md:whitespace-normal md:py-1.5"
+          title={sug.text}
+          className="flex min-h-11 w-full items-center gap-2.5 rounded-[16px] border border-line bg-surface px-3.5 py-2 text-start text-[13.5px] leading-snug text-muted transition hover:border-line-strong hover:text-fg active:bg-sunken"
+          data-ai-chip
         >
-          <span>
+          <CornerDownRight className="size-3.5 shrink-0 opacity-60 rtl:-scale-x-100" aria-hidden />
+          <span className="line-clamp-2 min-w-0 flex-1">
             {sug.parts.map((p, i) =>
               p.name ? (
                 <span key={i} className="bidi font-medium text-fg">
@@ -45,6 +54,11 @@ function Chips({ list, onPick, label, testId }: { list: Suggestion[]; onPick: (t
           </span>
         </button>
       ))}
+      {list.length > CHIPS_SHOWN && !all && (
+        <button type="button" onClick={() => setAll(true)} className="h-10 self-start rounded-full px-2 text-[13px] font-semibold text-muted transition hover:text-fg" data-ai-more>
+          {t.ai.moreSuggestions}
+        </button>
+      )}
     </div>
   );
 }
@@ -134,7 +148,10 @@ function Inline({ text, onItem, base }: { text: string; onItem: (id: string) => 
 /** Assistant answer: no bubble — a bold lead line, then clean paragraphs/lists; referenced items as mini cards. */
 function Answer({ text, streaming, onItem }: { text: string; streaming?: boolean; onItem: (id: string) => void }) {
   const s = useStore();
-  const { t, locale } = useI18n();
+  const { t, f, locale } = useI18n();
+  // Phones: a 2-column grid of the first REFS_SHOWN mini cards + "Show all"; desktop: all of them, wrapping.
+  const phone = useMedia(PHONE);
+  const [allRefs, setAllRefs] = useState(false);
   // While streaming, hide a half-written action block (it is parsed once the answer is complete).
   const shown = streaming ? text.split("```")[0] : text;
   const blocks: { list: boolean; lines: string[] }[] = [];
@@ -188,11 +205,11 @@ function Answer({ text, streaming, onItem }: { text: string; streaming?: boolean
       })}
       {streaming && <span className="caret" aria-hidden />}
       {!streaming && refs.length > 0 && (
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 pt-1 [scrollbar-width:none]" data-ai-refs>
-          {refs.map((it, k) => {
+        <div className="grid grid-cols-2 gap-2 pt-1 sm:flex sm:flex-wrap" data-ai-refs>
+          {(allRefs || !phone ? refs : refs.slice(0, REFS_SHOWN)).map((it, k) => {
             const unit = unitPrice(it, s.rates, s.currency);
             return (
-              <button key={it.id} type="button" onClick={() => onItem(it.id)} className="rise-in flex w-40 shrink-0 flex-col gap-1.5 rounded-[18px] border border-line bg-surface p-1.5 text-start transition hover:-translate-y-0.5" style={{ animationDelay: `${k * 50}ms` }}>
+              <button key={it.id} type="button" onClick={() => onItem(it.id)} className="rise-in flex min-w-0 flex-col gap-1.5 rounded-[18px] border border-line bg-surface p-1.5 text-start transition hover:-translate-y-0.5 sm:w-40" style={{ animationDelay: `${k * 50}ms` }}>
                 <ProductImage src={it.imageUrl} alt="" className="aspect-[16/11] w-full rounded-[13px]" iconClass="size-5" />
                 <span className="line-clamp-2 px-1 text-[12.5px] font-bold leading-snug text-ink bidi">{it.title}</span>
                 <span className="flex items-center justify-between gap-1 px-1 pb-0.5">
@@ -219,9 +236,16 @@ function Answer({ text, streaming, onItem }: { text: string; streaming?: boolean
           })}
         </div>
       )}
+      {!streaming && phone && !allRefs && refs.length > REFS_SHOWN && (
+        <button type="button" onClick={() => setAllRefs(true)} className="h-10 rounded-full px-2 text-[13px] font-semibold text-muted transition hover:text-fg" data-ai-refs-all>
+          {f(t.ai.showAll, { n: refs.length })}
+        </button>
+      )}
     </div>
   );
 }
+
+const REFS_SHOWN = 4;
 
 /** First paragraph: its first sentence is the lead line. */
 function splitLead(lines: string[]): [string | null, ...string[]] {
