@@ -31,6 +31,7 @@ import { SelectionBar } from "./selection-bar";
 import { SpendingView } from "./spending-view";
 import { ProjectsView } from "./projects-view";
 import { BarcodeScanner } from "./barcode-scanner";
+import { ReceiptCamera } from "./receipt-camera";
 import { ShoppingMode, ShopOutboxSync } from "./shopping-mode";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
@@ -58,11 +59,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
   const s = useStore();
   const { t } = useI18n();
   const collapsed = s.sidebarCollapsed;
-  useEffect(() => {
-    if (s.scanner !== "receipt") return;
-    s.setScanner(null);
-    s.openReceipt();
-  }, [s]);
+
   return (
     <div
       className="min-h-dvh"
@@ -121,6 +118,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <Dock />
       <PlusMenu />
       <BarcodeScanner open={s.scanner === "barcode"} onClose={() => s.setScanner(null)} />
+      <ReceiptCamera />
       <ShoppingMode />
       <ShopOutboxSync />
 

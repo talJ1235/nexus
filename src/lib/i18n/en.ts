@@ -1,6 +1,21 @@
 export const en = {
   appName: "Nexus",
   tagline: "Everything you plan to buy, in one place",
+  receiptCam: {
+    hint: "Point at the receipt — it's taken by itself",
+    found: "Found the edges",
+    hold: "Hold still…",
+    noCamera: "The camera isn't available. Pick a photo instead.",
+    shutter: "Take the photo",
+    pick: "Pick a photo",
+    retake: "Retake",
+    adjust: "Drag the corners to the receipt's edges",
+    preview: "Straightened preview",
+    addPart: "Add another part",
+    use: "Use",
+    remove: "Remove",
+    camera: "Use the camera",
+  },
   shop: {
     title: "Shopping mode",
     open: "Shop",

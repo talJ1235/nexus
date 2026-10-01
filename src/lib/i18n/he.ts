@@ -3,6 +3,21 @@ import type { Dict } from "./en";
 export const he: Dict = {
   appName: "Nexus",
   tagline: "כל מה שאתה מתכנן לקנות, במקום אחד",
+  receiptCam: {
+    hint: "כוונו לקבלה — היא תצולם לבד",
+    found: "נמצאו הקצוות",
+    hold: "החזיקו יציב…",
+    noCamera: "המצלמה לא זמינה. אפשר לבחור תמונה.",
+    shutter: "צילום",
+    pick: "בחירת תמונה",
+    retake: "צילום מחדש",
+    adjust: "גררו את הפינות לקצוות הקבלה",
+    preview: "תצוגה מיושרת",
+    addPart: "הוספת חלק נוסף",
+    use: "שימוש",
+    remove: "הסרה",
+    camera: "שימוש במצלמה",
+  },
   shop: {
     title: "מצב קנייה",
     open: "לקניות",
