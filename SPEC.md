@@ -306,6 +306,52 @@ Brief and checklist: `docs/ROUND7.md` (design references in `docs/design/*.html`
   burst; reduced motion → fades. Perf: data-only store context for cards, separate open-item context, chunked grids,
   content-visibility, single layout rendered; `SMOKE_PERF=1` reports long tasks at CPU ×4.
 
+## Round 8 — receipts that find their edges, phone fit, home hierarchy, assistant help + reports
+Brief and checklist: `docs/ROUND8.md`. Shipped (merged to `main` 2026-10-01):
+- **Receipt edge detection** (`lib/receipt-detect/`, pure apart from scanic): four candidate sources fused by one score —
+  a receipt "paper" detector (bright + neutral regions, several thresholds + adaptive, morphology, holes filled, hull →
+  4-point fit, sides refit), straight edges (Hough, near-parallel pairs, frame borders as lines), scanic classical
+  (tuned) and scanic's ML detector **self-hosted** under `/scanic-ml/` (copied from the `scanic-ml` package at
+  dev/build by `scripts/copy-scanic-ml.mjs`, git-ignored, outside the auth proxy). Validation (convex, 50–130°, 2.5–95 %
+  of the frame, aspect ≤ 8, not two sides on the border), score = edge support + contrast + paper fill, top six polished
+  onto the paper edge. Live frames: paper + lines, scanic/ML only when unsure; stills: all four. Bench
+  `npm run test:receipt-detect` (Playwright + esbuild, 64 synthetic receipts in `test-data/receipt-synth/`, real photos
+  in git-ignored `test-data/receipts/` + `labels.json` when present): still 95 %, live 94 %, corner error 0.35 %, live
+  ~40 ms (≈ 180 ms at CPU ×4); `--snap` checks corner snapping. `npm run test:receipt-e2e`: detect → crop → enhance →
+  tiles → read (mock for all, Gemini on 5 sharp synthetic receipts — exact).
+- **Receipt camera**: detection in a Web Worker (`receipt-detect/worker.ts` via `lib/receipt-live.ts`, transferred 640 px
+  ImageBitmaps, frames skipped while busy; main-thread fallback), tracker with smoothing + hysteresis
+  (`receipt-detect/track.ts`, `npm run test:receipt-track`), rAF-glided outline, auto-capture when steady ≥ 0.7 s and
+  sharp ≥ 70 % of the last 2 s best, guidance chip (light / closer / darker surface / whole receipt / hold steady),
+  full-resolution re-detect after capture, magnifier loupe while dragging a corner and snapping onto the paper edge.
+  Smoke feeds a fake camera `.y4m` made from a synthetic receipt.
+- **Phone fit**: Spending/Stats fixed (implicit `auto` grid track + min-content tiles widened the page to ~394 px →
+  the phone zoomed out): single minmax(0,1fr) column, compact amounts (`formatMoneyCompact`: ₪12.4K) on phones, 12-month
+  bars with every other label when tight, inward tooltips. Guard: phone smoke step opens every view and sheet at 360 and
+  390 and fails when the layout viewport or any element is wider than the device (measured against the device width —
+  `innerWidth` itself grows on a too-wide phone page). `useMedia` hook; `SMOKE_ONLY=` runs matching steps.
+- **Home hierarchy**: totals card shows everything on every size (per-project amounts — phone top 3 + "+N more" — each
+  tappable, saved, strip "Urgent · On the way · Spent this month" linking to the views) but calmer (~180 px desktop,
+  ~170 px phone, softer light-theme hero); desktop keeps the two tiles, phones get one compact row (project budget or
+  nearest free shipping). A sticky "To buy" section header (count + total, chips, Category, Sort, layout switch, soft
+  surface once stuck under `--app-header-h`). Cards: taller image, the price as the strongest text, a clearer edge
+  (subtle shadow on light themes), a quiet urgent marker, staggered rise on first paint. Phones: 2-column cards by
+  default with a cards/rows switch (cookie `nexus_phone_layout`, server-read; Tailwind variants `prow:` / `pcard:`
+  keyed on `data-phone-layout` on the app shell); at 390×844 the first row of products is above the fold (smoke).
+- **Assistant**: suggestions/follow-ups as a vertical list of full-width chips (4 + "More suggestions"), mini cards in a
+  2-column grid on phones (4 + "Show all"). **Help with the app**: `lib/help/nexus-help.md` (< 25 KB, `npm run test:help`
+  checks size and that every SPEC feature has a `<!-- spec: … -->` marker), routing `lib/help/route.ts` (keywords en/he
+  + project names → help / data / unsure; unsure = data prompt + help, the model decides), action buttons from
+  `[label](nexus:…)` links (whitelist `lib/help/links.ts`), diagnostics (client: view, device, theme, locale, online,
+  extension, version, last errors from the `lib/client-errors.ts` ring buffer; server: AI providers/cooling/errors,
+  Blob, Telegram — never secrets). The help file is traced into `/api/ask`.
+- **Reports**: "Report a problem" from the assistant (drafted ```` ```nexus-report ```` card: Send / Edit / Cancel), the
+  command menu, Settings and the assistant header; form with optional picked screenshot and the automatic diagnostics
+  (incl. last assistant exchange and client errors). Table `reports` (in backup), owner screen "Reports" (status chips,
+  detail, status change, "Copy for Claude Code"), one Telegram message per report, optional GitHub issue
+  (`GITHUB_ISSUES_TOKEN`, label `from-app`), export `/api/reports/export` (`REPORTS_TOKEN`) + `node scripts/reports.mjs`.
+  Owner-only. `npm run test:reports`.
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
@@ -344,3 +390,6 @@ Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 | `BRAVE_SEARCH_API_KEY` | optional: web/image/shopping search for compare stores, barcode lookups and product pictures (preferred) |
 | `SERPER_API_KEY` | optional alternative search provider (Google results via serper.dev) |
 | `NEXUS_AI_MOCK` | local tests only (`=1`): offline AI mock for the assistant, planner and receipts |
+| `REPORTS_TOKEN` | optional: enables `/api/reports/export` for `node scripts/reports.mjs` (any long random string; same value locally) |
+| `GITHUB_ISSUES_TOKEN` | optional: fine-grained token (Issues read/write) — each problem report also opens a GitHub issue labelled `from-app` |
+| `GITHUB_ISSUES_REPO` | optional: `owner/repo` for those issues (default `talJ1235/nexus`) |

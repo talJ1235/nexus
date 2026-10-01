@@ -153,13 +153,48 @@ picture?", "the extension says not connected", "how do I switch to Plum?").
   `node scripts/reports.mjs`)".
 - Guests can't report (assistant is owner-only); note in Open if that seems worth adding later.
 
-### D4. [ ] Verify
+### D4. [x] Verify
 Mock mode: help question → help answer with an action button; "this is broken" → report card → send → appears in
 Reports with diagnostics; suggestions wrap at 360 px. Unit test the classifier fallback and the report markdown.
 
 ---
 
 ## Open
+
+### End-of-run summary (2026-10-01)
+All items A1–D4 shipped on `round8` (one commit each) and merged to `main` with `--ff-only`. Green at the end: typecheck
++ lint + build, every unit test (`test`, `test:sug`, `test:actions`, `test:ship`, `test:budget`, `test:receipt`,
+`test:weekly`, `test:contrast`, `test:barcode`, `test:receipt-check`, `test:import-vat`, new `test:receipt-track`,
+`test:help`, `test:reports`), the receipt bench (still 95.3 %, live 93.8 %, snap better), and the full smoke on desktop
+(40 checks) and phone (42 checks) with `SMOKE_WRITE=1` against a `NEXUS_AI_MOCK=1` server.
+**To do on Vercel (optional)**: set `REPORTS_TOKEN` to enable `node scripts/reports.mjs`; set `GITHUB_ISSUES_TOKEN` if
+reports should also open GitHub issues. Both features work without them (reports are stored and sent to Telegram).
+**Most useful next input from Tal**: ~10 real receipt photos in `test-data/receipts/` (see Part A below).
+
+### Part B — phone layout
+- The first version of the overflow guard passed while the bug was there: on a phone a too-wide page widens
+  `innerWidth` itself (the browser zooms out), so `scrollWidth <= innerWidth` is always true. The guard now measures
+  against the device width and fails on the old Spending code (cards 16…394 px at 360).
+- Local demo data now includes a year of purchases with big amounts and long names (`scripts/seed-local.mjs`), so
+  Spending and the totals are tested against realistic numbers.
+
+### Part C — home
+- Phone totals card is ~170 px, not ~140: with everything the brief asks for on it (per-project amounts + the
+  Urgent · On the way · Spent strip) 140 px would need text below 12 px. Completeness won; the number is 34 px and
+  amounts are compact. Desktop is ~184 px (target ~180).
+- On phones the compact row under the card shows the project budget or the store closest to free shipping, and
+  nothing when there's nothing to say; urgent isn't repeated there because it's in the card's strip.
+- Phone cards mode drops the quantity stepper from the card (it's in the item sheet); rows mode keeps swipe actions.
+
+### Part D — assistant
+- There's no Excel export button in the UI (the `/api/export` endpoint exists; SPEC lists "Export collection to
+  Excel"). The help says so honestly. Worth a small item next round.
+- Follow-up chips after a help answer are still data questions (the suggestion engine knows nothing about help) —
+  harmless, could be tuned.
+- Guests can't report (the assistant is owner-only). Editors on a shared list might be worth letting report later.
+- Screenshots in reports are small JPEG data URLs in the `reports` table (works without Blob, included in backups).
+- Real-model help answers were checked locally on the brief's four example questions (en + he); prod will see more.
+
 
 ### Part A — receipts (results and decisions)
 - **Bench numbers** (`npm run test:receipt-detect`, synthetic set of 64): still 95.3 % (61/64), live 93.8 % (60/64),
