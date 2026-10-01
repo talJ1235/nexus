@@ -316,7 +316,7 @@ function ViewHeader() {
                   <span className="max-sm:hidden">{t.shop.open}</span>
                 </Button>
                 {collection.kind === "project" && s.aiEnabled && (
-                  <Button variant="outline" size="sm" className="ask-hairline h-8 px-3" disabled={ro.ro} onClick={() => s.askAssistant(f(t.projects.planSeed, { name: collection.name }))} data-plan-project>
+                  <Button variant="outline" size="sm" className="ask-hairline h-8 px-3" disabled={ro.ro} onClick={() => s.setPanel("planner")} data-plan-project>
                     <Sparkles className="!size-3.5" />
                     <span className="max-sm:hidden">{t.projects.plan}</span>
                   </Button>

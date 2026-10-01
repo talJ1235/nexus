@@ -20,6 +20,8 @@ export type PlannedPart = {
   essential: boolean;
   searchQuery: string;
   have: boolean;
+  /** With memory on (R9 C3): the store the user usually buys this kind of part from. */
+  store?: string | null;
 };
 
 export type Plan = { projectName: string; summary: string; parts: PlannedPart[]; tips: string[]; currency: string };

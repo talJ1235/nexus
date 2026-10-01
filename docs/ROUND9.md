@@ -60,7 +60,7 @@ background — it's unclear where a card ends. Without making it ugly:
 
 ## Part C — assistant: one chat, history, memory
 
-### C1. [ ] One chat with a mode switch (no separate Plan tab)
+### C1. [x] One chat with a mode switch (no separate Plan tab)
 Merge "Ask" and "Plan a project" into one conversation. Near the input: a mode switch like the "thinking" toggles in AI
 apps — **Chat** / **Plan a project** (pill toggle with icons). Plan mode turns the next message into a plan request
 (same planner as today) and the plan appears in the chat as a rich card (parts, quantities, estimates, budget fit,

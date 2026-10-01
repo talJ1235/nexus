@@ -1,16 +1,17 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ArrowUpRight, Bug, Check, CornerDownRight, FolderPlus, Lightbulb, MessageSquare, MessageSquareWarning, Send, Square, SquarePen, Wand2, X } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Bug, Check, CornerDownRight, MessageSquare, MessageSquareWarning, Send, Square, SquarePen, Wand2, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { LogoMark } from "@/components/logo";
 import { toast } from "@/lib/toast";
-import { addPlannedParts, planWithAi } from "@/app/ai-actions";
+import { planWithAi } from "@/app/ai-actions";
+import { PlanCard } from "./assistant-plan-card";
 import { useI18n } from "@/components/providers";
-import { Button, Textarea } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose } from "@/components/ui/overlays";
 import { PHONE, useMedia } from "@/components/ui/use-media";
-import type { Plan, PlannedPart } from "@/lib/assistant";
+import type { Plan } from "@/lib/assistant";
 import type { Proposal } from "@/lib/assistant-actions";
 import { readRecent, recordRecent, suggestQuestions, type Suggestion } from "@/lib/assistant-suggestions";
 import { collectDiag, getLastExchange, setLastExchange } from "@/lib/client-diag";
@@ -79,11 +80,16 @@ type Msg = {
   proposal?: Proposal | null;
   /** A problem report the assistant drafted (R8 D3), with the question it answered. */
   report?: ReportFields | null;
+  /** Plan mode (R9 C1): the drafted parts list, shown as a card; `target` = the project it was asked for. */
+  plan?: Plan | null;
+  target?: string | null;
+  mode?: ChatMode;
   question?: string;
   streaming?: boolean;
   error?: boolean;
 };
 export type ModelState = "idle" | "ok" | "busy";
+export type ChatMode = "chat" | "plan";
 
 /** The Box mark, faces breathing in sequence while Nexus works. */
 function BoxThinking({ className }: { className?: string }) {
@@ -364,9 +370,10 @@ function splitLead(lines: string[]): [string | null, ...string[]] {
   return [first, ...lines.slice(1)];
 }
 
-function AskTab({ seed, seedKey, onModel }: { seed: string | null; seedKey: string | null; onModel: (m: ModelState) => void }) {
+function ChatTab({ seed, seedKey, onModel, mode, setMode }: { seed: string | null; seedKey: string | null; onModel: (m: ModelState) => void; mode: ChatMode; setMode: (m: ChatMode) => void }) {
   const s = useStore();
   const { t, locale } = useI18n();
+  const currentProject = s.view.type === "collection" ? (s.view as { id: string }).id : null;
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
@@ -391,9 +398,30 @@ function AskTab({ seed, seedKey, onModel }: { seed: string | null; seedKey: stri
 
   const patchLast = (fn: (m: Msg) => Msg) => setMsgs((list) => (list.length ? [...list.slice(0, -1), fn(list[list.length - 1])] : list));
 
+  // Plan mode: the message is a project description → the planner → a plan card in the chat; then back to Chat.
+  const sendPlan = async (text: string) => {
+    setMsgs((m) => [...m, { role: "user", text, mode: "plan" }]);
+    setQ("");
+    setBusy(true);
+    try {
+      const r = await planWithAi({ description: text, budget: null, currency: s.currency, locale, collectionId: currentProject });
+      if ("error" in r) setMsgs((m) => [...m, { role: "assistant", text: r.error === "no_ai" ? t.ai.noAi : t.ai.failed, error: true }]);
+      else {
+        setMsgs((m) => [...m, { role: "assistant", text: r.summary || r.projectName, plan: r, target: currentProject, mode: "plan", question: text }]);
+        setLastExchange(text, `${r.projectName}: ${r.parts.map((p) => p.name).join(", ")}`);
+      }
+    } catch {
+      setMsgs((m) => [...m, { role: "assistant", text: t.ai.failed, error: true }]);
+    } finally {
+      setBusy(false);
+      setMode("chat");
+    }
+  };
+
   const send = async (question: string) => {
     const text = question.trim();
     if (!text || busy) return;
+    if (mode === "plan") return sendPlan(text);
     setRecent(recordRecent(text));
     const history = msgs.filter((m) => !m.error).map(({ role, text }) => ({ role, text }));
     setMsgs((m) => [...m, { role: "user", text }]);
@@ -475,7 +503,7 @@ function AskTab({ seed, seedKey, onModel }: { seed: string | null; seedKey: stri
         {!msgs.length && (
           <div className="flex flex-col items-start gap-3 pt-6">
             <BoxThinking className="size-10 [&_path]:animate-none" />
-            <p className="text-[15px] font-semibold text-ink">{t.ai.askIntro}</p>
+            <p className="text-[15px] font-semibold text-ink">{mode === "plan" ? t.ai.planIntro : t.ai.askIntro}</p>
           </div>
         )}
         {msgs.map((m, i) =>
@@ -487,7 +515,7 @@ function AskTab({ seed, seedKey, onModel }: { seed: string | null; seedKey: stri
             </div>
           ) : (
             <div key={i} className="space-y-3">
-              {m.error ? <p className="text-sm text-muted">{m.text}</p> : <Answer text={m.text} streaming={m.streaming} onItem={openItem} />}
+              {m.error ? <p className="text-sm text-muted">{m.text}</p> : m.plan ? <PlanCard plan={m.plan} defaultTarget={m.target ?? null} /> : <Answer text={m.text} streaming={m.streaming} onItem={openItem} />}
               {m.proposal && <ActionCard proposal={m.proposal} onItem={openItem} />}
               {m.report && <ReportDraftCard draft={m.report} exchange={{ question: m.question ?? "", answer: m.text }} />}
             </div>
@@ -502,7 +530,27 @@ function AskTab({ seed, seedKey, onModel }: { seed: string | null; seedKey: stri
         <div ref={endRef} />
       </div>
       <div className="flex flex-col gap-2 border-t border-line px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3">
-        {!msgs.length && <Chips list={suggestions} onPick={(q) => void send(q)} label={t.ai.suggestions} testId="ai-suggestions" />}
+        {!msgs.length && mode === "chat" && <Chips list={suggestions} onPick={(q) => void send(q)} label={t.ai.suggestions} testId="ai-suggestions" />}
+        {/* Mode switch, like the "thinking" toggles in AI apps: the next message is a chat question or a plan request. */}
+        <div role="radiogroup" aria-label={t.ai.modeLabel} className="flex gap-1.5" data-ai-mode={mode}>
+          {(["chat", "plan"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              role="radio"
+              aria-checked={mode === k}
+              onClick={() => setMode(k)}
+              className={cn(
+                "inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition active:scale-[0.97] [&_svg]:size-4",
+                mode === k ? (k === "plan" ? "border-transparent bg-[image:var(--act-plan)] text-[var(--act-plan-ink)]" : "border-transparent bg-ink text-bg") : "border-line text-muted hover:text-ink",
+              )}
+              data-ai-mode-option={k}
+            >
+              {k === "chat" ? <MessageSquare /> : <Wand2 />}
+              {k === "chat" ? t.ai.modeChat : t.ai.planTab}
+            </button>
+          ))}
+        </div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -522,7 +570,7 @@ function AskTab({ seed, seedKey, onModel }: { seed: string | null; seedKey: stri
             }}
             rows={1}
             dir="auto"
-            placeholder={t.ai.askPlaceholder}
+            placeholder={mode === "plan" ? t.ai.planHere : t.ai.askPlaceholder}
             className="field-sizing-content max-h-32 min-h-10 flex-1 resize-none bg-transparent py-2.5 text-[14px] outline-none placeholder:text-muted"
           />
           <button
@@ -542,200 +590,6 @@ function AskTab({ seed, seedKey, onModel }: { seed: string | null; seedKey: stri
   );
 }
 
-// ---------- Plan ----------
-
-function PlanTab() {
-  const s = useStore();
-  const { t, f, locale } = useI18n();
-  const current = s.view.type === "collection" ? s.collections.find((c) => c.id === (s.view as { id: string }).id) : null;
-  const [desc, setDesc] = useState("");
-  const [budget, setBudget] = useState("");
-  const [target, setTarget] = useState<string>(current?.id ?? "new");
-  const [busy, setBusy] = useState(false);
-  const [plan, setPlan] = useState<Plan | null>(null);
-  const [picked, setPicked] = useState<Set<number>>(new Set());
-  const [adding, setAdding] = useState(false);
-
-  const run = async () => {
-    setBusy(true);
-    try {
-      const r = await planWithAi({
-        description: desc,
-        budget: budget.trim() ? Number(budget) : null,
-        currency: s.currency,
-        locale,
-        collectionId: target === "new" ? null : target,
-      });
-      if ("error" in r) return toast.error(r.error === "no_ai" ? t.ai.noAi : t.ai.failed);
-      setPlan(r);
-      setPicked(new Set(r.parts.map((p, i) => (!p.have ? i : -1)).filter((i) => i >= 0)));
-    } catch {
-      toast.error(t.ai.failed);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const est = useMemo(() => {
-    if (!plan) return { min: 0, max: 0 };
-    let min = 0;
-    let max = 0;
-    plan.parts.forEach((p, i) => {
-      if (!picked.has(i)) return;
-      min += (p.estMin ?? p.estMax ?? 0) * p.qty;
-      max += (p.estMax ?? p.estMin ?? 0) * p.qty;
-    });
-    return { min, max };
-  }, [plan, picked]);
-
-  const add = async () => {
-    if (!plan) return;
-    setAdding(true);
-    try {
-      const parts = plan.parts.filter((_, i) => picked.has(i)).map(({ have, ...p }) => (void have, p));
-      const r = await addPlannedParts({
-        parts,
-        collectionId: target === "new" ? null : target,
-        newProject: target === "new" ? { name: plan.projectName || t.ai.untitled, description: plan.summary, budget: budget.trim() ? Number(budget) : null } : null,
-        currency: s.currency,
-        estimateLabel: t.ai.estimate,
-      });
-      if (r.collection) s.upsertCollection(r.collection);
-      s.upsertItems(r.items);
-      const id = r.collection?.id ?? (target === "new" ? null : target);
-      s.setPanel(null);
-      if (id) s.setView({ type: "collection", id });
-      toast.success(f(t.ai.added, { n: r.items.length }), { description: t.ai.addedHint });
-    } catch {
-      toast.error(t.errors.generic);
-    } finally {
-      setAdding(false);
-    }
-  };
-
-  if (plan) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="font-semibold bidi">
-                {plan.projectName}
-              </h3>
-              <p className="mt-0.5 text-sm text-muted bidi">
-                {plan.summary}
-              </p>
-            </div>
-            <Button size="sm" variant="ghost" onClick={() => setPlan(null)}>
-              {t.io.back}
-            </Button>
-          </div>
-
-          <ul className="mt-4 space-y-1.5">
-            {plan.parts.map((p: PlannedPart, i) => {
-              const on = picked.has(i);
-              return (
-                <li key={i}>
-                  <label className={cn("flex cursor-pointer gap-3 rounded-xl border p-3 transition", on ? "border-accent/50 bg-accent-soft/30" : "border-line opacity-70 hover:opacity-100")}>
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      onChange={() => setPicked((set) => {
-                        const n = new Set(set);
-                        if (n.has(i)) n.delete(i);
-                        else n.add(i);
-                        return n;
-                      })}
-                      className="mt-1 size-4 accent-[var(--accent)]"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                        <span className="text-sm font-medium bidi">
-                          {p.name}
-                          {p.qty > 1 && <span className="tabular ms-1.5 text-muted">×{p.qty}</span>}
-                        </span>
-                        {(p.estMin != null || p.estMax != null) && (
-                          <span className="tabular text-xs text-muted">
-                            ~{[p.estMin, p.estMax].filter((v) => v != null).map((v) => formatMoney(v, plan.currency, locale)).join("–")}
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-0.5 text-xs text-muted bidi">
-                        {p.spec}
-                      </p>
-                      <div className="mt-1 flex gap-1.5">
-                        {!p.essential && <span className="rounded bg-sunken px-1.5 text-[11px] text-muted">{t.ai.optional}</span>}
-                        {p.have && <span className="rounded bg-ok-soft px-1.5 text-[11px] text-ok">{t.ai.have}</span>}
-                      </div>
-                    </div>
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
-
-          {plan.tips.length > 0 && (
-            <div className="mt-4 rounded-xl border border-line bg-bg/50 p-3">
-              <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-faint">
-                <Lightbulb className="size-3.5" />
-                {t.ai.tips}
-              </div>
-              <ul className="list-disc space-y-1 ps-5 text-[13px] text-muted bidi">
-                {plan.tips.map((tip, i) => (
-                  <li key={i}>{tip}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center justify-between gap-3 border-t border-line p-3">
-          <span className="tabular text-sm text-muted">
-            {picked.size} · ~{formatMoney(est.min, plan.currency, locale)}
-            {est.max > est.min ? `–${formatMoney(est.max, plan.currency, locale)}` : ""}
-          </span>
-          <Button variant="accent" onClick={add} disabled={adding || !picked.size}>
-            {adding ? <Spinner /> : <Check />}
-            {target === "new" ? t.ai.createProject : f(t.ai.addTo, { n: picked.size })}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 space-y-4 overflow-y-auto p-4">
-      <p className="text-sm text-muted">{t.ai.planIntro}</p>
-      <Textarea rows={6} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t.ai.planPlaceholder} dir="auto" autoFocus />
-      <div className="grid grid-cols-2 gap-3">
-        <label className="block">
-          <span className="mb-1 block text-xs text-muted">{t.ai.for}</span>
-          <select value={target} onChange={(e) => setTarget(e.target.value)} className="h-10 w-full rounded-lg border border-line-strong bg-bg px-2 text-sm outline-none focus:border-accent">
-            <option value="new">+ {t.nav.newProject}</option>
-            {s.collections
-              .filter((c) => !c.archived)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-          </select>
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs text-muted">
-            {t.collection.budget} ({s.currency})
-          </span>
-          <input type="number" min={0} inputMode="decimal" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder={t.collection.noBudget} className="tabular h-10 w-full rounded-lg border border-line-strong bg-bg px-3 text-sm outline-none focus:border-accent" />
-        </label>
-      </div>
-      <Button variant="accent" className="w-full" onClick={run} disabled={busy || desc.trim().length < 8}>
-        {busy ? <Spinner /> : <Wand2 />}
-        {busy ? t.ai.planning : t.ai.plan}
-      </Button>
-      {busy && <p className="text-center text-xs text-faint">{t.ai.planningHint}</p>}
-    </div>
-  );
-}
-
 // ---------- Panel ----------
 
 /**
@@ -747,11 +601,15 @@ export function AssistantPanel() {
   const seed = s.askSeed ? s.askSeed.split("\u200b")[0] : null;
   const seedKey = s.askSeed;
   const { t } = useI18n();
-  const [tab, setTab] = useState<"ask" | "plan">("ask");
   const [chat, setChat] = useState(0);
   const [model, setModel] = useState<ModelState>("idle");
+  const [mode, setMode] = useState<ChatMode>("chat");
   const open = s.panel === "assistant" || s.panel === "planner";
-  const active = s.panel === "planner" ? "plan" : tab;
+  // "Plan with Nexus" (+ menu, project page) opens the one chat in Plan mode.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the entry point picks the mode
+    if (s.panel === "planner") setMode("plan");
+  }, [s.panel]);
   const wrap = useRef<HTMLDivElement>(null);
   const drag = useRef<{ y: number; dy: number } | null>(null);
 
@@ -809,7 +667,7 @@ export function AssistantPanel() {
             <MessageSquareWarning className="size-4" />
             <span className="max-sm:sr-only">{t.report.menu}</span>
           </button>
-          {active === "ask" && (
+          {(
             <button type="button" onClick={() => setChat((n) => n + 1)} className="grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-ink" aria-label={t.ai.newChat} title={t.ai.newChat} data-ai-new>
               <SquarePen className="size-[18px]" />
             </button>
@@ -818,27 +676,7 @@ export function AssistantPanel() {
             <X className="size-[18px]" />
           </SheetClose>
         </div>
-        <div className="px-4 pb-2">
-          <div className="grid grid-cols-2 rounded-full bg-surface-2 p-[3px] text-[13px]" role="tablist">
-            {(["ask", "plan"] as const).map((k) => (
-              <button
-                key={k}
-                role="tab"
-                aria-selected={active === k}
-                type="button"
-                onClick={() => {
-                  setTab(k);
-                  s.setPanel(k === "plan" ? "planner" : "assistant");
-                }}
-                className={cn("inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3 font-semibold transition [&_svg]:size-3.5", active === k ? "bg-surface text-ink shadow-card" : "text-muted hover:text-ink")}
-              >
-                {k === "ask" ? <MessageSquare /> : <FolderPlus />}
-                {k === "ask" ? t.ai.askTab : t.ai.planTab}
-              </button>
-            ))}
-          </div>
-        </div>
-        {active === "ask" ? <AskTab key={chat} seed={seed} seedKey={seedKey} onModel={setModel} /> : <PlanTab />}
+        <ChatTab key={chat} seed={seed} seedKey={seedKey} onModel={setModel} mode={mode} setMode={(m) => (setMode(m), m === "chat" && s.panel === "planner" && s.setPanel("assistant"))} />
       </div>
     </Sheet>
   );

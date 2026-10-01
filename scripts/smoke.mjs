@@ -898,6 +898,26 @@ try {
           await page.keyboard.press("Escape");
           ok(/View|Extension/.test(txt) && txt.includes(marker.slice(0, 12)) && form, "report: 'this is broken' → report card → send → in Reports with diagnostics", txt.slice(0, 160));
         });
+        // Round 9 C1 (mock): one chat — Plan mode turns the next message into a plan card; add a line, then the rest.
+        await step("assistant plan mode: description → plan card in the chat → add a line → add all", async () => {
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY);
+          await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          const dlg = page.getByRole("dialog");
+          await dlg.locator("[data-ai-mode-option=plan]").click();
+          await dlg.locator("textarea").fill("A motorized camera slider on V-slot with an ESP32");
+          await dlg.locator("textarea").press("Enter");
+          const card = dlg.locator("[data-ai-plan]");
+          await card.waitFor({ timeout: 20000 });
+          const mode = await dlg.locator("[data-ai-mode]").getAttribute("data-ai-mode");
+          await shot(page, "assistant-plan");
+          await card.locator("[data-ai-plan-add]").first().click();
+          await card.locator("[data-ai-plan-add]").first().filter({ hasText: /Added|נוסף/ }).waitFor({ timeout: 10000 });
+          await card.locator("[data-ai-plan-all]").click();
+          await page.waitForFunction(() => document.querySelector("[data-ai-plan-all]")?.hasAttribute("disabled"), null, { timeout: 10000 });
+          ok(mode === "chat", "assistant plan mode: description → plan card in the chat → add a line → add all", `mode after=${mode}`);
+          await page.keyboard.press("Escape");
+        });
         // Needs the server started with NEXUS_AI_MOCK=1 (the mock proposes "first two to-buy items → ordered").
         await step("assistant action: propose → apply → undo", async () => {
           await page.goto(`${BASE}/`);
