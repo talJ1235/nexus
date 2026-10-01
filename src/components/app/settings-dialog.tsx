@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Download, FileSpreadsheet, LogOut, Monitor, Moon, Puzzle, Sun, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, LogOut, Monitor, Moon, Puzzle, Sun, Upload, MessageSquareWarning } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
 import { useTheme } from "next-themes";
@@ -187,6 +187,17 @@ export function SettingsDialog() {
                 <Button size="sm" variant={ext.available ? "outline" : "accent"} onClick={() => s.setExtOpen(true)}>
                   <Puzzle />
                   {ext.available ? t.settings.manage : t.settings.setUp}
+                </Button>
+              </div>
+            </Row>
+            <Row title={t.report.menu}>
+              <div className="flex items-center justify-end gap-2">
+                <Button size="sm" variant="ghost" onClick={() => s.setReportsOpen(true)} data-settings-reports>
+                  {t.report.reports}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => s.openReport()} data-settings-report>
+                  <MessageSquareWarning />
+                  {t.report.menu}
                 </Button>
               </div>
             </Row>

@@ -31,6 +31,19 @@ async function main() {
     created_at integer DEFAULT (unixepoch() * 1000) NOT NULL,
     applied_at integer
   )`);
+  // Round 8 D3: problem reports.
+  await client.execute(`CREATE TABLE IF NOT EXISTS reports (
+    id text PRIMARY KEY NOT NULL,
+    type text NOT NULL,
+    title text NOT NULL,
+    body text NOT NULL,
+    diagnostics text,
+    screenshot text,
+    status text DEFAULT 'open' NOT NULL,
+    github_issue integer,
+    created_at integer DEFAULT (unixepoch() * 1000) NOT NULL,
+    updated_at integer DEFAULT (unixepoch() * 1000) NOT NULL
+  )`);
   const itemCols = (await client.execute("PRAGMA table_info(items)")).rows.map((r) => String(r.name));
   if (!itemCols.includes("order_number")) await client.execute("ALTER TABLE items ADD COLUMN order_number text");
   // Round 7: barcodes (D1).

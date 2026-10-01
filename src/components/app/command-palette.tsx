@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Command } from "cmdk";
 import { Dialog as D } from "radix-ui";
-import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell, Sparkles, Wand2, ReceiptText, Check, ScanBarcode, ShoppingCart } from "lucide-react";
+import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell, Sparkles, Wand2, ReceiptText, Check, ScanBarcode, ShoppingCart, MessageSquareWarning, Inbox } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Kbd } from "@/components/ui/button";
@@ -182,6 +182,12 @@ export function CommandPalette() {
                 </Command.Item>
                 <Command.Item value={`extension clipper chrome ${t.settings.extension}`} onSelect={() => run(() => s.setExtOpen(true))} className={itemCls}>
                   <Puzzle /> {t.settings.extension}
+                </Command.Item>
+                <Command.Item value={`report problem bug complaint idea feedback ${t.report.menu}`} onSelect={() => run(() => s.openReport())} className={itemCls} data-cmd-report>
+                  <MessageSquareWarning /> {t.report.menu}
+                </Command.Item>
+                <Command.Item value={`reports bugs issues ${t.report.reports}`} onSelect={() => run(() => s.setReportsOpen(true))} className={itemCls} data-cmd-reports>
+                  <Inbox /> {t.report.reports}
                 </Command.Item>
                 <Command.Item
                   value={`logout sign out ${t.nav.signOut}`}

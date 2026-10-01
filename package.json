@@ -27,7 +27,8 @@
     "test:receipt-detect": "tsx scripts/receipt-bench.ts",
     "test:receipt-track": "tsx scripts/test-receipt-track.ts",
     "test:receipt-e2e": "tsx --conditions=react-server scripts/receipt-e2e.ts",
-    "test:help": "tsx scripts/test-help.ts"
+    "test:help": "tsx scripts/test-help.ts",
+    "test:reports": "tsx scripts/test-reports.ts"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

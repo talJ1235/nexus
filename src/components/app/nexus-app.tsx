@@ -15,6 +15,8 @@ import { PendingCard } from "./pending";
 import { CollectionDialog } from "./collection-dialog";
 import { CommandPalette } from "./command-palette";
 import { SettingsDialog } from "./settings-dialog";
+import { ReportDialog } from "./report-dialog";
+import { ReportsSheet } from "./reports-sheet";
 import { ImportDialog } from "./import-dialog";
 import { AlertsPanel } from "./alerts-panel";
 import { TopBar } from "./top-bar";
@@ -169,6 +171,8 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <CollectionDialog />
       <CommandPalette />
       <SettingsDialog />
+      <ReportDialog />
+      <ReportsSheet />
       <PanelBoundary label="Import">
         <ImportDialog />
       </PanelBoundary>

@@ -7,6 +7,7 @@ import { getAppData } from "@/lib/data";
 import { CURRENCIES } from "@/lib/money";
 import { clientDiagSchema } from "@/lib/diag-schema";
 import { classifyQuestion } from "@/lib/help/route";
+import { parseReportBlock } from "@/lib/reports";
 import { diagLines, helpText, serverDiag } from "@/lib/help/server";
 
 export const maxDuration = 60;
@@ -25,7 +26,7 @@ const body = z.object({
  *   {"t":"route","provider","fallback"}  which model answers (fallback = not the first choice)
  *   {"t":"delta","text"}                  answer text as it arrives
  *   {"t":"done","text","proposal","route"} the full answer, its action proposal parsed after the stream (R6.1); route =
- *                                         data / help / unsure (R8 D2)
+ *                                         data / help / unsure (R8 D2); report = a drafted problem report (D3)
  *   {"t":"error","error":"no_ai"|"failed"}
  */
 export async function POST(req: Request) {
@@ -51,10 +52,10 @@ export async function POST(req: Request) {
         }
         const data = await getAppData();
         // Data question, how-to-use-the-app question, or both in front of the model (lib/help/route.ts).
-        const { route } = classifyQuestion(input.question, data.collections.map((c) => c.name));
+        const { route, complaint } = classifyQuestion(input.question, data.collections.map((c) => c.name));
         const help = route === "data" ? undefined : helpText();
         const diag = route === "data" ? undefined : diagLines(input.diag, await serverDiag());
-        const p = askPrompt({ ...input, data, route, help, diag });
+        const p = askPrompt({ ...input, data, route, help, diag, complaint });
         let full = "";
         if ("mock" in p) {
           send({ t: "route", provider: "mock", fallback: false });
@@ -79,9 +80,12 @@ export async function POST(req: Request) {
           return;
         }
         const ids = { itemIds: new Set(data.items.map((i) => i.id)), collectionIds: new Set(data.collections.map((c) => c.id)) };
-        const { text, proposal } = parseAnswer(full, ids);
+        const parsed = parseAnswer(full, ids);
+        const proposal = parsed.proposal;
+        // A drafted problem report (```nexus-report) → the report card (R8 D3).
+        const { text, report } = parseReportBlock(parsed.text);
         const useful = proposal && (newCollections(proposal).length > 0 || planChanges(proposal, data.items).length > 0);
-        send({ t: "done", text: text || proposal?.summary || "", proposal: useful ? proposal : null, route });
+        send({ t: "done", text: text || proposal?.summary || "", proposal: useful ? proposal : null, report, route });
       } catch {
         send({ t: "error", error: "failed" });
       } finally {

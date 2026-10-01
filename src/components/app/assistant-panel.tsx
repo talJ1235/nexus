@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ArrowUpRight, Check, CornerDownRight, FolderPlus, Lightbulb, MessageSquare, Square, SquarePen, Wand2, X } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Bug, Check, CornerDownRight, FolderPlus, Lightbulb, MessageSquare, MessageSquareWarning, Send, Square, SquarePen, Wand2, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { LogoMark } from "@/components/logo";
 import { toast } from "@/lib/toast";
@@ -13,7 +13,9 @@ import { PHONE, useMedia } from "@/components/ui/use-media";
 import type { Plan, PlannedPart } from "@/lib/assistant";
 import type { Proposal } from "@/lib/assistant-actions";
 import { readRecent, recordRecent, suggestQuestions, type Suggestion } from "@/lib/assistant-suggestions";
-import { collectDiag } from "@/lib/client-diag";
+import { collectDiag, getLastExchange, setLastExchange } from "@/lib/client-diag";
+import type { ReportFields } from "@/lib/reports";
+import { createReport } from "@/app/report-actions";
 import { extractActions, type NexusAction } from "@/lib/help/links";
 import { applyPalette } from "@/lib/palette";
 import type { View } from "@/lib/views";
@@ -71,7 +73,16 @@ function Chips({ list, onPick, label, testId }: { list: Suggestion[]; onPick: (t
 
 // ---------- Ask (streamed; Round 7 F1/F2) ----------
 
-type Msg = { role: "user" | "assistant"; text: string; proposal?: Proposal | null; streaming?: boolean; error?: boolean };
+type Msg = {
+  role: "user" | "assistant";
+  text: string;
+  proposal?: Proposal | null;
+  /** A problem report the assistant drafted (R8 D3), with the question it answered. */
+  report?: ReportFields | null;
+  question?: string;
+  streaming?: boolean;
+  error?: boolean;
+};
 export type ModelState = "idle" | "ok" | "busy";
 
 /** The Box mark, faces breathing in sequence while Nexus works. */
@@ -151,6 +162,52 @@ function Inline({ text, onItem, base }: { text: string; onItem: (id: string) => 
   );
 }
 
+/** A problem report drafted by the assistant (R8 D3): same confirm pattern as actions — Send / Edit / Cancel. */
+function ReportDraftCard({ draft, exchange }: { draft: ReportFields; exchange: { question: string; answer: string } }) {
+  const s = useStore();
+  const { t, locale } = useI18n();
+  const [state, setState] = useState<"draft" | "sending" | "sent" | "gone">("draft");
+  if (state === "gone") return null;
+  const send = async () => {
+    setState("sending");
+    try {
+      await createReport({ ...draft, diag: collectDiag(s.view.type, locale, extensionVersion()), assistant: exchange });
+      setState("sent");
+      toast.success(t.report.sent, { action: { label: t.report.view, onClick: () => s.setReportsOpen(true) } });
+    } catch {
+      setState("draft");
+      toast.error(t.errors.generic);
+    }
+  };
+  return (
+    <div className="rise-in space-y-2.5 rounded-[20px] border border-line bg-surface p-4" data-ai-report-card={state}>
+      <div className="flex items-center gap-2 text-[12.5px] font-semibold text-muted">
+        <Bug className="size-4" /> {t.report.draft}
+        <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11.5px] font-bold text-ink">{t.report[draft.type]}</span>
+      </div>
+      <div className="text-[15px] font-bold leading-snug bidi">{draft.title}</div>
+      {draft.happened && <p className="line-clamp-3 text-[13.5px] text-muted bidi">{draft.happened}</p>}
+      {state === "sent" ? (
+        <div className="flex items-center gap-1.5 text-[13px] font-semibold text-ok">
+          <Check className="size-4" /> {t.report.sentCard}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2 pt-0.5">
+          <Button size="sm" variant="accent" className="h-10" disabled={state === "sending"} onClick={() => void send()} data-ai-report-send>
+            {state === "sending" ? <Spinner /> : <Send />} {t.report.send}
+          </Button>
+          <Button size="sm" variant="outline" className="h-10" onClick={() => s.openReport({ ...draft, assistant: exchange })}>
+            {t.report.edit}
+          </Button>
+          <Button size="sm" variant="ghost" className="h-10" onClick={() => setState("gone")}>
+            {t.report.cancel}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Runs an action button from an answer (whitelist: lib/help/links.ts). */
 function useNexusAction() {
   const s = useStore();
@@ -159,6 +216,7 @@ function useNexusAction() {
     if (a.startsWith("palette/")) return applyPalette(a.slice(8) as "graphite" | "plum");
     if (a.startsWith("theme/")) return setTheme(a.slice(6));
     if (a === "plan") return s.setPanel("planner");
+    if (a === "report") return s.openReport({ assistant: getLastExchange() });
     s.setPanel(null);
     if (a.startsWith("view/")) return s.setView({ type: a.slice(5) } as View);
     if (a === "settings") s.setSettingsOpen(true);
@@ -184,9 +242,7 @@ function Answer({ text, streaming, onItem }: { text: string; streaming?: boolean
   const run = useNexusAction();
   // While streaming, hide a half-written action block (it is parsed once the answer is complete). Action links
   // ([label](nexus:…)) become buttons under the answer.
-  const { text: shown, actions: all } = extractActions(streaming ? text.split("```")[0] : text);
-  // "Report a problem" arrives with the reports screen (R8.D3).
-  const actions = all.filter((a) => a.action !== "report");
+  const { text: shown, actions } = extractActions(streaming ? text.split("```")[0] : text);
   const blocks: { list: boolean; lines: string[] }[] = [];
   for (const raw of shown.split("\n")) {
     const line = raw.trimEnd();
@@ -360,7 +416,7 @@ function AskTab({ seed, seedKey, onModel }: { seed: string | null; seedKey: stri
         buf = lines.pop() ?? "";
         for (const line of lines) {
           if (!line.trim()) continue;
-          const ev = JSON.parse(line) as { t: "route"; fallback: boolean } | { t: "delta"; text: string } | { t: "done"; text: string; proposal: Proposal | null } | { t: "error"; error: string };
+          const ev = JSON.parse(line) as { t: "route"; fallback: boolean } | { t: "delta"; text: string } | { t: "done"; text: string; proposal: Proposal | null; report?: ReportFields | null } | { t: "error"; error: string };
           if (ev.t === "route") onModel(ev.fallback ? "busy" : "ok");
           else if (ev.t === "delta") {
             if (!started) {
@@ -368,8 +424,9 @@ function AskTab({ seed, seedKey, onModel }: { seed: string | null; seedKey: stri
               setMsgs((m) => [...m, { role: "assistant", text: ev.text, streaming: true }]);
             } else patchLast((m) => ({ ...m, text: m.text + ev.text }));
           } else if (ev.t === "done") {
-            if (!started) setMsgs((m) => [...m, { role: "assistant", text: ev.text, proposal: ev.proposal }]);
-            else patchLast((m) => ({ ...m, text: ev.text, proposal: ev.proposal, streaming: false }));
+            if (!started) setMsgs((m) => [...m, { role: "assistant", text: ev.text, proposal: ev.proposal, report: ev.report, question: text }]);
+            else patchLast((m) => ({ ...m, text: ev.text, proposal: ev.proposal, report: ev.report, question: text, streaming: false }));
+            setLastExchange(text, ev.text);
             started = true;
           } else if (ev.t === "error") {
             const msg = ev.error === "no_ai" ? t.ai.noAi : t.ai.failed;
@@ -432,6 +489,7 @@ function AskTab({ seed, seedKey, onModel }: { seed: string | null; seedKey: stri
             <div key={i} className="space-y-3">
               {m.error ? <p className="text-sm text-muted">{m.text}</p> : <Answer text={m.text} streaming={m.streaming} onItem={openItem} />}
               {m.proposal && <ActionCard proposal={m.proposal} onItem={openItem} />}
+              {m.report && <ReportDraftCard draft={m.report} exchange={{ question: m.question ?? "", answer: m.text }} />}
             </div>
           ),
         )}
@@ -741,6 +799,16 @@ export function AssistantPanel() {
             data-ai-model={model}
           />
           <span className="flex-1" />
+          <button
+            type="button"
+            onClick={() => s.openReport({ assistant: getLastExchange() })}
+            className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-semibold text-muted hover:bg-surface-2 hover:text-ink"
+            title={t.report.menu}
+            data-ai-report
+          >
+            <MessageSquareWarning className="size-4" />
+            <span className="max-sm:sr-only">{t.report.menu}</span>
+          </button>
           {active === "ask" && (
             <button type="button" onClick={() => setChat((n) => n + 1)} className="grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-ink" aria-label={t.ai.newChat} title={t.ai.newChat} data-ai-new>
               <SquarePen className="size-[18px]" />

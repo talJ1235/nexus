@@ -41,6 +41,7 @@
   for the task — don't ask for chat history). A session prompt is usually just "Round N, session X".
 - Sync first: a SessionStart hook runs `git pull --rebase --autostash` (`.claude/settings.json`). If its output shows
   an error or conflict, fix or ask before any work — never start a round on a stale checkout.
+- At the start of a fix round, read open reports (GitHub issues `from-app` or `node scripts/reports.mjs`).
 - Start: read CLAUDE.md (auto), the brief's section for this session, and only the files it names. For items touching
   3+ files or with open design choices, use plan mode and show a plan of ≤10 lines before editing.
 - Per item: implement → `npm run -s check` → smoke for UI (add `SMOKE_MOBILE=1` for anything visible on phones) →

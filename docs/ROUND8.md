@@ -130,7 +130,7 @@ picture?", "the extension says not connected", "how do I switch to Plum?").
 - Diagnostics it may read to troubleshoot: extension status/version, AI provider health (`/api/debug/ai` data),
   offline state, last client errors, Blob/Telegram configured yes/no. Never secrets.
 
-### D3. [ ] Report a problem (from the assistant and from the menu)
+### D3. [x] Report a problem (from the assistant and from the menu)
 - When the assistant can't solve it (or the user says it's a bug/complaint/idea), it proposes a **report card**
   (same confirm pattern as R6.1 actions): type (Bug / Complaint / Idea), a clear title, what happened, steps,
   expected vs actual — drafted by the model from the conversation — editable before sending.

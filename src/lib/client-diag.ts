@@ -30,3 +30,10 @@ export function collectDiag(view: string, locale: string, extension: string | nu
     errors: clientErrors(),
   };
 }
+
+// The last question/answer with the assistant on this page, attached to a report sent from the menu too.
+let lastExchange: { question: string; answer: string } | null = null;
+export const setLastExchange = (question: string, answer: string) => {
+  lastExchange = { question: question.slice(0, 4000), answer: answer.slice(0, 4000) };
+};
+export const getLastExchange = () => lastExchange;

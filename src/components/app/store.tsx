@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { installClientErrorCapture } from "@/lib/client-errors";
+import type { ReportFields } from "@/lib/reports";
 import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
 import type { AltGroup, AppData, Collection, ItemWithSources, StoreSetting } from "@/lib/types";
 import type { View } from "@/lib/views";
@@ -17,6 +18,8 @@ export type { View };
 export type Panel = "import" | "planner" | "assistant" | "alerts" | "share" | "receipt" | null;
 
 export type Layout = "cards" | "table";
+/** A report being written: fields drafted by the assistant (or empty), plus the exchange it came from. */
+export type ReportDraft = Partial<ReportFields> & { assistant?: { question: string; answer: string } | null };
 /** Phones: 2-column cards (default) or one row per item. */
 export type PhoneLayout = "cards" | "rows";
 
@@ -122,6 +125,12 @@ type Store = {
   settingsOpen: boolean;
   setSettingsOpen: (o: boolean) => void;
   extOpen: boolean;
+  /** Round 8 D3: the "Report a problem" form (null = closed) and the Reports screen. */
+  reportDraft: ReportDraft | null;
+  openReport: (d?: ReportDraft) => void;
+  closeReport: () => void;
+  reportsOpen: boolean;
+  setReportsOpen: (o: boolean) => void;
   /** One secondary panel at a time (Round 3 dialogs). */
   panel: Panel;
   setPanel: (p: Panel) => void;
@@ -259,6 +268,10 @@ export function StoreProvider({
   const [navOpen, setNavOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [extOpen, setExtOpen] = useState(false);
+  const [reportDraft, setReportDraft] = useState<ReportDraft | null>(null);
+  const openReport = useCallback((d?: ReportDraft) => setReportDraft(d ?? {}), []);
+  const closeReport = useCallback(() => setReportDraft(null), []);
+  const [reportsOpen, setReportsOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
   const [askSeed, setAskSeed] = useState<string | null>(null);
   const askAssistant = useCallback((q: string) => {
@@ -561,6 +574,11 @@ export function StoreProvider({
       settingsOpen,
       setSettingsOpen,
       extOpen,
+      reportDraft,
+      openReport,
+      closeReport,
+      reportsOpen,
+      setReportsOpen,
       panel,
       setPanel,
       askSeed,
@@ -579,7 +597,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

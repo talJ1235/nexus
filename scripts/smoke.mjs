@@ -354,6 +354,18 @@ try {
             await go("/");
             await openPalette();
           }],
+          ["report form", async () => {
+            await go("/");
+            await openPalette();
+            await page.locator("[data-cmd-report]").click();
+            await page.locator("[data-report-form]").waitFor({ timeout: 8000 });
+          }],
+          ["reports", async () => {
+            await go("/");
+            await openPalette();
+            await page.locator("[data-cmd-reports]").click();
+            await page.locator("[data-reports]").waitFor({ timeout: 8000 });
+          }],
         ];
         if (WRITE)
           screens.push(["receipt review", async () => {
@@ -798,6 +810,37 @@ try {
           await page.locator(MOBILE ? "[data-receipt-camera]" : "[data-receipt-dialog]").waitFor({ timeout: 8000 });
           ok(true, "assistant help: how-to question → help answer with a working action button");
           await page.keyboard.press("Escape");
+        });
+        // Round 8 D3 (mock): a complaint gets a report card; sent, it shows up in Reports with its diagnostics.
+        await step("report: 'this is broken' → report card → send → in Reports with diagnostics", async () => {
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY);
+          await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          const dlg = page.getByRole("dialog");
+          const marker = `Smoke report ${Date.now()}`;
+          await dlg.locator("textarea").fill(`${marker}: the shopping mode is broken`);
+          await dlg.locator("textarea").press("Enter");
+          await dlg.locator("[data-ai-report-card=draft]").waitFor({ timeout: 15000 });
+          await shot(page, "report-card");
+          await dlg.locator("[data-ai-report-send]").click();
+          await dlg.locator("[data-ai-report-card=sent]").waitFor({ timeout: 10000 });
+          await page.keyboard.press("Escape");
+          await openPalette();
+          await page.locator("[data-cmd-reports]").click();
+          const row = page.locator("[data-report-row]").first();
+          await row.waitFor({ timeout: 10000 });
+          await row.click();
+          const detail = page.locator("[data-report-detail]");
+          await detail.waitFor({ timeout: 5000 });
+          const txt = await detail.innerText();
+          await shot(page, "report-detail");
+          await page.keyboard.press("Escape");
+          // And the form from the command menu.
+          await openPalette();
+          await page.locator("[data-cmd-report]").click();
+          const form = await page.locator("[data-report-form]").waitFor({ timeout: 5000 }).then(() => true, () => false);
+          await page.keyboard.press("Escape");
+          ok(/View|Extension/.test(txt) && txt.includes(marker.slice(0, 12)) && form, "report: 'this is broken' → report card → send → in Reports with diagnostics", txt.slice(0, 160));
         });
         // Needs the server started with NEXUS_AI_MOCK=1 (the mock proposes "first two to-buy items → ordered").
         await step("assistant action: propose → apply → undo", async () => {

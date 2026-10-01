@@ -232,3 +232,20 @@ export const receipts = sqliteTable("receipts", {
   appliedAt: integer("applied_at"),
 });
 export type Receipt = typeof receipts.$inferSelect;
+
+/** Problems, complaints and ideas sent from the app (Round 8 D3), with what the app could tell about itself. */
+export const reports = sqliteTable("reports", {
+  id: text("id").primaryKey(),
+  type: text("type", { enum: ["bug", "complaint", "idea"] }).notNull(),
+  title: text("title").notNull(),
+  // Markdown: what happened, steps, expected, actual (lib/reports.ts reportBody).
+  body: text("body").notNull(),
+  diagnostics: text("diagnostics", { mode: "json" }).$type<unknown>(),
+  // Optional picked screenshot: a small JPEG data URL.
+  screenshot: text("screenshot"),
+  status: text("status", { enum: ["open", "in_progress", "fixed", "wont_fix"] }).notNull().default("open"),
+  githubIssue: integer("github_issue"),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
+});
+export type Report = typeof reports.$inferSelect;

@@ -5,6 +5,7 @@ import { ACTION_FENCE, MAX_ACTION_ITEMS } from "./assistant-actions";
 import { budgetStats, lineTotal, unitPrice } from "./calc";
 import { convert, formatMoney, type Rates } from "./money";
 import type { AskRoute } from "./help/route";
+import { REPORT_FENCE } from "./reports";
 import type { AppData } from "./types";
 
 // ---------- Project planner ----------
@@ -143,6 +144,8 @@ type AskInput = {
   /** The help knowledge file and troubleshooting facts (help / unsure routes only). */
   help?: string;
   diag?: string;
+  /** Round 8 D3: the message reads like a bug report, complaint or idea → offer a report card. */
+  complaint?: boolean;
 };
 
 /** Canned how-to answers for mock mode, each with an action button. */
@@ -168,6 +171,11 @@ export async function askNexus(input: AskInput) {
 
 /** The prompt for a question (or the canned mock answer). Shared by the one-shot and the streaming path. */
 export function askPrompt(input: AskInput): { mock: string } | { prompt: string; system: string } {
+  if (mockAi() && input.route === "help" && input.complaint) {
+    const draft = { type: "bug", title: "Mock: something is broken", happened: input.question.slice(0, 200), steps: "1. Open the app\n2. Try it again", expected: "It works", actual: "It doesn't" };
+    const lead = input.locale === "he" ? "מצטער על זה — הנה דיווח שאפשר לשלוח." : "Sorry about that — here's a report you can send.";
+    return { mock: `${lead}\n\n\`\`\`${REPORT_FENCE}\n${JSON.stringify(draft)}\n\`\`\`` };
+  }
   if (mockAi() && input.route === "help") return { mock: mockHelp(input.question, input.locale) };
   if (mockAi()) {
     const first = input.data.items.find((i) => i.status === "to_buy");
@@ -186,7 +194,13 @@ export function askPrompt(input: AskInput): { mock: string } | { prompt: string;
 - When a button would help, add up to 3 action buttons, each alone on its own line, written exactly as a markdown link
   with one of the nexus: addresses listed under "Action buttons" in the help (e.g. [Open settings](nexus:settings)).
 - Use the DIAGNOSTICS to troubleshoot: say plainly what you see (e.g. "the extension isn't detected on this page", "the AI
-  providers are cooling down"). Never ask for passwords, tokens or keys.`;
+  providers are cooling down"). Never ask for passwords, tokens or keys.
+- If the user reports a bug, a complaint or an idea, or the help can't solve their problem: help first if you can, then
+  propose a report for the developer — one short sentence, then exactly one fenced block \`\`\`${REPORT_FENCE} with JSON
+  {"type":"bug"|"complaint"|"idea","title":"…","happened":"…","steps":"…","expected":"…","actual":"…"} drafted from the
+  conversation in the reply language ("" where unknown). Nothing is sent until the user presses Send; never say it was sent.${
+    input.complaint ? "\n- This message reads like a bug report, complaint or idea: include the report block." : ""
+  }`;
   if (input.route === "help") {
     const system = `You are Nexus, the assistant inside the user's personal purchase manager. The user is asking how to use the Nexus app itself (or describing a problem with it).
 Rules:
