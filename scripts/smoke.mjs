@@ -233,7 +233,7 @@ try {
     });
 
     await step("Esc opens command palette with quick settings", async () => {
-      await page.keyboard.press("Escape");
+      await openPalette();
       const dialog = page.getByRole("dialog");
       await dialog.waitFor({ timeout: 5000 });
       const txt = await dialog.innerText();
@@ -291,7 +291,7 @@ try {
       // Needs a server started with NEXUS_TRACE_DELAY_MS (slow data): a click in the loading shell must survive.
       await step("panel opened while loading stays open when the data arrives", async () => {
         await page.goto(`${BASE}/`, { waitUntil: "commit" });
-        const btn = page.locator("[data-app-shell]:not([data-ready]) header button[title='Ask Nexus'], [data-app-shell]:not([data-ready]) header button[aria-label='Assistant']").filter({ visible: true }).first();
+        const btn = page.locator("[data-app-shell]:not([data-ready]) [data-ask]").filter({ visible: true }).first();
         await btn.waitFor({ timeout: 10000 });
         await page.waitForTimeout(400); // let the shell hydrate
         await btn.click();
@@ -305,7 +305,7 @@ try {
     await step("assistant panel opens", async () => {
       await page.goto(`${BASE}/`);
       await page.waitForSelector(READY, { timeout: 15000 });
-      const btn = page.locator("header button[title='Ask Nexus'], header button[aria-label='Assistant']").filter({ visible: true }).first();
+      const btn = page.locator("[data-ask]").filter({ visible: true }).first();
       if (!(await btn.count())) return ok(true, "assistant panel (AI off or not in this layout, skipped)");
       await btn.click();
       await page.getByRole("dialog").waitFor({ timeout: 5000 });
@@ -476,6 +476,23 @@ try {
           await setCap("");
           await page.locator("[data-month-budget=none]").waitFor({ timeout: 8000 });
           ok(true, "monthly budget: a small cap turns the bar over, clearing it removes the cap");
+        });
+        // Needs NEXUS_AI_MOCK=1: the mock answer is streamed word by word through /api/ask.
+        await step("assistant: streamed answer with lead line, mini cards, then follow-ups", async () => {
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY);
+          await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          const dlg = page.getByRole("dialog");
+          await dlg.locator("textarea").fill("How much is left to buy?");
+          await dlg.locator("textarea").press("Enter");
+          await dlg.locator("[data-ai-send=stop]").waitFor({ timeout: 8000 });
+          await dlg.locator("[data-ai-lead]").waitFor({ timeout: 15000 });
+          await dlg.locator("[data-ai-send=send]").waitFor({ timeout: 15000 });
+          const refs = await dlg.locator("[data-ai-refs] button").count();
+          await dlg.getByTestId("ai-followups").waitFor({ timeout: 5000 });
+          await shot(page, "assistant-answer");
+          ok(refs > 0, "assistant: streamed answer with lead line, mini cards, then follow-ups", `refs=${refs}`);
+          await page.keyboard.press("Escape");
         });
         // Needs the server started with NEXUS_AI_MOCK=1 (the mock proposes "first two to-buy items → ordered").
         await step("assistant action: propose → apply → undo", async () => {

@@ -67,8 +67,8 @@ export function ActionCard({ proposal, onItem }: { proposal: Proposal; onItem: (
 
   const done = state === "applied" || state === "cancelled" || state === "undone";
   return (
-    <section aria-label={t.ai.act.label} data-testid="ai-action-card" data-state={state} className={cn("rounded-xl border border-line bg-bg/50 p-3", done && state !== "applied" && "opacity-70")}>
-      <p className="text-sm font-medium text-fg" dir="auto">
+    <section aria-label={t.ai.act.label} data-testid="ai-action-card" data-state={state} className={cn("rise-in rounded-[22px] border border-line bg-surface-2/60 p-4", done && state !== "applied" && "opacity-70")}>
+      <p className="text-sm font-bold text-ink" dir="auto">
         {proposal.summary}
       </p>
       <ul className="mt-2 space-y-1.5">

@@ -215,13 +215,13 @@ shimmer image that fills in. Daily cron step for the backfill (bounded per run).
 
 ## Part F — assistant v2 (phone full screen, desktop side panel)
 
-### F1. [ ] Streaming answers
+### F1. [x] Streaming answers
 Server streams tokens (Gemini `generateContentStream`; Groq/OpenRouter OpenAI-compatible SSE) through a route handler
 with the existing fallback chain and cooldowns; if a provider fails mid-stream, the client keeps what it has and the
 server continues with the next provider. `nexus-actions` blocks are parsed after the stream ends (R6.1 unchanged).
 Mock mode streams a canned answer.
 
-### F2. [ ] New look
+### F2. [x] New look
 - Desktop: side panel 420 px, slides in with spring; phone: full screen sheet with a drag handle and swipe-down to close.
 - Header: Box mark + "Nexus" + model status dot (ok / busy fallback); new chat button.
 - User messages: compact ink-tinted bubbles at the end side. Assistant messages: **no bubble** — a styled message on

@@ -256,6 +256,125 @@ export async function generateJson<T>(prompt: string, schema: object | null, opt
   }
 }
 
+// ---------- Streaming (assistant answers) ----------
+
+export type StreamEvent = { type: "route"; provider: Route["provider"]; model: string; fallback: boolean } | { type: "delta"; text: string };
+
+async function* streamGemini(model: string, prompt: string, opts: GenOpts, signal: AbortSignal): AsyncGenerator<string> {
+  const c = gemini()!;
+  const stream = await c.models.generateContentStream({
+    model,
+    contents: prompt,
+    config: {
+      abortSignal: signal,
+      temperature: 0.3,
+      ...(opts.system ? { systemInstruction: opts.system } : {}),
+      ...(/gemini-3/.test(model) ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : { thinkingConfig: { thinkingBudget: 0 } }),
+    },
+  });
+  for await (const chunk of stream) if (chunk.text) yield chunk.text;
+}
+
+async function* streamOpenAi(r: Route, prompt: string, opts: GenOpts, signal: AbortSignal): AsyncGenerator<string> {
+  const provider = r.provider as keyof typeof OPENAI_BASE;
+  const res = await fetch(`${OPENAI_BASE[provider]}/chat/completions`, {
+    method: "POST",
+    signal,
+    headers: { "content-type": "application/json", authorization: `Bearer ${provider === "groq" ? process.env.GROQ_API_KEY : process.env.OPENROUTER_API_KEY}`, ...(provider === "openrouter" ? { "x-title": "Nexus" } : {}) },
+    body: JSON.stringify({
+      model: r.model,
+      stream: true,
+      temperature: 0.3,
+      max_tokens: 4000,
+      messages: [...(opts.system ? [{ role: "system", content: opts.system }] : []), { role: "user", content: prompt }],
+      ...(/gpt-oss/.test(r.model) ? { reasoning_effort: "low" } : {}),
+    }),
+  });
+  if (!res.ok || !res.body) throw new Error(`${res.status} ${(await res.text().catch(() => "")).slice(0, 300)}`);
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  let inThink = false;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop() ?? "";
+    for (const line of lines) {
+      const m = line.match(/^data:\s*(.*)$/);
+      if (!m || m[1] === "[DONE]") continue;
+      let piece: string | undefined;
+      try {
+        piece = (JSON.parse(m[1]) as { choices?: { delta?: { content?: string } }[] }).choices?.[0]?.delta?.content;
+      } catch {
+        continue;
+      }
+      if (!piece) continue;
+      // Reasoning models may stream a <think> block first: drop it.
+      if (piece.includes("<think>")) inThink = true;
+      if (inThink) {
+        if (piece.includes("</think>")) {
+          inThink = false;
+          piece = piece.split("</think>").pop() ?? "";
+        } else continue;
+      }
+      if (piece) yield piece;
+    }
+  }
+}
+
+/**
+ * Stream an answer through the same fallback chain and cooldowns as `generate`. A provider that fails before any
+ * text is skipped; one that fails mid-answer hands over to the next provider, which continues from the text so far
+ * (the client keeps what it already shows).
+ */
+export async function* generateTextStream(prompt: string, opts: Omit<GenOpts, "text" | "urlContext"> = {}): AsyncGenerator<StreamEvent> {
+  const tier = opts.smart ? "smart" : "fast";
+  const all = routes(tier, false);
+  await loadHealth();
+  const now = Date.now();
+  const known = health.working[tier];
+  const ordered = known ? [...all.filter((r) => key(r) === known), ...all.filter((r) => key(r) !== known)] : all;
+  const ready = ordered.filter((r) => !(health.cooling[key(r)] > now));
+  const queue = ready.length ? ready : ordered;
+  const deadline = now + (opts.budgetMs ?? 55_000);
+  let sofar = "";
+  try {
+    for (const [i, r] of queue.entries()) {
+      const left = deadline - Date.now();
+      if (left < 3000) break;
+      const p = sofar ? `${prompt}${sofar}\n\n(Your answer above was cut off. Continue it exactly where it stops — do not repeat anything, no preamble.)` : prompt;
+      yield { type: "route", provider: r.provider, model: r.model, fallback: i > 0 };
+      try {
+        const signal = AbortSignal.timeout(Math.min(left, 45_000));
+        const gen = r.provider === "gemini" ? streamGemini(r.model, p, opts, signal) : streamOpenAi(r, p, opts, signal);
+        for await (const piece of gen) {
+          sofar += piece;
+          yield { type: "delta", text: piece };
+        }
+        if (!sofar) continue; // empty answer → next route
+        if (health.working[tier] !== key(r)) {
+          health.working[tier] = key(r);
+          healthDirty = true;
+        }
+        return;
+      } catch (e) {
+        const msg = String((e as Error)?.message ?? e);
+        lastAiErrors[key(r)] = `${new Date().toISOString()} stream ${msg.slice(0, 300)}`;
+        const f = classify(msg);
+        if (f.coolMs) cool(r, f.coolMs);
+        if (health.working[tier] === key(r)) {
+          delete health.working[tier];
+          healthDirty = true;
+        }
+      }
+    }
+  } finally {
+    await saveHealth();
+  }
+}
+
 export async function generateText(prompt: string, opts: Omit<GenOpts, "text" | "urlContext"> = {}) {
   return generate(prompt, null, { ...opts, text: true });
 }

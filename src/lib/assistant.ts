@@ -131,16 +131,24 @@ function snapshot(data: AppData, currency: string, rates: Rates) {
   return { lines, projects };
 }
 
-export async function askNexus(input: { question: string; history: { role: "user" | "assistant"; text: string }[]; data: AppData; currency: string; locale: "en" | "he" }) {
+type AskInput = { question: string; history: { role: "user" | "assistant"; text: string }[]; data: AppData; currency: string; locale: "en" | "he" };
+
+export async function askNexus(input: AskInput) {
+  const r = askPrompt(input);
+  return "mock" in r ? r.mock : generateText(r.prompt, { smart: true, system: r.system });
+}
+
+/** The prompt for a question (or the canned mock answer). Shared by the one-shot and the streaming path. */
+export function askPrompt(input: AskInput): { mock: string } | { prompt: string; system: string } {
   if (mockAi()) {
     const first = input.data.items.find((i) => i.status === "to_buy");
     // Change requests get a proposal: the first two to-buy items → ordered (exercises propose → apply → undo).
     if (/\b(mark|move|set)\b|סמן|העבר/i.test(input.question)) {
       const ids = input.data.items.filter((i) => i.status === "to_buy").slice(0, 2).map((i) => i.id);
       const json = JSON.stringify({ summary: `Mark ${ids.length} items as ordered`, actions: [{ type: "setStatus", itemIds: ids, status: "ordered" }] });
-      return `Marking ${ids.length} items as ordered.\n\n\`\`\`${ACTION_FENCE}\n${json}\n\`\`\``;
+      return { mock: `Marking ${ids.length} items as ordered.\n\n\`\`\`${ACTION_FENCE}\n${json}\n\`\`\`` };
     }
-    return `You have **${input.data.items.filter((i) => i.status === "to_buy").length} items** left to buy.\n\n- Most urgent: ${first?.title ?? "—"} [[${first?.id ?? "x"}]]\n- Total planned: **${formatMoney(1234.5, input.currency, input.locale)}**`;
+    return { mock: `You have **${input.data.items.filter((i) => i.status === "to_buy").length} items** left to buy.\n\n- Most urgent: ${first?.title ?? "—"} [[${first?.id ?? "x"}]]\n- Total planned: **${formatMoney(1234.5, input.currency, input.locale)}**` };
   }
   const { lines, projects } = snapshot(input.data, input.currency, input.data.rates);
   const system = `You are Nexus, the assistant inside the user's personal purchase manager. Answer questions about THEIR data below: what to buy, totals, budgets, what's missing for a project, what was bought when, which store is cheapest, etc.
@@ -148,6 +156,7 @@ Rules:
 - Use ONLY the data given; if something isn't in the data, say so briefly.
 - All money is in ${input.currency}; format like ${formatMoney(1234.5, input.currency, input.locale)}. Do the arithmetic carefully.
 - When you mention a specific item, cite it as [[itemId]] right after its name so the app can link it.
+- Start with ONE short lead sentence that answers the question directly (it is shown in bold), then details if needed.
 - Be concise: short paragraphs or bullet lists (markdown "- "), **bold** for key numbers. No headings, no tables.
 - Reply in ${input.locale === "he" ? "Hebrew" : "English"} unless the user writes in the other language.
 - Only when the user asks you to CHANGE their data (mark as ordered/bought, move, set priority or quantity, tag, create a project), propose the change: one short sentence, then exactly one fenced block \`\`\`${ACTION_FENCE} with JSON {"summary": string, "actions": [...]}. Nothing changes until the user clicks Apply, so never say it's done. Never propose deletes.
@@ -182,7 +191,7 @@ ${lines.join("\n") || "(none)"}`;
     .map((m) => `${m.role === "user" ? "User" : "Nexus"}: ${m.text.slice(0, 1500)}`)
     .join("\n\n");
   const prompt = `${convo ? `${convo}\n\n` : ""}User: ${input.question.slice(0, 1500)}\n\nNexus:`;
-  return generateText(prompt, { smart: true, system });
+  return { prompt, system };
 }
 
 // Local UI testing without network access to Gemini. Never active in production builds.
