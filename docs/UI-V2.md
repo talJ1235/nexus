@@ -50,3 +50,23 @@ Moments to design:
   categories), floating dock with a centre + menu (Things' Magic Plus), swipe a row to mark ordered (Things,
   Robinhood), card → sheet morph (Things, Airbnb 2025), price-drop sparkline on the card, one celebration when a
   project is fully bought (Robinhood). Fonts with Hebrew: Fredoka, Rubik, Heebo, Varela Round, Assistant.
+
+## Decisions (chat, 2026-10-01, later)
+- Layout: design **U** (round 5) — floating rounded sidebar (collapsible to icons; the paste capsule re-centres with
+  it), top bar = search (hint "Esc · all actions"; **Esc** opens the command menu, not Ctrl K) + "Ask Nexus" with a
+  little colour + alerts. Totals card + two tiles. Project chips + **Category** and **Sort** dropdowns.
+- Too many colours / unclear theme → **one brand colour** + neutrals; a second "spark" colour only for the AI.
+  Project colours = small muted dots only. Product tiles neutral. Light **and** dark palettes required.
+- Product cards: no store letters; show a **category** tag from a short fixed list (Electronics, Mechanical,
+  Materials, Tools, Home, Office, Clothing, Other). Store as text in the meta line.
+- Phone: U phone. Dock = To buy · Projects · **+** · On the way · Stats (Order by store moves out of the dock).
+  **+** opens an animated menu: scan barcode, scan receipt, paste link, plan with Nexus; closes on + or outside.
+  Top bar: logo, search, Ask (coloured), alerts.
+- Animations everywhere (tasteful): see Motion plan above.
+- Round 6 on the canvas: 5 palettes × light/dark × desktop/phone (interactive collapse and + menu).
+- Features wanted next: receipt pipeline upgrade (scanic, preprocessing, unpdf, medium resolution, deterministic
+  checks, multi-shot long receipts, live camera auto-capture), product images for receipt items (match → extension
+  search → optional image-search key → Fluent emoji icon), review screen with cards split "already in list" /
+  "new", barcode scan, shopping mode (full new UI), cross-store comparison (any store, not a fixed list), import-tax
+  alert, assistant redesign (streaming, styled message, phone full screen / desktop side panel).
+  Later: parts inventory, monthly "wrapped". Not wanted: SolidWorks BOM import, item files, event wishlists.
