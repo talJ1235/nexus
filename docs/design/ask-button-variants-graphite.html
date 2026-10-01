@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ask Nexus button variants (chosen: 2 Hairline)</title>
+<!-- Static design reference for Round 7 (from the chat design canvas). Visual target only: build it with real components and tokens. -->
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap">
+<style>
+
+body{margin:0}
+@keyframes flow{to{background-position:200% 0}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:.35}}
+@keyframes sheen{0%{background-position:-150% 0}60%,100%{background-position:250% 0}}
+@keyframes twinkle{0%,100%{transform:rotate(0) scale(1)}50%{transform:rotate(18deg) scale(1.12)}}
+.b{width:1280px;background:var(--bg);color:var(--ink);font-family:'Heebo',system-ui,sans-serif;padding:28px 32px 32px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px}
+.b *{box-sizing:border-box}
+.hd{display:flex;align-items:baseline;gap:12px}.hd h2{margin:0;font-size:22px;font-weight:800}.hd span{color:var(--muted);font-size:14px}
+.g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.cell{background:var(--s);border:1px solid var(--line);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.cell .lb{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
+.cell .lb em{font-style:normal;width:24px;height:24px;border-radius:8px;background:var(--s2);display:grid;place-items:center;font-size:12px}
+.cell .lb span{font-weight:500;color:var(--muted);font-size:12px}
+.ctx{display:flex;align-items:center;gap:8px;padding:10px;border-radius:16px;background:var(--bg)}
+.ctx .ib{width:44px;height:44px;border-radius:999px;border:1px solid var(--line);background:var(--s);color:var(--ink);display:grid;place-items:center;flex-shrink:0}
+.ctx .ib svg{width:19px;height:19px}
+.ctx .sp{flex:1;height:44px;border-radius:999px;background:var(--s);border:1px solid var(--line)}
+.a{height:44px;padding:0 16px 0 13px;border-radius:999px;display:flex;align-items:center;gap:8px;font:700 14px 'Heebo',sans-serif;white-space:nowrap;border:0;position:relative;flex-shrink:0;background:var(--s);color:var(--ink)}
+.a svg{width:18px;height:18px}
+.ic{width:44px;height:44px;padding:0;justify-content:center}
+/* 1 ghost: neutral pill, coloured sparkle only */
+.v1{border:1px solid var(--line)}.v1 svg{color:var(--spark)}
+/* 2 hairline gradient border */
+.v2{background:linear-gradient(var(--s),var(--s)) padding-box,linear-gradient(100deg,var(--brand),var(--spark)) border-box;border:1.5px solid transparent}
+/* 3 neutral + breathing dot */
+.v3{border:1px solid var(--line)}.v3 .dot{width:7px;height:7px;border-radius:50%;background:var(--spark);position:relative}
+.v3 .dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--spark);animation:pulse 2.4s ease-in-out infinite}
+.v3.ic .dot{position:absolute;top:10px;inset-inline-end:10px}
+/* 4 soft tint */
+.v4{background:var(--tint);color:var(--tink)}
+/* 5 gradient icon only */
+.v5{border:1px solid var(--line)}.v5 svg{color:var(--spark);animation:twinkle 3.2s ease-in-out infinite}
+/* 6 neutral with a passing sheen */
+.v6{border:1px solid var(--line);background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--spark) 16%,transparent) 50%,transparent 70%) var(--s);background-size:200% 100%;animation:sheen 4.5s ease-in-out infinite}
+.v6 svg{color:var(--spark)}
+/* 7 ink pill, coloured sparkle */
+.v7{background:var(--ink);color:var(--bg)}.v7 svg{color:var(--spark)}
+/* 8 neutral + shortcut */
+.v8{border:1px solid var(--line)}.v8 svg{color:var(--muted)}.v8 kbd{font:600 11px 'Heebo',sans-serif;padding:2px 7px;border-radius:6px;background:var(--s2);color:var(--muted)}
+.note{font-size:12px;color:var(--muted);line-height:1.45}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+
+.b{--bg:#f6f6f5;--s:#ffffff;--s2:#efefed;--ink:#171717;--muted:#6b6b6b;--line:#e6e6e3;--brand:#171717;--bfg:#ffffff;--hero:linear-gradient(140deg,#171717 0%,#262626 60%,#3a3a3a 100%);--tint:#fdf2dc;--tink:#9a5b00;--spark:#f59e0b;--pa:#8a96b8;--pb:#c9976a;--pc:#7da592;--logo-bg:#f6f6f5;--logo-fg:#171717;--accent:#f59e0b}
+
+</style>
+
+</head><body>
+
+<div class="b"><div class="hd"><h2>Graphite & Amber · light</h2><span>Eight quiet options for the AI button</span></div><div class="g">
+<div class="cell"><div class="lb"><em>1</em>Ghost</div><div class="ctx"><span class="sp"></span><button class="a v1" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg>Ask Nexus</button><span class="ib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg></span></div><div class="ctx"><button class="a v1 ic" type="button" aria-label="Ask Nexus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg></button><span class="note">Phone: icon only</span></div><span class="note">Neutral, only the sparkle has colour</span></div>
+<div class="cell"><div class="lb"><em>2</em>Hairline</div><div class="ctx"><span class="sp"></span><button class="a v2" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg>Ask Nexus</button><span class="ib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg></span></div><div class="ctx"><button class="a v2 ic" type="button" aria-label="Ask Nexus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg></button><span class="note">Phone: icon only</span></div><span class="note">Thin two-tone outline, neutral inside</span></div>
+<div class="cell"><div class="lb"><em>3</em>Breathing dot</div><div class="ctx"><span class="sp"></span><button class="a v3" type="button"><span class="dot"></span>Ask Nexus</button><span class="ib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg></span></div><div class="ctx"><button class="a v3 ic" type="button" aria-label="Ask Nexus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg><span class="dot"></span></button><span class="note">Phone: icon only</span></div><span class="note">Neutral, a small dot pulses slowly</span></div>
+<div class="cell"><div class="lb"><em>4</em>Soft tint</div><div class="ctx"><span class="sp"></span><button class="a v4" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg>Ask Nexus</button><span class="ib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg></span></div><div class="ctx"><button class="a v4 ic" type="button" aria-label="Ask Nexus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg></button><span class="note">Phone: icon only</span></div><span class="note">Pale tint of the brand colour</span></div>
+<div class="cell"><div class="lb"><em>5</em>Twinkle</div><div class="ctx"><span class="sp"></span><button class="a v5" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg>Ask Nexus</button><span class="ib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg></span></div><div class="ctx"><button class="a v5 ic" type="button" aria-label="Ask Nexus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg></button><span class="note">Phone: icon only</span></div><span class="note">Neutral, the sparkle gently turns</span></div>
+<div class="cell"><div class="lb"><em>6</em>Sheen</div><div class="ctx"><span class="sp"></span><button class="a v6" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg>Ask Nexus</button><span class="ib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg></span></div><div class="ctx"><button class="a v6 ic" type="button" aria-label="Ask Nexus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg></button><span class="note">Phone: icon only</span></div><span class="note">Neutral, a faint light passes now and then</span></div>
+<div class="cell"><div class="lb"><em>7</em>Ink</div><div class="ctx"><span class="sp"></span><button class="a v7" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg>Ask Nexus</button><span class="ib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg></span></div><div class="ctx"><button class="a v7 ic" type="button" aria-label="Ask Nexus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg></button><span class="note">Phone: icon only</span></div><span class="note">Solid black/white pill, coloured sparkle</span></div>
+<div class="cell"><div class="lb"><em>8</em>Quiet + shortcut</div><div class="ctx"><span class="sp"></span><button class="a v8" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg>Ask Nexus<kbd>J</kbd></button><span class="ib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg></span></div><div class="ctx"><button class="a v8 ic" type="button" aria-label="Ask Nexus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg></button><span class="note">Phone: icon only</span></div><span class="note">Almost invisible, shows its key</span></div>
+</div></div>
+
+</body></html>

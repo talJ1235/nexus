@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Logo · Box (chosen)</title>
+<!-- Static design reference for Round 7 (from the chat design canvas). Visual target only: build it with real components and tokens. -->
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;800&display=swap">
+<style>
+
+body{margin:0}
+.b{width:1280px;background:#ffffff;color:#16161a;font-family:'Heebo',system-ui,sans-serif;padding:28px 32px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px}
+.b *{box-sizing:border-box}
+.hd{display:flex;align-items:baseline;gap:14px}.hd h2{margin:0;font-size:24px;font-weight:800}.hd p{margin:0;color:#61616b;font-size:14px}
+.row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.t{display:flex;flex-direction:column;gap:8px}
+.t span{font-size:12px;color:#61616b;font-weight:600}
+.tile{aspect-ratio:1/1;max-width:100%;border-radius:28px;display:grid;place-items:center;border:1px solid #ececf0}
+.tile svg{width:56%;height:56%}
+.app{border-radius:23%}
+.row2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+.lock{border-radius:24px;padding:22px 26px;display:flex;align-items:center;gap:14px;border:1px solid #ececf0}
+.lock svg{width:56px;height:56px;flex-shrink:0}
+.lock b{font-size:40px;font-weight:800;letter-spacing:-.02em}
+.sizes{border-radius:24px;border:1px solid #ececf0;padding:18px;display:flex;align-items:flex-end;gap:22px;background:#f8f6fc}
+.sizes div{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:#61616b}
+.tab{display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:10px 10px 0 0;background:#ffffff;border:1px solid #e3e0ea;font-size:12px;color:#16161a}
+
+</style>
+
+</head><body>
+
+<div class="b"><div class="hd"><h2>K · Box</h2><p>An open-box cube from three faces — the parcel that arrives</p></div><div class="row">
+<div class="t"><div class="tile" style="background:#f8f6fc"><svg viewBox="0 0 64 64" style="--c1:#7c4dff;--c2:#fb7a3c;--c3:#f5b40b;--c4:#1d1233;--c5:#b89cff;--c6:#ffffff" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="var(--c3)"/><path d="M10 20l22 12v24L10 44z" fill="var(--c1)"/><path d="M54 20 32 32v24l22-12z" fill="var(--c2)"/></svg></div><span>Plum · light</span></div>
+<div class="t"><div class="tile" style="background:#100b1a"><svg viewBox="0 0 64 64" style="--c1:#a78bfa;--c2:#fb923c;--c3:#fbbf24;--c4:#f1ecfb;--c5:#d4c4ff;--c6:#100b1a" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="var(--c3)"/><path d="M10 20l22 12v24L10 44z" fill="var(--c1)"/><path d="M54 20 32 32v24l22-12z" fill="var(--c2)"/></svg></div><span>Plum · dark</span></div>
+<div class="t"><div class="tile" style="background:#f6f6f5"><svg viewBox="0 0 64 64" style="--c1:#171717;--c2:#f59e0b;--c3:#fb7a3c;--c4:#171717;--c5:#7c4dff;--c6:#ffffff" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="var(--c3)"/><path d="M10 20l22 12v24L10 44z" fill="var(--c1)"/><path d="M54 20 32 32v24l22-12z" fill="var(--c2)"/></svg></div><span>Graphite · light</span></div>
+<div class="t"><div class="tile app" style="background:linear-gradient(140deg,#2e1065,#6d3ae0)"><svg viewBox="0 0 64 64" style="--c1:#ffffff;--c2:#fb923c;--c3:#fbbf24;--c4:#ffffff;--c5:#d4c4ff;--c6:#4c1d95" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="var(--c3)"/><path d="M10 20l22 12v24L10 44z" fill="var(--c1)"/><path d="M54 20 32 32v24l22-12z" fill="var(--c2)"/></svg></div><span>App icon · Plum</span></div>
+<div class="t"><div class="tile app" style="background:#171717"><svg viewBox="0 0 64 64" style="--c1:#f2f2f0;--c2:#f59e0b;--c3:#fb7a3c;--c4:#f2f2f0;--c5:#a78bfa;--c6:#171717" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="var(--c3)"/><path d="M10 20l22 12v24L10 44z" fill="var(--c1)"/><path d="M54 20 32 32v24l22-12z" fill="var(--c2)"/></svg></div><span>App icon · Graphite</span></div>
+</div><div class="row2">
+<div class="lock" style="background:#f8f6fc;color:#1d1233"><svg viewBox="0 0 64 64" style="--c1:#7c4dff;--c2:#fb7a3c;--c3:#f5b40b;--c4:#1d1233;--c5:#b89cff;--c6:#ffffff" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="var(--c3)"/><path d="M10 20l22 12v24L10 44z" fill="var(--c1)"/><path d="M54 20 32 32v24l22-12z" fill="var(--c2)"/></svg><b>Nexus</b></div>
+<div class="lock" style="background:#100b1a;color:#f1ecfb"><svg viewBox="0 0 64 64" style="--c1:#a78bfa;--c2:#fb923c;--c3:#fbbf24;--c4:#f1ecfb;--c5:#d4c4ff;--c6:#100b1a" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="var(--c3)"/><path d="M10 20l22 12v24L10 44z" fill="var(--c1)"/><path d="M54 20 32 32v24l22-12z" fill="var(--c2)"/></svg><b>Nexus</b></div>
+<div class="sizes"><div><svg viewBox="0 0 64 64" width="48" height="48" style="--c1:#7c4dff;--c2:#fb7a3c;--c3:#f5b40b;--c4:#1d1233;--c5:#b89cff;--c6:#ffffff" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="var(--c3)"/><path d="M10 20l22 12v24L10 44z" fill="var(--c1)"/><path d="M54 20 32 32v24l22-12z" fill="var(--c2)"/></svg>48</div><div><svg viewBox="0 0 64 64" width="32" height="32" style="--c1:#7c4dff;--c2:#fb7a3c;--c3:#f5b40b;--c4:#1d1233;--c5:#b89cff;--c6:#ffffff" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="var(--c3)"/><path d="M10 20l22 12v24L10 44z" fill="var(--c1)"/><path d="M54 20 32 32v24l22-12z" fill="var(--c2)"/></svg>32</div><div><svg viewBox="0 0 64 64" width="16" height="16" style="--c1:#7c4dff;--c2:#fb7a3c;--c3:#f5b40b;--c4:#1d1233;--c5:#b89cff;--c6:#ffffff" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="var(--c3)"/><path d="M10 20l22 12v24L10 44z" fill="var(--c1)"/><path d="M54 20 32 32v24l22-12z" fill="var(--c2)"/></svg>16</div><div><span class="tab"><svg viewBox="0 0 64 64" width="16" height="16" style="--c1:#7c4dff;--c2:#fb7a3c;--c3:#f5b40b;--c4:#1d1233;--c5:#b89cff;--c6:#ffffff" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="var(--c3)"/><path d="M10 20l22 12v24L10 44z" fill="var(--c1)"/><path d="M54 20 32 32v24l22-12z" fill="var(--c2)"/></svg>Nexus</span>tab</div></div>
+</div></div>
+
+</body></html>

@@ -2,7 +2,8 @@
 
 # Nexus — working notes for agents
 
-- Product spec: `SPEC.md` (source of truth). Design tokens: `src/app/globals.css`.
+- Product spec: `SPEC.md` (source of truth). Design tokens: `src/app/globals.css`. Visual references for UI v2:
+  `docs/design/*.html` (static mockups from the design canvas; open with Playwright at the right viewport).
 - Next.js 16: `proxy.ts` (not middleware), async `cookies()`/`params`. Read
   `node_modules/next/dist/docs/` before using unfamiliar APIs.
 - RTL: use logical Tailwind utilities only (`ms-/me-/ps-/pe-/start-/end-/text-start`).
