@@ -9,8 +9,9 @@ import { Button, Input } from "@/components/ui/button";
 import { Pop, PopContent, PopTrigger } from "@/components/ui/overlays";
 import { Ring } from "@/components/ui/ring";
 import { Ticker } from "@/components/ui/ticker";
+import { PHONE, useMedia } from "@/components/ui/use-media";
 import { capFor, monthForecast, monthKey } from "@/lib/budget";
-import { CURRENCIES, formatMoney } from "@/lib/money";
+import { CURRENCIES, formatMoney, formatMoneyCompact } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { useStore } from "./store";
 
@@ -91,6 +92,9 @@ export function MonthBudget() {
   useEffect(() => setIncludeNormal(readNormal()), []);
   const [editOpen, setEditOpen] = useState(false);
   const m = (v: number) => formatMoney(Math.round(v), s.currency, locale);
+  // Phones: big amounts compact (₪12.4K) so the hero number, ring and button share one row.
+  const phone = useMedia(PHONE);
+  const mK = (v: number) => (phone ? formatMoneyCompact(Math.round(v), s.currency, locale) : m(v));
 
   const fc = useMemo(() => {
     const now = new Date();
@@ -135,27 +139,33 @@ export function MonthBudget() {
 
   const ringPct = fc.cap ? Math.min(1, fc.total / fc.cap) : 0;
   return (
-    <section data-month-budget={fc.state} className="rise-in rounded-[30px] bg-[image:var(--hero)] p-5 text-on-hero lg:px-[26px] lg:py-6">
+    <section data-month-budget={fc.state} className="rise-in min-w-0 rounded-[30px] bg-[image:var(--hero)] p-5 text-on-hero lg:px-[26px] lg:py-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-[14px] opacity-75">{t.budget.title}</h3>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-2">
-            <Ticker value={fc.total} format={m} className="text-[44px] font-black leading-[0.95] tracking-[-0.03em] lg:text-[56px]" />
-            {fc.cap != null && <span className="text-sm opacity-70">{f(t.budget.of, { amount: m(fc.cap) })}</span>}
+            <Ticker value={fc.total} format={mK} className="text-[36px] font-black leading-[0.95] tracking-[-0.03em] sm:text-[44px] lg:text-[56px]" />
+            {fc.cap != null && <span className="text-sm opacity-70">{f(t.budget.of, { amount: mK(fc.cap) })}</span>}
           </div>
           {status && <div className={cn("tabular mt-2 text-sm font-semibold", fc.state === "over" ? "text-[var(--hero-danger)]" : "opacity-85")}>{status}</div>}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-3">
           {fc.cap != null && (
-            <Ring value={ringPct} size={64} stroke={8} color={fc.state === "over" ? "var(--hero-danger)" : "var(--spark)"} track="rgb(255 255 255 / 0.16)">
+            <Ring value={ringPct} size={phone ? 52 : 64} stroke={phone ? 7 : 8} color={fc.state === "over" ? "var(--hero-danger)" : "var(--spark)"} track="rgb(255 255 255 / 0.16)">
               <span className="tabular text-[13px] font-extrabold">{Math.round(fc.pct ?? 0)}%</span>
             </Ring>
           )}
           <Pop open={editOpen} onOpenChange={setEditOpen}>
             <PopTrigger asChild>
-              <Button size="sm" variant="ghost" className="h-9 bg-white/15 text-on-hero hover:bg-white/25 hover:text-on-hero max-sm:h-10" data-budget-edit>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-9 bg-white/15 text-on-hero hover:bg-white/25 hover:text-on-hero max-sm:size-10 max-sm:px-0"
+                aria-label={fc.cap == null ? t.budget.set : t.budget.edit}
+                data-budget-edit
+              >
                 <Pencil />
-                {fc.cap == null ? t.budget.set : t.budget.edit}
+                <span className="max-sm:sr-only">{fc.cap == null ? t.budget.set : t.budget.edit}</span>
               </Button>
             </PopTrigger>
             <PopContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-2">
@@ -179,7 +189,7 @@ export function MonthBudget() {
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px]">
         {segs.map((sg) => (
           <span key={sg.key} className="flex items-center gap-1.5 opacity-90">
-            <span className={cn("size-[9px] rounded-[3px]", sg.cls)} /> {sg.label} <b className="tabular font-bold">{m(sg.value)}</b>
+            <span className={cn("size-[9px] rounded-[3px]", sg.cls)} /> {sg.label} <b className="tabular font-bold">{mK(sg.value)}</b>
           </span>
         ))}
         {fc.unpriced > 0 && <span className="text-xs opacity-70">{f(t.budget.unpriced, { n: fc.unpriced })}</span>}

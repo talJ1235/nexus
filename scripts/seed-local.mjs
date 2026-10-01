@@ -43,6 +43,28 @@ const items = [
   ["demo-8", "מברגה נטענת Makita DDF485 18V", "drill", null, "normal", 1, "purchased", ["Ace", "ace", 649, "ILS", 0, "https://www.ace.co.il/item/2"], ["tools"]],
 ];
 
+// A year of purchases (Round 8: spending/stats and the totals look like real data, with big amounts and long names so
+// phone layouts are tested against them). [.., daysAgo] as the 10th field.
+const HIST = [
+  ["Bambu Lab P1S 3D printer combo", "pla", "demo-c-print", "Bambu Lab Official Store Europe", "bambulab", 4800],
+  ["MacBook Air sleeve", "chair", null, "Amazon", "amazon", 129],
+  ["ספה תלת מושבית אפורה", "chair", "demo-c-home", "ACE — אייס חנויות לבית ולגן", "ace", 3990],
+  ["Raspberry Pi camera module 3 wide", "pi", "demo-c-railcam", "Raspberry Pi Store", "raspberrypi", 210],
+  ["Aluminium V-slot rail 2040 × 1 m (4 pcs)", "motor", "demo-c-railcam", "AliExpress", "aliexpress", 340],
+  ["מקדחה רוטטת Bosch", "drill", "demo-c-home", "KSP", "ksp", 1290],
+  ["GT2 belt + pulleys kit", "motor", "demo-c-railcam", "AliExpress", "aliexpress", 95],
+  ["מזגן עילי 1 כ״ס", "fan", "demo-c-home", "KSP", "ksp", 2450],
+  ["PETG filament 1kg × 4", "pla", "demo-c-print", "Bambu Lab Official Store Europe", "bambulab", 420],
+  ["Desk lamp with wireless charger", "lamp", null, "IKEA", "ikea", 249],
+];
+HIST.forEach(([title, img, col, store, key, price], i) => {
+  for (const back of [0, 1, 2]) {
+    const ago = 8 + i * 11 + back * 120;
+    if (ago > 360) continue;
+    items.push([`demo-h${i}-${back}`, title, img, col, "normal", 1, "purchased", [store, key, price * (1 + back * 0.05), "ILS", 0, `https://example.com/${key}/${i}`], [], ago]);
+  }
+});
+
 const CAT = { charger: "electronics", fan: "home-kitchen", pla: "materials", motor: "mechanical", lamp: "home-kitchen", chair: "home-kitchen", pi: "computers", drill: "tools" };
 
 await db.execute("DELETE FROM price_points WHERE item_id LIKE 'demo-%'");
@@ -54,8 +76,8 @@ for (const [i, c] of collections.entries())
     sql: "INSERT INTO collections (id, kind, name, color, budget, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
     args: [c.id, c.kind, c.name, c.color, c.budget, i],
   });
-for (const [n, [id, title, img, col, prio, qty, status, src, tags]] of items.entries()) {
-  const t = now - n * day;
+for (const [n, [id, title, img, col, prio, qty, status, src, tags, ago]] of items.entries()) {
+  const t = now - (ago ?? n) * day;
   await db.execute({
     sql: `INSERT INTO items (id, collection_id, title, image_url, category, tags, status, priority, quantity, ordered_at, purchased_at, purchased_price, purchased_currency, created_at, updated_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,

@@ -35,6 +35,16 @@ export function formatMoney(amount: number | null | undefined, currency: string,
   }
 }
 
+/** Like formatMoney, but 10,000 and up shrink to "₪12.4K" / "₪1.2M" (phones, narrow tiles). */
+export function formatMoneyCompact(amount: number | null | undefined, currency: string, locale: string) {
+  if (amount == null || Number.isNaN(amount) || Math.abs(amount) < 10_000) return formatMoney(amount, currency, locale);
+  try {
+    return new Intl.NumberFormat(locale === "he" ? "he-IL" : "en-US", { style: "currency", currency, notation: "compact", maximumFractionDigits: 1 }).format(amount);
+  } catch {
+    return formatMoney(amount, currency, locale);
+  }
+}
+
 /** Parse "₪1,299.90", "US $12.50", "12,50 €" → { amount, currency }. */
 export function parsePrice(raw: unknown, fallbackCurrency?: string): { amount: number; currency?: string } | null {
   if (raw == null) return null;

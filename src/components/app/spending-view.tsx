@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Store } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { StoreMark } from "@/components/ui/store-mark";
 import { Ticker } from "@/components/ui/ticker";
+import { PHONE, useMedia } from "@/components/ui/use-media";
 import { capFor, monthKey } from "@/lib/budget";
 import { activeSource, lineTotal, sourceTotal, spendDate } from "@/lib/calc";
 import { normalizeCategory } from "@/lib/categories";
-import { convert, formatMoney } from "@/lib/money";
+import { convert, formatMoney, formatMoneyCompact } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MonthBudget } from "./budget-card";
@@ -21,7 +22,7 @@ type Row = { key: string; label: string; value: number; dot?: string; mark?: { s
 
 function Card({ title, children, className, delay = 0 }: { title?: string; children: React.ReactNode; className?: string; delay?: number }) {
   return (
-    <section className={cn("rise-in rounded-[26px] border border-line bg-surface p-5", className)} style={{ animationDelay: `${delay}ms` }}>
+    <section className={cn("rise-in min-w-0 rounded-[26px] border border-line bg-surface p-4 sm:p-5", className)} style={{ animationDelay: `${delay}ms` }}>
       {title && <h3 className="mb-4 text-[15px] font-extrabold">{title}</h3>}
       {children}
     </section>
@@ -30,9 +31,9 @@ function Card({ title, children, className, delay = 0 }: { title?: string; child
 
 function Tile({ label, value, fmt, sub, delay }: { label: string; value: number; fmt: (v: number) => string; sub?: string; delay?: number }) {
   return (
-    <div className="rise-in rounded-[22px] border border-line bg-surface p-4 lg:rounded-[26px]" style={{ animationDelay: `${delay ?? 0}ms` }}>
-      <div className="text-xs font-semibold text-muted">{label}</div>
-      <Ticker value={value} format={fmt} className="mt-1.5 block text-[24px] font-black leading-none tracking-[-0.02em] lg:text-[30px]" />
+    <div className="rise-in min-w-0 rounded-[22px] border border-line bg-surface p-4 lg:rounded-[26px]" style={{ animationDelay: `${delay ?? 0}ms` }}>
+      <div className="truncate text-xs font-semibold text-muted">{label}</div>
+      <Ticker value={value} format={fmt} className="mt-1.5 block truncate text-[22px] font-black leading-none tracking-[-0.02em] sm:text-[24px] lg:text-[30px]" />
       {sub && <div className="mt-2 text-xs text-muted">{sub}</div>}
     </div>
   );
@@ -44,7 +45,7 @@ function RankBars({ rows, fmt }: { rows: Row[]; fmt: (v: number) => string }) {
   return (
     <ul className="space-y-3">
       {rows.map((r, i) => (
-        <li key={r.key} className="grid grid-cols-[minmax(0,8.5rem)_1fr_auto] items-center gap-3 text-sm" title={`${r.label}: ${fmt(r.value)}`}>
+        <li key={r.key} className="grid grid-cols-[minmax(0,7rem)_minmax(2rem,1fr)_auto] items-center gap-2.5 text-sm sm:grid-cols-[minmax(0,8.5rem)_1fr_auto] sm:gap-3" title={`${r.label}: ${fmt(r.value)}`}>
           <span className="flex min-w-0 items-center gap-2">
             {r.mark ? <StoreMark store={r.mark.store} storeKey={r.mark.storeKey} url={r.mark.url} size={20} /> : r.dot && <span className="size-2.5 shrink-0 rounded-[4px]" style={{ background: r.dot }} />}
             <span className="truncate font-medium bidi">{r.label}</span>
@@ -62,11 +63,32 @@ function RankBars({ rows, fmt }: { rows: Row[]; fmt: (v: number) => string }) {
 /** Spend per month; bars grow in once; a tick marks the cap that month had (bars over it turn red). */
 function MonthBars({ months, fmt, locale, capLabel }: { months: { at: Date; value: number; cap: number | null }[]; fmt: (v: number) => string; locale: string; capLabel: string }) {
   const [hover, setHover] = useState<number | null>(null);
+  // Thinner gaps and every other month labelled when 12 short month names don't fit (phones).
+  const box = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const tight = width > 0 && width / months.length < 34;
   const max = Math.max(1, ...months.map((m) => Math.max(m.value, m.cap ?? 0)));
   const label = (d: Date) => d.toLocaleDateString(locale === "he" ? "he-IL" : "en-GB", { month: "short" });
+  const last = months.length - 1;
+  // Near the ends the tooltip hangs inward so it never leaves the card (or the screen).
+  const tip =
+    hover == null
+      ? null
+      : hover < 2
+        ? { left: `${(hover / months.length) * 100}%`, cls: "" }
+        : hover > last - 2
+          ? { left: `${((hover + 1) / months.length) * 100}%`, cls: "-translate-x-full" }
+          : { left: `${((hover + 0.5) / months.length) * 100}%`, cls: "-translate-x-1/2" };
   return (
-    <div className="relative" dir="ltr">
-      <div className="flex h-48 items-end gap-1.5 border-b border-line" onMouseLeave={() => setHover(null)}>
+    <div ref={box} className="relative min-w-0" dir="ltr">
+      <div className={cn("flex h-40 items-end border-b border-line sm:h-48", tight ? "gap-1" : "gap-1.5")} onMouseLeave={() => setHover(null)}>
         {months.map((m, i) => (
           <button
             key={i}
@@ -74,7 +96,7 @@ function MonthBars({ months, fmt, locale, capLabel }: { months: { at: Date; valu
             onMouseEnter={() => setHover(i)}
             onFocus={() => setHover(i)}
             aria-label={`${label(m.at)} ${m.at.getFullYear()}: ${fmt(m.value)}${m.cap != null ? ` · ${capLabel.replace("{amount}", fmt(m.cap))}` : ""}`}
-            className="group relative flex h-full flex-1 items-end outline-none"
+            className="group relative flex h-full min-w-0 flex-1 items-end outline-none"
           >
             <span
               className={cn(
@@ -88,17 +110,19 @@ function MonthBars({ months, fmt, locale, capLabel }: { months: { at: Date; valu
           </button>
         ))}
       </div>
-      <div className="mt-1.5 flex gap-1.5 text-[11px] text-muted">
+      <div className={cn("mt-1.5 flex text-[11px] text-muted", tight ? "gap-1" : "gap-1.5")}>
         {months.map((m, i) => (
-          <span key={i} className={cn("flex-1 text-center", hover === i && "font-semibold text-ink")}>
-            {label(m.at)}
+          // Tight: the current month and every other one back from it, centred over its bar (may spill into the
+          // unlabelled neighbours, never past the chart).
+          <span key={i} className={cn("flex min-w-0 flex-1 justify-center whitespace-nowrap", hover === i && "font-semibold text-ink")}>
+            {tight && (last - i) % 2 ? null : label(m.at)}
           </span>
         ))}
       </div>
-      {hover != null && (
+      {hover != null && tip && (
         <div
-          className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-[14px] border border-line bg-surface px-3 py-2 text-xs shadow-pop"
-          style={{ left: `${((hover + 0.5) / months.length) * 100}%` }}
+          className={cn("pointer-events-none absolute top-0 z-10 -translate-y-full whitespace-nowrap rounded-[14px] border border-line bg-surface px-3 py-2 text-xs shadow-pop", tip.cls)}
+          style={{ left: tip.left }}
         >
           <div className="tabular font-bold">{fmt(months[hover].value)}</div>
           <div className="text-muted">
@@ -125,6 +149,9 @@ export function SpendingView() {
   const s = useStore();
   const { t, f, locale } = useI18n();
   const fmt = (v: number) => formatMoney(Math.round(v), s.currency, locale);
+  // Phones: big amounts compact (₪12.4K) so tiles and rows never push the screen wider.
+  const phone = useMedia(PHONE);
+  const fmtK = (v: number) => (phone ? formatMoneyCompact(Math.round(v), s.currency, locale) : fmt(v));
 
   const data = useMemo(() => {
     const spent = s.items
@@ -176,7 +203,7 @@ export function SpendingView() {
   return (
     <div data-stats>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-[26px] font-extrabold tracking-[-0.02em]">{t.spending.title}</h1>
           <p className="mt-1 text-sm text-muted">{t.spending.note}</p>
         </div>
@@ -191,24 +218,24 @@ export function SpendingView() {
         <div className="load-in grid place-items-center rounded-[26px] border border-dashed border-line-strong px-6 py-20 text-center text-[15px] text-muted">{t.spending.empty}</div>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Tile label={t.spending.thisMonth} value={data.thisMonth} fmt={fmt} delay={60} />
-            <Tile label={t.spending.lastMonth} value={data.lastMonth} fmt={fmt} delay={100} />
-            <Tile label={t.spending.thisYear} value={data.thisYear} fmt={fmt} delay={140} />
-            <Tile label={t.spending.savings} value={data.savings} fmt={fmt} sub={t.spending.savingsHint} delay={180} />
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+            <Tile label={t.spending.thisMonth} value={data.thisMonth} fmt={fmtK} delay={60} />
+            <Tile label={t.spending.lastMonth} value={data.lastMonth} fmt={fmtK} delay={100} />
+            <Tile label={t.spending.thisYear} value={data.thisYear} fmt={fmtK} delay={140} />
+            <Tile label={t.spending.savings} value={data.savings} fmt={fmtK} sub={t.spending.savingsHint} delay={180} />
           </div>
           <Card title={t.spending.byMonth} delay={120}>
             <MonthBars months={data.months} fmt={fmt} locale={locale} capLabel={t.budget.capLine} />
           </Card>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card title={t.spending.byProject} delay={160}>
-              <RankBars rows={data.projects} fmt={fmt} />
+              <RankBars rows={data.projects} fmt={fmtK} />
             </Card>
             <Card title={t.spending.byStore} delay={200}>
-              <RankBars rows={data.stores} fmt={fmt} />
+              <RankBars rows={data.stores} fmt={fmtK} />
             </Card>
             <Card title={t.spending.topCategories} delay={240}>
-              <RankBars rows={data.categories} fmt={fmt} />
+              <RankBars rows={data.categories} fmt={fmtK} />
             </Card>
             <Card title={t.spending.biggest} delay={280}>
               <ul className="space-y-2">
@@ -220,7 +247,7 @@ export function SpendingView() {
                         <span className="block truncate text-sm font-bold bidi">{x.item.title}</span>
                         <span className="block text-xs text-muted">{new Date(x.at).toLocaleDateString(locale === "he" ? "he-IL" : "en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
                       </span>
-                      <span className="tabular text-sm font-extrabold">{fmt(x.value)}</span>
+                      <span className="tabular shrink-0 text-sm font-extrabold">{fmtK(x.value)}</span>
                     </button>
                   </li>
                 ))}

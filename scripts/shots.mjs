@@ -1,7 +1,7 @@
 // Visual review screenshots across themes (Round 7). Logs in once, then shoots each path at desktop 1366 and phone 390
 // in the requested palettes × modes. Usage:
 //   node --env-file=.env.local scripts/shots.mjs [/path ...]   (default "/")
-//   SHOTS_OUT=dir (default $TMP/nexus-shots) SHOTS_THEMES="graphite:light,plum:dark" SHOTS_SIZES=desktop,phone
+//   SHOTS_OUT=dir (default $TMP/nexus-shots) SHOTS_THEMES="graphite:light,plum:dark" SHOTS_SIZES=desktop,phone,phone360
 //   SHOTS_LOCALE=he; SHOTS_WAIT=ms extra settle time; SHOTS_CLICK="css selector" clicks it before the shot; SHOTS_FULL=1 full page.
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,6 +17,7 @@ const sizes = (process.env.SHOTS_SIZES || "desktop,phone").split(",");
 const SIZE = {
   desktop: { viewport: { width: 1366, height: 860 } },
   phone: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+  phone360: { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
 };
 const host = new URL(BASE).hostname;
 

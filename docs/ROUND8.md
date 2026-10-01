@@ -68,7 +68,7 @@ machine has one, on 5 real images (if present): crop → enhance → tiles → r
 
 ## Part B — phone layout: nothing wider than the screen
 
-### B1. [ ] Stats / Spending on phone
+### B1. [x] Stats / Spending on phone
 Tal: on the phone the analytics section is much wider than the screen; he has to zoom out. Fix the Spending/Stats
 screen (`spending-view.tsx`, `budget-card.tsx`) for 360–430 px: single column, charts sized by their container
 (`width: 100%`, viewBox scaling, no fixed px widths), 12-month bars scroll inside their own box only if they truly
