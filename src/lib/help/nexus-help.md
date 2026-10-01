@@ -23,7 +23,7 @@ turns them into buttons; only these addresses work:
 Example: `[Open settings → Palette](nexus:settings)`.
 
 ## Where things are
-<!-- spec: UI, Desktop shell, Phone shell, Collections, Phone fit, Home hierarchy -->
+<!-- spec: UI, Desktop shell, Phone shell, Collections, Phone fit, Home hierarchy, Phone shell v2 -->
 - **Desktop**: sidebar with To buy (לקנות), Urgent (דחוף), Unsorted (לא משויך), On the way (בדרך), Order by store
   (הזמנה לפי חנות), History (היסטוריה), Spending (הוצאות), then Projects (פרויקטים) and Lists (רשימות). The sidebar
   collapses with the arrow at its top. Top bar: search, "Ask Nexus", alerts bell. The paste bar floats at the bottom.
@@ -70,7 +70,7 @@ Example: `[Open settings → Palette](nexus:settings)`.
   as a lighter fallback.
 
 ## Statuses, priorities, projects and lists
-<!-- spec: Item lifecycle, Partial move, Alternatives, Multi-select -->
+<!-- spec: Item lifecycle, Partial move, Alternatives, Multi-select, Project pages -->
 - An item goes To buy → **Ordered** (On the way: tracking number, carrier, ETA) → **Received** (History). The price
   paid is saved when you mark it ordered. Use the truck button on a card, the sheet, or on phones swipe a row toward
   the end (rows layout). Undo is always offered.
@@ -127,7 +127,7 @@ Example: `[Open settings → Palette](nexus:settings)`.
   The trip works offline and syncs when you're back online. Finish marks the checked items as received.
 
 ## The assistant (Ask Nexus)
-<!-- spec: AI assistant, Assistant actions, Assistant v2, Assistant suggestions, Assistant -->
+<!-- spec: AI assistant, Assistant actions, Assistant v2, Assistant suggestions, Assistant, One chat, Conversation history, Memory, Smarter suggestions -->
 - Ask about your data ("how much is left for Railcam?") or how to use Nexus. Tap a suggested question to ask it.
 - Ask it to change things ("mark the NEMA motors as ordered", "move these to a new project Drone"): it proposes the
   change and nothing happens until you press **Apply** (Undo after). It never deletes.
@@ -158,7 +158,7 @@ Example: `[Open settings → Palette](nexus:settings)`.
 - Revoke a link from the same Share window. Guests can't use the assistant or report problems.
 
 ## Look and language
-<!-- spec: Design system, Box logo, Mixed Hebrew/English text -->
+<!-- spec: Design system, Box logo, Mixed Hebrew/English text, Dark mode depth -->
 - Palette: Settings (הגדרות) → Palette (צבעים) → **Graphite & Amber** (גרפיט וענבר, default) or **Plum** (שזיף). Theme
   (ערכת נושא): Light / Dark / System. Both
   change instantly, per device. Language: Settings → Language (English / עברית, full right-to-left).
@@ -173,7 +173,7 @@ Example: `[Open settings → Palette](nexus:settings)`.
 - Logging out clears the offline copy.
 
 ## Import, export and backup
-<!-- spec: Import & backup -->
+<!-- spec: Import & backup, Excel export -->
 - Import a parts or shopping list from Excel/CSV (command menu → Import): Nexus detects columns (English or Hebrew
   headers), creates missing projects, and can fill in details from links.
 - **Export to Excel** (a BOM: item, qty, unit price, total, store, link, priority, status): a project or list page →
@@ -183,7 +183,7 @@ Example: `[Open settings → Palette](nexus:settings)`.
   in a backup.
 
 ## Report a problem
-<!-- spec: Reports -->
+<!-- spec: Reports, Simpler reports -->
 - From the assistant (it drafts the report when you say something is broken or have an idea), the command menu,
   Settings, or the phone's Me sheet: choose Bug / Complaint / Idea, write what happened in one box (for a bug also
   what you expected), optionally add a screenshot, Send. What's attached automatically is listed under "Included

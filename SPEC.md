@@ -352,6 +352,38 @@ Brief and checklist: `docs/ROUND8.md`. Shipped (merged to `main` 2026-10-01):
   (`GITHUB_ISSUES_TOKEN`, label `from-app`), export `/api/reports/export` (`REPORTS_TOKEN`) + `node scripts/reports.mjs`.
   Owner-only. `npm run test:reports`.
 
+## Round 9 — phone polish, assistant memory, projects
+Brief and checklist: `docs/ROUND9.md`. Shipped (merged to `main` 2026-10-02):
+- **Phone shell v2**: the avatar at the start of the phone top bar opens the "Me" sheet (`me-sheet.tsx`: palette +
+  theme, Settings, extension, Telegram, Reports, Report a problem, Excel export, backup, sign out). Dock order To buy ·
+  On the way · + · Projects · Stats, physically left → right in every language (`dir="ltr"`); the dock and + menu render
+  through a portal into `body`, `<main>` clips horizontal overflow (`overflow-x: clip` — the sliding view transition
+  had widened the page and moved the fixed dock), the page's minimum height is `100lvh`. Smoke samples the dock and top
+  bar every frame while switching (> 0.5 px fails) and checks the order in en + he. The + menu is a 2 × 2 grid of
+  coloured tiles (`--act-*` tokens per mode) with their own illustrations.
+- **Dark mode depth**: dark surfaces a step above the background, a 12 % white outline, a top highlight + soft shadow
+  (`--shadow`), `--shadow-lift` for hover/press; every outlined surface follows; `scripts/contrast.mjs` checks the
+  surface/bg step (all themes) and the outline (dark).
+- **One chat**: Ask and Plan merged — a Chat / Plan a project pill near the input; plans arrive as a card in the chat
+  (`assistant-plan-card.tsx`: per-line add, add all to a project, budget fit, the usual store per line).
+- **Conversation history**: tables `conversations` + `conversation_messages` (in backup), `app/chat-actions.ts`
+  (list/search, get, latest, save, auto title, rename, delete + undo); the assistant reopens a conversation < 2 h old;
+  history drawer with search and Today / This week / Earlier; "last time" questions search past conversations
+  (`lib/conversations.ts`).
+- **Memory**: a shopping profile computed from the user's data (`lib/profile.ts`, cached in kv `profile:v1`, daily
+  cron), learned notes (`memories` table, in backup) proposed by the assistant and confirmed with a chip, a sensitive-
+  data guard (`lib/memory.ts`), Settings → "What Nexus knows about you" (switch `pref:memory`, profile, notes). Used by
+  Ask, Plan mode, compare (ties → usual stores) and suggestions. `npm run test:memory`.
+- **Smarter suggestions**: follow-ups offer the natural next step, recent conversations aren't repeated, "Plan the next
+  {project} stage at {store}", how-to follow-ups after help answers (`npm run test:sug`).
+- **Simpler reports**: one text box (+ expected for bugs) and a screenshot; title from the text; more automatic
+  diagnostics (last views, item count, network, failed request paths, service worker, device class) listed in
+  "Included automatically".
+- **Project pages**: Projects cards with a colour cover and picture collage, ring, bought bar, next item, flags; a
+  dashed "New project" card; the project page header matches (cover morphs via View Transitions) with Plan with Nexus,
+  Shop this project, Share and a ⋯ menu.
+- **Excel export**: the project/list ⋯ menu, the command menu and the Me sheet download the BOM (`/api/export`).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.

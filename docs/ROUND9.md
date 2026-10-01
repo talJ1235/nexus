@@ -136,3 +136,36 @@ page menu, list menu and the command menu; update the help file.
 ---
 
 ## Open
+
+### End-of-run summary (2026-10-02)
+All 11 items (A1–A3, B1, C1–C4, D1, E1, F1) shipped on `round9`, one commit each, and merged to `main` with
+`--ff-only`. Green at the end: typecheck + lint + build, all 15 unit-test scripts (new: `test:memory`; extended:
+`test:sug`, `test:reports`, `test:help`, `test:contrast`), the Round 8 receipt bench unchanged (still 95.3 %, live
+93.8 %), full smoke with `SMOKE_WRITE=1` on a `NEXUS_AI_MOCK=1` server — desktop 43 checks, phone 46.
+Nothing new to configure on Vercel; the build's migration adds `conversations`, `conversation_messages`, `memories`.
+
+### Notes and decisions
+- **Open reports**: couldn't be read before starting — `REPORTS_TOKEN` isn't set (so `node scripts/reports.mjs` can't
+  reach prod) and there are no `from-app` GitHub issues. Setting `REPORTS_TOKEN` on Vercel + `.env.local` enables it.
+- **A1**: the avatar (your initial) rather than a gear — it mirrors the desktop owner card and fits next to logo,
+  search, Ask and alerts at 360 px.
+- **A2**: cause found and reproduced in the smoke guard (52 px / 18 px moves): the view transition's translateX made
+  the page wider than the phone for a moment, so the phone widened its layout viewport. Fixed by clipping `<main>`;
+  the dock/+ menu also moved to a portal and the page minimum height to `100lvh`. Verified in mobile emulation — worth
+  one look on the real phone.
+- **A3**: four equal tiles, no wide Paste tile — the 2 × 2 reads faster and keeps the order.
+- **B1**: the "outline ≥ 1.3:1 vs bg" check applies to the dark themes; light themes carry the card edge with the
+  shadow (their line is ~1.16:1 by design). Plum light's background was deepened a touch so white cards step off it.
+- **C1**: the plan card no longer asks for a budget up front (the old Plan tab had a budget field); the budget fit uses
+  the chosen project's budget, which can be set when editing the project.
+- **C2**: deleted conversations stay in a bin for a day (Undo), then are purged. Reopened conversations show earlier
+  proposals and report drafts as text only, so they can't be applied/sent twice.
+- **C3**: the memory switch governs what the assistant, Plan mode and compare use; the suggestion chip "Plan the next
+  {project} stage at {store}" takes the store from the visible data like the other store suggestions do. The note guard
+  is pattern-based (contact details, ids, card/money credentials, addresses, health) — conservative by design.
+  Plan mode's "store per line" and the auto titles were verified with the mock only this round.
+- **D1**: failed requests are captured for the app's own origin only (path + status, no query or body).
+- **E1**: the demo data's projects are all amber, so covers look alike locally; real projects with different colours
+  look distinct. Covers use `color-mix(in oklab, …)` (Safari 16.2+, all current browsers).
+- Local smoke runs leave test conversations/reports in the local DB only; the Plan-mode smoke now adds into an
+  existing project instead of creating one per run.
