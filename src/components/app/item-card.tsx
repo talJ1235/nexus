@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ExternalLink, Minus, Package, PackageCheck, Plus, Split, Truck, Undo2 } from "lucide-react";
+import { Check, ExternalLink, Minus, Package, PackageCheck, Plus, Scale, Split, Truck, Undo2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { setStatus, updateItem } from "@/app/actions";
 import { useI18n } from "@/components/providers";
@@ -227,6 +227,17 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
 
         {!selecting && (
           <div className="absolute bottom-2 end-2 z-[2] flex gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 max-sm:hidden">
+            {item.status === "to_buy" && (
+              <button
+                type="button"
+                onClick={() => s.setCompareItemId(item.id)}
+                title={t.compare.button}
+                aria-label={t.compare.button}
+                className="grid size-8 place-items-center rounded-full bg-surface text-ink shadow-card transition hover:bg-surface-2"
+              >
+                <Scale className="size-4" />
+              </button>
+            )}
             {src?.url && (
               <a
                 href={src.url}

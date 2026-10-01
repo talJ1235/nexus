@@ -237,7 +237,7 @@ Mock mode streams a canned answer.
 
 ## Part G — compare stores, import tax
 
-### G1. [ ] Compare across stores (any store, not a fixed list)
+### G1. [x] Compare across stores (any store, not a fixed list)
 "Compare stores" on an item (sheet + card menu) and as an assistant action:
 - Query building: Gemini makes 2–3 search queries from title/brand/model/specs (and gtin if known).
 - Search sources, in order of availability: search provider key (Brave/Serper, web + shopping results) → **owner's

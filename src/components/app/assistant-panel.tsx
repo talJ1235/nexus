@@ -134,7 +134,7 @@ function Inline({ text, onItem, base }: { text: string; onItem: (id: string) => 
 /** Assistant answer: no bubble — a bold lead line, then clean paragraphs/lists; referenced items as mini cards. */
 function Answer({ text, streaming, onItem }: { text: string; streaming?: boolean; onItem: (id: string) => void }) {
   const s = useStore();
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   // While streaming, hide a half-written action block (it is parsed once the answer is complete).
   const shown = streaming ? text.split("```")[0] : text;
   const blocks: { list: boolean; lines: string[] }[] = [];
@@ -195,7 +195,25 @@ function Answer({ text, streaming, onItem }: { text: string; streaming?: boolean
               <button key={it.id} type="button" onClick={() => onItem(it.id)} className="rise-in flex w-40 shrink-0 flex-col gap-1.5 rounded-[18px] border border-line bg-surface p-1.5 text-start transition hover:-translate-y-0.5" style={{ animationDelay: `${k * 50}ms` }}>
                 <ProductImage src={it.imageUrl} alt="" className="aspect-[16/11] w-full rounded-[13px]" iconClass="size-5" />
                 <span className="line-clamp-2 px-1 text-[12.5px] font-bold leading-snug text-ink bidi">{it.title}</span>
-                <span className="tabular px-1 pb-0.5 text-[13px] font-extrabold text-ink">{unit != null ? formatMoney(unit, s.currency, locale) : "—"}</span>
+                <span className="flex items-center justify-between gap-1 px-1 pb-0.5">
+                  <span className="tabular text-[13px] font-extrabold text-ink">{unit != null ? formatMoney(unit, s.currency, locale) : "—"}</span>
+                  {it.status === "to_buy" && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        s.setPanel(null);
+                        s.setCompareItemId(it.id);
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && (e.stopPropagation(), s.setPanel(null), s.setCompareItemId(it.id))}
+                      className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-bold text-ink hover:bg-line"
+                      data-ai-compare
+                    >
+                      {t.compare.short}
+                    </span>
+                  )}
+                </span>
               </button>
             );
           })}

@@ -147,6 +147,46 @@ async function findImages() {
   return posted;
 }
 
+/**
+ * Compare stores without a search key (Round 7 G1): run the queries on Google Shopping and Google web in the owner's
+ * browser and return the product links found (the server reads and verifies them).
+ */
+async function searchStores(queries) {
+  const out = [];
+  const seen = new Set();
+  const add = (url, title, price) => {
+    try {
+      const u = new URL(url);
+      if (!/^https?:$/.test(u.protocol) || /(^|\.)google\.|gstatic\.|youtube\.|googleusercontent\./.test(u.hostname)) return;
+      const key = u.hostname + u.pathname;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ url: u.href, title: title || null, price: price || null });
+    } catch (e) {}
+  };
+  for (const q of queries.slice(0, 3)) {
+    for (const tbm of ["shop", ""]) {
+      try {
+        const res = await fetch(`https://www.google.com/search?hl=en&num=20&q=${encodeURIComponent(q)}${tbm ? `&tbm=${tbm}` : ""}`, { credentials: "include" });
+        const html = res.ok ? await res.text() : "";
+        // Service workers have no DOMParser: walk the anchors with a regex.
+        for (const m of html.matchAll(/<a\b[^>]*?href="([^"]+)"[^>]*>([\s\S]{0,1500}?)<\/a>/g)) {
+          let href = m[1].replace(/&amp;/g, "&");
+          const q = href.match(/[?&](?:q|url|adurl)=(https?[^&]+)/);
+          if (href.startsWith("/url?") || href.startsWith("/aclk?")) href = q ? decodeURIComponent(q[1]) : "";
+          if (!/^https?:\/\//.test(href)) continue;
+          const text = m[2].replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/gi, " ").replace(/\s+/g, " ").trim();
+          const price = text.match(/[₪$€£]\s?\d[\d,.]*|\d[\d,.]*\s?[₪$€£]/);
+          add(href, text.slice(0, 200), price && price[0]);
+        }
+      } catch (e) {}
+      await sleep(800 + Math.random() * 700);
+    }
+    if (out.length >= 40) break;
+  }
+  return out.slice(0, 60);
+}
+
 // Every 30 min: the server only hands out links that are due (blocked price checks ~daily, incomplete
 // links every few hours), so most runs are a single cheap request.
 chrome.runtime.onInstalled.addListener(() => chrome.alarms.create("nexus-prices", { delayInMinutes: 2, periodInMinutes: 30 }));
@@ -182,6 +222,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     }
     if (msg.type === "save") return { ok: true, ...(await send("/api/ext/save", msg.body)) };
     if (msg.type === "check-prices") return { ok: true, ...(await checkPrices(true)) };
+    if (msg.type === "search") return { ok: true, results: await searchStores(msg.queries || []) };
     if (msg.type === "config") return { ok: true, ...(await getConfig()) };
     return { ok: false, error: "unknown" };
   })()

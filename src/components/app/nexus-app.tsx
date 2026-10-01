@@ -32,6 +32,7 @@ import { SpendingView } from "./spending-view";
 import { ProjectsView } from "./projects-view";
 import { BarcodeScanner } from "./barcode-scanner";
 import { ReceiptCamera } from "./receipt-camera";
+import { CompareSheet } from "./compare-sheet";
 import { ShoppingMode, ShopOutboxSync } from "./shopping-mode";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
@@ -120,6 +121,9 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <BarcodeScanner open={s.scanner === "barcode"} onClose={() => s.setScanner(null)} />
       <ReceiptCamera />
       <ShoppingMode />
+      <PanelBoundary label="Compare">
+        <CompareSheet />
+      </PanelBoundary>
       <ShopOutboxSync />
 
       <ItemSheet />

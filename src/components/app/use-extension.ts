@@ -4,11 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientPayload } from "@/lib/service";
 
 type Pending = { resolve: (d: ClientPayload | null) => void; timer: ReturnType<typeof setTimeout> };
+export type SearchHit = { url: string; title: string | null; price: string | null };
+type PendingSearch = { resolve: (d: SearchHit[]) => void; timer: ReturnType<typeof setTimeout> };
 
 /** Talks to the Nexus Clipper extension (via its content script) when it's installed. */
 export function useExtension() {
   const [version, setVersion] = useState<string | null>(null);
   const pending = useRef(new Map<string, Pending>());
+  const searches = useRef(new Map<string, PendingSearch>());
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
@@ -16,6 +19,13 @@ export function useExtension() {
       const d = e.data;
       if (!d || d.source !== "nexus-ext") return;
       if (d.type === "hello") setVersion(String(d.version ?? "1"));
+      if (d.type === "searched") {
+        const p = searches.current.get(d.id);
+        if (!p) return;
+        clearTimeout(p.timer);
+        searches.current.delete(d.id);
+        p.resolve(d.ok && Array.isArray(d.results) ? (d.results as SearchHit[]) : []);
+      }
       if (d.type === "resolved") {
         const p = pending.current.get(d.id);
         if (!p) return;
@@ -43,5 +53,20 @@ export function useExtension() {
     [],
   );
 
-  return { available: version != null, version, resolve };
+  /** Search stores in the owner's browser (extension ≥ 1.3): Google Shopping + web result links. */
+  const search = useCallback(
+    (queries: string[]) =>
+      new Promise<SearchHit[]>((res) => {
+        const id = Math.random().toString(36).slice(2);
+        const timer = setTimeout(() => {
+          searches.current.delete(id);
+          res([]);
+        }, 60000);
+        searches.current.set(id, { resolve: res, timer });
+        window.postMessage({ source: "nexus-app", type: "search", id, queries }, window.location.origin);
+      }),
+    [],
+  );
+
+  return { available: version != null, version, resolve, search, canSearch: version != null && version.localeCompare("1.3.0", undefined, { numeric: true }) >= 0 };
 }

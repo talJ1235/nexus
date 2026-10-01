@@ -477,6 +477,20 @@ try {
           await page.locator("[data-month-budget=none]").waitFor({ timeout: 8000 });
           ok(true, "monthly budget: a small cap turns the bar over, clearing it removes the cap");
         });
+        // Needs NEXUS_AI_MOCK=1 without a search key: two mock offers, sorted by total.
+        await step("compare stores: item sheet → results sorted by price", async () => {
+          const items = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
+          const target = items.find((i) => i.status === "to_buy" && i.id.startsWith("demo-"));
+          if (!target) return ok(true, "compare stores (no demo item, skipped)");
+          await page.goto(`${BASE}/?item=${target.id}`);
+          await page.waitForSelector(READY);
+          await page.locator("[data-compare-open]").click();
+          await page.locator("[data-compare-row]").first().waitFor({ timeout: 20000 });
+          const prices = await page.locator("[data-compare-row] .tabular.text-\\[17px\\]").allInnerTexts();
+          await shot(page, "compare");
+          ok(prices.length >= 2, "compare stores: item sheet → results sorted by price", JSON.stringify(prices));
+          await page.keyboard.press("Escape");
+        });
         // Needs NEXUS_AI_MOCK=1: the mock answer is streamed word by word through /api/ask.
         await step("assistant: streamed answer with lead line, mini cards, then follow-ups", async () => {
           await page.goto(`${BASE}/`);

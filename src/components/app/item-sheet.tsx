@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRightLeft, ChevronDown, ClipboardList, ExternalLink, Inbox, LineChart, Minus, NotebookPen, Plus, RefreshCw, Store, Trash2, X } from "lucide-react";
+import { ArrowRightLeft, ChevronDown, ClipboardList, ExternalLink, Inbox, LineChart, Minus, NotebookPen, Plus, RefreshCw, Store, Trash2, X, Scale } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
 import { addSourceFromUrl, deleteItem, deleteSource, refetchSource, restoreItem, splitItem, unsplitItem, updateItem, updateSource } from "@/app/actions";
@@ -467,12 +467,23 @@ export function ItemSheet() {
                         ×{item.quantity} = <b className="font-semibold text-fg">{formatMoney(total, s.currency, locale)}</b>
                       </span>
                     )}
+                    {item.status === "to_buy" && s.offlineAt == null && (
+                      <button
+                        type="button"
+                        onClick={() => s.setCompareItemId(item.id)}
+                        className="ask-hairline ms-auto inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold"
+                        data-compare-open
+                      >
+                        <Scale className="size-3.5" />
+                        {t.compare.button}
+                      </button>
+                    )}
                     {active?.url && (
                       <a
                         href={active.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="ms-auto inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong px-2.5 text-[13px] font-medium text-fg transition hover:bg-sunken"
+                        className={cn("inline-flex h-8 items-center gap-1.5 rounded-full border border-line-strong px-3 text-[13px] font-medium text-fg transition hover:bg-sunken", item.status !== "to_buy" && "ms-auto")}
                       >
                         <ExternalLink className="size-3.5" />
                         {t.item.openStore}
