@@ -13,9 +13,9 @@ export function markBooted() {
   } catch {}
   const el = document.getElementById("boot");
   if (!el || getComputedStyle(el).display === "none") return;
-  // Time since the animation actually started (not since navigation), from the hub's own animation clock.
-  const hub = el.querySelector(".boot-hub");
-  const elapsed = Number(hub?.getAnimations?.()[0]?.currentTime ?? SEQUENCE_MS);
+  // Time since the animation actually started (not since navigation), from the left face's own animation clock.
+  const clock = el.querySelector(".boot-left");
+  const elapsed = Number(clock?.getAnimations?.()[0]?.currentTime ?? SEQUENCE_MS);
   const wait = Math.min(MAX_HOLD_MS, Math.max(0, SEQUENCE_MS - elapsed));
   setTimeout(() => {
     el.classList.add("boot-out");

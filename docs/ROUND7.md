@@ -69,7 +69,7 @@ face `M54 20 32 32v24l22-12z` (c2). Colours per context:
 extension icons + popup colours (bump extension patch version), boot screen (see A3). Reference: `docs/design/logo-box.html`.
 (The home references still show the old mark — use Box.)
 
-### A3. [ ] Boot screen with the Box
+### A3. [x] Boot screen with the Box
 Rework the phone boot animation (`src/components/boot-screen.tsx`, `src/lib/boot.ts`) for the Box: faces fly in and
 assemble (left, right, then the top drops on with a small spring), a soft light sweep across, wordmark fades in,
 heartbeat while waiting, hand-off as today. Same timing rules as Round 5 (≈1.4 s, plays to the end, reduced motion →

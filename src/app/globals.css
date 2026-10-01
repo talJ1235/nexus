@@ -487,8 +487,8 @@ body {
 }
 
 /* ---------- Phone opening animation (components/boot-screen.tsx) ----------
-   Hub pops in with a small overshoot → links draw out → outer nodes pop in one by one with the wordmark fading in (~1.4 s).
-   While the app is still loading, the hub gives a soft heartbeat. On ready: mark eases down, screen fades into the app. */
+   The Box assembles (~1.4 s): left face slides in, right face, then the top drops on with a small spring; a soft light
+   sweeps across, the wordmark fades in; while the app is still loading the box breathes. On ready: settle + fade. */
 #boot { display: none; }
 @media (max-width: 768px), (display-mode: standalone) {
   #boot {
@@ -505,42 +505,28 @@ body {
   html.boot-skip #boot { display: none; }
 }
 #boot.boot-gone { display: none !important; }
-#boot.boot-out { pointer-events: none; animation: boot-fade-out 450ms cubic-bezier(0.4, 0, 0.2, 1) both; }
-#boot.boot-out .boot-inner { animation: boot-settle 450ms cubic-bezier(0.4, 0, 0.2, 1) both; }
-.boot-inner { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: -6vh; }
-.boot-mark { width: 88px; height: 88px; overflow: visible; }
-.boot-tile { fill: var(--surface); }
-.boot-hub, .boot-node, .boot-glow { transform-box: fill-box; transform-origin: center; }
-.boot-hub { fill: var(--accent); animation: boot-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.boot-node { fill: var(--fg); animation: boot-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-/* Visible dash sits "before" the path start, hidden under the hub, until it is drawn out. */
-.boot-link {
-  fill: none;
-  stroke: var(--fg);
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  stroke-dasharray: 1 2;
-  stroke-dashoffset: 1;
-  animation: boot-draw 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-.boot-glow { fill: var(--accent); opacity: 0; animation: boot-beat 1.5s cubic-bezier(0.22, 1, 0.36, 1) 1350ms infinite; }
+#boot.boot-out { pointer-events: none; animation: boot-fade-out 450ms var(--ease-out) both; }
+#boot.boot-out .boot-inner { animation: boot-settle 450ms var(--ease-out) both; }
+.boot-inner { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: -6vh; }
+.boot-mark { width: 92px; height: 92px; overflow: visible; }
+.boot-face, .boot-box { transform-box: view-box; transform-origin: 32px 32px; }
+.boot-left { fill: var(--logo-c1); animation: boot-left 420ms var(--ease-out) both; }
+.boot-right { fill: var(--logo-c2); animation: boot-right 420ms var(--ease-out) 120ms both; }
+.boot-top { fill: var(--logo-c3); animation: boot-top 520ms var(--ease-spring) 380ms both; }
+.boot-sweep { animation: boot-sweep 520ms cubic-bezier(0.4, 0, 0.2, 1) 860ms both; }
+.boot-box { animation: boot-breathe 1.5s ease-in-out 1450ms infinite; }
 .boot-word {
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--fg);
-  animation: boot-word 500ms ease-out 900ms both;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  animation: boot-word 480ms var(--ease-out) 900ms both;
 }
-@keyframes boot-pop {
-  from { transform: scale(0); opacity: 0; }
-  40% { opacity: 1; }
-  to { transform: scale(1); opacity: 1; }
-}
-@keyframes boot-draw { to { stroke-dashoffset: 0; } }
-@keyframes boot-beat {
-  0% { transform: scale(1); opacity: 0.5; }
-  70%, 100% { transform: scale(2.8); opacity: 0; }
-}
+@keyframes boot-left { from { transform: translate(-22px, 10px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes boot-right { from { transform: translate(22px, 10px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes boot-top { from { transform: translateY(-26px); opacity: 0; } 30% { opacity: 1; } to { transform: none; opacity: 1; } }
+@keyframes boot-sweep { from { transform: translateX(0); } to { transform: translateX(112px); } }
+@keyframes boot-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.045); } }
 @keyframes boot-word {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
@@ -550,7 +536,7 @@ body {
 @keyframes boot-failsafe { to { opacity: 0; visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) {
   /* Static mark, simple fade out. */
-  .boot-hub, .boot-node, .boot-link, .boot-word, .boot-glow, #boot.boot-out .boot-inner { animation: none !important; }
-  .boot-link { stroke-dashoffset: 0; }
+  .boot-face, .boot-sweep, .boot-box, .boot-word, #boot.boot-out .boot-inner { animation: none !important; }
+  .boot-sweep { opacity: 0; }
   #boot.boot-out { animation-duration: 220ms !important; }
 }

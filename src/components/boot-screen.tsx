@@ -1,24 +1,40 @@
 /**
  * Phone / installed-app opening animation. Pure SVG + CSS in the initial HTML, so it starts before any JS; shown only
  * at (max-width: 768px) or in standalone mode (globals.css). Hidden by `markBooted()` once the app has its data.
- * Same background as the native PWA splash (manifest `background_color` = dark `--bg`), so native → boot is seamless.
+ * The Box assembles: left face, right face, then the top drops on with a small spring; a soft light sweeps across,
+ * the wordmark fades in, and the box breathes while the app is still loading. Background = the active palette's bg.
  */
+const TOP = "M32 8 54 20 32 32 10 20z";
+const LEFT = "M10 20l22 12v24L10 44z";
+const RIGHT = "M54 20 32 32v24l22-12z";
+
 export function BootScreen() {
   return (
-    <div id="boot" className="dark" aria-hidden="true">
+    <div id="boot" aria-hidden="true">
       {/* Reloads within the same tab skip it: the streamed shell + skeletons take over there. */}
       <script dangerouslySetInnerHTML={{ __html: `try{sessionStorage.getItem("nexus.booted")&&document.documentElement.classList.add("boot-skip")}catch(e){}` }} />
       <div className="boot-inner">
-        <svg viewBox="0 0 32 32" className="boot-mark">
-          <rect width="32" height="32" rx="9" className="boot-tile" />
-          <circle cx="16" cy="16" r="4" className="boot-glow" />
-          <path d="M16 16 9 9" pathLength={1} className="boot-link" style={{ animationDelay: "300ms" }} />
-          <path d="M16 16l7-7" pathLength={1} className="boot-link" style={{ animationDelay: "400ms" }} />
-          <path d="M16 16v8.5" pathLength={1} className="boot-link" style={{ animationDelay: "500ms" }} />
-          <circle cx="9" cy="9" r="2.6" className="boot-node" style={{ animationDelay: "750ms" }} />
-          <circle cx="23" cy="9" r="2.6" className="boot-node" style={{ animationDelay: "900ms" }} />
-          <circle cx="16" cy="24.5" r="2.6" className="boot-node" style={{ animationDelay: "1050ms" }} />
-          <circle cx="16" cy="16" r="4" className="boot-hub" />
+        <svg viewBox="0 0 64 64" className="boot-mark">
+          <defs>
+            <clipPath id="boot-clip">
+              <path d={TOP} />
+              <path d={LEFT} />
+              <path d={RIGHT} />
+            </clipPath>
+            <linearGradient id="boot-light" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0" stopColor="#fff" stopOpacity="0" />
+              <stop offset="0.5" stopColor="#fff" stopOpacity="0.55" />
+              <stop offset="1" stopColor="#fff" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <g className="boot-box">
+            <path d={LEFT} className="boot-face boot-left" />
+            <path d={RIGHT} className="boot-face boot-right" />
+            <path d={TOP} className="boot-face boot-top" />
+            <g clipPath="url(#boot-clip)">
+              <rect x="-24" y="0" width="24" height="64" fill="url(#boot-light)" className="boot-sweep" />
+            </g>
+          </g>
         </svg>
         <div className="boot-word">Nexus</div>
       </div>
