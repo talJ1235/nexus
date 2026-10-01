@@ -67,7 +67,7 @@ apps — **Chat** / **Plan a project** (pill toggle with icons). Plan mode turns
 "Add all to project…", per-line add). The rest of the chat continues normally. Remove the separate planner panel/tab;
 entry points that opened it ("Plan with Nexus" in the + menu, project page) open the chat in Plan mode.
 
-### C2. [ ] Conversation history
+### C2. [x] Conversation history
 - Conversations are saved (new tables `conversations` + `conversation_messages`, idempotent migration, included in
   backup; owner only). Each has an auto title (made by the model after the first answer, editable), created/updated
   time, mode(s) used, linked items/reports.

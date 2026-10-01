@@ -249,3 +249,28 @@ export const reports = sqliteTable("reports", {
   updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
 });
 export type Report = typeof reports.$inferSelect;
+
+/** Saved assistant conversations (Round 9 C2). `deletedAt` = in the bin (undo), purged later. */
+export const conversations = sqliteTable("conversations", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull().default(""),
+  // Modes used: "chat", "plan".
+  modes: text("modes", { mode: "json" }).$type<string[]>(),
+  // Items and reports the conversation touched.
+  links: text("links", { mode: "json" }).$type<{ items?: string[]; reports?: string[] }>(),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
+  deletedAt: integer("deleted_at"),
+});
+export type Conversation = typeof conversations.$inferSelect;
+
+export const conversationMessages = sqliteTable("conversation_messages", {
+  id: text("id").primaryKey(),
+  conversationId: text("conversation_id").notNull(),
+  role: text("role", { enum: ["user", "assistant"] }).notNull(),
+  text: text("text").notNull(),
+  // Cards that came with the message: plan, mode, target, route (proposals/report drafts are kept as text only).
+  data: text("data", { mode: "json" }).$type<unknown>(),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+});
+export type ConversationMessage = typeof conversationMessages.$inferSelect;

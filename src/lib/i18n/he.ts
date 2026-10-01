@@ -3,6 +3,21 @@ import type { Dict } from "./en";
 export const he: Dict = {
   appName: "Nexus",
   tagline: "כל מה שאתה מתכנן לקנות, במקום אחד",
+  chats: {
+    title: "היסטוריה",
+    open: "היסטוריית שיחות",
+    back: "חזרה לשיחה",
+    search: "חיפוש בשיחות",
+    today: "היום",
+    week: "השבוע",
+    earlier: "קודם",
+    empty: "אין עדיין שיחות. הן נשמרות כאן תוך כדי שיחה.",
+    noMatch: "לא נמצא",
+    untitled: "שיחה חדשה",
+    rename: "שינוי שם",
+    delete: "מחיקה",
+    deleted: "השיחה נמחקה",
+  },
   me: {
     open: "את/ה וההגדרות",
     look: "מראה",

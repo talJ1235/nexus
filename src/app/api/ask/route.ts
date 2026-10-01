@@ -8,6 +8,7 @@ import { CURRENCIES } from "@/lib/money";
 import { clientDiagSchema } from "@/lib/diag-schema";
 import { classifyQuestion } from "@/lib/help/route";
 import { parseReportBlock } from "@/lib/reports";
+import { pastSnippets } from "@/lib/conversations";
 import { diagLines, helpText, serverDiag } from "@/lib/help/server";
 
 export const maxDuration = 60;
@@ -19,6 +20,8 @@ const body = z.object({
   locale: z.enum(["en", "he"]),
   // Round 8 D2: what the client can tell about itself, for "how do I / why doesn't" questions.
   diag: clientDiagSchema.optional(),
+  // Round 9 C2: the conversation this question belongs to (excluded from the "last time" search).
+  conversationId: z.string().max(40).nullable().optional(),
 });
 
 /**
@@ -55,7 +58,9 @@ export async function POST(req: Request) {
         const { route, complaint } = classifyQuestion(input.question, data.collections.map((c) => c.name));
         const help = route === "data" ? undefined : helpText();
         const diag = route === "data" ? undefined : diagLines(input.diag, await serverDiag());
-        const p = askPrompt({ ...input, data, route, help, diag, complaint });
+        // "How did I fix X last time?" → snippets from earlier conversations.
+        const past = await pastSnippets(input.question, input.conversationId ?? null).catch(() => null);
+        const p = askPrompt({ ...input, data, route, help, diag, complaint, past });
         let full = "";
         if ("mock" in p) {
           send({ t: "route", provider: "mock", fallback: false });

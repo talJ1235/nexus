@@ -1,6 +1,21 @@
 export const en = {
   appName: "Nexus",
   tagline: "Everything you plan to buy, in one place",
+  chats: {
+    title: "History",
+    open: "Conversation history",
+    back: "Back to the chat",
+    search: "Search conversations",
+    today: "Today",
+    week: "This week",
+    earlier: "Earlier",
+    empty: "No conversations yet. They're saved here as you chat.",
+    noMatch: "Nothing found",
+    untitled: "New conversation",
+    rename: "Rename",
+    delete: "Delete",
+    deleted: "Conversation deleted",
+  },
   me: {
     open: "You and settings",
     look: "Look",

@@ -1,11 +1,13 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ArrowUpRight, Bug, Check, CornerDownRight, MessageSquare, MessageSquareWarning, Send, Square, SquarePen, Wand2, X } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Bug, Check, CornerDownRight, History, MessageSquare, MessageSquareWarning, Send, Square, SquarePen, Wand2, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { LogoMark } from "@/components/logo";
 import { toast } from "@/lib/toast";
 import { planWithAi } from "@/app/ai-actions";
+import { getConversation, latestConversation, saveExchange, titleConversation, type MessageView } from "@/app/chat-actions";
+import { HistoryList } from "./assistant-history";
 import { PlanCard } from "./assistant-plan-card";
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";
@@ -370,9 +372,25 @@ function splitLead(lines: string[]): [string | null, ...string[]] {
   return [first, ...lines.slice(1)];
 }
 
-function ChatTab({ seed, seedKey, onModel, mode, setMode }: { seed: string | null; seedKey: string | null; onModel: (m: ModelState) => void; mode: ChatMode; setMode: (m: ChatMode) => void }) {
+// The conversation this page is in (kept while the panel closes and reopens) and when it was last used.
+let currentConversation: string | null = null;
+let lastActive = 0;
+// Set by "New chat" (and opening another conversation): the next mount must not fall back to the latest one.
+let freshChat = false;
+const REOPEN_MS = 2 * 3600_000;
+const fromStored = (m: MessageView): Msg => ({
+  role: m.role,
+  text: m.text,
+  plan: (m.data?.plan as Plan | undefined) ?? null,
+  target: (m.data?.target as string | undefined) ?? null,
+  mode: (m.data?.mode as ChatMode | undefined) ?? undefined,
+});
+
+function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { seed: string | null; seedKey: string | null; onModel: (m: ModelState) => void; mode: ChatMode; setMode: (m: ChatMode) => void; onConversation: (c: { id: string; title: string } | null) => void }) {
   const s = useStore();
   const { t, locale } = useI18n();
+  const conv = useRef<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const currentProject = s.view.type === "collection" ? (s.view as { id: string }).id : null;
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [q, setQ] = useState("");
@@ -398,6 +416,47 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode }: { seed: string | nul
 
   const patchLast = (fn: (m: Msg) => Msg) => setMsgs((list) => (list.length ? [...list.slice(0, -1), fn(list[list.length - 1])] : list));
 
+  // Open: the conversation of this page if it was used in the last 2 h, else the latest saved one if it's that recent,
+  // else a new one (a seeded question always starts fresh unless a conversation is already open).
+  useEffect(() => {
+    let gone = false;
+    if (currentConversation && Date.now() - lastActive > REOPEN_MS) currentConversation = null;
+    const fresh = freshChat;
+    freshChat = false;
+    const load = currentConversation ? getConversation(currentConversation) : seed || fresh ? Promise.resolve(null) : latestConversation();
+    void load
+      .catch(() => null)
+      .then((r) => {
+        if (gone) return;
+        if (r) {
+          conv.current = r.conversation.id;
+          currentConversation = r.conversation.id;
+          onConversation({ id: r.conversation.id, title: r.conversation.title });
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- loaded asynchronously
+          setMsgs((now) => [...r.messages.map(fromStored), ...now]);
+        }
+        setLoading(false);
+      });
+    return () => {
+      gone = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Save the exchange (the first one creates the conversation, which then gets a title from the model). */
+  const persist = async (m: ChatMode, user: string, answer: string, data: Record<string, unknown>) => {
+    lastActive = Date.now();
+    try {
+      const r = await saveExchange({ conversationId: conv.current, mode: m, user: { text: user, data: { mode: m } }, assistant: { text: answer, data: { ...data, mode: m } } });
+      conv.current = r.conversation.id;
+      currentConversation = r.conversation.id;
+      onConversation({ id: r.conversation.id, title: r.conversation.title });
+      if (r.created) onConversation({ id: r.conversation.id, title: await titleConversation(r.conversation.id, locale) });
+    } catch {
+      // Saving is best effort; the chat goes on.
+    }
+  };
+
   // Plan mode: the message is a project description → the planner → a plan card in the chat; then back to Chat.
   const sendPlan = async (text: string) => {
     setMsgs((m) => [...m, { role: "user", text, mode: "plan" }]);
@@ -409,6 +468,7 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode }: { seed: string | nul
       else {
         setMsgs((m) => [...m, { role: "assistant", text: r.summary || r.projectName, plan: r, target: currentProject, mode: "plan", question: text }]);
         setLastExchange(text, `${r.projectName}: ${r.parts.map((p) => p.name).join(", ")}`);
+        void persist("plan", text, r.summary || r.projectName, { plan: r, target: currentProject });
       }
     } catch {
       setMsgs((m) => [...m, { role: "assistant", text: t.ai.failed, error: true }]);
@@ -431,7 +491,7 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode }: { seed: string | nul
     abort.current = ctrl;
     let started = false;
     try {
-      const res = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: text, history, currency: s.currency, locale, diag: collectDiag(s.view.type, locale, extensionVersion()) }), signal: ctrl.signal });
+      const res = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: text, history, currency: s.currency, locale, diag: collectDiag(s.view.type, locale, extensionVersion()), conversationId: conv.current }), signal: ctrl.signal });
       if (!res.ok || !res.body) throw new Error(String(res.status));
       const reader = res.body.getReader();
       const dec = new TextDecoder();
@@ -444,7 +504,7 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode }: { seed: string | nul
         buf = lines.pop() ?? "";
         for (const line of lines) {
           if (!line.trim()) continue;
-          const ev = JSON.parse(line) as { t: "route"; fallback: boolean } | { t: "delta"; text: string } | { t: "done"; text: string; proposal: Proposal | null; report?: ReportFields | null } | { t: "error"; error: string };
+          const ev = JSON.parse(line) as { t: "route"; fallback: boolean } | { t: "delta"; text: string } | { t: "done"; text: string; proposal: Proposal | null; report?: ReportFields | null; route?: string } | { t: "error"; error: string };
           if (ev.t === "route") onModel(ev.fallback ? "busy" : "ok");
           else if (ev.t === "delta") {
             if (!started) {
@@ -455,6 +515,8 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode }: { seed: string | nul
             if (!started) setMsgs((m) => [...m, { role: "assistant", text: ev.text, proposal: ev.proposal, report: ev.report, question: text }]);
             else patchLast((m) => ({ ...m, text: ev.text, proposal: ev.proposal, report: ev.report, question: text, streaming: false }));
             setLastExchange(text, ev.text);
+            // Proposals and report drafts are kept as text only: reopened later they must not be applied/sent twice.
+            void persist("chat", text, ev.text, { route: ev.route ?? null });
             started = true;
           } else if (ev.t === "error") {
             const msg = ev.error === "no_ai" ? t.ai.noAi : t.ai.failed;
@@ -500,7 +562,7 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode }: { seed: string | nul
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
-        {!msgs.length && (
+        {!msgs.length && !loading && (
           <div className="flex flex-col items-start gap-3 pt-6">
             <BoxThinking className="size-10 [&_path]:animate-none" />
             <p className="text-[15px] font-semibold text-ink">{mode === "plan" ? t.ai.planIntro : t.ai.askIntro}</p>
@@ -530,7 +592,7 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode }: { seed: string | nul
         <div ref={endRef} />
       </div>
       <div className="flex flex-col gap-2 border-t border-line px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3">
-        {!msgs.length && mode === "chat" && <Chips list={suggestions} onPick={(q) => void send(q)} label={t.ai.suggestions} testId="ai-suggestions" />}
+        {!msgs.length && !loading && mode === "chat" && <Chips list={suggestions} onPick={(q) => void send(q)} label={t.ai.suggestions} testId="ai-suggestions" />}
         {/* Mode switch, like the "thinking" toggles in AI apps: the next message is a chat question or a plan request. */}
         <div role="radiogroup" aria-label={t.ai.modeLabel} className="flex gap-1.5" data-ai-mode={mode}>
           {(["chat", "plan"] as const).map((k) => (
@@ -604,6 +666,16 @@ export function AssistantPanel() {
   const [chat, setChat] = useState(0);
   const [model, setModel] = useState<ModelState>("idle");
   const [mode, setMode] = useState<ChatMode>("chat");
+  const [pane, setPane] = useState<"chat" | "history">("chat");
+  const [conv, setConv] = useState<{ id: string; title: string } | null>(null);
+  const newChat = () => {
+    currentConversation = null;
+    freshChat = true;
+    lastActive = Date.now();
+    setConv(null);
+    setPane("chat");
+    setChat((n) => n + 1);
+  };
   const open = s.panel === "assistant" || s.panel === "planner";
   // "Plan with Nexus" (+ menu, project page) opens the one chat in Plan mode.
   useEffect(() => {
@@ -649,7 +721,10 @@ export function AssistantPanel() {
         </div>
         <div className="flex items-center gap-2 px-4 pb-2 pt-2 sm:pt-4" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
           <LogoMark className="size-7" />
-          <span className="text-[17px] font-extrabold tracking-[-0.02em]">Nexus</span>
+          <span className="min-w-0">
+            <span className="block text-[17px] font-extrabold leading-tight tracking-[-0.02em]">Nexus</span>
+            {conv?.title && pane === "chat" && <span className="block max-w-[46vw] truncate text-[12px] leading-tight text-muted bidi sm:max-w-[200px]" data-ai-title>{conv.title}</span>}
+          </span>
           <span
             className={cn("size-2 rounded-full", model === "busy" ? "bg-spark" : model === "ok" ? "bg-ok" : "bg-line-strong")}
             title={model === "busy" ? t.ai.modelBusy : model === "ok" ? t.ai.modelOk : undefined}
@@ -667,8 +742,19 @@ export function AssistantPanel() {
             <MessageSquareWarning className="size-4" />
             <span className="max-sm:sr-only">{t.report.menu}</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setPane(pane === "history" ? "chat" : "history")}
+            aria-pressed={pane === "history"}
+            className={cn("grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-ink", pane === "history" && "bg-surface-2 text-ink")}
+            aria-label={t.chats.open}
+            title={t.chats.open}
+            data-ai-history-open
+          >
+            <History className="size-[18px]" />
+          </button>
           {(
-            <button type="button" onClick={() => setChat((n) => n + 1)} className="grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-ink" aria-label={t.ai.newChat} title={t.ai.newChat} data-ai-new>
+            <button type="button" onClick={newChat} className="grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-ink" aria-label={t.ai.newChat} title={t.ai.newChat} data-ai-new>
               <SquarePen className="size-[18px]" />
             </button>
           )}
@@ -676,7 +762,20 @@ export function AssistantPanel() {
             <X className="size-[18px]" />
           </SheetClose>
         </div>
-        <ChatTab key={chat} seed={seed} seedKey={seedKey} onModel={setModel} mode={mode} setMode={(m) => (setMode(m), m === "chat" && s.panel === "planner" && s.setPanel("assistant"))} />
+        {pane === "history" ? (
+          <HistoryList
+            currentId={conv?.id ?? null}
+            onBack={() => setPane("chat")}
+            onOpen={(id) => {
+              currentConversation = id;
+              lastActive = Date.now();
+              setPane("chat");
+              setChat((n) => n + 1);
+            }}
+          />
+        ) : (
+          <ChatTab key={chat} seed={seed} seedKey={seedKey} onModel={setModel} mode={mode} onConversation={setConv} setMode={(m) => (setMode(m), m === "chat" && s.panel === "planner" && s.setPanel("assistant"))} />
+        )}
       </div>
     </Sheet>
   );

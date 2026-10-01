@@ -44,6 +44,25 @@ async function main() {
     created_at integer DEFAULT (unixepoch() * 1000) NOT NULL,
     updated_at integer DEFAULT (unixepoch() * 1000) NOT NULL
   )`);
+  // Round 9 C2: assistant conversations.
+  await client.execute(`CREATE TABLE IF NOT EXISTS conversations (
+    id text PRIMARY KEY NOT NULL,
+    title text DEFAULT '' NOT NULL,
+    modes text,
+    links text,
+    created_at integer DEFAULT (unixepoch() * 1000) NOT NULL,
+    updated_at integer DEFAULT (unixepoch() * 1000) NOT NULL,
+    deleted_at integer
+  )`);
+  await client.execute(`CREATE TABLE IF NOT EXISTS conversation_messages (
+    id text PRIMARY KEY NOT NULL,
+    conversation_id text NOT NULL,
+    role text NOT NULL,
+    text text NOT NULL,
+    data text,
+    created_at integer DEFAULT (unixepoch() * 1000) NOT NULL
+  )`);
+  await client.execute("CREATE INDEX IF NOT EXISTS conversation_messages_conv ON conversation_messages (conversation_id, created_at)");
   const itemCols = (await client.execute("PRAGMA table_info(items)")).rows.map((r) => String(r.name));
   if (!itemCols.includes("order_number")) await client.execute("ALTER TABLE items ADD COLUMN order_number text");
   // Round 7: barcodes (D1).

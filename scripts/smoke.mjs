@@ -395,6 +395,7 @@ try {
           ["assistant", async () => {
             await go("/");
             await page.locator("[data-ask]").filter({ visible: true }).first().click();
+            await page.locator("[data-ai-new]").click(); // a fresh chat (the panel reopens recent conversations)
             await page.locator("[data-assistant]").waitFor({ timeout: 8000 });
           }],
           ["settings", async () => {
@@ -619,6 +620,7 @@ try {
       await btn.click();
       await page.getByRole("dialog").waitFor({ timeout: 5000 });
       ok(true, "assistant panel opens");
+      await page.locator("[data-ai-new]").click(); // suggestions show on a fresh chat (recent conversations reopen)
       const chips = page.locator("[data-testid=ai-suggestions] button");
       await chips.first().waitFor({ timeout: 5000 });
       const n = await chips.count();
@@ -838,6 +840,7 @@ try {
           await page.goto(`${BASE}/`);
           await page.waitForSelector(READY);
           await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          await page.locator("[data-ai-new]").click(); // a fresh chat (the panel reopens recent conversations)
           const dlg = page.getByRole("dialog");
           await dlg.locator("textarea").fill("How much is left to buy?");
           await dlg.locator("textarea").press("Enter");
@@ -855,6 +858,7 @@ try {
           await page.goto(`${BASE}/`);
           await page.waitForSelector(READY);
           await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          await page.locator("[data-ai-new]").click(); // a fresh chat (the panel reopens recent conversations)
           const dlg = page.getByRole("dialog");
           await dlg.locator("textarea").fill("How do I add a receipt?");
           await dlg.locator("textarea").press("Enter");
@@ -872,6 +876,7 @@ try {
           await page.goto(`${BASE}/`);
           await page.waitForSelector(READY);
           await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          await page.locator("[data-ai-new]").click(); // a fresh chat (the panel reopens recent conversations)
           const dlg = page.getByRole("dialog");
           const marker = `Smoke report ${Date.now()}`;
           await dlg.locator("textarea").fill(`${marker}: the shopping mode is broken`);
@@ -903,6 +908,7 @@ try {
           await page.goto(`${BASE}/`);
           await page.waitForSelector(READY);
           await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          await page.locator("[data-ai-new]").click(); // a fresh chat (the panel reopens recent conversations)
           const dlg = page.getByRole("dialog");
           await dlg.locator("[data-ai-mode-option=plan]").click();
           await dlg.locator("textarea").fill("A motorized camera slider on V-slot with an ESP32");
@@ -918,6 +924,36 @@ try {
           ok(mode === "chat", "assistant plan mode: description → plan card in the chat → add a line → add all", `mode after=${mode}`);
           await page.keyboard.press("Escape");
         });
+        // Round 9 C2 (mock): conversations are saved — reopening continues one, History finds, deletes (Undo), new chat.
+        await step("assistant history: reopen continues, history search, delete + undo, new chat", async () => {
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY);
+          await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          await page.locator("[data-ai-new]").click();
+          const dlg = page.getByRole("dialog");
+          const marker = `Zebra${Date.now() % 100000}`;
+          await dlg.locator("textarea").fill(`How much is left to buy for ${marker}?`);
+          await dlg.locator("textarea").press("Enter");
+          await dlg.locator("[data-ai-send=send]").waitFor({ timeout: 15000 });
+          await dlg.locator("[data-ai-title]").waitFor({ timeout: 10000 });
+          await page.keyboard.press("Escape");
+          await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          const reopened = await dlg.locator("[data-ai-user]").filter({ hasText: marker }).waitFor({ timeout: 8000 }).then(() => true, () => false);
+          await dlg.locator("[data-ai-history-open]").click();
+          await dlg.locator("[data-ai-history-search]").fill(marker);
+          const row = dlg.locator("[data-ai-history-row]").first();
+          await row.waitFor({ timeout: 8000 });
+          await shot(page, "assistant-history");
+          const rows = await dlg.locator("[data-ai-history-row]").count();
+          await row.locator("[data-ai-history-delete]").click();
+          await page.locator("[data-sonner-toast]").filter({ hasText: /deleted|נמחקה/ }).getByRole("button", { name: /Undo|ביטול/ }).click();
+          await dlg.locator("[data-ai-history-search]").fill(`${marker} `);
+          const back = await dlg.locator("[data-ai-history-row]").first().waitFor({ timeout: 8000 }).then(() => true, () => false);
+          await dlg.locator("[data-ai-new]").click();
+          const fresh = (await dlg.locator("[data-ai-user]").count()) === 0;
+          ok(reopened && rows === 1 && back && fresh, "assistant history: reopen continues, history search, delete + undo, new chat", JSON.stringify({ reopened, rows, back, fresh }));
+          await page.keyboard.press("Escape");
+        });
         // Needs the server started with NEXUS_AI_MOCK=1 (the mock proposes "first two to-buy items → ordered").
         await step("assistant action: propose → apply → undo", async () => {
           await page.goto(`${BASE}/`);
@@ -925,6 +961,7 @@ try {
           const btn = page.locator("[data-ask]").filter({ visible: true }).first();
           if (!(await btn.count())) return ok(true, "assistant action (AI off or not in this layout, skipped)");
           await btn.click();
+          await page.locator("[data-ai-new]").click();
           const dlg = page.getByRole("dialog");
           await dlg.locator("textarea").fill("Mark my first two to-buy items as ordered");
           await dlg.locator("textarea").press("Enter");

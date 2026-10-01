@@ -148,7 +148,13 @@ type AskInput = {
   diag?: string;
   /** Round 8 D3: the message reads like a bug report, complaint or idea → offer a report card. */
   complaint?: boolean;
+  /** Round 9 C2: snippets from earlier conversations, for "how did I … last time?" questions. */
+  past?: string | null;
 };
+
+/** Earlier conversations for "last time" questions (empty when there are none). */
+const pastBlock = (past: string | null | undefined) =>
+  past ? `\nEARLIER CONVERSATIONS (the user may be asking about one of these; say what was done, with its date)\n${past}\n` : "";
 
 /** Canned how-to answers for mock mode, each with an action button. */
 function mockHelp(q: string, locale: "en" | "he") {
@@ -211,7 +217,7 @@ ${helpRules}
 
 DIAGNOSTICS (this user's app right now)
 ${input.diag ?? "(none)"}
-
+${pastBlock(input.past)}
 HELP
 ${input.help ?? ""}`;
     const convo = input.history
@@ -254,7 +260,8 @@ PROJECTS & LISTS ([id] kind "name")
 ${projects.join("\n") || "(none)"}
 
 ITEMS (status: to_buy / ordered / purchased)
-${lines.join("\n") || "(none)"}${
+${lines.join("\n") || "(none)"}
+${pastBlock(input.past)}${
     input.route === "unsure" && input.help
       ? `
 
