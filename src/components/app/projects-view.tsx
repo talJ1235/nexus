@@ -1,17 +1,20 @@
 "use client";
 
-import { FolderPlus, ListPlus, Pencil } from "lucide-react";
+import { Flag, FolderPlus, ListPlus, Pencil, Plus, Share2, ShoppingCart, Sparkles, Truck } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { Ring } from "@/components/ui/ring";
-import { budgetStats, countable, sumTotals } from "@/lib/calc";
 import { formatMoney } from "@/lib/money";
 import type { Collection } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ProjectCover, openProject, projectColor, useProjectStats } from "./project-cover";
+import { useReadOnly } from "./offline-banner";
 import { useStore } from "./store";
-import { COLLECTION_COLORS } from "./view-items";
 
-/** Projects (and lists) as cards: items left, amount left, budget ring, bought vs total. Tap → the project page. */
+/**
+ * Projects (Round 9 E1): substantial, friendly cards — a colour cover with a collage of the project's pictures, the
+ * name, what's left and what's next, a budget ring, bought vs total, urgent / on-the-way flags. Lists below.
+ */
 export function ProjectsView() {
   const s = useStore();
   const { t } = useI18n();
@@ -22,27 +25,22 @@ export function ProjectsView() {
     <div className="flex flex-col gap-5" data-projects-view>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-[26px] font-extrabold tracking-[-0.02em]">{t.projects.title}</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="h-10 px-4" onClick={() => s.setEditor({ mode: "create", kind: "list" })}>
-            <ListPlus /> {t.nav.newList}
-          </Button>
-          <Button variant="primary" size="sm" className="h-10 px-4" onClick={() => s.setEditor({ mode: "create", kind: "project" })} data-new-project>
-            <FolderPlus /> {t.nav.newProject}
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" className="h-10 px-4" onClick={() => s.setEditor({ mode: "create", kind: "list" })}>
+          <ListPlus /> {t.nav.newList}
+        </Button>
       </div>
-      {projects.length === 0 && <p className="rounded-[26px] border border-dashed border-line-strong px-6 py-10 text-center text-[15px] text-muted">{t.projects.empty}</p>}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
         {projects.map((c, i) => (
           <ProjectCard key={c.id} c={c} index={i} />
         ))}
+        <NewProjectCard index={projects.length} empty={!projects.length} />
       </div>
       {lists.length > 0 && (
         <>
-          <h2 className="mt-2 text-[17px] font-extrabold">{t.projects.lists}</h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <h2 className="mt-2 text-[18px] font-extrabold">{t.projects.lists}</h2>
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
             {lists.map((c, i) => (
-              <ProjectCard key={c.id} c={c} index={projects.length + i} />
+              <ProjectCard key={c.id} c={c} index={projects.length + 1 + i} />
             ))}
           </div>
         </>
@@ -54,53 +52,156 @@ export function ProjectsView() {
 function ProjectCard({ c, index }: { c: Collection; index: number }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
-  const items = s.items.filter((i) => i.collectionId === c.id);
-  const toBuy = countable(items.filter((i) => i.status === "to_buy"), s.altGroups, s.rates);
-  const left = sumTotals(toBuy, s.rates, s.currency).total;
-  const bought = items.filter((i) => i.status !== "to_buy").length;
-  const b = c.kind === "project" ? budgetStats(c, s.items, s.altGroups, s.rates, s.currency) : null;
-  const color = COLLECTION_COLORS[c.color] ?? COLLECTION_COLORS.slate;
-  const ringValue = b?.budget != null ? (b.pct ?? 0) / 100 : items.length ? bought / items.length : 0;
-  const m = (v: number) => formatMoney(v, s.currency, locale);
+  const st = useProjectStats(c);
+  const color = projectColor(c);
+  const m = (v: number) => formatMoney(Math.round(v), s.currency, locale);
+  const budget = st.b?.budget != null ? st.b : null;
+  const ring = budget ? Math.min(1, (budget.pct ?? 0) / 100) : st.items.length ? st.bought / st.items.length : 0;
 
   return (
     <div
-      className="rise-in group relative flex flex-col gap-3 rounded-[26px] border border-line bg-surface p-4 transition-[transform,box-shadow] duration-[250ms] ease-[var(--ease-out)] hover:-translate-y-[3px] hover:shadow-[0_14px_30px_color-mix(in_srgb,var(--ink)_10%,transparent)] active:scale-[0.99]"
-      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+      className="rise-in group relative flex flex-col overflow-hidden rounded-[26px] border border-line bg-surface shadow-card transition-[transform,box-shadow] duration-[250ms] ease-[var(--ease-out)] hover:-translate-y-[3px] hover:shadow-lift active:scale-[0.99]"
+      style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
       data-project-card={c.id}
     >
-      <button type="button" className="absolute inset-0 z-[1] rounded-[26px]" aria-label={c.name} onClick={() => s.setView({ type: "collection", id: c.id })} />
-      <div className="flex items-start gap-3">
-        <i className={cn("mt-1.5 size-3 shrink-0", c.kind === "project" ? "rounded-[4px]" : "rounded-full")} style={{ background: color }} />
-        <div className="min-w-0 flex-1">
-          <h3 className="bidi truncate text-[16px] font-extrabold">{c.name}</h3>
-          <p className="tabular mt-0.5 text-[13px] text-muted">
-            {toBuy.length ? (toBuy.length === 1 ? t.projects.leftOne : f(t.projects.left, { n: toBuy.length })) : t.projects.done}
-            {left > 0 && <> · {f(t.projects.toBuy, { amount: m(left) })}</>}
-          </p>
+      <button type="button" className="absolute inset-0 z-[1] rounded-[26px]" aria-label={c.name} onClick={() => openProject(c.id, s.setView)} />
+      <ProjectCover c={c} pics={st.pics} className="h-[84px] sm:h-[104px]" />
+      <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="bidi truncate text-[18px] font-extrabold leading-tight tracking-[-0.01em]">{c.name}</h3>
+            <p className="mt-0.5 truncate text-[13px] text-muted">
+              <span className="tabular">{st.toBuy.length ? (st.toBuy.length === 1 ? t.projects.leftOne : f(t.projects.left, { n: st.toBuy.length })) : t.projects.done}</span>
+              {st.next && (
+                <>
+                  {" · "}
+                  <span className="bidi">{f(t.projects.next, { item: st.next.title })}</span>
+                </>
+              )}
+            </p>
+          </div>
+          <Ring value={ring} size={48} stroke={6} color={budget?.state === "over" ? "var(--danger)" : color}>
+            <span className="tabular text-[11.5px] font-extrabold">{Math.round(ring * 100)}%</span>
+          </Ring>
+          <button
+            type="button"
+            onClick={() => s.setEditor({ mode: "edit", collection: c })}
+            className="relative z-[2] -me-1.5 -mt-1 grid size-9 place-items-center rounded-full text-muted opacity-0 transition hover:bg-surface-2 hover:text-ink group-hover:opacity-100 max-lg:hidden"
+            aria-label={t.collection.rename}
+            title={t.collection.rename}
+          >
+            <Pencil className="size-3.5" />
+          </button>
         </div>
-        <Ring value={ringValue} size={44} stroke={6} color={b?.state === "over" ? "var(--danger)" : color}>
-          <span className="tabular text-[11px] font-extrabold">{Math.round(ringValue * 100)}%</span>
-        </Ring>
-        <button
-          type="button"
-          onClick={() => s.setEditor({ mode: "edit", collection: c })}
-          className="relative z-[2] -me-1.5 -mt-1 grid size-9 place-items-center rounded-full text-muted opacity-0 transition hover:bg-surface-2 hover:text-ink group-hover:opacity-100 max-lg:opacity-100"
-          aria-label={t.collection.rename}
-          title={t.collection.rename}
-        >
-          <Pencil className="size-3.5" />
-        </button>
-      </div>
-      <div>
-        <div className="h-2 overflow-hidden rounded-full bg-surface-2" aria-hidden>
-          <i className="grow-x block h-full rounded-full" style={{ width: `${items.length ? (bought / items.length) * 100 : 0}%`, background: color }} />
-        </div>
-        <div className="mt-1.5 flex justify-between text-xs text-muted">
-          <span className="tabular">{f(t.projects.bought, { done: bought, total: items.length })}</span>
-          {b?.budget != null && <span className="tabular">{t.home.budget} {m(b.budget)}</span>}
+        <div className="mt-auto">
+          <div className="h-2 overflow-hidden rounded-full bg-surface-2" aria-hidden>
+            <i className="grow-x block h-full rounded-full" style={{ width: `${st.items.length ? (st.bought / st.items.length) * 100 : 0}%`, background: color, animationDelay: `${200 + index * 55}ms` }} />
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+            <span className="tabular">{f(t.projects.bought, { done: st.bought, total: st.items.length })}</span>
+            {budget && (
+              <span className={cn("tabular font-semibold", budget.state === "over" ? "text-danger" : "text-ink")}>
+                · {budget.state === "over" ? f(t.projects.overAmount, { amount: m(budget.used - budget.budget!) }) : f(t.projects.leftAmount, { amount: m(budget.budget! - budget.used) })}
+              </span>
+            )}
+            <span className="flex-1" />
+            {st.urgent > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--danger)_14%,transparent)] px-2 py-0.5 font-semibold text-danger" data-project-urgent>
+                <Flag className="size-3" /> {f(t.projects.urgentN, { n: st.urgent })}
+              </span>
+            )}
+            {st.onTheWay > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--info)_14%,transparent)] px-2 py-0.5 font-semibold text-info">
+                <Truck className="size-3" /> {f(t.projects.onTheWayN, { n: st.onTheWay })}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+/** "New project": a dashed card with a friendly hint (the empty state when there are none). */
+function NewProjectCard({ index, empty }: { index: number; empty: boolean }) {
+  const s = useStore();
+  const { t } = useI18n();
+  return (
+    <button
+      type="button"
+      onClick={() => s.setEditor({ mode: "create", kind: "project" })}
+      className={cn(
+        "rise-in group flex min-h-[180px] flex-col items-center justify-center gap-2.5 rounded-[26px] border-2 border-dashed border-line-strong p-6 text-center transition hover:border-ink/40 hover:bg-surface-2 active:scale-[0.99]",
+        empty && "sm:col-span-2 xl:col-span-3",
+      )}
+      style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
+      data-new-project
+    >
+      <span className="grid size-14 place-items-center rounded-full bg-[image:var(--act-plan)] text-[var(--act-plan-ink)] transition-transform duration-[450ms] ease-[var(--ease-spring)] group-hover:rotate-90">
+        {empty ? <FolderPlus className="size-6" /> : <Plus className="size-6" />}
+      </span>
+      <b className="text-[16px] font-extrabold">{t.projects.newTitle}</b>
+      <span className="max-w-[34ch] text-[13px] text-muted">{empty ? t.projects.empty : t.projects.newHint}</span>
+    </button>
+  );
+}
+
+/**
+ * The project page's header (Round 9 E1), matching its card: the cover (the card's cover morphs into it), name,
+ * ring, numbers, and the actions — Plan with Nexus (Plan mode), Shop this project, Share, Edit.
+ */
+export function ProjectHeader({ c }: { c: Collection }) {
+  const s = useStore();
+  const ro = useReadOnly();
+  const { t, f, locale } = useI18n();
+  const st = useProjectStats(c);
+  const color = projectColor(c);
+  const m = (v: number) => formatMoney(Math.round(v), s.currency, locale);
+  const budget = st.b?.budget != null ? st.b : null;
+  const ring = budget ? Math.min(1, (budget.pct ?? 0) / 100) : st.items.length ? st.bought / st.items.length : 0;
+
+  return (
+    <header className="mb-4 overflow-hidden rounded-[30px] border border-line bg-surface shadow-card" data-project-header={c.id}>
+      <ProjectCover c={c} pics={st.pics} size="header" className="h-[120px] sm:h-[160px]" />
+      <div className="flex flex-col gap-4 p-4 sm:p-5">
+        <div className="flex items-start gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="bidi text-[26px] font-extrabold leading-tight tracking-[-0.02em] sm:text-[30px]">{c.name}</h1>
+            {c.description && <p className="mt-1 max-w-[70ch] text-sm text-muted bidi">{c.description}</p>}
+            <p className="tabular mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[13.5px] text-muted">
+              <span>{st.toBuy.length ? (st.toBuy.length === 1 ? t.projects.leftOne : f(t.projects.left, { n: st.toBuy.length })) : t.projects.done}</span>
+              {st.left > 0 && <b className="font-semibold text-ink">{f(t.projects.toBuy, { amount: m(st.left) })}</b>}
+              {st.b && st.b.spent > 0 && <span>{f(t.projects.spent, { amount: m(st.b.spent) })}</span>}
+              {budget && (
+                <span className={cn("font-semibold", budget.state === "over" ? "text-danger" : "text-ok")}>
+                  {budget.state === "over" ? f(t.projects.overAmount, { amount: m(budget.used - budget.budget!) }) : f(t.projects.leftAmount, { amount: m(budget.budget! - budget.used) })}
+                </span>
+              )}
+              {st.urgent > 0 && <span className="font-semibold text-danger">{f(t.projects.urgentN, { n: st.urgent })}</span>}
+              {st.onTheWay > 0 && <span className="font-semibold text-info">{f(t.projects.onTheWayN, { n: st.onTheWay })}</span>}
+            </p>
+          </div>
+          <Ring value={ring} size={64} stroke={8} color={budget?.state === "over" ? "var(--danger)" : color}>
+            <span className="tabular text-[13px] font-extrabold">{Math.round(ring * 100)}%</span>
+          </Ring>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {c.kind === "project" && s.aiEnabled && (
+            <Button className="h-10 border-transparent bg-[image:var(--act-plan)] px-4 text-[var(--act-plan-ink)] hover:opacity-90" variant="outline" disabled={ro.ro} onClick={() => s.setPanel("planner")} data-plan-project>
+              <Sparkles /> {t.projects.plan}
+            </Button>
+          )}
+          <Button variant="primary" className="h-10 px-4" onClick={() => s.setShop({ kind: "collection", id: c.id })} data-shop-open>
+            <ShoppingCart /> {t.projects.shop}
+          </Button>
+          <Button variant="outline" className="h-10 px-4" onClick={() => s.setPanel("share")}>
+            <Share2 /> <span className="max-sm:sr-only">{t.share.shareBtn}</span>
+          </Button>
+          <Button variant="outline" className="h-10 w-10 px-0" onClick={() => s.setEditor({ mode: "edit", collection: c })} aria-label={t.collection.rename} title={t.collection.rename}>
+            <Pencil />
+          </Button>
+        </div>
+      </div>
+    </header>
   );
 }

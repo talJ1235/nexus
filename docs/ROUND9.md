@@ -112,7 +112,7 @@ no item prices unless the user typed them.
 
 ## Part E — projects that feel like projects
 
-### E1. [ ] Projects page redesign
+### E1. [x] Projects page redesign
 A project is something big — cards should feel substantial, colourful and friendly (still inside the theme):
 - Large cards (phone: full width ~180 px tall; desktop: 2–3 columns): a **cover** = the project's colour as a soft
   gradient wash with a collage of 3–4 of its item images (rounded, slightly overlapping), project name (bold, large),

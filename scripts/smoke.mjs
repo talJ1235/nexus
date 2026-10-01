@@ -528,16 +528,21 @@ try {
       });
     }
 
-    await step("projects screen lists project cards", async () => {
+    await step("projects screen: cards with covers + new-project card → project page with its header", async () => {
       await page.goto(`${BASE}/?v=projects`);
       await page.waitForSelector("[data-projects-view]", { timeout: 15000 });
       const n = await page.locator("[data-project-card]").count();
+      const covers = await page.locator("[data-project-card] [data-project-cover]").count();
+      const add = await page.locator("[data-new-project]").count();
       await shot(page, "projects");
+      let header = 0;
       if (n) {
         await page.locator("[data-project-card] > button").first().click();
-        await page.waitForSelector(READY, { timeout: 10000 });
+        // The cover morphs (View Transition): the page updates a frame later.
+        await page.waitForSelector("[data-project-header]", { timeout: 10000 });
+        header = await page.locator("[data-project-header] [data-project-cover]").count();
       }
-      ok(n > 0 && /v=c%3A|v=c:/.test(page.url()), "projects screen lists project cards", `cards=${n} url=${page.url()}`);
+      ok(n > 0 && covers === n && add === 1 && header === 1 && /v=c%3A|v=c:/.test(page.url()), "projects screen: cards with covers + new-project card → project page with its header", `cards=${n} covers=${covers} add=${add} header=${header} url=${page.url()}`);
       await page.goto(`${BASE}/`);
       await page.waitForSelector(READY, { timeout: 15000 });
     });
@@ -925,6 +930,8 @@ try {
           await dlg.locator("textarea").press("Enter");
           const card = dlg.locator("[data-ai-plan]");
           await card.waitFor({ timeout: 20000 });
+          // Add into an existing project (not a new one every run).
+          await card.locator("[data-ai-plan-target]").selectOption({ index: 1 }).catch(() => {});
           const mode = await dlg.locator("[data-ai-mode]").getAttribute("data-ai-mode");
           await shot(page, "assistant-plan");
           await card.locator("[data-ai-plan-add]").first().click();

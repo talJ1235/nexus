@@ -699,3 +699,12 @@ body {
 .cv-auto { content-visibility: auto; contain-intrinsic-size: auto 330px; }
 .cv-auto:hover, .cv-auto:focus-within { content-visibility: visible; }
 @media (max-width: 639px) { .cv-auto { contain-intrinsic-size: auto 72px; } }
+
+/* Project card → project page (Round 9 E1): only the cover morphs; the rest of the page uses the app's own view
+   animation (no root cross-fade, so the dock and top bar never flicker). */
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; }
+::view-transition-group(*) { animation-duration: 420ms; animation-timing-function: var(--ease-out); }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) { animation-duration: 0s; }
+}

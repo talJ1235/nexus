@@ -33,7 +33,7 @@ import { AltSheet } from "./alt-sheet";
 import { OrdersView } from "./orders-view";
 import { SelectionBar } from "./selection-bar";
 import { SpendingView } from "./spending-view";
-import { ProjectsView } from "./projects-view";
+import { ProjectHeader, ProjectsView } from "./projects-view";
 import { BarcodeScanner } from "./barcode-scanner";
 import { ReceiptCamera } from "./receipt-camera";
 import { CompareSheet } from "./compare-sheet";
@@ -259,6 +259,15 @@ function ViewHeader() {
   const { t, f, locale } = useI18n();
   const items = useViewItems();
   const collection = s.view.type === "collection" ? s.collections.find((c) => c.id === (s.view as { id: string }).id) : null;
+
+  // A project/list page has its own header (cover, ring, numbers, actions — Round 9 E1), then the section header.
+  if (collection && !s.loading)
+    return (
+      <>
+        <ProjectHeader c={collection} />
+        <FiltersRow showProjects={false} />
+      </>
+    );
 
   const title = (() => {
     switch (s.view.type) {
