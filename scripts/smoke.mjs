@@ -223,6 +223,57 @@ try {
     }
 
     if (MOBILE) {
+      // Round 9 A2: the dock is physically To buy · On the way · + · Projects · Stats in every language, and it never
+      // moves: its box is sampled every animation frame while switching through all five targets.
+      await step("phone dock: fixed order in en + he, dock and top bar perfectly still while switching", async () => {
+        const order = async () =>
+          page.evaluate(() => [...document.querySelectorAll("[data-dock] > [data-dock-target]")].sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left).map((e) => e.getAttribute("data-dock-target")));
+        await page.goto(`${BASE}/`);
+        await page.waitForSelector(READY);
+        const en = await order();
+        await ctx.addCookies([{ name: "nexus_locale", value: "he", url: BASE }]);
+        await page.reload();
+        await page.waitForSelector(READY);
+        const he = await order();
+        await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }]);
+        await page.reload();
+        await page.waitForSelector(READY);
+        const moves = [];
+        for (const target of ["ordered", "projects", "spending", "to_buy", "plus", "ordered", "to_buy"]) {
+          const d = await page.evaluate(async (target) => {
+            const dock = document.querySelector("[data-dock]");
+            const top = [...document.querySelectorAll("[data-app-header]")].find((e) => e.offsetHeight > 0);
+            const box = () => {
+              const r = dock.getBoundingClientRect();
+              const h = top.getBoundingClientRect();
+              return [r.left, r.top, r.width, r.height, window.innerWidth, h.left, h.top, h.width, h.height];
+            };
+            const first = box();
+            let max = 0;
+            let on = true;
+            const tick = () => {
+              const b = box();
+              max = Math.max(max, ...b.map((v, i) => Math.abs(v - first[i])));
+              if (on) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+            document.querySelector(`[data-dock-target="${target}"]`).click();
+            await new Promise((r) => setTimeout(r, 900));
+            if (target === "plus") {
+              document.querySelector("[data-dock-target=plus]").click();
+              await new Promise((r) => setTimeout(r, 600));
+            }
+            on = false;
+            return max;
+          }, target);
+          if (d > 0.5) moves.push(`${target}: ${d.toFixed(1)} px`);
+        }
+        const want = ["to_buy", "ordered", "plus", "projects", "spending"];
+        ok(JSON.stringify(en) === JSON.stringify(want) && JSON.stringify(he) === JSON.stringify(want) && !moves.length, "phone dock: fixed order in en + he, dock and top bar perfectly still while switching", JSON.stringify({ en, he, moves }));
+      });
+    }
+
+    if (MOBILE) {
       // Round 8 C: the hero summarizes, the products are the page.
       await step("phone home: totals legend + strip, first row of products above the fold, cards ↔ rows", async () => {
         await page.goto(`${BASE}/`);

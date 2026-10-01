@@ -96,7 +96,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
 
   return (
     <div
-      className="min-h-dvh"
+      className="min-h-lvh"
       style={{ "--sw": collapsed ? "76px" : "248px" } as React.CSSProperties}
       data-app-shell
       data-phone-layout={s.phoneLayout}
@@ -129,7 +129,9 @@ function Shell({ incoming }: { incoming?: Incoming }) {
               {size !== "phone" && <TopBar />}
             </div>
           </div>
-          <main className="mx-auto max-w-[1400px] px-4 pb-40 pt-2 sm:px-6 lg:px-0 lg:pt-2">
+          {/* overflow-x: clip — the sliding view transition must never make the page wider than a phone (a wider page
+              widens the layout viewport and moved the fixed dock, Round 9 A2). Clip keeps sticky headers working. */}
+          <main className="mx-auto max-w-[1400px] px-4 pb-40 pt-2 [overflow-x:clip] sm:px-6 lg:px-0 lg:pt-2">
             {/* Header + content switch together as one soft cross-fade; the very first paint is not animated. */}
             <div key={viewKey(s.view)} className={s.navSeq > 0 ? (s.navDir > 0 ? "view-in view-fwd" : "view-in view-back") : undefined}>
               {s.loading && s.view.type === "spending" ? (

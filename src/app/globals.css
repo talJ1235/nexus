@@ -264,7 +264,8 @@ html {
 body {
   font-family: var(--font-sans);
   font-feature-settings: "tnum" 0;
-  min-height: 100dvh;
+  /* lvh, not dvh: the phone toolbar showing/hiding must not resize the page (fixed dock stays put, Round 9 A2). */
+  min-height: 100lvh;
 }
 .tabular { font-variant-numeric: tabular-nums; }
 

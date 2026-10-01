@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { ChartColumn, Folder, Link2, Plus, ReceiptText, ScanBarcode, Search, ShoppingCart, Sparkles, Truck, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoPill } from "@/components/logo";
@@ -82,13 +83,23 @@ export function PhoneTopBar() {
 
 const DOCK: { view: View; icon: React.ReactNode; label: (t: ReturnType<typeof useI18n>["t"]) => string }[] = [
   { view: { type: "to_buy" }, icon: <ShoppingCart />, label: (t) => t.nav.toBuy },
-  { view: { type: "projects" }, icon: <Folder />, label: (t) => t.projects.title },
   { view: { type: "ordered" }, icon: <Truck />, label: (t) => t.nav.onTheWay },
+  { view: { type: "projects" }, icon: <Folder />, label: (t) => t.projects.title },
   { view: { type: "spending" }, icon: <ChartColumn />, label: (t) => t.phone.stats },
 ];
 
-/** Floating dock: To buy · Projects · + · On the way · Stats. Safe-area aware; hidden while items are selected. */
+/**
+ * Floating dock: To buy · On the way · + · Projects · Stats — physically left to right in every language (Tal's
+ * decision: not mirrored in Hebrew; labels keep their own direction). Rendered into document.body so no animated or
+ * transformed ancestor can move it; safe-area aware; hidden while items are selected.
+ */
 export function Dock() {
+  const mounted = useMounted();
+  if (!mounted) return null;
+  return createPortal(<DockBar />, document.body);
+}
+
+function DockBar() {
   const s = useStore();
   const { t } = useI18n();
   const activeType = s.view.type === "collection" ? "projects" : s.view.type === "orders" ? "spending" : s.view.type;
@@ -97,6 +108,7 @@ export function Dock() {
       key={d.view.type}
       type="button"
       onClick={() => s.setView(d.view)}
+      data-dock-target={d.view.type}
       aria-label={d.label(t)}
       aria-current={activeType === d.view.type ? "page" : undefined}
       data-carry={`view:${d.view.type}`}
@@ -110,6 +122,7 @@ export function Dock() {
   );
   return (
     <nav
+      dir="ltr"
       className="fixed inset-x-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-40 flex h-[68px] items-center justify-around rounded-full border border-line bg-surface px-2 text-ink shadow-[0_14px_40px_color-mix(in_srgb,var(--ink)_16%,transparent)] transition-[transform,opacity] duration-[320ms] ease-[var(--ease-out)] lg:hidden [[data-selecting]_&]:pointer-events-none [[data-selecting]_&]:translate-y-[140%] [[data-selecting]_&]:opacity-0"
       aria-label="Main"
       data-dock
@@ -121,6 +134,7 @@ export function Dock() {
         aria-label={s.plusOpen ? t.phone.closeMenu : t.phone.add}
         aria-expanded={s.plusOpen}
         data-plus
+        data-dock-target="plus"
         className="grid size-14 place-items-center rounded-full bg-brand text-on-brand shadow-[0_8px_20px_color-mix(in_srgb,var(--brand)_40%,transparent)] active:scale-95"
       >
         <Plus className={cn("size-[26px] transition-transform duration-[450ms] ease-[var(--ease-spring)]", s.plusOpen && "rotate-[135deg]")} strokeWidth={2.4} />
@@ -130,8 +144,18 @@ export function Dock() {
   );
 }
 
-/** "+" menu: scrim + four action cards that rise with a spring, staggered bottom-up. */
+const noop = () => () => {};
+/** True after hydration (portals need document.body). */
+const useMounted = () => useSyncExternalStore(noop, () => true, () => false);
+
+/** "+" menu: scrim + four action cards that rise with a spring, staggered bottom-up (portal, like the dock). */
 export function PlusMenu() {
+  const mounted = useMounted();
+  if (!mounted) return null;
+  return createPortal(<PlusMenuSheet />, document.body);
+}
+
+function PlusMenuSheet() {
   const s = useStore();
   const { t } = useI18n();
   const ro = useReadOnly();

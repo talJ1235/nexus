@@ -15,7 +15,7 @@ Today there's no visible way into Settings on the phone. Add a clear entry: the 
 phone top bar (or a gear in the top bar if that reads better — decide by screenshot) opens a phone "Me" sheet:
 Settings, Palette + Theme quick switch, Reports, Extension status, Telegram, Export, Log out. 44 px targets.
 
-### A2. [ ] Dock order and a dock that never moves
+### A2. [x] Dock order and a dock that never moves
 - New order, **physically left → right in every language (decided by Tal: do NOT mirror in Hebrew/RTL)**:
   **To buy · On the way · + · Projects · Stats**. Implement with `dir="ltr"` on the dock's container (labels inside
   keep their own direction), and add a smoke check that the order is the same in `en` and `he`.
