@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { ChartColumn, Folder, Link2, Plus, ReceiptText, ScanBarcode, Search, ShoppingCart, Sparkles, Truck, X } from "lucide-react";
+import { ChartColumn, Folder, Plus, Search, ShoppingCart, Truck, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoPill } from "@/components/logo";
 import { cn } from "@/lib/utils";
@@ -184,11 +184,12 @@ function PlusMenuSheet() {
     s.setPlusOpen(false);
     setTimeout(fn, 60);
   };
+  // Each action has its own colour (tokens --act-*) and illustration, so they're told apart without reading.
   const actions = [
-    { key: "barcode", icon: <ScanBarcode />, title: t.phone.barcode, hint: t.phone.barcodeHint, run: () => s.setScanner("barcode"), disabled: false },
-    { key: "receipt", icon: <ReceiptText />, title: t.phone.receipt, hint: t.phone.receiptHint, run: () => s.setScanner("receipt"), disabled: ro.ro },
-    { key: "paste", icon: <Link2 />, title: t.phone.paste, hint: t.phone.pasteHint, run: () => s.setPasteOpen(true), disabled: ro.ro },
-    { key: "plan", icon: <Sparkles />, title: t.phone.plan, hint: t.phone.planHint, run: () => s.setPanel("planner"), disabled: ro.ro || !s.aiEnabled },
+    { key: "barcode", art: <BarcodeArt />, tone: "barcode", title: t.phone.barcode, hint: t.phone.barcodeHint, run: () => s.setScanner("barcode"), disabled: false },
+    { key: "receipt", art: <ReceiptArt />, tone: "receipt", title: t.phone.receipt, hint: t.phone.receiptHint, run: () => s.setScanner("receipt"), disabled: ro.ro },
+    { key: "paste", art: <LinkArt />, tone: "link", title: t.phone.paste, hint: t.phone.pasteHint, run: () => s.setPasteOpen(true), disabled: ro.ro },
+    { key: "plan", art: <PlanArt />, tone: "plan", title: t.phone.plan, hint: t.phone.planHint, run: () => s.setPanel("planner"), disabled: ro.ro || !s.aiEnabled },
   ];
   return (
     <div className="lg:hidden" data-plus-menu={open ? "open" : "closed"}>
@@ -200,7 +201,11 @@ function PlusMenuSheet() {
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       />
-      <div role={open ? "menu" : undefined} aria-hidden={!open} className={cn("fixed inset-x-6 bottom-[calc(110px+env(safe-area-inset-bottom))] z-[36] flex flex-col gap-2.5", !open && "pointer-events-none")}>
+      <div
+        role={open ? "menu" : undefined}
+        aria-hidden={!open}
+        className={cn("fixed inset-x-5 bottom-[calc(108px+env(safe-area-inset-bottom))] z-[36] mx-auto grid max-w-[400px] grid-cols-2 gap-2.5", !open && "pointer-events-none")}
+      >
         {actions.map((a, i) => (
           <button
             key={a.key}
@@ -210,20 +215,72 @@ function PlusMenuSheet() {
             disabled={a.disabled}
             onClick={() => choose(a.run)}
             data-plus-action={a.key}
-            style={{ transitionDelay: open ? `${(actions.length - 1 - i) * 50}ms` : "0ms" }}
+            // Bottom row rises first, then the top row (a spring, staggered toward the +).
+            style={{ transitionDelay: open ? `${(i < 2 ? 2 : 0) * 45 + (i % 2) * 35}ms` : "0ms", backgroundColor: "var(--surface)", backgroundImage: `var(--act-${a.tone})` }}
             className={cn(
-              "flex min-h-[68px] items-center gap-3.5 rounded-[22px] border border-line bg-surface py-3 pe-4 ps-3 text-start shadow-[0_12px_30px_color-mix(in_srgb,var(--ink)_14%,transparent)] transition-[opacity,transform] duration-[250ms,450ms] ease-[ease,var(--ease-spring)] disabled:opacity-50",
-              open ? "translate-y-0 scale-100 opacity-100" : "translate-y-6 scale-[0.94] opacity-0",
+              "relative flex min-h-[124px] flex-col items-start justify-between overflow-hidden rounded-[24px] border border-line p-3.5 text-start shadow-[0_14px_32px_color-mix(in_srgb,var(--ink)_16%,transparent)] transition-[opacity,transform] duration-[250ms,450ms] ease-[ease,var(--ease-spring)] active:scale-[0.97] disabled:opacity-50",
+              open ? "translate-y-0 scale-100 opacity-100" : "translate-y-6 scale-[0.92] opacity-0",
             )}
           >
-            <span className="grid size-11 shrink-0 place-items-center rounded-[14px] bg-tint text-tint-ink [&_svg]:size-[22px]">{a.icon}</span>
+            <span className="block h-11 w-14" style={{ color: `var(--act-${a.tone}-ink)` }} aria-hidden>
+              {a.art}
+            </span>
             <span className="min-w-0">
-              <b className="block text-[15px] font-bold">{a.title}</b>
-              <span className="block truncate text-xs text-muted">{a.hint}</span>
+              <b className="block text-[15px] font-extrabold leading-tight" style={{ color: `var(--act-${a.tone}-ink)` }}>
+                {a.title}
+              </b>
+              <span className="mt-0.5 line-clamp-2 block text-[12px] leading-snug text-muted">{a.hint}</span>
             </span>
           </button>
         ))}
       </div>
     </div>
+  );
+}
+
+// ---------- "+" menu illustrations (Round 9 A3): drawn in currentColor (the action's ink) ----------
+
+function BarcodeArt() {
+  return (
+    <svg viewBox="0 0 56 44" className="size-full" fill="currentColor">
+      <rect x="4" y="6" width="48" height="32" rx="8" fill="currentColor" opacity=".12" />
+      {[10, 14, 16, 21, 24, 26, 31, 35, 37, 41, 44].map((x, i) => (
+        <rect key={x} x={x} y="12" width={i % 3 === 0 ? 2.4 : 1.4} height="20" rx=".6" />
+      ))}
+      {/* the scan line sweeps once when the menu opens */}
+      <rect className="plus-scan" x="6" y="21" width="44" height="2.2" rx="1.1" fill="currentColor" opacity=".9" />
+    </svg>
+  );
+}
+
+function ReceiptArt() {
+  return (
+    <svg viewBox="0 0 56 44" className="size-full" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 4h22v34l-3.7-2.6-3.6 2.6-3.7-2.6-3.7 2.6-3.6-2.6L17 38z" fill="currentColor" fillOpacity=".14" />
+      <path d="M22 12h12M22 18h12M22 24h7" />
+      <path d="M31 30h4" strokeWidth="2.6" />
+    </svg>
+  );
+}
+
+function LinkArt() {
+  return (
+    <svg viewBox="0 0 56 44" className="size-full" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+      <g transform="rotate(-35 28 22)">
+        <rect x="9" y="15" width="21" height="14" rx="7" fill="currentColor" fillOpacity=".14" />
+        <rect x="26" y="15" width="21" height="14" rx="7" fill="currentColor" fillOpacity=".14" />
+        <path d="M21 22h14" />
+      </g>
+    </svg>
+  );
+}
+
+function PlanArt() {
+  return (
+    <svg viewBox="0 0 56 44" className="size-full" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+      <path d="M15 6l2.4 6.1L23.5 14.5l-6.1 2.4L15 23l-2.4-6.1L6.5 14.5l6.1-2.4z" fill="currentColor" stroke="none" />
+      <path d="M31 13h18M31 21h14M31 29h18M15 32h10" />
+      <circle cx="44" cy="8" r="2.4" fill="currentColor" stroke="none" opacity=".6" />
+    </svg>
   );
 }

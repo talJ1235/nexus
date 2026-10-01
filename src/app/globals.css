@@ -53,6 +53,15 @@
   --proj-teal: #6fa3a6;
   --proj-slate: #979ba3;
   --proj-olive: #a5a46e;
+  /* "+" menu actions (Round 9 A3): one muted hue each — wash (tile), ink (icon/title accent). Same in both palettes. */
+  --act-barcode: linear-gradient(#fbf0d9, #fbf0d9);
+  --act-barcode-ink: #8a5600;
+  --act-receipt: linear-gradient(#efe9fc, #efe9fc);
+  --act-receipt-ink: #5b3fb8;
+  --act-link: linear-gradient(#e6eefb, #e6eefb);
+  --act-link-ink: #1f58a6;
+  --act-plan: linear-gradient(140deg, #fff0e4, #fde6f0);
+  --act-plan-ink: #b2481c;
   --logo-c1: #171717;
   --logo-c2: #f59e0b;
   --logo-c3: #fb7a3c;
@@ -70,6 +79,14 @@
   --store-fg: #ffffff;
 }
 .dark {
+  --act-barcode: linear-gradient(rgba(245, 180, 60, 0.15), rgba(245, 180, 60, 0.15));
+  --act-barcode-ink: #f6c46a;
+  --act-receipt: linear-gradient(rgba(167, 139, 250, 0.17), rgba(167, 139, 250, 0.17));
+  --act-receipt-ink: #c9b8ff;
+  --act-link: linear-gradient(rgba(96, 160, 250, 0.16), rgba(96, 160, 250, 0.16));
+  --act-link-ink: #93c0ff;
+  --act-plan: linear-gradient(140deg, rgba(251, 122, 60, 0.2), rgba(236, 72, 153, 0.14));
+  --act-plan-ink: #ffb088;
   --bg: #0b0b0b;
   --surface: #151515;
   --surface-2: #1c1c1c;
@@ -599,12 +616,15 @@ body {
 .grow-y { transform-origin: center bottom; animation: grow-y 700ms var(--ease-out) both; }
 @keyframes grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .rise-in { animation: rise-in 600ms var(--ease-out) both; }
+/* "+" menu barcode tile: the scan line sweeps once when the menu opens (Round 9 A3). */
+[data-plus-menu="open"] .plus-scan { animation: plus-scan 900ms 250ms var(--ease-out) both; }
+@keyframes plus-scan { 0% { transform: translateY(-9px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(9px); opacity: 0.9; } }
 /* Barcode scanner: a soft line sweeping the frame. */
 .scan-line { animation: scan-line 1.8s ease-in-out infinite alternate; }
 @keyframes scan-line { from { transform: translateY(-60px); opacity: 0.5; } to { transform: translateY(60px); opacity: 1; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .flow-border::before, .grow-x, .grow-y, .rise-in, .scan-line { animation: none !important; }
+  .flow-border::before, .grow-x, .grow-y, .rise-in, .scan-line, .plus-scan { animation: none !important; }
   .view-in.view-fwd, .view-in.view-back { animation: fade 160ms ease-out both !important; }
 }
 

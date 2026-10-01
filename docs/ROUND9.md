@@ -28,7 +28,7 @@ Settings, Palette + Theme quick switch, Reports, Extension status, Telegram, Exp
 - Smoke guard: switch through all five dock targets and sample the dock's bounding box every animation frame during
   each switch; any change > 0.5 px fails.
 
-### A3. [ ] "+" menu: tell the options apart without reading
+### A3. [x] "+" menu: tell the options apart without reading
 Today the four options look the same (same tile, same icon box). Make each one instantly recognizable by colour,
 shape and illustration while staying inside the theme:
 - Layout: a 2 × 2 grid of large tiles (≈ 160 × 120) above the +, primary action (Paste a link) can be the wide tile
