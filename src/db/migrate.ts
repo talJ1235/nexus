@@ -35,6 +35,7 @@ async function main() {
   if (!itemCols.includes("order_number")) await client.execute("ALTER TABLE items ADD COLUMN order_number text");
   // Round 7: barcodes (D1).
   if (!itemCols.includes("gtin")) await client.execute("ALTER TABLE items ADD COLUMN gtin text");
+  if (!itemCols.includes("image_source")) await client.execute("ALTER TABLE items ADD COLUMN image_source text");
   const sourceCols = (await client.execute("PRAGMA table_info(sources)")).rows.map((r) => String(r.name));
   if (!sourceCols.includes("gtin")) await client.execute("ALTER TABLE sources ADD COLUMN gtin text");
   // Round 7: receipts made of several photos (E1/E2).

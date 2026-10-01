@@ -14,10 +14,10 @@ import { useStore } from "./store";
 import { useReadOnly } from "./offline-banner";
 import { COLLECTION_COLORS } from "./view-items";
 
-export function ProductImage({ src, alt, className, iconClass }: { src: string | null; alt: string; className?: string; iconClass?: string }) {
+export function ProductImage({ src, alt, className, iconClass, pending }: { src: string | null; alt: string; className?: string; iconClass?: string; pending?: boolean }) {
   const [failed, setFailed] = useState(false);
   return (
-    <div className={cn("relative grid place-items-center overflow-hidden bg-tile", className)}>
+    <div className={cn("relative grid place-items-center overflow-hidden bg-tile", pending && !src && "shimmer", className)}>
       {src && !failed ? (
         // eslint-disable-next-line @next/next/no-img-element -- remote store images; thumbnails are pre-sized WebP
         <img
@@ -193,7 +193,12 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
       />
 
       <div className="relative max-sm:shrink-0">
-        <ProductImage src={item.imageUrl} alt="" className="aspect-[16/11] w-full rounded-[var(--radius-tile)] max-sm:size-14 max-sm:rounded-[17px]" iconClass="max-sm:size-6" />
+        <ProductImage src={item.imageUrl} alt="" pending={s.imagePending.has(item.id)} className="aspect-[16/11] w-full rounded-[var(--radius-tile)] max-sm:size-14 max-sm:rounded-[17px]" iconClass="max-sm:size-6" />
+        {item.imageSource === "icon" && (
+          <span className="pointer-events-none absolute bottom-2 start-2 rounded-full bg-surface/90 px-2 py-0.5 text-[10.5px] font-bold text-muted max-sm:hidden" title={t.item.iconHint}>
+            {t.item.iconBadge}
+          </span>
+        )}
         <div className="pointer-events-none absolute inset-x-[9px] top-[9px] flex items-start justify-between gap-2 max-sm:hidden">
           <span className="relative min-w-0">
             {category && (

@@ -118,12 +118,41 @@ async function checkPrices(thorough) {
   return { checked: done };
 }
 
+/**
+ * Pictures for items Nexus couldn't illustrate (receipt lines, barcode adds): search Google Images in the owner's
+ * browser for the product name (plus the store, when known) and post the first good product photo.
+ */
+const IMG_RE = /\["(https:\/\/[^"]+?\.(?:jpe?g|png|webp)(?:\?[^"]*)?)",(\d+),(\d+)\]/g;
+async function findImages() {
+  let posted = 0;
+  try {
+    const { jobs } = await api("/api/ext/image-jobs");
+    for (const job of jobs || []) {
+      try {
+        const q = job.store ? `${job.title} ${job.store}` : job.title;
+        const res = await fetch(`https://www.google.com/search?tbm=isch&hl=en&q=${encodeURIComponent(q)}`, { credentials: "include" });
+        const html = res.ok ? await res.text() : "";
+        let best = null;
+        for (const m of html.matchAll(IMG_RE)) {
+          const url = m[1].replace(/\\u003d/g, "=").replace(/\\u0026/g, "&");
+          if (/gstatic\.com|google\.com|googleusercontent\.com\/a\//.test(url)) continue;
+          if (Number(m[2]) >= 200 && Number(m[3]) >= 200) { best = url; break; }
+        }
+        await send("/api/ext/image-jobs", { itemId: job.itemId, imageUrl: best, pageUrl: null });
+        if (best) posted++;
+      } catch (e) {}
+      await sleep(1500 + Math.random() * 1500);
+    }
+  } catch (e) {}
+  return posted;
+}
+
 // Every 30 min: the server only hands out links that are due (blocked price checks ~daily, incomplete
 // links every few hours), so most runs are a single cheap request.
 chrome.runtime.onInstalled.addListener(() => chrome.alarms.create("nexus-prices", { delayInMinutes: 2, periodInMinutes: 30 }));
 chrome.runtime.onStartup.addListener(() => chrome.alarms.create("nexus-prices", { delayInMinutes: 2, periodInMinutes: 30 }));
 chrome.alarms.onAlarm.addListener((a) => {
-  if (a.name === "nexus-prices") checkPrices(false);
+  if (a.name === "nexus-prices") checkPrices(false).then(() => findImages());
 });
 
 async function send(path, body) {

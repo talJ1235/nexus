@@ -120,6 +120,8 @@ const itemPatch = z
 export async function updateItem(id: string, patch: z.input<typeof itemPatch>): Promise<ItemWithSources> {
   await assertAuth();
   const p = itemPatch.parse(patch);
+  // A picture set by hand is the user's (no "icon" badge any more).
+  if (p.imageUrl !== undefined) (p as { imageSource?: string | null }).imageSource = null;
   if (p.imageUrl && /^https?:/.test(p.imageUrl) && !p.imageUrl.includes(".blob.vercel-storage.com")) {
     p.imageUrl = await storeThumbnail(p.imageUrl, id);
   }

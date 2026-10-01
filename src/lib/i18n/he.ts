@@ -3,6 +3,17 @@ import type { Dict } from "./en";
 export const he: Dict = {
   appName: "Nexus",
   tagline: "כל מה שאתה מתכנן לקנות, במקום אחד",
+  review: {
+    onList: "כבר ברשימה שלך",
+    new: "חדשים",
+    skipped: "דולגו",
+    addAllTo: "להוסיף הכול ל…",
+    checkLines: "לבדוק {n} שורות",
+    checkLine: "המספרים בשורה הזאת לא מסתדרים — כדאי לבדוק",
+    matches: "תואם לקבלה",
+    read: "נקרא",
+    unlink: "לא זה — להוסיף כחדש",
+  },
   receiptCam: {
     hint: "כוונו לקבלה — היא תצולם לבד",
     found: "נמצאו הקצוות",
@@ -394,6 +405,8 @@ export const he: Dict = {
     open: "פתח את הקיים",
   },
   item: {
+    iconBadge: "אייקון",
+    iconHint: "אייקון זמני — Nexus ממשיך לחפש תמונה. אפשר לקבוע תמונה בפרטים.",
     plan: "תכנון",
     details: "תגיות והערות",
     moveHowMany: "כמה יחידות להעביר אל {name}?",

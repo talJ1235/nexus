@@ -16,6 +16,8 @@ import { convert } from "@/lib/money";
 import { getRates } from "@/lib/rates";
 import { extractReceipt, type ReceiptData } from "@/lib/receipt";
 import { hasRealText } from "@/lib/receipt-check";
+import { storeThumbnail } from "@/lib/images";
+import { normalizeCategory } from "@/lib/categories";
 import { kvGet, kvSet } from "@/lib/kv";
 import { matchReceipt, storeMatches, type LineMatch, type MatchCandidate } from "@/lib/receipt-match";
 import type { ItemWithSources, Receipt } from "@/lib/types";
@@ -196,7 +198,15 @@ const applyInput = z.object({
     .array(
       z.discriminatedUnion("mode", [
         z.object({ mode: z.literal("match"), unitPrice: z.number().nonnegative().nullable(), allocations: z.array(z.object({ itemId: z.string().min(1).max(40), qty: z.number().int().min(1).max(100000) })).min(1).max(10) }),
-        z.object({ mode: z.literal("new"), name: z.string().min(1).max(300), qty: z.number().int().min(1).max(100000), unitPrice: z.number().nonnegative().nullable() }),
+        z.object({
+          mode: z.literal("new"),
+          name: z.string().min(1).max(300),
+          qty: z.number().int().min(1).max(100000),
+          unitPrice: z.number().nonnegative().nullable(),
+          image: z.string().max(200_000).nullish(),
+          category: z.string().max(40).nullish(),
+          collectionId: z.string().max(40).nullish(),
+        }),
         z.object({ mode: z.literal("ignore") }),
       ]),
     )
@@ -260,9 +270,14 @@ export async function applyReceipt(raw: ApplyReceiptInput): Promise<{ items: Ite
     const paid = line.unitPrice != null ? { purchasedPrice: line.unitPrice, purchasedCurrency: input.currency } : {};
     if (line.mode === "new") {
       const id = nanoid();
+      const image = line.image ? (line.image.startsWith("data:image/svg") ? line.image : await storeThumbnail(line.image, id)) : null;
       await db.insert(schema.items).values({
         id,
         title: line.name,
+        imageUrl: image,
+        imageSource: image ? (image.startsWith("data:image/svg") ? "icon" : "store") : null,
+        category: normalizeCategory(line.category),
+        collectionId: line.collectionId && (await db.query.collections.findFirst({ where: eq(schema.collections.id, line.collectionId) })) ? line.collectionId : null,
         tags: [],
         status,
         quantity: line.qty,

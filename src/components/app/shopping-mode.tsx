@@ -212,6 +212,7 @@ function Trip({ scope }: { scope: ShopScope }) {
     try {
       const it = await createItem({ title, brand: null, imageUrl: null, category: null, tags: [], collectionId: scope.kind === "collection" ? scope.id : null, source: null });
       s.upsertItem(it);
+      s.fillImages([it.id]);
       setTrip((tr) => ({ ...tr, added: [...tr.added, it.id], checked: [...tr.checked, it.id] }));
       haptic();
     } catch {

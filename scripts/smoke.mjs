@@ -604,6 +604,8 @@ try {
           await dlg.locator("[data-receipt-review]").waitFor({ timeout: 30000 });
           const modes = await dlg.locator("[data-receipt-line]").evaluateAll((els) => els.map((e) => e.getAttribute("data-receipt-line")));
           await shot(page, "receipt-review");
+          // The unmatched line comes in as a new card; skip it (×) so only the two matches apply.
+          await dlg.locator("[data-receipt-line=new] [data-receipt-ignore]").first().click();
           await dlg.locator("[data-receipt-apply]").click();
           const toastEl = page.locator("[data-sonner-toast]").filter({ hasText: /updated from the receipt|עודכנו מהקבלה/ });
           await toastEl.waitFor({ timeout: 15000 });
@@ -614,7 +616,7 @@ try {
           const left = after.filter((i) => i.orderNumber === orderNo);
           const restored = picks.every((p) => after.find((i) => i.id === p.id)?.status === "to_buy" && after.find((i) => i.id === p.id)?.quantity === p.quantity);
           ok(
-            modes.join() === "match,match,ignore" && applied.length === 2 && applied.every((i) => i.status === "purchased" && i.purchasedPrice > 0) && left.length === 0 && restored,
+            modes.join() === "match,match,new" && applied.length === 2 && applied.every((i) => i.status === "purchased" && i.purchasedPrice > 0) && left.length === 0 && restored,
             "receipt: paste order email → review matches → apply → undo",
             JSON.stringify({ modes, applied: applied.map((i) => [i.title, i.status, i.purchasedPrice]), left: left.length, restored }),
           );

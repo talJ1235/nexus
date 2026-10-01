@@ -6,6 +6,7 @@ import type { AltGroup, AppData, Collection, ItemWithSources, StoreSetting } fro
 import type { View } from "@/lib/views";
 import { markBooted } from "@/lib/boot";
 import { reloadAll } from "@/app/actions";
+import { ensureImages } from "@/app/image-actions";
 import { cacheShell, saveSnapshot } from "@/lib/offline";
 import type { BudgetHistory } from "@/lib/budget";
 import type { ShopScope } from "@/lib/shop-outbox";
@@ -80,6 +81,9 @@ type Store = {
   setPlusOpen: (o: boolean) => void;
   pasteOpen: boolean;
   setPasteOpen: (o: boolean) => void;
+  /** Items whose picture is being looked for (E4): their image tile shimmers until it fills in. */
+  imagePending: Set<string>;
+  fillImages: (ids: string[]) => void;
   /** Shopping mode (D2): "pick" shows the scope picker. */
   shop: ShopScope | "pick" | null;
   setShop: (s: ShopScope | "pick" | null) => void;
@@ -209,6 +213,7 @@ export function StoreProvider({
   const [pasteOpen, setPasteOpen] = useState(false);
   const [scanner, setScanner] = useState<"barcode" | "receipt" | null>(null);
   const [shop, setShop] = useState<ShopScope | "pick" | null>(null);
+  const [imagePending, setImagePending] = useState<Set<string>>(() => new Set());
   const [sidebarCollapsed, setSidebarCollapsedState] = useState(!!ui.sidebarCollapsed);
   const setSidebarCollapsed = useCallback((c: boolean) => {
     setSidebarCollapsedState(c);
@@ -422,6 +427,21 @@ export function StoreProvider({
     );
   }, []);
 
+  const fillImages = useCallback((ids: string[]) => {
+    if (!ids.length) return;
+    setImagePending((p) => new Set([...p, ...ids]));
+    void ensureImages(ids)
+      .then((got) => {
+        if (got.length)
+          setItems((prev) => {
+            const byId = new Map(got.map((i) => [i.id, i]));
+            return prev.map((p) => byId.get(p.id) ?? p);
+          });
+      })
+      .catch(() => {})
+      .finally(() => setImagePending((p) => new Set([...p].filter((x) => !ids.includes(x)))));
+  }, []);
+
   const focusAdd = useCallback(() => {
     document.getElementById("add-input")?.focus();
   }, []);
@@ -473,6 +493,8 @@ export function StoreProvider({
       setScanner,
       shop,
       setShop,
+      imagePending,
+      fillImages,
       sidebarCollapsed,
       setSidebarCollapsed,
       upsertItem,
@@ -508,7 +530,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, imagePending, fillImages, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

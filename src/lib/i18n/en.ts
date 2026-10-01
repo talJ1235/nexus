@@ -1,6 +1,17 @@
 export const en = {
   appName: "Nexus",
   tagline: "Everything you plan to buy, in one place",
+  review: {
+    onList: "Already on your list",
+    new: "New",
+    skipped: "Skipped",
+    addAllTo: "Add all to…",
+    checkLines: "Check {n} lines",
+    checkLine: "The numbers on this line don't add up — check it",
+    matches: "Matches the receipt",
+    read: "Read",
+    unlink: "Not this — add it as new",
+  },
   receiptCam: {
     hint: "Point at the receipt — it's taken by itself",
     found: "Found the edges",
@@ -392,6 +403,8 @@ export const en = {
     open: "Open existing",
   },
   item: {
+    iconBadge: "icon",
+    iconHint: "A placeholder icon — Nexus keeps looking for a photo. Set your own in the details.",
     plan: "Plan",
     details: "Tags & notes",
     moveHowMany: "How many units go to {name}?",

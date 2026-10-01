@@ -188,7 +188,7 @@ Order by store ("Shop at <store>").
   reorderable, sent as tiles of one receipt. Default flow stays one shot.
 - Fallback when camera isn't allowed: file picker with the same corner adjust.
 
-### E3. [ ] Review screen as cards, split in two
+### E3. [x] Review screen as cards, split in two
 After reading: a full sheet with a summary header (store, date, total, "matches the receipt ✓" or "check 2 lines")
 and two sections of **product cards** (same card component as the grid, compact):
 1. **Already on your list** → each card shows the matched item, qty, price paid, and the move it will make
@@ -198,7 +198,7 @@ and two sections of **product cards** (same card component as the grid, compact)
 Lines marked "check" have a gentle highlight. Confirm → apply (existing apply/undo logic), cards fly into their
 destination with a short staggered animation; toast with Undo.
 
-### E4. [ ] Product images for items without one (long-term pipeline)
+### E4. [x] Product images for items without one (long-term pipeline)
 `src/lib/product-image.ts`, used by receipts, barcode adds, manual items and a backfill for existing image-less items:
 1. Matched existing item / its sources → reuse.
 2. Store page `og:image` / JSON-LD when the server can fetch it.

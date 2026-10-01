@@ -53,6 +53,8 @@ export const items = sqliteTable(
     // Barcode (GTIN, digits) when the item was added by scanning; store links keep theirs on sources.gtin.
     gtin: text("gtin"),
     altGroupId: text("alt_group_id"),
+    // Where the picture came from when Nexus found it (store / search / extension / icon); null = the user's or the link's.
+    imageSource: text("image_source"),
     // Price tracking: alert when the price reaches this (in targetCurrency). `watch` = include in daily checks.
     targetPrice: real("target_price"),
     targetCurrency: text("target_currency"),

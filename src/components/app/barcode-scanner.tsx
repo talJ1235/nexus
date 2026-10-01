@@ -247,6 +247,7 @@ function ResultCard({ result, onNext, onDone }: { result: BarcodeResult | "loadi
       const created = await addScannedItem({ title: hit.title, brand: hit.brand ?? null, image: hit.image ?? null, category: hit.category ?? null, collectionId, code: result.code, status });
       s.upsertItem(created);
       s.markFresh(created.id);
+      if (!created.imageUrl) s.fillImages([created.id]);
       toast.success(status === "purchased" ? t.barcode.addedBought : t.barcode.added, {
         description: created.title,
         action: { label: t.barcode.open, onClick: () => s.openItem(created.id) },
