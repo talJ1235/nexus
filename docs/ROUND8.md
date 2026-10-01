@@ -43,7 +43,7 @@ Keep scanic but make detection robust, choosing by bench numbers:
 - Target on the bench: ≥ 90 % success on the synthetic set and ≥ 85 % on the real set (if present), median < 60 ms
   per live frame at 640 px on desktop CPU (Playwright ×4 throttle: < 200 ms).
 
-### A3. [ ] Live camera experience
+### A3. [x] Live camera experience
 - Run detection in a **Web Worker** (OffscreenCanvas + ImageBitmap from the video frame) so the UI never stutters;
   skip frames while busy.
 - Smooth the outline: exponential smoothing of corners + hysteresis (only switch to a new quad when it is clearly

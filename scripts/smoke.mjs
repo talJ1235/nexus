@@ -98,6 +98,30 @@ try {
   process.exit(1);
 }
 
+// A fake-camera video of a receipt (Round 8 A3): one synthetic bench photo as a ~1 s .y4m (I420) that Chromium loops.
+async function receiptVideo() {
+  const { data, info } = await sharp("test-data/receipt-synth/02-dark.jpg").resize(600, 800).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h } = info;
+  const Y = Buffer.alloc(w * h);
+  const U = Buffer.alloc((w / 2) * (h / 2));
+  const V = Buffer.alloc((w / 2) * (h / 2));
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 3;
+      const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+      Y[y * w + x] = Math.max(0, Math.min(255, 0.257 * r + 0.504 * g + 0.098 * b + 16));
+      if (y % 2 === 0 && x % 2 === 0) {
+        const j = (y / 2) * (w / 2) + x / 2;
+        U[j] = Math.max(0, Math.min(255, -0.148 * r - 0.291 * g + 0.439 * b + 128));
+        V[j] = Math.max(0, Math.min(255, 0.439 * r - 0.368 * g - 0.071 * b + 128));
+      }
+    }
+  const frame = Buffer.concat([Buffer.from("FRAME\n"), Y, U, V]);
+  const file = join(tmpdir(), "nexus-receipt.y4m");
+  writeFileSync(file, Buffer.concat([Buffer.from(`YUV4MPEG2 W${w} H${h} F15:1 Ip A1:1 C420jpeg\n`), ...Array(15).fill(frame)]));
+  return file;
+}
+
 // A fake camera (test pattern) so the barcode / receipt camera screens can be exercised headless.
 const browser = await chromium.launch({ args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] });
 try {
@@ -217,6 +241,38 @@ try {
         await page.locator("[data-receipt-dialog]").waitFor({ timeout: 15000 });
         ok(true, "receipt camera: shutter → corner adjust → add a part → use");
         await page.keyboard.press("Escape");
+      });
+    }
+
+    if (MOBILE) {
+      await step("receipt camera on a receipt video: outline → auto-capture → adjust with loupe", async () => {
+        const video = await receiptVideo();
+        const b2 = await chromium.launch({ args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", `--use-file-for-fake-video-capture=${video}`] });
+        try {
+          const c2 = await b2.newContext({ viewport: VIEWPORT, ...DEVICE, colorScheme: "dark", permissions: ["camera"], storageState: await ctx.storageState() });
+          const p2 = await c2.newPage();
+          await p2.goto(`${BASE}/`);
+          await p2.waitForSelector(READY, { timeout: 15000 });
+          await p2.click("[data-plus]");
+          await p2.click("[data-plus-action=receipt]");
+          await p2.waitForSelector("[data-receipt-outline=on]", { state: "attached", timeout: 15000 });
+          const guide = await p2.locator("[data-receipt-guide]").getAttribute("data-receipt-guide");
+          await shot(p2, "receipt-live");
+          // Nobody presses the shutter: steady + sharp captures by itself.
+          await p2.waitForSelector("[data-receipt-adjust]", { timeout: 15000 });
+          await p2.waitForTimeout(1500); // full-resolution re-detect
+          await shot(p2, "receipt-auto");
+          const bb = await p2.locator("[data-receipt-corner=topLeft]").boundingBox();
+          await p2.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+          await p2.mouse.down();
+          await p2.mouse.move(bb.x + bb.width / 2 + 24, bb.y + bb.height / 2 + 18, { steps: 4 });
+          const loupe = await p2.locator("[data-receipt-loupe]").isVisible();
+          await shot(p2, "receipt-loupe");
+          await p2.mouse.up();
+          ok(loupe, "receipt camera on a receipt video: outline → auto-capture → adjust with loupe", `guide=${guide} loupe=${loupe}`);
+        } finally {
+          await b2.close();
+        }
       });
     }
 

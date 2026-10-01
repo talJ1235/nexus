@@ -46,36 +46,6 @@ export async function cropTo(canvas: HTMLCanvasElement, corners: CornerPoints): 
   return r?.success && r.output instanceof HTMLCanvasElement ? r.output : canvas;
 }
 
-/** Sharpness of a frame (variance of a Laplacian over a small grayscale copy). Higher = sharper. */
-export function sharpness(source: CanvasImageSource, w = 160): number {
-  const el = source as HTMLVideoElement & HTMLCanvasElement;
-  const sw = el.videoWidth || el.width;
-  const sh = el.videoHeight || el.height;
-  if (!sw || !sh) return 0;
-  const h = Math.round((sh / sw) * w);
-  const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext("2d", { willReadFrequently: true })!;
-  ctx.drawImage(source, 0, 0, w, h);
-  const d = ctx.getImageData(0, 0, w, h).data;
-  const g = new Float32Array(w * h);
-  for (let i = 0; i < w * h; i++) g[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
-  let sum = 0;
-  let sum2 = 0;
-  let n = 0;
-  for (let y = 1; y < h - 1; y++)
-    for (let x = 1; x < w - 1; x++) {
-      const i = y * w + x;
-      const v = 4 * g[i] - g[i - 1] - g[i + 1] - g[i - w] - g[i + w];
-      sum += v;
-      sum2 += v * v;
-      n++;
-    }
-  const mean = sum / n;
-  return sum2 / n - mean * mean;
-}
-
 /** Grayscale + contrast stretch (1st–99th percentile) in place. */
 function enhance(c: HTMLCanvasElement) {
   const ctx = c.getContext("2d", { willReadFrequently: true })!;

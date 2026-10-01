@@ -10,6 +10,7 @@
 //   ... -- --throttle 4                         # CPU ×4 (live timing budget < 200 ms)
 //   ... -- --only paper|scanic  --verbose  --mode live|still  --filter 12  --dump out/prefix (found quads → sheet.mjs)
 //   ... -- --skip scanic,lines,paper,ml         # leave detectors out
+//   ... -- --snap                               # corner snapping only (adjust step): nudged true corners → snapped
 import { build } from "esbuild";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -86,8 +87,61 @@ async function main() {
   else if (existsSync(REAL) && readdirSync(REAL).some((f) => /\.jpe?g$/i.test(f))) console.log(`note: ${REAL} has photos but no labels.json — skipped`);
 
   let pass = true;
+  if (flag("snap")) {
+    // Corner snapping (adjust step): each true corner nudged 1.5 % of the diagonal, snapped within 2.5 % of the long side.
+    for (const set of sets) {
+      let before = 0;
+      let after = 0;
+      let better = 0;
+      let worse = 0;
+      let n = 0;
+      for (const [file, raw] of Object.entries(set.labels)) {
+        const truth = (Array.isArray(raw) ? raw : raw.corners).map((p) => (Array.isArray(p) ? { x: p[0], y: p[1] } : p)) as Pt[];
+        const data = readFileSync(join(set.dir, file)).toString("base64");
+        const res = await page.evaluate(
+          async ({ data, truth, seed }) => {
+            const img = new Image();
+            img.src = `data:image/jpeg;base64,${data}`;
+            await img.decode();
+            const k = Math.min(1, 1000 / Math.max(img.width, img.height));
+            const c = document.createElement("canvas");
+            c.width = Math.round(img.width * k);
+            c.height = Math.round(img.height * k);
+            const x = c.getContext("2d", { willReadFrequently: true })!;
+            x.drawImage(img, 0, 0, c.width, c.height);
+            const RD = (window as unknown as { RD: typeof import("../src/lib/receipt-detect") }).RD;
+            const g = RD.prepare(x.getImageData(0, 0, c.width, c.height), 1000);
+            const diag = Math.hypot(img.width, img.height);
+            const r = Math.round(Math.max(g.w, g.h) * 0.025);
+            return truth
+              .map((p, i) => ({ p, i }))
+              .filter(({ p }) => p.x > 4 && p.y > 4 && p.x < img.width - 4 && p.y < img.height - 4)
+              .map(({ p, i }) => {
+                const a = ((seed * 7 + i * 2.1) % 6.283) as number;
+                const q = { x: p.x + Math.cos(a) * diag * 0.015, y: p.y + Math.sin(a) * diag * 0.015 };
+                const quad = truth.map((t, j) => (j === i ? q : t)).map((t) => ({ x: t.x * k, y: t.y * k }));
+                const s = RD.snapCorner(g, quad, i, r);
+                const out = s ? { x: s.x / k, y: s.y / k } : q;
+                return { before: Math.hypot(q.x - p.x, q.y - p.y) / diag, after: Math.hypot(out.x - p.x, out.y - p.y) / diag };
+              });
+          },
+          { data, truth, seed: n },
+        );
+        for (const e of res) {
+          n++;
+          before += e.before;
+          after += e.after;
+          if (e.after < e.before - 0.002) better++;
+          if (e.after > e.before + 0.002) worse++;
+        }
+      }
+      const good = after < before && worse <= n * 0.1;
+      if (!good) pass = false;
+      console.log(`${good ? "PASS" : "FAIL"} ${set.name}/snap: ${n} corners, mean error ${((before / n) * 100).toFixed(2)}% → ${((after / n) * 100).toFixed(2)}%, better ${better}, worse ${worse}`);
+    }
+  }
   for (const set of sets) {
-    for (const mode of modes) {
+    for (const mode of flag("snap") ? [] : modes) {
       const dump: Record<string, Pt[]> = {};
       const rows: { file: string; found: boolean; err: number; iou: number; ms: number; src: string; score: number }[] = [];
       for (const [file, raw] of Object.entries(set.labels)) {

@@ -315,40 +315,12 @@ export function brightnessOf(g: Work): number {
 }
 
 /**
- * Snap a dragged corner to the strongest corner-like point within `radius` work px (min eigenvalue of the structure
- * tensor over a 5×5 window). Returns null when nothing nearby is clearly a corner.
+ * Snap a dragged corner (index `i` of the quad, work coordinates) onto the paper: the two sides that meet there are
+ * refit to the strongest nearby edges (as in polishQuad) and intersected. A lone corner detector would also catch
+ * text and barcode corners; the sides carry far more evidence. Null when nothing clear lies within `radius`.
  */
-export function snapCorner(g: Work, p: Pt, radius: number): Pt | null {
-  const { w, h, L } = g;
-  const cx = Math.round(p.x);
-  const cy = Math.round(p.y);
-  let best = 0;
-  let at: Pt | null = null;
-  const gx = (x: number, y: number) => L[y * w + Math.min(w - 1, x + 1)] - L[y * w + Math.max(0, x - 1)];
-  const gy = (x: number, y: number) => L[Math.min(h - 1, y + 1) * w + x] - L[Math.max(0, y - 1) * w + x];
-  for (let y = Math.max(3, cy - radius); y <= Math.min(h - 4, cy + radius); y++)
-    for (let x = Math.max(3, cx - radius); x <= Math.min(w - 4, cx + radius); x++) {
-      let a = 0;
-      let b = 0;
-      let c = 0;
-      for (let dy = -2; dy <= 2; dy++)
-        for (let dx = -2; dx <= 2; dx++) {
-          const ix = gx(x + dx, y + dy);
-          const iy = gy(x + dx, y + dy);
-          a += ix * ix;
-          b += ix * iy;
-          c += iy * iy;
-        }
-      const tr = a + c;
-      const det = a * c - b * b;
-      const lmin = tr / 2 - Math.sqrt(Math.max(0, (tr * tr) / 4 - det));
-      // Mild preference for staying close to where the finger is.
-      const v = lmin / (1 + Math.hypot(x - p.x, y - p.y) / (radius * 2));
-      if (v > best) {
-        best = v;
-        at = { x, y };
-      }
-    }
-  // Threshold: a real paper corner (a ~40-level step on two sides) gives min-eigenvalues in the 10⁴–10⁵ range.
-  return best > 6000 ? at : null;
+export function snapCorner(g: Work, quad: Pt[], i: number, radius: number): Pt | null {
+  const p = polishQuad(g, quad as Quad)[i];
+  const d = Math.hypot(p.x - quad[i].x, p.y - quad[i].y);
+  return d > 0.5 && d <= radius ? p : null;
 }

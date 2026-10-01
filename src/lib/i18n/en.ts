@@ -58,6 +58,15 @@ export const en = {
     use: "Use",
     remove: "Remove",
     camera: "Use the camera",
+    guide: {
+      find: "Point at the receipt — it's taken by itself",
+      light: "More light",
+      darker: "Put it on a darker surface",
+      frame: "Whole receipt in the frame",
+      closer: "Move closer",
+      steady: "Hold steady…",
+    },
+    finding: "Finding the edges…",
   },
   shop: {
     title: "Shopping mode",
