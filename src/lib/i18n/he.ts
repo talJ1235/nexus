@@ -192,6 +192,10 @@ export const he: Dict = {
     category: "קטגוריה",
     sort: "מיון",
     unassigned: "ללא פרויקט",
+    spentMonth: "הוצאה החודש",
+    more: "+{n} נוספים",
+    count: "{n} פריטים",
+    countOne: "פריט אחד",
   },
   categories: {
     electronics: "אלקטרוניקה",

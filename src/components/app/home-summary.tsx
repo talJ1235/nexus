@@ -1,14 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import { ArrowDownWideNarrow, ChevronDown, LayoutGrid, Rows3, Store } from "lucide-react";
+import { ArrowDownWideNarrow, ChevronDown, ChevronRight, LayoutGrid, Rows3, Store, Truck } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { Ring } from "@/components/ui/ring";
 import { Ticker, useTicker } from "@/components/ui/ticker";
-import { activeSource, budgetStats, countable, lineTotal, sumTotals } from "@/lib/calc";
+import { PHONE, useMedia } from "@/components/ui/use-media";
+import { activeSource, budgetStats, countable, lineTotal, spendDate, sumTotals } from "@/lib/calc";
 import { CATEGORIES, normalizeCategory } from "@/lib/categories";
-import { convert, formatMoney } from "@/lib/money";
+import { convert, formatMoney, formatMoneyCompact } from "@/lib/money";
 import { gapSuggestions, shippingGap, shippingRule } from "@/lib/shipping";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -88,6 +89,24 @@ function useSummary() {
   }, [s.items, s.view, s.altGroups, s.rates, s.currency, s.collections]);
 }
 
+/** Across the whole list (not the view): urgent to buy, on the way, and spent this month — the totals card's strip. */
+function useStrip() {
+  const s = useStore();
+  return useMemo(() => {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    let urgent = 0;
+    let onTheWay = 0;
+    let spent = 0;
+    for (const i of s.items) {
+      if (i.status === "to_buy" && i.priority === "urgent") urgent++;
+      if (i.status === "ordered") onTheWay++;
+      if (i.status !== "to_buy" && (spendDate(i) ?? i.updatedAt) >= from) spent += lineTotal(i, s.rates, s.currency) ?? 0;
+    }
+    return { urgent, onTheWay, spent };
+  }, [s.items, s.rates, s.currency]);
+}
+
 /** Closest store to free shipping among what's left to buy (same math as Order by store). */
 function useBestShipping(toBuy: ItemWithSources[]) {
   const s = useStore();
@@ -127,7 +146,7 @@ function Tile({ tone, className, children, delay }: { tone: "tint" | "surface"; 
   return (
     <div
       className={cn(
-        "rise-in flex min-w-0 flex-col gap-1 rounded-[22px] p-3.5 lg:min-h-[226px] lg:gap-2 lg:rounded-[30px] lg:p-[22px]",
+        "rise-in flex min-w-0 flex-col gap-1 rounded-[22px] p-3.5 max-sm:hidden lg:gap-2 lg:rounded-[30px] lg:p-[22px]",
         tone === "tint" ? "bg-tint text-tint-ink" : "border border-line bg-surface",
         className,
       )}
@@ -148,34 +167,64 @@ export function HomeSummary() {
   const budget = collection?.kind === "project" ? budgetStats(collection, s.items, s.altGroups, s.rates, s.currency) : null;
   const n = sum.toBuy.length;
   const segTotal = sum.segments.reduce((a, b) => a + b.value, 0);
+  const strip = useStrip();
+  const phone = useMedia(PHONE);
+  const legendMax = phone ? 3 : 4;
+  const mK = (v: number) => (phone ? formatMoneyCompact(Math.round(v), s.currency, locale) : m(Math.round(v)));
+  // Small text links in the card: the tap area grows to ≥ 40 px without moving anything.
+  const hit = "relative after:absolute after:-inset-x-1 after:-inset-y-3 after:content-['']";
 
   return (
     <section className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] lg:gap-4" data-home-summary>
-      {/* Totals card */}
-      <div className="rise-in col-span-2 flex min-h-[176px] flex-col gap-3 rounded-[28px] bg-[image:var(--hero)] p-5 text-on-hero lg:col-span-1 lg:min-h-[226px] lg:rounded-[30px] lg:px-[26px] lg:py-6" data-totals>
-        <span className="flex items-center gap-2 text-[13px] opacity-75 lg:text-[14px]">
+      {/* Totals card: everything at a glance, but calm — the products below are the page. */}
+      <div className="rise-in col-span-2 flex flex-col gap-2 rounded-[26px] bg-[image:var(--hero)] p-4 text-on-hero sm:gap-2.5 sm:p-5 lg:col-span-1 lg:min-h-[180px] lg:gap-1.5 lg:rounded-[30px] lg:px-6 lg:py-[18px]" data-totals>
+        <span className="flex items-center gap-2 text-[13px] opacity-85">
           {n === 1 ? t.home.leftToBuyOne : f(t.home.leftToBuy, { n })}
-          {sum.saved >= 1 && <em className="ms-auto rounded-full bg-white/15 px-2.5 py-1 text-xs font-bold not-italic opacity-100">{f(t.home.saved, { amount: m(Math.round(sum.saved)) })}</em>}
+          {sum.saved >= 1 && <em className="ms-auto rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-bold not-italic">{f(t.home.saved, { amount: m(Math.round(sum.saved)) })}</em>}
         </span>
-        <BigMoney value={sum.totals.total} className="text-[44px] font-black leading-[0.95] tracking-[-0.03em] lg:text-[60px]" />
+        <BigMoney value={sum.totals.total} className="text-[34px] font-black leading-[0.95] tracking-[-0.03em] sm:text-[44px] lg:text-[48px]" />
         {segTotal > 0 && (
           <>
-            <div className="mt-auto flex h-2.5 gap-[3px] lg:h-3 lg:gap-1" aria-hidden>
+            <div className="mt-auto flex h-2 gap-[3px] pt-0.5 lg:h-2.5 lg:gap-1" aria-hidden>
               {sum.segments.map((g, i) => (
                 <span key={g.key} className="grow-x rounded-full" style={{ flex: g.value, background: g.color, animationDelay: `${200 + i * 60}ms` }} />
               ))}
             </div>
-            <div className="hidden flex-wrap gap-x-4 gap-y-1 text-[13px] opacity-90 lg:flex">
-              {sum.segments.slice(0, 4).map((g) => (
-                <span key={g.key} className="flex min-w-0 items-center gap-[7px]">
-                  <i className="size-[9px] shrink-0 rounded-[3px]" style={{ background: g.color }} />
-                  <span className="truncate bidi">{g.label || t.home.unassigned}</span>
-                  <span className="tabular">{m(g.value)}</span>
-                </span>
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[12px] lg:text-[13px]" data-totals-legend>
+              {sum.segments.slice(0, legendMax).map((g) => (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={() => s.setView(g.key === "none" ? { type: "unsorted" } : { type: "collection", id: g.key })}
+                  className={cn(hit, "flex min-w-0 max-w-full items-center gap-1.5 opacity-90 transition hover:opacity-100")}
+                >
+                  <i className="size-2 shrink-0 rounded-[3px]" style={{ background: g.color }} />
+                  <span className="max-w-[14ch] truncate bidi">{g.label || t.home.unassigned}</span>
+                  <span className="tabular font-semibold">{mK(g.value)}</span>
+                </button>
               ))}
+              {sum.segments.length > legendMax && (
+                <button type="button" onClick={() => s.setView({ type: "projects" })} className={cn(hit, "opacity-75 transition hover:opacity-100")}>
+                  {f(t.home.more, { n: sum.segments.length - legendMax })}
+                </button>
+              )}
             </div>
           </>
         )}
+        <div className={cn("flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/12 pt-2 text-[12px] lg:text-[13px]", segTotal <= 0 && "mt-auto")} data-totals-strip>
+          {[
+            { key: "urgent", label: t.nav.urgent, value: String(strip.urgent), go: () => s.setView({ type: "urgent" }) },
+            { key: "ordered", label: t.nav.onTheWay, value: String(strip.onTheWay), go: () => s.setView({ type: "ordered" }) },
+            { key: "spent", label: t.home.spentMonth, value: mK(strip.spent), go: () => s.setView({ type: "spending" }) },
+          ].map((x, i) => (
+            <span key={x.key} className="flex min-w-0 items-center gap-2">
+              {i > 0 && <span aria-hidden className="opacity-40">·</span>}
+              <button type="button" onClick={x.go} className={cn(hit, "flex items-center gap-1 whitespace-nowrap opacity-85 transition hover:opacity-100")} data-totals-go={x.key}>
+                {x.label} <b className="tabular font-bold">{x.value}</b>
+              </button>
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* Tile 1: urgent (or the project's budget ring) */}
@@ -226,7 +275,43 @@ export function HomeSummary() {
           </>
         )}
       </Tile>
+      <PhoneTilesRow budget={budget && budget.budget != null ? budget : null} ship={ship.best} />
     </section>
+  );
+}
+
+/** Phones: one compact row instead of the two tiles — the project's budget, else the store closest to free shipping. */
+function PhoneTilesRow({ budget, ship }: { budget: ReturnType<typeof budgetStats> | null; ship: ReturnType<typeof useBestShipping>["best"] }) {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const m = (v: number) => formatMoney(v, s.currency, locale);
+  const row = "rise-in col-span-2 flex min-h-12 w-full items-center gap-3 rounded-[20px] border border-line bg-surface px-3.5 py-2 text-start sm:hidden";
+  if (budget?.budget != null)
+    return (
+      <div className={row} style={{ animationDelay: "80ms" }} data-phone-tiles="budget">
+        <Ring value={(budget.pct ?? 0) / 100} size={30} stroke={4} color={budget.state === "over" ? "var(--danger)" : "var(--brand)"} track="var(--surface-2)" />
+        <span className="min-w-0 flex-1 truncate text-[13px]">
+          <b className="font-bold">{t.home.budget}</b> <span className="tabular">{m(budget.budget)}</span>
+        </span>
+        <span className={cn("tabular shrink-0 text-[13px] font-semibold", budget.state === "over" ? "text-danger" : "text-muted")}>
+          {budget.state === "over" ? f(t.home.budgetOver, { amount: m(budget.used - budget.budget) }) : f(t.home.budgetLeft, { amount: m(budget.budget - budget.used) })}
+        </span>
+      </div>
+    );
+  if (!ship) return null;
+  return (
+    <button type="button" onClick={() => s.setView({ type: "orders" })} className={row} style={{ animationDelay: "80ms" }} data-phone-tiles="shipping">
+      <Truck className="size-[18px] shrink-0 text-muted" />
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="truncate text-[13px]">
+          <b className="tabular font-bold">{m(ship.gap.remaining)}</b> {t.phone.toFreeShipping} · <span className="bidi">{ship.store}</span>
+        </span>
+        <span className="h-1 overflow-hidden rounded-full bg-surface-2" aria-hidden>
+          <i className="grow-x block h-full rounded-full bg-brand" style={{ width: `${Math.round(ship.gap.progress * 100)}%`, animationDelay: "300ms" }} />
+        </span>
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-muted rtl:-scale-x-100" />
+    </button>
   );
 }
 

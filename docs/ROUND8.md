@@ -89,7 +89,7 @@ menu): `document.documentElement.scrollWidth <= innerWidth` and no element's rig
 Tal: the totals card doesn't show all the details it should, and it's almost the only thing that stands out on the
 home screen. The products and the To-buy section must stand out too.
 
-### C1. [ ] Totals card: complete but calmer
+### C1. [x] Totals card: complete but calmer
 - Show on **all** sizes (today the per-project legend is desktop-only): items left, total (big), split bar, and the
   per-project amounts (phone: top 3 + "+N more", tappable → that project), saved amount, and a compact strip:
   Urgent n · On the way n · Spent this month ₪ (each tappable to its view).

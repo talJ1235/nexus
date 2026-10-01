@@ -332,9 +332,9 @@ function ViewHeader() {
 function SummarySkeleton() {
   return (
     <div className="skeleton-in grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] lg:gap-4" aria-hidden>
-      <Skel className="col-span-2 h-[176px] rounded-[28px] lg:col-span-1 lg:h-[226px] lg:rounded-[30px]" />
-      <Skel className="h-[170px] rounded-[30px] lg:h-[226px]" />
-      <Skel className="h-[170px] rounded-[30px] lg:h-[226px]" />
+      <Skel className="col-span-2 h-[156px] rounded-[26px] sm:h-[176px] lg:col-span-1 lg:h-[180px] lg:rounded-[30px]" />
+      <Skel className="h-[170px] rounded-[30px] max-sm:hidden lg:h-[180px]" />
+      <Skel className="h-[170px] rounded-[30px] max-sm:hidden lg:h-[180px]" />
     </div>
   );
 }

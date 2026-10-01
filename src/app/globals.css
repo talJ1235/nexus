@@ -19,7 +19,8 @@
   --brand: #171717;
   --brand-hover: #2e2e2e;
   --on-brand: #ffffff;
-  --hero: linear-gradient(140deg, #171717, #262626 60%, #3a3a3a);
+  /* Softer than the dark themes' hero (Round 8 C1): the totals card summarizes, the products lead. */
+  --hero: linear-gradient(140deg, #2a2a2a, #383838 60%, #4a4a4a);
   --on-hero: #ffffff;
   --tint: #fdf2dc;
   --tint-ink: #8f5400;
@@ -110,7 +111,7 @@
   --brand: #7c4dff;
   --brand-hover: #6a3af0;
   --on-brand: #ffffff;
-  --hero: linear-gradient(140deg, #2e1065, #4c1d95 60%, #6d3ae0);
+  --hero: linear-gradient(140deg, #4a2596, #5a2bb8 60%, #6d3ae0);
   --on-hero: #ffffff;
   --tint: #f0e9ff;
   --tint-ink: #5b2fd1;

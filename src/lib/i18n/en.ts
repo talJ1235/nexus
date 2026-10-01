@@ -190,6 +190,10 @@ export const en = {
     category: "Category",
     sort: "Sort",
     unassigned: "No project",
+    spentMonth: "Spent this month",
+    more: "+{n} more",
+    count: "{n} items",
+    countOne: "1 item",
   },
   categories: {
     electronics: "Electronics",
