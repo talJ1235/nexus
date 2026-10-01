@@ -76,7 +76,7 @@ can't fit (prefer fitting with thinner bars and short month labels), legends wra
 (₪12.4K), tables become stacked rows. Make sure the page can't be zoomed into a broken state (viewport meta stays
 `width=device-width, initial-scale=1`; no `maximum-scale` hacks).
 
-### B2. [ ] A guard so it never happens again
+### B2. [x] A guard so it never happens again
 Smoke check for **every** view and sheet at 360 and 390 px (to buy, urgent, on the way, history, spending/stats,
 order by store, projects, a project page, item sheet, receipt review, shopping mode, assistant, settings, command
 menu): `document.documentElement.scrollWidth <= innerWidth` and no element's right edge beyond the viewport

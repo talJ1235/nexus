@@ -9,6 +9,7 @@
 //   SMOKE_PERF=1 (with SMOKE_MOBILE=1) throttles the CPU ×4 and reports long tasks (> 50 ms) during the main
 //     transitions: open an item (card → sheet), switch views, change the sort, the + menu.
 //   SMOKE_MOBILE=1 runs the owner checks in a 390×844 touch phone context; screenshots get a "-m" suffix.
+//   SMOKE_ONLY=text runs only the steps whose name contains `text` (after logging in).
 //   SMOKE_TRACE=1 records every painted frame of the first 2.5 s after goto("/") (CDP screencast, timestamped)
 //     into $SMOKE_OUT/trace[-m]/ plus one contact sheet (trace[-m].png) to judge load flashes from frames.
 //     SMOKE_TRACE_PATH=/?v=urgent traces another URL; SMOKE_THROTTLE=1 emulates a slow phone network (Fast 3G-ish)
@@ -24,6 +25,7 @@ process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS ??= "1";
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
 const PASSWORD = process.env.NEXUS_PASSWORD;
 const MOBILE = !!process.env.SMOKE_MOBILE;
+const WRITE = !!process.env.SMOKE_WRITE && /localhost|127\.0\.0\.1/.test(BASE);
 const TRACE = !!process.env.SMOKE_TRACE;
 const OUT = process.env.SMOKE_OUT || (TRACE ? join(tmpdir(), "nexus-smoke") : "");
 if (OUT) mkdirSync(OUT, { recursive: true });
@@ -36,7 +38,10 @@ const ok = (cond, msg, extra = "") => {
   if (!cond) failed++;
   console.log(`${cond ? "PASS" : "FAIL"} ${msg}${extra && !cond ? ` — ${extra}` : ""}`);
 };
+// SMOKE_ONLY=text runs only the steps whose name contains it (plus login), for quick iteration.
+const ONLY = process.env.SMOKE_ONLY;
 const step = async (msg, fn) => {
+  if (ONLY && !msg.includes(ONLY) && !["owner login", "app renders items"].includes(msg)) return;
   try {
     await fn();
   } catch (e) {
@@ -273,6 +278,127 @@ try {
         } finally {
           await b2.close();
         }
+      });
+    }
+
+    // Round 8 B2: nothing wider than the screen. Every view and sheet at 390 and 360 px: the layout viewport stays the
+    // device width (no zoomed-out page), and no visible element's edge is past it (unless clipped by a scroll box that
+    // itself fits).
+    if (MOBILE) {
+      await step("phone: no view or sheet is wider than the screen (360 + 390)", async () => {
+        const items = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
+        const anItem = items.find((i) => i.status === "to_buy") ?? items[0];
+        const project = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.collections?.find((c) => c.kind !== "list") ?? null;
+        const go = async (path) => {
+          await page.goto(`${BASE}${path}`);
+          await page.waitForSelector(READY, { timeout: 15000 });
+        };
+        const viaPalette = async (re) => {
+          await go("/");
+          await openPalette();
+          await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: re }).first().click();
+        };
+        const screens = [
+          ["to buy", () => go("/")],
+          ["urgent", () => go("/?v=urgent")],
+          ["on the way", () => go("/?v=ordered")],
+          ["history", () => go("/?v=history")],
+          ["spending", () => go("/?v=spending")],
+          ["order by store", () => go("/?v=orders")],
+          ["projects", () => go("/?v=projects")],
+          ["project page", () => go(project ? `/?v=c:${project.id}` : "/?v=projects")],
+          ["item sheet", async () => {
+            await go(`/?item=${anItem.id}`);
+            await page.getByRole("dialog").first().waitFor({ timeout: 8000 });
+          }],
+          ["shopping mode", async () => {
+            await viaPalette(/Shopping mode|מצב קנייה/);
+            await page.locator("[data-shop-scope=all]").click();
+            await page.locator("[data-shop-add]").waitFor({ timeout: 8000 });
+          }],
+          ["assistant", async () => {
+            await go("/");
+            await page.locator("[data-ask]").filter({ visible: true }).first().click();
+            await page.locator("[data-assistant]").waitFor({ timeout: 8000 });
+          }],
+          ["settings", async () => {
+            await viaPalette(/Open settings|פתיחת ההגדרות|Settings/);
+            await page.getByRole("dialog").first().waitFor({ timeout: 8000 });
+          }],
+          ["command menu", async () => {
+            await go("/");
+            await openPalette();
+          }],
+        ];
+        if (WRITE)
+          screens.push(["receipt review", async () => {
+            await go("/?v=history");
+            await page.locator("[data-receipt-open=view]").click();
+            const dlg = page.getByRole("dialog");
+            await dlg.locator("#receipt-text").fill(`Store: Smoke store\nOrder: OVF-${Date.now()}\n1 x A rather long product name that could push things sideways on a phone @ 1234.5\n2 x Another line @ 12`);
+            await dlg.getByRole("button", { name: /^(Read|קריאה)$/ }).click();
+            await dlg.locator("[data-receipt-review]").waitFor({ timeout: 30000 });
+          }]);
+        // Measured against the device width, not innerWidth: on a phone, content wider than the screen widens the
+        // layout viewport itself (innerWidth grows, the page is zoomed out) — exactly the bug this guards against.
+        const measure = (vw) =>
+          page.evaluate((vw) => {
+            const sel = (el) => {
+              const data = [...el.attributes].filter((a) => a.name.startsWith("data-")).map((a) => `[${a.name}${a.value && a.value.length < 20 ? `=${a.value}` : ""}]`).slice(0, 2).join("");
+              const cls = typeof el.className === "string" ? el.className.split(/\s+/).filter(Boolean).slice(0, 4).map((c) => `.${c}`).join("") : "";
+              return `${el.tagName.toLowerCase()}${data}${cls}`.slice(0, 120);
+            };
+            const bad = [];
+            for (const el of document.querySelectorAll("body *")) {
+              if (el.closest("[inert],[aria-hidden=true],[data-sonner-toaster],.sr-only")) continue;
+              const cs = getComputedStyle(el);
+              if (cs.visibility === "hidden" || cs.display === "none" || Number(cs.opacity) === 0) continue;
+              const r = el.getBoundingClientRect();
+              if (r.width < 2 || r.height < 2) continue;
+              if (r.right <= vw + 1 && r.left >= -1) continue;
+              // Clipped by an ancestor scroll/overflow box that itself fits on screen → fine (e.g. a chip row).
+              let clipped = false;
+              for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+                const s = getComputedStyle(p);
+                if (/(auto|scroll|hidden|clip)/.test(s.overflowX) || /(hidden|clip)/.test(s.overflow)) {
+                  const pr = p.getBoundingClientRect();
+                  if (pr.right <= vw + 1 && pr.left >= -1) {
+                    clipped = true;
+                    break;
+                  }
+                }
+                if (getComputedStyle(p).visibility === "hidden" || Number(getComputedStyle(p).opacity) === 0) {
+                  clipped = true;
+                  break;
+                }
+              }
+              if (clipped) continue;
+              // Report the outermost offender only.
+              if (bad.some((b) => b.el.contains(el))) continue;
+              bad.push({ el, s: `${sel(el)} (${Math.round(r.left)}…${Math.round(r.right)})` });
+            }
+            return { scroll: Math.max(document.documentElement.scrollWidth, window.innerWidth), vw, bad: bad.slice(0, 6).map((b) => b.s) };
+          }, vw);
+        const fails = [];
+        for (const width of [390, 360]) {
+          await page.setViewportSize({ width, height: 844 });
+          for (const [name, open] of screens) {
+            try {
+              await open();
+              await page.waitForTimeout(700);
+              const m = await measure(width);
+              if (m.scroll > m.vw || m.bad.length) {
+                fails.push(`${width}/${name}: scrollWidth ${m.scroll} > ${m.vw}? ${m.bad.join(" | ")}`);
+                await shot(page, `overflow-${width}-${name.replace(/\s+/g, "-")}`);
+              }
+            } catch (e) {
+              fails.push(`${width}/${name}: could not open (${String(e?.message || e).split("\n")[0].slice(0, 100)})`);
+            }
+            await page.keyboard.press("Escape");
+          }
+        }
+        await page.setViewportSize(VIEWPORT);
+        ok(!fails.length, "phone: no view or sheet is wider than the screen (360 + 390)", `\n    ${fails.join("\n    ")}`);
       });
     }
 
