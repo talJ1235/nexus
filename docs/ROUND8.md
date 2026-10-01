@@ -17,7 +17,7 @@ detector, `maxProcessingDimension` 640, no cascade/dilation, quads < 8 % of the 
 `sharpness > 35` (untuned). Receipts are hard for document detectors: long and narrow, thin white paper on light
 tables, curled edges, shadows, thermal print.
 
-### A1. [ ] Measure first: a receipt test bench
+### A1. [x] Measure first: a receipt test bench
 - `scripts/receipt-bench.ts` (+ `npm run test:receipt-detect`): runs the detector (same code as the browser, in a
   headless Chromium page via Playwright so canvas/WASM behave the same) over a labelled set and prints per image:
   found yes/no, corner error (mean distance / diagonal), IoU with the truth quad, time. Summary: success rate

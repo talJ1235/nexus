@@ -44,4 +44,5 @@ next-env.d.ts
 # local db
 local.db*
 .claude/settings.local.json
-test-data/
+test-data/*
+!test-data/receipt-synth/

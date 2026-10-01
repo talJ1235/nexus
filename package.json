@@ -23,7 +23,8 @@
     "test:contrast": "node scripts/contrast.mjs",
     "test:barcode": "tsx scripts/test-barcode.ts",
     "test:receipt-check": "tsx scripts/test-receipt-check.ts",
-    "test:import-vat": "tsx scripts/test-import-vat.ts"
+    "test:import-vat": "tsx scripts/test-import-vat.ts",
+    "test:receipt-detect": "tsx scripts/receipt-bench.ts"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
