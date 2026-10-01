@@ -247,11 +247,70 @@ Brief and checklist: `docs/ROUND6.md`. All four sessions (B1–B4) shipped:
   new SW takes over and the page reloads once. Smoke: `setOffline` after an online load (with
   `PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1`) → snapshot renders, banner, edits disabled, logout clears it.
 
+## Round 7 — UI v2, barcodes, shopping mode, receipts v2, assistant v2, compare, import VAT
+Brief and checklist: `docs/ROUND7.md` (design references in `docs/design/*.html`). Shipped on branch `round7`:
+- **Design system** (`globals.css`): Graphite & Amber (default) and Plum palettes × light/dark; palette = cookie
+  `nexus_palette` read on the server into `<html data-palette>` (no flash), mode = next-themes. Semantic tokens (bg,
+  surface, surface-2, ink, muted, line, brand, on-brand, hero, tint, tint-ink, spark, 8 muted project hues
+  `--proj-*`); legacy names (accent*, sunken, raised, tag, tile) alias them. Spark only on the AI button and unread
+  dots. Heebo (self-hosted) replaces Rubik; radius 999/30/26/21/16; motion tokens `--ease-out`, `--ease-spring`,
+  120/200/320/450 ms. Contrast ≥ 4.5:1 in all four themes: `npm run test:contrast`. Theme screenshots:
+  `node --env-file=.env.local scripts/shots.mjs [paths]`.
+- **Box logo** (`components/logo.tsx`, colours from CSS vars), app icons/favicon/maskable/apple-touch from
+  `scripts/icons.mjs`, manifest bg Graphite dark, extension icons + popup colours; the phone boot screen assembles the
+  Box (faces fly in, top drops with a spring, light sweep, breathing while loading).
+- **Desktop shell**: floating sidebar collapsible to 76 px (cookie `nexus_sidebar`, server-read; 450 ms grid
+  transition), pill nav, projects with budget rings, lists, owner card. Top bar: live search ("Esc · all actions";
+  Esc opens the command menu), "Ask Nexus" Hairline, alerts with a spark dot. Home: totals card (hero gradient,
+  saved-since-added tag, split bar by project), urgent / free-shipping / project-budget tiles, filters row (project
+  chips, Category + Sort dropdowns, cards/table). Product cards: category tag, Urgent/Lowest flags, "● project ·
+  store", qty stepper. Floating paste capsule (flowing two-tone border) glides with the sidebar; paste anywhere adds.
+- **Categories**: short fixed list `lib/categories.ts` (Electronics, Mechanical, Tools, Materials, Computers, Camera &
+  audio, Home & kitchen, Office, Clothing & personal, Other); old values migrated idempotently; AI prompts use it.
+- **Phone shell** (< 1024 px): top bar (logo pill, expanding search, Ask, alerts), floating dock To buy · Projects · +
+  · On the way · Stats, "+" menu (scan barcode, scan receipt, paste link, plan with Nexus), item rows < 640 px.
+  **Projects** screen (`?v=projects`); project page has "Shop" and "Plan with Nexus". **Stats**: month vs budget hero
+  with ring, ticking tiles (incl. savings from cheaper stores), 12-month bars, by project / store / category, biggest
+  purchases. Order by store is reachable from Stats, the To-buy category menu and the command menu.
+- **Barcodes** (`lib/barcode.ts` pure + `npm run test:barcode`; `app/barcode-actions.ts`): camera with native
+  BarcodeDetector or self-hosted zxing-wasm (`public/vendor/zxing_reader.wasm`), EAN-13/8, UPC-A/E, Code 128, torch,
+  typed fallback. Lookup: own items by gtin (`items.gtin`, `sources.gtin` from JSON-LD/extension) → Open Food Facts →
+  Open Products Facts → UPCitemdb trial → search key → photo named by Gemini; store/weight codes go straight to the
+  photo; cached in kv (`barcode:<gtin14>`). Found → mark bought/ordered/open; new → add (list/project) or to History.
+- **Shopping mode** (`shopping-mode.tsx`, `lib/shop-outbox.ts`): scope (everything / store / project), rows by
+  category or store, tap = check, long-press = qty/price, progress + total, barcode check-off, quick add, wake lock;
+  the trip lives in IndexedDB `nexus-shop`; an offline Finish is queued and synced when online (last write wins).
+- **Receipts v2**: PDFs with a text layer read as text (unpdf); photos prepared in the browser
+  (`lib/receipt-image.ts`: scanic crop/deskew, grayscale + contrast stretch, ≤ 2000 px, JPEG 0.85, tall receipts in
+  overlapping tiles stored as `receipts.parts`); Gemini `media_resolution: medium`; checks (`lib/receipt-check.ts`,
+  `npm run test:receipt-check`) with one targeted retry, lines still off marked "check"; reads cached by content hash.
+  Live camera (`receipt-camera.tsx`): live outline, auto-capture when steady and sharp, corner adjust with a
+  straightened preview, extra parts for long receipts, file fallback. Review as cards: "Already on your list" (with
+  the move) and "New" (picture, category, project, "add all to…"), cards fly out on apply.
+- **Product pictures** (`lib/product-image.ts`): existing item → store page → owner's extension job
+  (`/api/ext/image-jobs`, extension 1.3.0 searches Google Images in the owner's browser) → Brave/Serper image search →
+  Fluent Emoji icon (Iconify); `items.image_source` with an "icon" badge; shimmer while filling; daily cron backfill.
+- **Assistant v2**: `/api/ask` streams NDJSON (route/delta/done) through `generateTextStream` (Gemini stream +
+  OpenAI-compatible SSE, same fallback chain/cooldowns; a provider failing mid-answer is continued by the next);
+  actions parsed after the stream. 420 px side panel / full-screen phone sheet with swipe-down; bold lead line, money
+  chips, referenced items as mini cards, breathing-Box waiting state, word fade + caret, stop button, new chat.
+- **Compare stores** (`lib/compare.ts`, `app/compare-actions.ts`, `compare-sheet.tsx`): Gemini queries → Brave/Serper
+  candidates, or the owner's extension searching Google Shopping/web in their browser → pages read (extension for
+  blocked stores) → same-product check by Gemini → sorted by total in the display currency; "Add as another store";
+  cached 24 h in kv; never auto-adds.
+- **Import VAT** (`lib/import-vat.ts`, `npm run test:import-vat`): setting "VAT-free import limit" (USD, default 130,
+  kv `pref:import-limit`); foreign stores over it get a warning in Order by store (VAT 18 % estimate, what to split), on
+  "mark as ordered", and in the weekly Telegram summary.
+- **Motion**: card → sheet FLIP morph, gliding/collapsing grid cells (motion), number tickers, directional view
+  transitions, spring presses, phone row swipe (end = next status, start = select), pull to refresh, project-complete
+  burst; reduced motion → fades. Perf: data-only store context for cards, separate open-item context, chunked grids,
+  content-visibility, single layout rendered; `SMOKE_PERF=1` reports long tasks at CPU ×4.
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
-- Dark + light (system default), no flash on load.
+- Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
 - Cards (image-first, primary) ↔ dense table toggle.
-- ⌘K / Ctrl+K command palette: search items/collections, run actions.
+- Esc (or ⌘K / Ctrl+K) opens the command menu: search items/collections, run actions.
 - Skeleton loading, short action-driven transitions, respects reduced motion.
 - Mobile responsive; installable PWA.
 
@@ -282,4 +341,6 @@ Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 | `BLOB_READ_WRITE_TOKEN` | auto-added when a Blob store is connected |
 | `CRON_SECRET` | authorizes the daily price-check cron (Vercel sends it automatically) |
 | `TELEGRAM_API_BASE` | local tests only: send bot messages to a fake Telegram API (ignored on Vercel) |
+| `BRAVE_SEARCH_API_KEY` | optional: web/image/shopping search for compare stores, barcode lookups and product pictures (preferred) |
+| `SERPER_API_KEY` | optional alternative search provider (Google results via serper.dev) |
 | `NEXUS_AI_MOCK` | local tests only (`=1`): offline AI mock for the assistant, planner and receipts |

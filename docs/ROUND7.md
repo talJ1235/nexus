@@ -271,3 +271,48 @@ All transform/opacity, interruptible, `prefers-reduced-motion` → fades only. C
 Parts inventory, monthly "Wrapped" summary. Not wanted: SolidWorks BOM import, item file attachments, event wishlists.
 
 ## Open
+
+### Summary (2026-10-01, end of run)
+All parts A–H are implemented on branch `round7` (one or more commits per item, pushed after every part; Vercel
+preview builds from the branch). Green: `npm run -s check`, every unit test (`test`, `:sug`, `:actions`, `:ship`,
+`:budget`, `:receipt`, `:weekly`, `:contrast`, `:barcode`, `:receipt-check`, `:import-vat`), and `npm run smoke` on
+desktop, phone (`SMOKE_MOBILE=1`) and the write paths on both (`SMOKE_WRITE=1`, server with `NEXUS_AI_MOCK=1`).
+
+**Not merged to `main`.** One acceptance check is red: H's 60 fps budget — `SMOKE_PERF=1 SMOKE_MOBILE=1` (CPU ×4)
+still records long tasks above 50 ms. Last run, phone: open item ~90–100 ms, close ~60 ms, view switch ~50–60 ms;
+desktop: open item ~170 ms, sidebar collapse frames 60–100 ms. (Before the perf work: phone up to ~380 ms per step,
+desktop up to ~800 ms; at real CPU speed today's numbers are roughly ÷4.) What's left is mostly React rendering of the
+item sheet hero + Radix dialog setup, and the first frame of a view switch. To merge as is:
+`git checkout main && git merge --ff-only round7 && git push origin main` (rebase `round7` on `main` first if `main`
+moved). Production checks (GitHub Actions smoke against vercel.app) weren't run from here.
+
+### Notes, decisions and leftovers
+- Step 0 settings.local.json created at nexus/.claude/settings.local.json (the session started one folder up; the brief lives in nexus/). Added to .gitignore.
+- B1: the sidebar "Stores" section was dropped (design has none); store views still open from Order by store / URLs (?v=s:<key>). The owner card name is a dictionary string ("Tal" / "טל"), there's no user profile.
+- A1/A3: boot screen now uses the active palette+mode bg; the native PWA splash (manifest, static) stays Graphite dark, so a light-mode user sees dark splash → light boot screen for a moment.
+- A1: product photos in dark mode drop mix-blend-multiply (white photo backgrounds show as white rounded rectangles on the dark tile).
+- B3: card category tag hides on hover where the select box appears (same corner).
+- B4: "Paste several links" moved into a small icon in the capsule (opens a dialog).
+- C1: phone layout applies below 1024 px (tablets too). Rows instead of cards below 640 px.
+- C1: "+ → Scan a receipt" opened the old receipt dialog until E2.
+- D1: lookup chain order own → OFF → OPF → UPCitemdb trial → search (key) → photo. Store/weight codes (prefix 2, UPC 2/4) skip the databases. UPCitemdb trial ~100/day per IP — Vercel's shared IPs may hit it sooner. Misses are cached for a day, hits for 30 days.
+- D1: zxing wasm is self-hosted at public/vendor/zxing_reader.wasm (copy of node_modules/zxing-wasm/dist/reader); bump it with the package.
+- D2: shopping trip + offline outbox live in IndexedDB "nexus-shop" (not cleared on logout, so pending marks aren't lost). Conflicts: last write wins.
+- E2: auto-capture needs the outline steady 0.8 s and a sharpness score > 35 (variance of a Laplacian on a 160 px frame) — tuned by eye, not on real receipts; manual shutter always works. Tiny/folded detections (< 8 % of the frame) are ignored.
+- E3: unmatched receipt lines now default to "New" (they used to default to "ignore"); category of a new line defaults to Other (no AI guess yet).
+- E4: the extension's picture search scrapes Google Images HTML in the owner's browser (fragile if Google changes markup); it only replaces an empty picture or an icon. The product page URL it finds isn't saved as a store link. Manual items from other paths (assistant/planner) get pictures from the daily backfill only.
+- Receipt photo uploads need the Vercel Blob store (not set locally), so the camera → upload → read path was only verified up to the upload in local smoke.
+- B/C: the motion plan's "card flies to the project in the sidebar when moved" and "sheets that follow the finger"
+  (except the assistant's swipe-down) weren't done; move still shows the toast with Undo.
+- F: "voice later" left for later as the brief says. Compare as an "assistant action" is a "Compare" button on the
+  assistant's item mini-cards (no new action type in the proposal format).
+- G1: without a search key, comparing needs the extension ≥ 1.3.0 (Google Shopping/web scraped in the owner's
+  browser — fragile if Google changes its markup); shipping cost of other stores isn't known yet (shown as "shipping
+  not known"); the mock (`NEXUS_AI_MOCK=1`, no key) returns two fake offers.
+- G2: the foreign-store list is a fixed set (AliExpress, Amazon, eBay, Temu, Shein, iHerb, …) plus any non-ILS
+  currency; the "order" for mark-as-ordered is that store's items ordered in the last 24 h.
+- Extension is now 1.3.0 (`public/nexus-extension.zip` repacked): gtin from JSON-LD, picture jobs, store search.
+  Reinstall/update it to get those.
+- H: `[[id]]` references in assistant answers didn't match 21-character ids (items created from receipts) — fixed.
+- Local smoke data: the local DB has many "Smoke …" items from write runs; `scripts/seed-local.mjs` only resets the
+  demo rows.
