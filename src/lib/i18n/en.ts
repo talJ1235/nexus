@@ -294,6 +294,7 @@ export const en = {
     failed: "Upload failed. Images and PDFs up to 20 MB.",
   },
   scan: {
+    preparing: "Preparing the photo…",
     button: "Receipt",
     title: "Add a receipt",
     intro: "Upload a receipt or an order confirmation. Nexus finds what you bought and marks it.",

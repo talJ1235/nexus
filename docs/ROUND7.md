@@ -168,7 +168,7 @@ Order by store ("Shop at <store>").
 
 ## Part E — receipts v2 and product images
 
-### E1. [ ] Reading pipeline (accuracy first, less AI work)
+### E1. [x] Reading pipeline (accuracy first, less AI work)
 - PDFs: read the text layer with `unpdf` first; if it has real text, parse with the model from **text** (cheap,
   exact). Only scanned PDFs go to vision.
 - Images: client-side preprocessing before upload — auto-crop/deskew (scanic, see E2), grayscale, contrast stretch,

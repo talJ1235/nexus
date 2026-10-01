@@ -1,5 +1,5 @@
 import "server-only";
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI, MediaResolution, ThinkingLevel } from "@google/genai";
 import { kvGet, kvSet } from "./kv";
 
 import { CATEGORIES, normalizeCategory } from "./categories";
@@ -118,16 +118,19 @@ function parseLooseJson<T>(text: string): T | null {
 
 /** A document for Gemini to read (image or PDF, base64). Only Gemini can read files, so these calls never fall back. */
 export type AiFile = { mimeType: string; data: string };
-type GenOpts = { urlContext?: boolean; smart?: boolean; text?: boolean; system?: string; budgetMs?: number; file?: AiFile };
+/** `files`: several images read together, in order (tiles of one long receipt). `mediaResolution`: tokens per image. */
+type GenOpts = { urlContext?: boolean; smart?: boolean; text?: boolean; system?: string; budgetMs?: number; file?: AiFile; files?: AiFile[]; mediaResolution?: "low" | "medium" | "high" };
 
 async function callGemini(model: string, prompt: string, schema: object | null, opts: GenOpts, timeoutMs: number) {
   const c = gemini()!;
+  const files = opts.files?.length ? opts.files : opts.file ? [opts.file] : [];
   const call = (withThinking: boolean) =>
     c.models.generateContent({
       model,
-      contents: opts.file ? [{ role: "user", parts: [{ inlineData: opts.file }, { text: prompt }] }] : prompt,
+      contents: files.length ? [{ role: "user", parts: [...files.map((f) => ({ inlineData: f })), { text: prompt }] }] : prompt,
       config: {
         abortSignal: AbortSignal.timeout(timeoutMs),
+        ...(opts.mediaResolution ? { mediaResolution: { low: MediaResolution.MEDIA_RESOLUTION_LOW, medium: MediaResolution.MEDIA_RESOLUTION_MEDIUM, high: MediaResolution.MEDIA_RESOLUTION_HIGH }[opts.mediaResolution] } : {}),
         // These tasks need little deliberation; low thinking keeps answers fast.
         ...(withThinking ? (/gemini-3/.test(model) ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : { thinkingConfig: { thinkingBudget: 0 } }) : {}),
         ...(opts.system ? { systemInstruction: opts.system } : {}),
@@ -182,7 +185,7 @@ async function callOpenAiCompatible(r: Route, prompt: string, schema: object | n
 
 async function generate(prompt: string, schema: object | null, opts: GenOpts = {}): Promise<string | null> {
   const tier = opts.smart ? "smart" : "fast";
-  const all = routes(tier, !!opts.urlContext || !!opts.file);
+  const all = routes(tier, !!opts.urlContext || !!opts.file || !!opts.files?.length);
   if (!all.length) return null;
   await loadHealth();
   const now = Date.now();
@@ -201,7 +204,7 @@ async function generate(prompt: string, schema: object | null, opts: GenOpts = {
         const reserve = r.provider === "gemini" && hasFallback ? Math.min(12_000, (opts.budgetMs ?? 45_000) * 0.3) : 0;
         const left = deadline - Date.now() - reserve;
         if (left < 3000) break;
-        const timeout = Math.min(left, opts.smart || opts.urlContext || opts.file ? 22_000 : 12_000);
+        const timeout = Math.min(left, opts.smart || opts.urlContext || opts.file || opts.files?.length ? 22_000 : 12_000);
         try {
           const text = r.provider === "gemini" ? await callGemini(r.model, prompt, schema, opts, timeout) : await callOpenAiCompatible(r, prompt, schema, opts, timeout);
           if (!text) break; // empty answer → next route

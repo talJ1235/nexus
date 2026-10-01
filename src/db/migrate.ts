@@ -37,6 +37,9 @@ async function main() {
   if (!itemCols.includes("gtin")) await client.execute("ALTER TABLE items ADD COLUMN gtin text");
   const sourceCols = (await client.execute("PRAGMA table_info(sources)")).rows.map((r) => String(r.name));
   if (!sourceCols.includes("gtin")) await client.execute("ALTER TABLE sources ADD COLUMN gtin text");
+  // Round 7: receipts made of several photos (E1/E2).
+  const receiptCols = (await client.execute("PRAGMA table_info(receipts)")).rows.map((r) => String(r.name));
+  if (!receiptCols.includes("parts")) await client.execute("ALTER TABLE receipts ADD COLUMN parts text");
   // Round 7: the short fixed category list. Idempotent (only rows still holding an old value change).
   const legacy = Object.entries(LEGACY_CATEGORIES);
   await client.execute({

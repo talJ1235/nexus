@@ -296,6 +296,7 @@ export const he: Dict = {
     failed: "ההעלאה נכשלה. תמונות ו־PDF עד 20MB.",
   },
   scan: {
+    preparing: "מכין את התמונה…",
     button: "קבלה",
     title: "הוספת קבלה",
     intro: "העלו קבלה או אישור הזמנה, ו־Nexus ימצא מה קניתם ויסמן את זה.",

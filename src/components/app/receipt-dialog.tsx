@@ -13,6 +13,7 @@ import { formatMoney } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProductImage } from "./item-card";
+import { prepareReceiptPart } from "@/lib/receipt-image";
 import { useStore } from "./store";
 
 type Mode = "match" | "new" | "ignore";
@@ -61,18 +62,20 @@ export function ReceiptDialog() {
     [t],
   );
 
-  const fromFile = useCallback(
-    async (file: File) => {
-      if (!ACCEPT.test(file.type) || file.size > 20 * 1024 * 1024) {
-        toast.error(t.scan.uploadFailed);
-        return;
-      }
+  /** Upload ready parts (JPEG tiles / a PDF) as ONE receipt — first file + the rest as parts, in order — then read it. */
+  const uploadParts = useCallback(
+    async (blobs: Blob[], name: string) => {
       setPhase({ step: "busy", label: t.scan.uploading });
       let id: string;
       try {
-        const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-80) || "receipt";
-        const blob = await upload(`receipts/inbox/${safe}`, file, { access: "public", handleUploadUrl: "/api/blob/upload", contentType: file.type || undefined });
-        id = (await createReceipt({ file: { url: blob.url, name: file.name, contentType: file.type || null, size: file.size } })).id;
+        const safe = name.replace(/[^\w.\-]+/g, "_").slice(-60) || "receipt";
+        const urls: string[] = [];
+        for (const [i, b] of blobs.entries()) {
+          const ext = b.type === "application/pdf" ? "pdf" : "jpg";
+          const res = await upload(`receipts/inbox/${safe.replace(/\.\w+$/, "")}-${i + 1}.${ext}`, b, { access: "public", handleUploadUrl: "/api/blob/upload", contentType: b.type || undefined });
+          urls.push(res.url);
+        }
+        id = (await createReceipt({ file: { url: urls[0], name, contentType: blobs[0].type || null, size: blobs[0].size }, parts: urls.slice(1) })).id;
       } catch {
         toast.error(t.scan.uploadFailed);
         setPhase({ step: "pick" });
@@ -81,6 +84,23 @@ export function ReceiptDialog() {
       await read(id);
     },
     [read, t],
+  );
+
+  const fromFile = useCallback(
+    async (file: File) => {
+      if (!ACCEPT.test(file.type) || file.size > 20 * 1024 * 1024) {
+        toast.error(t.scan.uploadFailed);
+        return;
+      }
+      // Photos: straighten, crop, clean up and split very tall ones in the browser (smaller, sharper uploads).
+      let blobs: Blob[] = [file];
+      if (file.type.startsWith("image/")) {
+        setPhase({ step: "busy", label: t.scan.preparing });
+        blobs = await prepareReceiptPart(file, { autoCrop: true }).catch(() => [file]);
+      }
+      await uploadParts(blobs, file.name);
+    },
+    [uploadParts, t],
   );
 
   const fromText = async () => {
@@ -101,7 +121,8 @@ export function ReceiptDialog() {
     const seed = s.receiptSeed;
     if (seed && seed.at !== seedAt.current) {
       seedAt.current = seed.at;
-      void fromFile(seed.file);
+      if (seed.parts?.length) void uploadParts(seed.parts, "receipt.jpg");
+      else if (seed.file) void fromFile(seed.file);
     } else if (phase.step !== "busy") setPhase({ step: "pick" });
     /* eslint-enable react-hooks/set-state-in-effect */
     refreshSaved();

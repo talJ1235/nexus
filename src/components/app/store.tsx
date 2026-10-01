@@ -110,13 +110,13 @@ type Store = {
   /** Question handed from the command palette to the assistant. */
   askSeed: string | null;
   askAssistant: (q: string) => void;
-  /** File handed to the receipt dialog (dropped on the app); null when it was opened empty. */
-  receiptSeed: { file: File; at: number } | null;
+  /** File handed to the receipt dialog (dropped on the app), or ready parts from the camera (E2); null = opened empty. */
+  receiptSeed: { file?: File; parts?: Blob[]; at: number } | null;
   /** Read-only offline mode: when the shown data is from (null = online, editing allowed). */
   offlineAt: number | null;
   /** Rendering the offline shell from the device snapshot (vs. an online page that lost its connection). */
   offlineShell: boolean;
-  openReceipt: (file?: File | null) => void;
+  openReceipt: (file?: File | null, parts?: Blob[]) => void;
   setExtOpen: (o: boolean) => void;
   setNavOpen: (o: boolean) => void;
   focusAdd: () => void;
@@ -227,9 +227,9 @@ export function StoreProvider({
     setAskSeed(`${q}\u200b${Date.now() % 1000}`);
     setPanel("assistant");
   }, []);
-  const [receiptSeed, setReceiptSeed] = useState<{ file: File; at: number } | null>(null);
-  const openReceipt = useCallback((file?: File | null) => {
-    setReceiptSeed(file ? { file, at: Date.now() } : null);
+  const [receiptSeed, setReceiptSeed] = useState<{ file?: File; parts?: Blob[]; at: number } | null>(null);
+  const openReceipt = useCallback((file?: File | null, parts?: Blob[]) => {
+    setReceiptSeed(file || parts?.length ? { file: file ?? undefined, parts, at: Date.now() } : null);
     setPanel("receipt");
   }, []);
 

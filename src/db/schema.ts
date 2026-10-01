@@ -224,6 +224,8 @@ export const receipts = sqliteTable("receipts", {
   text: text("text"),
   status: text("status", { enum: ["new", "extracted", "failed", "applied"] }).notNull().default("new"),
   data: text("data", { mode: "json" }).$type<unknown>(),
+  // More photos of the same long receipt (tiles / extra parts, in order), after `url`.
+  parts: text("parts", { mode: "json" }).$type<string[]>(),
   createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
   appliedAt: integer("applied_at"),
 });

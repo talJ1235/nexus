@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { del, put } from "@vercel/blob";
@@ -14,6 +15,8 @@ import { getItem, loadItems } from "@/lib/data";
 import { convert } from "@/lib/money";
 import { getRates } from "@/lib/rates";
 import { extractReceipt, type ReceiptData } from "@/lib/receipt";
+import { hasRealText } from "@/lib/receipt-check";
+import { kvGet, kvSet } from "@/lib/kv";
 import { matchReceipt, storeMatches, type LineMatch, type MatchCandidate } from "@/lib/receipt-match";
 import type { ItemWithSources, Receipt } from "@/lib/types";
 
@@ -32,13 +35,14 @@ export type ReceiptView = Pick<Receipt, "id" | "name" | "url" | "contentType" | 
 const view = (r: Receipt): ReceiptView => ({ id: r.id, name: r.name, url: r.url, contentType: r.contentType, status: r.status, createdAt: r.createdAt, hasText: !!r.text });
 
 /** Save an uploaded file (already in Blob) or pasted email text as a receipt, before reading it. */
-export async function createReceipt(raw: { file?: { url: string; name: string; contentType?: string | null; size?: number | null }; text?: string; name?: string }): Promise<ReceiptView> {
+export async function createReceipt(raw: { file?: { url: string; name: string; contentType?: string | null; size?: number | null }; parts?: string[]; text?: string; name?: string }): Promise<ReceiptView> {
   await assertOwner();
   const input = z
     .object({
       file: z
         .object({ url: z.string().url().refine(isBlobUrl), name: z.string().min(1).max(200), contentType: z.string().max(100).nullish(), size: z.number().int().nonnegative().max(MAX_FILE).nullish() })
         .optional(),
+      parts: z.array(z.string().url().refine(isBlobUrl)).max(7).optional(),
       text: z.string().min(10).max(50_000).optional(),
       name: z.string().min(1).max(200).optional(),
     })
@@ -57,7 +61,7 @@ export async function createReceipt(raw: { file?: { url: string; name: string; c
   }
   const [row] = await db
     .insert(schema.receipts)
-    .values({ id, url: file?.url ?? null, name: file?.name ?? input.name ?? "email.txt", contentType: file?.contentType ?? (input.text ? "text/plain" : null), size: file?.size ?? null, text: input.text ?? null, createdAt: Date.now() })
+    .values({ id, url: file?.url ?? null, parts: input.file && input.parts?.length ? input.parts : null, name: file?.name ?? input.name ?? "email.txt", contentType: file?.contentType ?? (input.text ? "text/plain" : null), size: file?.size ?? null, text: input.text ?? null, createdAt: Date.now() })
     .returning();
   return view(row);
 }
@@ -73,15 +77,7 @@ export async function readReceipt(id: string): Promise<ReceiptRead | { error: "n
 
   let data: ReceiptData | null = null;
   try {
-    if (r.text) data = await extractReceipt({ text: r.text });
-    else if (r.url && isBlobUrl(r.url)) {
-      const res = await fetch(r.url, { signal: AbortSignal.timeout(15_000) });
-      if (!res.ok) throw new Error(`fetch ${res.status}`);
-      const buf = Buffer.from(await res.arrayBuffer());
-      if (buf.length > MAX_FILE) throw new Error("too_big");
-      const mimeType = (r.contentType || res.headers.get("content-type") || "application/pdf").split(";")[0];
-      data = mimeType.startsWith("text/") ? await extractReceipt({ text: buf.toString("utf8") }) : await extractReceipt({ file: { mimeType, data: buf.toString("base64") } });
-    }
+    data = await readDocument(r);
   } catch (e) {
     console.warn("[receipt] read failed:", String((e as Error)?.message ?? e).slice(0, 200));
   }
@@ -106,6 +102,59 @@ export async function readReceipt(id: string): Promise<ReceiptRead | { error: "n
       };
     });
   return { receipt: view(row), data, matches: matchReceipt(data.lines, candidates, data.store) };
+}
+
+async function fetchBlob(url: string) {
+  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new Error(`fetch ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length > MAX_FILE) throw new Error("too_big");
+  return { buf, type: res.headers.get("content-type") };
+}
+
+/**
+ * Accuracy first, less AI work: pasted text and PDFs with a real text layer are read as TEXT (cheap, exact); only
+ * scans and photos go to vision (all parts of a long receipt in one request). The same document is never read twice
+ * (cache by content hash).
+ */
+async function readDocument(r: Receipt): Promise<ReceiptData | null> {
+  const hash = createHash("sha256");
+  let text = r.text;
+  let files: { mimeType: string; data: string }[] = [];
+  if (!text && r.url && isBlobUrl(r.url)) {
+    const urls = [r.url, ...((r.parts as string[] | null) ?? []).filter(isBlobUrl)];
+    const got = await Promise.all(urls.map(fetchBlob));
+    const mime = (i: number) => ((i === 0 ? r.contentType : null) || got[i].type || "application/pdf").split(";")[0];
+    for (const [i, g] of got.entries()) {
+      hash.update(g.buf);
+      if (mime(i).startsWith("text/")) text = g.buf.toString("utf8");
+      else if (mime(i) === "application/pdf" && got.length === 1) {
+        const pdfText = await pdfTextLayer(g.buf);
+        if (hasRealText(pdfText)) text = pdfText;
+        else files.push({ mimeType: "application/pdf", data: g.buf.toString("base64") });
+      } else files.push({ mimeType: mime(i), data: g.buf.toString("base64") });
+    }
+    if (text) files = [];
+  } else if (text) hash.update(text);
+  const key = `receipt-read:${hash.digest("hex").slice(0, 40)}`;
+  if (!mockAi()) {
+    const cached = await kvGet(key).catch(() => null);
+    if (cached) return JSON.parse(cached) as ReceiptData;
+  }
+  const data = text ? await extractReceipt({ text }) : files.length ? await extractReceipt({ files }) : null;
+  if (data?.lines.length && !mockAi()) await kvSet(key, JSON.stringify(data)).catch(() => {});
+  return data;
+}
+
+async function pdfTextLayer(buf: Buffer): Promise<string | null> {
+  try {
+    const { extractText, getDocumentProxy } = await import("unpdf");
+    const pdf = await getDocumentProxy(new Uint8Array(buf));
+    const { text } = await extractText(pdf, { mergePages: true });
+    return Array.isArray(text) ? text.join("\n") : text;
+  } catch {
+    return null;
+  }
 }
 
 /** Receipts that were uploaded but not applied yet (read failed, AI was down, or the review was closed). */

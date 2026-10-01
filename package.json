@@ -21,7 +21,8 @@
     "test:receipt": "tsx scripts/test-receipt.ts",
     "test:weekly": "tsx scripts/test-weekly.ts",
     "test:contrast": "node scripts/contrast.mjs",
-    "test:barcode": "tsx scripts/test-barcode.ts"
+    "test:barcode": "tsx scripts/test-barcode.ts",
+    "test:receipt-check": "tsx scripts/test-receipt-check.ts"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
@@ -40,10 +41,12 @@
     "radix-ui": "^1.6.7",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "scanic": "^1.6.0",
     "server-only": "^0.0.1",
     "sharp": "^0.35.5",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
+    "unpdf": "^1.8.1",
     "zod": "^4.6.5",
     "zxing-wasm": "^3.1.4"
   },

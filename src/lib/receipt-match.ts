@@ -1,6 +1,6 @@
 // Receipt line → item matching. Pure (no DB), shared by server and client; see scripts/test-receipt.ts.
 
-export type ReceiptLine = { name: string; qty: number; unitPrice: number | null; lineTotal: number | null };
+export type ReceiptLine = { name: string; qty: number; unitPrice: number | null; lineTotal: number | null; /** Set by the post-read checks (receipt-check.ts) when the numbers do not add up. */ check?: boolean };
 
 export type MatchCandidate = {
   id: string;
