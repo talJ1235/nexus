@@ -46,3 +46,6 @@ local.db*
 .claude/settings.local.json
 test-data/*
 !test-data/receipt-synth/
+
+# self-hosted ML receipt detector assets (copied from node_modules/scanic-ml by scripts/copy-scanic-ml.mjs)
+/public/scanic-ml/

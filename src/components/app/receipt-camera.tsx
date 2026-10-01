@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, Check, Flashlight, ImageUp, Plus, RotateCcw, X }
 import { toast } from "@/lib/toast";
 import { useI18n } from "@/components/providers";
 import { Spinner } from "@/components/ui/spinner";
-import { cropTo, detectCorners, prepareReceiptPart, sharpness, toCanvas, type CornerPoints } from "@/lib/receipt-image";
+import { cropTo, detectCorners, prepareReceiptPart, quadToCorners, sharpness, toCanvas, type CornerPoints } from "@/lib/receipt-image";
 import { cn } from "@/lib/utils";
 import { useStore } from "./store";
 import { haptic, useCamera } from "./use-camera";
@@ -153,7 +153,9 @@ function Live({ active, parts, onParts, onShot, onClose, onUse, busy }: {
         small.width = Math.round(v.videoWidth * k);
         small.height = Math.round(v.videoHeight * k);
         small.getContext("2d")!.drawImage(v, 0, 0, small.width, small.height);
-        const found = await detectCorners(small, 640).catch(() => null);
+        const { detectReceipt } = await import("@/lib/receipt-detect");
+        const d = await detectReceipt(small.getContext("2d", { willReadFrequently: true })!.getImageData(0, 0, small.width, small.height), { mode: "live" }).catch(() => null);
+        const found = d ? { corners: quadToCorners(d.quad) } : null;
         if (stop) return;
         if (found) {
           const full = scaleCorners(found.corners, 1 / k);

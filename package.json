@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "npm run db:migrate && next build",
+    "dev": "node scripts/copy-scanic-ml.mjs && next dev",
+    "build": "node scripts/copy-scanic-ml.mjs && npm run db:migrate && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -44,6 +44,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "scanic": "^1.6.0",
+    "scanic-ml": "^0.2.0",
     "server-only": "^0.0.1",
     "sharp": "^0.35.5",
     "sonner": "^2.0.8",

@@ -37,5 +37,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icons/|.*\\.(?:png|svg|jpg|jpeg|webp|ico|woff2?)$).*)"],
+  // scanic-ml/: the receipt camera's ML detector (public MIT model + WASM runtime, see scripts/copy-scanic-ml.mjs).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icons/|scanic-ml/|.*\\.(?:png|svg|jpg|jpeg|webp|ico|woff2?)$).*)"],
 };

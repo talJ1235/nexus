@@ -29,7 +29,7 @@ tables, curled edges, shadows, thermal print.
 - **Real set** (if present): `test-data/receipts/*.jpg` (git-ignored; Tal may drop real photos there). If it exists,
   label the corners yourself (look at each image, write `labels.json`) and include it in the bench; report both sets.
 
-### A2. [ ] A receipt-specific detector
+### A2. [x] A receipt-specific detector
 Keep scanic but make detection robust, choosing by bench numbers:
 - scanic tuned: `maxProcessingDimension` 800–1000 for stills, `enableDetectionCascade`, dilation (kernel 5,
   2 iterations), `maxDocumentAspectRatio` ≥ 8 (long receipts), lower coverage threshold for distant receipts; try

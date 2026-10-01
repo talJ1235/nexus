@@ -18,16 +18,25 @@ export async function toCanvas(src: Source, max = 4000): Promise<HTMLCanvasEleme
   return c;
 }
 
-/** Find the receipt's 4 corners (null when no clear document outline). */
-export async function detectCorners(canvas: HTMLCanvasElement, maxProcessingDimension = 640): Promise<{ corners: CornerPoints; confidence: number } | null> {
-  const { scanDocument } = await import("scanic");
-  const r = await scanDocument(canvas, { mode: "detect", maxProcessingDimension }).catch(() => null);
-  if (!r?.success || !r.corners) return null;
-  // A receipt fills a good part of the frame; tiny or folded quads are noise.
-  const q = [r.corners.topLeft, r.corners.topRight, r.corners.bottomRight, r.corners.bottomLeft];
-  const area = Math.abs(q.reduce((a, p, i) => a + p.x * q[(i + 1) % 4].y - q[(i + 1) % 4].x * p.y, 0)) / 2;
-  if (area / (canvas.width * canvas.height) < 0.08) return null;
-  return { corners: r.corners, confidence: r.confidence ?? 0.5 };
+/** Self-hosted assets of scanic's ML detector (copied to public/ by scripts/copy-scanic-ml.mjs). */
+export const ML_ASSETS = "/scanic-ml/";
+
+export const quadToCorners = (q: { x: number; y: number }[]): CornerPoints => ({ topLeft: q[0], topRight: q[1], bottomRight: q[2], bottomLeft: q[3] });
+
+/**
+ * Find the receipt's 4 corners in a still (photo or picked file) with the receipt detector (paper + straight edges +
+ * scanic + ML, fused — see lib/receipt-detect). The still is analysed at ≤ 1000 px; null when nothing is clear.
+ */
+export async function detectCorners(canvas: HTMLCanvasElement): Promise<{ corners: CornerPoints; confidence: number } | null> {
+  const { detectReceipt } = await import("./receipt-detect");
+  const small = await toCanvas(canvas, 1000);
+  const k = canvas.width / small.width;
+  const data = small.getContext("2d", { willReadFrequently: true })!.getImageData(0, 0, small.width, small.height);
+  const d = await detectReceipt(data, { mode: "still", ml: ML_ASSETS }).catch(() => null);
+  if (!d) return null;
+  // Corners may sit slightly outside the photo (cut-off receipt): clamp to the image.
+  const q = d.quad.map((p) => ({ x: Math.max(0, Math.min(canvas.width, p.x * k)), y: Math.max(0, Math.min(canvas.height, p.y * k)) }));
+  return { corners: quadToCorners(q), confidence: d.score };
 }
 
 /** Perspective-correct to the given corners. */
