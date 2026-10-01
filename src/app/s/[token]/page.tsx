@@ -69,7 +69,7 @@ export default async function SharedPage({ params }: { params: Promise<{ token: 
               <div className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-lg bg-tile">
                 {i.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={i.imageUrl} alt="" loading="lazy" className="size-full object-contain p-1.5 mix-blend-multiply" />
+                  <img src={i.imageUrl} alt="" loading="lazy" className="size-full object-contain p-1.5 mix-blend-multiply dark:mix-blend-normal" />
                 ) : (
                   <Package className="size-6 text-tile-ink" strokeWidth={1.4} />
                 )}

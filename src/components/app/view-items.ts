@@ -36,13 +36,15 @@ export function useViewItems() {
   }, [items, view, query, tagFilter, sort, rates, currency]);
 }
 
+/** User-picked collection colours → a muted per-theme set (globals.css --proj-*), used only as small dots/bars. */
 export const COLLECTION_COLORS: Record<string, string> = {
-  amber: "#f2a93b",
-  blue: "#4c8dff",
-  green: "#35b27a",
-  violet: "#9b7bff",
-  rose: "#f0647f",
-  teal: "#2bb5b0",
-  slate: "#8a94a3",
+  amber: "var(--proj-amber)",
+  blue: "var(--proj-blue)",
+  green: "var(--proj-green)",
+  violet: "var(--proj-violet)",
+  rose: "var(--proj-rose)",
+  teal: "var(--proj-teal)",
+  slate: "var(--proj-slate)",
+  olive: "var(--proj-olive)",
 };
 export const COLOR_KEYS = Object.keys(COLLECTION_COLORS);

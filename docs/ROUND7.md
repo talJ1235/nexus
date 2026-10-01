@@ -26,7 +26,7 @@ and in `docs/design/*.html` (static visual references — open them with Playwri
 
 ## Part A — design system, themes, logo (foundation for everything else)
 
-### A1. [ ] Tokens for two palettes × light/dark + theme switcher
+### A1. [x] Tokens for two palettes × light/dark + theme switcher
 Replace the current palette in `src/app/globals.css` with these tokens (names may follow the existing token names;
 keep a semantic layer: components never use raw hex). Palette is chosen with `data-palette="graphite|plum"` on
 `<html>` (cookie, read on the server like the currency pref → no flash); mode stays next-themes (light/dark/system).

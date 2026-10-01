@@ -2,10 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { rubikHebrew, rubikLatin } from "./fonts";
+import { heeboHebrew, heeboLatin } from "./fonts";
 import { SwRegister } from "@/components/sw-register";
 import { BootScreen } from "@/components/boot-screen";
 import { isLocale, LOCALE_COOKIE } from "@/lib/i18n";
+import { DEFAULT_PALETTE, isPalette, PALETTE_BG, PALETTE_COOKIE } from "@/lib/palette";
 
 export const metadata: Metadata = {
   title: "Nexus",
@@ -17,22 +18,28 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "Nexus", statusBarStyle: "black-translucent" },
 };
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#08090c" },
-    { media: "(prefers-color-scheme: light)", color: "#eceef2" },
-  ],
-  width: "device-width",
-  initialScale: 1,
-  viewportFit: "cover",
-};
+export async function generateViewport(): Promise<Viewport> {
+  const pal = (await cookies()).get(PALETTE_COOKIE)?.value;
+  const bg = PALETTE_BG[isPalette(pal) ? pal : DEFAULT_PALETTE];
+  return {
+    themeColor: [
+      { media: "(prefers-color-scheme: dark)", color: bg.dark },
+      { media: "(prefers-color-scheme: light)", color: bg.light },
+    ],
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+  };
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const jar = await cookies();
   const raw = jar.get(LOCALE_COOKIE)?.value;
   const locale = isLocale(raw) ? raw : "en";
+  const pal = jar.get(PALETTE_COOKIE)?.value;
+  const palette = isPalette(pal) ? pal : DEFAULT_PALETTE;
   return (
-    <html lang={locale} dir={locale === "he" ? "rtl" : "ltr"} className={`${rubikLatin.variable} ${rubikHebrew.variable}`} suppressHydrationWarning>
+    <html lang={locale} dir={locale === "he" ? "rtl" : "ltr"} data-palette={palette} className={`${heeboLatin.variable} ${heeboHebrew.variable}`} suppressHydrationWarning>
       <body>
         <BootScreen />
         <Providers locale={locale}>{children}</Providers>

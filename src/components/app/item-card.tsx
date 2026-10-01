@@ -33,7 +33,7 @@ export function ProductImage({ src, alt, className, iconClass }: { src: string |
             e.currentTarget.dataset.loaded = "";
           }}
           onError={() => setFailed(true)}
-          className="product-img size-full object-contain p-[9%] mix-blend-multiply"
+          className="product-img size-full object-contain p-[9%] mix-blend-multiply dark:rounded-[14px] dark:mix-blend-normal"
         />
       ) : (
         <Package className={cn("size-8 text-tile-ink", iconClass)} strokeWidth={1.4} />

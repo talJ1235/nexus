@@ -2,71 +2,90 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ---------- Design tokens ----------
-   "Ink & Teal": graphite neutrals with clear surface/background contrast, one teal accent for actions
-   and focus, prices on a soft teal tag. Product images sit on a light neutral swatch in both themes (catalog look). */
+/* ---------- Design tokens (Round 7: UI v2) ----------
+   Two palettes × light/dark. Palette = data-palette on <html> (cookie, server-rendered: no flash); mode = next-themes
+   (.dark). Default: Graphite & Amber. One brand colour + neutrals; "spark" only for the AI button and the unread dot;
+   project colours only as small dots/bars. Components use the semantic names below, never raw hex.
+   Legacy names (accent*, sunken, raised, tag, tile) are kept as aliases so every component follows the palette. */
 :root {
-  --bg: #eceef2;
+  --bg: #f6f6f5;
   --surface: #ffffff;
-  --raised: #ffffff;
-  --sunken: #e4e7ec;
-  --line: #dcdfe5;
-  --line-strong: #c3c9d2;
-  --fg: #12151b;
-  --muted: #535c6a;
-  --faint: #8a92a0;
-  --accent: #0e8f84;
-  --accent-strong: #0b7a70;
-  --accent-ink: #0a6c63;
-  --accent-fg: #ffffff;
-  --accent-soft: #e0f4f1;
-  --tag: #d9f1ed;
-  --tag-fg: #0a5a53;
-  --ok: #16925a;
-  --ok-soft: #e1f5ea;
-  --danger: #d9463a;
-  --danger-soft: #fce8e5;
-  --info: #2f7fd8;
-  --tile: #f4f5f7;
-  --tile-ink: #aab0bc;
-  --shadow: 0 1px 2px rgb(18 21 27 / 0.05), 0 6px 18px -8px rgb(18 21 27 / 0.12);
-  --shadow-pop: 0 18px 44px -14px rgb(18 21 27 / 0.26), 0 2px 6px rgb(18 21 27 / 0.06);
-  /* Store identity hues (components/ui/store-mark.tsx): muted, tuned to Ink & Teal. */
-  --store-1: #bf6a34;
-  --store-2: #a97c1c;
-  --store-3: #3f6fb8;
-  --store-4: #7a5fbf;
-  --store-5: #c0506a;
-  --store-6: #3f8a5c;
-  --store-7: #2f879b;
-  --store-8: #5b6ba3;
+  --surface-2: #efefed;
+  --ink: #171717;
+  --muted: #6b6b6b;
+  --faint: #6e6e6c;
+  --line: #e6e6e3;
+  --line-strong: #d2d2ce;
+  --brand: #171717;
+  --brand-hover: #2e2e2e;
+  --on-brand: #ffffff;
+  --hero: linear-gradient(140deg, #171717, #262626 60%, #3a3a3a);
+  --on-hero: #ffffff;
+  --tint: #fdf2dc;
+  --tint-ink: #8f5400;
+  --spark: #f59e0b;
+  --ok: #157a4b;
+  --ok-soft: #e1f3e8;
+  --danger: #b8352a;
+  --danger-soft: #fbe7e4;
+  --info: #2b6cb8;
+  --proj-blue: #8a96b8;
+  --proj-amber: #c9976a;
+  --proj-green: #7da592;
+  --proj-violet: #a08cc0;
+  --proj-rose: #c48a95;
+  --proj-teal: #6fa3a6;
+  --proj-slate: #979ba3;
+  --proj-olive: #a5a46e;
+  --logo-c1: #171717;
+  --logo-c2: #f59e0b;
+  --logo-c3: #fb7a3c;
+  --shadow: 0 1px 2px rgb(23 23 23 / 0.04), 0 6px 18px -8px rgb(23 23 23 / 0.1);
+  --shadow-pop: 0 18px 44px -14px rgb(23 23 23 / 0.24), 0 2px 6px rgb(23 23 23 / 0.06);
+  /* Store identity hues (components/ui/store-mark.tsx): muted. */
+  --store-1: #b8693a;
+  --store-2: #9c7a2a;
+  --store-3: #4a6fa8;
+  --store-4: #7461ad;
+  --store-5: #b25469;
+  --store-6: #3f7f58;
+  --store-7: #357f8f;
+  --store-8: #5b6896;
   --store-fg: #ffffff;
 }
-
 .dark {
-  --bg: #08090c;
-  --surface: #171a20;
-  --raised: #1e222a;
-  --sunken: #0e1014;
-  --line: #2a2f38;
-  --line-strong: #3a404b;
-  --fg: #e9ebf0;
-  --muted: #98a0ad;
-  --faint: #667080;
-  --accent: #14a898;
-  --accent-strong: #22c0ae;
-  --accent-ink: #5fd6c7;
-  --accent-fg: #ffffff;
-  --accent-soft: #0f2a28;
-  --tag: #123a36;
-  --tag-fg: #9ff0e4;
-  --ok: #3cbf82;
+  --bg: #0b0b0b;
+  --surface: #151515;
+  --surface-2: #1c1c1c;
+  --ink: #f2f2f0;
+  --muted: #9b9b98;
+  --faint: #8a8a87;
+  --line: #262626;
+  --line-strong: #363636;
+  --brand: #f2f2f0;
+  --brand-hover: #ffffff;
+  --on-brand: #0b0b0b;
+  --hero: linear-gradient(140deg, #1f1f1f, #2a2a2a 60%, #3a3a3a);
+  --on-hero: #ffffff;
+  --tint: rgba(245, 158, 11, 0.13);
+  --tint-ink: #fcd34d;
+  --spark: #f59e0b;
+  --ok: #4cc48c;
   --ok-soft: #12271d;
-  --danger: #ef6457;
+  --danger: #f06b5e;
   --danger-soft: #321a18;
-  --info: #5ea4f5;
-  --tile: #eceef1;
-  --tile-ink: #a3a9b4;
+  --info: #6aa9f2;
+  --proj-blue: #a9b4d6;
+  --proj-amber: #e3b48a;
+  --proj-green: #9cc9b4;
+  --proj-violet: #bfaee0;
+  --proj-rose: #e0a9b4;
+  --proj-teal: #8fc6c8;
+  --proj-slate: #b4b8c0;
+  --proj-olive: #c6c48e;
+  --logo-c1: #f2f2f0;
+  --logo-c2: #f59e0b;
+  --logo-c3: #fb7a3c;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -10px rgb(0 0 0 / 0.6);
   --shadow-pop: 0 18px 50px -14px rgb(0 0 0 / 0.75), 0 0 0 1px rgb(255 255 255 / 0.04);
   --store-1: #d98a58;
@@ -77,7 +96,95 @@
   --store-6: #68b487;
   --store-7: #5cb0c2;
   --store-8: #8c9bd0;
-  --store-fg: #0b0d10;
+  --store-fg: #0b0b0b;
+}
+:root[data-palette="plum"] {
+  --bg: #f8f6fc;
+  --surface: #ffffff;
+  --surface-2: #f3eefb;
+  --ink: #1d1233;
+  --muted: #6e6487;
+  --faint: #6f6589;
+  --line: #ebe5f5;
+  --line-strong: #d8cdea;
+  --brand: #7c4dff;
+  --brand-hover: #6a3af0;
+  --on-brand: #ffffff;
+  --hero: linear-gradient(140deg, #2e1065, #4c1d95 60%, #6d3ae0);
+  --on-hero: #ffffff;
+  --tint: #f0e9ff;
+  --tint-ink: #5b2fd1;
+  --spark: #fb7a3c;
+  --proj-blue: #8a93cf;
+  --proj-amber: #d39a6b;
+  --proj-green: #7eae95;
+  --proj-violet: #a88bd6;
+  --proj-rose: #cf8ca0;
+  --proj-teal: #74a9b0;
+  --proj-slate: #9a97ab;
+  --proj-olive: #aaa874;
+  --logo-c1: #7c4dff;
+  --logo-c2: #fb7a3c;
+  --logo-c3: #f5b40b;
+  --shadow: 0 1px 2px rgb(29 18 51 / 0.04), 0 6px 18px -8px rgb(29 18 51 / 0.12);
+  --shadow-pop: 0 18px 44px -14px rgb(29 18 51 / 0.26), 0 2px 6px rgb(29 18 51 / 0.06);
+}
+:root[data-palette="plum"].dark {
+  --bg: #100b1a;
+  --surface: #19122a;
+  --surface-2: #211836;
+  --ink: #f1ecfb;
+  --muted: #a497bf;
+  --faint: #9a8db6;
+  --line: #2c2244;
+  --line-strong: #3d3159;
+  --brand: #a78bfa;
+  --brand-hover: #b9a2fb;
+  --on-brand: #100b1a;
+  --hero: linear-gradient(140deg, #3b1580, #5b28c0 70%, #7c4dff);
+  --on-hero: #ffffff;
+  --tint: rgba(167, 139, 250, 0.15);
+  --tint-ink: #d4c4ff;
+  --spark: #fb923c;
+  --proj-blue: #b0b8f0;
+  --proj-amber: #e8b48a;
+  --proj-green: #9fd1b6;
+  --proj-violet: #c9b2f2;
+  --proj-rose: #eeb0c0;
+  --proj-teal: #96cdd4;
+  --proj-slate: #bdbacc;
+  --proj-olive: #d0ce96;
+  --logo-c1: #a78bfa;
+  --logo-c2: #fb923c;
+  --logo-c3: #fbbf24;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -10px rgb(0 0 0 / 0.65);
+  --shadow-pop: 0 18px 50px -14px rgb(0 0 0 / 0.8), 0 0 0 1px rgb(255 255 255 / 0.04);
+}
+/* Palette preview swatches (settings, command menu): fixed colours of each palette, whatever is active. */
+[data-swatch="graphite"] { --sw-a: #171717; --sw-b: #f59e0b; }
+[data-swatch="plum"] { --sw-a: #7c4dff; --sw-b: #fb7a3c; }
+.dark [data-swatch="graphite"] { --sw-a: #f2f2f0; }
+
+/* Aliases + motion/radius tokens (shared by all four themes). */
+:root {
+  --fg: var(--ink);
+  --raised: var(--surface);
+  --sunken: var(--surface-2);
+  --accent: var(--brand);
+  --accent-strong: var(--brand-hover);
+  --accent-fg: var(--on-brand);
+  --accent-soft: var(--tint);
+  --accent-ink: var(--tint-ink);
+  --tag: var(--tint);
+  --tag-fg: var(--tint-ink);
+  --tile: var(--surface-2);
+  --tile-ink: var(--muted);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.2, 1.4, 0.4, 1);
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --dur-4: 450ms;
 }
 
 @theme inline {
@@ -104,10 +211,24 @@
   --color-tile-ink: var(--tile-ink);
   --color-tag: var(--tag);
   --color-tag-fg: var(--tag-fg);
+  --color-ink: var(--ink);
+  --color-surface-2: var(--surface-2);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-on-brand: var(--on-brand);
+  --color-on-hero: var(--on-hero);
+  --color-tint: var(--tint);
+  --color-tint-ink: var(--tint-ink);
+  --color-spark: var(--spark);
   --shadow-card: var(--shadow);
   --shadow-pop: var(--shadow-pop);
-  --font-sans: var(--font-rubik-latin), var(--font-rubik-hebrew), ui-sans-serif, system-ui, sans-serif;
-  --radius-card: 14px;
+  --font-sans: var(--font-heebo-latin), var(--font-heebo-hebrew), ui-sans-serif, system-ui, sans-serif;
+  --radius-card: 26px;
+  --radius-big: 30px;
+  --radius-tile: 21px;
+  --radius-small: 16px;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.2, 1.4, 0.4, 1);
   --animate-pop-in: pop-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 

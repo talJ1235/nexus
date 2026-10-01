@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Command } from "cmdk";
 import { Dialog as D } from "radix-ui";
-import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell, Sparkles, Wand2, ReceiptText } from "lucide-react";
+import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell, Sparkles, Wand2, ReceiptText, Check } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Kbd } from "@/components/ui/button";
@@ -11,7 +11,9 @@ import { CURRENCIES } from "@/lib/money";
 import { ProductImage } from "./item-card";
 import { useStore } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
-import { Segmented } from "./settings-dialog";
+import { PaletteSwatch, Segmented } from "./settings-dialog";
+import { usePalette } from "@/components/use-palette";
+import { PALETTES } from "@/lib/palette";
 import type { Currency } from "@/lib/money";
 
 const itemCls =
@@ -32,7 +34,8 @@ function paletteFilter(value: string, search: string) {
 export function CommandPalette() {
   const s = useStore();
   const { t, locale, setLocale } = useI18n();
-  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const [palette, setPalette] = usePalette();
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -130,12 +133,18 @@ export function CommandPalette() {
                 <Command.Item value={`settings preferences ${t.settings.open}`} onSelect={() => run(() => s.setSettingsOpen(true))} className={itemCls}>
                   <Settings2 /> {t.settings.open}
                 </Command.Item>
-                <Command.Item value={`theme dark light ${t.cmd.toggleTheme}`} onSelect={() => run(() => setTheme(resolvedTheme === "dark" ? "light" : "dark"))} className={itemCls}>
-                  {resolvedTheme === "dark" ? <Sun /> : <Moon />} {t.cmd.toggleTheme}
-                </Command.Item>
-                <Command.Item value={`theme system ${t.settings.theme} ${t.settings.system}`} onSelect={() => run(() => setTheme("system"))} className={itemCls}>
-                  <Monitor /> {t.settings.theme}: {t.settings.system}
-                </Command.Item>
+                {(["light", "dark", "system"] as const).map((m) => (
+                  <Command.Item key={m} value={`theme mode ${m} ${t.settings.theme} ${t.settings[m]}`} onSelect={() => run(() => setTheme(m))} className={itemCls}>
+                    {m === "light" ? <Sun /> : m === "dark" ? <Moon /> : <Monitor />} {t.settings.theme}: {t.settings[m]}
+                    {theme === m && <Check className="ms-auto !size-3.5 !text-muted" />}
+                  </Command.Item>
+                ))}
+                {PALETTES.map((p) => (
+                  <Command.Item key={p} value={`palette colors ${p} ${t.settings.palette} ${t.settings[p]}`} onSelect={() => run(() => setPalette(p))} className={itemCls}>
+                    <PaletteSwatch palette={p} /> {t.settings.palette}: {t.settings[p]}
+                    {palette === p && <Check className="ms-auto !size-3.5 !text-muted" />}
+                  </Command.Item>
+                ))}
                 <Command.Item value={`language hebrew english ${t.cmd.switchLang}`} onSelect={() => run(() => setLocale(locale === "en" ? "he" : "en"))} className={itemCls}>
                   <Languages /> {t.cmd.switchLang}
                 </Command.Item>
@@ -243,6 +252,13 @@ export function CommandPalette() {
                 { value: "dark", label: <Moon />, title: `${t.settings.theme}: ${t.settings.dark}` },
                 { value: "light", label: <Sun />, title: `${t.settings.theme}: ${t.settings.light}` },
               ]}
+            />
+            <Segmented
+              size="sm"
+              label={t.settings.palette}
+              value={palette}
+              onChange={setPalette}
+              options={PALETTES.map((p) => ({ value: p, label: <PaletteSwatch palette={p} />, title: `${t.settings.palette}: ${t.settings[p]}` }))}
             />
             <Segmented<Currency>
               size="sm"

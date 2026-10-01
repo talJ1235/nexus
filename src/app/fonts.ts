@@ -1,19 +1,19 @@
 import localFont from "next/font/local";
 
-// Self-hosted Rubik (variable), preloaded with a size-matched fallback so text never jumps when it arrives.
+// Self-hosted Heebo (variable 100–900), preloaded with a size-matched fallback so text never jumps when it arrives.
 // Latin and Hebrew are separate files; the browser picks the Hebrew face only for Hebrew glyphs.
-export const rubikLatin = localFont({
-  src: "../fonts/rubik-latin-wght-normal.woff2",
-  weight: "300 900",
+export const heeboLatin = localFont({
+  src: "../fonts/heebo-latin-wght-normal.woff2",
+  weight: "100 900",
   display: "swap",
-  variable: "--font-rubik-latin",
+  variable: "--font-heebo-latin",
   adjustFontFallback: "Arial",
 });
 
-export const rubikHebrew = localFont({
-  src: "../fonts/rubik-hebrew-wght-normal.woff2",
-  weight: "300 900",
+export const heeboHebrew = localFont({
+  src: "../fonts/heebo-hebrew-wght-normal.woff2",
+  weight: "100 900",
   display: "swap",
-  variable: "--font-rubik-hebrew",
+  variable: "--font-heebo-hebrew",
   adjustFontFallback: "Arial",
 });

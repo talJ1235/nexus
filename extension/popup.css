@@ -1,6 +1,6 @@
 :root { --bg:#111316; --surface:#171a1e; --raised:#1e2227; --line:#2a2f36; --fg:#eceef1; --muted:#8d949e; --faint:#5d646e; --accent:#14a898; --accent-fg:#ffffff; --ok:#3fb97f; --danger:#ef6457; --tile:#eeece6; }
 * { box-sizing: border-box; }
-body { margin:0; width:340px; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Rubik,sans-serif; }
+body { margin:0; width:340px; background:var(--bg); color:var(--fg); font:14px/1.4 Heebo,system-ui,-apple-system,"Segoe UI",sans-serif; }
 header { display:flex; align-items:center; gap:8px; padding:12px 14px; border-bottom:1px solid var(--line); font-weight:600; }
 header a { margin-inline-start:auto; color:var(--muted); font-weight:400; font-size:12px; text-decoration:none; cursor:pointer; }
 header a:hover { color:var(--fg); }
