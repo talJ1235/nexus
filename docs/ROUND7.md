@@ -180,7 +180,7 @@ Order by store ("Shop at <store>").
 - Cache by file hash (kv) so the same receipt is never read twice. Text-pasted emails keep working.
 - Unit tests: checks/merge logic with fixtures (Hebrew supermarket, AliExpress order, Amazon invoice, multi-page PDF text).
 
-### E2. [ ] Live camera scanning with auto-capture
+### E2. [x] Live camera scanning with auto-capture
 - Full-screen camera view; `scanic` (MIT, ~100 KB WASM) detects the receipt edges live and draws the outline;
   when the outline is stable for ~0.8 s and sharp enough, auto-capture with a shutter animation + haptic; manual
   shutter always available; then a corner-adjust screen (drag the 4 corners), perspective-corrected preview.

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
-import { FileText, ReceiptText, RotateCcw, Search, Trash2, Upload } from "lucide-react";
+import { Camera, FileText, ReceiptText, RotateCcw, Search, Trash2, Upload } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
 import { applyReceipt, createReceipt, deleteReceipt, listReceipts, readReceipt, undoReceipt, type ApplyReceiptInput, type ReceiptRead, type ReceiptView } from "@/app/receipt-actions";
@@ -184,12 +184,16 @@ export function ReceiptDialog() {
                 const file = e.dataTransfer.files[0];
                 if (file) void fromFile(file);
               }}
-              className="flex min-h-24 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line-strong px-3 py-4 text-sm text-muted transition hover:border-accent hover:text-fg"
+              className="flex min-h-24 flex-col items-center justify-center gap-1 rounded-[22px] border border-dashed border-line-strong px-3 py-4 text-sm text-muted transition hover:border-accent hover:text-fg"
             >
               <Upload className="size-5" />
               <span className="font-medium text-fg">{t.scan.pick}</span>
               <span className="text-xs">{t.scan.drop}</span>
             </button>
+            <Button variant="outline" className="h-11" onClick={() => { close(); s.setScanner("receipt"); }} data-receipt-camera-open>
+              <Camera />
+              {t.receiptCam.camera}
+            </Button>
             <label className="text-xs font-medium text-muted" htmlFor="receipt-text">
               {t.scan.paste}
             </label>

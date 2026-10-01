@@ -22,7 +22,12 @@ export async function toCanvas(src: Source, max = 4000): Promise<HTMLCanvasEleme
 export async function detectCorners(canvas: HTMLCanvasElement, maxProcessingDimension = 640): Promise<{ corners: CornerPoints; confidence: number } | null> {
   const { scanDocument } = await import("scanic");
   const r = await scanDocument(canvas, { mode: "detect", maxProcessingDimension }).catch(() => null);
-  return r?.success && r.corners ? { corners: r.corners, confidence: r.confidence ?? 0.5 } : null;
+  if (!r?.success || !r.corners) return null;
+  // A receipt fills a good part of the frame; tiny or folded quads are noise.
+  const q = [r.corners.topLeft, r.corners.topRight, r.corners.bottomRight, r.corners.bottomLeft];
+  const area = Math.abs(q.reduce((a, p, i) => a + p.x * q[(i + 1) % 4].y - q[(i + 1) % 4].x * p.y, 0)) / 2;
+  if (area / (canvas.width * canvas.height) < 0.08) return null;
+  return { corners: r.corners, confidence: r.confidence ?? 0.5 };
 }
 
 /** Perspective-correct to the given corners. */

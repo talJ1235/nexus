@@ -111,6 +111,7 @@ function Live({ active, parts, onParts, onShot, onClose, onUse, busy }: {
   const last = useRef<{ c: CornerPoints; since: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [view, setView] = useState({ w: 0, h: 0 });
+  const [vid, setVid] = useState({ w: 1, h: 1 });
   const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -156,6 +157,7 @@ function Live({ active, parts, onParts, onShot, onClose, onUse, busy }: {
         if (stop) return;
         if (found) {
           const full = scaleCorners(found.corners, 1 / k);
+          setVid((p) => (p.w === v.videoWidth && p.h === v.videoHeight ? p : { w: v.videoWidth, h: v.videoHeight }));
           setOutline(full);
           const diag = Math.hypot(v.videoWidth, v.videoHeight);
           const now = Date.now();
@@ -183,9 +185,8 @@ function Live({ active, parts, onParts, onShot, onClose, onUse, busy }: {
   }, [active, state, videoRef, capture]);
 
   // Map video pixels → screen (the video is object-cover).
-  const v = videoRef.current;
-  const vw = v?.videoWidth || 1;
-  const vh = v?.videoHeight || 1;
+  const vw = vid.w;
+  const vh = vid.h;
   const sc = Math.max(view.w / vw, view.h / vh);
   const ox = (view.w - vw * sc) / 2;
   const oy = (view.h - vh * sc) / 2;
@@ -342,6 +343,7 @@ function Adjust({ shot, partsCount, busy, onRetake, onAddPart, onUse }: {
     setPreview((await toCanvas(out, 360)).toDataURL("image/jpeg", 0.8));
   }, [shot.canvas]);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async: the preview is set after the crop resolves
     void refresh(shot.corners);
   }, [refresh, shot.corners]);
 

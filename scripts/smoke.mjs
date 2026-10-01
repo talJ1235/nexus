@@ -96,7 +96,8 @@ try {
   process.exit(1);
 }
 
-const browser = await chromium.launch();
+// A fake camera (test pattern) so the barcode / receipt camera screens can be exercised headless.
+const browser = await chromium.launch({ args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] });
 try {
   // ---- Anonymous visitor: everything private is locked.
   const anon = await browser.newContext();
@@ -115,7 +116,7 @@ try {
   if (!PASSWORD) {
     console.log("SKIP owner checks (NEXUS_PASSWORD not set)");
   } else {
-    const ctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, colorScheme: "dark" });
+    const ctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, colorScheme: "dark", permissions: ["camera"] });
     const page = await ctx.newPage();
     const errors = [];
     page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
@@ -187,6 +188,33 @@ try {
         await page.mouse.click(195, 120);
         await page.waitForSelector("[data-plus-menu=closed]", { state: "attached", timeout: 3000 });
         ok(n === 4, "phone: dock + '+' menu opens four actions and closes on the scrim", `actions=${n}`);
+      });
+    }
+
+    if (MOBILE) {
+      await step("receipt camera: shutter → corner adjust → add a part → use", async () => {
+        await page.goto(`${BASE}/`);
+        await page.waitForSelector(READY);
+        await page.click("[data-plus]");
+        await page.click("[data-plus-action=receipt]");
+        const cam = page.locator("[data-receipt-camera]");
+        await cam.waitFor({ timeout: 8000 });
+        const shutter = cam.locator("[data-receipt-shutter]");
+        await page.waitForFunction(() => !document.querySelector("[data-receipt-shutter]")?.hasAttribute("disabled"), null, { timeout: 15000 });
+        await shutter.click();
+        await cam.locator("[data-receipt-adjust]").waitFor({ timeout: 8000 });
+        await page.waitForTimeout(600);
+        await shot(page, "receipt-adjust");
+        await cam.locator("[data-receipt-add-part]").click();
+        await cam.locator("[data-receipt-parts='1']").waitFor({ timeout: 8000 });
+        await page.waitForFunction(() => !document.querySelector("[data-receipt-shutter]")?.hasAttribute("disabled"), null, { timeout: 15000 });
+        await shutter.click();
+        await cam.locator("[data-receipt-adjust]").waitFor({ timeout: 8000 });
+        await cam.locator("[data-receipt-use]").click();
+        // Uploading needs a Blob store (absent locally): the receipt dialog opens and then reports the upload.
+        await page.locator("[data-receipt-dialog]").waitFor({ timeout: 15000 });
+        ok(true, "receipt camera: shutter → corner adjust → add a part → use");
+        await page.keyboard.press("Escape");
       });
     }
 
