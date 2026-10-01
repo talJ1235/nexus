@@ -37,6 +37,17 @@ const SECTIONS: [keyof ReportFields, string][] = [
   ["actual", "Actual"],
 ];
 
+/**
+ * A title from what the user wrote (Round 9 D1: the form has one text box): the first sentence or line, ≤ 80 chars,
+ * cut at a word.
+ */
+export function reportTitle(text: string): string {
+  const first = text.trim().split(/\n|(?<=[.!?])\s/)[0]?.trim() ?? "";
+  if (first.length <= 80) return first || "Report";
+  const cut = first.slice(0, 79);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), 40)).trimEnd()}…`;
+}
+
 /** The stored body: the filled-in sections as markdown (empty ones left out). */
 export function reportBody(f: ReportFields): string {
   return SECTIONS.filter(([k]) => f[k]?.trim())
@@ -67,6 +78,11 @@ export function reportMarkdown(r: ReportRow): string {
       `- App version: ${d.server?.commit ?? c.version} · extension: ${c.extension ? `v${c.extension}` : "not detected"}`,
     );
   else if (d.server?.commit) lines.push(`- App version: ${d.server.commit}`);
+  if (c?.nav?.length) lines.push(`- Last views: ${c.nav.join(" → ")}`);
+  if (c?.viewCount != null) lines.push(`- Items in the view: ${c.viewCount}`);
+  if (c?.network || c?.hw) lines.push(`- Device: ${[c.network?.type && `network ${c.network.type}`, c.network?.saveData && "data saver", c.hw?.memory && `${c.hw.memory} GB`, c.hw?.cores && `${c.hw.cores} cores`].filter(Boolean).join(" · ") || "—"}`);
+  if (c?.sw !== undefined) lines.push(`- Service worker: ${c.sw ?? "none"}`);
+  if (c?.failed?.length) lines.push(`- Failed requests: ${c.failed.map((f) => `${f.path} ${f.status || "network"}`).join(", ")}`);
   if (d.server) lines.push(`- Server: AI ${d.server.aiProviders.join("/") || "none"} · Blob ${d.server.blob ? "yes" : "no"} · Telegram ${d.server.telegram ? "linked" : "no"}`);
   if (d.screenshot) lines.push("- Screenshot: attached in the app (Reports)");
   if (c?.errors.length) {

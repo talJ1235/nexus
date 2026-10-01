@@ -904,7 +904,13 @@ try {
           await openPalette();
           await page.locator("[data-cmd-report]").click();
           const form = await page.locator("[data-report-form]").waitFor({ timeout: 5000 }).then(() => true, () => false);
-          await page.keyboard.press("Escape");
+          // R9 D1: one text box (+ expected for bugs), the automatic details listed, send.
+          await page.locator("[data-report-included] summary").click();
+          await page.locator("[data-report-text]").fill(`${marker} from the menu: the totals card shows zero after a reload`);
+          await page.locator("[data-report-expected]").fill("The real total");
+          await shot(page, "report-form");
+          await page.locator("[data-report-send]").click();
+          await page.locator("[data-sonner-toast]").filter({ hasText: /Report sent|הדיווח נשלח/ }).first().waitFor({ timeout: 10000 });
           ok(/View|Extension/.test(txt) && txt.includes(marker.slice(0, 12)) && form, "report: 'this is broken' → report card → send → in Reports with diagnostics", txt.slice(0, 160));
         });
         // Round 9 C1 (mock): one chat — Plan mode turns the next message into a plan card; add a line, then the rest.

@@ -8,7 +8,7 @@ import { db, schema } from "@/db";
 import { assertOwner } from "@/lib/auth";
 import { clientDiagSchema } from "@/lib/diag-schema";
 import { serverDiag } from "@/lib/help/server";
-import { REPORT_STATUSES, REPORT_TYPES, reportBody, reportMarkdown, type ReportDiag, type ReportRow } from "@/lib/reports";
+import { REPORT_STATUSES, REPORT_TYPES, reportBody, reportMarkdown, reportTitle, type ReportDiag, type ReportRow } from "@/lib/reports";
 import { escapeHtml, publicOrigin, sendTelegram } from "@/lib/telegram";
 
 // Problem reports (Round 8 D3): owner-only (guests can't use the assistant or report). Stored in `reports`, one
@@ -16,8 +16,9 @@ import { escapeHtml, publicOrigin, sendTelegram } from "@/lib/telegram";
 
 const input = z.object({
   type: z.enum(REPORT_TYPES),
-  title: z.string().trim().min(1).max(120),
-  happened: z.string().max(4000).default(""),
+  // Round 9 D1: the form has one text box; the title comes from it unless the assistant drafted one.
+  title: z.string().trim().max(120).optional(),
+  happened: z.string().trim().min(1).max(4000),
   steps: z.string().max(2000).default(""),
   expected: z.string().max(2000).default(""),
   actual: z.string().max(2000).default(""),
@@ -32,7 +33,8 @@ const view = (r: typeof schema.reports.$inferSelect): ReportView => ({ ...r, git
 
 export async function createReport(raw: z.input<typeof input>): Promise<ReportView> {
   await assertOwner();
-  const f = input.parse(raw);
+  const parsed = input.parse(raw);
+  const f = { ...parsed, title: parsed.title || reportTitle(parsed.happened) };
   const server = await serverDiag();
   const diagnostics: ReportDiag = {
     client: f.diag ?? null,

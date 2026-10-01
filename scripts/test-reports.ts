@@ -1,6 +1,6 @@
 // Unit test for src/lib/reports.ts (problem reports, Round 8 D3).  npx tsx scripts/test-reports.ts
 import assert from "node:assert/strict";
-import { parseReportBlock, reportBody, reportMarkdown, type ReportRow } from "../src/lib/reports";
+import { parseReportBlock, reportBody, reportMarkdown, reportTitle, type ReportRow } from "../src/lib/reports";
 
 // Body: filled sections only, in order.
 const body = reportBody({ type: "bug", title: "Totals wrong", happened: "The total shows ₪0", steps: "1. Open home", expected: "", actual: "  " });
@@ -53,5 +53,31 @@ assert.equal(parseReportBlock('```nexus-report\n{"type":"rant","title":"x"}\n```
 assert.equal(parseReportBlock('ok\n```nexus-report\n{"type":"idea"}\n```').report, null);
 assert.equal(parseReportBlock("ok\n```nexus-report\nnot json\n```").text, "ok");
 assert.equal(parseReportBlock("no block").report, null);
+
+// R9 D1 — the title comes from the one text box: first sentence or line, ≤ 80 chars cut at a word.
+assert.equal(reportTitle("The total shows zero. It should be 1,200."), "The total shows zero.");
+assert.equal(reportTitle("Shopping mode loses my checks\nwhen I lock the phone"), "Shopping mode loses my checks");
+const long = reportTitle("When I open the receipt camera on my phone the outline keeps jumping around and never settles on anything useful");
+assert.ok(long.length <= 80 && long.endsWith("…") && !long.includes("  "), long);
+assert.equal(reportTitle("   "), "Report");
+
+// R9 D1 — the extra diagnostics appear in the markdown (and old reports without them still render).
+const md2 = reportMarkdown({
+  ...row,
+  diagnostics: {
+    ...(row.diagnostics as object),
+    client: {
+      ...(row.diagnostics as { client: object }).client,
+      nav: ["to_buy", "ordered", "projects"],
+      viewCount: 12,
+      network: { type: "4g" },
+      hw: { memory: 8, cores: 8 },
+      sw: "abc123",
+      failed: [{ at: 1, path: "/api/ask", status: 500 }, { at: 2, path: "/", status: 0 }],
+    },
+  },
+});
+for (const part of ["- Last views: to_buy → ordered → projects", "- Items in the view: 12", "- Device: network 4g · 8 GB · 8 cores", "- Service worker: abc123", "- Failed requests: /api/ask 500, / network"]) assert.ok(md2.includes(part), `markdown misses: ${part}`);
+assert.ok(!md.includes("Last views"));
 
 console.log("OK reports");

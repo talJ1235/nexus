@@ -98,7 +98,7 @@ answer, follow-ups are help-related (Round 8 left this as data questions). Unit 
 
 ## Part D — Report a problem, simpler
 
-### D1. [ ] One simple form
+### D1. [x] One simple form
 Keep the type switch (Bug / Complaint / Idea — Tal liked it). Replace title / what happened / steps with **one text
 box** ("Tell us what happened"), an optional second box only for Bug ("What did you expect?"), and an "Add a
 screenshot" button (file/photo picker). The assistant-drafted path fills the same simple form.

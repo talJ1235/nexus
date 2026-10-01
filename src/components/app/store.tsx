@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { installClientErrorCapture } from "@/lib/client-errors";
+import { recordNav } from "@/lib/client-diag";
 import type { ReportFields } from "@/lib/reports";
 import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
 import type { AltGroup, AppData, Collection, ItemWithSources, StoreSetting } from "@/lib/types";
@@ -323,7 +324,10 @@ export function StoreProvider({
   }, [loading, offline, online, initial, items, collections, altGroups, storeSettings, budget, currency, importLimitUsd]);
 
   // Recent client errors, for problem reports and the assistant's troubleshooting (lib/client-errors).
-  useEffect(() => installClientErrorCapture(), []);
+  useEffect(() => {
+    installClientErrorCapture();
+    recordNav(viewRef.current.type);
+  }, []);
 
   // The app has its data: the phone boot screen can hand off.
   useEffect(() => {
@@ -356,6 +360,7 @@ export function StoreProvider({
   }, [loading, ui.layout, ui.sort]);
 
   const setView = useCallback((v: View) => {
+    recordNav(v.type);
     setNavDir(VIEW_ORDER.indexOf(v.type) >= VIEW_ORDER.indexOf(viewRef.current.type) ? 1 : -1);
     viewRef.current = v;
     setViewState(v);
