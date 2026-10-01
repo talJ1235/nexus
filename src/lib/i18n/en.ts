@@ -1,6 +1,9 @@
 export const en = {
   appName: "Nexus",
   tagline: "Everything you plan to buy, in one place",
+  celebrate: {
+    done: "🎉 {name} — everything is bought",
+  },
   importVat: {
     title: "VAT-free import limit",
     hint: "In USD. Israel changed it several times in 2025–26 — check the current figure.",

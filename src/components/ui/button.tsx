@@ -26,7 +26,7 @@ export const Button = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<H
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex shrink-0 select-none items-center justify-center font-medium whitespace-nowrap transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+          "inline-flex shrink-0 select-none items-center justify-center font-medium whitespace-nowrap transition-[transform,background-color,color,opacity,box-shadow] duration-200 ease-[var(--ease-spring)] active:scale-[0.96] active:duration-100 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
           variants[variant],
           sizes[size],
           className,

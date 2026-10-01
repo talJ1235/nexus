@@ -303,6 +303,13 @@ body {
   from { opacity: 0.35; }
   to { opacity: 1; }
 }
+/* Directional: views later in the sidebar come in from the end side, earlier ones from the start side. */
+.view-in.view-fwd { animation: view-fwd 320ms var(--ease-out) both; }
+.view-in.view-back { animation: view-back 320ms var(--ease-out) both; }
+[dir="rtl"] .view-in.view-fwd { animation-name: view-back; }
+[dir="rtl"] .view-in.view-back { animation-name: view-fwd; }
+@keyframes view-fwd { from { opacity: 0.2; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes view-back { from { opacity: 0.2; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
 
 /* The single loading indicator (components/ui/spinner.tsx). Only `transform` animates. */
 .spinner {
@@ -477,7 +484,7 @@ body {
 }
 @media (max-width: 768px) {
   :root [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(96px + env(safe-area-inset-bottom)) !important; }
-  :root body:has([data-selection-bar]) [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
+  :root[data-selecting] [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
   .nx-toast-title, .nx-toast-desc { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 }
 
@@ -552,13 +559,20 @@ body {
 }
 .ask-hairline:hover { background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, linear-gradient(100deg, var(--brand), var(--spark)) border-box; }
 /* Paste capsule: 2px two-tone border that slowly flows (5.5 s). */
-.flow-border {
-  padding: 2px;
-  background: linear-gradient(90deg, var(--brand), var(--spark), var(--brand));
-  background-size: 200% 100%;
+/* The flow is a transformed pseudo-element (compositor only — a background-position animation would restyle and
+   repaint the capsule on the main thread every frame). */
+.flow-border { position: relative; padding: 2px; overflow: hidden; isolation: isolate; }
+.flow-border::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 200%;
+  z-index: -1;
+  background: linear-gradient(90deg, var(--brand), var(--spark), var(--brand), var(--spark), var(--brand));
   animation: flow-border 5.5s linear infinite;
+  will-change: transform;
 }
-@keyframes flow-border { to { background-position: 200% 0; } }
+@keyframes flow-border { from { transform: translateX(-50%); } to { transform: translateX(0); } }
 /* Bars/segments that grow in from the start edge once. */
 .grow-x { transform-origin: left center; animation: grow-x 900ms var(--ease-out) 200ms both; }
 [dir="rtl"] .grow-x { transform-origin: right center; }
@@ -571,7 +585,8 @@ body {
 @keyframes scan-line { from { transform: translateY(-60px); opacity: 0.5; } to { transform: translateY(60px); opacity: 1; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .flow-border, .grow-x, .grow-y, .rise-in, .scan-line { animation: none !important; }
+  .flow-border::before, .grow-x, .grow-y, .rise-in, .scan-line { animation: none !important; }
+  .view-in.view-fwd, .view-in.view-back { animation: fade 160ms ease-out both !important; }
 }
 
 /* ---------- Assistant v2 (Round 7 F2) ---------- */
@@ -606,3 +621,33 @@ body {
   .box-think path, .shimmer-text, .word-in, .caret { animation: none !important; }
   .shimmer-text { color: var(--muted); background: none; }
 }
+
+/* ---------- Motion pass (Round 7 H) ---------- */
+/* Card → sheet morph (item-card.tsx morphOpen/morphClose): while the picture flies, the sheet fades instead of sliding. */
+[data-morphing] .sheet-in-end[data-state="open"], [data-morphing] .sheet-in-start[data-state="open"] { animation: fade 200ms ease-out; }
+/* Celebration burst (a project fully bought). */
+.confetti { animation: confetti 1100ms var(--ease-out) both; }
+@keyframes confetti {
+  0% { transform: translate(0, 0) scale(0.4) rotate(0); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(var(--tx), calc(var(--ty) + 60px)) scale(1) rotate(260deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .confetti { animation: fade 400ms ease-out reverse both !important; } }
+/* Status change on a card: a tint sweeps across once. */
+.status-sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--tint-ink) 22%, transparent) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: status-sweep 700ms var(--ease-out) forwards;
+}
+[dir="rtl"] .status-sweep::after { animation-name: status-sweep-rtl; }
+@keyframes status-sweep { to { transform: translateX(100%); } }
+@keyframes status-sweep-rtl { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
+@media (prefers-reduced-motion: reduce) { .status-sweep::after { display: none; } }
+/* Long grids: off-screen cards skip style/layout/paint until they scroll near — opening a sheet or switching views no
+   longer restyles every card. A hovered/focused card drops the containment so its lift and shadow aren't clipped. */
+.cv-auto { content-visibility: auto; contain-intrinsic-size: auto 330px; }
+.cv-auto:hover, .cv-auto:focus-within { content-visibility: visible; }
+@media (max-width: 639px) { .cv-auto { contain-intrinsic-size: auto 72px; } }

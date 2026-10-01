@@ -5,6 +5,7 @@ import { ArrowDownWideNarrow, ChevronDown, LayoutGrid, Rows3, Store } from "luci
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { Ring } from "@/components/ui/ring";
+import { Ticker, useTicker } from "@/components/ui/ticker";
 import { activeSource, budgetStats, countable, lineTotal, sumTotals } from "@/lib/calc";
 import { CATEGORIES, normalizeCategory } from "@/lib/categories";
 import { convert, formatMoney } from "@/lib/money";
@@ -18,16 +19,19 @@ import { COLLECTION_COLORS, itemsForView } from "./view-items";
 export const SUMMARY_VIEWS = ["to_buy", "urgent", "unsorted", "collection", "store"];
 
 /** A money amount with the decimals drawn smaller (hero numbers). */
-export function BigMoney({ value, className }: { value: number; className?: string }) {
+export function BigMoney({ value: target, className }: { value: number; className?: string }) {
   const s = useStore();
   const { locale } = useI18n();
+  // Rolls to the new total (once from 0 on load, then from the previous total).
+  const value = useTicker(target);
+  const cents = !Number.isInteger(Math.round(target * 100) / 100);
   const parts = useMemo(() => {
     try {
       const nf = new Intl.NumberFormat(locale === "he" ? "he-IL" : "en-US", {
         style: "currency",
         currency: s.currency,
-        minimumFractionDigits: Number.isInteger(Math.round(value * 100) / 100) ? 0 : 2,
-        maximumFractionDigits: 2,
+        minimumFractionDigits: cents ? 2 : 0,
+        maximumFractionDigits: cents ? 2 : 0,
       });
       const p = nf.formatToParts(value);
       const i = p.findIndex((x) => x.type === "decimal");
@@ -40,7 +44,7 @@ export function BigMoney({ value, className }: { value: number; className?: stri
     } catch {
       return { main: formatMoney(value, s.currency, locale), small: "" };
     }
-  }, [value, s.currency, locale]);
+  }, [value, cents, s.currency, locale]);
   return (
     <span className={cn("tabular", className)} dir="ltr">
       {parts.main}
@@ -193,7 +197,7 @@ export function HomeSummary() {
       ) : (
         <Tile tone="tint" delay={80}>
           <span className="order-2 text-xs font-bold lg:order-none lg:text-[14px]">{t.home.urgent}</span>
-          <span className="tabular order-1 text-[26px] font-black leading-none tracking-[-0.02em] lg:order-none lg:mt-auto lg:text-[48px]">{sum.urgent.length}</span>
+          <Ticker value={sum.urgent.length} format={(v) => String(Math.round(v))} className="order-1 text-[26px] font-black leading-none tracking-[-0.02em] lg:order-none lg:mt-auto lg:text-[48px]" />
           <span className="line-clamp-2 text-[13px] opacity-80 bidi max-lg:hidden">{sum.urgent.length ? sum.urgent.slice(0, 3).map((i) => i.title.split(/\s+/).slice(0, 3).join(" ")).join(", ") : t.home.nothingUrgent}</span>
         </Tile>
       )}
@@ -203,7 +207,7 @@ export function HomeSummary() {
         {ship.best ? (
           <>
             <span className="truncate text-[14px] font-bold max-lg:hidden">{f(t.home.freeShipping, { store: ship.best.store })}</span>
-            <span className="tabular text-[26px] font-black leading-none tracking-[-0.02em] lg:mt-auto lg:text-[48px]">{m(ship.best.gap.remaining)}</span>
+            <Ticker value={ship.best.gap.remaining} format={m} className="text-[26px] font-black leading-none tracking-[-0.02em] lg:mt-auto lg:text-[48px]" />
             <span className="truncate text-xs font-bold lg:hidden">{t.phone.toFreeShipping}</span>
             <span className="line-clamp-2 text-[13px] text-muted max-lg:hidden">
               {t.home.toGo} {ship.best.hint && <span className="bidi">{f(t.home.addHint, { name: ship.best.hint.split(/\s+/).slice(0, 4).join(" ") })}</span>}

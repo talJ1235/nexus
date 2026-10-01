@@ -12,10 +12,10 @@ import { cheapestSource, activeSource, lineTotal, sourceTotal } from "@/lib/calc
 import { convert, formatMoney } from "@/lib/money";
 import type { ItemWithSources, Source } from "@/lib/types";
 import { cn, isHttpUrl } from "@/lib/utils";
-import { PriceTag, ProductImage } from "./item-card";
+import { PriceTag, ProductImage, morphClose } from "./item-card";
 import { AltLink, FindIt, Group, LowestBadge, PriceHistory, PriceWatch, ReceiptsSection, Row, ShippingSection, StatusControl } from "./item-sheet-parts";
 import { StoreMark } from "@/components/ui/store-mark";
-import { useStore } from "./store";
+import { useStore, useOpenItemId } from "./store";
 import { useReadOnly } from "./offline-banner";
 import { useExtension } from "./use-extension";
 import { COLLECTION_COLORS } from "./view-items";
@@ -347,14 +347,15 @@ function Stepper({ value, onChange, min = 1, max = 100000, label }: { value: num
 export function ItemSheet() {
   const s = useStore();
   const { t, f, locale } = useI18n();
-  const item = s.openItemId ? s.items.find((i) => i.id === s.openItemId) ?? null : null;
+  const openItemId = useOpenItemId();
+  const item = openItemId ? s.items.find((i) => i.id === openItemId) ?? null : null;
   const [newLink, setNewLink] = useState("");
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset the add-link box when switching items
     setNewLink("");
-  }, [s.openItemId]);
+  }, [openItemId]);
 
   const save = async (patch: Parameters<typeof updateItem>[1]) => {
     if (!item) return;
@@ -412,9 +413,18 @@ export function ItemSheet() {
   };
   const hasLink = !!item?.sources.some((x) => x.url);
   const ro = useReadOnly();
+  // The hero paints with the opening animation; the longer sections follow a frame later (a smooth open on phones).
+  const [deepFor, setDeepFor] = useState<string | null>(null);
+  const itemId = item?.id ?? null;
+  useEffect(() => {
+    if (!itemId) return;
+    let raf = requestAnimationFrame(() => (raf = requestAnimationFrame(() => setDeepFor(itemId))));
+    return () => cancelAnimationFrame(raf);
+  }, [itemId]);
+  const deep = deepFor === itemId;
 
   return (
-    <Sheet open={!!item} onOpenChange={(o) => !o && s.openItem(null)} title={item?.title ?? ""} className="bg-bg">
+    <Sheet open={!!item} onOpenChange={(o) => !o && morphClose(openItemId, () => s.openItem(null))} title={item?.title ?? ""} className="bg-bg">
       {item && (
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between gap-2 border-b border-line bg-surface px-4 py-2.5">
@@ -432,7 +442,7 @@ export function ItemSheet() {
             {/* Hero: what it is and what it costs. */}
             <div className="border-b border-line bg-surface px-5 pb-5 pt-4">
               <div className="flex gap-4">
-                <ProductImage src={item.imageUrl} alt={item.title} className="size-24 shrink-0 rounded-2xl ring-1 ring-line sm:size-28" />
+                <ProductImage src={item.imageUrl} alt={item.title} className="size-24 shrink-0 rounded-[var(--radius-tile)] ring-1 ring-line sm:size-28" data-sheet-img />
                 <div className="min-w-0 flex-1">
                   <textarea
                     key={item.id + item.title}
@@ -505,6 +515,12 @@ export function ItemSheet() {
               <AltLink item={item} />
             </div>
 
+            {!deep ? (
+              <div className="space-y-3 p-4" aria-hidden>
+                <div className="skeleton h-28 rounded-[22px]" />
+                <div className="skeleton h-40 rounded-[22px]" />
+              </div>
+            ) : (
             <div className="space-y-3 p-4">
               {item.status !== "to_buy" && <ShippingSection item={item} />}
 
@@ -617,6 +633,7 @@ export function ItemSheet() {
                 </Button>
               </div>
             </div>
+            )}
             </fieldset>
           </div>
         </div>

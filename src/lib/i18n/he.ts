@@ -3,6 +3,9 @@ import type { Dict } from "./en";
 export const he: Dict = {
   appName: "Nexus",
   tagline: "כל מה שאתה מתכנן לקנות, במקום אחד",
+  celebrate: {
+    done: "🎉 {name} — הכול נקנה",
+  },
   importVat: {
     title: "תקרת פטור ממע״מ ביבוא",
     hint: "בדולרים. התקרה השתנתה כמה פעמים ב-2025–26 — כדאי לבדוק את הסכום העדכני.",

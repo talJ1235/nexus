@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { forwardRef, memo, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { Pencil, ReceiptText, Share2, ShoppingCart, Sparkles } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/overlays";
 import { countable, sumTotals } from "@/lib/calc";
 import { formatMoney } from "@/lib/money";
-import type { AppData } from "@/lib/types";
+import type { AltGroup, AppData, ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { AddBar, SHOWS_PENDING, type Incoming } from "./add-bar";
 import { PendingCard } from "./pending";
@@ -33,11 +34,12 @@ import { ProjectsView } from "./projects-view";
 import { BarcodeScanner } from "./barcode-scanner";
 import { ReceiptCamera } from "./receipt-camera";
 import { CompareSheet } from "./compare-sheet";
+import { Celebration, PullToRefresh } from "./motion-extras";
 import { ShoppingMode, ShopOutboxSync } from "./shopping-mode";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
-import { StoreProvider, useStore, type UiInit } from "./store";
+import { StoreProvider, useOpenItemId, useStore, type PendingAdd, type UiInit } from "./store";
 import { ContentSkeleton, Skel } from "./skeletons";
 import { COLLECTION_COLORS, useViewItems } from "./view-items";
 import { FALLBACK_RATES, type Currency } from "@/lib/money";
@@ -57,10 +59,22 @@ export function NexusApp({ boot, initial, incoming, offline }: { boot: AppBoot; 
   );
 }
 
+const LG = "(min-width: 1024px)";
+const subscribeLg = (cb: () => void) => {
+  const mq = window.matchMedia(LG);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+};
+/** "desktop" / "phone" after hydration; null while server-rendering/hydrating (then both layouts render, CSS hides one). */
+function useLayoutSize() {
+  return useSyncExternalStore(subscribeLg, () => (window.matchMedia(LG).matches ? "desktop" : "phone"), () => null);
+}
+
 function Shell({ incoming }: { incoming?: Incoming }) {
   const s = useStore();
   const { t } = useI18n();
   const collapsed = s.sidebarCollapsed;
+  const size = useLayoutSize();
 
   return (
     <div
@@ -77,7 +91,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
         )}
       >
         <aside className="sticky top-4 hidden h-[calc(100dvh-32px)] min-w-0 lg:mt-4 lg:block">
-          <Sidebar collapsed={collapsed} onToggle={() => s.setSidebarCollapsed(!collapsed)} />
+          {size !== "phone" && <Sidebar collapsed={collapsed} onToggle={() => s.setSidebarCollapsed(!collapsed)} />}
         </aside>
         <Sheet open={s.navOpen} onOpenChange={s.setNavOpen} title={t.appName} side="start" className="max-w-[300px] bg-bg">
           <Sidebar floating={false} />
@@ -89,16 +103,16 @@ function Shell({ incoming }: { incoming?: Incoming }) {
             <OfflineBanner />
           </div>
           <header className="sticky top-0 z-20 bg-bg/85 px-4 pb-2.5 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur-md sm:px-6 lg:hidden">
-            <PhoneTopBar />
+            {size !== "desktop" && <PhoneTopBar />}
           </header>
           <div className="sticky top-0 z-20 hidden bg-bg/85 pb-3 pt-4 backdrop-blur-md lg:block">
             <div className="mx-auto max-w-[1400px]">
-              <TopBar />
+              {size !== "phone" && <TopBar />}
             </div>
           </div>
           <main className="mx-auto max-w-[1400px] px-4 pb-40 pt-2 sm:px-6 lg:px-0 lg:pt-2">
             {/* Header + content switch together as one soft cross-fade; the very first paint is not animated. */}
-            <div key={viewKey(s.view)} className={s.navSeq > 0 ? "view-in" : undefined}>
+            <div key={viewKey(s.view)} className={s.navSeq > 0 ? (s.navDir > 0 ? "view-in view-fwd" : "view-in view-back") : undefined}>
               {s.loading && s.view.type === "spending" ? (
                 <ContentSkeleton />
               ) : s.view.type === "spending" ? (
@@ -117,11 +131,17 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       </div>
 
       <AddBar incoming={incoming} collapsed={collapsed} />
-      <Dock />
-      <PlusMenu />
+      {size !== "desktop" && (
+        <>
+          <Dock />
+          <PlusMenu />
+        </>
+      )}
       <BarcodeScanner open={s.scanner === "barcode"} onClose={() => s.setScanner(null)} />
       <ReceiptCamera />
       <ShoppingMode />
+      <PullToRefresh />
+      <Celebration />
       <PanelBoundary label="Compare">
         <CompareSheet />
       </PanelBoundary>
@@ -156,6 +176,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
 /** Drop an image/PDF anywhere on the app → read it as a receipt. Drop zones that handle files themselves win. */
 function ReceiptDrop() {
   const s = useStore();
+  const openItemId = useOpenItemId();
   const { t } = useI18n();
   const [over, setOver] = useState(false);
   useEffect(() => {
@@ -177,7 +198,7 @@ function ReceiptDrop() {
     const drop = (e: DragEvent) => {
       depth = 0;
       setOver(false);
-      if (!hasFiles(e) || e.defaultPrevented || s.openItemId || s.offlineAt != null) return;
+      if (!hasFiles(e) || e.defaultPrevented || openItemId || s.offlineAt != null) return;
       e.preventDefault();
       const file = [...(e.dataTransfer?.files ?? [])].find((x) => /^(image\/|application\/pdf$)/.test(x.type));
       if (file) s.openReceipt(file);
@@ -193,7 +214,7 @@ function ReceiptDrop() {
       window.removeEventListener("drop", drop);
     };
   }, [s]);
-  if (!over || s.panel || s.openItemId || s.offlineAt != null) return null;
+  if (!over || s.panel || openItemId || s.offlineAt != null) return null;
   return (
     <div className="pointer-events-none fixed inset-3 z-40 grid place-items-center rounded-2xl border-2 border-dashed border-accent bg-bg/70 backdrop-blur-[2px]">
       <div className="flex items-center gap-2 text-base font-medium text-accent-ink">
@@ -322,7 +343,7 @@ function Content() {
   const s = useStore();
   const { t } = useI18n();
   const items = useViewItems();
-  const pending = SHOWS_PENDING.includes(s.view.type) ? s.pending : [];
+  const pending = SHOWS_PENDING.includes(s.view.type) ? s.pending : NO_PENDING;
 
   if (s.loading) return <ContentSkeleton />;
   const fadeIn = s.navSeq === 0 ? "load-in" : undefined;
@@ -352,25 +373,94 @@ function Content() {
       </div>
     );
 
-  // Alternatives that are still open collapse into one card, placed where the first option would be.
-  const known = new Set(s.altGroups.map((g) => g.id));
-  const seen = new Set<string>();
-  const cells: React.ReactNode[] = pending.map((p) => <PendingCard key={p.id} p={p} />);
-  const order = items.map((i) => i.id);
-  for (const i of items) {
-    if (i.status === "to_buy" && i.altGroupId && known.has(i.altGroupId)) {
-      if (seen.has(i.altGroupId)) continue;
-      seen.add(i.altGroupId);
-      const members = items.filter((m) => m.altGroupId === i.altGroupId && m.status === "to_buy");
-      if (members.length > 1) {
-        cells.push(<AltGroupCard key={`g:${i.altGroupId}`} groupId={i.altGroupId} members={members} />);
-        continue;
-      }
-    }
-    cells.push(<ItemCard key={i.id} item={i} order={order} />);
-  }
-  return <div className={cn("grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(222px,1fr))] sm:gap-3.5", s.navSeq === 0 && "load-in-stagger")}>{cells}</div>;
+  return <CardGrid items={items} pending={pending} altGroups={s.altGroups} stagger={s.navSeq === 0} />;
 }
+
+const FIRST_CARDS = 12;
+const NO_PENDING: PendingAdd[] = [];
+
+/**
+ * The card grid, memoized on its data (UI toggles elsewhere don't re-render it). Long lists mount in chunks of 24 per
+ * frame so a view switch never blocks the main thread; cards glide to new places when sorting/filtering/status change.
+ */
+const CardGrid = memo(function CardGrid({ items, pending, altGroups, stagger }: { items: ItemWithSources[]; pending: PendingAdd[]; altGroups: AltGroup[]; stagger: boolean }) {
+  // After a view switch the header paints first and cards follow a frame later (12 per frame); on the very first
+  // load (stagger) they're all part of the first paint, as before.
+  const [limit, setLimit] = useState(stagger ? FIRST_CARDS * 2 : 0);
+  const total = items.length + pending.length;
+  useEffect(() => {
+    if (limit >= total) return;
+    const id = requestAnimationFrame(() => setLimit((n) => n + FIRST_CARDS));
+    return () => cancelAnimationFrame(id);
+  }, [limit, total]);
+
+  // Alternatives that are still open collapse into one card, placed where the first option would be.
+  const order = useMemo(() => items.map((i) => i.id), [items]);
+  const cells = useMemo(() => {
+    const known = new Set(altGroups.map((g) => g.id));
+    const seen = new Set<string>();
+    const out: ({ kind: "item"; item: ItemWithSources } | { kind: "group"; id: string; members: ItemWithSources[] })[] = [];
+    for (const i of items) {
+      if (i.status === "to_buy" && i.altGroupId && known.has(i.altGroupId)) {
+        if (seen.has(i.altGroupId)) continue;
+        seen.add(i.altGroupId);
+        const members = items.filter((m) => m.altGroupId === i.altGroupId && m.status === "to_buy");
+        if (members.length > 1) {
+          out.push({ kind: "group", id: i.altGroupId, members });
+          continue;
+        }
+      }
+      out.push({ kind: "item", item: i });
+    }
+    return out;
+  }, [items, altGroups]);
+  return (
+    <MotionConfig reducedMotion="user" transition={{ type: "spring", stiffness: 420, damping: 38, mass: 0.8 }}>
+      <div className={cn("grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(222px,1fr))] sm:gap-3.5", stagger && "load-in-stagger")}>
+        <AnimatePresence initial={false} mode="popLayout">
+          {pending.map((p) => (
+            <Cell key={p.id}>
+              <PendingCard p={p} />
+            </Cell>
+          ))}
+          {cells.slice(0, Math.max(0, limit - pending.length)).map((c) =>
+            c.kind === "item" ? <ItemCell key={c.item.id} item={c.item} order={order} /> : (
+              <Cell key={`g:${c.id}`}>
+                <AltGroupCard groupId={c.id} members={c.members} />
+              </Cell>
+            ),
+          )}
+        </AnimatePresence>
+      </div>
+    </MotionConfig>
+  );
+});
+
+const Cell = forwardRef<HTMLDivElement, { children: React.ReactNode }>(function Cell({ children }, ref) {
+  return (
+    <motion.div
+      ref={ref}
+      layout="position"
+      className="cv-auto flex min-w-0 flex-col [&>*]:flex-1"
+      initial={{ opacity: 0, scale: 0.94 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.18 } }}
+    >
+      {children}
+    </motion.div>
+  );
+});
+
+/** One card in its motion cell — memoized, so mounting more cards (or another card changing) doesn't re-render it. */
+const ItemCell = memo(
+  forwardRef<HTMLDivElement, { item: ItemWithSources; order: string[] }>(function ItemCell({ item, order }, ref) {
+    return (
+      <Cell ref={ref}>
+        <ItemCard item={item} order={order} />
+      </Cell>
+    );
+  }),
+);
 
 /** Empty-state illustration: a price tag hanging from a node. */
 function EmptyArt() {

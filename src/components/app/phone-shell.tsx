@@ -100,7 +100,7 @@ export function Dock() {
   );
   return (
     <nav
-      className="fixed inset-x-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-40 flex h-[68px] items-center justify-around rounded-full border border-line bg-surface px-2 text-ink shadow-[0_14px_40px_color-mix(in_srgb,var(--ink)_16%,transparent)] transition-[transform,opacity] duration-[320ms] ease-[var(--ease-out)] lg:hidden [body:has([data-selection-bar])_&]:pointer-events-none [body:has([data-selection-bar])_&]:translate-y-[140%] [body:has([data-selection-bar])_&]:opacity-0"
+      className="fixed inset-x-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-40 flex h-[68px] items-center justify-around rounded-full border border-line bg-surface px-2 text-ink shadow-[0_14px_40px_color-mix(in_srgb,var(--ink)_16%,transparent)] transition-[transform,opacity] duration-[320ms] ease-[var(--ease-out)] lg:hidden [[data-selecting]_&]:pointer-events-none [[data-selecting]_&]:translate-y-[140%] [[data-selecting]_&]:opacity-0"
       aria-label="Main"
       data-dock
     >

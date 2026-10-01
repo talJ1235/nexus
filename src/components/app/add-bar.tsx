@@ -247,7 +247,7 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
       <div
         data-paste-capsule
         className={cn(
-          "fixed z-30 flex flex-col items-center gap-2 transition-[inset-inline-start,opacity,transform] duration-[450ms] ease-[var(--ease-out)] lg:bottom-[26px] lg:end-[26px] [body:has([data-selection-bar])_&]:pointer-events-none [body:has([data-selection-bar])_&]:opacity-0",
+          "fixed z-30 flex flex-col items-center gap-2 transition-[inset-inline-start,opacity,transform] duration-[450ms] ease-[var(--ease-out)] lg:bottom-[26px] lg:end-[26px] [[data-selecting]_&]:pointer-events-none [[data-selecting]_&]:opacity-0",
           "max-lg:inset-x-3 max-lg:bottom-[calc(100px+env(safe-area-inset-bottom))]",
           !s.pasteOpen && "max-lg:pointer-events-none max-lg:translate-y-4 max-lg:opacity-0",
           collapsed ? "lg:start-[112px]" : "lg:start-[284px]",

@@ -6,6 +6,8 @@
 //   SMOKE_SLOW=1 (server started with NEXUS_TRACE_DELAY_MS) checks that a click in the loading shell carries over.
 //   SMOKE_WRITE=1 (localhost only) also exercises adding: placeholder card, same link → +1 (+ its toast's close
 //     button), partial move, and (server started with NEXUS_AI_MOCK=1) assistant action propose → apply → undo.
+//   SMOKE_PERF=1 (with SMOKE_MOBILE=1) throttles the CPU ×4 and reports long tasks (> 50 ms) during the main
+//     transitions: open an item (card → sheet), switch views, change the sort, the + menu.
 //   SMOKE_MOBILE=1 runs the owner checks in a 390×844 touch phone context; screenshots get a "-m" suffix.
 //   SMOKE_TRACE=1 records every painted frame of the first 2.5 s after goto("/") (CDP screencast, timestamped)
 //     into $SMOKE_OUT/trace[-m]/ plus one contact sheet (trace[-m].png) to judge load flashes from frames.
@@ -218,6 +220,38 @@ try {
       });
     }
 
+    if (process.env.SMOKE_PERF) {
+      await step("motion: no long tasks > 50 ms during the main transitions (CPU ×4)", async () => {
+        await page.goto(`${BASE}/`);
+        await page.waitForSelector(READY);
+        await page.waitForTimeout(1500);
+        const cdp = await ctx.newCDPSession(page);
+        await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+        await page.evaluate(() => {
+          window.__long = [];
+          new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__long.push({ name: window.__phase, ms: Math.round(e.duration) }))).observe({ type: "longtask", buffered: false });
+        });
+        const phase = async (name, fn) => {
+          await page.evaluate((n) => (window.__phase = n), name);
+          await fn();
+          await page.waitForTimeout(900);
+        };
+        await phase("open item", () => page.locator("[data-item-card] > button").first().click());
+        await phase("close item", () => page.keyboard.press("Escape"));
+        await phase("view → on the way", () => page.locator(MOBILE ? "[data-dock] [data-carry='view:ordered']" : "aside [data-carry='view:ordered']").click());
+        await phase("view → to buy", () => page.locator(MOBILE ? "[data-dock] [data-carry='view:to_buy']" : "aside [data-carry='view:to_buy']").click());
+        if (MOBILE) {
+          await phase("+ menu", () => page.click("[data-plus]"));
+          await phase("+ menu close", () => page.click("[data-plus]"));
+        } else await phase("sidebar collapse", () => page.click("[data-sidebar-toggle]"));
+        const long = await page.evaluate(() => window.__long);
+        await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+        if (!MOBILE) await page.click("[data-sidebar-toggle]");
+        console.log(`INFO long tasks: ${long.length ? long.map((l) => `${l.name} ${l.ms}ms`).join(", ") : "none"}`);
+        ok(long.length === 0, "motion: no long tasks > 50 ms during the main transitions (CPU ×4)", JSON.stringify(long));
+      });
+    }
+
     await step("projects screen lists project cards", async () => {
       await page.goto(`${BASE}/?v=projects`);
       await page.waitForSelector("[data-projects-view]", { timeout: 15000 });
@@ -422,7 +456,18 @@ try {
           ok(true, "toast swipes away sideways");
         });
         await step("partial move splits the item", async () => {
-          const before = await page.locator("main article").count();
+          // Long grids mount in chunks: count once the number stops changing.
+          const settled = async () => {
+            let n = -1;
+            for (let k = 0; k < 20; k++) {
+              const m = await page.locator("main article").count();
+              if (m === n) return m;
+              n = m;
+              await page.waitForTimeout(250);
+            }
+            return n;
+          };
+          const before = await settled();
           await page.locator("main article button[aria-label]").first().click();
           const sheet = page.getByRole("dialog");
           await sheet.waitFor();
@@ -436,7 +481,8 @@ try {
           await page.keyboard.press("Escape");
           await page.goto(`${BASE}/`);
           await page.waitForSelector(READY);
-          ok((await page.locator("main article").count()) === before + 1, "partial move splits the item", `${before} → ${await page.locator("main article").count()}`);
+          const after = await settled();
+          ok(after === before + 1, "partial move splits the item", `${before} → ${after}`);
         });
         await step("free-shipping threshold: set from the store header → bar shows the gap", async () => {
           await page.goto(`${BASE}/?v=orders`);
@@ -685,6 +731,7 @@ try {
         await p.fill("#password", PASSWORD);
         await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), p.click("button[type=submit]")]);
         await p.waitForSelector(READY, { timeout: 15000 });
+        await p.waitForTimeout(1500); // long grids mount in chunks
         const online = await p.locator("main article").count();
         const stored = () =>
           p.evaluate(async () => {
@@ -699,6 +746,7 @@ try {
         await p.goto(`${BASE}/`);
         await p.waitForSelector("[data-offline-banner=snapshot]", { timeout: 10000 });
         await p.waitForSelector(READY, { timeout: 10000 });
+        await p.waitForTimeout(1500);
         const offlineCount = await p.locator("main article").count();
         const addDisabled = await p.locator("#add-input").isDisabled();
         await shot(p, "offline");

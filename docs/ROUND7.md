@@ -258,7 +258,7 @@ another order). Also in the weekly Telegram summary when relevant.
 
 ---
 
-## Part H — motion pass (last)
+## Part H — motion pass (last) — [x] shipped; 60 fps budget not fully met (see Open)
 Apply `docs/UI-V2.md` "Motion plan" across the app with the motion tokens: card → sheet shared-element morph,
 layout animations for sorting/filtering/status changes, number tickers, view transitions (directional), press states
 with spring, swipe on phone rows (mark ordered / actions), pull to refresh, celebration when a project is fully bought.

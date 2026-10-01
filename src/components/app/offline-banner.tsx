@@ -2,11 +2,11 @@
 
 import { WifiOff } from "lucide-react";
 import { useI18n } from "@/components/providers";
-import { useStore } from "./store";
+import { useDataStore, useStore } from "./store";
 
 /** Offline (read-only v1): editing controls check this and show why they're disabled. */
 export function useReadOnly() {
-  const s = useStore();
+  const s = useDataStore();
   const { t } = useI18n();
   const ro = s.offlineAt != null;
   return { ro, title: ro ? t.offline.readOnly : undefined };

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
 import type { AltGroup, AppData, Collection, ItemWithSources, StoreSetting } from "@/lib/types";
 import type { View } from "@/lib/views";
@@ -66,6 +66,8 @@ type Store = {
   setView: (v: View) => void;
   /** Increments on every user-initiated view change; 0 on first load (so the first paint isn't animated). */
   navSeq: number;
+  /** Direction of the last view change in sidebar order (views slide that way). */
+  navDir: 1 | -1;
   query: string;
   setQuery: (q: string) => void;
   tagFilter: string | null;
@@ -104,7 +106,7 @@ type Store = {
   setItems: (items: ItemWithSources[]) => void;
   upsertCollection: (c: Collection) => void;
   removeCollection: (id: string) => void;
-  openItemId: string | null;
+  /** Which item's sheet is open lives in its own context (useOpenItemId) so opening one doesn't re-render the app. */
   openItem: (id: string | null) => void;
   editor: Editor;
   setEditor: (e: Editor) => void;
@@ -140,12 +142,27 @@ type Store = {
 };
 
 const Ctx = createContext<Store | null>(null);
+/** The same store, refreshed only when item data changes (not on UI toggles): cards and rows read this one, so opening a
+ *  menu, a sheet or a panel doesn't re-render every card. Only the data fields and stable callbacks are fresh here. */
+const DataCtx = createContext<Store | null>(null);
 
 export function useStore() {
   const s = useContext(Ctx);
   if (!s) throw new Error("useStore outside provider");
   return s;
 }
+
+const OpenItemCtx = createContext<string | null>(null);
+export const useOpenItemId = () => useContext(OpenItemCtx);
+
+export function useDataStore() {
+  const s = useContext(DataCtx);
+  if (!s) throw new Error("useDataStore outside provider");
+  return s;
+}
+
+/** Sidebar order: view switches slide forward/back along it. */
+const VIEW_ORDER: View["type"][] = ["to_buy", "urgent", "unsorted", "ordered", "orders", "history", "spending", "projects", "collection", "store"];
 
 function viewToParam(v: View) {
   switch (v.type) {
@@ -211,6 +228,8 @@ export function StoreProvider({
   const [sort, setSortState] = useState<SortKey>(ui.sort ?? "newest");
   const [view, setViewState] = useState<View>(() => paramToView(ui.view));
   const [navSeq, setNavSeq] = useState(0);
+  const [navDir, setNavDir] = useState<1 | -1>(1);
+  const viewRef = useRef<View>(paramToView(ui.view));
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
@@ -310,6 +329,8 @@ export function StoreProvider({
   }, [loading, ui.layout, ui.sort]);
 
   const setView = useCallback((v: View) => {
+    setNavDir(VIEW_ORDER.indexOf(v.type) >= VIEW_ORDER.indexOf(viewRef.current.type) ? 1 : -1);
+    viewRef.current = v;
     setViewState(v);
     setNavSeq((n) => n + 1);
     setSelectedState(new Set());
@@ -485,6 +506,7 @@ export function StoreProvider({
       view,
       setView,
       navSeq,
+      navDir,
       query,
       setQuery,
       tagFilter,
@@ -514,7 +536,6 @@ export function StoreProvider({
       setItems,
       upsertCollection,
       removeCollection,
-      openItemId,
       openItem: setOpenItemId,
       editor,
       setEditor,
@@ -542,8 +563,20 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  const dataValue = useMemo(
+    () => value,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately only the data the cards read
+    [items, collections, altGroups, initial.rates, currency, selected, toggleSelect, fresh, imagePending, offlineAt, offline, importLimitUsd, storeSettings],
+  );
+
+  return (
+    <Ctx.Provider value={value}>
+      <DataCtx.Provider value={dataValue}>
+        <OpenItemCtx.Provider value={openItemId}>{children}</OpenItemCtx.Provider>
+      </DataCtx.Provider>
+    </Ctx.Provider>
+  );
 }

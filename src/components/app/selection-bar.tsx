@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowRightLeft, CircleDot, Flag, Split, Trash2, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { bulkDelete, bulkSetStatus, bulkUpdate, createAltGroup, restoreItems } from "@/app/actions";
@@ -20,6 +20,15 @@ export function SelectionBar() {
   const [altName, setAltName] = useState("");
   const [altOpen, setAltOpen] = useState(false);
   const ids = [...s.selected];
+  // Other fixed bars step aside while items are selected (an attribute on <html>, cheaper than a :has() selector).
+  const selecting = s.selected.size > 0;
+  useEffect(() => {
+    if (!selecting) return;
+    document.documentElement.dataset.selecting = "";
+    return () => {
+      delete document.documentElement.dataset.selecting;
+    };
+  }, [selecting]);
   const chosen = s.items.filter((i) => s.selected.has(i.id));
   const n = ids.length;
   if (!n || s.offlineAt != null) return null;

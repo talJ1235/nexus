@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, ExternalLink, Minus, Package, PackageCheck, Plus, Scale, Split, Truck, Undo2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { setStatus, updateItem } from "@/app/actions";
@@ -11,14 +11,14 @@ import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { normalizeCategory } from "@/lib/categories";
 import { importCheck, isForeignStore } from "@/lib/import-vat";
-import { useStore } from "./store";
+import { useDataStore } from "./store";
 import { useReadOnly } from "./offline-banner";
 import { COLLECTION_COLORS } from "./view-items";
 
-export function ProductImage({ src, alt, className, iconClass, pending }: { src: string | null; alt: string; className?: string; iconClass?: string; pending?: boolean }) {
+export function ProductImage({ src, alt, className, iconClass, pending, ...rest }: { src: string | null; alt: string; className?: string; iconClass?: string; pending?: boolean } & React.HTMLAttributes<HTMLDivElement> & Record<`data-${string}`, string | boolean>) {
   const [failed, setFailed] = useState(false);
   return (
-    <div className={cn("relative grid place-items-center overflow-hidden bg-tile", pending && !src && "shimmer", className)}>
+    <div {...rest} className={cn("relative grid place-items-center overflow-hidden bg-tile", pending && !src && "shimmer", className)}>
       {src && !failed ? (
         // eslint-disable-next-line @next/next/no-img-element -- remote store images; thumbnails are pre-sized WebP
         <img
@@ -34,13 +34,75 @@ export function ProductImage({ src, alt, className, iconClass, pending }: { src:
             e.currentTarget.dataset.loaded = "";
           }}
           onError={() => setFailed(true)}
-          className="product-img size-full object-contain p-[9%] mix-blend-multiply dark:rounded-[14px] dark:mix-blend-normal"
+          className="product-img size-full object-contain p-[9%] mix-blend-multiply transition-[opacity,transform] duration-[450ms] ease-[var(--ease-out)] group-hover:scale-[1.04] dark:rounded-[14px] dark:mix-blend-normal"
         />
       ) : (
         <Package className={cn("size-8 text-tile-ink", iconClass)} strokeWidth={1.4} />
       )}
     </div>
   );
+}
+
+const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const cardImg = (id: string | null) => (id ? document.querySelector<HTMLElement>(`[data-item-card="${CSS.escape(id)}"] [data-card-img] > div`) : null);
+const onScreen = (el: HTMLElement) => {
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight;
+};
+
+/**
+ * Shared-element morph between a card's picture and the item sheet's (FLIP on one cloned element: transform and
+ * opacity only, so it stays on the compositor however long the list is). The sheet itself just fades while it runs.
+ */
+function fly(from: HTMLElement, to: HTMLElement, done: () => void) {
+  const a = from.getBoundingClientRect();
+  const b = to.getBoundingClientRect();
+  const clone = from.cloneNode(true) as HTMLElement;
+  Object.assign(clone.style, { position: "fixed", left: `${b.left}px`, top: `${b.top}px`, width: `${b.width}px`, height: `${b.height}px`, margin: "0", zIndex: "60", pointerEvents: "none", transformOrigin: "0 0", borderRadius: getComputedStyle(to).borderRadius });
+  clone.querySelectorAll("img").forEach((i) => (i.dataset.loaded = ""));
+  document.body.appendChild(clone);
+  const prev = to.style.opacity;
+  to.style.opacity = "0";
+  const anim = clone.animate(
+    [{ transform: `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})` }, { transform: "none" }],
+    { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)" },
+  );
+  const end = () => {
+    to.style.opacity = prev;
+    clone.remove();
+    done();
+  };
+  anim.onfinish = end;
+  anim.oncancel = end;
+}
+
+export function morphOpen(id: string, open: () => void) {
+  const from = cardImg(id);
+  if (reduceMotion() || !from || !onScreen(from)) return open();
+  document.documentElement.dataset.morphing = "";
+  open();
+  requestAnimationFrame(() => {
+    const to = document.querySelector<HTMLElement>("[data-sheet-img]");
+    if (!to) return void delete document.documentElement.dataset.morphing;
+    fly(from, to, () => delete document.documentElement.dataset.morphing);
+  });
+}
+
+/** Sheet → card on close (when the card is on screen). */
+export function morphClose(id: string | null, close: () => void) {
+  const from = document.querySelector<HTMLElement>("[data-sheet-img]");
+  const to = cardImg(id);
+  if (reduceMotion() || !from || !to || !onScreen(to)) return close();
+  const a = from.getBoundingClientRect();
+  const clone = from.cloneNode(true) as HTMLElement;
+  Object.assign(clone.style, { position: "fixed", left: `${a.left}px`, top: `${a.top}px`, width: `${a.width}px`, height: `${a.height}px`, margin: "0", zIndex: "60", pointerEvents: "none" });
+  document.body.appendChild(clone);
+  document.documentElement.dataset.morphing = "";
+  close();
+  fly(clone, to, () => {
+    clone.remove();
+    delete document.documentElement.dataset.morphing;
+  });
 }
 
 export type Status = ItemWithSources["status"];
@@ -60,7 +122,7 @@ export function optimisticStatus(item: ItemWithSources, status: Status, paid: Re
 
 /** Moves an item along To buy → Ordered → Received, with undo. */
 export function useStatusFlow() {
-  const s = useStore();
+  const s = useDataStore();
   const { t } = useI18n();
   const warnImport = useImportWarning();
   const setTo = async (item: ItemWithSources, status: Status) => {
@@ -101,7 +163,7 @@ export function useStatusFlow() {
  * day) is over the VAT-free import limit, say so — with the estimated VAT.
  */
 export function useImportWarning() {
-  const s = useStore();
+  const s = useDataStore();
   const { t, f, locale } = useI18n();
   return (items: ItemWithSources[]) => {
     const src = items[0] ? activeSource(items[0], s.rates) : null;
@@ -118,7 +180,7 @@ export function useImportWarning() {
 }
 
 export function PriceTag({ item, size = "md" }: { item: ItemWithSources; size?: "md" | "lg" }) {
-  const s = useStore();
+  const s = useDataStore();
   const { t, locale } = useI18n();
   const unit = unitPrice(item, s.rates, s.currency);
   if (unit == null) return <span className={cn("price-tag muted", size === "lg" ? "text-base" : "text-[13px]")}>{t.item.noPrice}</span>;
@@ -157,8 +219,8 @@ export function SelectBox({ checked, onToggle, className }: { checked: boolean; 
 }
 
 export function ItemCard({ item, order }: { item: ItemWithSources; order: string[] }) {
-  const s = useStore();
-  const { t, f, locale } = useI18n();
+  const s = useDataStore();
+  const { t, f, locale, dir } = useI18n();
   const flow = useStatusFlow();
   const ro = useReadOnly();
   const src = activeSource(item, s.rates);
@@ -184,6 +246,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
 
   const next = NEXT[item.status];
   const nextLabel = item.status === "to_buy" ? t.flow.markOrdered : item.status === "ordered" ? t.flow.markReceived : t.flow.backToBuy;
+  const swipe = useRowSwipe(() => void flow.setTo(item, next), () => s.toggleSelect(item.id), !ro.ro && item.status !== "purchased");
 
   const category = normalizeCategory(item.category);
   const flag =
@@ -194,14 +257,39 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
     : item.priority === "someday" ? { label: t.item.someday, cls: "bg-surface text-muted" }
     : null;
 
+  const endSwipe = (dir === "rtl" ? -swipe.dx : swipe.dx) > 0;
+  const [firstStatus] = useState(item.status);
+  const sweep = firstStatus !== item.status;
   return (
+    <div className="relative">
+      {/* Phone swipe: toward the end = next status, toward the start = select (actions bar). */}
+      {swipe.dx !== 0 && (
+        <div
+          aria-hidden
+          dir="ltr"
+          className={cn(
+            "absolute inset-0 flex items-center rounded-[22px] px-5 text-sm font-bold sm:hidden",
+            swipe.dx > 0 ? "justify-start" : "justify-end",
+            endSwipe ? "bg-info text-white" : "bg-ink text-bg",
+            Math.abs(swipe.dx) < SWIPE_AT && "opacity-70",
+          )}
+        >
+          {endSwipe ? (
+            <span className="flex items-center gap-2">{item.status === "to_buy" ? <Truck className="size-5" /> : <PackageCheck className="size-5" />}{nextLabel}</span>
+          ) : (
+            <span className="flex items-center gap-2"><Check className="size-5" />{t.select.select}</span>
+          )}
+        </div>
+      )}
     <article
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData("application/x-nexus-items", JSON.stringify(dragIds(item.id, s.selected)));
         e.dataTransfer.effectAllowed = "move";
       }}
-      data-item-card
+      {...swipe.handlers}
+      style={swipe.dx ? { transform: `translateX(${swipe.dx}px)`, transition: "none" } : undefined}
+      data-item-card={item.id}
       className={cn(
         "group relative flex flex-col rounded-[var(--radius-card)] border bg-surface p-1.5 transition-[border-color,box-shadow,transform] duration-[250ms] ease-[var(--ease-out)] max-sm:flex-row max-sm:items-center max-sm:gap-3 max-sm:rounded-[22px] max-sm:p-[7px] max-sm:pe-3",
         isSelected ? "border-brand shadow-[0_0_0_1px_var(--brand)]" : "border-line hover:-translate-y-[3px] hover:shadow-[0_14px_30px_color-mix(in_srgb,var(--ink)_10%,transparent)]",
@@ -211,12 +299,14 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
     >
       <button
         type="button"
-        onClick={(e) => (selecting || e.metaKey || e.ctrlKey ? s.toggleSelect(item.id, e.shiftKey ? { range: order } : undefined) : s.openItem(item.id))}
+        onClick={(e) => (selecting || e.metaKey || e.ctrlKey ? s.toggleSelect(item.id, e.shiftKey ? { range: order } : undefined) : morphOpen(item.id, () => s.openItem(item.id)))}
         className="absolute inset-0 z-[1] rounded-[var(--radius-card)] max-sm:rounded-[22px]"
         aria-label={item.title}
       />
 
-      <div className="relative max-sm:shrink-0">
+      {/* A status change sweeps a soft tint across the card (not on first paint). */}
+      {sweep && <span key={item.status} aria-hidden className="status-sweep pointer-events-none absolute inset-0 z-[3] overflow-hidden rounded-[inherit]" />}
+      <div className="relative max-sm:shrink-0" data-card-img>
         <ProductImage src={item.imageUrl} alt="" pending={s.imagePending.has(item.id)} className="aspect-[16/11] w-full rounded-[var(--radius-tile)] max-sm:size-14 max-sm:rounded-[17px]" iconClass="max-sm:size-6" />
         {item.imageSource === "icon" && (
           <span className="pointer-events-none absolute bottom-2 start-2 rounded-full bg-surface/90 px-2 py-0.5 text-[10.5px] font-bold text-muted max-sm:hidden" title={t.item.iconHint}>
@@ -334,12 +424,71 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
         {item.quantity > 1 && <span className="tabular text-[11px] text-muted" dir="ltr">×{item.quantity}</span>}
       </span>
     </article>
+    </div>
   );
+}
+
+const SWIPE_AT = 84;
+
+/** Horizontal swipe on phone rows (vertical scrolling stays native). RTL: "toward the end" is to the left. */
+function useRowSwipe(onEnd: () => void, onStart: () => void, enabled: boolean) {
+  const [dx, setDx] = useState(0);
+  const st = useRef<{ x: number; y: number; on: boolean; dir: number } | null>(null);
+  const swiped = useRef(false);
+  const handlers = enabled
+    ? {
+        onPointerDown: (e: React.PointerEvent) => {
+          if (e.pointerType === "mouse" || !window.matchMedia("(max-width: 639px)").matches) return;
+          st.current = { x: e.clientX, y: e.clientY, on: false, dir: document.documentElement.dir === "rtl" ? -1 : 1 };
+          swiped.current = false;
+        },
+        onPointerMove: (e: React.PointerEvent) => {
+          const g = st.current;
+          if (!g) return;
+          const mx = e.clientX - g.x;
+          const my = e.clientY - g.y;
+          if (!g.on) {
+            if (Math.abs(my) > 10 && Math.abs(my) > Math.abs(mx)) return void (st.current = null);
+            if (Math.abs(mx) < 12) return;
+            g.on = true;
+            (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+          }
+          setDx(Math.max(-140, Math.min(140, mx * 0.9)));
+        },
+        onPointerUp: () => {
+          const g = st.current;
+          st.current = null;
+          if (!g?.on) return;
+          swiped.current = true;
+          const towardEnd = dx * g.dir > 0;
+          if (Math.abs(dx) >= SWIPE_AT) {
+            try {
+              navigator.vibrate?.(20);
+            } catch {}
+            if (towardEnd) onEnd();
+            else onStart();
+          }
+          setDx(0);
+        },
+        onPointerCancel: () => {
+          st.current = null;
+          setDx(0);
+        },
+        onClickCapture: (e: React.MouseEvent) => {
+          if (swiped.current) {
+            e.stopPropagation();
+            e.preventDefault();
+            swiped.current = false;
+          }
+        },
+      }
+    : {};
+  return { dx, handlers };
 }
 
 /** Card price: big and plain (no tag), "No price" muted. */
 export function CardPrice({ item, className }: { item: ItemWithSources; className?: string }) {
-  const s = useStore();
+  const s = useDataStore();
   const { t, locale } = useI18n();
   const unit = unitPrice(item, s.rates, s.currency);
   if (unit == null) return <span className={cn("text-[13px] font-medium text-muted", className)}>{t.item.noPrice}</span>;
@@ -348,7 +497,7 @@ export function CardPrice({ item, className }: { item: ItemWithSources; classNam
 
 /** − qty + on the card; saves right away (optimistic), reverts on error. */
 export function QtyStepper({ item, className }: { item: ItemWithSources; className?: string }) {
-  const s = useStore();
+  const s = useDataStore();
   const { t } = useI18n();
   const ro = useReadOnly();
   const set = async (q: number) => {
@@ -377,7 +526,7 @@ export function QtyStepper({ item, className }: { item: ItemWithSources; classNa
 
 /** One card standing in for a group of alternatives. */
 export function AltGroupCard({ groupId, members }: { groupId: string; members: ItemWithSources[] }) {
-  const s = useStore();
+  const s = useDataStore();
   const { t, f, locale } = useI18n();
   const group = s.altGroups.find((g) => g.id === groupId);
   const chosen = group?.chosenItemId ? members.find((m) => m.id === group.chosenItemId) : null;
