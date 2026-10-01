@@ -39,3 +39,14 @@ Moments to design:
 - **Assistant**: answer streams in word by word; action cards unfold; "Apply" ripples into the affected items.
 - **Celebrations (rare)**: project fully purchased → one short, tasteful burst on the project header.
 - **Hover (desktop)**: subtle lift + shadow on cards, image slight zoom.
+
+## Direction so far (chat, 2026-10-01)
+- Tal likes: Blink (heyblink.com) roundness and boldness, E "Color studio", F "Depth", J's phone floating dock.
+  Too close to Blink / too loud → colors must be calmer and ours (teal brand).
+- Round 3 on the design canvas ("Nexus Style Directions", page "Round 3"): K Sage wallet, L Midnight teal,
+  M Pastel studio, N Gallery + phones + a feature-patterns board.
+- Patterns from the research: bento summary (big "left to buy" tile + small tiles), projects as a wallet stack with
+  budget rings (Apple Wallet, Monzo pots), store logos on cards (Monzo merchants), per-project colour (Copilot
+  categories), floating dock with a centre + menu (Things' Magic Plus), swipe a row to mark ordered (Things,
+  Robinhood), card → sheet morph (Things, Airbnb 2025), price-drop sparkline on the card, one celebration when a
+  project is fully bought (Robinhood). Fonts with Hebrew: Fredoka, Rubik, Heebo, Varela Round, Assistant.
