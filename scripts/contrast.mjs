@@ -1,5 +1,6 @@
 // Text contrast check for the four themes (Round 7 A1). Parses the token blocks in src/app/globals.css and checks
-// every text-on-background pair the UI uses against WCAG AA (4.5:1). Usage: node scripts/contrast.mjs
+// every text-on-background pair the UI uses against WCAG AA (4.5:1), plus card depth (surface step, dark outline).
+// Usage: node scripts/contrast.mjs
 import { readFileSync } from "node:fs";
 
 const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -58,6 +59,15 @@ for (const [name, t] of Object.entries(themes)) {
   for (const stop of heroStops(t.hero)) {
     const r = ratio(parse(t["on-hero"]), parse(stop));
     if (r < 4.5) bad.push(`on-hero on hero ${stop} ${r.toFixed(2)}`);
+  }
+  // Round 9 B1: cards must read as cards — a luminance step between surface and bg, and in dark themes (where the
+  // shadow can't carry it) an outline visible against the background.
+  const bgc = parse(t.bg);
+  const step = ratio(parse(t.surface), bgc);
+  if (step < 1.08) bad.push(`surface vs bg step ${step.toFixed(2)} (min 1.08)`);
+  if (name.includes("dark")) {
+    const outline = ratio(over(parse(t.line), bgc), bgc);
+    if (outline < 1.3) bad.push(`card outline vs bg ${outline.toFixed(2)} (min 1.3)`);
   }
   fails += bad.length;
   console.log(bad.length ? `FAIL ${name}: ${bad.join(", ")}` : `PASS ${name}`);

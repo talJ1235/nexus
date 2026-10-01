@@ -66,6 +66,7 @@
   --logo-c2: #f59e0b;
   --logo-c3: #fb7a3c;
   --shadow: 0 1px 2px rgb(23 23 23 / 0.04), 0 6px 18px -8px rgb(23 23 23 / 0.1);
+  --shadow-lift: 0 14px 30px rgb(23 23 23 / 0.1), 0 2px 4px rgb(23 23 23 / 0.04);
   --shadow-pop: 0 18px 44px -14px rgb(23 23 23 / 0.24), 0 2px 6px rgb(23 23 23 / 0.06);
   /* Store identity hues (components/ui/store-mark.tsx): muted. */
   --store-1: #b8693a;
@@ -88,13 +89,14 @@
   --act-plan: linear-gradient(140deg, rgba(251, 122, 60, 0.2), rgba(236, 72, 153, 0.14));
   --act-plan-ink: #ffb088;
   --bg: #0b0b0b;
-  --surface: #151515;
-  --surface-2: #1c1c1c;
+  /* Round 9 B1: cards one clear step above the background, a 12 % white outline, a top highlight + soft shadow. */
+  --surface: #181818;
+  --surface-2: #212121;
   --ink: #f2f2f0;
   --muted: #9b9b98;
   --faint: #8a8a87;
-  --line: #262626;
-  --line-strong: #363636;
+  --line: rgba(255, 255, 255, 0.12);
+  --line-strong: #3a3a3a;
   --brand: #f2f2f0;
   --brand-hover: #ffffff;
   --on-brand: #0b0b0b;
@@ -119,7 +121,8 @@
   --logo-c1: #f2f2f0;
   --logo-c2: #f59e0b;
   --logo-c3: #fb7a3c;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -10px rgb(0 0 0 / 0.6);
+  --shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 26px -12px rgb(0 0 0 / 0.75);
+  --shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px rgb(255 255 255 / 0.08), 0 18px 36px -14px rgb(0 0 0 / 0.85), 0 0 26px -10px color-mix(in srgb, var(--spark) 22%, transparent);
   --shadow-pop: 0 18px 50px -14px rgb(0 0 0 / 0.75), 0 0 0 1px rgb(255 255 255 / 0.04);
   --store-1: #d98a58;
   --store-2: #cfa54c;
@@ -132,7 +135,7 @@
   --store-fg: #0b0b0b;
 }
 :root[data-palette="plum"] {
-  --bg: #f8f6fc;
+  --bg: #f5f2fb;
   --surface: #ffffff;
   --surface-2: #f3eefb;
   --ink: #1d1233;
@@ -160,16 +163,17 @@
   --logo-c2: #fb7a3c;
   --logo-c3: #f5b40b;
   --shadow: 0 1px 2px rgb(29 18 51 / 0.04), 0 6px 18px -8px rgb(29 18 51 / 0.12);
+  --shadow-lift: 0 14px 30px rgb(29 18 51 / 0.12), 0 2px 4px rgb(29 18 51 / 0.05);
   --shadow-pop: 0 18px 44px -14px rgb(29 18 51 / 0.26), 0 2px 6px rgb(29 18 51 / 0.06);
 }
 :root[data-palette="plum"].dark {
   --bg: #100b1a;
-  --surface: #19122a;
-  --surface-2: #211836;
+  --surface: #1d1532;
+  --surface-2: #261c40;
   --ink: #f1ecfb;
   --muted: #a497bf;
   --faint: #9a8db6;
-  --line: #2c2244;
+  --line: rgba(255, 255, 255, 0.12);
   --line-strong: #3d3159;
   --brand: #a78bfa;
   --brand-hover: #b9a2fb;
@@ -190,7 +194,8 @@
   --logo-c1: #a78bfa;
   --logo-c2: #fb923c;
   --logo-c3: #fbbf24;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -10px rgb(0 0 0 / 0.65);
+  --shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 26px -12px rgb(0 0 0 / 0.8);
+  --shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px rgb(255 255 255 / 0.08), 0 18px 36px -14px rgb(0 0 0 / 0.9), 0 0 26px -10px color-mix(in srgb, var(--brand) 26%, transparent);
   --shadow-pop: 0 18px 50px -14px rgb(0 0 0 / 0.8), 0 0 0 1px rgb(255 255 255 / 0.04);
 }
 /* Palette preview swatches (settings, command menu): fixed colours of each palette, whatever is active. */
@@ -256,6 +261,7 @@
   --color-tint-ink: var(--tint-ink);
   --color-spark: var(--spark);
   --shadow-card: var(--shadow);
+  --shadow-lift: var(--shadow-lift);
   --shadow-pop: var(--shadow-pop);
   --font-sans: var(--font-heebo-latin), var(--font-heebo-hebrew), ui-sans-serif, system-ui, sans-serif;
   --radius-card: 26px;
@@ -616,6 +622,9 @@ body {
 .grow-y { transform-origin: center bottom; animation: grow-y 700ms var(--ease-out) both; }
 @keyframes grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .rise-in { animation: rise-in 600ms var(--ease-out) both; }
+/* Dark mode depth (Round 9 B1): every outlined surface — cards, tiles, rows, menus, sheets, the dock — gets the top
+   highlight + soft shadow from the token, unless it sets a shadow of its own. */
+.dark .border.bg-surface:not([class*="shadow"]) { box-shadow: var(--shadow); }
 /* "+" menu barcode tile: the scan line sweeps once when the menu opens (Round 9 A3). */
 [data-plus-menu="open"] .plus-scan { animation: plus-scan 900ms 250ms var(--ease-out) both; }
 @keyframes plus-scan { 0% { transform: translateY(-9px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(9px); opacity: 0.9; } }

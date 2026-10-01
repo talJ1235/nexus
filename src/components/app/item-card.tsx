@@ -294,7 +294,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
         "group relative flex flex-1 flex-col rounded-[var(--radius-card)] border bg-surface p-1.5 transition-[border-color,box-shadow,transform] duration-[250ms] ease-[var(--ease-out)] prow:flex-row prow:items-center prow:gap-3 prow:rounded-[22px] prow:p-[7px] prow:pe-3 pcard:rounded-[22px] pcard:p-1",
         isSelected
           ? "border-brand shadow-[0_0_0_1px_var(--brand)]"
-          : "border-line shadow-[0_1px_2px_color-mix(in_srgb,var(--ink)_5%,transparent),0_6px_18px_-8px_color-mix(in_srgb,var(--ink)_14%,transparent)] hover:-translate-y-[3px] hover:shadow-[0_14px_30px_color-mix(in_srgb,var(--ink)_10%,transparent)] dark:shadow-none",
+          : "border-line shadow-card hover:-translate-y-[3px] hover:border-line-strong hover:shadow-lift active:shadow-lift",
         fresh === "new" && "fill-in",
         fresh === "bump" && "bump",
       )}

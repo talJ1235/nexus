@@ -10,7 +10,7 @@ export const isPalette = (v: unknown): v is Palette => (PALETTES as readonly unk
 /** Browser bg per palette × mode (theme-color meta, boot screen). */
 export const PALETTE_BG: Record<Palette, { light: string; dark: string }> = {
   graphite: { light: "#f6f6f5", dark: "#0b0b0b" },
-  plum: { light: "#f8f6fc", dark: "#100b1a" },
+  plum: { light: "#f5f2fb", dark: "#100b1a" },
 };
 
 /** Instant switch, no reload: set the attribute, remember it in a cookie. */

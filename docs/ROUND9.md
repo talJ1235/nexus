@@ -45,7 +45,7 @@ shape and illustration while staying inside the theme:
 
 ## Part B — dark mode depth
 
-### B1. [ ] Cards that stand out in dark mode
+### B1. [x] Cards that stand out in dark mode
 In dark mode the product cards (To buy, On the way, everywhere) and every surface of the same colour blend into the
 background — it's unclear where a card ends. Without making it ugly:
 - Raise the surface step: card surface a little lighter than bg (both palettes), 1 px outline at ~10–12 % white,
