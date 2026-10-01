@@ -179,6 +179,8 @@
   --tag-fg: var(--tint-ink);
   --tile: var(--surface-2);
   --tile-ink: var(--muted);
+  /* "Over budget" on the dark hero gradient (all themes). */
+  --hero-danger: #ff9d8f;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-spring: cubic-bezier(0.2, 1.4, 0.4, 1);
   --dur-1: 120ms;
@@ -474,7 +476,7 @@ body {
   :root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] { width: 40px; height: 40px; inset-inline-end: 6px; }
 }
 @media (max-width: 768px) {
-  :root [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(12px + env(safe-area-inset-bottom)) !important; }
+  :root [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(96px + env(safe-area-inset-bottom)) !important; }
   :root body:has([data-selection-bar]) [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
   .nx-toast-title, .nx-toast-desc { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 }
@@ -561,8 +563,10 @@ body {
 .grow-x { transform-origin: left center; animation: grow-x 900ms var(--ease-out) 200ms both; }
 [dir="rtl"] .grow-x { transform-origin: right center; }
 @keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.grow-y { transform-origin: center bottom; animation: grow-y 700ms var(--ease-out) both; }
+@keyframes grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .rise-in { animation: rise-in 600ms var(--ease-out) both; }
 @keyframes rise-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .flow-border, .grow-x, .rise-in { animation: none !important; }
+  .flow-border, .grow-x, .grow-y, .rise-in { animation: none !important; }
 }

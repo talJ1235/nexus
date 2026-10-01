@@ -179,7 +179,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
       }}
       data-item-card
       className={cn(
-        "group relative flex flex-col rounded-[var(--radius-card)] border bg-surface p-1.5 transition-[border-color,box-shadow,transform] duration-[250ms] ease-[var(--ease-out)]",
+        "group relative flex flex-col rounded-[var(--radius-card)] border bg-surface p-1.5 transition-[border-color,box-shadow,transform] duration-[250ms] ease-[var(--ease-out)] max-sm:flex-row max-sm:items-center max-sm:gap-3 max-sm:rounded-[22px] max-sm:p-[7px] max-sm:pe-3",
         isSelected ? "border-brand shadow-[0_0_0_1px_var(--brand)]" : "border-line hover:-translate-y-[3px] hover:shadow-[0_14px_30px_color-mix(in_srgb,var(--ink)_10%,transparent)]",
         fresh === "new" && "fill-in",
         fresh === "bump" && "bump",
@@ -188,13 +188,13 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
       <button
         type="button"
         onClick={(e) => (selecting || e.metaKey || e.ctrlKey ? s.toggleSelect(item.id, e.shiftKey ? { range: order } : undefined) : s.openItem(item.id))}
-        className="absolute inset-0 z-[1] rounded-[var(--radius-card)]"
+        className="absolute inset-0 z-[1] rounded-[var(--radius-card)] max-sm:rounded-[22px]"
         aria-label={item.title}
       />
 
-      <div className="relative">
-        <ProductImage src={item.imageUrl} alt="" className="aspect-[16/11] w-full rounded-[var(--radius-tile)]" />
-        <div className="pointer-events-none absolute inset-x-[9px] top-[9px] flex items-start justify-between gap-2">
+      <div className="relative max-sm:shrink-0">
+        <ProductImage src={item.imageUrl} alt="" className="aspect-[16/11] w-full rounded-[var(--radius-tile)] max-sm:size-14 max-sm:rounded-[17px]" iconClass="max-sm:size-6" />
+        <div className="pointer-events-none absolute inset-x-[9px] top-[9px] flex items-start justify-between gap-2 max-sm:hidden">
           <span className="relative min-w-0">
             {category && (
               <span className={cn("block truncate rounded-full bg-surface px-[9px] py-1 text-[11px] font-bold text-muted transition-opacity", (selecting || isSelected) ? "opacity-0" : "sm:group-hover:opacity-0")}>
@@ -248,8 +248,8 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-[5px] px-2 pb-1.5 pt-2.5">
-        <h3 className="bidi line-clamp-2 min-h-[2.7em] text-[14px] font-bold leading-[1.35] text-ink">{item.title}</h3>
+      <div className="flex flex-1 flex-col gap-[5px] px-2 pb-1.5 pt-2.5 max-sm:min-w-0 max-sm:gap-[3px] max-sm:p-0">
+        <h3 className="bidi line-clamp-2 min-h-[2.7em] text-[14px] font-bold leading-[1.35] text-ink max-sm:line-clamp-1 max-sm:min-h-0">{item.title}</h3>
         <div className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted">
           {collection && (
             <>
@@ -257,15 +257,17 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
               <span className="bidi min-w-0 truncate">{collection.name}</span>
             </>
           )}
-          {collection && stores[0] && <span aria-hidden>·</span>}
-          {stores[0] && <span className="min-w-0 truncate">{stores[0]}</span>}
+          {collection && stores[0] && <span aria-hidden className="max-sm:hidden">·</span>}
+          {stores[0] && <span className="min-w-0 truncate max-sm:hidden">{stores[0]}</span>}
           {stores.length > 1 && (
-            <span dir="ltr" className="shrink-0 text-[11px]">
+            <span dir="ltr" className="shrink-0 text-[11px] max-sm:hidden">
               +{stores.length - 1}
             </span>
           )}
+          {category && collection && <span aria-hidden className="sm:hidden">·</span>}
+          {category && <span className="min-w-0 truncate sm:hidden">{t.categories[category]}</span>}
         </div>
-        <div className="mt-auto flex min-h-[34px] items-center gap-2 pt-0.5">
+        <div className="mt-auto flex min-h-[34px] items-center gap-2 pt-0.5 max-sm:hidden">
           <CardPrice item={item} />
           {item.status === "to_buy" ? (
             <QtyStepper item={item} className="relative z-[2] ms-auto" />
@@ -280,13 +282,17 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
           )}
         </div>
         {item.status === "to_buy" && (spread != null && spread > 0 ? (
-          <span className="tabular -mt-0.5 text-[11.5px] font-medium text-ok">{f(t.item.saveUpTo, { amount: formatMoney(Math.round(spread), s.currency, locale) })}</span>
+          <span className="tabular -mt-0.5 text-[11.5px] font-medium text-ok max-sm:hidden">{f(t.item.saveUpTo, { amount: formatMoney(Math.round(spread), s.currency, locale) })}</span>
         ) : item.quantity > 1 && total != null ? (
-          <span className="tabular -mt-0.5 text-[11.5px] text-muted">
+          <span className="tabular -mt-0.5 text-[11.5px] text-muted max-sm:hidden">
             {t.item.total} <b className="font-semibold">{formatMoney(total, s.currency, locale)}</b>
           </span>
         ) : null)}
       </div>
+      <span className="flex shrink-0 flex-col items-end gap-0.5 sm:hidden">
+        <CardPrice item={item} className="text-[16px]" />
+        {item.quantity > 1 && <span className="tabular text-[11px] text-muted" dir="ltr">×{item.quantity}</span>}
+      </span>
     </article>
   );
 }

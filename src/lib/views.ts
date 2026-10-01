@@ -7,6 +7,7 @@ export type View =
   | { type: "ordered" }
   | { type: "orders" }
   | { type: "spending" }
+  | { type: "projects" }
   | { type: "unsorted" }
   | { type: "collection"; id: string }
   | { type: "store"; key: string };
@@ -25,6 +26,8 @@ export function itemsForView(items: ItemWithSources[], view: View) {
       return items.filter((i) => i.status === "to_buy");
     case "spending":
       return items.filter((i) => i.status !== "to_buy");
+    case "projects":
+      return items.filter((i) => i.status === "to_buy" && !!i.collectionId);
     case "unsorted":
       return items.filter((i) => !i.collectionId && i.status === "to_buy");
     case "collection":

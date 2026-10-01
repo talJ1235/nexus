@@ -202,6 +202,22 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
     return () => window.removeEventListener("paste", onPaste);
   });
 
+  // Phone: "+ → Paste a link" opens the field above the dock; a link already on the clipboard is added right away.
+  useEffect(() => {
+    if (!s.pasteOpen) return;
+    inputRef.current?.focus();
+    navigator.clipboard
+      ?.readText?.()
+      .then((text) => {
+        if (extractUrls(text).length && !inputRef.current?.value) {
+          s.setPasteOpen(false);
+          void submit(text);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.pasteOpen]);
+
   // "/" focuses the add bar.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -224,14 +240,16 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
       <div
         aria-hidden
         className={cn(
-          "pointer-events-none fixed bottom-0 end-0 z-[25] h-[140px] bg-gradient-to-b from-transparent to-bg to-70% transition-[inset-inline-start] duration-[450ms] ease-[var(--ease-out)] max-lg:start-0 max-lg:h-[110px]",
+          "pointer-events-none fixed bottom-0 end-0 z-[25] h-[140px] bg-gradient-to-b from-transparent to-bg to-70% transition-[inset-inline-start] duration-[450ms] ease-[var(--ease-out)] max-lg:start-0 max-lg:h-[130px]",
           collapsed ? "lg:start-[100px]" : "lg:start-[272px]",
         )}
       />
       <div
         data-paste-capsule
         className={cn(
-          "fixed bottom-[max(18px,env(safe-area-inset-bottom))] z-30 flex flex-col items-center gap-2 transition-[inset-inline-start] duration-[450ms] ease-[var(--ease-out)] max-lg:inset-x-3 lg:bottom-[26px] lg:end-[26px]",
+          "fixed z-30 flex flex-col items-center gap-2 transition-[inset-inline-start,opacity,transform] duration-[450ms] ease-[var(--ease-out)] lg:bottom-[26px] lg:end-[26px] [body:has([data-selection-bar])_&]:pointer-events-none [body:has([data-selection-bar])_&]:opacity-0",
+          "max-lg:inset-x-3 max-lg:bottom-[calc(100px+env(safe-area-inset-bottom))]",
+          !s.pasteOpen && "max-lg:pointer-events-none max-lg:translate-y-4 max-lg:opacity-0",
           collapsed ? "lg:start-[112px]" : "lg:start-[284px]",
         )}
       >
@@ -261,6 +279,7 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
             onSubmit={(e) => {
               e.preventDefault();
               void submit(value);
+              s.setPasteOpen(false);
             }}
             className="group flex h-[58px] items-center gap-1.5 rounded-full bg-surface pe-[5px] ps-5 text-muted lg:h-[58px]"
           >
@@ -280,6 +299,8 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
                   void submit(text);
                 }
               }}
+              onBlur={() => !value.trim() && setTimeout(() => s.setPasteOpen(false), 150)}
+              onKeyDown={(e) => e.key === "Escape" && s.setPasteOpen(false)}
               placeholder={t.shell.pastePrompt}
               inputMode="url"
               autoComplete="off"

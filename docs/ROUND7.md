@@ -117,22 +117,22 @@ A soft fade at the bottom so the grid passes under it.
 
 ## Part C — phone (reference: `phone-graphite-light.html`, `phone-graphite-dark-plus-open.html`, plum versions)
 
-### C1. [ ] Phone shell
+### C1. [x] Phone shell
 Top bar: logo pill, **search, Ask (Hairline, icon only), alerts** in that order. Floating dock: **To buy · Projects ·
 + · On the way · Stats** (Order by store moves into the command menu, the Stats screen and the To-buy filter menu).
 Dock: surface, 1px line, soft shadow, active item has surface-2 pill; safe-area aware.
 
-### C2. [ ] "+" menu
+### C2. [x] "+" menu
 Tap + → scrim (bg 55 % + blur 10px) fades in, four action cards rise with a spring, staggered 50 ms bottom-up:
 Scan a barcode (D1), Scan a receipt (E2), Paste a link, Plan with Nexus. The + rotates 135° into ×. Closes on +,
 on the scrim, on back gesture/Esc, or after choosing. 44 px+ targets.
 
-### C3. [ ] Projects screen
+### C3. [x] Projects screen
 List of projects (and lists) as cards: name, colour dot, items left, amount left, budget ring, progress of bought
 vs total; tap → project page (its items with the same filters/sort, budget tile, "Plan with Nexus" for it).
 Create/rename from here. Desktop sidebar project links open the same page.
 
-### C4. [ ] Stats screen (phone + desktop Spending view)
+### C4. [x] Stats screen (phone + desktop Spending view)
 Make it rich and alive: this month vs budget (from R6.3) as a ring/segmented bar, spent/committed/forecast numbers
 rolling up, 12-month bars that grow in, by project and by store (with store marks), top categories, savings from
 cheaper stores, biggest purchases. Charts follow the theme tokens; numbers tick up once on enter.

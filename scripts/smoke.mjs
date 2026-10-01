@@ -167,6 +167,34 @@ try {
       });
     }
 
+    if (MOBILE) {
+      await step("phone: dock + '+' menu opens four actions and closes on the scrim", async () => {
+        await page.waitForSelector("[data-dock]", { timeout: 10000 });
+        await page.click("[data-plus]");
+        await page.waitForSelector("[data-plus-menu=open]", { state: "attached" });
+        await page.waitForTimeout(500);
+        const n = await page.locator("[data-plus-action]:visible").count();
+        await shot(page, "plus-menu");
+        await page.mouse.click(195, 120);
+        await page.waitForSelector("[data-plus-menu=closed]", { state: "attached", timeout: 3000 });
+        ok(n === 4, "phone: dock + '+' menu opens four actions and closes on the scrim", `actions=${n}`);
+      });
+    }
+
+    await step("projects screen lists project cards", async () => {
+      await page.goto(`${BASE}/?v=projects`);
+      await page.waitForSelector("[data-projects-view]", { timeout: 15000 });
+      const n = await page.locator("[data-project-card]").count();
+      await shot(page, "projects");
+      if (n) {
+        await page.locator("[data-project-card] > button").first().click();
+        await page.waitForSelector(READY, { timeout: 10000 });
+      }
+      ok(n > 0 && /v=c%3A|v=c:/.test(page.url()), "projects screen lists project cards", `cards=${n} url=${page.url()}`);
+      await page.goto(`${BASE}/`);
+      await page.waitForSelector(READY, { timeout: 15000 });
+    });
+
     await step("Esc opens command palette with quick settings", async () => {
       await page.keyboard.press("Escape");
       const dialog = page.getByRole("dialog");
@@ -209,7 +237,8 @@ try {
       await card.waitFor({ timeout: 15000 });
       await shot(page, "spending-budget");
       const segs = await card.locator("[role=img] > div").count();
-      ok(segs === 3, "spending view: this month's budget bar", `state=${await card.getAttribute("data-month-budget")}, segments=${segs}`);
+      const tiles = await page.locator("[data-stats] .rise-in").count();
+      ok(segs === 3 && tiles >= 5, "spending view: this month's budget bar", `state=${await card.getAttribute("data-month-budget")}, segments=${segs}`);
     });
 
     await step("orders view: free-shipping row per store", async () => {

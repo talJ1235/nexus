@@ -74,6 +74,14 @@ type Store = {
   /** Project/list chip on the filters row (null = all). */
   collectionFilter: string | null;
   setCollectionFilter: (c: string | null) => void;
+  /** Phone: the "+" menu and the paste field above the dock. */
+  plusOpen: boolean;
+  setPlusOpen: (o: boolean) => void;
+  pasteOpen: boolean;
+  setPasteOpen: (o: boolean) => void;
+  /** Full-screen camera: barcode scanner (D1) or receipt capture (E2). */
+  scanner: "barcode" | "receipt" | null;
+  setScanner: (k: "barcode" | "receipt" | null) => void;
   /** Desktop floating sidebar collapsed to icons (cookie, read on the server). */
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (c: boolean) => void;
@@ -140,7 +148,7 @@ function paramToView(p: string | null): View {
   if (!p) return { type: "to_buy" };
   if (p.startsWith("c:")) return { type: "collection", id: p.slice(2) };
   if (p.startsWith("s:")) return { type: "store", key: p.slice(2) };
-  if (["urgent", "history", "unsorted", "ordered", "orders", "spending"].includes(p)) return { type: p } as View;
+  if (["urgent", "history", "unsorted", "ordered", "orders", "spending", "projects"].includes(p)) return { type: p } as View;
   return { type: "to_buy" };
 }
 
@@ -193,6 +201,9 @@ export function StoreProvider({
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [collectionFilter, setCollectionFilter] = useState<string | null>(null);
+  const [plusOpen, setPlusOpen] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [scanner, setScanner] = useState<"barcode" | "receipt" | null>(null);
   const [sidebarCollapsed, setSidebarCollapsedState] = useState(!!ui.sidebarCollapsed);
   const setSidebarCollapsed = useCallback((c: boolean) => {
     setSidebarCollapsedState(c);
@@ -288,6 +299,8 @@ export function StoreProvider({
     setCategoryFilter(null);
     setCollectionFilter(null);
     setNavOpen(false);
+    setPlusOpen(false);
+    window.scrollTo({ top: 0 });
     const url = new URL(window.location.href);
     const p = viewToParam(v);
     if (p === "to_buy") url.searchParams.delete("v");
@@ -447,6 +460,12 @@ export function StoreProvider({
       setCategoryFilter,
       collectionFilter,
       setCollectionFilter,
+      plusOpen,
+      setPlusOpen,
+      pasteOpen,
+      setPasteOpen,
+      scanner,
+      setScanner,
       sidebarCollapsed,
       setSidebarCollapsed,
       upsertItem,
@@ -482,7 +501,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, categoryFilter, collectionFilter, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

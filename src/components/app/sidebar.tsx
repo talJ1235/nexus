@@ -90,11 +90,17 @@ function NavItem({
   );
 }
 
-function SectionHeader({ label, onAdd, addLabel, carry, collapsed }: { label: string; onAdd?: () => void; addLabel?: string; carry?: string; collapsed?: boolean }) {
+function SectionHeader({ label, onAdd, addLabel, carry, collapsed, onLabel }: { label: string; onAdd?: () => void; addLabel?: string; carry?: string; collapsed?: boolean; onLabel?: () => void }) {
   if (collapsed) return <div className="mx-auto my-[11px] h-px w-6 shrink-0 bg-line" aria-hidden />;
   return (
     <div className="flex h-8 items-center justify-between ps-3 pe-1.5">
-      <span className="text-xs font-semibold text-muted">{label}</span>
+      {onLabel ? (
+        <button type="button" onClick={onLabel} className="text-xs font-semibold text-muted transition hover:text-ink">
+          {label}
+        </button>
+      ) : (
+        <span className="text-xs font-semibold text-muted">{label}</span>
+      )}
       {onAdd && (
         <button type="button" onClick={onAdd} aria-label={addLabel} title={addLabel} data-carry={carry} className="grid size-7 place-items-center rounded-full text-muted transition hover:bg-surface-2 hover:text-ink">
           <Plus className="size-3.5" />
@@ -195,7 +201,7 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
         </div>
 
         <div className="flex flex-col gap-[3px]">
-          <SectionHeader collapsed={c} label={t.nav.projects} carry="editor:project" onAdd={() => s.setEditor({ mode: "create", kind: "project" })} addLabel={t.nav.newProject} />
+          <SectionHeader collapsed={c} label={t.nav.projects} onLabel={() => s.setView({ type: "projects" })} carry="editor:project" onAdd={() => s.setEditor({ mode: "create", kind: "project" })} addLabel={t.nav.newProject} />
           {s.loading && !c && <NavRowsSkeleton rows={[58, 42]} />}
           <div className={cn("flex flex-col gap-[3px]", fade)}>
             {projects.map((p) => {

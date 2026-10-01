@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { ChevronDown, LayoutGrid, Rows3 } from "lucide-react";
+import { ArrowDownWideNarrow, ChevronDown, LayoutGrid, Rows3, Store } from "lucide-react";
 import { useI18n } from "@/components/providers";
-import { Menu, MenuContent, MenuRadioGroup, MenuRadioItem, MenuTrigger } from "@/components/ui/overlays";
+import { Menu, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { Ring } from "@/components/ui/ring";
 import { activeSource, budgetStats, countable, lineTotal, sumTotals } from "@/lib/calc";
 import { CATEGORIES, normalizeCategory } from "@/lib/categories";
@@ -123,7 +123,7 @@ function Tile({ tone, className, children, delay }: { tone: "tint" | "surface"; 
   return (
     <div
       className={cn(
-        "rise-in flex min-h-[170px] min-w-0 flex-col gap-2 rounded-[30px] p-[22px] lg:min-h-[226px]",
+        "rise-in flex min-w-0 flex-col gap-1 rounded-[22px] p-3.5 lg:min-h-[226px] lg:gap-2 lg:rounded-[30px] lg:p-[22px]",
         tone === "tint" ? "bg-tint text-tint-ink" : "border border-line bg-surface",
         className,
       )}
@@ -177,13 +177,13 @@ export function HomeSummary() {
       {/* Tile 1: urgent (or the project's budget ring) */}
       {budget && budget.budget != null ? (
         <Tile tone="tint" delay={80}>
-          <span className="text-[14px] font-bold">{t.home.budget}</span>
-          <div className="mt-auto flex items-center gap-3">
-            <Ring value={(budget.pct ?? 0) / 100} size={64} stroke={8} color={budget.state === "over" ? "var(--danger)" : "var(--tint-ink)"} track="color-mix(in srgb, var(--tint-ink) 18%, transparent)">
+          <span className="text-xs font-bold lg:text-[14px]">{t.home.budget}</span>
+          <div className="mt-auto flex items-center gap-2.5 lg:gap-3">
+            <Ring value={(budget.pct ?? 0) / 100} size={56} stroke={7} color={budget.state === "over" ? "var(--danger)" : "var(--tint-ink)"} track="color-mix(in srgb, var(--tint-ink) 18%, transparent)">
               <span className="tabular text-[13px] font-extrabold">{Math.round(budget.pct ?? 0)}%</span>
             </Ring>
             <div className="min-w-0">
-              <div className="tabular text-[26px] font-black leading-none tracking-[-0.02em]">{m(budget.budget)}</div>
+              <div className="tabular text-[20px] font-black leading-none tracking-[-0.02em] lg:text-[26px]">{m(budget.budget)}</div>
               <div className="mt-1 text-[13px] opacity-80">
                 {budget.state === "over" ? f(t.home.budgetOver, { amount: m(budget.used - budget.budget) }) : f(t.home.budgetLeft, { amount: m(budget.budget - budget.used) })}
               </div>
@@ -192,9 +192,9 @@ export function HomeSummary() {
         </Tile>
       ) : (
         <Tile tone="tint" delay={80}>
-          <span className="text-[14px] font-bold">{t.home.urgent}</span>
-          <span className="tabular mt-auto text-[34px] font-black leading-none tracking-[-0.02em] lg:text-[48px]">{sum.urgent.length}</span>
-          <span className="line-clamp-2 text-[13px] opacity-80 bidi">{sum.urgent.length ? sum.urgent.slice(0, 3).map((i) => i.title.split(/\s+/).slice(0, 3).join(" ")).join(", ") : t.home.nothingUrgent}</span>
+          <span className="order-2 text-xs font-bold lg:order-none lg:text-[14px]">{t.home.urgent}</span>
+          <span className="tabular order-1 text-[26px] font-black leading-none tracking-[-0.02em] lg:order-none lg:mt-auto lg:text-[48px]">{sum.urgent.length}</span>
+          <span className="line-clamp-2 text-[13px] opacity-80 bidi max-lg:hidden">{sum.urgent.length ? sum.urgent.slice(0, 3).map((i) => i.title.split(/\s+/).slice(0, 3).join(" ")).join(", ") : t.home.nothingUrgent}</span>
         </Tile>
       )}
 
@@ -202,20 +202,21 @@ export function HomeSummary() {
       <Tile tone="surface" delay={160}>
         {ship.best ? (
           <>
-            <span className="truncate text-[14px] font-bold">{f(t.home.freeShipping, { store: ship.best.store })}</span>
-            <span className="tabular mt-auto text-[34px] font-black leading-none tracking-[-0.02em] lg:text-[48px]">{m(ship.best.gap.remaining)}</span>
-            <span className="line-clamp-2 text-[13px] text-muted">
+            <span className="truncate text-[14px] font-bold max-lg:hidden">{f(t.home.freeShipping, { store: ship.best.store })}</span>
+            <span className="tabular text-[26px] font-black leading-none tracking-[-0.02em] lg:mt-auto lg:text-[48px]">{m(ship.best.gap.remaining)}</span>
+            <span className="truncate text-xs font-bold lg:hidden">{t.phone.toFreeShipping}</span>
+            <span className="line-clamp-2 text-[13px] text-muted max-lg:hidden">
               {t.home.toGo} {ship.best.hint && <span className="bidi">{f(t.home.addHint, { name: ship.best.hint.split(/\s+/).slice(0, 4).join(" ") })}</span>}
             </span>
-            <div className="h-2 overflow-hidden rounded-full bg-surface-2" aria-hidden>
+            <div className="h-2 overflow-hidden rounded-full bg-surface-2 max-lg:mt-1 max-lg:h-1.5" aria-hidden>
               <i className="grow-x block h-full rounded-full bg-brand" style={{ width: `${Math.round(ship.best.gap.progress * 100)}%`, animationDelay: "300ms" }} />
             </div>
           </>
         ) : (
           <>
-            <span className="text-[14px] font-bold">{ship.anyRule && ship.anyFree ? t.home.allFree : t.home.noShipping}</span>
-            <span className="mt-auto text-[13px] text-muted">{ship.anyRule ? "" : t.home.noShippingHint}</span>
-            <button type="button" onClick={() => s.setView({ type: "orders" })} className="self-start rounded-full bg-surface-2 px-3 py-1.5 text-xs font-semibold transition hover:bg-line">
+            <span className="text-[13px] font-bold lg:text-[14px]">{ship.anyRule && ship.anyFree ? t.home.allFree : t.home.noShipping}</span>
+            <span className="mt-auto text-[13px] text-muted max-lg:hidden">{ship.anyRule ? "" : t.home.noShippingHint}</span>
+            <button type="button" onClick={() => s.setView({ type: "orders" })} className="self-start rounded-full bg-surface-2 px-3 py-1.5 text-xs font-semibold transition hover:bg-line max-lg:mt-1">
               {t.nav.orders}
             </button>
           </>
@@ -254,8 +255,9 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
 
   return (
     <div className="flex items-center gap-2" data-filters>
+      {s.view.type === "to_buy" && <h2 className="text-[17px] font-extrabold sm:hidden">{t.nav.toBuy}</h2>}
       {showProjects && chips.length > 0 && (
-        <div className="-my-1 flex min-w-0 gap-2 overflow-x-auto py-1 [scrollbar-width:none]">
+        <div className="-my-1 flex min-w-0 gap-2 overflow-x-auto py-1 [scrollbar-width:none] max-sm:hidden">
           <button type="button" className={chip(!s.collectionFilter)} onClick={() => s.setCollectionFilter(null)}>
             {t.home.all}
           </button>
@@ -287,6 +289,14 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
                 </MenuRadioItem>
               ))}
             </MenuRadioGroup>
+            {s.view.type === "to_buy" && (
+              <>
+                <MenuSeparator />
+                <MenuItem onSelect={() => s.setView({ type: "orders" })}>
+                  <Store className="size-4" /> {t.nav.orders}
+                </MenuItem>
+              </>
+            )}
           </MenuContent>
         </Menu>
       )}
@@ -296,7 +306,8 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
             <button type="button" className={dd} aria-label={t.view.sort}>
               <span className="font-medium text-muted max-sm:hidden">{t.home.sort}</span>
               <span className="max-sm:hidden">{sortLabels[s.sort]}</span>
-              <ChevronDown className="size-[15px] text-muted" strokeWidth={2.4} />
+              <ArrowDownWideNarrow className="size-4 sm:hidden" />
+              <ChevronDown className="size-[15px] text-muted max-sm:hidden" strokeWidth={2.4} />
             </button>
           </MenuTrigger>
           <MenuContent align="end">

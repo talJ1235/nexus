@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Menu as MenuIcon, Pencil, ReceiptText, Share2, Command } from "lucide-react";
+import { Pencil, ReceiptText, Share2, Sparkles } from "lucide-react";
 import { useI18n } from "@/components/providers";
-import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/overlays";
 import { countable, sumTotals } from "@/lib/calc";
@@ -16,8 +15,9 @@ import { CollectionDialog } from "./collection-dialog";
 import { CommandPalette } from "./command-palette";
 import { SettingsDialog } from "./settings-dialog";
 import { ImportDialog } from "./import-dialog";
-import { AlertsBell, AlertsPanel } from "./alerts-panel";
-import { AskButton, TopBar } from "./top-bar";
+import { AlertsPanel } from "./alerts-panel";
+import { TopBar } from "./top-bar";
+import { Dock, PhoneTopBar, PlusMenu } from "./phone-shell";
 import { FiltersRow, HomeSummary, SUMMARY_VIEWS } from "./home-summary";
 import { AssistantPanel } from "./assistant-panel";
 import { ShareDialog } from "./share-dialog";
@@ -29,6 +29,7 @@ import { AltSheet } from "./alt-sheet";
 import { OrdersView } from "./orders-view";
 import { SelectionBar } from "./selection-bar";
 import { SpendingView } from "./spending-view";
+import { ProjectsView } from "./projects-view";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
@@ -55,8 +56,19 @@ function Shell({ incoming }: { incoming?: Incoming }) {
   const s = useStore();
   const { t } = useI18n();
   const collapsed = s.sidebarCollapsed;
+  useEffect(() => {
+    if (s.scanner !== "receipt") return;
+    s.setScanner(null);
+    s.openReceipt();
+  }, [s]);
   return (
-    <div className="min-h-dvh" data-app-shell data-ready={s.loading ? undefined : ""} data-offline={s.offlineAt != null ? "" : undefined}>
+    <div
+      className="min-h-dvh"
+      style={{ "--sw": collapsed ? "76px" : "248px" } as React.CSSProperties}
+      data-app-shell
+      data-ready={s.loading ? undefined : ""}
+      data-offline={s.offlineAt != null ? "" : undefined}
+    >
       <div
         className={cn(
           "lg:grid lg:gap-5 lg:pe-[26px] lg:ps-4 lg:transition-[grid-template-columns] lg:duration-[450ms] lg:ease-[var(--ease-out)]",
@@ -75,32 +87,23 @@ function Shell({ incoming }: { incoming?: Incoming }) {
           <div className="empty:hidden lg:pt-4">
             <OfflineBanner />
           </div>
-          <header className="sticky top-0 z-20 border-b border-line/70 bg-bg/85 backdrop-blur-md lg:hidden">
-            <div className="flex items-center gap-2 px-4 py-3 sm:px-6">
-              <Button variant="ghost" size="icon" onClick={() => s.setNavOpen(true)} aria-label="Menu" data-carry="nav">
-                <MenuIcon />
-              </Button>
-              <LogoMark className="size-7" />
-              <span className="flex-1" />
-              {s.aiEnabled && <AskButton iconOnly />}
-              <AlertsBell size="sm" />
-              <Button variant="ghost" size="icon" onClick={() => s.setPaletteOpen(true)} aria-label={t.view.search} data-carry="palette">
-                <Command />
-              </Button>
-            </div>
+          <header className="sticky top-0 z-20 bg-bg/85 px-4 pb-2.5 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur-md sm:px-6 lg:hidden">
+            <PhoneTopBar />
           </header>
           <div className="sticky top-0 z-20 hidden bg-bg/85 pb-3 pt-4 backdrop-blur-md lg:block">
             <div className="mx-auto max-w-[1400px]">
               <TopBar />
             </div>
           </div>
-          <main className="mx-auto max-w-[1400px] px-4 pb-40 pt-4 sm:px-6 lg:px-0 lg:pt-2">
+          <main className="mx-auto max-w-[1400px] px-4 pb-40 pt-2 sm:px-6 lg:px-0 lg:pt-2">
             {/* Header + content switch together as one soft cross-fade; the very first paint is not animated. */}
             <div key={viewKey(s.view)} className={s.navSeq > 0 ? "view-in" : undefined}>
               {s.loading && s.view.type === "spending" ? (
                 <ContentSkeleton />
               ) : s.view.type === "spending" ? (
                 <SpendingView />
+              ) : s.view.type === "projects" ? (
+                s.loading ? <ContentSkeleton /> : <ProjectsView />
               ) : (
                 <>
                   <ViewHeader />
@@ -113,6 +116,8 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       </div>
 
       <AddBar incoming={incoming} collapsed={collapsed} />
+      <Dock />
+      <PlusMenu />
 
       <ItemSheet />
       <AltSheet />
@@ -250,8 +255,14 @@ function ViewHeader() {
                 </Button>
                 <Button variant="outline" size="sm" className="ms-1 h-8 px-3" onClick={() => s.setPanel("share")}>
                   <Share2 className="!size-3.5" />
-                  {t.share.shareBtn}
+                  <span className="max-sm:hidden">{t.share.shareBtn}</span>
                 </Button>
+                {collection.kind === "project" && s.aiEnabled && (
+                  <Button variant="outline" size="sm" className="ask-hairline h-8 px-3" disabled={ro.ro} onClick={() => s.askAssistant(f(t.projects.planSeed, { name: collection.name }))} data-plan-project>
+                    <Sparkles className="!size-3.5" />
+                    <span className="max-sm:hidden">{t.projects.plan}</span>
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -346,7 +357,7 @@ function Content() {
     }
     cells.push(<ItemCard key={i.id} item={i} order={order} />);
   }
-  return <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(222px,1fr))] sm:gap-3.5", s.navSeq === 0 && "load-in-stagger")}>{cells}</div>;
+  return <div className={cn("grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(222px,1fr))] sm:gap-3.5", s.navSeq === 0 && "load-in-stagger")}>{cells}</div>;
 }
 
 /** Empty-state illustration: a price tag hanging from a node. */

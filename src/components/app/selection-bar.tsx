@@ -95,7 +95,7 @@ export function SelectionBar() {
   const collections = s.collections.filter((c) => !c.archived);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-3 lg:ps-[264px]" role="toolbar" data-selection-bar aria-label={f(t.select.selected, { n })}>
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-3 lg:ps-[calc(var(--sw,248px)+36px)]" role="toolbar" data-selection-bar aria-label={f(t.select.selected, { n })}>
       <div className="pointer-events-auto flex max-w-full animate-pop-in items-center gap-1 overflow-x-auto rounded-2xl border border-line bg-raised p-1.5 shadow-pop">
         <Button size="icon-sm" variant="ghost" onClick={s.clearSelection} aria-label={t.select.clear} title={t.select.clear}>
           <X />

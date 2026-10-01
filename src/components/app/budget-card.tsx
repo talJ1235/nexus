@@ -7,6 +7,8 @@ import { saveMonthlyBudget } from "@/app/money-actions";
 import { useI18n } from "@/components/providers";
 import { Button, Input } from "@/components/ui/button";
 import { Pop, PopContent, PopTrigger } from "@/components/ui/overlays";
+import { Ring } from "@/components/ui/ring";
+import { Ticker } from "@/components/ui/ticker";
 import { capFor, monthForecast, monthKey } from "@/lib/budget";
 import { CURRENCIES, formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -118,9 +120,9 @@ export function MonthBudget() {
   const scale = Math.max(fc.cap ?? 0, fc.total, 1);
   const pct = (v: number) => `${(v / scale) * 100}%`;
   const segs = [
-    { key: "spent", value: fc.spent, label: t.budget.spent, cls: "bg-ok" },
-    { key: "committed", value: fc.committed, label: t.budget.committed, cls: "bg-info" },
-    { key: "forecast", value: fc.forecast, label: includeNormal ? t.budget.forecastAll : t.budget.forecast, cls: fc.state === "over" ? "bg-danger" : "bg-accent" },
+    { key: "spent", value: fc.spent, label: t.budget.spent, cls: "bg-white" },
+    { key: "committed", value: fc.committed, label: t.budget.committed, cls: "bg-spark" },
+    { key: "forecast", value: fc.forecast, label: includeNormal ? t.budget.forecastAll : t.budget.forecast, cls: fc.state === "over" ? "bg-[var(--hero-danger)]" : "bg-white/40" },
   ];
   const status =
     fc.state === "over"
@@ -131,62 +133,65 @@ export function MonthBudget() {
           ? f(t.budget.left, { amount: m(fc.cap! - fc.total) })
           : null;
 
+  const ringPct = fc.cap ? Math.min(1, fc.total / fc.cap) : 0;
   return (
-    <section
-      data-month-budget={fc.state}
-      className={cn("rounded-[var(--radius-card)] border p-4", fc.state === "over" ? "border-danger/50 bg-danger-soft/50" : "border-line bg-surface")}
-    >
+    <section data-month-budget={fc.state} className="rise-in rounded-[30px] bg-[image:var(--hero)] p-5 text-on-hero lg:px-[26px] lg:py-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold">{t.budget.title}</h3>
-          <div className="tabular mt-1.5 flex flex-wrap items-baseline gap-x-2 text-[28px] font-semibold leading-none tracking-[-0.02em]">
-            {m(fc.total)}
-            {fc.cap != null && <span className="text-sm font-normal tracking-normal text-muted">{f(t.budget.of, { amount: m(fc.cap) })}</span>}
+          <h3 className="text-[14px] opacity-75">{t.budget.title}</h3>
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-2">
+            <Ticker value={fc.total} format={m} className="text-[44px] font-black leading-[0.95] tracking-[-0.03em] lg:text-[56px]" />
+            {fc.cap != null && <span className="text-sm opacity-70">{f(t.budget.of, { amount: m(fc.cap) })}</span>}
           </div>
+          {status && <div className={cn("tabular mt-2 text-sm font-semibold", fc.state === "over" ? "text-[var(--hero-danger)]" : "opacity-85")}>{status}</div>}
         </div>
-        <Pop open={editOpen} onOpenChange={setEditOpen}>
-          <PopTrigger asChild>
-            <Button size="sm" variant={fc.cap == null ? "accent" : "outline"} className="max-sm:h-10" data-budget-edit>
-              <Pencil />
-              {fc.cap == null ? t.budget.set : t.budget.edit}
-            </Button>
-          </PopTrigger>
-          <PopContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-2">
-            <div className="text-sm font-medium">{t.budget.cap}</div>
-            <p className="text-xs leading-relaxed text-muted">{t.budget.capHint}</p>
-            <BudgetEditor autoFocus onSaved={() => setEditOpen(false)} />
-          </PopContent>
-        </Pop>
+        <div className="flex shrink-0 flex-col items-end gap-3">
+          {fc.cap != null && (
+            <Ring value={ringPct} size={64} stroke={8} color={fc.state === "over" ? "var(--hero-danger)" : "var(--spark)"} track="rgb(255 255 255 / 0.16)">
+              <span className="tabular text-[13px] font-extrabold">{Math.round(fc.pct ?? 0)}%</span>
+            </Ring>
+          )}
+          <Pop open={editOpen} onOpenChange={setEditOpen}>
+            <PopTrigger asChild>
+              <Button size="sm" variant="ghost" className="h-9 bg-white/15 text-on-hero hover:bg-white/25 hover:text-on-hero max-sm:h-10" data-budget-edit>
+                <Pencil />
+                {fc.cap == null ? t.budget.set : t.budget.edit}
+              </Button>
+            </PopTrigger>
+            <PopContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-2">
+              <div className="text-sm font-medium">{t.budget.cap}</div>
+              <p className="text-xs leading-relaxed text-muted">{t.budget.capHint}</p>
+              <BudgetEditor autoFocus onSaved={() => setEditOpen(false)} />
+            </PopContent>
+          </Pop>
+        </div>
       </div>
 
-      <div className="relative mt-4">
-        <div className="flex h-3 overflow-hidden rounded-full bg-sunken" role="img" aria-label={`${t.budget.title}: ${m(fc.total)}${fc.cap != null ? ` / ${m(fc.cap)}` : ""}`}>
-          {segs.map((sg) => (
-            <div key={sg.key} className={cn("h-full transition-[width] duration-500", sg.cls, sg.key === "forecast" && "opacity-60")} style={{ width: pct(sg.value) }} />
+      <div className="relative mt-5">
+        <div className="flex h-3 gap-1 overflow-hidden rounded-full bg-white/12" role="img" aria-label={`${t.budget.title}: ${m(fc.total)}${fc.cap != null ? ` / ${m(fc.cap)}` : ""}`}>
+          {segs.map((sg, i) => (
+            <div key={sg.key} className={cn("grow-x h-full rounded-full transition-[width] duration-500", sg.cls)} style={{ width: pct(sg.value), animationDelay: `${200 + i * 80}ms` }} />
           ))}
         </div>
-        {fc.cap != null && fc.total > fc.cap && <span aria-hidden className="absolute -top-1 -bottom-1 w-0.5 rounded-full bg-fg" style={{ insetInlineStart: pct(fc.cap) }} />}
+        {fc.cap != null && fc.total > fc.cap && <span aria-hidden className="absolute -top-1 -bottom-1 w-0.5 rounded-full bg-white" style={{ insetInlineStart: pct(fc.cap) }} />}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-5 gap-y-2 text-sm">
-        <div className="flex flex-wrap gap-x-5 gap-y-1">
-          {segs.map((sg) => (
-            <span key={sg.key} className="flex items-center gap-1.5 text-muted">
-              <span className={cn("size-2 rounded-full", sg.cls, sg.key === "forecast" && "opacity-60")} /> {sg.label} <b className="tabular font-semibold text-fg">{m(sg.value)}</b>
-            </span>
-          ))}
-          {fc.unpriced > 0 && <span className="text-xs text-faint">{f(t.budget.unpriced, { n: fc.unpriced })}</span>}
-        </div>
-        {status && <span className={cn("tabular font-medium", fc.state === "over" ? "text-danger" : fc.state === "near" ? "text-accent-ink" : "text-muted")}>{status}</span>}
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px]">
+        {segs.map((sg) => (
+          <span key={sg.key} className="flex items-center gap-1.5 opacity-90">
+            <span className={cn("size-[9px] rounded-[3px]", sg.cls)} /> {sg.label} <b className="tabular font-bold">{m(sg.value)}</b>
+          </span>
+        ))}
+        {fc.unpriced > 0 && <span className="text-xs opacity-70">{f(t.budget.unpriced, { n: fc.unpriced })}</span>}
       </div>
 
-      <label className="mt-3 flex min-h-10 cursor-pointer items-center gap-3 text-sm text-muted">
+      <label className="mt-3 flex min-h-10 cursor-pointer items-center gap-3 text-sm opacity-85">
         <button
           type="button"
           role="switch"
           aria-checked={includeNormal}
           onClick={toggleNormal}
-          className={cn("relative h-6 w-11 shrink-0 rounded-full transition", includeNormal ? "bg-accent" : "bg-line-strong")}
+          className={cn("relative h-6 w-11 shrink-0 rounded-full transition", includeNormal ? "bg-spark" : "bg-white/25")}
         >
           <span className={cn("absolute top-0.5 size-5 rounded-full bg-white shadow transition-[inset-inline-start]", includeNormal ? "start-[22px]" : "start-0.5")} />
         </button>
