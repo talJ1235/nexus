@@ -278,7 +278,7 @@ preview builds from the branch). Green: `npm run -s check`, every unit test (`te
 `:budget`, `:receipt`, `:weekly`, `:contrast`, `:barcode`, `:receipt-check`, `:import-vat`), and `npm run smoke` on
 desktop, phone (`SMOKE_MOBILE=1`) and the write paths on both (`SMOKE_WRITE=1`, server with `NEXUS_AI_MOCK=1`).
 
-**Not merged to `main`.** One acceptance check is red: H's 60 fps budget — `SMOKE_PERF=1 SMOKE_MOBILE=1` (CPU ×4)
+**Merged to `main` on 2026-10-01 (follow-up session), with the perf budget still open.** One acceptance check is red: H's 60 fps budget — `SMOKE_PERF=1 SMOKE_MOBILE=1` (CPU ×4)
 still records long tasks above 50 ms. Last run, phone: open item ~90–100 ms, close ~60 ms, view switch ~50–60 ms;
 desktop: open item ~170 ms, sidebar collapse frames 60–100 ms. (Before the perf work: phone up to ~380 ms per step,
 desktop up to ~800 ms; at real CPU speed today's numbers are roughly ÷4.) What's left is mostly React rendering of the
@@ -316,3 +316,15 @@ moved). Production checks (GitHub Actions smoke against vercel.app) weren't run 
 - H: `[[id]]` references in assistant answers didn't match 21-character ids (items created from receipts) — fixed.
 - Local smoke data: the local DB has many "Smoke …" items from write runs; `scripts/seed-local.mjs` only resets the
   demo rows.
+
+### Follow-up (2026-10-01): merge
+- Profiled "open item" under CPU ×4: the biggest single cost was Radix's synchronous auto-focus on the side sheet
+  (`focus` ~64 ms self time — it forces style + layout of the just-mounted sheet inside React's commit task). `Sheet`
+  in `ui/overlays.tsx` now focuses the sheet itself on the next frame (`preventScroll`); `focus` dropped to ~10 ms.
+- `SMOKE_PERF` is still red after that: long tasks of ~60–90 ms remain (React render of the item sheet, the FLIP
+  measurement, view switches). Run-to-run noise in the cloud sandbox is large (the same step measured 63–182 ms).
+  At real CPU speed every step is under 50 ms, so Tal chose to merge and keep the budget as an open item.
+- Next steps if the budget matters: render the item sheet body in a transition (`startTransition`) after the hero,
+  avoid `getBoundingClientRect` in the same task as the commit, and measure on a real phone instead of only ×4.
+- Full smoke green on desktop (39) and phone (38) incl. write paths (local, `NEXUS_AI_MOCK=1` + a dummy
+  `GEMINI_API_KEY` so the Ask button renders — without any key the two assistant checks fail by design).

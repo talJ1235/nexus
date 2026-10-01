@@ -248,7 +248,7 @@ Brief and checklist: `docs/ROUND6.md`. All four sessions (B1–B4) shipped:
   `PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1`) → snapshot renders, banner, edits disabled, logout clears it.
 
 ## Round 7 — UI v2, barcodes, shopping mode, receipts v2, assistant v2, compare, import VAT
-Brief and checklist: `docs/ROUND7.md` (design references in `docs/design/*.html`). Shipped on branch `round7`:
+Brief and checklist: `docs/ROUND7.md` (design references in `docs/design/*.html`). Shipped (merged to `main` 2026-10-01):
 - **Design system** (`globals.css`): Graphite & Amber (default) and Plum palettes × light/dark; palette = cookie
   `nexus_palette` read on the server into `<html data-palette>` (no flash), mode = next-themes. Semantic tokens (bg,
   surface, surface-2, ink, muted, line, brand, on-brand, hero, tint, tint-ink, spark, 8 muted project hues
