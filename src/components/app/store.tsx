@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { installClientErrorCapture } from "@/lib/client-errors";
 import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
 import type { AltGroup, AppData, Collection, ItemWithSources, StoreSetting } from "@/lib/types";
 import type { View } from "@/lib/views";
@@ -303,6 +304,9 @@ export function StoreProvider({
     const t = setTimeout(() => void saveSnapshot({ data: { ...initial, items, collections, altGroups, storeSettings, budget, importLimitUsd }, at: Date.now(), currency }), 1200);
     return () => clearTimeout(t);
   }, [loading, offline, online, initial, items, collections, altGroups, storeSettings, budget, currency, importLimitUsd]);
+
+  // Recent client errors, for problem reports and the assistant's troubleshooting (lib/client-errors).
+  useEffect(() => installClientErrorCapture(), []);
 
   // The app has its data: the phone boot screen can hand off.
   useEffect(() => {

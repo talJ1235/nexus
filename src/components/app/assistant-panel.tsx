@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, Check, CornerDownRight, FolderPlus, Lightbulb, MessageSquare, Square, SquarePen, Wand2, X } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Check, CornerDownRight, FolderPlus, Lightbulb, MessageSquare, Square, SquarePen, Wand2, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { LogoMark } from "@/components/logo";
 import { toast } from "@/lib/toast";
@@ -13,6 +13,12 @@ import { PHONE, useMedia } from "@/components/ui/use-media";
 import type { Plan, PlannedPart } from "@/lib/assistant";
 import type { Proposal } from "@/lib/assistant-actions";
 import { readRecent, recordRecent, suggestQuestions, type Suggestion } from "@/lib/assistant-suggestions";
+import { collectDiag } from "@/lib/client-diag";
+import { extractActions, type NexusAction } from "@/lib/help/links";
+import { applyPalette } from "@/lib/palette";
+import type { View } from "@/lib/views";
+import { useTheme } from "next-themes";
+import { extensionVersion } from "./use-extension";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { unitPrice } from "@/lib/calc";
@@ -145,6 +151,29 @@ function Inline({ text, onItem, base }: { text: string; onItem: (id: string) => 
   );
 }
 
+/** Runs an action button from an answer (whitelist: lib/help/links.ts). */
+function useNexusAction() {
+  const s = useStore();
+  const { setTheme } = useTheme();
+  return (a: NexusAction) => {
+    if (a.startsWith("palette/")) return applyPalette(a.slice(8) as "graphite" | "plum");
+    if (a.startsWith("theme/")) return setTheme(a.slice(6));
+    if (a === "plan") return s.setPanel("planner");
+    s.setPanel(null);
+    if (a.startsWith("view/")) return s.setView({ type: a.slice(5) } as View);
+    if (a === "settings") s.setSettingsOpen(true);
+    else if (a === "extension") s.setExtOpen(true);
+    else if (a === "alerts") s.setPanel("alerts");
+    else if (a === "import") s.setPanel("import");
+    else if (a === "receipt") {
+      if (window.matchMedia("(max-width: 1023px)").matches) s.setScanner("receipt");
+      else s.openReceipt();
+    } else if (a === "barcode") s.setScanner("barcode");
+    else if (a === "shop") s.setShop("pick");
+    else if (a === "commands") s.setPaletteOpen(true);
+  };
+}
+
 /** Assistant answer: no bubble — a bold lead line, then clean paragraphs/lists; referenced items as mini cards. */
 function Answer({ text, streaming, onItem }: { text: string; streaming?: boolean; onItem: (id: string) => void }) {
   const s = useStore();
@@ -152,8 +181,12 @@ function Answer({ text, streaming, onItem }: { text: string; streaming?: boolean
   // Phones: a 2-column grid of the first REFS_SHOWN mini cards + "Show all"; desktop: all of them, wrapping.
   const phone = useMedia(PHONE);
   const [allRefs, setAllRefs] = useState(false);
-  // While streaming, hide a half-written action block (it is parsed once the answer is complete).
-  const shown = streaming ? text.split("```")[0] : text;
+  const run = useNexusAction();
+  // While streaming, hide a half-written action block (it is parsed once the answer is complete). Action links
+  // ([label](nexus:…)) become buttons under the answer.
+  const { text: shown, actions: all } = extractActions(streaming ? text.split("```")[0] : text);
+  // "Report a problem" arrives with the reports screen (R8.D3).
+  const actions = all.filter((a) => a.action !== "report");
   const blocks: { list: boolean; lines: string[] }[] = [];
   for (const raw of shown.split("\n")) {
     const line = raw.trimEnd();
@@ -204,6 +237,26 @@ function Answer({ text, streaming, onItem }: { text: string; streaming?: boolean
         );
       })}
       {streaming && <span className="caret" aria-hidden />}
+      {!streaming && actions.length > 0 && (
+        <div className="flex flex-wrap gap-2 pt-1" data-ai-actions>
+          {actions.map((a, k) => (
+            <button
+              key={a.action}
+              type="button"
+              onClick={() => run(a.action)}
+              className={cn(
+                "rise-in inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-start text-[13px] font-bold transition active:scale-[0.97]",
+                k === 0 ? "bg-brand text-on-brand hover:bg-brand-hover" : "border border-line bg-surface text-ink hover:bg-surface-2",
+              )}
+              style={{ animationDelay: `${k * 60}ms` }}
+              data-ai-action={a.action}
+            >
+              {a.label}
+              <ArrowUpRight className="size-3.5 shrink-0 opacity-70 rtl:-scale-x-100" />
+            </button>
+          ))}
+        </div>
+      )}
       {!streaming && refs.length > 0 && (
         <div className="grid grid-cols-2 gap-2 pt-1 sm:flex sm:flex-wrap" data-ai-refs>
           {(allRefs || !phone ? refs : refs.slice(0, REFS_SHOWN)).map((it, k) => {
@@ -294,7 +347,7 @@ function AskTab({ seed, seedKey, onModel }: { seed: string | null; seedKey: stri
     abort.current = ctrl;
     let started = false;
     try {
-      const res = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: text, history, currency: s.currency, locale }), signal: ctrl.signal });
+      const res = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: text, history, currency: s.currency, locale, diag: collectDiag(s.view.type, locale, extensionVersion()) }), signal: ctrl.signal });
       if (!res.ok || !res.body) throw new Error(String(res.status));
       const reader = res.body.getReader();
       const dec = new TextDecoder();

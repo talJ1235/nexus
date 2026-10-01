@@ -7,6 +7,10 @@ type Pending = { resolve: (d: ClientPayload | null) => void; timer: ReturnType<t
 export type SearchHit = { url: string; title: string | null; price: string | null };
 type PendingSearch = { resolve: (d: SearchHit[]) => void; timer: ReturnType<typeof setTimeout> };
 
+// Last version the extension announced on this page (diagnostics: assistant help, problem reports).
+let knownVersion: string | null = null;
+export const extensionVersion = () => knownVersion;
+
 /** Talks to the Nexus Clipper extension (via its content script) when it's installed. */
 export function useExtension() {
   const [version, setVersion] = useState<string | null>(null);
@@ -18,7 +22,10 @@ export function useExtension() {
       if (e.source !== window || e.origin !== window.location.origin) return;
       const d = e.data;
       if (!d || d.source !== "nexus-ext") return;
-      if (d.type === "hello") setVersion(String(d.version ?? "1"));
+      if (d.type === "hello") {
+        knownVersion = String(d.version ?? "1");
+        setVersion(knownVersion);
+      }
       if (d.type === "searched") {
         const p = searches.current.get(d.id);
         if (!p) return;

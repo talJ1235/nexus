@@ -4,6 +4,7 @@ import { normalizeCategory } from "./categories";
 import { ACTION_FENCE, MAX_ACTION_ITEMS } from "./assistant-actions";
 import { budgetStats, lineTotal, unitPrice } from "./calc";
 import { convert, formatMoney, type Rates } from "./money";
+import type { AskRoute } from "./help/route";
 import type { AppData } from "./types";
 
 // ---------- Project planner ----------
@@ -131,7 +132,34 @@ function snapshot(data: AppData, currency: string, rates: Rates) {
   return { lines, projects };
 }
 
-type AskInput = { question: string; history: { role: "user" | "assistant"; text: string }[]; data: AppData; currency: string; locale: "en" | "he" };
+type AskInput = {
+  question: string;
+  history: { role: "user" | "assistant"; text: string }[];
+  data: AppData;
+  currency: string;
+  locale: "en" | "he";
+  /** Round 8 D2: data question, how-to-use-the-app question, or let the model decide (lib/help/route.ts). */
+  route?: AskRoute;
+  /** The help knowledge file and troubleshooting facts (help / unsure routes only). */
+  help?: string;
+  diag?: string;
+};
+
+/** Canned how-to answers for mock mode, each with an action button. */
+function mockHelp(q: string, locale: "en" | "he") {
+  const he = locale === "he";
+  if (/receipt|קבלה/i.test(q))
+    return he
+      ? "מוסיפים קבלה מהמצלמה או מקובץ.\n\n- בטלפון: **+** ← סריקת קבלה\n- במחשב: הכפתור **קבלה** בסרגל ההדבקה\n\n[פתיחת סורק הקבלות](nexus:receipt)"
+      : "You add a receipt from the camera or a file.\n\n- Phone: **+** → Scan a receipt\n- Desktop: the **Receipt** button in the paste bar\n\n[Open the receipt scanner](nexus:receipt)";
+  if (/plum|palette|שזיף|צבע/i.test(q))
+    return he ? "בהגדרות ← צבעים בוחרים שזיף; זה מתחלף מיד.\n\n[מעבר לשזיף](nexus:palette/plum)" : "Settings → Palette → Plum; it switches instantly.\n\n[Switch to Plum](nexus:palette/plum)";
+  if (/extension|תוסף/i.test(q))
+    return he
+      ? "התוסף לא זוהה בדף הזה — כנראה שהוא לא מותקן או כבוי.\n\n- ב-chrome://extensions ודאו שהוא פעיל\n- רעננו את Nexus\n\n[חיבור התוסף](nexus:extension)"
+      : "The extension isn't detected on this page — it's probably not installed or turned off.\n\n- Check it's enabled in chrome://extensions\n- Reload Nexus\n\n[Pair the extension](nexus:extension)";
+  return he ? "את זה מוצאים בהגדרות.\n\n[פתיחת ההגדרות](nexus:settings)" : "You'll find that in Settings.\n\n[Open settings](nexus:settings)";
+}
 
 export async function askNexus(input: AskInput) {
   const r = askPrompt(input);
@@ -140,6 +168,7 @@ export async function askNexus(input: AskInput) {
 
 /** The prompt for a question (or the canned mock answer). Shared by the one-shot and the streaming path. */
 export function askPrompt(input: AskInput): { mock: string } | { prompt: string; system: string } {
+  if (mockAi() && input.route === "help") return { mock: mockHelp(input.question, input.locale) };
   if (mockAi()) {
     const first = input.data.items.find((i) => i.status === "to_buy");
     // Change requests get a proposal: the first two to-buy items → ordered (exercises propose → apply → undo).
@@ -149,6 +178,31 @@ export function askPrompt(input: AskInput): { mock: string } | { prompt: string;
       return { mock: `Marking ${ids.length} items as ordered.\n\n\`\`\`${ACTION_FENCE}\n${json}\n\`\`\`` };
     }
     return { mock: `You have **${input.data.items.filter((i) => i.status === "to_buy").length} items** left to buy.\n\n- Most urgent: ${first?.title ?? "—"} [[${first?.id ?? "x"}]]\n- Total planned: **${formatMoney(1234.5, input.currency, input.locale)}**` };
+  }
+  const lang = input.locale === "he" ? "Hebrew" : "English";
+  const helpRules = `- Answer from the HELP below only; don't invent menus or settings. If it isn't covered, say so in one sentence.
+- Give concrete steps with the exact UI names from the help (Hebrew names are in parentheses — use them in Hebrew replies).
+- Start with ONE short lead sentence that answers directly (shown in bold), then the steps as a short list.
+- When a button would help, add up to 3 action buttons, each alone on its own line, written exactly as a markdown link
+  with one of the nexus: addresses listed under "Action buttons" in the help (e.g. [Open settings](nexus:settings)).
+- Use the DIAGNOSTICS to troubleshoot: say plainly what you see (e.g. "the extension isn't detected on this page", "the AI
+  providers are cooling down"). Never ask for passwords, tokens or keys.`;
+  if (input.route === "help") {
+    const system = `You are Nexus, the assistant inside the user's personal purchase manager. The user is asking how to use the Nexus app itself (or describing a problem with it).
+Rules:
+${helpRules}
+- Reply in ${lang} unless the user writes in the other language.
+
+DIAGNOSTICS (this user's app right now)
+${input.diag ?? "(none)"}
+
+HELP
+${input.help ?? ""}`;
+    const convo = input.history
+      .slice(-6)
+      .map((m) => `${m.role === "user" ? "User" : "Nexus"}: ${m.text.slice(0, 1500)}`)
+      .join("\n\n");
+    return { prompt: `${convo ? `${convo}\n\n` : ""}User: ${input.question.slice(0, 1500)}\n\nNexus:`, system };
   }
   const { lines, projects } = snapshot(input.data, input.currency, input.data.rates);
   const system = `You are Nexus, the assistant inside the user's personal purchase manager. Answer questions about THEIR data below: what to buy, totals, budgets, what's missing for a project, what was bought when, which store is cheapest, etc.
@@ -184,7 +238,20 @@ PROJECTS & LISTS ([id] kind "name")
 ${projects.join("\n") || "(none)"}
 
 ITEMS (status: to_buy / ordered / purchased)
-${lines.join("\n") || "(none)"}`;
+${lines.join("\n") || "(none)"}${
+    input.route === "unsure" && input.help
+      ? `
+
+If the question is about HOW TO USE the Nexus app itself (where something is, how to do something, why a feature misbehaves) rather than about the data above, answer it from the HELP below instead, with these rules:
+${helpRules}
+
+DIAGNOSTICS (this user's app right now)
+${input.diag ?? "(none)"}
+
+HELP
+${input.help}`
+      : ""
+  }`;
 
   const convo = input.history
     .slice(-8)

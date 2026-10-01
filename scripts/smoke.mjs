@@ -782,6 +782,23 @@ try {
           ok(refs > 0, "assistant: streamed answer with lead line, mini cards, then follow-ups", `refs=${refs}`);
           await page.keyboard.press("Escape");
         });
+        // Round 8 D2 (mock): a how-to question is routed to the help, answered with an action button that works.
+        await step("assistant help: how-to question → help answer with a working action button", async () => {
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY);
+          await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          const dlg = page.getByRole("dialog");
+          await dlg.locator("textarea").fill("How do I add a receipt?");
+          await dlg.locator("textarea").press("Enter");
+          const btn = dlg.locator("[data-ai-action=receipt]");
+          await btn.waitFor({ timeout: 15000 });
+          await shot(page, "assistant-help");
+          await btn.click();
+          // Phones open the receipt camera, desktop the receipt dialog.
+          await page.locator(MOBILE ? "[data-receipt-camera]" : "[data-receipt-dialog]").waitFor({ timeout: 8000 });
+          ok(true, "assistant help: how-to question → help answer with a working action button");
+          await page.keyboard.press("Escape");
+        });
         // Needs the server started with NEXUS_AI_MOCK=1 (the mock proposes "first two to-buy items → ordered").
         await step("assistant action: propose → apply → undo", async () => {
           await page.goto(`${BASE}/`);

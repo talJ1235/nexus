@@ -117,7 +117,7 @@ left/start-aligned chips (max 4, "More suggestions" reveals the rest), full text
 Same for the item mini-cards row in answers: a 2-column grid on phone (first 4 + "Show all"), a wrapping row on
 desktop. Check Hebrew and English.
 
-### D2. [ ] Help with the app itself
+### D2. [x] Help with the app itself
 The assistant also answers questions about **using Nexus** ("how do I add a receipt?", "why is a product missing its
 picture?", "the extension says not connected", "how do I switch to Plum?").
 - Write a compact help knowledge file `src/lib/help/nexus-help.md` (both languages or English with Hebrew answers

@@ -5,6 +5,9 @@ import { newCollections, parseAnswer, planChanges } from "@/lib/assistant-action
 import { assertOwner } from "@/lib/auth";
 import { getAppData } from "@/lib/data";
 import { CURRENCIES } from "@/lib/money";
+import { clientDiagSchema } from "@/lib/diag-schema";
+import { classifyQuestion } from "@/lib/help/route";
+import { diagLines, helpText, serverDiag } from "@/lib/help/server";
 
 export const maxDuration = 60;
 
@@ -13,13 +16,16 @@ const body = z.object({
   history: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(4000) })).max(20),
   currency: z.enum(CURRENCIES),
   locale: z.enum(["en", "he"]),
+  // Round 8 D2: what the client can tell about itself, for "how do I / why doesn't" questions.
+  diag: clientDiagSchema.optional(),
 });
 
 /**
  * Ask Nexus, streamed (Round 7 F1). Newline-delimited JSON events:
  *   {"t":"route","provider","fallback"}  which model answers (fallback = not the first choice)
  *   {"t":"delta","text"}                  answer text as it arrives
- *   {"t":"done","text","proposal"}        the full answer, its action proposal parsed after the stream (R6.1)
+ *   {"t":"done","text","proposal","route"} the full answer, its action proposal parsed after the stream (R6.1); route =
+ *                                         data / help / unsure (R8 D2)
  *   {"t":"error","error":"no_ai"|"failed"}
  */
 export async function POST(req: Request) {
@@ -44,7 +50,11 @@ export async function POST(req: Request) {
           return;
         }
         const data = await getAppData();
-        const p = askPrompt({ ...input, data });
+        // Data question, how-to-use-the-app question, or both in front of the model (lib/help/route.ts).
+        const { route } = classifyQuestion(input.question, data.collections.map((c) => c.name));
+        const help = route === "data" ? undefined : helpText();
+        const diag = route === "data" ? undefined : diagLines(input.diag, await serverDiag());
+        const p = askPrompt({ ...input, data, route, help, diag });
         let full = "";
         if ("mock" in p) {
           send({ t: "route", provider: "mock", fallback: false });
@@ -71,7 +81,7 @@ export async function POST(req: Request) {
         const ids = { itemIds: new Set(data.items.map((i) => i.id)), collectionIds: new Set(data.collections.map((c) => c.id)) };
         const { text, proposal } = parseAnswer(full, ids);
         const useful = proposal && (newCollections(proposal).length > 0 || planChanges(proposal, data.items).length > 0);
-        send({ t: "done", text: text || proposal?.summary || "", proposal: useful ? proposal : null });
+        send({ t: "done", text: text || proposal?.summary || "", proposal: useful ? proposal : null, route });
       } catch {
         send({ t: "error", error: "failed" });
       } finally {
