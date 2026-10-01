@@ -540,6 +540,7 @@ export const en = {
   view: {
     cards: "Cards",
     table: "Table",
+    rows: "Rows",
     sort: "Sort",
     sortNewest: "Newest",
     sortPrice: "Price",

@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { ArrowDownWideNarrow, ChevronDown, ChevronRight, LayoutGrid, Rows3, Store, Truck } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDownWideNarrow, ChevronDown, ChevronRight, LayoutGrid, List, Rows3, Store, Truck } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { Ring } from "@/components/ui/ring";
@@ -315,10 +315,44 @@ function PhoneTilesRow({ budget, ship }: { budget: ReturnType<typeof budgetStats
   );
 }
 
-/** Project chips, then Category and Sort dropdowns (and the cards/table switch). */
+/** True once the element has scrolled up to the sticky top bar (it is "stuck"). */
+function useStuck<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      const el = ref.current;
+      if (!el) return;
+      const top = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--app-header-h")) || 0;
+      setStuck(window.scrollY > 0 && el.getBoundingClientRect().top <= top + 0.5);
+    };
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(check);
+    };
+    window.addEventListener("scroll", on, { passive: true });
+    window.addEventListener("resize", on);
+    check();
+    return () => {
+      window.removeEventListener("scroll", on);
+      window.removeEventListener("resize", on);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+  return [ref, stuck] as const;
+}
+
+/**
+ * The section header over the grid: "To buy" with its count and total (summary views), project chips, Category and
+ * Sort, and the layout switch (desktop cards/table, phone cards/rows). Sticks under the top bar with a soft surface.
+ */
 export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) {
   const s = useStore();
-  const { t } = useI18n();
+  const { t, f, locale } = useI18n();
+  const [ref, stuck] = useStuck<HTMLDivElement>();
+  const sum = useSummary();
+  const section = SUMMARY_VIEWS.includes(s.view.type);
   const viewItems = useMemo(() => itemsForView(s.items, s.view), [s.items, s.view]);
   const chips = useMemo(() => {
     const ids = new Set(viewItems.map((i) => i.collectionId).filter(Boolean));
@@ -343,8 +377,24 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
   const orders = s.view.type === "orders";
 
   return (
-    <div className="flex items-center gap-2" data-filters>
-      {s.view.type === "to_buy" && <h2 className="text-[17px] font-extrabold sm:hidden">{t.nav.toBuy}</h2>}
+    <div
+      ref={ref}
+      className={cn(
+        "sticky top-[var(--app-header-h,0px)] z-[15] -mx-4 mb-4 flex items-center gap-2 px-4 py-2 transition-[background-color,box-shadow] duration-200 sm:-mx-6 sm:px-6 lg:-mx-3 lg:px-3",
+        stuck && "bg-bg/85 shadow-[0_10px_18px_-14px_color-mix(in_srgb,var(--ink)_35%,transparent)] backdrop-blur-md",
+      )}
+      data-filters
+      data-stuck={stuck ? "" : undefined}
+    >
+      {section && (
+        <div className="me-1 min-w-0 shrink-0" data-section-head>
+          <h2 className="text-[22px] font-extrabold leading-tight tracking-[-0.02em] lg:text-[24px]">{t.nav.toBuy}</h2>
+          <p className="tabular truncate text-[12.5px] text-muted">
+            {sum.toBuy.length === 1 ? t.home.countOne : f(t.home.count, { n: sum.toBuy.length })}
+            {sum.totals.total > 0 && <> · <b className="font-semibold text-ink">{formatMoney(sum.totals.total, s.currency, locale)}</b></>}
+          </p>
+        </div>
+      )}
       {showProjects && chips.length > 0 && (
         <div className="-my-1 flex min-w-0 gap-2 overflow-x-auto py-1 [scrollbar-width:none] max-sm:hidden">
           <button type="button" className={chip(!s.collectionFilter)} onClick={() => s.setCollectionFilter(null)}>
@@ -426,6 +476,23 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
           </button>
         ))}
       </div>
+      {!orders && (
+        <div className="flex shrink-0 rounded-full bg-surface-2 p-[3px] sm:hidden" role="radiogroup" aria-label={`${t.view.cards} / ${t.view.rows}`} data-phone-layout-toggle>
+          {(["cards", "rows"] as const).map((l) => (
+            <button
+              key={l}
+              type="button"
+              role="radio"
+              aria-checked={s.phoneLayout === l}
+              aria-label={l === "cards" ? t.view.cards : t.view.rows}
+              onClick={() => s.setPhoneLayout(l)}
+              className={cn("grid size-9 place-items-center rounded-full transition", s.phoneLayout === l ? "bg-surface text-ink shadow-card" : "text-muted")}
+            >
+              {l === "cards" ? <LayoutGrid className="size-4" /> : <List className="size-4" />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

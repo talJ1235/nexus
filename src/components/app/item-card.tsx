@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Check, ExternalLink, Minus, Package, PackageCheck, Plus, Scale, Split, Truck, Undo2 } from "lucide-react";
+import { Check, ExternalLink, Flag, Minus, Package, PackageCheck, Plus, Scale, Split, Truck, Undo2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { setStatus, updateItem } from "@/app/actions";
 import { useI18n } from "@/components/providers";
@@ -252,7 +252,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
   const flag =
     item.status === "ordered" ? { label: t.flow.ordered, cls: "bg-info text-white", icon: <Truck className="size-3" /> }
     : item.status === "purchased" ? { label: t.flow.received, cls: "bg-ok text-white", icon: <Check className="size-3" strokeWidth={3} /> }
-    : item.priority === "urgent" ? { label: t.item.urgent, cls: "bg-ink text-bg" }
+    : item.priority === "urgent" ? { label: t.item.urgent, cls: "bg-surface text-danger shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--danger)_35%,transparent)]", icon: <Flag className="size-3" strokeWidth={2.6} /> }
     : atLowest ? { label: t.item.lowestShort, cls: "bg-tint text-tint-ink", title: t.history.atLowest }
     : item.priority === "someday" ? { label: t.item.someday, cls: "bg-surface text-muted" }
     : null;
@@ -261,14 +261,14 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
   const [firstStatus] = useState(item.status);
   const sweep = firstStatus !== item.status;
   return (
-    <div className="relative">
+    <div className="relative flex flex-col">
       {/* Phone swipe: toward the end = next status, toward the start = select (actions bar). */}
       {swipe.dx !== 0 && (
         <div
           aria-hidden
           dir="ltr"
           className={cn(
-            "absolute inset-0 flex items-center rounded-[22px] px-5 text-sm font-bold sm:hidden",
+            "absolute inset-0 hidden items-center rounded-[22px] px-5 text-sm font-bold prow:flex",
             swipe.dx > 0 ? "justify-start" : "justify-end",
             endSwipe ? "bg-info text-white" : "bg-ink text-bg",
             Math.abs(swipe.dx) < SWIPE_AT && "opacity-70",
@@ -291,8 +291,10 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
       style={swipe.dx ? { transform: `translateX(${swipe.dx}px)`, transition: "none" } : undefined}
       data-item-card={item.id}
       className={cn(
-        "group relative flex flex-col rounded-[var(--radius-card)] border bg-surface p-1.5 transition-[border-color,box-shadow,transform] duration-[250ms] ease-[var(--ease-out)] max-sm:flex-row max-sm:items-center max-sm:gap-3 max-sm:rounded-[22px] max-sm:p-[7px] max-sm:pe-3",
-        isSelected ? "border-brand shadow-[0_0_0_1px_var(--brand)]" : "border-line hover:-translate-y-[3px] hover:shadow-[0_14px_30px_color-mix(in_srgb,var(--ink)_10%,transparent)]",
+        "group relative flex flex-1 flex-col rounded-[var(--radius-card)] border bg-surface p-1.5 transition-[border-color,box-shadow,transform] duration-[250ms] ease-[var(--ease-out)] prow:flex-row prow:items-center prow:gap-3 prow:rounded-[22px] prow:p-[7px] prow:pe-3 pcard:rounded-[22px] pcard:p-1",
+        isSelected
+          ? "border-brand shadow-[0_0_0_1px_var(--brand)]"
+          : "border-line shadow-[0_1px_2px_color-mix(in_srgb,var(--ink)_5%,transparent),0_6px_18px_-8px_color-mix(in_srgb,var(--ink)_14%,transparent)] hover:-translate-y-[3px] hover:shadow-[0_14px_30px_color-mix(in_srgb,var(--ink)_10%,transparent)] dark:shadow-none",
         fresh === "new" && "fill-in",
         fresh === "bump" && "bump",
       )}
@@ -306,17 +308,17 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
 
       {/* A status change sweeps a soft tint across the card (not on first paint). */}
       {sweep && <span key={item.status} aria-hidden className="status-sweep pointer-events-none absolute inset-0 z-[3] overflow-hidden rounded-[inherit]" />}
-      <div className="relative max-sm:shrink-0" data-card-img>
-        <ProductImage src={item.imageUrl} alt="" pending={s.imagePending.has(item.id)} className="aspect-[16/11] w-full rounded-[var(--radius-tile)] max-sm:size-14 max-sm:rounded-[17px]" iconClass="max-sm:size-6" />
+      <div className="relative prow:shrink-0" data-card-img>
+        <ProductImage src={item.imageUrl} alt="" pending={s.imagePending.has(item.id)} className="aspect-[5/4] w-full rounded-[var(--radius-tile)] prow:size-14 prow:rounded-[17px] pcard:aspect-square pcard:rounded-[18px]" iconClass="prow:size-6" />
         {item.imageSource === "icon" && (
           <span className="pointer-events-none absolute bottom-2 start-2 rounded-full bg-surface/90 px-2 py-0.5 text-[10.5px] font-bold text-muted max-sm:hidden" title={t.item.iconHint}>
             {t.item.iconBadge}
           </span>
         )}
-        <div className="pointer-events-none absolute inset-x-[9px] top-[9px] flex items-start justify-between gap-2 max-sm:hidden">
+        <div className="pointer-events-none absolute inset-x-[9px] top-[9px] flex items-start justify-between gap-2 prow:hidden pcard:inset-x-1.5 pcard:top-1.5">
           <span className="relative min-w-0">
             {category && (
-              <span className={cn("block truncate rounded-full bg-surface px-[9px] py-1 text-[11px] font-bold text-muted transition-opacity", (selecting || isSelected) ? "opacity-0" : "sm:group-hover:opacity-0")}>
+              <span className={cn("block truncate rounded-full bg-surface px-[9px] py-1 text-[11px] font-bold text-muted transition-opacity max-sm:hidden", (selecting || isSelected) ? "opacity-0" : "sm:group-hover:opacity-0")}>
                 {t.categories[category]}
               </span>
             )}
@@ -378,8 +380,11 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-[5px] px-2 pb-1.5 pt-2.5 max-sm:min-w-0 max-sm:gap-[3px] max-sm:p-0">
-        <h3 className="bidi line-clamp-2 min-h-[2.7em] text-[14px] font-bold leading-[1.35] text-ink max-sm:line-clamp-1 max-sm:min-h-0">{item.title}</h3>
+      <div className="flex flex-1 flex-col gap-[5px] px-2 pb-1.5 pt-2.5 prow:min-w-0 prow:gap-[3px] prow:p-0 pcard:gap-1 pcard:px-1.5 pcard:pb-1 pcard:pt-2">
+        <h3 className="bidi line-clamp-2 min-h-[2.7em] text-[14px] font-semibold leading-[1.35] text-ink prow:line-clamp-1 prow:min-h-0 prow:font-bold pcard:text-[13px]">
+          {item.priority === "urgent" && item.status === "to_buy" && <i aria-hidden className="me-1.5 hidden size-2 rounded-full bg-danger align-middle prow:inline-block" />}
+          {item.title}
+        </h3>
         <div className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted">
           {collection && (
             <>
@@ -394,15 +399,16 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
               +{stores.length - 1}
             </span>
           )}
-          {category && collection && <span aria-hidden className="sm:hidden">·</span>}
-          {category && <span className="min-w-0 truncate sm:hidden">{t.categories[category]}</span>}
+          {category && collection && <span aria-hidden className="hidden prow:inline">·</span>}
+          {category && <span className="hidden min-w-0 truncate prow:block">{t.categories[category]}</span>}
         </div>
-        <div className="mt-auto flex min-h-[34px] items-center gap-2 pt-0.5 max-sm:hidden">
-          <CardPrice item={item} />
+        <div className="mt-auto flex min-h-[34px] items-center gap-2 pt-0.5 prow:hidden pcard:min-h-0 pcard:pt-0">
+          <CardPrice item={item} className="pcard:text-[17px]" />
+          {item.quantity > 1 && item.status === "to_buy" && <span className="tabular hidden text-[12px] font-semibold text-muted pcard:inline" dir="ltr">×{item.quantity}</span>}
           {item.status === "to_buy" ? (
-            <QtyStepper item={item} className="relative z-[2] ms-auto" />
+            <QtyStepper item={item} className="relative z-[2] ms-auto max-sm:hidden" />
           ) : (
-            <span className="ms-auto min-w-0 truncate text-end text-[11.5px] leading-tight">
+            <span className="ms-auto min-w-0 truncate text-end text-[11.5px] leading-tight max-sm:hidden">
               {item.status === "purchased" && item.purchasedAt ? (
                 <span className="text-ok">{f(t.flow.receivedOn, { date: shortDate(item.purchasedAt, locale) })}</span>
               ) : item.status === "ordered" ? (
@@ -419,7 +425,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
           </span>
         ) : null)}
       </div>
-      <span className="flex shrink-0 flex-col items-end gap-0.5 sm:hidden">
+      <span className="hidden shrink-0 flex-col items-end gap-0.5 prow:flex">
         <CardPrice item={item} className="text-[16px]" />
         {item.quantity > 1 && <span className="tabular text-[11px] text-muted" dir="ltr">×{item.quantity}</span>}
       </span>
@@ -438,7 +444,7 @@ function useRowSwipe(onEnd: () => void, onStart: () => void, enabled: boolean) {
   const handlers = enabled
     ? {
         onPointerDown: (e: React.PointerEvent) => {
-          if (e.pointerType === "mouse" || !window.matchMedia("(max-width: 639px)").matches) return;
+          if (e.pointerType === "mouse" || !window.matchMedia("(max-width: 639px)").matches || !(e.currentTarget as HTMLElement).closest('[data-phone-layout="rows"]')) return;
           st.current = { x: e.clientX, y: e.clientY, on: false, dir: document.documentElement.dir === "rtl" ? -1 : 1 };
           swiped.current = false;
         },
@@ -491,8 +497,9 @@ export function CardPrice({ item, className }: { item: ItemWithSources; classNam
   const s = useDataStore();
   const { t, locale } = useI18n();
   const unit = unitPrice(item, s.rates, s.currency);
-  if (unit == null) return <span className={cn("text-[13px] font-medium text-muted", className)}>{t.item.noPrice}</span>;
-  return <span className={cn("tabular text-[18px] font-extrabold tracking-[-0.01em]", className)}>{formatMoney(unit, s.currency, locale)}</span>;
+  // No price: always small and muted (the size override is for real prices).
+  if (unit == null) return <span className="text-[13px] font-medium text-muted">{t.item.noPrice}</span>;
+  return <span className={cn("tabular text-[19px] font-black tracking-[-0.02em] text-ink", className)}>{formatMoney(unit, s.currency, locale)}</span>;
 }
 
 /** − qty + on the card; saves right away (optimistic), reverts on error. */

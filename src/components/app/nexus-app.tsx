@@ -70,17 +70,33 @@ function useLayoutSize() {
   return useSyncExternalStore(subscribeLg, () => (window.matchMedia(LG).matches ? "desktop" : "phone"), () => null);
 }
 
+/** --app-header-h = the visible sticky top bar's height, so section headers can stick right under it. */
+function useHeaderHeightVar() {
+  useEffect(() => {
+    const set = () => {
+      const h = [...document.querySelectorAll<HTMLElement>("[data-app-header]")].map((el) => el.offsetHeight).find((v) => v > 0) ?? 0;
+      document.documentElement.style.setProperty("--app-header-h", `${h}px`);
+    };
+    const ro = new ResizeObserver(set);
+    document.querySelectorAll("[data-app-header]").forEach((el) => ro.observe(el));
+    set();
+    return () => ro.disconnect();
+  }, []);
+}
+
 function Shell({ incoming }: { incoming?: Incoming }) {
   const s = useStore();
   const { t } = useI18n();
   const collapsed = s.sidebarCollapsed;
   const size = useLayoutSize();
+  useHeaderHeightVar();
 
   return (
     <div
       className="min-h-dvh"
       style={{ "--sw": collapsed ? "76px" : "248px" } as React.CSSProperties}
       data-app-shell
+      data-phone-layout={s.phoneLayout}
       data-ready={s.loading ? undefined : ""}
       data-offline={s.offlineAt != null ? "" : undefined}
     >
@@ -102,10 +118,10 @@ function Shell({ incoming }: { incoming?: Incoming }) {
           <div className="empty:hidden lg:pt-4">
             <OfflineBanner />
           </div>
-          <header className="sticky top-0 z-20 bg-bg/85 px-4 pb-2.5 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur-md sm:px-6 lg:hidden">
+          <header data-app-header className="sticky top-0 z-20 bg-bg/85 px-4 pb-2.5 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur-md sm:px-6 lg:hidden">
             {size !== "desktop" && <PhoneTopBar />}
           </header>
-          <div className="sticky top-0 z-20 hidden bg-bg/85 pb-3 pt-4 backdrop-blur-md lg:block">
+          <div data-app-header className="sticky top-0 z-20 hidden bg-bg/85 pb-3 pt-4 backdrop-blur-md lg:block">
             <div className="mx-auto max-w-[1400px]">
               {size !== "phone" && <TopBar />}
             </div>
@@ -269,7 +285,8 @@ function ViewHeader() {
   const titleUnknown = s.loading && (s.view.type === "collection" || s.view.type === "store");
 
   return (
-    <div className="mb-5 flex flex-col gap-[18px]">
+    <>
+    <div className="mb-3 flex flex-col gap-[18px]">
       <div className={cn("flex flex-wrap items-center justify-between gap-x-6 gap-y-2", s.view.type === "to_buy" && "sr-only")}>
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
@@ -324,8 +341,9 @@ function ViewHeader() {
       </div>
 
       {summary && (s.loading ? <SummarySkeleton /> : <div className={fadeIn}><HomeSummary /></div>)}
-      {!s.loading && <FiltersRow showProjects={s.view.type !== "collection" && s.view.type !== "orders"} />}
     </div>
+    {!s.loading && <FiltersRow showProjects={s.view.type !== "collection" && s.view.type !== "orders"} />}
+    </>
   );
 }
 
@@ -416,7 +434,7 @@ const CardGrid = memo(function CardGrid({ items, pending, altGroups, stagger }: 
   }, [items, altGroups]);
   return (
     <MotionConfig reducedMotion="user" transition={{ type: "spring", stiffness: 420, damping: 38, mass: 0.8 }}>
-      <div className={cn("grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(222px,1fr))] sm:gap-3.5", stagger && "load-in-stagger")}>
+      <div className={cn("grid grid-cols-2 gap-2.5 prow:grid-cols-1 prow:gap-2 sm:grid-cols-[repeat(auto-fill,minmax(222px,1fr))] sm:gap-3.5", stagger && "load-in-stagger")} data-card-grid>
         <AnimatePresence initial={false} mode="popLayout">
           {pending.map((p) => (
             <Cell key={p.id}>

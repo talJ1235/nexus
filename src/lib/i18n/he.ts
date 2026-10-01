@@ -542,6 +542,7 @@ export const he: Dict = {
   view: {
     cards: "כרטיסים",
     table: "טבלה",
+    rows: "שורות",
     sort: "מיון",
     sortNewest: "החדשים",
     sortPrice: "מחיר",

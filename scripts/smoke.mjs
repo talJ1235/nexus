@@ -223,6 +223,31 @@ try {
     }
 
     if (MOBILE) {
+      // Round 8 C: the hero summarizes, the products are the page.
+      await step("phone home: totals legend + strip, first row of products above the fold, cards ↔ rows", async () => {
+        await page.goto(`${BASE}/`);
+        await page.waitForSelector(READY);
+        await page.waitForSelector("[data-item-card]");
+        const r = await page.evaluate(() => {
+          const cards = [...(document.querySelector("[data-card-grid]")?.children ?? [])].slice(0, 2).map((e) => e.getBoundingClientRect());
+          const dock = document.querySelector("[data-dock]")?.getBoundingClientRect().top ?? innerHeight;
+          return {
+            legend: !!document.querySelector("[data-totals-legend]") || !document.querySelector("[data-totals] .grow-x"),
+            strip: document.querySelectorAll("[data-totals-strip] [data-totals-go]").length,
+            row: cards.length === 2 && Math.abs(cards[0].top - cards[1].top) < 2,
+            visible: cards.length > 0 && Math.max(...cards.map((c) => c.bottom)) <= dock,
+            bottom: Math.round(Math.max(...cards.map((c) => c.bottom))),
+            dock: Math.round(dock),
+          };
+        });
+        await page.locator("[data-phone-layout-toggle] [role=radio]").nth(1).click();
+        const rows = await page.locator("[data-app-shell][data-phone-layout=rows]").count();
+        await page.locator("[data-phone-layout-toggle] [role=radio]").nth(0).click();
+        ok(r.legend && r.strip === 3 && r.row && r.visible && rows === 1, "phone home: totals legend + strip, first row of products above the fold, cards ↔ rows", JSON.stringify({ ...r, rows }));
+      });
+    }
+
+    if (MOBILE) {
       await step("receipt camera: shutter → corner adjust → add a part → use", async () => {
         await page.goto(`${BASE}/`);
         await page.waitForSelector(READY);

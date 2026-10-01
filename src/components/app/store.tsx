@@ -16,6 +16,8 @@ export type { View };
 export type Panel = "import" | "planner" | "assistant" | "alerts" | "share" | "receipt" | null;
 
 export type Layout = "cards" | "table";
+/** Phones: 2-column cards (default) or one row per item. */
+export type PhoneLayout = "cards" | "rows";
 
 /** A pasted link that is still being read (or failed): shown as a placeholder card/row until the item exists. */
 export type PendingAdd = { id: string; label: string; url: string | null; state: "working" | "failed"; collectionId: string | null; retry?: () => void };
@@ -24,10 +26,11 @@ export type SortKey = "newest" | "price" | "priority" | "name";
 type Editor = { mode: "create"; kind: "project" | "list" } | { mode: "edit"; collection: Collection } | null;
 
 /** Server-known state for the first paint: prefs from cookies, `?v=` from the URL. */
-export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; sidebarCollapsed?: boolean };
+export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; sidebarCollapsed?: boolean; phoneLayout?: PhoneLayout | null };
 
 const LAYOUT_COOKIE = "nexus_layout";
 const SORT_COOKIE = "nexus_sort";
+const PHONE_LAYOUT_COOKIE = "nexus_phone_layout";
 const SIDEBAR_COOKIE = "nexus_sidebar";
 const setCookie = (k: string, v: string) => {
   document.cookie = `${k}=${v}; path=/; max-age=31536000; samesite=lax`;
@@ -60,6 +63,8 @@ type Store = {
   setCurrency: (c: Currency) => void;
   layout: Layout;
   setLayout: (l: Layout) => void;
+  phoneLayout: PhoneLayout;
+  setPhoneLayout: (l: PhoneLayout) => void;
   sort: SortKey;
   setSort: (s: SortKey) => void;
   view: View;
@@ -225,6 +230,7 @@ export function StoreProvider({
   const [altOpenId, setAltOpenId] = useState<string | null>(null);
   const [currency, setCurrencyState] = useState<Currency>(initialCurrency);
   const [layout, setLayoutState] = useState<Layout>(ui.layout ?? "cards");
+  const [phoneLayout, setPhoneLayoutState] = useState<PhoneLayout>(ui.phoneLayout ?? "cards");
   const [sort, setSortState] = useState<SortKey>(ui.sort ?? "newest");
   const [view, setViewState] = useState<View>(() => paramToView(ui.view));
   const [navSeq, setNavSeq] = useState(0);
@@ -350,6 +356,10 @@ export function StoreProvider({
   const setLayout = useCallback((l: Layout) => {
     setLayoutState(l);
     setCookie(LAYOUT_COOKIE, l);
+  }, []);
+  const setPhoneLayout = useCallback((l: PhoneLayout) => {
+    setPhoneLayoutState(l);
+    setCookie(PHONE_LAYOUT_COOKIE, l);
   }, []);
   const setSort = useCallback((s: SortKey) => {
     setSortState(s);
@@ -501,6 +511,8 @@ export function StoreProvider({
       setCurrency,
       layout,
       setLayout,
+      phoneLayout,
+      setPhoneLayout,
       sort,
       setSort,
       view,
@@ -563,7 +575,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

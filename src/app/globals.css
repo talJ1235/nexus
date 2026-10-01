@@ -1,6 +1,21 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+/* Phones only, by the phone layout pref on the app shell (Round 8 C2): one row per item, or 2-column cards. */
+@custom-variant prow {
+  @media (width < 40rem) {
+    &:where([data-phone-layout="rows"] *) {
+      @slot;
+    }
+  }
+}
+@custom-variant pcard {
+  @media (width < 40rem) {
+    &:where([data-phone-layout="cards"] *) {
+      @slot;
+    }
+  }
+}
 
 /* ---------- Design tokens (Round 7: UI v2) ----------
    Two palettes × light/dark. Palette = data-palette on <html> (cookie, server-rendered: no flash); mode = next-themes
@@ -287,16 +302,18 @@ body {
 /* First paint of data after the streamed shell: opacity only. Card and table frames stay solid (they sit exactly
    where the skeleton frames were) and only their contents fade, so the swap never passes through an empty frame.
    Cards stagger lightly (≤150 ms in total). */
-.load-in, .load-in-stagger > * > *, .load-in-rows tr { animation: fade 220ms ease-out both; }
-.load-in-stagger > :nth-child(2) > * { animation-delay: 17ms; }
-.load-in-stagger > :nth-child(3) > * { animation-delay: 34ms; }
-.load-in-stagger > :nth-child(4) > * { animation-delay: 51ms; }
-.load-in-stagger > :nth-child(5) > * { animation-delay: 68ms; }
-.load-in-stagger > :nth-child(6) > * { animation-delay: 85ms; }
-.load-in-stagger > :nth-child(7) > * { animation-delay: 102ms; }
-.load-in-stagger > :nth-child(8) > * { animation-delay: 119ms; }
-.load-in-stagger > :nth-child(9) > * { animation-delay: 136ms; }
-.load-in-stagger > :nth-child(n + 10) > * { animation-delay: 150ms; }
+.load-in, .load-in-rows tr { animation: fade 220ms ease-out both; }
+/* First paint of the grid: cards rise in, one after another (Round 8 C2) — the products are the page. */
+.load-in-stagger > * > * { animation: rise-in 380ms var(--ease-out) both; }
+.load-in-stagger > :nth-child(2) > * { animation-delay: 35ms; }
+.load-in-stagger > :nth-child(3) > * { animation-delay: 70ms; }
+.load-in-stagger > :nth-child(4) > * { animation-delay: 105ms; }
+.load-in-stagger > :nth-child(5) > * { animation-delay: 140ms; }
+.load-in-stagger > :nth-child(6) > * { animation-delay: 165ms; }
+.load-in-stagger > :nth-child(7) > * { animation-delay: 185ms; }
+.load-in-stagger > :nth-child(8) > * { animation-delay: 200ms; }
+.load-in-stagger > :nth-child(9) > * { animation-delay: 215ms; }
+.load-in-stagger > :nth-child(n + 10) > * { animation-delay: 230ms; }
 
 /* Switching views: a short, soft cross-fade of header + content together (never a blank frame). */
 .view-in { animation: view-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }

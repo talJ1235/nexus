@@ -97,7 +97,7 @@ home screen. The products and the To-buy section must stand out too.
   treatment on light themes (keep the gradient but lower contrast) so the eye moves on to the products.
 - The two tiles stay on desktop; on phone they become one compact row under the card (not two tall boxes).
 
-### C2. [ ] "To buy" and the product grid lead the page
+### C2. [x] "To buy" and the product grid lead the page
 - A clear section header above the grid: "To buy" (22–24 px, 800), count and total, with the filters (project chips,
   Category, Sort, cards/table) in the same row; it becomes sticky (with a soft surface) when scrolling.
 - Product cards carry more weight: larger image area, price as the strongest text on the card, clearer card edge
