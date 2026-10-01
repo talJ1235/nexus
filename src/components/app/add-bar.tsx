@@ -23,7 +23,7 @@ type DupPrompt = { preview: PreviewResult; resolve: (choice: "source" | "separat
 /** Views whose grid/table shows placeholder cards for links being read. Elsewhere the add bar shows a small status line. */
 export const SHOWS_PENDING = ["to_buy", "urgent", "unsorted", "collection", "store"];
 
-export function AddBar({ incoming }: { incoming?: Incoming }) {
+export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed?: boolean }) {
   const s = useStore();
   const { t, f } = useI18n();
   const [value, setValue] = useState("");
@@ -187,6 +187,21 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
     return () => clearTimeout(timer);
   }, [incoming, run]);
 
+  // Pasting a link anywhere (outside a text field) adds it, like pasting into the capsule.
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable)) return;
+      if (document.querySelector('[role="dialog"]') || ro.ro) return;
+      const text = e.clipboardData?.getData("text") ?? "";
+      if (!extractUrls(text).length) return;
+      e.preventDefault();
+      void submit(text);
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  });
+
   // "/" focuses the add bar.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -204,83 +219,119 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
   const ro = useReadOnly();
 
   return (
-    <div className="w-full">
-      {!bulk ? (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void submit(value);
-          }}
-          className="group relative flex h-12 items-center rounded-xl border border-line-strong bg-surface shadow-card transition focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15"
-        >
-          <Link2 className="pointer-events-none ms-4 size-[18px] shrink-0 text-faint group-focus-within:text-accent-ink" />
-          <input
-            id="add-input"
-            ref={inputRef}
-            disabled={ro.ro}
-            title={ro.title}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onPaste={(e) => {
-              const text = e.clipboardData.getData("text");
-              const urls = extractUrls(text);
-              if (urls.length && !value.trim()) {
-                e.preventDefault();
-                void submit(text);
-              }
+    <>
+      {/* Soft fade so the grid passes under the capsule. */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none fixed bottom-0 end-0 z-[25] h-[140px] bg-gradient-to-b from-transparent to-bg to-70% transition-[inset-inline-start] duration-[450ms] ease-[var(--ease-out)] max-lg:start-0 max-lg:h-[110px]",
+          collapsed ? "lg:start-[100px]" : "lg:start-[272px]",
+        )}
+      />
+      <div
+        data-paste-capsule
+        className={cn(
+          "fixed bottom-[max(18px,env(safe-area-inset-bottom))] z-30 flex flex-col items-center gap-2 transition-[inset-inline-start] duration-[450ms] ease-[var(--ease-out)] max-lg:inset-x-3 lg:bottom-[26px] lg:end-[26px]",
+          collapsed ? "lg:start-[112px]" : "lg:start-[284px]",
+        )}
+      >
+        {!SHOWS_PENDING.includes(s.view.type) && s.pending.length > 0 && (
+          <ul className="flex max-w-[620px] flex-wrap justify-center gap-1.5" aria-live="polite">
+            {s.pending.slice(0, 4).map((p) => (
+              <li
+                key={p.id}
+                className={cn(
+                  "flex max-w-[300px] animate-pop-in items-center gap-2 rounded-full border py-1 pe-1.5 ps-2.5 text-xs shadow-card",
+                  p.state === "failed" ? "border-danger/40 bg-danger-soft text-danger" : "border-line bg-surface text-tint-ink",
+                )}
+              >
+                {p.state === "working" ? <Spinner className="size-3.5" /> : <AlertTriangle className="size-3.5 shrink-0" />}
+                <span className="min-w-0 truncate">{p.state === "working" ? `${t.add.fetching} ${p.label}` : `${t.add.couldNotRead} · ${p.label}`}</span>
+                {p.state === "failed" && (
+                  <button type="button" aria-label={t.view.clear} onClick={() => s.dropPending(p.id)} className="rounded-full p-0.5 opacity-70 hover:opacity-100">
+                    <X className="size-3" />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flow-border w-full max-w-[620px] rounded-full shadow-[0_18px_44px_color-mix(in_srgb,var(--ink)_22%,transparent)]">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit(value);
             }}
-            placeholder={t.add.placeholder}
-            inputMode="url"
-            autoComplete="off"
-            spellCheck={false}
-            className="h-full min-w-0 flex-1 bg-transparent px-3 text-[15px] outline-none placeholder:text-faint"
-            aria-label={t.add.placeholder}
-          />
-          <button
-            type="button"
-            onClick={() => setBulk(true)}
-            disabled={ro.ro}
-            className="me-1 hidden rounded-lg px-2.5 py-1.5 text-[13px] text-muted transition hover:bg-sunken hover:text-fg sm:inline-flex sm:items-center sm:gap-1.5"
-            title={t.add.bulk}
+            className="group flex h-[58px] items-center gap-1.5 rounded-full bg-surface pe-[5px] ps-5 text-muted lg:h-[58px]"
           >
-            <ListPlus className="size-4" />
-            <span className="hidden md:inline">{t.add.bulk}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => s.openReceipt()}
-            disabled={ro.ro}
-            className="me-1 hidden size-10 disabled:opacity-50 items-center justify-center rounded-lg sm:inline-flex text-muted transition hover:bg-sunken hover:text-fg md:w-auto md:gap-1.5 md:px-2.5 md:text-[13px]"
-            title={t.scan.title}
-            aria-label={t.scan.title}
-            data-receipt-open="add"
-          >
-            <ReceiptText className="size-4" />
-            <span className="hidden md:inline">{t.scan.button}</span>
-          </button>
-          <Button type="submit" variant="accent" size="sm" className="me-1.5 h-9 px-3.5" disabled={ro.ro || (!isHttpUrl(value.trim()) && !extractUrls(value).length)}>
-            {working ? <Spinner /> : <Plus />}
-            <span className="hidden sm:inline">{t.add.add}</span>
-          </Button>
-        </form>
-      ) : (
+            <Link2 className="pointer-events-none size-[19px] shrink-0 text-ink" strokeWidth={1.8} />
+            <input
+              id="add-input"
+              ref={inputRef}
+              disabled={ro.ro}
+              title={ro.title}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onPaste={(e) => {
+                const text = e.clipboardData.getData("text");
+                const urls = extractUrls(text);
+                if (urls.length && !value.trim()) {
+                  e.preventDefault();
+                  void submit(text);
+                }
+              }}
+              placeholder={t.shell.pastePrompt}
+              inputMode="url"
+              autoComplete="off"
+              spellCheck={false}
+              className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-[15px] text-ink outline-none placeholder:text-muted"
+              aria-label={t.add.placeholder}
+            />
+            {!value && <span className="me-1 hidden shrink-0 rounded-[7px] bg-surface-2 px-2 py-[3px] text-xs lg:inline">{t.shell.pasteKey}</span>}
+            <button
+              type="button"
+              onClick={() => setBulk(true)}
+              disabled={ro.ro}
+              className="hidden size-10 shrink-0 place-items-center rounded-full text-muted transition hover:bg-surface-2 hover:text-ink disabled:opacity-50 sm:grid"
+              title={t.add.bulk}
+              aria-label={t.add.bulk}
+            >
+              <ListPlus className="size-[18px]" />
+            </button>
+            <button
+              type="button"
+              onClick={() => s.openReceipt()}
+              disabled={ro.ro}
+              className="inline-flex h-12 shrink-0 items-center gap-[7px] rounded-full bg-surface-2 px-4 text-[14px] font-bold text-ink transition hover:bg-line disabled:opacity-50 max-sm:w-12 max-sm:justify-center max-sm:px-0"
+              title={t.scan.title}
+              aria-label={t.scan.title}
+              data-receipt-open="add"
+            >
+              <ReceiptText className="size-[17px]" />
+              <span className="max-sm:hidden">{t.scan.button}</span>
+            </button>
+            <button
+              type="submit"
+              className="inline-flex h-12 shrink-0 items-center gap-[7px] rounded-full bg-brand px-[18px] text-[14px] font-bold text-on-brand transition hover:bg-brand-hover active:scale-[0.97] disabled:opacity-60"
+              disabled={ro.ro || (!isHttpUrl(value.trim()) && !extractUrls(value).length)}
+            >
+              {working ? <Spinner /> : <Plus className="size-[17px]" strokeWidth={2.4} />}
+              <span className="max-sm:hidden">{t.add.add}</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <Modal open={bulk} onOpenChange={setBulk} title={t.add.bulk}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            setBulk(false);
             void submit(value);
           }}
-          className="rounded-xl border border-accent bg-surface p-2 shadow-card ring-4 ring-accent/15"
         >
-          <Textarea
-            autoFocus
-            rows={5}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder={t.add.placeholderMany}
-            className="resize-y border-0 bg-transparent focus:ring-0"
-            dir="ltr"
-          />
-          <div className="flex items-center justify-between gap-2 px-1 pt-1">
+          <Textarea autoFocus rows={6} value={value} onChange={(e) => setValue(e.target.value)} placeholder={t.add.placeholderMany} dir="ltr" />
+          <div className="flex items-center justify-between gap-2 pt-3">
             <span className="tabular text-xs text-faint">{extractUrls(value).length || ""}</span>
             <div className="flex gap-2">
               <Button size="sm" variant="ghost" onClick={() => setBulk(false)}>
@@ -293,29 +344,7 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
             </div>
           </div>
         </form>
-      )}
-
-      {!SHOWS_PENDING.includes(s.view.type) && s.pending.length > 0 && (
-        <ul className="mt-2 flex flex-wrap gap-1.5" aria-live="polite">
-          {s.pending.slice(0, 4).map((p) => (
-            <li
-              key={p.id}
-              className={cn(
-                "flex max-w-[300px] animate-pop-in items-center gap-2 rounded-full border py-1 pe-1.5 ps-2.5 text-xs",
-                p.state === "failed" ? "border-danger/40 bg-danger-soft text-danger" : "border-accent/40 bg-accent-soft text-accent-ink",
-              )}
-            >
-              {p.state === "working" ? <Spinner className="size-3.5" /> : <AlertTriangle className="size-3.5 shrink-0" />}
-              <span className="min-w-0 truncate">{p.state === "working" ? `${t.add.fetching} ${p.label}` : `${t.add.couldNotRead} · ${p.label}`}</span>
-              {p.state === "failed" && (
-                <button type="button" aria-label={t.view.clear} onClick={() => s.dropPending(p.id)} className="rounded-full p-0.5 opacity-70 hover:opacity-100">
-                  <X className="size-3" />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      </Modal>
 
       <Modal
         open={!!dup}
@@ -365,6 +394,6 @@ export function AddBar({ incoming }: { incoming?: Incoming }) {
           </div>
         )}
       </Modal>
-    </div>
+    </>
   );
 }

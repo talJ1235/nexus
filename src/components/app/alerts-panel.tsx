@@ -26,7 +26,7 @@ function timeAgo(ts: number, locale: string) {
 }
 
 /** Header bell: unread count, opens the alerts panel. */
-export function AlertsBell() {
+export function AlertsBell({ size }: { size?: "sm" } = {}) {
   const s = useStore();
   const { t } = useI18n();
   const [unread, setUnread] = useState(0);
@@ -41,12 +41,17 @@ export function AlertsBell() {
     };
   }, [s.panel, s.loading]);
   return (
-    <Button variant="ghost" size="icon" className="relative mt-1.5" onClick={() => s.setPanel("alerts")} aria-label={t.alerts.title} title={t.alerts.title} data-carry="panel:alerts">
-      {unread ? <BellRing /> : <Bell />}
-      {unread > 0 && (
-        <span className="tabular absolute -end-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-fg">{unread > 9 ? "9+" : unread}</span>
-      )}
-    </Button>
+    <button
+      type="button"
+      className={cn("relative grid shrink-0 place-items-center rounded-full border border-line bg-surface text-ink transition hover:bg-surface-2 active:scale-[0.96]", size === "sm" ? "size-[46px]" : "size-[50px]")}
+      onClick={() => s.setPanel("alerts")}
+      aria-label={unread ? `${t.alerts.title} (${unread})` : t.alerts.title}
+      title={t.alerts.title}
+      data-carry="panel:alerts"
+    >
+      {unread ? <BellRing className="size-5" /> : <Bell className="size-5" />}
+      {unread > 0 && <span className="absolute end-[13px] top-3 size-2 rounded-full bg-spark ring-2 ring-surface" data-unread={unread} />}
+    </button>
   );
 }
 

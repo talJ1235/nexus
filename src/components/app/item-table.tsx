@@ -47,7 +47,7 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
     <div className={cn("overflow-x-auto", !bare && "rounded-[var(--radius-card)] border border-line bg-surface")}>
       <table className={cn("w-full min-w-[760px] text-sm", bare && "table-fixed")}>
         <thead>
-          <tr className="border-b border-line text-start text-xs text-faint">
+          <tr className="border-b border-line text-start text-xs font-semibold text-muted">
             <th className="w-10 py-2.5 ps-3">
               <input
                 type="checkbox"
@@ -93,7 +93,7 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
                 onClick={(e) => (s.selected.size || e.metaKey || e.ctrlKey ? s.toggleSelect(i.id, e.shiftKey ? { range: order } : undefined) : s.openItem(i.id))}
                 className={cn("cursor-pointer border-b border-line transition last:border-0", s.fresh.has(i.id) && "fill-in", checked ? "bg-accent-soft/50" : "hover:bg-sunken/60", purchased && "text-muted")}
               >
-                <td className="py-1.5 ps-3" onClick={(e) => e.stopPropagation()}>
+                <td className="py-2 ps-4" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
                     aria-label={t.select.select}
@@ -104,10 +104,10 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
                   />
                 </td>
                 <td className="py-1.5">
-                  <ProductImage src={i.imageUrl} alt="" className="size-10 rounded-md" iconClass="size-4" />
+                  <ProductImage src={i.imageUrl} alt="" className="size-11 rounded-[13px]" iconClass="size-4" />
                 </td>
                 <td className="max-w-[340px] py-2 ps-2">
-                  <div className="bidi truncate font-medium">
+                  <div className="bidi truncate font-bold">
                     {i.title}
                   </div>
                   <div className="flex items-center gap-2 truncate text-xs text-faint">

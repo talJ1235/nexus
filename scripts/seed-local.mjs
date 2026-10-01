@@ -43,6 +43,8 @@ const items = [
   ["demo-8", "מברגה נטענת Makita DDF485 18V", "drill", null, "normal", 1, "purchased", ["Ace", "ace", 649, "ILS", 0, "https://www.ace.co.il/item/2"], ["tools"]],
 ];
 
+const CAT = { charger: "electronics", fan: "home-kitchen", pla: "materials", motor: "mechanical", lamp: "home-kitchen", chair: "home-kitchen", pi: "computers", drill: "tools" };
+
 await db.execute("DELETE FROM price_points WHERE item_id LIKE 'demo-%'");
 await db.execute("DELETE FROM sources WHERE item_id LIKE 'demo-%'");
 await db.execute("DELETE FROM items WHERE id LIKE 'demo-%'");
@@ -55,9 +57,9 @@ for (const [i, c] of collections.entries())
 for (const [n, [id, title, img, col, prio, qty, status, src, tags]] of items.entries()) {
   const t = now - n * day;
   await db.execute({
-    sql: `INSERT INTO items (id, collection_id, title, image_url, tags, status, priority, quantity, ordered_at, purchased_at, purchased_price, purchased_currency, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [id, col, title, IMG[img], JSON.stringify(tags), status, prio, qty, status !== "to_buy" ? t : null, status === "purchased" ? t : null, status !== "to_buy" ? src[2] : null, status !== "to_buy" ? src[3] : null, t, t],
+    sql: `INSERT INTO items (id, collection_id, title, image_url, category, tags, status, priority, quantity, ordered_at, purchased_at, purchased_price, purchased_currency, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [id, col, title, IMG[img], CAT[img], JSON.stringify(tags), status, prio, qty, status !== "to_buy" ? t : null, status === "purchased" ? t : null, status !== "to_buy" ? src[2] : null, status !== "to_buy" ? src[3] : null, t, t],
   });
   const [store, key, price, currency, shipping, url] = src;
   await db.execute({

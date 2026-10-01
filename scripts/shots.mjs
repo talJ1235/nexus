@@ -2,7 +2,7 @@
 // in the requested palettes × modes. Usage:
 //   node --env-file=.env.local scripts/shots.mjs [/path ...]   (default "/")
 //   SHOTS_OUT=dir (default $TMP/nexus-shots) SHOTS_THEMES="graphite:light,plum:dark" SHOTS_SIZES=desktop,phone
-//   SHOTS_WAIT=ms extra settle time; SHOTS_CLICK="css selector" clicks it before the shot; SHOTS_FULL=1 full page.
+//   SHOTS_LOCALE=he; SHOTS_WAIT=ms extra settle time; SHOTS_CLICK="css selector" clicks it before the shot; SHOTS_FULL=1 full page.
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -25,7 +25,11 @@ let session;
 for (const size of sizes) {
   for (const [palette, mode] of themes) {
     const ctx = await browser.newContext({ ...SIZE[size], colorScheme: mode, reducedMotion: process.env.SHOTS_MOTION ? "no-preference" : "reduce" });
-    await ctx.addCookies([{ name: "nexus_palette", value: palette, domain: host, path: "/" }, ...(session ? [session] : [])]);
+    await ctx.addCookies([
+      { name: "nexus_palette", value: palette, domain: host, path: "/" },
+      ...(process.env.SHOTS_LOCALE ? [{ name: "nexus_locale", value: process.env.SHOTS_LOCALE, domain: host, path: "/" }] : []),
+      ...(session ? [session] : []),
+    ]);
     await ctx.addInitScript(() => { try { localStorage.setItem("theme", "system"); sessionStorage.setItem("nexus.booted", "1"); } catch {} });
     const page = await ctx.newPage();
     if (!session) {
@@ -39,7 +43,7 @@ for (const size of sizes) {
       await page.waitForSelector("[data-app-shell][data-ready], main", { timeout: 15000 }).catch(() => {});
       await page.waitForTimeout(Number(process.env.SHOTS_WAIT || 700));
       if (process.env.SHOTS_CLICK) { await page.click(process.env.SHOTS_CLICK).catch((e) => console.log("click failed", e.message.split("\n")[0])); await page.waitForTimeout(600); }
-      const name = `${p.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "") || "home"}-${size}-${palette}-${mode}.png`;
+      const name = `${process.env.SHOTS_LOCALE ? process.env.SHOTS_LOCALE + "-" : ""}${p.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "") || "home"}-${size}-${palette}-${mode}.png`;
       await page.screenshot({ path: join(OUT, name), fullPage: !!process.env.SHOTS_FULL });
       console.log(join(OUT, name));
     }

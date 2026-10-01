@@ -9,6 +9,7 @@ export async function getCurrencyPref(): Promise<Currency> {
 
 export const LAYOUT_COOKIE = "nexus_layout";
 export const SORT_COOKIE = "nexus_sort";
+export const SIDEBAR_COOKIE = "nexus_sidebar";
 const LAYOUTS = ["cards", "table"] as const;
 const SORTS = ["newest", "price", "priority", "name"] as const;
 
@@ -18,6 +19,7 @@ export async function getUiPrefs() {
   const l = jar.get(LAYOUT_COOKIE)?.value;
   const s = jar.get(SORT_COOKIE)?.value;
   return {
+    sidebarCollapsed: jar.get(SIDEBAR_COOKIE)?.value === "collapsed",
     layout: (LAYOUTS as readonly string[]).includes(l ?? "") ? (l as (typeof LAYOUTS)[number]) : null,
     sort: (SORTS as readonly string[]).includes(s ?? "") ? (s as (typeof SORTS)[number]) : null,
   };

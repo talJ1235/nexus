@@ -132,6 +132,41 @@ try {
       await shot(page, "home");
     });
 
+    if (!MOBILE) {
+      await step("home: totals card, tiles, filters, paste capsule", async () => {
+        const parts = await Promise.all(["[data-totals]", "[data-home-summary]", "[data-filters]", "[data-paste-capsule]", "[data-ask]:visible"].map((q) => page.locator(q).first().isVisible()));
+        ok(parts.every(Boolean), "home: totals card, tiles, filters, paste capsule", JSON.stringify(parts));
+      });
+
+      await step("sidebar collapses, capsule glides, state survives reload", async () => {
+        const cap = page.locator("[data-paste-capsule] form");
+        const x0 = (await cap.boundingBox()).x;
+        await page.click("[data-sidebar-toggle]");
+        await page.waitForTimeout(700);
+        const w = (await page.locator("aside nav").boundingBox()).width;
+        const x1 = (await cap.boundingBox()).x;
+        await page.reload();
+        await page.waitForSelector(READY, { timeout: 15000 });
+        const w2 = (await page.locator("aside nav").boundingBox()).width;
+        await shot(page, "home-collapsed");
+        await page.click("[data-sidebar-toggle]");
+        await page.waitForTimeout(700);
+        ok(w < 90 && w2 < 90 && x1 < x0, "sidebar collapses, capsule glides, state survives reload", `w=${w} after reload=${w2} capsule ${x0}→${x1}`);
+      });
+
+      await step("category filter narrows the grid", async () => {
+        const before = await page.locator("[data-item-card]").count();
+        await page.click("[data-category-filter]");
+        const opt = page.getByRole("menuitemradio").nth(1);
+        await opt.click();
+        await page.waitForTimeout(300);
+        const after = await page.locator("[data-item-card]").count();
+        ok(after > 0 && after <= before, "category filter narrows the grid", `${before} → ${after}`);
+        await page.click("[data-category-filter]");
+        await page.getByRole("menuitemradio").first().click();
+      });
+    }
+
     await step("Esc opens command palette with quick settings", async () => {
       await page.keyboard.press("Escape");
       const dialog = page.getByRole("dialog");

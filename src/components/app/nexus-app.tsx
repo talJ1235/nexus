@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDownWideNarrow, Download, LayoutGrid, Menu as MenuIcon, Pencil, ReceiptText, Rows3, Search, Share2, Sparkles, X, Command } from "lucide-react";
+import { Menu as MenuIcon, Pencil, ReceiptText, Share2, Command } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Menu, MenuContent, MenuRadioGroup, MenuRadioItem, MenuTrigger, Sheet } from "@/components/ui/overlays";
-import { budgetStats, countable, sumTotals } from "@/lib/calc";
+import { Sheet } from "@/components/ui/overlays";
+import { countable, sumTotals } from "@/lib/calc";
 import { formatMoney } from "@/lib/money";
 import type { AppData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,8 @@ import { CommandPalette } from "./command-palette";
 import { SettingsDialog } from "./settings-dialog";
 import { ImportDialog } from "./import-dialog";
 import { AlertsBell, AlertsPanel } from "./alerts-panel";
+import { AskButton, TopBar } from "./top-bar";
+import { FiltersRow, HomeSummary, SUMMARY_VIEWS } from "./home-summary";
 import { AssistantPanel } from "./assistant-panel";
 import { ShareDialog } from "./share-dialog";
 import { ReceiptDialog } from "./receipt-dialog";
@@ -30,8 +32,8 @@ import { SpendingView } from "./spending-view";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
-import { StoreProvider, useStore, type SortKey, type UiInit } from "./store";
-import { ContentSkeleton, Skel, TagsSkeleton } from "./skeletons";
+import { StoreProvider, useStore, type UiInit } from "./store";
+import { ContentSkeleton, Skel } from "./skeletons";
 import { COLLECTION_COLORS, useViewItems } from "./view-items";
 import { FALLBACK_RATES, type Currency } from "@/lib/money";
 
@@ -52,53 +54,65 @@ export function NexusApp({ boot, initial, incoming, offline }: { boot: AppBoot; 
 function Shell({ incoming }: { incoming?: Incoming }) {
   const s = useStore();
   const { t } = useI18n();
+  const collapsed = s.sidebarCollapsed;
   return (
-    <div className="flex min-h-dvh" data-app-shell data-ready={s.loading ? undefined : ""} data-offline={s.offlineAt != null ? "" : undefined}>
-      <aside className="sticky top-0 hidden h-dvh w-[264px] shrink-0 border-e border-line bg-bg lg:block">
-        <Sidebar />
-      </aside>
-      <Sheet open={s.navOpen} onOpenChange={s.setNavOpen} title={t.appName} side="start" className="max-w-[300px] bg-bg">
-        <Sidebar />
-      </Sheet>
+    <div className="min-h-dvh" data-app-shell data-ready={s.loading ? undefined : ""} data-offline={s.offlineAt != null ? "" : undefined}>
+      <div
+        className={cn(
+          "lg:grid lg:gap-5 lg:pe-[26px] lg:ps-4 lg:transition-[grid-template-columns] lg:duration-[450ms] lg:ease-[var(--ease-out)]",
+          collapsed ? "lg:grid-cols-[76px_minmax(0,1fr)]" : "lg:grid-cols-[248px_minmax(0,1fr)]",
+        )}
+      >
+        <aside className="sticky top-4 hidden h-[calc(100dvh-32px)] min-w-0 lg:mt-4 lg:block">
+          <Sidebar collapsed={collapsed} onToggle={() => s.setSidebarCollapsed(!collapsed)} />
+        </aside>
+        <Sheet open={s.navOpen} onOpenChange={s.setNavOpen} title={t.appName} side="start" className="max-w-[300px] bg-bg">
+          <Sidebar floating={false} />
+        </Sheet>
 
-      <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-20 border-b border-line/70 bg-bg/85 backdrop-blur-md">
-          <OfflineBanner />
-          <div className="mx-auto flex max-w-[1400px] items-start gap-2 px-4 py-3 sm:px-6 lg:px-8">
-            <Button variant="ghost" size="icon" className="mt-1.5 lg:hidden" onClick={() => s.setNavOpen(true)} aria-label="Menu" data-carry="nav">
-              <MenuIcon />
-            </Button>
-            <LogoMark className="mt-2.5 hidden size-7 sm:block lg:hidden" />
-            <div className="min-w-0 flex-1">
-              <AddBar incoming={incoming} />
-            </div>
-            {s.aiEnabled && (
-              <Button variant="ghost" size="icon" className="mt-1.5" disabled={s.offlineAt != null} onClick={() => s.setPanel("assistant")} aria-label={t.ai.title} title={t.ai.openAssistant} data-carry="panel:assistant">
-                <Sparkles />
+        <div className="min-w-0">
+          {/* Phone / tablet header (Part C replaces it with the phone shell). */}
+          <div className="empty:hidden lg:pt-4">
+            <OfflineBanner />
+          </div>
+          <header className="sticky top-0 z-20 border-b border-line/70 bg-bg/85 backdrop-blur-md lg:hidden">
+            <div className="flex items-center gap-2 px-4 py-3 sm:px-6">
+              <Button variant="ghost" size="icon" onClick={() => s.setNavOpen(true)} aria-label="Menu" data-carry="nav">
+                <MenuIcon />
               </Button>
-            )}
-            <AlertsBell />
-            <Button variant="ghost" size="icon" className="mt-1.5 lg:hidden" onClick={() => s.setPaletteOpen(true)} aria-label={t.view.search} data-carry="palette">
-              <Command />
-            </Button>
+              <LogoMark className="size-7" />
+              <span className="flex-1" />
+              {s.aiEnabled && <AskButton iconOnly />}
+              <AlertsBell size="sm" />
+              <Button variant="ghost" size="icon" onClick={() => s.setPaletteOpen(true)} aria-label={t.view.search} data-carry="palette">
+                <Command />
+              </Button>
+            </div>
+          </header>
+          <div className="sticky top-0 z-20 hidden bg-bg/85 pb-3 pt-4 backdrop-blur-md lg:block">
+            <div className="mx-auto max-w-[1400px]">
+              <TopBar />
+            </div>
           </div>
-        </header>
-        <main className="mx-auto max-w-[1400px] px-4 pb-24 pt-6 sm:px-6 lg:px-8">
-          {/* Header + content switch together as one soft cross-fade; the very first paint is not animated. */}
-          <div key={viewKey(s.view)} className={s.navSeq > 0 ? "view-in" : undefined}>
-            {s.loading && s.view.type === "spending" ? (
-              <ContentSkeleton />
-            ) : s.view.type === "spending" ? (
-              <SpendingView />
-            ) : (
-              <>
-                <ViewHeader />
-                <Content />
-              </>
-            )}
-          </div>
-        </main>
+          <main className="mx-auto max-w-[1400px] px-4 pb-40 pt-4 sm:px-6 lg:px-0 lg:pt-2">
+            {/* Header + content switch together as one soft cross-fade; the very first paint is not animated. */}
+            <div key={viewKey(s.view)} className={s.navSeq > 0 ? "view-in" : undefined}>
+              {s.loading && s.view.type === "spending" ? (
+                <ContentSkeleton />
+              ) : s.view.type === "spending" ? (
+                <SpendingView />
+              ) : (
+                <>
+                  <ViewHeader />
+                  <Content />
+                </>
+              )}
+            </div>
+          </main>
+        </div>
       </div>
+
+      <AddBar incoming={incoming} collapsed={collapsed} />
 
       <ItemSheet />
       <AltSheet />
@@ -213,36 +227,20 @@ function ViewHeader() {
     }
   })();
 
-  const toBuy = countable(items.filter((i) => i.status === "to_buy"), s.altGroups, s.rates);
+  const summary = SUMMARY_VIEWS.includes(s.view.type);
   const spentView = s.view.type === "history" || s.view.type === "ordered";
-  const totals = sumTotals(spentView ? items : toBuy, s.rates, s.currency);
-  const budget = collection?.kind === "project" ? budgetStats(collection, s.items, s.altGroups, s.rates, s.currency) : null;
-
-  const tagCounts = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const i of items) for (const tag of i.tags ?? []) m.set(tag, (m.get(tag) ?? 0) + 1);
-    return [...m.entries()].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]).slice(0, 12);
-  }, [items]);
-
-  const exportHref = (() => {
-    const p = new URLSearchParams({ currency: s.currency, locale });
-    if (s.view.type === "collection") p.set("collection", s.view.id);
-    else p.set("view", s.view.type === "store" ? `store:${s.view.key}` : s.view.type);
-    return `/api/export?${p}`;
-  })();
-
-  const sortLabels: Record<SortKey, string> = { newest: t.view.sortNewest, price: t.view.sortPrice, priority: t.view.sortPriority, name: t.view.sortName };
+  const totals = sumTotals(spentView ? items : countable(items.filter((i) => i.status === "to_buy"), s.altGroups, s.rates), s.rates, s.currency);
   // Data-dependent parts fade in on the first paint after the streamed shell (never on view switches).
   const fadeIn = s.navSeq === 0 ? "load-in" : undefined;
   const titleUnknown = s.loading && (s.view.type === "collection" || s.view.type === "store");
 
   return (
-    <div className="mb-5">
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+    <div className="mb-5 flex flex-col gap-[18px]">
+      <div className={cn("flex flex-wrap items-center justify-between gap-x-6 gap-y-2", s.view.type === "to_buy" && "sr-only")}>
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
             {collection && <span className={cn("size-3", collection.kind === "project" ? "rounded-[4px]" : "rounded-full")} style={{ background: COLLECTION_COLORS[collection.color] }} />}
-            <h1 className={cn("truncate text-[26px] font-semibold tracking-[-0.02em] bidi", (s.view.type === "collection" || s.view.type === "store") && fadeIn)}>
+            <h1 className={cn("truncate text-[26px] font-extrabold tracking-[-0.02em] bidi", (s.view.type === "collection" || s.view.type === "store") && fadeIn)}>
               {titleUnknown ? <Skel className="skeleton-in my-[5px] h-7 w-44 rounded-lg" /> : title}
             </h1>
             {collection && (
@@ -250,159 +248,49 @@ function ViewHeader() {
                 <Button variant="ghost" size="icon-sm" onClick={() => s.setEditor({ mode: "edit", collection })} aria-label={t.collection.rename} title={t.collection.rename}>
                   <Pencil className="!size-3.5" />
                 </Button>
-                <Button variant="outline" size="sm" className="ms-1 h-7 px-2.5" onClick={() => s.setPanel("share")}>
+                <Button variant="outline" size="sm" className="ms-1 h-8 px-3" onClick={() => s.setPanel("share")}>
                   <Share2 className="!size-3.5" />
                   {t.share.shareBtn}
                 </Button>
               </>
             )}
           </div>
-          {collection?.description && (
-            <p className="mt-1 max-w-[70ch] text-sm text-muted bidi">
-              {collection.description}
-            </p>
-          )}
-          {s.loading ? (
-            <Skel className="skeleton-in mt-[7px] h-3.5 w-52" />
-          ) : (
-          <p className={cn("tabular mt-1 text-sm text-muted", fadeIn)}>
-            {(items.length === 1 ? t.collection.itemsCountOne : f(t.collection.itemsCount, { n: items.length }))}
-            {totals.total > 0 && (
-              <>
-                <span className="mx-2 text-faint">/</span>
-                {spentView ? t.collection.spent : t.view.itemsTotal}{" "}
-                <b className="font-semibold text-fg">{formatMoney(totals.total, s.currency, locale)}</b>
-              </>
-            )}
-          </p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <div className="relative">
-            <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-faint" />
-            <input
-              value={s.query}
-              onChange={(e) => s.setQuery(e.target.value)}
-              placeholder={t.view.search}
-              aria-label={t.view.search}
-              className="h-9 w-40 rounded-lg border border-line bg-surface pe-7 ps-8 text-sm outline-none transition placeholder:text-faint focus:w-56 focus:border-accent sm:w-48"
-            />
-            {s.query && (
-              <button type="button" onClick={() => s.setQuery("")} className="absolute end-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-faint hover:text-fg" aria-label={t.view.clear}>
-                <X className="size-3.5" />
-              </button>
-            )}
-          </div>
-          {spentView && (
-            <Button variant="outline" className="h-9 max-sm:w-10 max-sm:px-0" disabled={ro.ro} onClick={() => s.openReceipt()} aria-label={t.scan.title} title={ro.title ?? t.scan.title} data-receipt-open="view">
-              <ReceiptText />
-              <span className="max-sm:hidden">{t.scan.button}</span>
-            </Button>
-          )}
-          {!spentView && s.view.type !== "orders" && (
-            <Menu>
-              <MenuTrigger asChild>
-                <Button size="icon" variant="outline" aria-label={t.view.sort} title={`${t.view.sort}: ${sortLabels[s.sort]}`}>
-                  <ArrowDownWideNarrow />
-                </Button>
-              </MenuTrigger>
-              <MenuContent>
-                <MenuRadioGroup value={s.sort} onValueChange={(v) => s.setSort(v as SortKey)}>
-                  {(Object.keys(sortLabels) as SortKey[]).map((k) => (
-                    <MenuRadioItem key={k} value={k}>
-                      {sortLabels[k]}
-                    </MenuRadioItem>
-                  ))}
-                </MenuRadioGroup>
-              </MenuContent>
-            </Menu>
-          )}
-          <div className="flex rounded-lg border border-line bg-surface p-0.5" role="radiogroup" aria-label={`${t.view.cards} / ${t.view.table}`}>
-            {(["cards", "table"] as const).map((l) => (
-              <button
-                key={l}
-                type="button"
-                role="radio"
-                aria-checked={s.layout === l}
-                onClick={() => s.setLayout(l)}
-                data-carry={`layout:${l}`}
-                title={l === "cards" ? t.view.cards : t.view.table}
-                className={cn("grid size-8 place-items-center rounded-md transition", s.layout === l ? "bg-fg text-bg" : "text-muted hover:text-fg")}
-              >
-                {l === "cards" ? <LayoutGrid className="size-4" /> : <Rows3 className="size-4" />}
-              </button>
+          {collection?.description && <p className="mt-1 max-w-[70ch] text-sm text-muted bidi">{collection.description}</p>}
+          {!summary &&
+            (s.loading ? (
+              <Skel className="skeleton-in mt-[7px] h-3.5 w-52" />
+            ) : (
+              <p className={cn("tabular mt-1 text-sm text-muted", fadeIn)}>
+                {items.length === 1 ? t.collection.itemsCountOne : f(t.collection.itemsCount, { n: items.length })}
+                {totals.total > 0 && (
+                  <>
+                    <span className="mx-2 text-faint">/</span>
+                    {spentView ? t.collection.spent : t.view.itemsTotal} <b className="font-semibold text-fg">{formatMoney(totals.total, s.currency, locale)}</b>
+                  </>
+                )}
+              </p>
             ))}
-          </div>
-          {(items.length > 0 || s.loading) && (
-            <a href={exportHref} className="grid size-9 place-items-center rounded-lg border border-line-strong bg-surface text-fg transition hover:bg-sunken" title={t.collection.export} aria-label={t.collection.export}>
-              <Download className="size-4" />
-            </a>
-          )}
         </div>
+        {spentView && (
+          <Button variant="outline" className="h-10 max-sm:w-10 max-sm:px-0" disabled={ro.ro} onClick={() => s.openReceipt()} aria-label={t.scan.title} title={ro.title ?? t.scan.title} data-receipt-open="view">
+            <ReceiptText />
+            <span className="max-sm:hidden">{t.scan.button}</span>
+          </Button>
+        )}
       </div>
 
-      {budget && budget.budget != null && <BudgetBar stats={budget} />}
-
-      {s.loading && <TagsSkeleton />}
-      {tagCounts.length > 1 && (
-        <div className={cn("-mx-1 mt-4 flex gap-1.5 overflow-x-auto px-1 pb-1", fadeIn)}>
-          <button
-            type="button"
-            onClick={() => s.setTagFilter(null)}
-            className={cn("h-7 shrink-0 rounded-full border px-3 text-[13px] transition", !s.tagFilter ? "border-fg bg-fg text-bg" : "border-line text-muted hover:text-fg")}
-          >
-            {t.view.allTags}
-          </button>
-          {tagCounts.map(([tag, n]) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => s.setTagFilter(s.tagFilter === tag ? null : tag)}
-              className={cn("h-7 shrink-0 rounded-full border px-3 text-[13px] transition", s.tagFilter === tag ? "border-fg bg-fg text-bg" : "border-line text-muted hover:text-fg")}
-            >
-              {tag} <span className="tabular opacity-60">{n}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      {summary && (s.loading ? <SummarySkeleton /> : <div className={fadeIn}><HomeSummary /></div>)}
+      {!s.loading && <FiltersRow showProjects={s.view.type !== "collection" && s.view.type !== "orders"} />}
     </div>
   );
 }
 
-function BudgetBar({ stats }: { stats: ReturnType<typeof budgetStats> }) {
-  const s = useStore();
-  const { t, f, locale } = useI18n();
-  const b = stats.budget ?? 0;
-  const spentPct = b ? Math.min(100, (stats.spent / b) * 100) : 0;
-  const plannedPct = b ? Math.min(100 - spentPct, (stats.planned / b) * 100) : 0;
-  const m = (v: number) => formatMoney(v, s.currency, locale);
+function SummarySkeleton() {
   return (
-    <div className={cn("mt-4 rounded-xl border p-4", stats.state === "over" ? "border-danger/50 bg-danger-soft/50" : "border-line bg-surface")}>
-      <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-        <div className="flex flex-wrap gap-x-5 gap-y-1">
-          <span className="text-muted">
-            {t.collection.budget} <b className="tabular font-semibold text-fg">{m(b)}</b>
-          </span>
-          <span className="flex items-center gap-1.5 text-muted">
-            <span className="size-2 rounded-full bg-ok" /> {t.collection.spent} <b className="tabular font-semibold text-fg">{m(stats.spent)}</b>
-          </span>
-          <span className="flex items-center gap-1.5 text-muted">
-            <span className="size-2 rounded-full bg-accent" /> {t.collection.planned} <b className="tabular font-semibold text-fg">{m(stats.planned)}</b>
-          </span>
-        </div>
-        <span className={cn("tabular text-sm font-medium", stats.state === "over" ? "text-danger" : stats.state === "near" ? "text-accent-ink" : "text-muted")}>
-          {stats.state === "over"
-            ? f(t.collection.over, { amount: m(stats.used - b) })
-            : stats.state === "near"
-              ? f(t.collection.nearing, { pct: Math.round(stats.pct ?? 0) })
-              : `${t.collection.remaining} ${m(b - stats.used)}`}
-        </span>
-      </div>
-      <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-sunken" aria-hidden>
-        <div className="h-full bg-ok transition-[width] duration-500" style={{ width: `${spentPct}%` }} />
-        <div className={cn("h-full transition-[width] duration-500", stats.state === "over" ? "bg-danger" : "bg-accent")} style={{ width: `${stats.state === "over" ? 100 - spentPct : plannedPct}%` }} />
-      </div>
+    <div className="skeleton-in grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] lg:gap-4" aria-hidden>
+      <Skel className="col-span-2 h-[176px] rounded-[28px] lg:col-span-1 lg:h-[226px] lg:rounded-[30px]" />
+      <Skel className="h-[170px] rounded-[30px] lg:h-[226px]" />
+      <Skel className="h-[170px] rounded-[30px] lg:h-[226px]" />
     </div>
   );
 }
@@ -419,7 +307,7 @@ function Content() {
     return (
       <div className={cn("grid place-items-center rounded-2xl border border-dashed border-line-strong px-6 py-20 text-center", fadeIn)}>
         <EmptyArt />
-        <p className="mt-5 max-w-sm text-[15px] text-muted">{s.query || s.tagFilter ? t.cmd.noResults : s.view.type === "history" || s.view.type === "ordered" ? t.collection.emptyHistory : t.collection.empty}</p>
+        <p className="mt-5 max-w-sm text-[15px] text-muted">{s.query || s.tagFilter || s.categoryFilter || s.collectionFilter ? t.cmd.noResults : s.view.type === "history" || s.view.type === "ordered" ? t.collection.emptyHistory : t.collection.empty}</p>
         {!s.query && s.view.type !== "history" && s.view.type !== "ordered" && (
           <Button variant="accent" className="mt-5" onClick={s.focusAdd}>
             {t.cmd.addLink}
@@ -458,7 +346,7 @@ function Content() {
     }
     cells.push(<ItemCard key={i.id} item={i} order={order} />);
   }
-  return <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] sm:gap-4", s.navSeq === 0 && "load-in-stagger")}>{cells}</div>;
+  return <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(222px,1fr))] sm:gap-3.5", s.navSeq === 0 && "load-in-stagger")}>{cells}</div>;
 }
 
 /** Empty-state illustration: a price tag hanging from a node. */

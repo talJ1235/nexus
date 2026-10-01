@@ -1,5 +1,6 @@
 import "server-only";
-import { CATEGORIES, generateJson, generateText } from "./ai";
+import { CATEGORIES, CATEGORY_HINT, generateJson, generateText } from "./ai";
+import { normalizeCategory } from "./categories";
 import { ACTION_FENCE, MAX_ACTION_ITEMS } from "./assistant-actions";
 import { budgetStats, lineTotal, unitPrice } from "./calc";
 import { convert, formatMoney, type Rates } from "./money";
@@ -44,7 +45,7 @@ Rules:
 - "qty": realistic quantity.
 - "spec": one short line on what to look for / why (in ${lang}).
 - "estMin"/"estMax": realistic per-unit price range in ${input.currency} from AliExpress-level pricing (null if you really can't tell). Never inflate.
-- "category": one of ${CATEGORIES.join(", ")}.
+- "category": one of ${CATEGORIES.join(", ")}. ${CATEGORY_HINT}
 - "essential": false for nice-to-have upgrades.
 - "searchQuery": the best short ENGLISH search query to find this exact part on AliExpress/Amazon.
 - "tips": 2–5 short practical tips in ${lang} (what to 3D print, what to buy as a kit, common pitfalls).
@@ -90,7 +91,7 @@ Rules:
       spec: (p.spec || "").slice(0, 300),
       estMin: typeof p.estMin === "number" && p.estMin >= 0 ? p.estMin : null,
       estMax: typeof p.estMax === "number" && p.estMax >= 0 ? p.estMax : null,
-      category: (CATEGORIES as readonly string[]).includes(p.category) ? p.category : "other",
+      category: normalizeCategory(p.category) ?? "other",
       essential: p.essential !== false,
       searchQuery: (p.searchQuery || p.name || "").slice(0, 120),
       have: !!p.have,
@@ -194,8 +195,8 @@ const MOCK_PLAN = (currency: string): Plan => ({
   currency,
   tips: ["Print the carriage plates in PETG.", "Buy the V-slot cut to length."],
   parts: [
-    { name: "NEMA 17 stepper motor 42-40, 1.5A", qty: 1, spec: "Enough torque for a 2 kg camera", estMin: 30, estMax: 45, category: "components", essential: true, searchQuery: "nema 17 stepper 42-40", have: false },
+    { name: "NEMA 17 stepper motor 42-40, 1.5A", qty: 1, spec: "Enough torque for a 2 kg camera", estMin: 30, estMax: 45, category: "mechanical", essential: true, searchQuery: "nema 17 stepper 42-40", have: false },
     { name: "TMC2209 stepper driver", qty: 1, spec: "Silent operation for video", estMin: 12, estMax: 20, category: "electronics", essential: true, searchQuery: "tmc2209 driver", have: false },
-    { name: "Wireless follow-focus motor", qty: 1, spec: "Upgrade for focus pulls", estMin: 150, estMax: 300, category: "camera-video", essential: false, searchQuery: "wireless follow focus motor", have: false },
+    { name: "Wireless follow-focus motor", qty: 1, spec: "Upgrade for focus pulls", estMin: 150, estMax: 300, category: "camera-audio", essential: false, searchQuery: "wireless follow focus motor", have: false },
   ],
 });

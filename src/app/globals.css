@@ -540,3 +540,29 @@ body {
   .boot-sweep { opacity: 0; }
   #boot.boot-out { animation-duration: 220ms !important; }
 }
+
+/* ---------- UI v2 shell (Round 7) ---------- */
+/* "Ask Nexus" — Hairline: neutral surface, 1.5px two-tone outline (brand → spark). */
+.ask-hairline {
+  border: 1.5px solid transparent;
+  background: linear-gradient(var(--surface), var(--surface)) padding-box, linear-gradient(100deg, var(--brand), var(--spark)) border-box;
+  color: var(--ink);
+}
+.ask-hairline:hover { background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, linear-gradient(100deg, var(--brand), var(--spark)) border-box; }
+/* Paste capsule: 2px two-tone border that slowly flows (5.5 s). */
+.flow-border {
+  padding: 2px;
+  background: linear-gradient(90deg, var(--brand), var(--spark), var(--brand));
+  background-size: 200% 100%;
+  animation: flow-border 5.5s linear infinite;
+}
+@keyframes flow-border { to { background-position: 200% 0; } }
+/* Bars/segments that grow in from the start edge once. */
+.grow-x { transform-origin: left center; animation: grow-x 900ms var(--ease-out) 200ms both; }
+[dir="rtl"] .grow-x { transform-origin: right center; }
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.rise-in { animation: rise-in 600ms var(--ease-out) both; }
+@keyframes rise-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .flow-border, .grow-x, .rise-in { animation: none !important; }
+}

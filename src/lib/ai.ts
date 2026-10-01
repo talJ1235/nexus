@@ -2,27 +2,11 @@ import "server-only";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { kvGet, kvSet } from "./kv";
 
-export const CATEGORIES = [
-  "electronics",
-  "components",
-  "tools",
-  "3d-printing",
-  "computers",
-  "camera-video",
-  "audio",
-  "home",
-  "furniture",
-  "kitchen",
-  "office",
-  "clothing",
-  "sports",
-  "health-beauty",
-  "books",
-  "software",
-  "vehicle",
-  "garden",
-  "other",
-] as const;
+import { CATEGORIES, normalizeCategory } from "./categories";
+export { CATEGORIES };
+/** Helps the model place things in the short list. */
+export const CATEGORY_HINT =
+  "(mechanical = motors, bearings, rails, belts, fasteners, parts; materials = filament, resin, wood, metal stock, glue, tape; camera-audio = cameras, lenses, mics, speakers, headphones; home-kitchen = furniture, appliances, kitchen, garden; clothing-personal = clothes, shoes, sports, health, beauty; other = books, software, vehicle, anything else)";
 
 // ---------- Providers ----------
 // Gemini (free tier) first; when it is overloaded or out of quota, fall back to other free,
@@ -300,7 +284,7 @@ Product:
 Tasks:
 1. "title": a short, clean, human product name (max ~70 chars), like a shop assistant would write it. Keep the product type, brand/model number and the 1-2 specs that identify it (size, color, voltage, capacity). Drop marketing fluff, shipping claims, keyword stuffing, store names and SKU codes. If the raw title is in Hebrew keep Hebrew, but keep brand names, model numbers, units and technical acronyms (PLA, PETG, USB-C, LED, NEMA 17) in their original Latin form — never transliterate them into Hebrew letters; if it is English keep English; if it is any other language (e.g. German/Chinese from a localized store) translate it to English. If the raw title is only a URL slug or generic text like "KSP item", infer the best name you can from the URL and description.
 2. "brand": brand if clear, else null.
-3. "category": exactly one of: ${CATEGORIES.join(", ")}.
+3. "category": exactly one of: ${CATEGORIES.join(", ")}. ${CATEGORY_HINT}
 4. "tags": 1-4 short lowercase English tags describing the product type (e.g. "stepper motor", "cable", "lighting"). Prefer reusing these existing tags when they fit: ${input.knownTags.slice(0, 60).join(", ") || "(none yet)"}.
 5. "collectionId": the id of the user's project/list this most likely belongs to, or null if none clearly fits. Only choose one when the match is obvious from the names/descriptions.
 User's collections: ${JSON.stringify(input.collections.map((c) => ({ id: c.id, name: c.name, kind: c.kind, description: c.description ?? "" })))}`;
@@ -322,7 +306,7 @@ User's collections: ${JSON.stringify(input.collections.map((c) => ({ id: c.id, n
   return {
     title: (out.title || input.title).slice(0, 200),
     brand: out.brand || null,
-    category: (CATEGORIES as readonly string[]).includes(out.category) ? out.category : "other",
+    category: normalizeCategory(out.category) ?? "other",
     tags: Array.from(new Set((out.tags ?? []).map((t) => t.toLowerCase().trim()).filter(Boolean))).slice(0, 4),
     collectionId: out.collectionId && validIds.has(out.collectionId) ? out.collectionId : null,
   };

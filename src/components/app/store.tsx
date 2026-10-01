@@ -22,10 +22,11 @@ export type SortKey = "newest" | "price" | "priority" | "name";
 type Editor = { mode: "create"; kind: "project" | "list" } | { mode: "edit"; collection: Collection } | null;
 
 /** Server-known state for the first paint: prefs from cookies, `?v=` from the URL. */
-export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null };
+export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; sidebarCollapsed?: boolean };
 
 const LAYOUT_COOKIE = "nexus_layout";
 const SORT_COOKIE = "nexus_sort";
+const SIDEBAR_COOKIE = "nexus_sidebar";
 const setCookie = (k: string, v: string) => {
   document.cookie = `${k}=${v}; path=/; max-age=31536000; samesite=lax`;
 };
@@ -67,6 +68,15 @@ type Store = {
   setQuery: (q: string) => void;
   tagFilter: string | null;
   setTagFilter: (t: string | null) => void;
+  /** Category dropdown on the home filters row (null = all). */
+  categoryFilter: string | null;
+  setCategoryFilter: (c: string | null) => void;
+  /** Project/list chip on the filters row (null = all). */
+  collectionFilter: string | null;
+  setCollectionFilter: (c: string | null) => void;
+  /** Desktop floating sidebar collapsed to icons (cookie, read on the server). */
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (c: boolean) => void;
   upsertItem: (i: ItemWithSources) => void;
   removeItem: (id: string) => void;
   setItems: (items: ItemWithSources[]) => void;
@@ -181,6 +191,13 @@ export function StoreProvider({
   const [navSeq, setNavSeq] = useState(0);
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [collectionFilter, setCollectionFilter] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsedState] = useState(!!ui.sidebarCollapsed);
+  const setSidebarCollapsed = useCallback((c: boolean) => {
+    setSidebarCollapsedState(c);
+    setCookie(SIDEBAR_COOKIE, c ? "collapsed" : "open");
+  }, []);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [editor, setEditor] = useState<Editor>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -268,6 +285,8 @@ export function StoreProvider({
     setNavSeq((n) => n + 1);
     setSelectedState(new Set());
     setTagFilter(null);
+    setCategoryFilter(null);
+    setCollectionFilter(null);
     setNavOpen(false);
     const url = new URL(window.location.href);
     const p = viewToParam(v);
@@ -424,6 +443,12 @@ export function StoreProvider({
       setQuery,
       tagFilter,
       setTagFilter,
+      categoryFilter,
+      setCategoryFilter,
+      collectionFilter,
+      setCollectionFilter,
+      sidebarCollapsed,
+      setSidebarCollapsed,
       upsertItem,
       removeItem,
       setItems,
@@ -457,7 +482,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, sort, setSort, view, setView, navSeq, query, tagFilter, categoryFilter, collectionFilter, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, openItemId, editor, paletteOpen, navOpen, settingsOpen, extOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

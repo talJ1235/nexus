@@ -5,7 +5,7 @@ type Variant = "primary" | "accent" | "ghost" | "outline" | "danger" | "subtle";
 type Size = "sm" | "md" | "icon" | "icon-sm";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-fg text-bg hover:opacity-90",
+  primary: "bg-brand text-on-brand hover:bg-brand-hover",
   accent: "bg-accent text-accent-fg hover:bg-accent-strong",
   ghost: "text-muted hover:bg-sunken hover:text-fg",
   outline: "border border-line-strong bg-surface text-fg hover:bg-sunken",
@@ -13,10 +13,10 @@ const variants: Record<Variant, string> = {
   subtle: "bg-sunken text-fg hover:bg-line",
 };
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-[13px] gap-1.5 rounded-lg",
-  md: "h-10 px-4 text-sm gap-2 rounded-lg",
-  icon: "size-9 rounded-lg",
-  "icon-sm": "size-7 rounded-md",
+  sm: "h-8 px-3.5 text-[13px] gap-1.5 rounded-full",
+  md: "h-10 px-4 text-sm gap-2 rounded-full",
+  icon: "size-9 rounded-full",
+  "icon-sm": "size-7 rounded-full",
 };
 
 export const Button = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size }>(
@@ -42,7 +42,7 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
     <input
       ref={ref}
       className={cn(
-        "h-10 w-full rounded-lg border border-line-strong bg-bg px-3 text-sm outline-none transition placeholder:text-faint focus:border-accent focus:ring-2 focus:ring-accent/25",
+        "h-10 w-full rounded-small border border-line-strong bg-bg px-3.5 text-sm outline-none transition placeholder:text-faint focus:border-accent focus:ring-2 focus:ring-accent/25",
         className,
       )}
       {...props}
@@ -55,7 +55,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttrib
     <textarea
       ref={ref}
       className={cn(
-        "w-full rounded-lg border border-line-strong bg-bg px-3 py-2 text-sm outline-none transition placeholder:text-faint focus:border-accent focus:ring-2 focus:ring-accent/25",
+        "w-full rounded-small border border-line-strong bg-bg px-3.5 py-2 text-sm outline-none transition placeholder:text-faint focus:border-accent focus:ring-2 focus:ring-accent/25",
         className,
       )}
       {...props}

@@ -1,6 +1,7 @@
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
+import { LEGACY_CATEGORIES } from "../lib/categories";
 
 async function main() {
   const url = process.env.TURSO_DATABASE_URL ?? "file:local.db";
@@ -32,6 +33,12 @@ async function main() {
   )`);
   const itemCols = (await client.execute("PRAGMA table_info(items)")).rows.map((r) => String(r.name));
   if (!itemCols.includes("order_number")) await client.execute("ALTER TABLE items ADD COLUMN order_number text");
+  // Round 7: the short fixed category list. Idempotent (only rows still holding an old value change).
+  const legacy = Object.entries(LEGACY_CATEGORIES);
+  await client.execute({
+    sql: `UPDATE items SET category = CASE category ${legacy.map(() => "WHEN ? THEN ?").join(" ")} END WHERE category IN (${legacy.map(() => "?").join(",")})`,
+    args: [...legacy.flat(), ...legacy.map(([k]) => k)],
+  });
   console.log("[migrate] done:", url.replace(/\/\/.*@/, "//***@").split("?")[0]);
   client.close();
 }

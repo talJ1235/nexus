@@ -3,15 +3,16 @@
 import { useMemo, useState } from "react";
 import { toast } from "@/lib/toast";
 import { moveItems } from "@/app/actions";
-import { ChartColumn, History, Inbox, Plus, Settings2, ShoppingBag, Store, Truck, Zap } from "lucide-react";
+import { ChartColumn, ChevronLeft, Flag, History, Inbox, Plus, Settings, ShoppingCart, Store, Truck } from "lucide-react";
 import { useI18n } from "@/components/providers";
-import { LogoMark } from "@/components/logo";
-import { Kbd } from "@/components/ui/button";
+import { LogoPill } from "@/components/logo";
+import { Ring } from "@/components/ui/ring";
 import { budgetStats } from "@/lib/calc";
 import { cn } from "@/lib/utils";
 import { useStore, type View } from "./store";
 import { COLLECTION_COLORS, itemsForView } from "./view-items";
 import { NavRowsSkeleton, Skel } from "./skeletons";
+import { useExtension } from "./use-extension";
 
 function sameView(a: View, b: View) {
   if (a.type !== b.type) return false;
@@ -28,9 +29,10 @@ function NavItem({
   icon,
   label,
   count,
-  children,
+  trailing,
   onDropItems,
   carry,
+  collapsed,
 }: {
   active: boolean;
   onClick: () => void;
@@ -38,9 +40,11 @@ function NavItem({
   label: string;
   /** null = still loading (placeholder); undefined = no count for this entry. */
   count?: number | null;
-  children?: React.ReactNode;
+  /** Shown instead of the count (a project's budget ring). */
+  trailing?: React.ReactNode;
   onDropItems?: (ids: string[]) => void;
   carry?: string;
+  collapsed?: boolean;
 }) {
   const [over, setOver] = useState(false);
   const accepts = (e: React.DragEvent) => !!onDropItems && e.dataTransfer.types.includes(DRAG_TYPE);
@@ -50,6 +54,8 @@ function NavItem({
       onClick={onClick}
       data-carry={carry}
       aria-current={active ? "page" : undefined}
+      aria-label={collapsed ? label : undefined}
+      title={collapsed ? label : undefined}
       onDragOver={(e) => {
         if (!accepts(e)) return;
         e.preventDefault();
@@ -67,26 +73,30 @@ function NavItem({
         } catch {}
       }}
       className={cn(
-        "group relative flex w-full flex-col rounded-lg px-2.5 py-[7px] text-start text-[14px] transition",
-        over ? "bg-accent-soft text-fg ring-2 ring-accent" : active ? "bg-raised text-fg shadow-card" : "text-muted hover:bg-sunken hover:text-fg",
+        "group relative flex h-11 w-full shrink-0 items-center gap-[11px] whitespace-nowrap rounded-full px-[13px] text-start text-[14px] font-semibold transition-[background-color,color,box-shadow,padding] duration-200 active:scale-[0.98]",
+        over ? "bg-tint text-ink ring-2 ring-brand" : active ? "bg-ink text-bg" : "text-ink/85 hover:bg-surface-2 hover:text-ink",
       )}
     >
-      <span className="flex w-full items-center gap-2.5">
-        <span className={cn("flex size-4 shrink-0 items-center justify-center [&_svg]:size-4", active ? "text-fg" : "text-faint group-hover:text-muted")}>{icon}</span>
-        <span className="min-w-0 flex-1 truncate">{label}</span>
-        {count === null ? <Skel className="skeleton-in h-2.5 w-3.5" /> : count != null && count > 0 && <span className="tabular load-in text-xs text-faint">{count}</span>}
-      </span>
-      {children}
+      <span className="flex size-[19px] shrink-0 items-center justify-center [&_svg]:size-[19px] [&_svg]:stroke-[1.8]">{icon}</span>
+      <span className={cn("min-w-0 flex-1 truncate transition-opacity duration-200", collapsed && "opacity-0")}>{label}</span>
+      {!collapsed &&
+        (trailing ??
+          (count === null ? (
+            <Skel className="skeleton-in h-2.5 w-3.5" />
+          ) : (
+            count != null && count > 0 && <span className={cn("tabular load-in text-xs font-medium", active ? "opacity-70" : "text-muted")}>{count}</span>
+          )))}
     </button>
   );
 }
 
-function SectionHeader({ label, onAdd, addLabel, carry }: { label: string; onAdd?: () => void; addLabel?: string; carry?: string }) {
+function SectionHeader({ label, onAdd, addLabel, carry, collapsed }: { label: string; onAdd?: () => void; addLabel?: string; carry?: string; collapsed?: boolean }) {
+  if (collapsed) return <div className="mx-auto my-[11px] h-px w-6 shrink-0 bg-line" aria-hidden />;
   return (
-    <div className="mb-1 mt-5 flex items-center justify-between px-2.5">
-      <span className="text-xs font-medium text-faint">{label}</span>
+    <div className="flex h-8 items-center justify-between ps-3 pe-1.5">
+      <span className="text-xs font-semibold text-muted">{label}</span>
       {onAdd && (
-        <button type="button" onClick={onAdd} aria-label={addLabel} title={addLabel} data-carry={carry} className="rounded-md p-0.5 text-faint transition hover:bg-sunken hover:text-fg">
+        <button type="button" onClick={onAdd} aria-label={addLabel} title={addLabel} data-carry={carry} className="grid size-7 place-items-center rounded-full text-muted transition hover:bg-surface-2 hover:text-ink">
           <Plus className="size-3.5" />
         </button>
       )}
@@ -94,9 +104,12 @@ function SectionHeader({ label, onAdd, addLabel, carry }: { label: string; onAdd
   );
 }
 
-export function Sidebar() {
+/** The floating sidebar (desktop ≥1024 px), collapsible to 76 px icons. Also used inside the phone nav sheet
+ *  (`floating={false}`, never collapsed). */
+export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: boolean; onToggle?: () => void; floating?: boolean }) {
   const s = useStore();
   const { t, f } = useI18n();
+  const ext = useExtension();
 
   const counts = useMemo(
     () => ({
@@ -135,136 +148,143 @@ export function Sidebar() {
     }
   };
 
-  const stores = useMemo(() => {
-    const m = new Map<string, { name: string; count: number }>();
-    for (const i of s.items) {
-      if (i.status !== "to_buy") continue;
-      const seen = new Set<string>();
-      for (const src of i.sources) {
-        if (seen.has(src.storeKey) || src.storeKey === "manual") continue;
-        seen.add(src.storeKey);
-        const e = m.get(src.storeKey) ?? { name: src.store, count: 0 };
-        e.count++;
-        m.set(src.storeKey, e);
-      }
-    }
-    return [...m.entries()].sort((a, b) => b[1].count - a[1].count).slice(0, 10);
-  }, [s.items]);
-
   const active = (v: View) => sameView(s.view, v);
   const n = (v: number) => (s.loading ? null : v);
   const fade = s.navSeq === 0 ? "load-in" : undefined;
   const projects = s.collections.filter((c) => c.kind === "project" && !c.archived);
   const lists = s.collections.filter((c) => c.kind === "list" && !c.archived);
+  const c = !!collapsed;
 
   return (
-    <nav className="flex h-full flex-col" aria-label="Main">
-      <div className="flex items-center justify-between px-4 pb-2 pt-4">
-        <span className="inline-flex items-center gap-2.5">
-          <LogoMark />
-          <span className="text-[17px] font-semibold tracking-[-0.01em]">{t.appName}</span>
-        </span>
-        <button
-          type="button"
-          onClick={() => s.setPaletteOpen(true)}
-          data-carry="palette"
-          className="hidden items-center gap-1 rounded-md px-1.5 py-1 text-faint transition hover:bg-sunken hover:text-fg lg:flex"
-          title={t.cmd.placeholder}
-        >
-          <Kbd>Esc</Kbd>
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-2 pb-4">
-        <div className="mt-2 space-y-0.5">
-          <NavItem active={active({ type: "to_buy" })} onClick={() => s.setView({ type: "to_buy" })} carry="view:to_buy" icon={<ShoppingBag />} label={t.nav.toBuy} count={n(counts.to_buy)} />
-          <NavItem active={active({ type: "urgent" })} onClick={() => s.setView({ type: "urgent" })} carry="view:urgent" icon={<Zap />} label={t.nav.urgent} count={n(counts.urgent)} />
-          {counts.unsorted > 0 && (
-            <NavItem active={active({ type: "unsorted" })} onClick={() => s.setView({ type: "unsorted" })} carry="view:unsorted" icon={<Inbox />} label={t.nav.unsorted} count={counts.unsorted} onDropItems={(ids) => move(ids, null)} />
-          )}
-          <NavItem active={active({ type: "orders" })} onClick={() => s.setView({ type: "orders" })} carry="view:orders" icon={<Store />} label={t.nav.orders} />
-          <NavItem active={active({ type: "ordered" })} onClick={() => s.setView({ type: "ordered" })} carry="view:ordered" icon={<Truck />} label={t.nav.onTheWay} count={n(counts.ordered)} />
-          <NavItem active={active({ type: "history" })} onClick={() => s.setView({ type: "history" })} carry="view:history" icon={<History />} label={t.nav.history} count={n(counts.history)} />
-          <NavItem active={active({ type: "spending" })} onClick={() => s.setView({ type: "spending" })} carry="view:spending" icon={<ChartColumn />} label={t.nav.spending} />
-        </div>
-
-        <SectionHeader label={t.nav.projects} carry="editor:project" onAdd={() => s.setEditor({ mode: "create", kind: "project" })} addLabel={t.nav.newProject} />
-        {s.loading && <NavRowsSkeleton rows={[58, 42]} />}
-        <div className={cn("space-y-0.5", fade)}>
-          {projects.map((c) => {
-            const b = budgetStats(c, s.items, s.altGroups, s.rates, s.currency);
-            return (
-              <NavItem
-                key={c.id}
-                active={active({ type: "collection", id: c.id })}
-                onClick={() => s.setView({ type: "collection", id: c.id })}
-                onDropItems={(ids) => move(ids, c.id)}
-                icon={<span className="size-2.5 rounded-[3px]" style={{ background: COLLECTION_COLORS[c.color] ?? COLLECTION_COLORS.amber }} />}
-                label={c.name}
-                count={b.count}
-              >
-                {b.budget != null && (
-                  <span className="mt-1.5 ms-[26px] block h-1 overflow-hidden rounded-full bg-sunken" aria-hidden>
-                    <span
-                      className={cn("block h-full rounded-full", b.state === "over" ? "bg-danger" : b.state === "near" ? "bg-accent" : "bg-ok")}
-                      style={{ width: `${Math.min(100, b.pct ?? 0)}%` }}
-                    />
-                  </span>
-                )}
-              </NavItem>
-            );
-          })}
-          {projects.length === 0 && !s.loading && (
-            <button type="button" onClick={() => s.setEditor({ mode: "create", kind: "project" })} className="w-full rounded-lg px-2.5 py-1.5 text-start text-[13px] text-faint hover:bg-sunken hover:text-muted">
-              + {t.nav.newProject}
-            </button>
-          )}
-        </div>
-
-        <SectionHeader label={t.nav.lists} carry="editor:list" onAdd={() => s.setEditor({ mode: "create", kind: "list" })} addLabel={t.nav.newList} />
-        {s.loading && <NavRowsSkeleton rows={[46, 62]} round />}
-        <div className={cn("space-y-0.5", fade)}>
-          {lists.map((c) => (
-            <NavItem
-              key={c.id}
-              active={active({ type: "collection", id: c.id })}
-              onClick={() => s.setView({ type: "collection", id: c.id })}
-                onDropItems={(ids) => move(ids, c.id)}
-              icon={<span className="size-2.5 rounded-full" style={{ background: COLLECTION_COLORS[c.color] ?? COLLECTION_COLORS.amber }} />}
-              label={c.name}
-              count={s.items.filter((i) => i.collectionId === c.id && i.status === "to_buy").length}
-            />
-          ))}
-          {lists.length === 0 && !s.loading && (
-            <button type="button" onClick={() => s.setEditor({ mode: "create", kind: "list" })} className="w-full rounded-lg px-2.5 py-1.5 text-start text-[13px] text-faint hover:bg-sunken hover:text-muted">
-              + {t.nav.newList}
-            </button>
-          )}
-        </div>
-
-        {stores.length > 0 && (
-          <>
-            <SectionHeader label={t.nav.stores} />
-            <div className={cn("space-y-0.5", fade)}>
-              {stores.map(([key, v]) => (
-                <NavItem key={key} active={active({ type: "store", key })} onClick={() => s.setView({ type: "store", key })} icon={<Store />} label={v.name} count={v.count} />
-              ))}
-            </div>
-          </>
+    <nav
+      className={cn("flex h-full flex-col gap-4 overflow-hidden p-3", floating ? "rounded-[28px] border border-line bg-surface" : "bg-transparent")}
+      aria-label="Main"
+      data-collapsed={c ? "" : undefined}
+    >
+      <div className={cn("flex shrink-0 items-center gap-2", c && "flex-col")}>
+        <LogoPill collapsed={c} />
+        {onToggle && (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label={c ? t.shell.expand : t.shell.collapse}
+            title={c ? t.shell.expand : t.shell.collapse}
+            aria-expanded={!c}
+            data-sidebar-toggle
+            className={cn(
+              "grid size-9 shrink-0 place-items-center rounded-full border border-line bg-surface text-muted transition-transform duration-[450ms] ease-[var(--ease-out)] hover:text-ink",
+              c ? "rotate-180" : "ms-auto",
+            )}
+          >
+            <ChevronLeft className="size-4 rtl:-scale-x-100" strokeWidth={2.2} />
+          </button>
         )}
       </div>
 
-      <div className="border-t border-line p-2">
+      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-1">
+        <div className="flex flex-col gap-[3px]">
+          <NavItem collapsed={c} active={active({ type: "to_buy" })} onClick={() => s.setView({ type: "to_buy" })} carry="view:to_buy" icon={<ShoppingCart />} label={t.nav.toBuy} count={n(counts.to_buy)} />
+          <NavItem collapsed={c} active={active({ type: "urgent" })} onClick={() => s.setView({ type: "urgent" })} carry="view:urgent" icon={<Flag />} label={t.nav.urgent} count={n(counts.urgent)} />
+          {counts.unsorted > 0 && (
+            <NavItem collapsed={c} active={active({ type: "unsorted" })} onClick={() => s.setView({ type: "unsorted" })} carry="view:unsorted" icon={<Inbox />} label={t.nav.unsorted} count={counts.unsorted} onDropItems={(ids) => move(ids, null)} />
+          )}
+          <NavItem collapsed={c} active={active({ type: "ordered" })} onClick={() => s.setView({ type: "ordered" })} carry="view:ordered" icon={<Truck />} label={t.nav.onTheWay} count={n(counts.ordered)} />
+          <NavItem collapsed={c} active={active({ type: "orders" })} onClick={() => s.setView({ type: "orders" })} carry="view:orders" icon={<Store />} label={t.nav.orders} />
+          <NavItem collapsed={c} active={active({ type: "history" })} onClick={() => s.setView({ type: "history" })} carry="view:history" icon={<History />} label={t.nav.history} count={n(counts.history)} />
+          <NavItem collapsed={c} active={active({ type: "spending" })} onClick={() => s.setView({ type: "spending" })} carry="view:spending" icon={<ChartColumn />} label={t.nav.spending} />
+        </div>
+
+        <div className="flex flex-col gap-[3px]">
+          <SectionHeader collapsed={c} label={t.nav.projects} carry="editor:project" onAdd={() => s.setEditor({ mode: "create", kind: "project" })} addLabel={t.nav.newProject} />
+          {s.loading && !c && <NavRowsSkeleton rows={[58, 42]} />}
+          <div className={cn("flex flex-col gap-[3px]", fade)}>
+            {projects.map((p) => {
+              const b = budgetStats(p, s.items, s.altGroups, s.rates, s.currency);
+              const inProject = s.items.filter((i) => i.collectionId === p.id);
+              const bought = inProject.filter((i) => i.status !== "to_buy").length;
+              const ratio = b.budget != null ? (b.pct ?? 0) / 100 : inProject.length ? bought / inProject.length : 0;
+              const color = COLLECTION_COLORS[p.color] ?? COLLECTION_COLORS.amber;
+              return (
+                <NavItem
+                  key={p.id}
+                  collapsed={c}
+                  active={active({ type: "collection", id: p.id })}
+                  onClick={() => s.setView({ type: "collection", id: p.id })}
+                  onDropItems={(ids) => move(ids, p.id)}
+                  icon={<span className="size-2.5 rounded-[4px]" style={{ background: color }} />}
+                  label={p.name}
+                  trailing={<Ring value={ratio} color={b.state === "over" ? "var(--danger)" : color} />}
+                />
+              );
+            })}
+            {!c && !s.loading && (
+              <button
+                type="button"
+                onClick={() => s.setEditor({ mode: "create", kind: "project" })}
+                className="flex h-10 w-full items-center gap-[11px] rounded-full px-[13px] text-start text-[13px] font-medium text-muted transition hover:bg-surface-2 hover:text-ink"
+              >
+                <Plus className="size-[19px] stroke-[1.8]" />
+                {t.nav.newProject}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {(lists.length > 0 || s.loading) && (
+          <div className="flex flex-col gap-[3px]">
+            <SectionHeader collapsed={c} label={t.nav.lists} carry="editor:list" onAdd={() => s.setEditor({ mode: "create", kind: "list" })} addLabel={t.nav.newList} />
+            {s.loading && !c && <NavRowsSkeleton rows={[46, 62]} round />}
+            <div className={cn("flex flex-col gap-[3px]", fade)}>
+              {lists.map((l) => (
+                <NavItem
+                  key={l.id}
+                  collapsed={c}
+                  active={active({ type: "collection", id: l.id })}
+                  onClick={() => s.setView({ type: "collection", id: l.id })}
+                  onDropItems={(ids) => move(ids, l.id)}
+                  icon={<span className="size-2.5 rounded-full" style={{ background: COLLECTION_COLORS[l.color] ?? COLLECTION_COLORS.amber }} />}
+                  label={l.name}
+                  count={s.items.filter((i) => i.collectionId === l.id && i.status === "to_buy").length}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className={cn("flex shrink-0 items-center gap-2.5 rounded-[22px] p-1.5 transition-colors", c ? "justify-center bg-transparent" : "bg-surface-2")}>
         <button
           type="button"
           onClick={() => s.setSettingsOpen(true)}
           data-carry="settings"
-          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] text-muted transition hover:bg-sunken hover:text-fg"
+          title={c ? t.nav.settings : undefined}
+          aria-label={c ? t.nav.settings : undefined}
+          tabIndex={c ? 0 : -1}
+          className="grid size-[38px] shrink-0 place-items-center rounded-full bg-ink text-[15px] font-extrabold text-bg"
         >
-          <Settings2 className="size-4" />
-          <span className="flex-1 text-start">{t.nav.settings}</span>
-          <span className="tabular text-xs text-faint">{s.currency}</span>
+          {t.shell.owner.slice(0, 1).toUpperCase()}
         </button>
+        {!c && (
+          <>
+            <div className="min-w-0 flex-1 leading-tight">
+              <b className="block truncate text-[14px] font-bold">{t.shell.owner}</b>
+              <span className="flex items-center gap-1.5 truncate text-xs text-muted">
+                <span className={cn("size-1.5 shrink-0 rounded-full", ext.available ? "bg-ok" : "bg-faint")} aria-hidden />
+                {ext.available ? t.ext.connected : t.ext.notInstalled}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => s.setSettingsOpen(true)}
+              data-carry="settings"
+              aria-label={t.nav.settings}
+              title={t.nav.settings}
+              className="grid size-[34px] shrink-0 place-items-center rounded-full text-muted transition hover:bg-surface hover:text-ink"
+            >
+              <Settings className="size-[18px]" />
+            </button>
+          </>
+        )}
       </div>
     </nav>
   );

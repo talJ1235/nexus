@@ -79,20 +79,20 @@ fade). Background = active palette's bg.
 
 ## Part B — desktop shell and home (reference: `home-graphite-light.html`, `home-graphite-dark.html`, plum versions)
 
-### B1. [ ] Floating sidebar, collapsible
+### B1. [x] Floating sidebar, collapsible
 Rounded floating panel (radius 28, 1px line, surface). Top: logo pill (brand bg) + collapse button (chevron, rotates
 180°). Nav: To buy, Urgent, On the way, Order by store, History, Spending — pills, active = filled ink pill, counts
 muted. Projects: dot + name + tiny budget ring; "New project". Bottom: avatar "T", name, extension status, settings.
 Collapsed = 76 px icons only (tooltips on hover); state in a cookie (server-read, no jump). Transition 450 ms
 `--ease-out` on the grid column; content reflows smoothly. Below 1024 px the sidebar becomes the phone layout (Part C).
 
-### B2. [ ] Top bar: search, Ask Nexus (Hairline), alerts
+### B2. [x] Top bar: search, Ask Nexus (Hairline), alerts
 Search field (filters items live, as today) with a right-side hint "Esc · all actions" — **Esc opens the command menu**
 (keep that; no Ctrl K hint). "Ask Nexus" = variant **Hairline**: neutral surface, 1.5px two-tone outline
 `linear-gradient(100deg, brand, spark)` via `padding-box/border-box`, ink text, sparkle icon (reference
 `ask-button-variants-graphite.html`, item 2). Alerts button with a spark-coloured unread dot.
 
-### B3. [ ] Home: totals card + tiles, filters, product cards
+### B3. [x] Home: totals card + tiles, filters, product cards
 - Totals card (hero gradient): "Left to buy · N items", saved-amount tag top-end, big number (900 weight, decimals
   smaller), segmented bar by project (grows in on load), legend with amounts. No decorative circles.
 - Tile 1 (tint bg, tint-ink): Urgent count + names. Tile 2 (surface): best free-shipping progress (store, amount to
@@ -107,7 +107,7 @@ Search field (filters items live, as today) with a right-side hint "Esc · all a
   (bidi rules unchanged); meta line "● Project · Store" (no store letter/monogram on cards); price + quantity
   stepper; hover lift. Table view restyled to match.
 
-### B4. [ ] Floating paste capsule that moves with the sidebar
+### B4. [x] Floating paste capsule that moves with the sidebar
 Bottom-centre capsule over the content area: link icon, "Paste a product link", Ctrl V hint, Receipt (ghost) and Add
 (brand) buttons; 2px animated two-tone border (slow flow, 5–6 s). Centred on the content column, it glides when the
 sidebar opens/closes (same 450 ms ease). Pasting anywhere still works; placeholder cards from Round 5 unchanged.

@@ -5,6 +5,7 @@ import { PRIORITY_RANK, unitPrice } from "@/lib/calc";
 import { tokens } from "@/lib/similarity";
 import type { ItemWithSources } from "@/lib/types";
 import { itemsForView } from "@/lib/views";
+import { normalizeCategory } from "@/lib/categories";
 import { useStore } from "./store";
 
 export { itemsForView };
@@ -16,10 +17,12 @@ export function matchesQuery(i: ItemWithSources, q: string) {
 }
 
 export function useViewItems() {
-  const { items, view, query, tagFilter, sort, rates, currency } = useStore();
+  const { items, view, query, tagFilter, categoryFilter, collectionFilter, sort, rates, currency } = useStore();
   return useMemo(() => {
     let list = itemsForView(items, view).filter((i) => matchesQuery(i, query));
     if (tagFilter) list = list.filter((i) => i.tags?.includes(tagFilter) || i.category === tagFilter);
+    if (collectionFilter) list = list.filter((i) => i.collectionId === collectionFilter);
+    if (categoryFilter) list = list.filter((i) => (normalizeCategory(i.category) ?? "other") === categoryFilter);
     const sorted = list.slice();
     if (view.type === "history") {
       sorted.sort((a, b) => (b.purchasedAt ?? 0) - (a.purchasedAt ?? 0));
@@ -33,7 +36,7 @@ export function useViewItems() {
       sorted.sort((a, b) => b.createdAt - a.createdAt);
     }
     return sorted;
-  }, [items, view, query, tagFilter, sort, rates, currency]);
+  }, [items, view, query, tagFilter, categoryFilter, collectionFilter, sort, rates, currency]);
 }
 
 /** User-picked collection colours → a muted per-theme set (globals.css --proj-*), used only as small dots/bars. */
