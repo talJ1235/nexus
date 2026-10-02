@@ -684,28 +684,34 @@ try {
       await page.waitForSelector("[data-project-card] [data-project-cover]", { timeout: 15000 });
       await page.waitForTimeout(900); // the cards' rise-in settles first (a click waits for a stable element)
       const name = await page.locator("[data-project-card] [data-project-cover]").first().evaluate((e) => getComputedStyle(e).viewTransitionName);
-      const watch = () => page.evaluate((name) => {
+      // Click from inside the sampling script: no actionability waits between the click and the first sample.
+      const sample = (name, target) => page.evaluate(([name, target]) => new Promise((res) => {
         const seen = [];
         const t0 = performance.now();
         const tick = () => {
           const g = getComputedStyle(document.documentElement, `::view-transition-group(${name})`);
           if (g.width && g.width !== "auto" && g.width !== "0px") seen.push(g.borderTopLeftRadius);
           if (performance.now() - t0 < 900) requestAnimationFrame(tick);
-          else window.__radii = seen;
+          else res(seen);
         };
         requestAnimationFrame(tick);
-      }, name);
-      const radii = async () => { await page.waitForFunction(() => window.__radii, null, { timeout: 3000 }); const r = await page.evaluate(() => window.__radii); await page.evaluate(() => delete window.__radii); return r; };
-      const back = MOBILE ? page.locator('[data-dock-target="projects"]') : page.locator("aside button", { hasText: /^(Projects|פרויקטים)$/ }).first();
-      const go = async () => { await watch(); await page.locator("[data-project-card] > button").first().click(); await page.waitForSelector("[data-project-header]"); };
-      const ret = async () => { await page.waitForTimeout(600); await watch(); await back.click(); await page.waitForSelector("[data-project-card]"); };
+        document.querySelector(target)?.click();
+      }), [name, target]);
+      const back = MOBILE ? '[data-dock-target="projects"]' : null;
+      if (!back) {
+        // Desktop: the sidebar's Projects label.
+        await page.evaluate(() => [...document.querySelectorAll("aside button")].find((b) => /^(Projects|פרויקטים)$/.test(b.textContent.trim()))?.setAttribute("data-smoke-projects", ""));
+      }
+      const backSel = back ?? "[data-smoke-projects]";
       let fwd, rev;
+      const go = async () => { fwd = await sample(name, "[data-project-card] > button"); await page.waitForSelector("[data-project-header]"); };
+      const ret = async () => { await page.waitForTimeout(600); rev = await sample(name, backSel); await page.waitForSelector("[data-project-card]"); };
       if (TRACE) {
-        await traceFrames(page, "trace-cover-open", go, 900); fwd = await radii();
-        await traceFrames(page, "trace-cover-back", ret, 900); rev = await radii();
+        await traceFrames(page, "trace-cover-open", go, 1100);
+        await traceFrames(page, "trace-cover-back", ret, 1100);
       } else {
-        await go(); fwd = await radii();
-        await ret(); rev = await radii();
+        await go();
+        await ret();
       }
       const round = (r) => r.length > 0 && r.every((x) => x === r[0] && parseFloat(x) >= 20);
       ok(round(fwd) && round(rev), "project cover morph: rounded corners the whole way, both directions", `in: ${[...new Set(fwd)].join("/") || "no transition"}; back: ${[...new Set(rev)].join("/") || "no transition"}`);

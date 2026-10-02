@@ -57,8 +57,18 @@ export function getBarcodeReader() {
   return reader;
 }
 
-/** Warm both camera screens' code (barcode decoder + the receipt detector module). Cheap to call again. */
-export function prewarmScanners() {
-  void getBarcodeReader().catch(() => {});
+let fetched = false;
+
+/**
+ * Warm both camera screens' code (barcode decoder + the receipt detector module). Cheap to call again.
+ * `download: true` (idle time after load) only fetches — the modules and the .wasm into the HTTP cache — so a reload
+ * in the middle never aborts a compile; the + menu and the tap compile (fast from cache).
+ */
+export function prewarmScanners(opts: { download?: boolean } = {}) {
   void import("./receipt-detect").catch(() => {});
+  if (!opts.download) return void getBarcodeReader().catch(() => {});
+  if (fetched || window.BarcodeDetector) return;
+  fetched = true;
+  void import("zxing-wasm/reader").catch(() => {});
+  void fetch("/vendor/zxing_reader.wasm", { priority: "low" } as RequestInit).catch(() => {});
 }

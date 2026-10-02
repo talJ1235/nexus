@@ -347,7 +347,7 @@ export function StoreProvider({
     // Phones: warm the camera screens' code in idle time, so "Scan a barcode" / the receipt camera open fast.
     if (!window.matchMedia("(max-width: 1023px)").matches) return;
     const idle = window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 1500));
-    const id = idle(() => prewarmScanners(), { timeout: 4000 });
+    const id = idle(() => prewarmScanners({ download: true }), { timeout: 4000 });
     return () => (window.cancelIdleCallback ?? clearTimeout)(id);
   }, [loading]);
 
