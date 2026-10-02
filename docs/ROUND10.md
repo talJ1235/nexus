@@ -83,7 +83,7 @@ closest generic picture (e.g. a pudding/dairy-dessert photo for an unknown "מי
 never a generic box. It must work the same on **phone and desktop without the extension** (the extension is optional
 extra help, not required). The user approves all pictures in one tap; changing one is a quick, local action.
 
-### D1. [ ] Understand each receipt line first (one cheap call)
+### D1. [x] Understand each receipt line first (one cheap call)
 Receipt lines are abbreviated ("מילקי שוקו 3*100", "חלב תנ 3%"). One batched Gemini text call for all lines returns per
 line: clean Hebrew name, English name, brand, product type (generic), size/variant, a search query in Hebrew and one
 in English, an icon keyword, and the barcode/catalogue number if the receipt prints one. Store on the item (for later
