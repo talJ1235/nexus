@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, ArrowRight, Check, Link2Off, Plus, Search, X } from "lucide-react";
-import { previewImages } from "@/app/image-actions";
+import { findLinePictures, understandReceiptLines } from "@/app/picture-actions";
 import type { ReceiptRead } from "@/app/receipt-actions";
 import { useI18n } from "@/components/providers";
 import { Button, Input } from "@/components/ui/button";
@@ -10,7 +10,11 @@ import { CATEGORIES } from "@/lib/categories";
 import { formatMoney } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Spinner } from "@/components/ui/spinner";
+import type { Candidate } from "@/lib/picture-rank";
+import type { LineInfo } from "@/lib/product-lines";
 import { ProductImage } from "./item-card";
+import { PicturePicker } from "./picture-picker";
 import { useStore } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
 
@@ -23,15 +27,20 @@ export type LineState = {
   mode: Mode;
   allocations: { itemId: string; qty: number }[];
   ranked: string[];
-  /** New items: picture found for the line (E4), category, project/list. */
+  /** New items: picture found for the line (undefined = still looking), category, project/list. Round 10 D: what the
+   *  line is (D1), the ranked alternatives for the picker, where the picture came from, and "check" (a soft highlight). */
   image?: string | null;
+  info?: LineInfo;
+  candidates?: Candidate[];
+  imageSource?: Candidate["source"] | null;
+  imageCheck?: boolean;
   category?: string | null;
   collectionId?: string | null;
 };
-export type ReviewPhase = { step: "review"; read: ReceiptRead; kind: "receipt" | "order"; lines: LineState[] };
+export type ReviewPhase = { step: "review"; read: ReceiptRead; kind: "receipt" | "order"; lines: LineState[]; picturesApproved?: boolean };
 
 /** Review after reading: summary header, then "Already on your list" and "New" as product cards. */
-export function ReceiptReview({ phase, setPhase, onApply, onBack }: { phase: ReviewPhase; setPhase: (p: ReviewPhase) => void; onApply: () => void; onBack: () => void }) {
+export function ReceiptReview({ phase, setPhase, onApply, onBack }: { phase: ReviewPhase; setPhase: (p: ReviewPhase) => void; onApply: (opts?: { skipPictures?: boolean }) => void; onBack: () => void }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
   const { data } = phase.read;
@@ -42,23 +51,50 @@ export function ReceiptReview({ phase, setPhase, onApply, onBack }: { phase: Rev
   const taken = (itemId: string, line: number) => phase.lines.some((l, j) => j !== line && l.mode === "match" && l.allocations.some((a) => a.itemId === itemId));
   const [leaving, setLeaving] = useState(false);
 
-  // Pictures for the new cards, looked up once per review (nothing is saved until Apply).
-  const newNames = phase.lines.filter((l) => l.mode === "new" && l.image === undefined).map((l) => l.name);
+  // Pictures for the new cards (Round 10 D): one call understands every line, then a few lines at a time are searched
+  // and ranked, so each card fills in as soon as its picture is found. Nothing is saved until Confirm.
+  const latest = useRef(phase);
   useEffect(() => {
-    if (!newNames.length) return;
+    latest.current = phase;
+  });
+  const patchLines = (patch: Map<number, Partial<LineState>>) => {
+    const cur = latest.current;
+    const next = { ...cur, lines: cur.lines.map((l, i) => (patch.has(i) ? { ...l, ...patch.get(i) } : l)) };
+    latest.current = next;
+    setPhase(next);
+  };
+  const wanted = phase.lines.map((l, i) => [l, i] as const).filter(([l]) => l.mode === "new" && l.image === undefined);
+  const wantKey = wanted.map(([l, i]) => `${i}:${l.name}`).join("|");
+  useEffect(() => {
+    if (!wanted.length) return;
     let alive = true;
-    void previewImages({ names: newNames })
-      .then((urls) => {
+    void (async () => {
+      const idx = wanted.map(([, i]) => i);
+      const infos = await understandReceiptLines({ names: wanted.map(([l]) => l.name) }).catch(() => null);
+      if (!alive) return;
+      if (!infos) return patchLines(new Map(idx.map((i) => [i, { image: null }])));
+      for (let k = 0; k < infos.length && alive; k += 3) {
+        const chunk = infos.slice(k, k + 3);
+        const got = await findLinePictures({ infos: chunk }).catch(() => null);
         if (!alive) return;
-        const byName = new Map(newNames.map((n, i) => [n, urls[i]]));
-        setPhase({ ...phase, lines: phase.lines.map((l) => (l.mode === "new" && l.image === undefined ? { ...l, image: byName.get(l.name) ?? null } : l)) });
-      })
-      .catch(() => {});
+        patchLines(
+          new Map(
+            chunk.map((info, j) => {
+              const r = got?.[j];
+              return [idx[k + j], { info, image: r?.chosen?.url ?? null, candidates: r?.candidates ?? [], imageSource: r?.chosen?.source ?? null, imageCheck: !!r?.check }] as const;
+            }),
+          ),
+        );
+      }
+    })();
     return () => {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newNames.join("|")]);
+  }, [wantKey]);
+  const [picker, setPicker] = useState<number | null>(null);
+  const pending = phase.lines.some((l) => l.mode === "new" && l.image === undefined);
+  const approveAll = () => setPhase({ ...phase, picturesApproved: true, lines: phase.lines.map((l) => (l.mode === "new" ? { ...l, imageCheck: false } : l)) });
 
   const matched = phase.lines.map((l, i) => [l, i] as const).filter(([l]) => l.mode === "match" && l.allocations.length);
   const fresh = phase.lines.map((l, i) => [l, i] as const).filter(([l]) => l.mode === "new");
@@ -69,10 +105,10 @@ export function ReceiptReview({ phase, setPhase, onApply, onBack }: { phase: Rev
   const collections = s.collections.filter((c) => !c.archived);
   const date = data.orderDate ? new Date(data.orderDate).toLocaleDateString(locale === "he" ? "he-IL" : "en-GB", { day: "numeric", month: "short", year: "numeric" }) : null;
 
-  const apply = () => {
+  const apply = (skipPictures = false) => {
     // Cards fly toward their destination (staggered), then the receipt is applied.
     setLeaving(true);
-    setTimeout(onApply, 420);
+    setTimeout(() => onApply({ skipPictures }), 420);
   };
 
   return (
@@ -133,11 +169,45 @@ export function ReceiptReview({ phase, setPhase, onApply, onBack }: { phase: Rev
               ))}
             </select>
           </div>
+          {/* One tap approves every picture; "check" cards carry a soft highlight. Skip adds now, pictures keep coming. */}
+          <div className="flex flex-wrap items-center gap-2" data-review-pictures>
+            {phase.picturesApproved && !pending ? (
+              <span className="inline-flex h-9 items-center gap-1.5 rounded-full bg-ok-soft px-3 text-xs font-bold text-ok" data-pictures-approved>
+                <Check className="size-3.5" strokeWidth={3} /> {t.pictures.approved}
+              </span>
+            ) : (
+              <Button variant="outline" className="h-9 rounded-full px-3.5 text-xs font-bold" disabled={pending} onClick={approveAll} data-pictures-approve>
+                <Check /> {t.pictures.approveAll}
+              </Button>
+            )}
+            {pending && (
+              <>
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+                  <Spinner className="size-3.5" /> {t.pictures.finding}
+                </span>
+                <button type="button" className="ms-auto h-9 rounded-full px-3 text-xs font-semibold text-muted hover:bg-surface-2" onClick={() => apply(true)} disabled={!count || leaving} data-pictures-skip>
+                  {t.pictures.skip}
+                </button>
+              </>
+            )}
+          </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {fresh.map(([l, i], k) => (
-              <NewCard key={i} line={l} dest={dest} currency={currency} onChange={(p) => setLine(i, p)} leaving={leaving} order={matched.length + k} />
+              <NewCard key={i} line={l} dest={dest} currency={currency} onChange={(p) => setLine(i, p)} onPicture={() => setPicker(i)} leaving={leaving} order={matched.length + k} />
             ))}
           </div>
+          {picker != null && (
+            <PicturePicker
+              open
+              onOpenChange={(o) => !o && setPicker(null)}
+              title={phase.lines[picker].info?.nameHe ?? phase.lines[picker].name}
+              current={phase.lines[picker].image ?? null}
+              candidates={phase.lines[picker].candidates ?? []}
+              loading={phase.lines[picker].image === undefined}
+              keyword={phase.lines[picker].info?.iconKeyword ?? "package"}
+              onPick={(c) => setLine(picker, { image: c.url, imageSource: c.source === "photo" ? null : c.source, imageCheck: false })}
+            />
+          )}
         </section>
       )}
 
@@ -159,7 +229,7 @@ export function ReceiptReview({ phase, setPhase, onApply, onBack }: { phase: Rev
         <Button variant="ghost" onClick={onBack}>
           {t.scan.back}
         </Button>
-        <Button variant="accent" disabled={!count || leaving} onClick={apply} data-receipt-apply>
+        <Button variant="accent" disabled={!count || leaving} onClick={() => apply()} data-receipt-apply>
           {t.scan.apply} {count > 0 && <span className="tabular">({count})</span>}
         </Button>
       </div>
@@ -243,14 +313,23 @@ function MatchedCard({ line, index, dest, currency, byId, taken, onChange, leavi
   );
 }
 
-function NewCard({ line, dest, currency, onChange, leaving, order }: { line: LineState; dest: string; currency: string; onChange: (p: Partial<LineState>) => void; leaving: boolean; order: number }) {
+function NewCard({ line, dest, currency, onChange, onPicture, leaving, order }: { line: LineState; dest: string; currency: string; onChange: (p: Partial<LineState>) => void; onPicture: () => void; leaving: boolean; order: number }) {
   const s = useStore();
   const { t, locale } = useI18n();
   const c = line.collectionId ? s.collections.find((x) => x.id === line.collectionId) : null;
   return (
     <div className={cn("flex flex-col gap-2 rounded-[22px] border bg-surface p-2", line.check ? "border-tint-ink/40 bg-tint/40" : "border-line", flyCls(leaving))} style={fly(leaving, order)} data-receipt-line="new">
       <div className="flex items-center gap-3">
-        <ProductImage src={line.image ?? null} alt="" pending={line.image === undefined} className="size-14 shrink-0 rounded-[16px]" iconClass="size-5" />
+        <button
+          type="button"
+          onClick={onPicture}
+          className={cn("relative shrink-0 rounded-[16px] transition active:scale-95", line.imageCheck && "ring-2 ring-tint-ink/60 ring-offset-2 ring-offset-surface")}
+          aria-label={line.imageCheck ? t.pictures.check : t.pictures.change}
+          title={line.imageCheck ? t.pictures.check : t.pictures.change}
+          data-receipt-picture={line.image === undefined ? "pending" : line.imageCheck ? "check" : line.image ? "ok" : "none"}
+        >
+          <ProductImage key={line.image ?? "none"} src={line.image ?? null} alt="" pending={line.image === undefined} className="size-14 animate-pop-in rounded-[16px]" iconClass="size-5" />
+        </button>
         <span className="min-w-0 flex-1">
           <span className="line-clamp-2 text-sm font-bold leading-snug bidi">{line.name}</span>
           <span className="tabular text-xs">

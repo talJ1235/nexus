@@ -127,7 +127,7 @@ export function ReceiptDialog() {
 
   const close = () => s.setPanel(null);
 
-  const apply = async (p: Extract<Phase, { step: "review" }>) => {
+  const apply = async (p: Extract<Phase, { step: "review" }>, opts: { skipPictures?: boolean } = {}) => {
     const { data, receipt } = p.read;
     const input: ApplyReceiptInput = {
       receiptId: receipt.id,
@@ -139,7 +139,20 @@ export function ReceiptDialog() {
         l.mode === "match" && l.allocations.length
           ? { mode: "match" as const, unitPrice: l.unitPrice, allocations: l.allocations }
           : l.mode === "new"
-            ? { mode: "new" as const, name: l.name, qty: l.qty, unitPrice: l.unitPrice, image: l.image ?? null, category: l.category ?? null, collectionId: l.collectionId ?? null }
+            ? {
+                mode: "new" as const,
+                name: l.name,
+                qty: l.qty,
+                unitPrice: l.unitPrice,
+                image: l.image ?? null,
+                category: l.category ?? null,
+                collectionId: l.collectionId ?? null,
+                imageSource: l.imageSource ?? null,
+                // Confirm approves the pictures; "Skip pictures" keeps Nexus's best guesses marked "check".
+                imageCheck: opts.skipPictures ? !!l.imageCheck : false,
+                candidates: l.candidates?.length ? l.candidates.map(({ url, source, title, domain }) => ({ url, source, title: title ?? null, domain: domain ?? null })) : null,
+                info: l.info ?? null,
+              }
             : { mode: "ignore" as const },
       ),
     };
@@ -256,7 +269,7 @@ export function ReceiptDialog() {
           </div>
         )}
 
-        {phase.step === "review" && <ReceiptReview phase={phase} setPhase={setPhase} onApply={() => void apply(phase)} onBack={() => setPhase({ step: "pick" })} />}
+        {phase.step === "review" && <ReceiptReview phase={phase} setPhase={setPhase} onApply={(o) => void apply(phase, o)} onBack={() => setPhase({ step: "pick" })} />}
       </div>
     </Modal>
   );

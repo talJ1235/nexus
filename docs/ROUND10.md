@@ -108,7 +108,7 @@ One batched Gemini **vision** call ranks the candidate thumbnails for several it
 "check". Keep the ranked alternatives on the item (`imageCandidates` JSON, up to 6) for the picker. Resize to 480 px
 WebP → Blob as today; `imageSource` = barcode / search / generic / icon.
 
-### D4. [ ] Approve in one tap, change in two
+### D4. [x] Approve in one tap, change in two
 - Receipt review (E3 of Round 7): every card shows its picture as soon as it's found (shimmer until then). Header
   button **"Pictures look right — approve all"**; "check" ones have a soft highlight. Confirm also approves.
   "Skip pictures" adds the items now with the best guesses and keeps improving in the background.

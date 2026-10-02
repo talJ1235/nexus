@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   // Links whose first read was incomplete (e.g. a guest added it while the store/AI was unavailable).
   const repair = await repairIncomplete(16_000).catch(() => ({ tried: 0, repaired: 0 }));
   // Pictures for items that have none (bounded per run).
-  const images = await backfillImages(8_000).catch(() => ({ tried: 0, filled: 0 }));
+  const images = await backfillImages(12_000).catch(() => ({ tried: 0, filled: 0 }));
   const digest = await sendAlertDigest(req.nextUrl.origin);
   // Sundays (Israel): the weekly summary, after the day's alerts went out.
   const weekly = await sendWeeklySummary(publicOrigin(req.nextUrl.origin)).catch(() => ({ weekly: "failed" as const }));

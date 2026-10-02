@@ -1,6 +1,8 @@
 "use server";
 
 import { createHash } from "node:crypto";
+import { storedSource } from "@/lib/picture-rank";
+import type { LineInfo } from "@/lib/product-lines";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { del, put } from "@vercel/blob";
@@ -204,6 +206,12 @@ const applyInput = z.object({
           qty: z.number().int().min(1).max(100000),
           unitPrice: z.number().nonnegative().nullable(),
           image: z.string().max(200_000).nullish(),
+          // Round 10 D: where the picture came from, the alternatives for the picker, what the product is; the
+          // review's Confirm approves the pictures (imageCheck false) unless the owner skipped them.
+          imageSource: z.enum(["barcode", "own", "search", "off", "generic", "icon"]).nullish(),
+          imageCheck: z.boolean().nullish(),
+          candidates: z.array(z.object({ url: z.string().max(200_000), source: z.enum(["barcode", "own", "search", "off", "generic", "icon"]), title: z.string().max(300).nullish(), domain: z.string().max(200).nullish() })).max(6).nullish(),
+          info: z.record(z.string(), z.unknown()).nullish(),
           category: z.string().max(40).nullish(),
           collectionId: z.string().max(40).nullish(),
         }),
@@ -275,7 +283,10 @@ export async function applyReceipt(raw: ApplyReceiptInput): Promise<{ items: Ite
         id,
         title: line.name,
         imageUrl: image,
-        imageSource: image ? (image.startsWith("data:image/svg") ? "icon" : "store") : null,
+        imageSource: image ? (line.imageSource ? storedSource({ url: image, source: line.imageSource }) : image.startsWith("data:image/svg") ? "icon" : "store") : null,
+        imageCheck: !!image && !!line.imageCheck,
+        imageCandidates: line.candidates?.length ? line.candidates : null,
+        productInfo: (line.info as LineInfo | undefined) ?? null,
         category: normalizeCategory(line.category),
         collectionId: line.collectionId && (await db.query.collections.findFirst({ where: eq(schema.collections.id, line.collectionId) })) ? line.collectionId : null,
         tags: [],

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, FileSpreadsheet, LogOut, Monitor, Moon, Puzzle, Sun, Upload, MessageSquareWarning } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { BookmarkletDialog } from "./bookmarklet";
 import { BudgetEditor } from "./budget-card";
 import { saveImportLimit } from "@/app/money-actions";
+import { pictureSearchStatus } from "@/app/picture-actions";
 import { MemorySection } from "./memory-section";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
@@ -80,6 +81,25 @@ function Row({ title, hint, children }: { title: string; hint?: string; children
       </div>
       {children}
     </div>
+  );
+}
+
+/** Product pictures (Round 10 D2): whether Google image search is set up; without it, a note to add the key. */
+function PictureSearchRow() {
+  const { t } = useI18n();
+  const [on, setOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    void pictureSearchStatus()
+      .then((r) => setOn(r.search))
+      .catch(() => {});
+  }, []);
+  if (on == null) return null;
+  return (
+    <Row title={t.pictures.settingsTitle} hint={on ? t.pictures.searchOn : t.pictures.needsKey}>
+      <div className="flex items-center justify-end gap-2" data-picture-search-status={on ? "on" : "off"}>
+        <span className={cn("size-2 rounded-full", on ? "bg-ok" : "bg-faint")} aria-hidden />
+      </div>
+    </Row>
   );
 }
 
@@ -193,6 +213,7 @@ export function SettingsDialog() {
                 </Button>
               </div>
             </Row>
+            <PictureSearchRow />
             <Row title={t.report.menu}>
               <div className="flex items-center justify-end gap-2">
                 <Button size="sm" variant="ghost" onClick={() => s.setReportsOpen(true)} data-settings-reports>

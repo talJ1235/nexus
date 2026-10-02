@@ -12,9 +12,10 @@ import { cheapestSource, activeSource, lineTotal, sourceTotal } from "@/lib/calc
 import { convert, formatMoney } from "@/lib/money";
 import type { ItemWithSources, Source } from "@/lib/types";
 import { cn, isHttpUrl } from "@/lib/utils";
-import { PriceTag, ProductImage, morphClose } from "./item-card";
+import { PriceTag, morphClose } from "./item-card";
 import { AltLink, FindIt, Group, LowestBadge, PriceHistory, PriceWatch, ReceiptsSection, Row, ShippingSection, StatusControl } from "./item-sheet-parts";
 import { StoreMark } from "@/components/ui/store-mark";
+import { SheetPicture } from "./sheet-picture";
 import { useStore, useOpenItemId } from "./store";
 import { useReadOnly } from "./offline-banner";
 import { useExtension } from "./use-extension";
@@ -442,7 +443,7 @@ export function ItemSheet() {
             {/* Hero: what it is and what it costs. */}
             <div className="border-b border-line bg-surface px-5 pb-5 pt-4">
               <div className="flex gap-4">
-                <ProductImage src={item.imageUrl} alt={item.title} className="size-24 shrink-0 rounded-[var(--radius-tile)] ring-1 ring-line sm:size-28" data-sheet-img />
+                <SheetPicture item={item} />
                 <div className="min-w-0 flex-1">
                   <textarea
                     key={item.id + item.title}
