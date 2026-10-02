@@ -13,15 +13,7 @@ import { cn } from "@/lib/utils";
 import { ProductImage, useStatusFlow } from "./item-card";
 import { useStore } from "./store";
 import { haptic, photoToDataUrl, useCamera } from "./use-camera";
-
-const FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"];
-
-type Detector = { detect: (src: CanvasImageSource) => Promise<{ rawValue: string }[]> };
-declare global {
-  interface Window {
-    BarcodeDetector?: { new (o: { formats: string[] }): Detector; getSupportedFormats?: () => Promise<string[]> };
-  }
-}
+import { getBarcodeReader, prewarmScanners } from "@/lib/barcode-reader";
 
 /** Reads barcodes from the live video: native BarcodeDetector where available, else zxing-wasm (lazy, self-hosted). */
 function useBarcodeReader(videoRef: React.RefObject<HTMLVideoElement | null>, active: boolean, onCode: (code: string) => void) {
@@ -35,8 +27,6 @@ function useBarcodeReader(videoRef: React.RefObject<HTMLVideoElement | null>, ac
     let timer = 0;
     let last = "";
     let lastAt = 0;
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
     const emit = (code: string) => {
       // Two matching reads in a row (≤1.2 s apart) before acting: no half-seen misreads.
       const now = Date.now();
@@ -49,24 +39,9 @@ function useBarcodeReader(videoRef: React.RefObject<HTMLVideoElement | null>, ac
       }
     };
     (async () => {
-      let read: (v: HTMLVideoElement) => Promise<string | null>;
-      const native = window.BarcodeDetector && (await window.BarcodeDetector.getSupportedFormats?.().catch((): string[] => []))?.includes("ean_13");
-      if (native) {
-        const det = new window.BarcodeDetector!({ formats: FORMATS });
-        read = async (v) => (await det.detect(v).catch(() => []))[0]?.rawValue ?? null;
-      } else {
-        const z = await import("zxing-wasm/reader");
-        z.setZXingModuleOverrides({ locateFile: (path: string, prefix: string) => (path.endsWith(".wasm") ? "/vendor/zxing_reader.wasm" : prefix + path) });
-        read = async (v) => {
-          const w = 720;
-          const h = Math.round((v.videoHeight / v.videoWidth) * w) || 540;
-          canvas.width = w;
-          canvas.height = h;
-          ctx.drawImage(v, 0, 0, w, h);
-          const r = await z.readBarcodes(ctx.getImageData(0, 0, w, h), { formats: ["EAN13", "EAN8", "UPCA", "UPCE", "Code128"], tryHarder: true, maxNumberOfSymbols: 1 });
-          return r.find((x) => x.isValid)?.text ?? null;
-        };
-      }
+      const r = await getBarcodeReader().catch(() => null);
+      if (!r || stop) return;
+      const { read, native } = r;
       const loop = async () => {
         if (stop) return;
         const v = videoRef.current;
@@ -105,6 +80,10 @@ export function BarcodeScanner({ open, onClose, onCode }: { open: boolean; onClo
     }
   };
   useBarcodeReader(videoRef, open && camState === "on" && !paused && !typing, (c) => void handle(c));
+  // Opened without the store's setScanner (shopping mode): start the decoder with the camera, in parallel.
+  useEffect(() => {
+    if (open) prewarmScanners();
+  }, [open]);
   useEffect(() => {
     if (!open) {
       /* eslint-disable-next-line react-hooks/set-state-in-effect -- reset when closed */
@@ -120,7 +99,9 @@ export function BarcodeScanner({ open, onClose, onCode }: { open: boolean; onClo
       <D.Portal>
         <D.Content className="fixed inset-0 z-50 flex flex-col bg-black text-white outline-none overlay-in" aria-describedby={undefined} data-barcode-scanner>
           <D.Title className="sr-only">{t.barcode.title}</D.Title>
-          <video ref={videoRef} className="absolute inset-0 size-full object-cover" playsInline muted />
+          {/* The viewfinder is there at once: a soft placeholder until the first frame, then the video fades in. */}
+          <div aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_45%,rgb(255_255_255/0.08),transparent_70%)]" />
+          <video ref={videoRef} className={cn("absolute inset-0 size-full object-cover transition-opacity duration-300", camState === "on" ? "opacity-100" : "opacity-0")} playsInline muted data-cam-state={camState} />
           {/* Frame */}
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <div className="relative h-[34vw] max-h-[200px] w-[78vw] max-w-[440px] rounded-[26px] shadow-[0_0_0_100vmax_rgb(0_0_0/0.45)]">

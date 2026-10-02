@@ -40,7 +40,7 @@ it was in Open.
 
 ## Part B — faster camera
 
-### B1. [ ] Barcode scanner opens fast
+### B1. [x] Barcode scanner opens fast
 Opening "Scan a barcode" takes noticeably long. Measure time from tap → first video frame → first decode-ready, then:
 start `getUserMedia` **immediately** on tap (show the viewfinder at once with a subtle placeholder), load the decoder
 in parallel (not before the camera); pre-warm in idle time after the app loads (`import()` of the scanner module +
@@ -141,3 +141,9 @@ rate in Open.
   data-only reload) but nothing turned Chrome's off, so pulling showed Chrome's circle and reloaded the page under
   ours. Now `overscroll-behavior-y: contain` on the root, and ours reloads the page into the boot sequence, which plays
   on every full load/reload (the once-per-tab `sessionStorage` skip is gone). No in-app spinner appears on reload.
+- **B1** (fake camera, CPU ×4, permission granted): tap → first video frame 230–280 ms on a cold open (once ~500 ms
+  when the machine was busy — Chromium's fake-camera start), 135–175 ms on a reopen within the minute; receipt camera
+  115–145 ms; the decoder is ready before the tap (idle pre-warm), so decode-ready = first frame. Before, the camera
+  started only after the viewfinder rendered (at 1280 px) and the decoder only after the camera was on (sequential).
+  The live stream is kept 60 s after closing (stopped at once when the page is hidden) — the camera indicator stays on
+  for that minute; say if you'd rather it stop immediately. Worth one check on the real phone.

@@ -9,6 +9,8 @@ import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
 import type { AltGroup, AppData, Collection, ItemWithSources, StoreSetting } from "@/lib/types";
 import type { View } from "@/lib/views";
 import { markBooted } from "@/lib/boot";
+import { primeCamera } from "@/lib/camera";
+import { prewarmScanners } from "@/lib/barcode-reader";
 import { reloadAll } from "@/app/actions";
 import { ensureImages } from "@/app/image-actions";
 import { cacheShell, saveSnapshot } from "@/lib/offline";
@@ -257,7 +259,15 @@ export function StoreProvider({
   const [collectionFilter, setCollectionFilter] = useState<string | null>(null);
   const [plusOpen, setPlusOpen] = useState(false);
   const [pasteOpen, setPasteOpen] = useState(false);
-  const [scanner, setScanner] = useState<"barcode" | "receipt" | null>(null);
+  const [scanner, setScannerState] = useState<"barcode" | "receipt" | null>(null);
+  // Opening a camera screen starts the camera in the tap itself and loads its decoder in parallel (Round 10 B1).
+  const setScanner = useCallback((k: "barcode" | "receipt" | null) => {
+    if (k) {
+      primeCamera();
+      prewarmScanners();
+    }
+    setScannerState(k);
+  }, []);
   const [shop, setShop] = useState<ShopScope | "pick" | null>(null);
   const [imagePending, setImagePending] = useState<Set<string>>(() => new Set());
   const [compareItemId, setCompareItemId] = useState<string | null>(null);
@@ -332,7 +342,13 @@ export function StoreProvider({
 
   // The app has its data: the phone boot screen can hand off.
   useEffect(() => {
-    if (!loading) markBooted();
+    if (loading) return;
+    markBooted();
+    // Phones: warm the camera screens' code in idle time, so "Scan a barcode" / the receipt camera open fast.
+    if (!window.matchMedia("(max-width: 1023px)").matches) return;
+    const idle = window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 1500));
+    const id = idle(() => prewarmScanners(), { timeout: 4000 });
+    return () => (window.cancelIdleCallback ?? clearTimeout)(id);
   }, [loading]);
 
   // One-time migration of prefs saved in localStorage before they moved to cookies, and `?item=` deep links.
@@ -619,7 +635,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

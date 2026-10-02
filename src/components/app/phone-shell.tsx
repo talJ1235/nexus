@@ -6,6 +6,7 @@ import { ChartColumn, Folder, Plus, Search, ShoppingCart, Truck, X } from "lucid
 import { useI18n } from "@/components/providers";
 import { LogoPill } from "@/components/logo";
 import { cn } from "@/lib/utils";
+import { prewarmScanners } from "@/lib/barcode-reader";
 import { AlertsBell } from "./alerts-panel";
 import { useReadOnly } from "./offline-banner";
 import { useStore, type View } from "./store";
@@ -163,6 +164,7 @@ function PlusMenuSheet() {
   // Back gesture / Esc closes: one history entry while open.
   useEffect(() => {
     if (!open) return;
+    prewarmScanners(); // two of its four actions are camera screens (Round 10 B1)
     history.pushState({ nxPlus: 1 }, "");
     const pop = () => s.setPlusOpen(false);
     const key = (e: KeyboardEvent) => {

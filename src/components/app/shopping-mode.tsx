@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { primeCamera } from "@/lib/camera";
 import { Dialog as D } from "radix-ui";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { Check, ChevronLeft, Minus, Plus, ScanBarcode, ShoppingCart, Store, X } from "lucide-react";
@@ -277,7 +278,10 @@ function Trip({ scope }: { scope: ShopScope }) {
               {f(t.shop.progress, { done: cart.length, total: items.length })} · {m(total)}
             </div>
           </div>
-          <button type="button" onClick={() => setScanning(true)} className="grid size-11 shrink-0 place-items-center rounded-full bg-tint text-tint-ink" aria-label={t.barcode.title} data-shop-scan>
+          <button type="button" onClick={() => {
+            primeCamera();
+            setScanning(true);
+          }} className="grid size-11 shrink-0 place-items-center rounded-full bg-tint text-tint-ink" aria-label={t.barcode.title} data-shop-scan>
             <ScanBarcode className="size-5" />
           </button>
           <D.Close className="grid size-11 shrink-0 place-items-center rounded-full border border-line bg-surface" aria-label={t.phone.closeMenu}>
