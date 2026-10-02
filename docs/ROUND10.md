@@ -54,7 +54,7 @@ profile. Same treatment for the receipt camera. Add the timings to the smoke tra
 
 ## Part C — projects page
 
-### C1. [ ] Order and "New" controls
+### C1. [x] Order and "New" controls
 - Order on the page: **Projects**, then **Lists**, then at the very bottom one "Start something new" card.
 - One consistent pattern for both sections: a "New" pill at the top end of the page header with a small menu
   (New project / New list), and the bottom card redesigned to match (two halves or two buttons: New project · New

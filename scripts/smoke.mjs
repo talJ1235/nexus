@@ -14,6 +14,9 @@
 //     into $SMOKE_OUT/trace[-m]/ plus one contact sheet (trace[-m].png) to judge load flashes from frames.
 //     SMOKE_TRACE_PATH=/?v=urgent traces another URL; SMOKE_THROTTLE=1 emulates a slow phone network (Fast 3G-ish)
 //     and SMOKE_TRACE_LAYOUT=table stores that layout preference first (to catch a cards→table second render).
+//     With SMOKE_TRACE, animations get their own frame series too (trace-sheet-*, trace-cover-*).
+//   SMOKE_VISUAL=/?v=projects screenshots that view in Graphite + Plum × light + dark (phone: at 360 and 390 px)
+//     into $SMOKE_OUT/visual/, for judging a visual change by screenshot. SMOKE_VISUAL_FULL=1 takes full-page shots.
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -633,12 +636,19 @@ try {
       });
     }
 
-    await step("projects screen: cards with covers + new-project card → project page with its header → Excel export", async () => {
+    await step("projects screen: cards with covers, order projects → lists → start-new, New menu → project page with its header → Excel export", async () => {
       await page.goto(`${BASE}/?v=projects`);
       await page.waitForSelector("[data-projects-view]", { timeout: 15000 });
       const n = await page.locator("[data-project-card]").count();
       const covers = await page.locator("[data-project-card] [data-project-cover]").count();
-      const add = await page.locator("[data-new-project]").count();
+      // Round 10 C1: Projects, then Lists, then the one "Start something new" card; the header's New pill has both.
+      const add = await page.locator("[data-start-new] [data-start-new-item]").count() === 2 ? 1 : 0;
+      const order = await page.evaluate(() => ["[data-projects-section]", "[data-lists-section]", "[data-start-new]"].map((q) => document.querySelector(q)?.getBoundingClientRect().top ?? -1));
+      if (!(order[0] >= 0 && (order[1] < 0 || order[1] > order[0]) && order[2] > Math.max(order[0], order[1]))) throw new Error(`order ${order}`);
+      await page.locator("[data-projects-new]").click();
+      const menu = await page.locator("[data-projects-new-item]").count();
+      await page.keyboard.press("Escape");
+      if (menu !== 2) throw new Error(`New menu has ${menu} items`);
       await shot(page, "projects");
       let header = 0;
       if (n) {
@@ -655,7 +665,7 @@ try {
         await page.keyboard.press("Escape");
         if (cmd !== 1) throw new Error("no Export to Excel in the command menu");
       }
-      ok(n > 0 && covers === n && add === 1 && header === 1 && /v=c%3A|v=c:/.test(page.url()), "projects screen: cards with covers + new-project card → project page with its header → Excel export", `cards=${n} covers=${covers} add=${add} header=${header} url=${page.url()}`);
+      ok(n > 0 && covers === n && add === 1 && header === 1 && /v=c%3A|v=c:/.test(page.url()), "projects screen: cards with covers, order projects → lists → start-new, New menu → project page with its header → Excel export", `cards=${n} covers=${covers} add=${add} header=${header} url=${page.url()}`);
       await page.goto(`${BASE}/`);
       await page.waitForSelector(READY, { timeout: 15000 });
     });
@@ -1391,6 +1401,38 @@ try {
       }
       await p.close();
     });
+
+    if (process.env.SMOKE_VISUAL) {
+      await step("visual matrix", async () => {
+        const dir = `${OUT || join(tmpdir(), "nexus-smoke")}/visual`;
+        mkdirSync(dir, { recursive: true });
+        const widths = MOBILE ? [360, 390] : [VIEWPORT.width];
+        let n = 0;
+        for (const palette of ["graphite", "plum"]) {
+          for (const mode of ["light", "dark"]) {
+            await ctx.addCookies([{ name: "nexus_palette", value: palette, url: BASE }]);
+            await page.emulateMedia({ colorScheme: mode });
+            await page.evaluate((m) => localStorage.setItem("theme", m), mode);
+            for (const w of widths) {
+              await page.setViewportSize({ width: w, height: VIEWPORT.height });
+              await page.goto(`${BASE}${process.env.SMOKE_VISUAL}`);
+              await page.waitForSelector(READY, { timeout: 15000 });
+              await page.waitForSelector("#boot", { state: "hidden", timeout: 10000 }).catch(() => {});
+              await page.mouse.move(1, 1);
+              await page.waitForTimeout(900);
+              await page.screenshot({ path: `${dir}/${palette}-${mode}-${w}.png`, fullPage: !!process.env.SMOKE_VISUAL_FULL });
+              n++;
+            }
+          }
+        }
+        await page.setViewportSize(VIEWPORT);
+        await page.emulateMedia({ colorScheme: "dark" });
+        await page.evaluate(() => localStorage.setItem("theme", "system"));
+        await ctx.addCookies([{ name: "nexus_palette", value: "graphite", url: BASE }]);
+        ok(n > 0, "visual matrix", `${n} shots`);
+        console.log(`INFO visual: ${n} shots → ${dir}`);
+      });
+    }
 
     if (TRACE) {
       await step("load trace", async () => {

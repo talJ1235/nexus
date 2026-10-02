@@ -14,8 +14,9 @@ import { useReadOnly } from "./offline-banner";
 import { useStore } from "./store";
 
 /**
- * Projects (Round 9 E1): substantial, friendly cards — a colour cover with a collage of the project's pictures, the
- * name, what's left and what's next, a budget ring, bought vs total, urgent / on-the-way flags. Lists below.
+ * Projects (Round 9 E1, Round 10 C1): projects first, then lists, then one "Start something new" card at the very
+ * bottom. Creating either is one pattern: the "New" pill in the header (New project / New list) and the bottom card's
+ * two halves look like one family — the same plan gradient chips, folder and list marks.
  */
 export function ProjectsView() {
   const s = useStore();
@@ -27,27 +28,95 @@ export function ProjectsView() {
     <div className="flex flex-col gap-5" data-projects-view>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-[26px] font-extrabold tracking-[-0.02em]">{t.projects.title}</h1>
-        <Button variant="outline" size="sm" className="h-10 px-4" onClick={() => s.setEditor({ mode: "create", kind: "list" })}>
-          <ListPlus /> {t.nav.newList}
-        </Button>
+        <NewMenu />
       </div>
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3" data-projects-section>
         {projects.map((c, i) => (
           <ProjectCard key={c.id} c={c} index={i} />
         ))}
-        <NewProjectCard index={projects.length} empty={!projects.length} />
       </div>
       {lists.length > 0 && (
         <>
           <h2 className="mt-2 text-[18px] font-extrabold">{t.projects.lists}</h2>
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3" data-lists-section>
             {lists.map((c, i) => (
-              <ProjectCard key={c.id} c={c} index={projects.length + 1 + i} />
+              <ProjectCard key={c.id} c={c} index={projects.length + i} />
             ))}
           </div>
         </>
       )}
+      <StartNewCard index={projects.length + lists.length} />
     </div>
+  );
+}
+
+const create = (s: ReturnType<typeof useStore>, kind: "project" | "list") => s.setEditor({ mode: "create", kind });
+
+/** The two kinds' marks, shared by the header menu and the bottom card. */
+function KindChip({ kind, size = "md" }: { kind: "project" | "list"; size?: "sm" | "md" }) {
+  return (
+    <span className={cn("grid shrink-0 place-items-center rounded-full bg-[image:var(--act-plan)] text-[var(--act-plan-ink)] transition-transform duration-[450ms] ease-[var(--ease-spring)]", size === "sm" ? "size-8" : "size-12")}>
+      {kind === "project" ? <FolderPlus className={size === "sm" ? "size-4" : "size-5"} /> : <ListPlus className={size === "sm" ? "size-4" : "size-5"} />}
+    </span>
+  );
+}
+
+/** Header "New" pill → New project / New list. */
+function NewMenu() {
+  const s = useStore();
+  const ro = useReadOnly();
+  const { t } = useI18n();
+  return (
+    <Menu>
+      <MenuTrigger asChild>
+        <Button variant="outline" className="h-10 gap-1.5 rounded-full border-dashed border-line-strong px-4 font-bold" disabled={ro.ro} data-projects-new>
+          <Plus /> {t.projects.newMenu}
+        </Button>
+      </MenuTrigger>
+      <MenuContent align="end" className="min-w-[240px]">
+        {(["project", "list"] as const).map((k) => (
+          <MenuItem key={k} onSelect={() => create(s, k)} className="gap-3 py-2" data-projects-new-item={k}>
+            <KindChip kind={k} size="sm" />
+            <span className="flex min-w-0 flex-col">
+              <b className="text-[14px] font-bold">{k === "project" ? t.nav.newProject : t.nav.newList}</b>
+              <span className="text-xs text-muted">{k === "project" ? t.projects.projectHint : t.projects.listHint}</span>
+            </span>
+          </MenuItem>
+        ))}
+      </MenuContent>
+    </Menu>
+  );
+}
+
+/** Bottom of the page: one dashed card with two halves, New project · New list. */
+function StartNewCard({ index }: { index: number }) {
+  const s = useStore();
+  const ro = useReadOnly();
+  const { t } = useI18n();
+  return (
+    <section className="rise-in mt-2 rounded-[26px] border-2 border-dashed border-line-strong p-2" style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }} aria-label={t.projects.startNew} data-start-new>
+      <h2 className="px-3 pb-1 pt-2 text-[13px] font-bold text-muted">{t.projects.startNew}</h2>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {(["project", "list"] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            disabled={ro.ro}
+            onClick={() => create(s, k)}
+            className="group flex min-h-[76px] items-center gap-3.5 rounded-[20px] p-3.5 text-start transition hover:bg-surface-2 active:scale-[0.99] disabled:opacity-50"
+            data-start-new-item={k}
+          >
+            <span className="group-hover:rotate-[-8deg] transition-transform duration-[450ms] ease-[var(--ease-spring)]">
+              <KindChip kind={k} />
+            </span>
+            <span className="flex min-w-0 flex-col">
+              <b className="text-[16px] font-extrabold">{k === "project" ? t.nav.newProject : t.nav.newList}</b>
+              <span className="text-[13px] text-muted">{k === "project" ? t.projects.projectHint : t.projects.listHint}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -121,30 +190,6 @@ function ProjectCard({ c, index }: { c: Collection; index: number }) {
         </div>
       </div>
     </div>
-  );
-}
-
-/** "New project": a dashed card with a friendly hint (the empty state when there are none). */
-function NewProjectCard({ index, empty }: { index: number; empty: boolean }) {
-  const s = useStore();
-  const { t } = useI18n();
-  return (
-    <button
-      type="button"
-      onClick={() => s.setEditor({ mode: "create", kind: "project" })}
-      className={cn(
-        "rise-in group flex min-h-[180px] flex-col items-center justify-center gap-2.5 rounded-[26px] border-2 border-dashed border-line-strong p-6 text-center transition hover:border-ink/40 hover:bg-surface-2 active:scale-[0.99]",
-        empty && "sm:col-span-2 xl:col-span-3",
-      )}
-      style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
-      data-new-project
-    >
-      <span className="grid size-14 place-items-center rounded-full bg-[image:var(--act-plan)] text-[var(--act-plan-ink)] transition-transform duration-[450ms] ease-[var(--ease-spring)] group-hover:rotate-90">
-        {empty ? <FolderPlus className="size-6" /> : <Plus className="size-6" />}
-      </span>
-      <b className="text-[16px] font-extrabold">{t.projects.newTitle}</b>
-      <span className="max-w-[34ch] text-[13px] text-muted">{empty ? t.projects.empty : t.projects.newHint}</span>
-    </button>
   );
 }
 
