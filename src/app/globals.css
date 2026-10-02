@@ -672,7 +672,12 @@ body {
 
 /* ---------- Motion pass (Round 7 H) ---------- */
 /* Card → sheet morph (item-card.tsx morphOpen/morphClose): while the picture flies, the sheet fades instead of sliding. */
-[data-morphing] .sheet-in-end[data-state="open"], [data-morphing] .sheet-in-start[data-state="open"] { animation: fade 200ms ease-out; }
+[data-morphing] .sheet-in-end[data-state="open"], [data-morphing] .sheet-in-start[data-state="open"],
+.sheet-in-end[data-morphed][data-state="open"], .sheet-in-start[data-morphed][data-state="open"] { animation: fade 200ms ease-out; }
+/* Opening a sheet never shifts the page (Round 10 A1): the scrollbar's gutter is always reserved, so the scroll lock
+   must not add its own gap compensation on top (react-remove-scroll-bar's margin), which would shift it the other way. */
+html { scrollbar-gutter: stable; }
+html body[data-scroll-locked] { margin-right: 0 !important; --removed-body-scroll-bar-size: 0px; }
 /* Celebration burst (a project fully bought). */
 .confetti { animation: confetti 1100ms var(--ease-out) both; }
 @keyframes confetti {

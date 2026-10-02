@@ -10,7 +10,7 @@ record a frame series (`SMOKE_TRACE`) for every animation you touch — judge th
 
 ## Part A — animation bugs
 
-### A1. [ ] Opening a product jumps the whole screen; closing leaves the picture behind
+### A1. [x] Opening a product jumps the whole screen; closing leaves the picture behind
 - Open: the whole page "jumps" then settles. Likely causes to confirm with frames: scroll-lock removing the scrollbar
   (page width changes), the sheet's shared-element/FLIP measurement, focus scroll, or layout of the sheet hero.
   Fix so nothing behind the sheet moves: `scrollbar-gutter: stable` (or the lock's gap compensation), measure before

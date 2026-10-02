@@ -53,56 +53,70 @@ const onScreen = (el: HTMLElement) => {
 /**
  * Shared-element morph between a card's picture and the item sheet's (FLIP on one cloned element: transform and
  * opacity only, so it stays on the compositor however long the list is). The sheet itself just fades while it runs.
+ * Only one clone ever exists: a new morph lands the previous one first, and every clone is removed when its
+ * animation ends or is cancelled, with a safety timeout on top (Round 10 A1: a picture was left behind on close).
  */
-function fly(from: HTMLElement, to: HTMLElement, done: () => void) {
-  const a = from.getBoundingClientRect();
-  const b = to.getBoundingClientRect();
-  const clone = from.cloneNode(true) as HTMLElement;
-  Object.assign(clone.style, { position: "fixed", left: `${b.left}px`, top: `${b.top}px`, width: `${b.width}px`, height: `${b.height}px`, margin: "0", zIndex: "60", pointerEvents: "none", transformOrigin: "0 0", borderRadius: getComputedStyle(to).borderRadius });
+let flying: (() => void) | null = null;
+const landMorph = () => flying?.();
+
+function fly(src: HTMLElement, a: DOMRect, to: HTMLElement | null, done: () => void) {
+  landMorph();
+  const b = to && onScreen(to) ? to.getBoundingClientRect() : null;
+  const clone = src.cloneNode(true) as HTMLElement;
+  for (const el of [clone, ...clone.querySelectorAll<HTMLElement>("[data-sheet-img], [data-card-img]")]) {
+    el.removeAttribute("data-sheet-img");
+    el.removeAttribute("data-card-img");
+  }
+  clone.dataset.morphClone = "";
   clone.querySelectorAll("img").forEach((i) => (i.dataset.loaded = ""));
+  const box = b ?? a;
+  Object.assign(clone.style, { position: "fixed", left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px`, margin: "0", zIndex: "60", pointerEvents: "none", transformOrigin: b ? "0 0" : "50% 50%", borderRadius: getComputedStyle(b ? to! : src).borderRadius, opacity: "1" });
   document.body.appendChild(clone);
-  const prev = to.style.opacity;
-  to.style.opacity = "0";
-  const anim = clone.animate(
-    [{ transform: `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})` }, { transform: "none" }],
-    { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)" },
-  );
-  const end = () => {
-    to.style.opacity = prev;
+  const hidden = b ? to! : null;
+  const prev = hidden?.style.opacity ?? "";
+  if (hidden) hidden.style.opacity = "0";
+  // Target off-screen (or gone): the picture shrinks and fades where it is instead of flying somewhere unseen.
+  const anim = b
+    ? clone.animate([{ transform: `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})` }, { transform: "none" }], { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)" })
+    : clone.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.85)" }], { duration: 220, easing: "ease-out", fill: "forwards" });
+  let over = false;
+  const finish = () => {
+    if (over) return;
+    over = true;
+    clearTimeout(timer);
+    if (flying === finish) flying = null;
+    if (hidden) hidden.style.opacity = prev;
     clone.remove();
     done();
   };
-  anim.onfinish = end;
-  anim.oncancel = end;
+  const timer = setTimeout(finish, 450);
+  anim.onfinish = finish;
+  anim.oncancel = finish;
+  flying = finish;
 }
 
 export function morphOpen(id: string, open: () => void) {
+  landMorph();
   const from = cardImg(id);
   if (reduceMotion() || !from || !onScreen(from)) return open();
+  const a = from.getBoundingClientRect(); // measured before the sheet mounts
   document.documentElement.dataset.morphing = "";
   open();
   requestAnimationFrame(() => {
     const to = document.querySelector<HTMLElement>("[data-sheet-img]");
     if (!to) return void delete document.documentElement.dataset.morphing;
-    fly(from, to, () => delete document.documentElement.dataset.morphing);
+    // The sheet keeps its fade after the morph ends: dropping it would restart the slide-in (the "jump").
+    to.closest("[role=dialog]")?.setAttribute("data-morphed", "");
+    fly(from, a, to, () => delete document.documentElement.dataset.morphing);
   });
 }
-
-/** Sheet → card on close (when the card is on screen). */
 export function morphClose(id: string | null, close: () => void) {
+  landMorph();
   const from = document.querySelector<HTMLElement>("[data-sheet-img]");
-  const to = cardImg(id);
-  if (reduceMotion() || !from || !to || !onScreen(to)) return close();
-  const a = from.getBoundingClientRect();
-  const clone = from.cloneNode(true) as HTMLElement;
-  Object.assign(clone.style, { position: "fixed", left: `${a.left}px`, top: `${a.top}px`, width: `${a.width}px`, height: `${a.height}px`, margin: "0", zIndex: "60", pointerEvents: "none" });
-  document.body.appendChild(clone);
-  document.documentElement.dataset.morphing = "";
+  if (reduceMotion() || !from) return close();
+  // Clone the sheet's picture before it unmounts and fly it to where its card is now (re-measured at close).
+  fly(from, from.getBoundingClientRect(), cardImg(id), () => {});
   close();
-  fly(clone, to, () => {
-    clone.remove();
-    delete document.documentElement.dataset.morphing;
-  });
 }
 
 export type Status = ItemWithSources["status"];

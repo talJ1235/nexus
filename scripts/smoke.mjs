@@ -54,16 +54,15 @@ const READY = "[data-app-shell][data-ready] main h1";
 let openPalette;
 const shot = async (page, name) => OUT && page.screenshot({ path: `${OUT}/${name}${SUFFIX}.png` });
 
-// Record every frame Chromium paints during `ms` after navigating to `url` (screencast only emits on change,
-// so each saved frame is a visible state). Writes frames + a labelled contact sheet; returns the frame list.
-async function traceLoad(ctx, url, ms = 2500) {
-  const page = await ctx.newPage();
-  const cdp = await ctx.newCDPSession(page);
-  const dir = `${OUT}/trace${SUFFIX}`;
+// Record every frame Chromium paints (screencast only emits on change, so each saved frame is a visible state) while
+// `run` executes on `page` and for `ms` after it starts. Writes frames to $OUT/<name>[-m]/ plus a labelled contact
+// sheet <name>[-m].png; returns the frame list. Used for page loads (traceLoad) and for animations (SMOKE_TRACE).
+async function traceFrames(page, name, run, ms = 2500) {
+  const cdp = await page.context().newCDPSession(page);
+  const dir = `${OUT}/${name}${SUFFIX}`;
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   const frames = [];
-  let t0 = 0;
   if (process.env.SMOKE_THROTTLE) {
     await cdp.send("Network.enable");
     await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 150, downloadThroughput: (1.6 * 1024 * 1024) / 8, uploadThroughput: (750 * 1024) / 8 });
@@ -73,16 +72,17 @@ async function traceLoad(ctx, url, ms = 2500) {
     cdp.send("Page.screencastFrameAck", { sessionId }).catch(() => {});
   });
   await cdp.send("Page.startScreencast", { format: "jpeg", quality: 70, maxWidth: VIEWPORT.width, maxHeight: VIEWPORT.height, everyNthFrame: 1 });
-  t0 = Date.now();
-  await page.goto(url, { waitUntil: "commit" });
+  const t0 = Date.now();
+  await run();
   await page.waitForTimeout(Math.max(0, ms - (Date.now() - t0)));
   await cdp.send("Page.stopScreencast");
+  await cdp.detach().catch(() => {});
   const start = frames[0]?.t ?? 0;
   const list = frames.map((f, i) => ({ ...f, ms: f.t - start, name: `${String(i).padStart(3, "0")}-${String(f.t - start).padStart(4, "0")}ms.jpg` }));
   for (const f of list) writeFileSync(`${dir}/${f.name}`, Buffer.from(f.data, "base64"));
   if (list.length) {
     const w = MOBILE ? 195 : 342, h = Math.round((w * VIEWPORT.height) / VIEWPORT.width), cols = MOBILE ? 8 : 5, lab = 18;
-    const tiles = await Promise.all(list.map(async (f) => {
+    const tiles = await Promise.all(list.slice(0, 80).map(async (f) => {
       const img = await sharp(Buffer.from(f.data, "base64")).resize(w, h, { fit: "contain", background: "#888" }).toBuffer();
       const label = Buffer.from(`<svg width="${w}" height="${lab}"><rect width="100%" height="100%" fill="#000"/><text x="4" y="13" font-size="12" font-family="monospace" fill="#fff">${f.name.replace(".jpg", "")}</text></svg>`);
       return sharp({ create: { width: w, height: h + lab, channels: 3, background: "#000" } }).composite([{ input: label, top: 0, left: 0 }, { input: img, top: lab, left: 0 }]).png().toBuffer();
@@ -90,8 +90,14 @@ async function traceLoad(ctx, url, ms = 2500) {
     const rows = Math.ceil(tiles.length / cols);
     await sharp({ create: { width: cols * (w + 4), height: rows * (h + lab + 4), channels: 3, background: "#f0f" } })
       .composite(tiles.map((input, i) => ({ input, left: (i % cols) * (w + 4), top: Math.floor(i / cols) * (h + lab + 4) })))
-      .png().toFile(`${OUT}/trace${SUFFIX}.png`);
+      .png().toFile(`${OUT}/${name}${SUFFIX}.png`);
   }
+  return list;
+}
+// Frames of the first `ms` after navigating a fresh page to `url` (load flashes).
+async function traceLoad(ctx, url, ms = 2500) {
+  const page = await ctx.newPage();
+  const list = await traceFrames(page, "trace", () => page.goto(url, { waitUntil: "commit" }), ms);
   await page.close();
   return list;
 }
@@ -171,6 +177,67 @@ try {
       await page.waitForSelector(READY, { timeout: 15000 });
       ok(true, "app renders", "");
       await shot(page, "home");
+    });
+
+    // Round 10 A1: opening a product must not move anything behind the sheet (> 1 px), and closing must fly the
+    // picture back and leave no clone — also when items are opened and closed quickly in a row.
+    await step("item sheet morph: nothing behind the sheet moves on open, no stray clone after 10 quick open/close", async () => {
+      const clones = () => page.evaluate(() => document.querySelectorAll("[data-morph-clone]").length);
+      const ids = await page.$$eval("main [data-item-card]", (els) => [...new Set(els.map((e) => e.getAttribute("data-item-card")))].slice(0, 10));
+      const tap = async (id) => {
+        const btn = page.locator(`main [data-item-card="${id}"] button.absolute.inset-0`).first();
+        await btn.scrollIntoViewIfNeeded();
+        const b = await btn.boundingBox();
+        if (MOBILE) await page.touchscreen.tap(b.x + 20, b.y + 20);
+        else await page.mouse.click(b.x + 20, b.y + 20);
+      };
+      // Calm open: sample everything outside the sheet every frame (the hovered/tapped card itself is excluded:
+      // its picture is the one that flies).
+      let worst = 0, what = "";
+      for (const id of ids.slice(0, 3)) {
+        await page.locator(`main [data-item-card="${id}"]`).first().scrollIntoViewIfNeeded();
+        if (!MOBILE) await page.mouse.move(2, VIEWPORT.height - 2);
+        await page.waitForTimeout(350);
+        await page.evaluate((id) => {
+          const els = [...document.querySelectorAll("main h1, main [data-item-card], [data-app-shell] header, [data-dock], [data-filters]")].filter((e) => e.getAttribute("data-item-card") !== id).slice(0, 40);
+          const r0 = els.map((e) => e.getBoundingClientRect());
+          const t0 = performance.now();
+          window.__moved = [0, ""];
+          const tick = () => {
+            els.forEach((e, i) => {
+              const r = e.getBoundingClientRect();
+              const d = Math.max(Math.abs(r.left - r0[i].left), Math.abs(r.top - r0[i].top), Math.abs(r.width - r0[i].width));
+              if (d > window.__moved[0]) window.__moved = [d, `${e.tagName.toLowerCase()}${e.getAttribute("data-item-card") ? ` card ${e.getAttribute("data-item-card")} (tapped ${id})` : ""} ${Math.round(r0[i].left)},${Math.round(r0[i].top)},${Math.round(r0[i].width)} → ${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)} @${Math.round(performance.now() - t0)}ms`];
+            });
+            if (performance.now() - t0 < 700) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        }, id);
+        await tap(id);
+        await page.waitForTimeout(750);
+        const [d, w] = await page.evaluate(() => window.__moved);
+        if (d > worst) [worst, what] = [d, w];
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(500);
+        if (await clones()) break;
+      }
+      // Quick: open → close fast, and open another while one is still flying.
+      for (const id of ids) {
+        await tap(id);
+        await page.waitForTimeout(60 + Math.round(Math.random() * 120));
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(40 + Math.round(Math.random() * 100));
+      }
+      await page.waitForTimeout(500);
+      const left = await clones();
+      const sheetOpen = await page.locator("[data-sheet-img]").count();
+      ok(worst <= 1 && left === 0 && sheetOpen === 0, "item sheet morph: nothing behind the sheet moves on open, no stray clone after 10 quick open/close", `moved ${worst.toFixed(1)} px (${what}), clones left ${left}, sheet still open ${sheetOpen}`);
+      if (TRACE) {
+        const id = ids[1] ?? ids[0];
+        const open = await traceFrames(page, "trace-sheet-open", () => tap(id), 900);
+        const close = await traceFrames(page, "trace-sheet-close", () => page.keyboard.press("Escape"), 900);
+        console.log(`INFO trace: sheet open ${open.length} frames, close ${close.length} frames → ${OUT}/trace-sheet-*${SUFFIX}.png`);
+      }
     });
 
     if (!MOBILE) {
