@@ -40,7 +40,7 @@ Example: `[Open settings → Palette](nexus:settings)`.
   and watch/target, Tags & notes, Receipts, Advanced.
 
 ## Adding products
-<!-- spec: Adding items, Extraction pipeline, Product pictures, Categories -->
+<!-- spec: Adding items, Extraction pipeline, Product pictures, Real product pictures, Categories -->
 - Paste a product link anywhere (Ctrl/⌘+V) or into the paste bar; on phones **+ → Paste a link**. Several links at
   once work too. A placeholder card appears at once and fills in (name, price, picture, store, category).
 - The same link again (still to buy) → quantity +1 (with Undo). Same product from another store → offered as another
@@ -48,10 +48,14 @@ Example: `[Open settings → Palette](nexus:settings)`.
 - Manual entry: type a name instead of a link; every field can be edited in the item sheet.
 - Telegram: send a link to your linked bot (see Telegram below). Phone share sheet: share a product page to Nexus
   (installed app).
-- **Missing picture?** Nexus tries the store page, then your browser extension, then an image search, and finally a
-  simple icon (shown with an "icon" badge). Stores that block servers (AliExpress, Amazon, KSP…) often need the
-  **browser extension** for real photos — install it and the picture is filled in by itself within ~30 minutes, or
-  open the item and paste a picture/link. Pictures keep filling in daily.
+- **Pictures** work on phone and desktop without the extension: Nexus reads what the product is (even abbreviated
+  receipt lines like "חלב תנ 3%"), then looks it up like a Google search — the barcode, your own items, Google Images,
+  Open Food Facts, a similar product, and only last an icon — and picks the right photo. A guess it isn't sure of has a
+  soft highlight ("Looks right" in the item sheet). **Change picture**: tap the picture in the item sheet (or on a
+  receipt card) → choose another, search in Hebrew or English, take a photo, upload, use an icon, or no picture.
+- **Missing picture?** It keeps filling in daily. Without a search key (Settings → Product pictures) only barcodes,
+  Open Food Facts, your items and icons are used. Stores that block servers may still get a real photo from the
+  **browser extension** in the background.
 - **Missing price or name?** Same cause: the store blocked the server. The extension repairs incomplete links on its
   own (every 30 min while Chrome is open). You can also type the price in the item sheet.
 - Categories are fixed: Electronics, Mechanical, Tools, Materials, Computers, Camera & audio, Home & kitchen, Office,
@@ -70,13 +74,15 @@ Example: `[Open settings → Palette](nexus:settings)`.
   as a lighter fallback.
 
 ## Statuses, priorities, projects and lists
-<!-- spec: Item lifecycle, Partial move, Alternatives, Multi-select, Project pages -->
+<!-- spec: Item lifecycle, Partial move, Alternatives, Multi-select, Project pages, Projects page v2 -->
 - An item goes To buy → **Ordered** (On the way: tracking number, carrier, ETA) → **Received** (History). The price
   paid is saved when you mark it ordered. Use the truck button on a card, the sheet, or on phones swipe a row toward
   the end (rows layout). Undo is always offered.
 - Priority: Urgent, Normal, Someday. Someday items are left out of store orders and the monthly forecast.
 - Projects have a budget (ring in the sidebar: planned + spent vs budget); lists don't. Create one with **+** next to
-  Projects/Lists, or the "New project" card on the Projects page. A project's page shows its cover, ring and numbers,
+  Projects/Lists, the **New** pill (New project / New list) on the Projects page, or its "Start something new" card at
+  the bottom. The Projects page shows a summary (active projects, left to buy, the budget nearest its limit), then
+  Projects, then Lists. A project's page shows its cover, ring and numbers,
   with Plan with Nexus, Shop this project, Share and the ⋯ menu (Export to Excel, Edit). Move items by dragging cards onto a project in the sidebar, from the item sheet, or with the
   selection bar. Moving part of a quantity asks how many units move.
 - Select several: hover a card and tick its box (or Ctrl/⌘-click, Shift for a range; on phones swipe a row toward the
@@ -114,14 +120,17 @@ Example: `[Open settings → Palette](nexus:settings)`.
   **Add another part**, then **Use**.
 - Review: lines already on your list are matched (change a match, add as new, or ignore), then Apply → items become
   received (or ordered for an order confirmation) with the price paid and the receipt attached. Undo is offered.
+- New lines get their pictures while you review: **Pictures look right — approve all** approves them in one tap (Apply
+  does too); tap a picture to change it; **Skip pictures** adds the items now and the pictures follow.
 - Problems: **edges not found** → put the receipt on a darker surface, more light, whole receipt in the frame, or
   adjust the corners by hand. **Reading failed / "AI busy"** → the receipt is kept under "Not applied yet"; retry
   later. Photos need Gemini (the AI); pasted text works with any AI provider.
 
 ## Barcodes and shopping mode
-<!-- spec: Barcodes, Shopping mode -->
+<!-- spec: Barcodes, Shopping mode, Faster camera -->
 - **Scan a barcode** (phones: + menu): find an item on your list, check it off, or add a new product (Nexus looks it
-  up in product databases). Torch button in dark stores; you can type the number too.
+  up in product databases). Torch button in dark stores; you can type the number too. The camera opens at once (the
+  scanner is prepared in the background); reopening within a minute is instant.
 - **Shopping mode** (command menu, a project page's Shop button, or a store in Order by store): pick everything / a
   store / a project; tap a row to check it, long-press to change qty/price, quick-add at the bottom, scan to check off.
   The trip works offline and syncs when you're back online. Finish marks the checked items as received.
@@ -165,7 +174,9 @@ Example: `[Open settings → Palette](nexus:settings)`.
 - Mixed Hebrew/English titles are shown in their natural direction.
 
 ## Offline and the phone app
-<!-- spec: Offline, read-only v1, First load -->
+<!-- spec: Offline, read-only v1, First load, Loading skeletons -->
+- On the phone the Nexus box animation plays on every open and reload; pull down at the top of a page to reload.
+  While a page loads, its outline (cards, store groups, project header) shows in place.
 - Install: in the phone browser menu → "Add to Home screen" (Chrome) / Share → "Add to Home Screen" (Safari).
 - **Offline**: after one online visit the app opens without a connection and shows "Offline — showing data from
   <time>". It's read-only offline (adding/editing is disabled); shopping mode trips sync later. Back online it

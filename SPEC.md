@@ -384,6 +384,37 @@ Brief and checklist: `docs/ROUND9.md`. Shipped (merged to `main` 2026-10-02):
   Shop this project, Share and a ⋯ menu.
 - **Excel export**: the project/list ⋯ menu, the command menu and the Me sheet download the BOM (`/api/export`).
 
+## Round 10 — animation fixes, faster camera, projects page, real product pictures
+Brief and checklist: `docs/ROUND10.md`. Shipped (merged to `main` 2026-10-02):
+- **Motion fixes**: opening a product no longer replays the sheet's slide-in when the picture morph ends (the sheet
+  keeps `data-morphed`); one morph clone at a time, flown back to the card's re-measured position on close (fade/scale
+  out when the card is off-screen), removed on finish/cancel + a 450 ms safety timeout; `scrollbar-gutter: stable` with
+  the scroll lock's gap margin neutralised. The project cover keeps its rounded corners card ↔ page (it rounds itself;
+  `view-transition-class: project-cover` groups clip with the same radius; the way back morphs too). `traceFrames()` in
+  the smoke records any animation's frame series (`SMOKE_TRACE`).
+- **Phone opening animation on every load**: the once-per-tab skip is gone. The "blue circle" was Chrome's own
+  pull-to-refresh — the root has `overscroll-behavior-y: contain` and Nexus's pull-to-refresh (Box mark) reloads into
+  the boot sequence.
+- **Faster camera**: `lib/camera.ts` shares one back-camera stream — `getUserMedia` starts in the tap (640 px first,
+  upgraded after the first frame), kept a minute after closing (stopped when the page is hidden); `lib/barcode-reader.ts`
+  uses the native BarcodeDetector or zxing-wasm, downloaded in idle time and compiled when the + menu opens / at the
+  tap. Performance marks `cam:tap`, `cam:frame`, `scan:decoder`; smoke at CPU ×4: viewfinder ~230 ms, reopen ~140 ms.
+- **Projects page v2**: header summary (active projects, left to buy, the budget nearest its limit), Projects then
+  Lists (smaller cards) with counts and their own empty states, a "New" pill (New project / New list) and one "Start
+  something new" card at the bottom; one-line card footers keep heights equal.
+- **Loading skeletons**: chosen from the view in the URL — Projects, a project page's header, Order by store, Stats,
+  On the way / History cards — with the same sweep.
+- **Real product pictures**: `lib/product-lines.ts` (D1: one batched call understands every receipt line — clean
+  Hebrew/English name, brand, type, size, he/en queries, icon keyword, barcode; heuristic fallback/mock),
+  `lib/product-pictures.ts` + `lib/picture-rank.ts` (D2: barcode → Open Food/Products Facts, own items, Google Images
+  via Serper on Google Israel in Hebrew then English, OFF name search, generic type, Fluent Emoji icon; filtering and a
+  30-day kv cache; D3: one batched Gemini vision call ranks several items' thumbnails, low confidence → "check").
+  Items carry `product_info`, `image_candidates` (≤ 6) and `image_check`; `image_source` = barcode / search / generic /
+  icon. Receipt review streams pictures, "approve all", "Skip pictures"; the picker (`picture-picker.tsx`: alternatives,
+  search, photo, upload, icon, none) from the review and the item sheet's "Change picture"; the daily cron backfills
+  (marked "check"). `npm run test:pictures`; `npm run bench:pictures` (real keys: 15/15 right on 10 grocery + 5 maker
+  lines). With `BRAVE_SEARCH_API_KEY` set Brave is used instead of Serper (no Google Israel locale).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
@@ -420,7 +451,7 @@ Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 | `CRON_SECRET` | authorizes the daily price-check cron (Vercel sends it automatically) |
 | `TELEGRAM_API_BASE` | local tests only: send bot messages to a fake Telegram API (ignored on Vercel) |
 | `BRAVE_SEARCH_API_KEY` | optional: web/image/shopping search for compare stores, barcode lookups and product pictures (preferred) |
-| `SERPER_API_KEY` | optional alternative search provider (Google results via serper.dev) |
+| `SERPER_API_KEY` | optional alternative search provider (Google results via serper.dev) — real product pictures (Google Images, Israel/Hebrew first) |
 | `NEXUS_AI_MOCK` | local tests only (`=1`): offline AI mock for the assistant, planner and receipts |
 | `REPORTS_TOKEN` | optional: enables `/api/reports/export` for `node scripts/reports.mjs` (any long random string; same value locally) |
 | `GITHUB_ISSUES_TOKEN` | optional: fine-grained token (Issues read/write) — each problem report also opens a GitHub issue labelled `from-app` |

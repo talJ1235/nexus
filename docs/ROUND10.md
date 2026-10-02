@@ -129,6 +129,16 @@ rate in Open.
 
 ## Open
 
+### End-of-run summary (2026-10-02)
+All 10 items (A1–A3, B1, C1–C3, D1–D5) shipped on `round10`, one commit each (D2 + D3 share one), plus one follow-up
+commit, merged to `main` with `--ff-only`. Green at the end: typecheck + lint + build, 16 unit-test scripts (new:
+`test:pictures`; `test:help` now 51 features), the receipt bench unchanged (95.3 % still, 93.8 % live), full smoke with
+`SMOKE_WRITE=1` on a `NEXUS_AI_MOCK=1` server — desktop 46 checks, phone 51.
+To configure on Vercel: **`SERPER_API_KEY`** (if not already there) for Google pictures — without it pictures come from
+barcodes, Open Food Facts, your items and icons only. The build's migration adds `items.product_info`,
+`image_candidates`, `image_check`.
+Worth one look on the real phone: the product open/close morph (A1), pull-to-refresh → boot (A3), the camera timings (B1).
+
 ### Notes and decisions (Round 10 run)
 - **Open reports**: still unreadable — `REPORTS_TOKEN` isn't set locally (`node scripts/reports.mjs` can't reach prod) and
   there are no `from-app` GitHub issues.
@@ -157,3 +167,7 @@ rate in Open.
 - **D4**: a backfilled best guess stays "check" until you tap "Looks right" or change it in the item sheet (opening
   the sheet alone doesn't approve it). Locally (no Blob token) an uploaded/taken photo is kept as a ~480 px data URL;
   on Vercel it goes to Blob like every other picture.
+- **Search provider**: when `BRAVE_SEARCH_API_KEY` is also set, Brave wins (existing rule) and the Google Israel /
+  Hebrew locale doesn't apply — say if pictures should always prefer Serper.
+- A smoke screenshot once showed the item sheet scrolled after picking a picture; driven like a user (tap → pick) the
+  sheet stays at the top on to-buy and received items, so it's the test's clicks — noting it in case you see it.
