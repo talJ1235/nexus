@@ -1325,6 +1325,74 @@ try {
             JSON.stringify({ modes, applied: applied.map((i) => [i.title, i.status, i.purchasedPrice]), left: left.length, restored }),
           );
         });
+
+        // Round 10 D5 (mock AI): a receipt of 5 new grocery lines → every card gets a picture (shimmer until then) →
+        // change one in the picker → approve all → Confirm: the items carry the pictures, alternatives, approved.
+        // Then the item sheet's "Change picture" swaps one. The test items are deleted afterwards.
+        await step("receipt pictures: 5 lines → pictures appear → change one → approve all → item sheet change picture", async () => {
+          const tag = `P${Date.now().toString(36)}`;
+          const names = ["חלב תנ 3%", "מילקי שוקו 3*100", "קוטג' תנובה 5% 250 גר", "במבה אסם 80 גר", "לחם אחיד פרוס"].map((n) => `${n} ${tag}`);
+          const text = ["Store: Smoke grocer", `Order: SMOKE-${tag}`, ...names.map((n, i) => `1 x ${n} @ ${5 + i}`)].join(String.fromCharCode(10));
+          await page.goto(`${BASE}/${MOBILE ? "?v=history" : ""}`);
+          await page.waitForSelector(READY);
+          await page.locator(`[data-receipt-open=${MOBILE ? "view" : "add"}]`).click();
+          const dlg = page.getByRole("dialog");
+          await dlg.locator("#receipt-text").fill(text);
+          await dlg.getByRole("button", { name: /^(Read|קריאה)$/ }).click();
+          await dlg.locator("[data-receipt-review]").waitFor({ timeout: 30000 });
+          const pics = dlg.locator("[data-receipt-line=new] [data-receipt-picture]");
+          const sawPending = (await dlg.locator('[data-receipt-picture="pending"]').count()) > 0;
+          await page.waitForFunction(() => document.querySelectorAll('[data-receipt-picture="pending"]').length === 0 && document.querySelectorAll("[data-receipt-line=new] [data-receipt-picture]").length >= 5, null, { timeout: 30000 });
+          const states = await pics.evaluateAll((els) => els.map((e) => e.getAttribute("data-receipt-picture")));
+          await shot(page, "receipt-pictures");
+          // Change the first card's picture in the picker.
+          const before = await dlg.locator("[data-receipt-line=new] [data-receipt-picture] img").first().getAttribute("src").catch(() => null);
+          await pics.first().click();
+          const picker = page.locator("[data-picture-picker]");
+          await picker.waitFor({ timeout: 10000 });
+          const choices = await picker.locator("[data-picture-choice]").count();
+          await page.waitForTimeout(450);
+          await shot(page, "picture-picker");
+          await picker.locator("[data-picture-choice]").nth(1).click();
+          await picker.waitFor({ state: "detached", timeout: 5000 });
+          const after = await dlg.locator("[data-receipt-line=new] [data-receipt-picture] img").first().getAttribute("src").catch(() => null);
+          await dlg.locator("[data-pictures-approve]").click();
+          const approved = await dlg.locator("[data-pictures-approved]").count();
+          await dlg.locator("[data-receipt-apply]").click();
+          await page.locator("[data-sonner-toast]").filter({ hasText: /updated from the receipt|עודכנו מהקבלה/ }).waitFor({ timeout: 15000 });
+          const items = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items.filter((i) => i.title.endsWith(tag));
+          const saved = items.filter((i) => i.imageUrl && !i.imageCheck && (i.imageCandidates?.length ?? 0) >= 2 && i.productInfo?.type).length;
+          // Item sheet: Change picture → another alternative.
+          let sheetChanged = false;
+          const it = items[1];
+          if (it) {
+            await page.goto(`${BASE}/?v=history&item=${it.id}`);
+            await page.waitForSelector("[data-change-picture]", { timeout: 15000 });
+            const was = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items.find((i) => i.id === it.id).imageUrl;
+            await page.locator("[data-change-picture]").click();
+            await page.locator("[data-picture-picker] [data-picture-choice]").first().waitFor({ timeout: 15000 });
+            const pick = page.locator("[data-picture-picker] [data-picture-choice]").filter({ hasNotText: /Current|נוכחית/ }).first();
+            await pick.click();
+            await page.locator("[data-picture-picker]").waitFor({ state: "detached", timeout: 10000 });
+            await page.waitForTimeout(600);
+            const now = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items.find((i) => i.id === it.id).imageUrl;
+            sheetChanged = !!now && now !== was;
+            await page.waitForSelector("#boot", { state: "hidden", timeout: 10000 }).catch(() => {});
+            await shot(page, "sheet-picture");
+          }
+          // Clean up: delete the test items from their sheets.
+          for (const i of items) {
+            await page.goto(`${BASE}/?v=history&item=${i.id}`);
+            await page.waitForSelector("[data-change-picture]", { timeout: 15000 });
+            await page.getByRole("button", { name: /^(Delete item|מחק פריט)$/ }).click();
+            await page.waitForTimeout(500);
+          }
+          ok(
+            states.length === 5 && states.every((x) => x === "ok" || x === "check") && choices >= 2 && before !== after && approved === 1 && items.length === 5 && saved === 5 && sheetChanged,
+            "receipt pictures: 5 lines → pictures appear → change one → approve all → item sheet change picture",
+            JSON.stringify({ sawPending, states, choices, changed: before !== after, approved, items: items.length, saved, sheetChanged }),
+          );
+        });
       }
     }
 

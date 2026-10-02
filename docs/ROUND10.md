@@ -119,7 +119,7 @@ WebP → Blob as today; `imageSource` = barcode / search / generic / icon.
 - Backfill: existing items without a picture (or with a box icon) go through D1–D3 in the daily cron, bounded per
   run; their best guess is marked "check" until the user opens/approves.
 
-### D5. [ ] Verify
+### D5. [x] Verify
 Unit tests: line normalization (fixtures with Hebrew abbreviations), candidate filtering/ranking glue, cache. Smoke
 (mock): receipt with 5 lines → pictures appear → approve all; change one via the picker; item sheet change picture.
 If a real `SERPER_API_KEY`/`GEMINI_API_KEY` is on the machine, run 10 real grocery + 5 maker items and report hit
@@ -147,3 +147,13 @@ rate in Open.
   started only after the viewfinder rendered (at 1280 px) and the decoder only after the camera was on (sequential).
   The live stream is kept 60 s after closing (stopped at once when the page is hidden) — the camera indicator stays on
   for that minute; say if you'd rather it stop immediately. Worth one check on the real phone.
+- **D5 real run** (this machine's GEMINI_API_KEY + SERPER_API_KEY, `npm run bench:pictures`): **15/15** chosen
+  pictures show the right product — 10/10 grocery lines (Tnuva milk 3 %, Milky, Tnuva cottage 5 %, Bamba, Angel
+  bread, eggs, Danone 1.5 %, Yotvata choco, Osem spaghetti, Elite instant coffee) and 5/5 maker parts (NEMA 17,
+  TMC2209, Raspberry Pi 5, Elegoo PLA red, GT2 belt). ~4.4 s per line end to end when run as one batch (the review
+  streams 3 lines at a time, so the first pictures show sooner). First run was 13/15: two maker lines stopped at a
+  single old picture of an own item that no longer loads — own items now lead the Google results instead of ending
+  the search, and pictures that can't be downloaded are dropped before choosing.
+- **D4**: a backfilled best guess stays "check" until you tap "Looks right" or change it in the item sheet (opening
+  the sheet alone doesn't approve it). Locally (no Blob token) an uploaded/taken photo is kept as a ~480 px data URL;
+  on Vercel it goes to Blob like every other picture.
