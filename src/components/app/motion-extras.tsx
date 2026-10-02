@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { reloadAll } from "@/app/actions";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { toast } from "@/lib/toast";
@@ -10,7 +9,11 @@ import { useStore } from "./store";
 
 const PULL_AT = 72;
 
-/** Phone: pull down at the top of a list to reload the data. */
+/**
+ * Phone: pull down at the top to reload. Chrome's own pull-to-refresh (the blue circle Tal saw, which reloaded the
+ * page on top of ours) is off — the root has `overscroll-behavior-y: contain` — and releasing past the threshold now
+ * reloads the page into the boot sequence (Round 10 A3). Offline it isn't armed (a reload would leave the snapshot).
+ */
 export function PullToRefresh() {
   const s = useStore();
   const { t } = useI18n();
@@ -48,13 +51,7 @@ export function PullToRefresh() {
       try {
         navigator.vibrate?.(15);
       } catch {}
-      try {
-        s.setItems(await reloadAll());
-      } catch {
-        toast.error(t.errors.generic);
-      } finally {
-        setBusy(false);
-      }
+      setTimeout(() => window.location.reload(), 260);
     };
     window.addEventListener("touchstart", down, { passive: true });
     window.addEventListener("touchmove", move, { passive: true });

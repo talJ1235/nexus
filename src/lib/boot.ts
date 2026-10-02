@@ -8,9 +8,6 @@ let done = false;
 export function markBooted() {
   if (done || typeof document === "undefined") return;
   done = true;
-  try {
-    sessionStorage.setItem("nexus.booted", "1");
-  } catch {}
   const el = document.getElementById("boot");
   if (!el || getComputedStyle(el).display === "none") return;
   // Time since the animation actually started (not since navigation), from the left face's own animation clock.

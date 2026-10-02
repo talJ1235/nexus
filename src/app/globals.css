@@ -553,9 +553,13 @@ body {
     /* Fail-safe: never cover the page forever if scripts fail to run. */
     animation: boot-failsafe 1ms linear 12s forwards;
   }
-  html.boot-skip #boot { display: none; }
 }
 #boot.boot-gone { display: none !important; }
+/* Chrome's own pull-to-refresh (a blue circle) is replaced by ours (phone-shell.tsx PullToRefresh, Round 10 A3). */
+html { overscroll-behavior-y: contain; }
+.pull-spin { animation: pull-spin 700ms var(--ease-out) infinite; }
+@keyframes pull-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pull-spin { animation: none; } }
 #boot.boot-out { pointer-events: none; animation: boot-fade-out 450ms var(--ease-out) both; }
 #boot.boot-out .boot-inner { animation: boot-settle 450ms var(--ease-out) both; }
 .boot-inner { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: -6vh; }

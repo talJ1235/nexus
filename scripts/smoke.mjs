@@ -1316,7 +1316,7 @@ try {
     });
 
     await step("boot screen", async () => {
-      // Fresh tab (sessionStorage is per tab): phones see the opening animation once, then it hands off; desktop never.
+      // Phones see the opening animation on every full load and reload (Round 10 A3), then it hands off; desktop never.
       const p = await ctx.newPage();
       await p.goto(`${BASE}/`, { waitUntil: "commit" });
       await p.waitForSelector("#boot", { state: "attached", timeout: 10000 });
@@ -1324,6 +1324,30 @@ try {
         const shown = await p.locator("#boot").isVisible();
         await p.waitForSelector("#boot.boot-gone", { state: "attached", timeout: 10000 });
         ok(shown && (await p.locator(READY).isVisible()), "boot screen: shown on phone, hands off to the app");
+        const again = [];
+        for (let k = 0; k < 2; k++) {
+          await p.reload({ waitUntil: "commit" });
+          await p.waitForSelector("#boot", { state: "attached", timeout: 10000 });
+          again.push(await p.locator("#boot").isVisible());
+          await p.waitForSelector("#boot.boot-gone", { state: "attached", timeout: 10000 });
+        }
+        // Our pull-to-refresh replaces Chrome's: pull down at the top → the Box mark → release → reload → boot again.
+        const overscroll = await p.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY);
+        const cdp = await ctx.newCDPSession(p);
+        const touch = (type, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x: 195, y }] });
+        await p.evaluate(() => window.scrollTo(0, 0));
+        await touch("touchStart", 200);
+        for (let y = 210; y <= 420; y += 15) await touch("touchMove", y);
+        const ind = await p.locator("[data-pull]").count();
+        const nav = p.waitForEvent("framenavigated", { timeout: 5000 }).then(() => true, () => false);
+        await touch("touchEnd");
+        const reloaded = await nav;
+        let bootAfterPull = false;
+        if (reloaded) {
+          await p.waitForSelector("#boot", { state: "attached", timeout: 10000 });
+          bootAfterPull = await p.locator("#boot").isVisible();
+        }
+        ok(again.every(Boolean) && overscroll === "contain" && ind === 1 && reloaded && bootAfterPull, "boot screen: plays on every reload; pull-to-refresh shows the Box mark and reloads into it", `reloads=${again} overscroll=${overscroll} indicator=${ind} reloaded=${reloaded} boot=${bootAfterPull}`);
       } else {
         ok(!(await p.locator("#boot").isVisible()), "boot screen: never shown on desktop");
       }

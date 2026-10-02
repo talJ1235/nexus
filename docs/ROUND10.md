@@ -27,7 +27,7 @@ The colour cover opens with square corners and then snaps to rounded. Animate wi
 element with `border-radius` in the animated style or view-transition `::view-transition-group` with matching
 `border-radius` + `overflow: clip`), no snap at start or end, both directions.
 
-### A3. [ ] The boot animation on every load, never the blue circle
+### A3. [x] The boot animation on every load, never the blue circle
 Today the phone boot animation shows only once per session (`sessionStorage "nexus.booted"` → `boot-skip` in
 `boot-screen.tsx`), so a reload shows other loaders. Make it play on **every full page load / reload / app open** on
 the phone (not on in-app navigation). Remove or replace any other loading indicator that can appear on a phone
@@ -128,3 +128,16 @@ rate in Open.
 ---
 
 ## Open
+
+### Notes and decisions (Round 10 run)
+- **Open reports**: still unreadable — `REPORTS_TOKEN` isn't set locally (`node scripts/reports.mjs` can't reach prod) and
+  there are no `from-app` GitHub issues.
+- **A1**: the "jump" was the sheet animating twice: the morph's end dropped `data-morphing`, so the sheet's animation
+  switched from the fade back to the slide-in and restarted (frames: the sheet vanished and slid in again at ~430 ms).
+  The picture "left in the top-left" was a second clone parked at the sheet's picture position during the flight
+  (morphClose cloned it, fly() cloned the clone). Both fixed; scrollbar gutter stabilised too for desktop Chrome.
+- **A2**: the project header's radius went from 30 to 26 px so card and header share one radius (no snap at the end).
+- **A3**: the blue circle was **Chrome's own pull-to-refresh**: the app already had a pull-to-refresh (Box mark,
+  data-only reload) but nothing turned Chrome's off, so pulling showed Chrome's circle and reloaded the page under
+  ours. Now `overscroll-behavior-y: contain` on the root, and ours reloads the page into the boot sequence, which plays
+  on every full load/reload (the once-per-tab `sessionStorage` skip is gone). No in-app spinner appears on reload.
