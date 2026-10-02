@@ -4,7 +4,7 @@ import "server-only";
 // them also works without a key, in a reduced way — callers check `searchProvider()` first.
 
 export type WebResult = { title: string; url: string; snippet?: string | null };
-export type ImageResult = { image: string; page: string | null; title: string | null };
+export type ImageResult = { image: string; page: string | null; title: string | null; width?: number | null; height?: number | null; domain?: string | null };
 export type ShoppingResult = { title: string; url: string; price: string | null; source: string | null; image: string | null };
 
 export function searchProvider(): "brave" | "serper" | null {
@@ -46,16 +46,17 @@ export async function webSearch(q: string, count = 8): Promise<WebResult[]> {
   return [];
 }
 
-export async function imageSearch(q: string, count = 6): Promise<ImageResult[]> {
+/** `opts` (Serper): e.g. { gl: "il", hl: "iw" } to search Google Israel in Hebrew. */
+export async function imageSearch(q: string, count = 6, opts: { gl?: string; hl?: string } = {}): Promise<ImageResult[]> {
   const p = searchProvider();
   try {
     if (p === "brave") {
-      const r = await brave<{ results?: { title?: string; url?: string; properties?: { url?: string }; thumbnail?: { src?: string } }[] }>("images/search", { q, count: String(count), safesearch: "strict" });
-      return (r?.results ?? []).map((x) => ({ image: x.properties?.url ?? x.thumbnail?.src ?? "", page: x.url ?? null, title: x.title ?? null })).filter((x) => x.image);
+      const r = await brave<{ results?: { title?: string; url?: string; source?: string; properties?: { url?: string; width?: number; height?: number }; thumbnail?: { src?: string } }[] }>("images/search", { q, count: String(count), safesearch: "strict" });
+      return (r?.results ?? []).map((x) => ({ image: x.properties?.url ?? x.thumbnail?.src ?? "", page: x.url ?? null, title: x.title ?? null, width: x.properties?.width ?? null, height: x.properties?.height ?? null, domain: x.source ?? null })).filter((x) => x.image);
     }
     if (p === "serper") {
-      const r = await serper<{ images?: { title?: string; imageUrl: string; link?: string }[] }>("images", { q, num: count });
-      return (r?.images ?? []).map((x) => ({ image: x.imageUrl, page: x.link ?? null, title: x.title ?? null }));
+      const r = await serper<{ images?: { title?: string; imageUrl: string; link?: string; imageWidth?: number; imageHeight?: number; domain?: string }[] }>("images", { q, num: count, ...opts });
+      return (r?.images ?? []).map((x) => ({ image: x.imageUrl, page: x.link ?? null, title: x.title ?? null, width: x.imageWidth ?? null, height: x.imageHeight ?? null, domain: x.domain ?? null }));
     }
   } catch {}
   return [];

@@ -76,6 +76,9 @@ async function main() {
   // Round 7: barcodes (D1).
   if (!itemCols.includes("gtin")) await client.execute("ALTER TABLE items ADD COLUMN gtin text");
   if (!itemCols.includes("image_source")) await client.execute("ALTER TABLE items ADD COLUMN image_source text");
+  if (!itemCols.includes("product_info")) await client.execute("ALTER TABLE items ADD COLUMN product_info text");
+  if (!itemCols.includes("image_candidates")) await client.execute("ALTER TABLE items ADD COLUMN image_candidates text");
+  if (!itemCols.includes("image_check")) await client.execute("ALTER TABLE items ADD COLUMN image_check integer NOT NULL DEFAULT 0");
   const sourceCols = (await client.execute("PRAGMA table_info(sources)")).rows.map((r) => String(r.name));
   if (!sourceCols.includes("gtin")) await client.execute("ALTER TABLE sources ADD COLUMN gtin text");
   // Round 7: receipts made of several photos (E1/E2).

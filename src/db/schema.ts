@@ -1,4 +1,6 @@
 import { sql } from "drizzle-orm";
+import type { Candidate } from "@/lib/picture-rank";
+import type { LineInfo } from "@/lib/product-lines";
 import { integer, real, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 
 export const OWNER = "owner";
@@ -55,6 +57,11 @@ export const items = sqliteTable(
     altGroupId: text("alt_group_id"),
     // Where the picture came from when Nexus found it (store / search / extension / icon); null = the user's or the link's.
     imageSource: text("image_source"),
+    // Round 10 D: what the product is (cleaned receipt line, queries — for re-searching), the ranked alternative
+    // pictures for the picker (up to 6), and "check" = Nexus's best guess that the owner hasn't approved yet.
+    productInfo: text("product_info", { mode: "json" }).$type<LineInfo | null>(),
+    imageCandidates: text("image_candidates", { mode: "json" }).$type<Candidate[] | null>(),
+    imageCheck: integer("image_check", { mode: "boolean" }).notNull().default(false),
     // Price tracking: alert when the price reaches this (in targetCurrency). `watch` = include in daily checks.
     targetPrice: real("target_price"),
     targetCurrency: text("target_currency"),

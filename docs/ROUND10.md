@@ -89,7 +89,7 @@ line: clean Hebrew name, English name, brand, product type (generic), size/varia
 in English, an icon keyword, and the barcode/catalogue number if the receipt prints one. Store on the item (for later
 re-search). Mock mode covers it.
 
-### D2. [ ] Find candidate pictures (server-side, no extension needed)
+### D2. [x] Find candidate pictures (server-side, no extension needed)
 Per item, stop at the first source that yields good candidates; gather up to 6:
 1. Barcode printed on the receipt → Open Food Facts / Open Products Facts by barcode (exact product photo).
 2. Own items with a similar title (existing).
@@ -102,7 +102,7 @@ Cache every query result (kv, 30 days) so repeats cost nothing. Without `SERPER_
 icons still work; note in the UI's settings "Add a search key for better pictures". The extension may still help
 on desktop in the background, but nothing waits for it.
 
-### D3. [ ] Pick the right one automatically
+### D3. [x] Pick the right one automatically
 One batched Gemini **vision** call ranks the candidate thumbnails for several items at once ("which picture shows
 <clean name, brand, size>? answer index or none, with confidence"). High confidence → chosen; low → chosen but marked
 "check". Keep the ranked alternatives on the item (`imageCandidates` JSON, up to 6) for the picker. Resize to 480 px
