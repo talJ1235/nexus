@@ -5,18 +5,16 @@
  * - `primeCamera()` is called in the tap handler itself, so getUserMedia starts before React renders the viewfinder.
  * - The first request asks for a modest resolution (cameras start faster); `upgradeCamera()` raises it after the first
  *   frame for the screen that needs more.
- * - Closing keeps the stream alive for a minute, so reopening is instant; it stops at once when the page is hidden.
- * Timings land as performance marks (cam:tap → cam:frame, scan:decoder) for the smoke trace.
+ * - The camera turns off the moment no screen uses it (closing the scanner / receipt camera, or a photo taken), and
+ *   when the page is hidden — Tal's choice: no keep-alive. A start that resolves after the screen closed stops at once.
+ * Timings land as performance marks (cam:tap → cam:frame, scan:decoder); <html data-camera="on|off"> shows its state.
  */
-export type CameraKind = "barcode" | "receipt";
-
 const FIRST_WIDTH = 640;
-const KEEP_MS = 60_000;
 
 let stream: MediaStream | null = null;
 let pending: Promise<MediaStream> | null = null;
 let users = 0;
-let stopTimer = 0;
+let primed = false;
 let listening = false;
 
 const mark = (name: string) => {
@@ -27,20 +25,20 @@ const mark = (name: string) => {
 };
 
 const live = (s: MediaStream | null) => !!s && s.getVideoTracks().some((t) => t.readyState === "live");
+const show = (on: boolean) => (document.documentElement.dataset.camera = on ? "on" : "off");
 
 function stopNow() {
-  clearTimeout(stopTimer);
   stream?.getTracks().forEach((t) => t.stop());
   stream = null;
-  pending = null;
+  primed = false;
+  show(false);
 }
 
 function listen() {
   if (listening) return;
   listening = true;
-  const hide = () => document.visibilityState === "hidden" && users === 0 && stopNow();
-  document.addEventListener("visibilitychange", hide);
-  window.addEventListener("pagehide", () => users === 0 && stopNow());
+  document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && stopNow());
+  window.addEventListener("pagehide", stopNow);
 }
 
 function open(): Promise<MediaStream> {
@@ -52,42 +50,42 @@ function open(): Promise<MediaStream> {
     .getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: FIRST_WIDTH }, height: { ideal: Math.round((FIRST_WIDTH * 3) / 4) } } })
     .then((s) => {
       pending = null;
-      // Released while it was starting (closed fast): keep it for the minute like any other release.
       stream = s;
-      if (users === 0) scheduleStop();
+      show(true);
+      // Closed (or never opened) while it was starting: off at once.
+      if (users === 0 && !primed) stopNow();
       return s;
     })
     .catch((e) => {
       pending = null;
+      primed = false;
       throw e;
     });
   return pending;
 }
 
-function scheduleStop() {
-  clearTimeout(stopTimer);
-  stopTimer = window.setTimeout(() => users === 0 && stopNow(), KEEP_MS);
-}
-
-/** Start the camera now (from the tap that opens a camera screen). Safe to call repeatedly. */
+/** Start the camera now (from the tap that opens a camera screen). The screen's acquire takes it over. */
 export function primeCamera() {
   mark("cam:tap");
+  primed = true;
   void open().catch(() => {});
+  // If no screen claims it shortly (the tap didn't open one), don't leave the camera on.
+  setTimeout(() => {
+    if (primed && users === 0) stopNow();
+  }, 3000);
 }
 
 /** The live stream (reused or starting); pair every acquire with a release. */
 export function acquireCamera(): Promise<MediaStream> {
   users++;
-  clearTimeout(stopTimer);
+  primed = false;
   return open();
 }
 
+/** The screen is done with the camera: when nothing else uses it, it turns off immediately. */
 export function releaseCamera() {
   users = Math.max(0, users - 1);
-  if (users === 0) {
-    if (document.visibilityState === "hidden") stopNow();
-    else scheduleStop();
-  }
+  if (users === 0) stopNow();
 }
 
 /** After the first frame: raise the resolution to what this screen needs (no-op if already there). */

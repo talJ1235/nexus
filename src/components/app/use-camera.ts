@@ -5,7 +5,7 @@ import { acquireCamera, cameraMark, releaseCamera, upgradeCamera } from "@/lib/c
 
 /**
  * Back camera into a <video>, with torch control where the device supports it. The stream is the shared one from
- * lib/camera (started at the tap, kept a minute after closing); it's upgraded to `width` after the first frame.
+ * lib/camera (started at the tap, off the moment the screen closes); it's upgraded to `width` after the first frame.
  */
 export function useCamera(active: boolean, opts: { width?: number } = {}) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -59,7 +59,7 @@ export function useCamera(active: boolean, opts: { width?: number } = {}) {
     void start();
     return () => {
       cancelled = true;
-      // The torch goes off with the screen; the stream itself is released to the shared keeper.
+      // The torch goes off with the screen; releasing the stream turns the camera off.
       const track = streamRef.current?.getVideoTracks()[0];
       if (track && torchOn.current) void track.applyConstraints({ advanced: [{ torch: false } as MediaTrackConstraintSet] }).catch(() => {});
       torchOn.current = false;

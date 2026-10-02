@@ -396,9 +396,11 @@ Brief and checklist: `docs/ROUND10.md`. Shipped (merged to `main` 2026-10-02):
   pull-to-refresh — the root has `overscroll-behavior-y: contain` and Nexus's pull-to-refresh (Box mark) reloads into
   the boot sequence.
 - **Faster camera**: `lib/camera.ts` shares one back-camera stream — `getUserMedia` starts in the tap (640 px first,
-  upgraded after the first frame), kept a minute after closing (stopped when the page is hidden); `lib/barcode-reader.ts`
+  upgraded after the first frame), off the moment the scanner/receipt camera closes (Tal's choice, no keep-alive) and
+  when the page is hidden; `lib/barcode-reader.ts`
   uses the native BarcodeDetector or zxing-wasm, downloaded in idle time and compiled when the + menu opens / at the
-  tap. Performance marks `cam:tap`, `cam:frame`, `scan:decoder`; smoke at CPU ×4: viewfinder ~230 ms, reopen ~140 ms.
+  tap. Performance marks `cam:tap`, `cam:frame`, `scan:decoder`, `<html data-camera>`; smoke at CPU ×4: barcode
+  viewfinder ~255–300 ms, receipt ~165 ms, camera off after each close.
 - **Projects page v2**: header summary (active projects, left to buy, the budget nearest its limit), Projects then
   Lists (smaller cards) with counts and their own empty states, a "New" pill (New project / New list) and one "Start
   something new" card at the bottom; one-line card footers keep heights equal.

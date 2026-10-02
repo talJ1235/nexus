@@ -155,8 +155,10 @@ Worth one look on the real phone: the product open/close morph (A1), pull-to-ref
   when the machine was busy — Chromium's fake-camera start), 135–175 ms on a reopen within the minute; receipt camera
   115–145 ms; the decoder is ready before the tap (idle pre-warm), so decode-ready = first frame. Before, the camera
   started only after the viewfinder rendered (at 1280 px) and the decoder only after the camera was on (sequential).
-  The live stream is kept 60 s after closing (stopped at once when the page is hidden) — the camera indicator stays on
-  for that minute; say if you'd rather it stop immediately. Worth one check on the real phone.
+  **Decided by Tal (after the run): no keep-alive** — the camera turns off the moment the barcode scanner or receipt
+  camera closes (and while a receipt shot is being adjusted); it still starts in the tap, so opens stay fast: barcode
+  ~255–300 ms, reopen ~180 ms, receipt ~165 ms (CPU ×4), and the smoke checks it's off after each close.
+  Worth one check on the real phone.
 - **D5 real run** (this machine's GEMINI_API_KEY + SERPER_API_KEY, `npm run bench:pictures`): **15/15** chosen
   pictures show the right product — 10/10 grocery lines (Tnuva milk 3 %, Milky, Tnuva cottage 5 %, Bamba, Angel
   bread, eggs, Danone 1.5 %, Yotvata choco, Osem spaghetti, Elite instant coffee) and 5/5 maker parts (NEMA 17,

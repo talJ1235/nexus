@@ -130,7 +130,7 @@ Example: `[Open settings → Palette](nexus:settings)`.
 <!-- spec: Barcodes, Shopping mode, Faster camera -->
 - **Scan a barcode** (phones: + menu): find an item on your list, check it off, or add a new product (Nexus looks it
   up in product databases). Torch button in dark stores; you can type the number too. The camera opens at once (the
-  scanner is prepared in the background); reopening within a minute is instant.
+  scanner is prepared in the background) and turns off as soon as you close it.
 - **Shopping mode** (command menu, a project page's Shop button, or a store in Order by store): pick everything / a
   store / a project; tap a row to check it, long-press to change qty/price, quick-add at the bottom, scan to check off.
   The trip works offline and syncs when you're back online. Finish marks the checked items as received.

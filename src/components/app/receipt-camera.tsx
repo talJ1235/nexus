@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { primeCamera } from "@/lib/camera";
 import { Dialog as D } from "radix-ui";
 import { ArrowLeft, ArrowRight, Check, Flashlight, ImageUp, Plus, RotateCcw, X } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -88,8 +89,13 @@ export function ReceiptCamera() {
               shot={shot}
               partsCount={parts.length}
               busy={busy}
-              onRetake={() => setShot(null)}
+              // The camera is off while adjusting a shot; Retake / Add another part start it again in the tap.
+              onRetake={() => {
+                primeCamera();
+                setShot(null);
+              }}
               onAddPart={async (corners) => {
+                primeCamera();
                 setParts([...parts, await keep(shot.canvas, corners)]);
                 setShot(null);
               }}
