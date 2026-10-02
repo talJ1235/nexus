@@ -1,10 +1,12 @@
 "use client";
 
-import { FileSpreadsheet, Flag, FolderPlus, ListPlus, MoreHorizontal, Pencil, Plus, Share2, ShoppingCart, Sparkles, Truck } from "lucide-react";
+import { useMemo } from "react";
+import { FileSpreadsheet, Flag, Folder, FolderPlus, Gauge, ListPlus, MoreHorizontal, Pencil, Plus, Share2, ShoppingCart, Sparkles, Truck } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { Ring } from "@/components/ui/ring";
 import { download, exportUrl } from "@/lib/export-url";
+import { budgetStats, countable, sumTotals } from "@/lib/calc";
 import { formatMoney } from "@/lib/money";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "@/components/ui/overlays";
 import type { Collection } from "@/lib/types";
@@ -25,27 +27,105 @@ export function ProjectsView() {
   const lists = s.collections.filter((c) => c.kind === "list" && !c.archived);
 
   return (
-    <div className="flex flex-col gap-5" data-projects-view>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[26px] font-extrabold tracking-[-0.02em]">{t.projects.title}</h1>
-        <NewMenu />
-      </div>
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3" data-projects-section>
-        {projects.map((c, i) => (
-          <ProjectCard key={c.id} c={c} index={i} />
-        ))}
-      </div>
-      {lists.length > 0 && (
-        <>
-          <h2 className="mt-2 text-[18px] font-extrabold">{t.projects.lists}</h2>
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3" data-lists-section>
-            {lists.map((c, i) => (
-              <ProjectCard key={c.id} c={c} index={projects.length + i} />
+    <div className="flex flex-col gap-8 pb-4" data-projects-view>
+      <header className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-[26px] font-extrabold tracking-[-0.02em] lg:text-[28px]">{t.projects.title}</h1>
+          <NewMenu />
+        </div>
+        {projects.length > 0 && <Summary projects={projects} />}
+      </header>
+      <section className="flex flex-col gap-3.5">
+        <SectionTitle label={t.projects.title} n={projects.length} />
+        {projects.length ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" data-projects-section>
+            {projects.map((c, i) => (
+              <ProjectCard key={c.id} c={c} index={i} />
             ))}
           </div>
-        </>
-      )}
+        ) : (
+          <EmptySection kind="project" text={t.projects.empty} />
+        )}
+      </section>
+      <section className="flex flex-col gap-3.5">
+        <SectionTitle label={t.projects.lists} n={lists.length} />
+        {lists.length ? (
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" data-lists-section>
+            {lists.map((c, i) => (
+              <ProjectCard key={c.id} c={c} index={projects.length + i} small />
+            ))}
+          </div>
+        ) : (
+          <EmptySection kind="list" text={t.projects.emptyLists} />
+        )}
+      </section>
       <StartNewCard index={projects.length + lists.length} />
+    </div>
+  );
+}
+
+function SectionTitle({ label, n }: { label: string; n: number }) {
+  return (
+    <h2 className="flex items-center gap-2 text-[18px] font-extrabold tracking-[-0.01em]">
+      {label}
+      <span className="tabular grid h-6 min-w-6 place-items-center rounded-full bg-surface-2 px-2 text-[12.5px] font-bold text-muted">{n}</span>
+    </h2>
+  );
+}
+
+/** A section with nothing in it yet: what it's for, and the one button that starts it. */
+function EmptySection({ kind, text }: { kind: "project" | "list"; text: string }) {
+  const s = useStore();
+  const ro = useReadOnly();
+  const { t } = useI18n();
+  return (
+    <div
+      className="flex flex-wrap items-center gap-4 rounded-[26px] bg-surface-2/70 p-5"
+      data-projects-section={kind === "project" ? "" : undefined}
+      data-lists-section={kind === "list" ? "" : undefined}
+      data-empty-section={kind}
+    >
+      <KindChip kind={kind} />
+      <p className="min-w-[16ch] flex-1 text-[14px] text-muted">{text}</p>
+      <Button variant="outline" className="h-10 rounded-full px-4" disabled={ro.ro} onClick={() => create(s, kind)}>
+        <Plus /> {kind === "project" ? t.nav.newProject : t.nav.newList}
+      </Button>
+    </div>
+  );
+}
+
+/** Header summary across projects: how many are active, what's left to buy, and the budget nearest its limit. */
+function Summary({ projects }: { projects: Collection[] }) {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const m = (v: number) => formatMoney(Math.round(v), s.currency, locale);
+  const sum = useMemo(() => {
+    let left = 0;
+    let active = 0;
+    let nearest: { name: string; pct: number; over: number } | null = null;
+    for (const c of projects) {
+      const open = s.items.filter((i) => i.collectionId === c.id && i.status === "to_buy");
+      if (open.length) active++;
+      left += sumTotals(countable(open, s.altGroups, s.rates), s.rates, s.currency).total;
+      const b = budgetStats(c, s.items, s.altGroups, s.rates, s.currency);
+      if (b.budget != null && b.pct != null && (!nearest || b.pct > nearest.pct)) nearest = { name: c.name, pct: b.pct, over: b.used - b.budget };
+    }
+    return { left, active, nearest };
+  }, [projects, s.items, s.altGroups, s.rates, s.currency]);
+  const chip = "inline-flex h-8 items-center gap-1.5 rounded-full bg-surface px-3 text-[13px] font-semibold shadow-card ring-1 ring-line";
+  const near = sum.nearest;
+  return (
+    <div className="flex flex-wrap gap-2" data-projects-summary>
+      <span className={chip}>
+        <Folder className="size-3.5 text-muted" /> {sum.active === 1 ? t.projects.activeOne : f(t.projects.activeN, { n: sum.active })}
+      </span>
+      <span className={cn(chip, "tabular")}>
+        <ShoppingCart className="size-3.5 text-muted" /> {f(t.projects.leftAll, { amount: m(sum.left) })}
+      </span>
+      <span className={cn(chip, "bidi", near && near.over > 0 && "text-danger")}>
+        <Gauge className="size-3.5 text-muted" />
+        {near ? (near.over > 0 ? f(t.projects.nearestOver, { name: near.name, amount: m(near.over) }) : f(t.projects.nearest, { name: near.name, pct: Math.round(near.pct) })) : t.projects.noBudgets}
+      </span>
     </div>
   );
 }
@@ -120,7 +200,7 @@ function StartNewCard({ index }: { index: number }) {
   );
 }
 
-function ProjectCard({ c, index }: { c: Collection; index: number }) {
+function ProjectCard({ c, index, small }: { c: Collection; index: number; small?: boolean }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
   const st = useProjectStats(c);
@@ -136,11 +216,11 @@ function ProjectCard({ c, index }: { c: Collection; index: number }) {
       data-project-card={c.id}
     >
       <button type="button" className="absolute inset-0 z-[1] rounded-[26px]" aria-label={c.name} onClick={() => openProject(c.id, s.setView)} />
-      <ProjectCover c={c} pics={st.pics} className="h-[84px] sm:h-[104px]" />
+      <ProjectCover c={c} pics={st.pics} className={small ? "h-[64px] sm:h-[76px]" : "h-[84px] sm:h-[104px]"} />
       <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <h3 className="bidi truncate text-[18px] font-extrabold leading-tight tracking-[-0.01em]">{c.name}</h3>
+            <h3 className={cn("bidi truncate font-extrabold leading-tight tracking-[-0.01em]", small ? "text-[16px]" : "text-[18px]")}>{c.name}</h3>
             <p className="mt-0.5 truncate text-[13px] text-muted">
               <span className="tabular">{st.toBuy.length ? (st.toBuy.length === 1 ? t.projects.leftOne : f(t.projects.left, { n: st.toBuy.length })) : t.projects.done}</span>
               {st.next && (
@@ -151,8 +231,8 @@ function ProjectCard({ c, index }: { c: Collection; index: number }) {
               )}
             </p>
           </div>
-          <Ring value={ring} size={48} stroke={6} color={budget?.state === "over" ? "var(--danger)" : color}>
-            <span className="tabular text-[11.5px] font-extrabold">{Math.round(ring * 100)}%</span>
+          <Ring value={ring} size={small ? 40 : 48} stroke={small ? 5 : 6} color={budget?.state === "over" ? "var(--danger)" : color}>
+            <span className={cn("tabular font-extrabold", small ? "text-[10.5px]" : "text-[11.5px]")}>{Math.round(ring * 100)}%</span>
           </Ring>
           <button
             type="button"
@@ -168,22 +248,24 @@ function ProjectCard({ c, index }: { c: Collection; index: number }) {
           <div className="h-2 overflow-hidden rounded-full bg-surface-2" aria-hidden>
             <i className="grow-x block h-full rounded-full" style={{ width: `${st.items.length ? (st.bought / st.items.length) * 100 : 0}%`, background: color, animationDelay: `${200 + index * 55}ms` }} />
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-            <span className="tabular">{f(t.projects.bought, { done: st.bought, total: st.items.length })}</span>
+          {/* One line, always (Round 10 C2): the flags are compact (icon + count, full text as the label), so every
+              card in a section has the same height without stretching the short ones. */}
+          <div className="mt-2 flex h-[22px] items-center gap-2 overflow-hidden whitespace-nowrap text-xs text-muted">
+            <span className="tabular truncate">{f(t.projects.bought, { done: st.bought, total: st.items.length })}</span>
             {budget && (
-              <span className={cn("tabular font-semibold", budget.state === "over" ? "text-danger" : "text-ink")}>
+              <span className={cn("tabular shrink-0 font-semibold", budget.state === "over" ? "text-danger" : "text-ink")}>
                 · {budget.state === "over" ? f(t.projects.overAmount, { amount: m(budget.used - budget.budget!) }) : f(t.projects.leftAmount, { amount: m(budget.budget! - budget.used) })}
               </span>
             )}
             <span className="flex-1" />
             {st.urgent > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--danger)_14%,transparent)] px-2 py-0.5 font-semibold text-danger" data-project-urgent>
-                <Flag className="size-3" /> {f(t.projects.urgentN, { n: st.urgent })}
+              <span className="tabular inline-flex shrink-0 items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--danger)_14%,transparent)] px-2 py-0.5 font-semibold text-danger" title={f(t.projects.urgentN, { n: st.urgent })} aria-label={f(t.projects.urgentN, { n: st.urgent })} data-project-urgent>
+                <Flag className="size-3" /> {st.urgent}
               </span>
             )}
             {st.onTheWay > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--info)_14%,transparent)] px-2 py-0.5 font-semibold text-info">
-                <Truck className="size-3" /> {f(t.projects.onTheWayN, { n: st.onTheWay })}
+              <span className="tabular inline-flex shrink-0 items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--info)_14%,transparent)] px-2 py-0.5 font-semibold text-info" title={f(t.projects.onTheWayN, { n: st.onTheWay })} aria-label={f(t.projects.onTheWayN, { n: st.onTheWay })}>
+                <Truck className="size-3" /> {st.onTheWay}
               </span>
             )}
           </div>

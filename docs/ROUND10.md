@@ -61,7 +61,7 @@ profile. Same treatment for the receipt camera. Add the timings to the smoke tra
   list, friendly illustration, dashed or soft outline). Projects and lists behave the same way. Decide the final look
   by screenshot; the header button and the card must look like one family.
 
-### C2. [ ] Projects page polish
+### C2. [x] Projects page polish
 Building on Round 9's covers: a page header with a summary (active projects, total left to buy across projects,
 nearest budget limit), section titles with counts, more breathing room, lists shown as slightly smaller cards than
 projects (lists don't have budgets), empty states for each section, consistent card heights, hover/press motion.

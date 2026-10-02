@@ -645,6 +645,13 @@ try {
       const add = await page.locator("[data-start-new] [data-start-new-item]").count() === 2 ? 1 : 0;
       const order = await page.evaluate(() => ["[data-projects-section]", "[data-lists-section]", "[data-start-new]"].map((q) => document.querySelector(q)?.getBoundingClientRect().top ?? -1));
       if (!(order[0] >= 0 && (order[1] < 0 || order[1] > order[0]) && order[2] > Math.max(order[0], order[1]))) throw new Error(`order ${order}`);
+      // C2: summary chips; list cards smaller than project cards; cards in one section share one height.
+      const shape = await page.evaluate(() => {
+        const h = (q) => [...document.querySelectorAll(q)].map((e) => Math.round(e.getBoundingClientRect().height));
+        return { summary: document.querySelectorAll("[data-projects-summary] > *").length, p: h("[data-projects-section] [data-project-card]"), l: h("[data-lists-section] [data-project-card]") };
+      });
+      const same = (a) => a.length < 2 || Math.max(...a) - Math.min(...a) <= 1;
+      if (shape.summary !== 3 || !same(shape.p) || !same(shape.l) || (shape.l.length && shape.p.length && !(shape.l[0] < shape.p[0]))) throw new Error(`shape ${JSON.stringify(shape)}`);
       await page.locator("[data-projects-new]").click();
       const menu = await page.locator("[data-projects-new-item]").count();
       await page.keyboard.press("Escape");
