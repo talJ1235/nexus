@@ -781,6 +781,23 @@ try {
         ok(await page.getByRole("dialog").isVisible(), "panel opened while loading stays open when the data arrives");
         await page.keyboard.press("Escape");
       });
+
+      // Round 10 C3: the loading skeleton has the shape of the view in the URL.
+      await step("loading skeletons match the view being loaded", async () => {
+        const coll = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.collections.find((c) => c.kind === "project" && !c.archived);
+        const cases = [["/?v=projects", "projects"], ["/?v=orders", "orders"], ["/?v=history", "items"], ["/?v=ordered", "items"], ["/?v=spending", null], ["/", "items"]];
+        if (coll) cases.push([`/?v=c:${coll.id}`, "project-header"]);
+        const bad = [];
+        for (const [path, want] of cases) {
+          await page.goto(`${BASE}${path}`, { waitUntil: "commit" });
+          await page.waitForSelector("[data-app-shell]:not([data-ready])", { timeout: 10000 });
+          const got = await page.evaluate(() => [...document.querySelectorAll("[data-app-shell]:not([data-ready]) [data-skeleton]")].map((e) => e.getAttribute("data-skeleton")));
+          if (want ? !got.includes(want) || (want !== "project-header" && got.some((g) => g !== want)) : got.length) bad.push(`${path}: ${got.join(",") || "none"}`);
+          if (MOBILE && path === "/?v=projects") await shot(page, "skeleton-projects");
+          await page.waitForSelector(READY, { timeout: 20000 });
+        }
+        ok(bad.length === 0, "loading skeletons match the view being loaded", bad.join(" | "));
+      });
     }
 
     await step("assistant panel opens", async () => {

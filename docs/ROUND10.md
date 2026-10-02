@@ -67,7 +67,7 @@ nearest budget limit), section titles with counts, more breathing room, lists sh
 projects (lists don't have budgets), empty states for each section, consistent card heights, hover/press motion.
 Compare desktop 2–3 columns and phone 1 column.
 
-### C3. [ ] Skeletons that match the page
+### C3. [x] Skeletons that match the page
 On reload of the Projects page the loading skeleton shows To-buy product rectangles. Skeletons must match the view
 being loaded: Projects → wide project cards (cover + lines + ring), project page → its header + item cards, On the way
 / History / Stats / Order by store → their own shapes. Make the skeleton choice depend on the view from the URL

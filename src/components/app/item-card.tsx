@@ -601,10 +601,13 @@ export function AltGroupCard({ groupId, members }: { groupId: string; members: I
   );
 }
 
-export function ItemCardSkeleton() {
+export function ItemCardSkeleton({ badge }: { badge?: boolean }) {
   return (
     <div className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface p-1.5">
-      <div className="skeleton aspect-[4/3] w-full rounded-[var(--radius-tile)]" />
+      <div className="relative">
+        <div className="skeleton aspect-[4/3] w-full rounded-[var(--radius-tile)]" />
+        {badge && <span className="absolute end-2 top-2 h-[22px] w-[74px] rounded-full bg-surface/80" />}
+      </div>
       <div className="space-y-2.5 p-3.5">
         <div className="skeleton h-3 w-1/3 rounded" />
         <div className="skeleton h-3.5 w-full rounded" />

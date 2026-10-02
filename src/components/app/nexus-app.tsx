@@ -43,7 +43,7 @@ import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
 import { StoreProvider, useOpenItemId, useStore, type PendingAdd, type UiInit } from "./store";
-import { ContentSkeleton, Skel } from "./skeletons";
+import { ContentSkeleton, ProjectHeaderSkeleton, Skel } from "./skeletons";
 import { COLLECTION_COLORS, useViewItems } from "./view-items";
 import { FALLBACK_RATES, type Currency } from "@/lib/money";
 import { DEFAULT_IMPORT_LIMIT_USD } from "@/lib/import-vat";
@@ -261,6 +261,8 @@ function ViewHeader() {
   const collection = s.view.type === "collection" ? s.collections.find((c) => c.id === (s.view as { id: string }).id) : null;
 
   // A project/list page has its own header (cover, ring, numbers, actions — Round 9 E1), then the section header.
+  // Loading one: that header's shape (Round 10 C3), then the item grid.
+  if (s.loading && s.view.type === "collection") return <ProjectHeaderSkeleton />;
   if (collection && !s.loading)
     return (
       <>
