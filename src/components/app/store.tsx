@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { installClientErrorCapture } from "@/lib/client-errors";
 import { recordNav } from "@/lib/client-diag";
 import type { ReportFields } from "@/lib/reports";
@@ -359,7 +360,7 @@ export function StoreProvider({
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [loading, ui.layout, ui.sort]);
 
-  const setView = useCallback((v: View) => {
+  const applyView = useCallback((v: View) => {
     recordNav(v.type);
     setNavDir(VIEW_ORDER.indexOf(v.type) >= VIEW_ORDER.indexOf(viewRef.current.type) ? 1 : -1);
     viewRef.current = v;
@@ -378,6 +379,16 @@ export function StoreProvider({
     else url.searchParams.set("v", p);
     window.history.replaceState(null, "", url);
   }, []);
+  const setView = useCallback((v: View) => {
+    // Project page → Projects: the header's cover morphs back into its card (Round 10 A2; the way in is
+    // project-cover.tsx openProject). Same view transition, reduced motion → plain.
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+    if (viewRef.current.type === "collection" && v.type === "projects" && doc.startViewTransition && document.querySelector("[data-project-header] [data-project-cover]") && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      doc.startViewTransition(() => flushSync(() => applyView(v)));
+      return;
+    }
+    applyView(v);
+  }, [applyView]);
 
   const setLayout = useCallback((l: Layout) => {
     setLayoutState(l);

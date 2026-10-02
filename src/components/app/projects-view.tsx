@@ -163,7 +163,7 @@ export function ProjectHeader({ c }: { c: Collection }) {
   const ring = budget ? Math.min(1, (budget.pct ?? 0) / 100) : st.items.length ? st.bought / st.items.length : 0;
 
   return (
-    <header className="mb-4 overflow-hidden rounded-[30px] border border-line bg-surface shadow-card" data-project-header={c.id}>
+    <header className="mb-4 overflow-hidden rounded-[26px] border border-line bg-surface shadow-card" data-project-header={c.id}>
       <ProjectCover c={c} pics={st.pics} size="header" className="h-[120px] sm:h-[160px]" />
       <div className="flex flex-col gap-4 p-4 sm:p-5">
         <div className="flex items-start gap-4">

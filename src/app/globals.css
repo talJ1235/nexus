@@ -710,6 +710,10 @@ html body[data-scroll-locked] { margin-right: 0 !important; --removed-body-scrol
 ::view-transition-old(root),
 ::view-transition-new(root) { animation: none; }
 ::view-transition-group(*) { animation-duration: 420ms; animation-timing-function: var(--ease-out); }
+/* The cover keeps its rounded top corners the whole way (Round 10 A2): card and header share one radius, and the
+   group itself clips with it while its size animates, so neither end snaps. The snapshots fill the group. */
+::view-transition-group(*.project-cover) { border-radius: 25px 25px 0 0; overflow: clip; }
+::view-transition-old(*.project-cover), ::view-transition-new(*.project-cover) { height: 100%; object-fit: cover; }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*) { animation-duration: 0s; }
 }

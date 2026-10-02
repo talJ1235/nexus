@@ -622,6 +622,42 @@ try {
       await page.waitForSelector(READY, { timeout: 15000 });
     });
 
+    // Round 10 A2: the cover morphs card → page and back with its rounded corners the whole way (the transition's
+    // group clips with the same radius as both ends; read it every frame while the transition runs).
+    await step("project cover morph: rounded corners the whole way, both directions", async () => {
+      await page.goto(`${BASE}/?v=projects`);
+      await page.waitForSelector("[data-project-card] [data-project-cover]", { timeout: 15000 });
+      await page.waitForTimeout(900); // the cards' rise-in settles first (a click waits for a stable element)
+      const name = await page.locator("[data-project-card] [data-project-cover]").first().evaluate((e) => getComputedStyle(e).viewTransitionName);
+      const watch = () => page.evaluate((name) => {
+        const seen = [];
+        const t0 = performance.now();
+        const tick = () => {
+          const g = getComputedStyle(document.documentElement, `::view-transition-group(${name})`);
+          if (g.width && g.width !== "auto" && g.width !== "0px") seen.push(g.borderTopLeftRadius);
+          if (performance.now() - t0 < 900) requestAnimationFrame(tick);
+          else window.__radii = seen;
+        };
+        requestAnimationFrame(tick);
+      }, name);
+      const radii = async () => { await page.waitForFunction(() => window.__radii, null, { timeout: 3000 }); const r = await page.evaluate(() => window.__radii); await page.evaluate(() => delete window.__radii); return r; };
+      const back = MOBILE ? page.locator('[data-dock-target="projects"]') : page.locator("aside button", { hasText: /^(Projects|פרויקטים)$/ }).first();
+      const go = async () => { await watch(); await page.locator("[data-project-card] > button").first().click(); await page.waitForSelector("[data-project-header]"); };
+      const ret = async () => { await page.waitForTimeout(600); await watch(); await back.click(); await page.waitForSelector("[data-project-card]"); };
+      let fwd, rev;
+      if (TRACE) {
+        await traceFrames(page, "trace-cover-open", go, 900); fwd = await radii();
+        await traceFrames(page, "trace-cover-back", ret, 900); rev = await radii();
+      } else {
+        await go(); fwd = await radii();
+        await ret(); rev = await radii();
+      }
+      const round = (r) => r.length > 0 && r.every((x) => x === r[0] && parseFloat(x) >= 20);
+      ok(round(fwd) && round(rev), "project cover morph: rounded corners the whole way, both directions", `in: ${[...new Set(fwd)].join("/") || "no transition"}; back: ${[...new Set(rev)].join("/") || "no transition"}`);
+      await page.goto(`${BASE}/`);
+      await page.waitForSelector(READY, { timeout: 15000 });
+    });
+
     await step("Esc opens command palette with quick settings", async () => {
       await openPalette();
       const dialog = page.getByRole("dialog");

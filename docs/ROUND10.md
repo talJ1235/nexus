@@ -22,7 +22,7 @@ record a frame series (`SMOKE_TRACE`) for every animation you touch — judge th
 - Smoke: open/close 10 items quickly in a row (desktop + phone) and assert no stray clone remains and no element
   outside the sheet moved > 1 px during open.
 
-### A2. [ ] Project card → project page: rounded corners all the way
+### A2. [x] Project card → project page: rounded corners all the way
 The colour cover opens with square corners and then snaps to rounded. Animate with the radius preserved (shared
 element with `border-radius` in the animated style or view-transition `::view-transition-group` with matching
 `border-radius` + `overflow: clip`), no snap at start or end, both directions.

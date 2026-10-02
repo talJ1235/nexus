@@ -33,12 +33,16 @@ export function useProjectStats(c: Collection) {
 export const projectColor = (c: Collection) => COLLECTION_COLORS[c.color] ?? COLLECTION_COLORS.slate;
 const vtName = (id: string) => `cover-${id.replace(/[^\w-]/g, "")}`;
 
-/** Card → project page: the cover morphs into the page header (View Transitions where supported; reduced motion → no). */
-export function openProject(id: string, setView: (v: View) => void) {
-  const go = () => setView({ type: "collection", id });
+/** Runs `go` inside a view transition where supported (reduced motion → plain). Only the covers carry a name. */
+export function withCoverMorph(go: () => void) {
   const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
   if (doc.startViewTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) doc.startViewTransition(() => flushSync(go));
   else go();
+}
+
+/** Card → project page: the cover morphs into the page header (the way back is in the store's setView). */
+export function openProject(id: string, setView: (v: View) => void) {
+  withCoverMorph(() => setView({ type: "collection", id }));
 }
 
 const TILT = ["-7deg", "5deg", "-3deg", "8deg"];
@@ -51,7 +55,13 @@ export function ProjectCover({ c, pics, size = "card", className }: { c: Collect
   const color = projectColor(c);
   const tile = size === "header" ? "size-[72px] rounded-[18px]" : "size-14 rounded-[16px] sm:size-16";
   return (
-    <div className={cn("relative isolate overflow-hidden", className)} style={{ viewTransitionName: vtName(c.id) } as React.CSSProperties} data-project-cover>
+    <div
+      // The cover rounds its own top corners (the card/header radius minus their 1 px border) instead of relying on
+      // the parent's clip, which a view-transition snapshot doesn't carry — the corners stayed square, then snapped.
+      className={cn("relative isolate overflow-hidden rounded-t-[25px]", className)}
+      style={{ viewTransitionName: vtName(c.id), viewTransitionClass: "project-cover" } as React.CSSProperties}
+      data-project-cover
+    >
       <div
         aria-hidden
         className="absolute inset-0 -z-10 saturate-[1.35]"
