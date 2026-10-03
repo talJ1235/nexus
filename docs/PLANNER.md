@@ -54,6 +54,7 @@ writes the round briefs. Everything durable lives in this repo, not in chat hist
 - No workarounds that impersonate other clients / third-party fetchers for blocked stores (decided 2026-09-30).
 - Pictures: Google Images via **Serper** (`SERPER_API_KEY`), Open Food Facts, own items, icons; extension optional.
 - Not wanted: SolidWorks BOM import, item file attachments, event wishlists. Later: parts inventory, monthly "Wrapped".
+- **Dashboard is the default home screen** (Tal, 2026-10-03); everything else via the desktop sidebar / phone dock.
 - Free-tier stack (Vercel Hobby, Turso, Gemini free + Groq/OpenRouter fallback). Tal declined paid usage credits.
 
 ## Product direction (discussed 2026-10-03, not started)
@@ -85,6 +86,7 @@ writes the round briefs. Everything durable lives in this repo, not in chat hist
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-03 · A · Round 12 mockups on the canvas (page "Round 12 — mature look + dashboard"): Q quiet-pro vs E editorial; dashboard, customize mode + presets, grouped To buy, history table, phone. Proposed phone dock: Home · To buy · + · Projects · Insights (On the way moves into To buy) — awaiting Tal.
 - 2026-10-03 · A · Round 11 brief (intro on open only + bigger intro, nested overlays, phone History, swipe/long-press/hover quick actions, uniform pictures, solid tags). Round 12 planned: visual maturity (fewer rounded boxes, flat sidebar, order history), customizable dashboard, decluttered products page with AI groupings — mockups first.
 - 2026-10-03 · A · Product direction discussed (multi-user, Capacitor first, supermarket); PLANNER.md created.
 - 2026-10-02 · A · Round 10 brief (animations, camera, projects page, pictures via Serper).
