@@ -86,7 +86,8 @@ const DOCK: { view: View; icon: React.ReactNode; label: (t: ReturnType<typeof us
   { view: { type: "to_buy" }, icon: <ShoppingCart />, label: (t) => t.nav.toBuy },
   { view: { type: "ordered" }, icon: <Truck />, label: (t) => t.nav.onTheWay },
   { view: { type: "projects" }, icon: <Folder />, label: (t) => t.projects.title },
-  { view: { type: "spending" }, icon: <ChartColumn />, label: (t) => t.phone.stats },
+  // "Insights": Spending · History (Round 11 B2).
+  { view: { type: "spending" }, icon: <ChartColumn />, label: (t) => t.insights.title },
 ];
 
 /**
@@ -103,7 +104,7 @@ export function Dock() {
 function DockBar() {
   const s = useStore();
   const { t } = useI18n();
-  const activeType = s.view.type === "collection" ? "projects" : s.view.type === "orders" ? "spending" : s.view.type;
+  const activeType = s.view.type === "collection" ? "projects" : s.view.type === "orders" || s.view.type === "history" ? "spending" : s.view.type;
   const item = (d: (typeof DOCK)[number]) => (
     <button
       key={d.view.type}

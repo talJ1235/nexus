@@ -91,6 +91,13 @@ type Store = {
   /** Project/list chip on the filters row (null = all). */
   collectionFilter: string | null;
   setCollectionFilter: (c: string | null) => void;
+  /** History view: its own search and Month (YYYY-MM) / Store (storeKey) filters (Round 11 B2). */
+  historyQuery: string;
+  setHistoryQuery: (q: string) => void;
+  historyMonth: string | null;
+  setHistoryMonth: (m: string | null) => void;
+  historyStore: string | null;
+  setHistoryStore: (k: string | null) => void;
   /** Phone: the "+" menu and the paste field above the dock. */
   plusOpen: boolean;
   setPlusOpen: (o: boolean) => void;
@@ -257,6 +264,9 @@ export function StoreProvider({
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [collectionFilter, setCollectionFilter] = useState<string | null>(null);
+  const [historyQuery, setHistoryQuery] = useState("");
+  const [historyMonth, setHistoryMonth] = useState<string | null>(null);
+  const [historyStore, setHistoryStore] = useState<string | null>(null);
   const [plusOpen, setPlusOpen] = useState(false);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [scanner, setScannerState] = useState<"barcode" | "receipt" | null>(null);
@@ -386,6 +396,9 @@ export function StoreProvider({
     setTagFilter(null);
     setCategoryFilter(null);
     setCollectionFilter(null);
+    setHistoryQuery("");
+    setHistoryMonth(null);
+    setHistoryStore(null);
     setNavOpen(false);
     setPlusOpen(false);
     window.scrollTo({ top: 0 });
@@ -580,6 +593,12 @@ export function StoreProvider({
       setCategoryFilter,
       collectionFilter,
       setCollectionFilter,
+      historyQuery,
+      setHistoryQuery,
+      historyMonth,
+      setHistoryMonth,
+      historyStore,
+      setHistoryStore,
       plusOpen,
       setPlusOpen,
       pasteOpen,
@@ -635,7 +654,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, plusOpen, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, plusOpen, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

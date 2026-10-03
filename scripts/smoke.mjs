@@ -829,6 +829,71 @@ try {
       ok(Object.values(r).every(Boolean), "nested overlays: the newer one is on top and closes alone", JSON.stringify(r));
     });
 
+    // Round 11 B2: History within reach — phone dock "Insights" (Spending · History), History's search + filters and
+    // month timeline, History in the Me sheet, and "Go to History" from a search elsewhere.
+    await step("insights: Spending · History, history filters + timeline, Go to History", async () => {
+      const r = {};
+      const data = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data;
+      const bought = data.items.filter((i) => i.status === "purchased");
+      await page.goto(`${BASE}/`);
+      await page.waitForSelector(READY, { timeout: 15000 });
+      if (MOBILE) {
+        await page.locator('[data-dock-target="spending"]').click();
+        await page.locator("[data-insights-switch=spending]").waitFor({ timeout: 8000 });
+        await page.locator("[data-insights-switch] [role=radio]").nth(1).click();
+        await page.locator("[data-insights-switch=history]").waitFor({ timeout: 8000 });
+        r.dockStays = (await page.locator('[data-dock-target="spending"]').getAttribute("aria-current")) === "page";
+        r.url = new URL(page.url()).searchParams.get("v") === "history";
+        await page.locator("[data-insights-switch] [role=radio]").nth(0).click();
+        await page.locator("[data-stats]").waitFor({ timeout: 8000 });
+        // Me sheet → History.
+        await page.locator("[data-me-open]").click();
+        await page.locator("[data-me-history]").click();
+        await page.locator("[data-history-tools]").waitFor({ timeout: 8000 });
+        r.me = true;
+      } else {
+        await page.goto(`${BASE}/?v=history`);
+        await page.waitForSelector(READY, { timeout: 15000 });
+        r.noSwitchOnDesktop = !(await page.locator("[data-insights-switch]").isVisible());
+      }
+      if (bought.length) {
+        await page.locator("[data-history-timeline]").waitFor({ timeout: 8000 });
+        const months = await page.locator("[data-history-month]").evaluateAll((els) => els.map((e) => e.getAttribute("data-history-month")));
+        r.timeline = months.length > 0 && months.filter((m) => m !== "none").every((m, i, a) => i === 0 || a[i - 1] >= m);
+        // Month filter narrows to one month group.
+        const first = months.find((m) => m !== "none");
+        if (first) {
+          await page.locator("[data-history-month-filter]").click();
+          await page.getByRole("menuitemradio").nth(1).click();
+          await page.waitForTimeout(300);
+          const after = await page.locator("[data-history-month]").evaluateAll((els) => els.map((e) => e.getAttribute("data-history-month")));
+          r.monthFilter = after.length === 1 && after[0] === first;
+        }
+        // Search inside History.
+        const word = (bought[0].title.split(/\s+/).find((w) => w.length > 3) ?? bought[0].title).slice(0, 12);
+        await page.goto(`${BASE}/?v=history`);
+        await page.waitForSelector(READY, { timeout: 15000 });
+        await page.locator("[data-history-search]").fill(word);
+        await page.waitForTimeout(300);
+        r.search = (await page.locator("main [data-item-card]").count()) > 0;
+        await page.locator("[data-history-search]").fill("zzzz-no-such-thing");
+        await page.waitForTimeout(300);
+        r.searchEmpty = (await page.locator("main [data-item-card]").count()) === 0;
+        // Searching To buy → "Go to History" carries the search over.
+        await page.goto(`${BASE}/`);
+        await page.waitForSelector(READY, { timeout: 15000 });
+        await page.evaluate(() => window.scrollTo(0, 0));
+        if (MOBILE) await page.locator("[data-phone-search]").click();
+        const box = page.locator(MOBILE ? "[data-phone-top] input" : "header input, [data-app-header] input").filter({ visible: true }).first();
+        await box.fill(word);
+        await page.locator("[data-go-history]").waitFor({ timeout: 8000 });
+        await page.locator("[data-go-history]").click();
+        await page.locator("[data-history-tools]").waitFor({ timeout: 8000 });
+        r.goHistory = (await page.locator("[data-history-search]").inputValue()) === word && (await page.locator("main [data-item-card]").count()) > 0;
+      }
+      ok(Object.values(r).every(Boolean), "insights: Spending · History, history filters + timeline, Go to History", JSON.stringify(r));
+    });
+
     await step("orders view: cards ↔ table toggle switches layout", async () => {
       await page.goto(`${BASE}/?v=orders`);
       await page.waitForSelector("[data-orders-layout]", { timeout: 15000 });

@@ -46,7 +46,7 @@ plan) and apply one rule: nested = sub-page in the same surface, or the new surf
 outside click / Esc closes **only the top** layer with a visible result each time. Smoke: every pair opens visible
 and closes in the expected order.
 
-### B2. [ ] History within reach on the phone
+### B2. [x] History within reach on the phone
 There's no convenient way to the purchase history on the phone. The last dock tab becomes **Insights** with a
 segmented control at the top: **Spending · History** (History = received/purchased items with search, filters by
 month/store/project, and the order timeline). Update the dock icon if a better one fits both. Also: History in the

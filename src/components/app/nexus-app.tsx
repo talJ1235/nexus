@@ -17,6 +17,8 @@ import { CommandPalette } from "./command-palette";
 import { SettingsDialog } from "./settings-dialog";
 import { ReportDialog } from "./report-dialog";
 import { ReportsSheet } from "./reports-sheet";
+import { HistoryHint, HistoryTools, InsightsSwitch, monthLabel } from "./insights";
+import { historyMonthOf } from "./view-items";
 import { MeSheet } from "./me-sheet";
 import { ImportDialog } from "./import-dialog";
 import { AlertsPanel } from "./alerts-panel";
@@ -305,6 +307,7 @@ function ViewHeader() {
 
   return (
     <>
+    {s.view.type === "history" && <InsightsSwitch />}
     <div className="mb-3 flex flex-col gap-[18px]">
       <div className={cn("flex flex-wrap items-center justify-between gap-x-6 gap-y-2", s.view.type === "to_buy" && "sr-only")}>
         <div className="min-w-0">
@@ -361,7 +364,9 @@ function ViewHeader() {
 
       {summary && (s.loading ? <SummarySkeleton /> : <div className={fadeIn}><HomeSummary /></div>)}
     </div>
-    {!s.loading && <FiltersRow showProjects={s.view.type !== "collection" && s.view.type !== "orders"} />}
+    {s.view.type === "history" && !s.loading && <HistoryTools />}
+    {!s.loading && <FiltersRow showProjects={s.view.type !== "collection" && s.view.type !== "orders" && s.view.type !== "history"} />}
+    <HistoryHint />
     </>
   );
 }
@@ -410,7 +415,42 @@ function Content() {
       </div>
     );
 
+  if (s.view.type === "history") return <HistoryTimeline items={items} />;
   return <CardGrid items={items} pending={pending} altGroups={s.altGroups} stagger={s.navSeq === 0} />;
+}
+
+/** History as a timeline (Round 11 B2): bought items grouped by month, newest first, each with its count and total. */
+function HistoryTimeline({ items }: { items: ItemWithSources[] }) {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const groups = useMemo(() => {
+    const m = new Map<string, ItemWithSources[]>();
+    for (const i of items) {
+      const k = historyMonthOf(i) ?? "";
+      m.set(k, [...(m.get(k) ?? []), i]);
+    }
+    return [...m].sort((a, b) => (a[0] && b[0] ? b[0].localeCompare(a[0]) : a[0] ? -1 : 1));
+  }, [items]);
+  return (
+    <div className="relative space-y-7 ps-5 before:absolute before:inset-y-2 before:start-[5px] before:w-px before:bg-line" data-history-timeline>
+      {groups.map(([k, list], gi) => {
+        const total = sumTotals(list, s.rates, s.currency).total;
+        return (
+          <section key={k || "none"} data-history-month={k || "none"}>
+            <div className="relative mb-3 flex flex-wrap items-baseline gap-x-2.5">
+              <span aria-hidden className="absolute -start-5 top-[7px] size-[11px] rounded-full border-2 border-bg bg-ink" />
+              <h2 className="text-[17px] font-extrabold">{k ? monthLabel(k, locale) : t.insights.noDate}</h2>
+              <span className="tabular text-[13px] text-muted">
+                {list.length === 1 ? t.collection.itemsCountOne : f(t.collection.itemsCount, { n: list.length })}
+                {total > 0 && <> · <b className="font-semibold text-ink">{formatMoney(total, s.currency, locale)}</b></>}
+              </span>
+            </div>
+            <CardGrid items={list} pending={NO_PENDING} altGroups={s.altGroups} stagger={s.navSeq === 0 && gi === 0} />
+          </section>
+        );
+      })}
+    </div>
+  );
 }
 
 const FIRST_CARDS = 12;

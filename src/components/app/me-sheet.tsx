@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronRight, Download, FileSpreadsheet, Inbox, LogOut, MessageSquareWarning, Monitor, Moon, Puzzle, Send, Settings, Sun, X } from "lucide-react";
+import { ChevronRight, Download, FileSpreadsheet, History, Inbox, LogOut, MessageSquareWarning, Monitor, Moon, Puzzle, Send, Settings, Sun, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { getAlertsState } from "@/app/alert-actions";
 import { useI18n } from "@/components/providers";
@@ -93,6 +93,9 @@ export function MeSheet() {
         <nav className="space-y-0.5">
           <button type="button" className={row} onClick={go(() => s.setSettingsOpen(true))} data-me-settings>
             <Settings /> <span className="flex-1">{t.nav.settings}</span> <ChevronRight className="size-4 text-faint rtl:-scale-x-100" />
+          </button>
+          <button type="button" className={row} onClick={go(() => s.setView({ type: "history" }))} data-me-history>
+            <History /> <span className="flex-1">{t.insights.history}</span> <ChevronRight className="size-4 text-faint rtl:-scale-x-100" />
           </button>
           <button type="button" className={row} onClick={go(() => s.setExtOpen(true))}>
             <Puzzle /> <span className="flex-1">{t.settings.extension}</span>

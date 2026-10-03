@@ -6,6 +6,7 @@ import { tokens } from "@/lib/similarity";
 import type { ItemWithSources } from "@/lib/types";
 import { itemsForView } from "@/lib/views";
 import { normalizeCategory } from "@/lib/categories";
+import { monthKey } from "@/lib/budget";
 import { useStore } from "./store";
 
 export { itemsForView };
@@ -16,10 +17,24 @@ export function matchesQuery(i: ItemWithSources, q: string) {
   return [...tokens(q)].every((t) => hay.includes(t)) || hay.includes(q.toLowerCase().trim());
 }
 
+/** Month a bought item belongs to (YYYY-MM, local time), from when it was bought (or ordered). */
+export function historyMonthOf(i: ItemWithSources) {
+  const at = i.purchasedAt ?? i.orderedAt;
+  return at ? monthKey(new Date(at)) : null;
+}
+
+/** The store it was bought from: the chosen offer, else the first. */
+export function historyStoreOf(i: ItemWithSources) {
+  return (i.chosenSourceId ? i.sources.find((x) => x.id === i.chosenSourceId) : null) ?? i.sources[0] ?? null;
+}
+
 export function useViewItems() {
-  const { items, view, query, tagFilter, categoryFilter, collectionFilter, sort, rates, currency } = useStore();
+  const { items, view, query, tagFilter, categoryFilter, collectionFilter, sort, rates, currency, historyQuery, historyMonth, historyStore } = useStore();
   return useMemo(() => {
     let list = itemsForView(items, view).filter((i) => matchesQuery(i, query));
+    // History's own search + Month / Store filters (Round 11 B2).
+    if (view.type === "history")
+      list = list.filter((i) => (!historyMonth || historyMonthOf(i) === historyMonth) && (!historyStore || historyStoreOf(i)?.storeKey === historyStore) && matchesQuery(i, historyQuery));
     if (tagFilter) list = list.filter((i) => i.tags?.includes(tagFilter) || i.category === tagFilter);
     if (collectionFilter) list = list.filter((i) => i.collectionId === collectionFilter);
     if (categoryFilter) list = list.filter((i) => (normalizeCategory(i.category) ?? "other") === categoryFilter);
@@ -36,7 +51,7 @@ export function useViewItems() {
       sorted.sort((a, b) => b.createdAt - a.createdAt);
     }
     return sorted;
-  }, [items, view, query, tagFilter, categoryFilter, collectionFilter, sort, rates, currency]);
+  }, [items, view, query, tagFilter, categoryFilter, collectionFilter, sort, rates, currency, historyQuery, historyMonth, historyStore]);
 }
 
 /** User-picked collection colours → a muted per-theme set (globals.css --proj-*), used only as small dots/bars. */
