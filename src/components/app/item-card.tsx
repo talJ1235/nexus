@@ -384,7 +384,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
               className={cn("pointer-events-auto absolute start-0 top-0 z-[2]", !selecting && !isSelected && "opacity-0 group-hover:opacity-100 max-sm:hidden")}
             />
           </span>
-          <span className="flex shrink-0 gap-1">
+          <span className={cn("flex shrink-0 gap-1 transition-opacity", !selecting && "sm:group-hover:opacity-0 sm:group-focus-within:opacity-0")}>
             {item.quantity > 1 && item.status !== "to_buy" && (
               <span dir="ltr" className="nx-tag tabular">×{item.quantity}</span>
             )}
@@ -455,17 +455,18 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
   );
 }
 
-/** Desktop: hover (or keyboard focus) shows the card's quick actions — status, Move, Delete — with their keys. */
+/** Desktop: hover (or keyboard focus) shows the card's quick actions — status, Move, Delete — with their keys, in the
+ *  picture's top-end corner (the flags step aside), away from the middle of the card where people click to open it. */
 function HoverBar({ item, moves }: { item: ItemWithSources; moves: Status[] }) {
   const s = useDataStore();
   const { t } = useI18n();
   const ro = useReadOnly();
   const acts = useItemActions();
   const labels = useActionLabels();
-  const btn = "grid size-8 place-items-center rounded-full bg-surface text-ink shadow-card transition hover:bg-surface-2 disabled:opacity-50 [&_svg]:size-4";
+  const btn = "grid size-7 place-items-center rounded-full bg-surface text-ink shadow-card transition hover:bg-surface-2 disabled:opacity-50 [&_svg]:size-[15px]";
   const collections = s.collections.filter((c) => !c.archived);
   return (
-    <div className="absolute bottom-2 end-2 z-[2] flex gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-state=open]]:opacity-100 max-sm:hidden" data-hover-bar>
+    <div className="pointer-events-none absolute end-[9px] top-[9px] z-[2] flex gap-1 opacity-0 transition group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 has-[[data-state=open]]:pointer-events-auto has-[[data-state=open]]:opacity-100 max-sm:hidden" data-hover-bar>
       {moves.map((x, i) => (
         <button
           key={x}

@@ -1212,7 +1212,7 @@ try {
           const sheet = page.getByRole("dialog");
           await sheet.waitFor();
           await shot(page, "sheet");
-          await sheet.locator("button[aria-haspopup=menu]").first().click();
+          await sheet.locator("button[aria-haspopup=menu]:not([data-sheet-more])").first().click();
           await page.getByRole("menuitemradio").nth(1).click();
           await sheet.getByRole("button", { name: /^−$/ }).last().click();
           await shot(page, "split-panel");

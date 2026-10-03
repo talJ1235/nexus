@@ -417,6 +417,33 @@ Brief and checklist: `docs/ROUND10.md`. Shipped (merged to `main` 2026-10-02):
   (marked "check"). `npm run test:pictures`; `npm run bench:pictures` (real keys: 15/15 right on 10 grocery + 5 maker
   lines). With `BRAVE_SEARCH_API_KEY` set Brave is used instead of Serper (no Google Israel locale).
 
+## Round 11 — opening the app, nested overlays, History on the phone, quick actions, uniform pictures
+Brief and checklist: `docs/ROUND11.md`. Shipped (branch `round11`, 2026-10-03):
+- **Opening**: an inline script in the first HTML sets `<html data-boot="full|small">` before paint. Full intro only
+  when the app is opened (new tab / PWA launch / first load of the session); reload, pull-to-refresh, back/forward and
+  later loads in the same session (`sessionStorage nexus.opened`) show only the Box mark in a small circle where the
+  pull-to-refresh leaves it. The full intro (~2.3 s, transform/opacity, 60 fps trace): a palette bloom over a drifting
+  isometric grid, faces fly in with a spring, a spark dot drops on the top face and bounces twice, the wordmark slides
+  up, a light sweep, then the mark flies into the top-bar logo (`[data-topbar-logo]`). Phones / installed app only.
+- **Nested overlays**: Settings → Reports is a sub-page inside Settings (back arrow / Esc → list → Settings; `Modal`
+  `onBack`). All overlay surfaces share one z-layer, so the one opened last is on top and an outside click / Esc closes
+  only it. Smoke covers settings→reports, settings→extension, reports→report form, item sheet→picture picker, Me→reports.
+- **Insights** (phone/tablet dock's last tab): Spending · History switch at the top of both views. History has its own
+  search and Month / Store / Project filters and a month timeline (count + total per month); History in the Me sheet;
+  searching any other view offers "Go to History" with the search carried over.
+- **Quick actions** (`quick-actions.tsx`): status (On the way / Received / Back to To buy), Move to project, Delete with
+  Undo, Open, Copy link, Compare, Select. Phone rows: swipe toward the start edge = Delete (full swipe deletes), toward
+  the end edge = status blocks, held open until tapped, mirrored in Hebrew, haptic tick, `touch-action: pan-y`;
+  long-press a row = select. Phone cards: long-press = action sheet (also the item sheet's "…" menu). Desktop: card
+  hover bar (status, Move, Delete), right-click menu on cards and table rows, keys O / R / M / Delete / Enter on the
+  focused card or the selection (also in the command menu while items are selected).
+- **One picture style** (`lib/picture-style.ts`): flatten onto white, trim a uniform border (8 %), a cut-out on a light
+  background → centred on a 480 × 480 white square with ~8 % padding; anything else → square cover crop. The style is
+  in the stored file name (`…-c.webp` / `…-p.webp`, `lib/picture-url.ts`) and `ProductImage` (the one frame) shows
+  cut-outs on a white paper tile (dimmed + hairline in dark) and photos full-bleed. Old pictures: daily cron batch +
+  `scripts/backfill-pictures.ts`. `npm run test:picture-style`.
+- **Solid tags** over pictures (`.nx-tag`, per-theme `--tag-*` tokens; contrast-checked in `scripts/contrast.mjs`).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
