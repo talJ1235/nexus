@@ -5,6 +5,7 @@ import { repairIncomplete } from "@/lib/service";
 import { getProfile } from "@/lib/profile-server";
 import { runServerChecks, sendAlertDigest, sendWeeklySummary } from "@/lib/tracker";
 import { backfillImages } from "@/lib/product-image";
+import { normalizeOldPictures } from "@/lib/picture-backfill";
 
 export const maxDuration = 60;
 
@@ -21,6 +22,8 @@ export async function GET(req: NextRequest) {
   const repair = await repairIncomplete(16_000).catch(() => ({ tried: 0, repaired: 0 }));
   // Pictures for items that have none (bounded per run).
   const images = await backfillImages(12_000).catch(() => ({ tried: 0, filled: 0 }));
+  // Older pictures → the one-catalogue look (Round 11 D1), a bounded batch per run.
+  const pictures = await normalizeOldPictures(8_000, 30).catch(() => ({ tried: 0, done: 0, left: null }));
   const digest = await sendAlertDigest(req.nextUrl.origin);
   // Sundays (Israel): the weekly summary, after the day's alerts went out.
   const weekly = await sendWeeklySummary(publicOrigin(req.nextUrl.origin)).catch(() => ({ weekly: "failed" as const }));
@@ -28,7 +31,7 @@ export async function GET(req: NextRequest) {
   // The shopping profile the assistant uses (Round 9 C3), refreshed once a day in the owner's currency.
   const owner = JSON.parse((await kvGet("pref:owner").catch(() => null)) ?? "{}") as { currency?: string };
   await getProfile(owner.currency ?? "ILS", true).catch(() => null);
-  const summary = { at: Date.now(), checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, sent: digest.sent, budget: "budget" in digest ? digest.budget : false, weekly: weekly.weekly, repair, images };
+  const summary = { at: Date.now(), checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, sent: digest.sent, budget: "budget" in digest ? digest.budget : false, weekly: weekly.weekly, repair, images, pictures };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }

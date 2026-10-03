@@ -1,9 +1,9 @@
 import "server-only";
 import { put } from "@vercel/blob";
-import sharp from "sharp";
+import { normalizePicture } from "./picture-style";
 import { isPublicHttpUrl } from "./utils";
 
-/** Download, shrink to a 480px WebP thumbnail and store in Vercel Blob. Falls back to the remote URL. */
+/** Download, normalize to a 480 × 480 WebP (lib/picture-style.ts) and store in Vercel Blob. Falls back to the remote URL. */
 export async function storeThumbnail(remoteUrl: string | null, id: string): Promise<string | null> {
   if (!remoteUrl) return null;
   const dataUrl = remoteUrl.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
@@ -27,13 +27,11 @@ export async function storeThumbnail(remoteUrl: string | null, id: string): Prom
   }
 }
 
+/** One catalogue look (Round 11 D1): trimmed, then a cut-out on a white square or a square photo crop; the style is
+ *  in the file name (`-c` / `-p`). */
 async function upload(buf: Buffer, id: string) {
-  const webp = await sharp(buf, { failOn: "none" })
-    .rotate()
-    .resize(480, 480, { fit: "inside", withoutEnlargement: true })
-    .webp({ quality: 78 })
-    .toBuffer();
-  const blob = await put(`items/${id}-${Date.now().toString(36)}.webp`, webp, {
+  const { webp, style } = await normalizePicture(buf);
+  const blob = await put(`items/${id}-${Date.now().toString(36)}-${style === "cutout" ? "c" : "p"}.webp`, webp, {
     access: "public",
     contentType: "image/webp",
     cacheControlMaxAge: 60 * 60 * 24 * 365,

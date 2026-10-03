@@ -15,13 +15,21 @@ import { useDataStore } from "./store";
 import { useReadOnly } from "./offline-banner";
 import { useMedia } from "@/components/ui/use-media";
 import { COLLECTION_COLORS } from "./view-items";
+import { pictureStyleOf } from "@/lib/picture-url";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { ItemContextMenu, openItemActions, SHORTCUT, StatusIcon, statusActs, useActionLabels, useItemActions } from "./quick-actions";
 
+/**
+ * The one product picture frame (Round 11 D1), used everywhere a product picture shows. Cut-outs — and pictures not
+ * normalized yet — sit on a white "paper" tile (slightly dimmed in dark mode, hairline edge); photos fill the frame.
+ * The style comes from the stored file name (lib/picture-url.ts).
+ */
 export function ProductImage({ src, alt, className, iconClass, pending, ...rest }: { src: string | null; alt: string; className?: string; iconClass?: string; pending?: boolean } & React.HTMLAttributes<HTMLDivElement> & Record<`data-${string}`, string | boolean>) {
   const [failed, setFailed] = useState(false);
+  const shown = !!src && !failed;
+  const style = shown ? pictureStyleOf(src) : null;
   return (
-    <div {...rest} className={cn("relative grid place-items-center overflow-hidden bg-tile", pending && !src && "shimmer", className)}>
+    <div {...rest} data-pic={shown ? (style ?? "raw") : undefined} className={cn("relative grid place-items-center overflow-hidden", shown ? (style === "photo" ? "bg-tile" : "pic-paper") : "bg-tile", pending && !src && "shimmer", className)}>
       {src && !failed ? (
         // eslint-disable-next-line @next/next/no-img-element -- remote store images; thumbnails are pre-sized WebP
         <img
@@ -31,13 +39,19 @@ export function ProductImage({ src, alt, className, iconClass, pending, ...rest 
           decoding="async"
           // Fade in once decoded. Cached images may finish before hydration, so check `complete` on mount too.
           ref={(el) => {
-            if (el?.complete && el.naturalWidth) el.dataset.loaded = "";
+            if (!el?.complete) return;
+            if (el.naturalWidth) el.dataset.loaded = "";
+            else setFailed(true); // failed before hydration (onError never fired): show the placeholder
           }}
           onLoad={(e) => {
             e.currentTarget.dataset.loaded = "";
           }}
           onError={() => setFailed(true)}
-          className="product-img size-full object-contain p-[9%] mix-blend-multiply transition-[opacity,transform] duration-[450ms] ease-[var(--ease-out)] group-hover:scale-[1.04] dark:rounded-[14px] dark:mix-blend-normal"
+          className={cn(
+            "product-img size-full transition-[opacity,transform] duration-[450ms] ease-[var(--ease-out)] group-hover:scale-[1.04]",
+            style === "photo" ? "object-cover" : "object-contain",
+            !style && "p-[8%]",
+          )}
         />
       ) : (
         <Package className={cn("size-8 text-tile-ink", iconClass)} strokeWidth={1.4} />

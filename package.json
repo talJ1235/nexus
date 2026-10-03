@@ -31,6 +31,7 @@
     "test:reports": "tsx scripts/test-reports.ts",
     "test:memory": "tsx --conditions=react-server scripts/test-memory.ts",
     "test:pictures": "tsx scripts/test-pictures.ts",
+    "test:picture-style": "tsx scripts/test-picture-style.ts",
     "bench:pictures": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/picture-bench.ts"
   },
   "dependencies": {

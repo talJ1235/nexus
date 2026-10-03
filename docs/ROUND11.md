@@ -79,7 +79,7 @@ On list rows (and anywhere a row appears: To buy, On the way, project pages):
 
 ## Part D — product pictures and tags
 
-### D1. [ ] One consistent picture style for every product
+### D1. [x] One consistent picture style for every product
 Today some pictures have white backgrounds, some black, some transparent — the grid looks uneven. Make every product
 picture look like it belongs to one catalogue, always:
 - **On ingestion** (`src/lib/images.ts`, sharp): flatten transparency onto white; **trim** uniform borders (white

@@ -112,7 +112,7 @@ export function PicturePicker({
                   type="button"
                   onClick={() => choose({ url: c.url, source: c.source }, c.url)}
                   className={cn(
-                    "group relative aspect-square overflow-hidden rounded-[18px] border bg-white p-1.5 transition active:scale-95",
+                    "pic-paper group relative aspect-square overflow-hidden rounded-[18px] border p-1.5 transition active:scale-95",
                     c.url === current ? "border-accent ring-2 ring-accent/40" : "border-line hover:border-ink/40",
                     picked === c.url && "animate-pop-in ring-4 ring-accent",
                   )}
