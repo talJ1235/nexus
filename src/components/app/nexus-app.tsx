@@ -17,6 +17,7 @@ import { CommandPalette } from "./command-palette";
 import { SettingsDialog } from "./settings-dialog";
 import { ReportDialog } from "./report-dialog";
 import { ReportsSheet } from "./reports-sheet";
+import { ItemActionSheet, ItemShortcuts } from "./quick-actions";
 import { HistoryHint, HistoryTools, InsightsSwitch, monthLabel } from "./insights";
 import { historyMonthOf } from "./view-items";
 import { MeSheet } from "./me-sheet";
@@ -171,6 +172,8 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <ShopOutboxSync />
 
       <ItemSheet />
+      <ItemActionSheet />
+      <ItemShortcuts />
       <AltSheet />
       <SelectionBar />
       <CollectionDialog />

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRightLeft, ChevronDown, ClipboardList, ExternalLink, Inbox, LineChart, Minus, NotebookPen, Plus, RefreshCw, Store, Trash2, X, Scale } from "lucide-react";
+import { ArrowRightLeft, ChevronDown, ClipboardList, ExternalLink, Inbox, LineChart, Minus, NotebookPen, Plus, RefreshCw, Store, Trash2, X, Scale, Ellipsis, FolderInput, Link2, CheckSquare } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
 import { addSourceFromUrl, deleteItem, deleteSource, refetchSource, restoreItem, splitItem, unsplitItem, updateItem, updateSource } from "@/app/actions";
 import { useI18n } from "@/components/providers";
 import { Button, Input, Label, Textarea } from "@/components/ui/button";
-import { Menu, MenuContent, MenuRadioGroup, MenuRadioItem, MenuTrigger, Sheet, SheetClose } from "@/components/ui/overlays";
+import { Menu, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger, Sheet, SheetClose } from "@/components/ui/overlays";
+import { openItemActions, StatusIcon, statusActs, useActionLabels, useItemActions } from "./quick-actions";
 import { cheapestSource, activeSource, lineTotal, sourceTotal } from "@/lib/calc";
 import { convert, formatMoney } from "@/lib/money";
 import type { ItemWithSources, Source } from "@/lib/types";
@@ -432,9 +433,12 @@ export function ItemSheet() {
             <fieldset disabled={ro.ro} title={ro.title} className="m-0 min-w-0 border-0 p-0">
               <StatusControl item={item} />
             </fieldset>
-            <SheetClose className="grid size-8 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label="Close">
-              <X className="size-4" />
-            </SheetClose>
+            <div className="flex items-center gap-1">
+              <SheetMoreMenu item={item} onDelete={() => void remove()} />
+              <SheetClose className="grid size-8 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label="Close">
+                <X className="size-4" />
+              </SheetClose>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">
@@ -640,5 +644,50 @@ export function ItemSheet() {
         </div>
       )}
     </Sheet>
+  );
+}
+
+/** The sheet's "…" menu (Round 11 C1): the same quick actions as the long-press sheet / right-click menu. */
+function SheetMoreMenu({ item, onDelete }: { item: ItemWithSources; onDelete: () => void }) {
+  const s = useStore();
+  const { t } = useI18n();
+  const ro = useReadOnly();
+  const acts = useItemActions();
+  const labels = useActionLabels();
+  return (
+    <Menu>
+      <MenuTrigger asChild>
+        <button type="button" className="grid size-8 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label={t.quick.more} title={t.quick.more} data-sheet-more>
+          <Ellipsis className="size-4" />
+        </button>
+      </MenuTrigger>
+      <MenuContent align="end">
+        {statusActs(item.status).map((x) => (
+          <MenuItem key={x} disabled={ro.ro} onSelect={() => void acts.setStatus([item], x)}>
+            <StatusIcon status={x} /> {labels.status(x)}
+          </MenuItem>
+        ))}
+        <MenuItem disabled={ro.ro} onSelect={() => openItemActions([item.id], "move")} data-sheet-move>
+          <FolderInput /> {t.quick.move}
+        </MenuItem>
+        <MenuItem onSelect={() => void acts.copyLink(item)}>
+          <Link2 /> {t.quick.copyLink}
+        </MenuItem>
+        {!s.selected.has(item.id) && (
+          <MenuItem
+            onSelect={() => {
+              s.openItem(null);
+              acts.select(item);
+            }}
+          >
+            <CheckSquare /> {t.select.select}
+          </MenuItem>
+        )}
+        <MenuSeparator />
+        <MenuItem danger disabled={ro.ro} onSelect={onDelete} data-sheet-delete>
+          <Trash2 /> {t.quick.delete}
+        </MenuItem>
+      </MenuContent>
+    </Menu>
   );
 }

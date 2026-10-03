@@ -119,7 +119,7 @@ export function SelectionBar() {
 
         <Menu>
           <MenuTrigger asChild>
-            <Button size="sm" variant="ghost" className="text-fg">
+            <Button size="sm" variant="ghost" className="text-fg" title={`${t.select.moveTo} · M`}>
               <ArrowRightLeft />
               <span className="max-sm:hidden">{t.select.moveTo}</span>
             </Button>
@@ -161,8 +161,12 @@ export function SelectionBar() {
           </MenuTrigger>
           <MenuContent align="center">
             <MenuItem onSelect={() => void setStatusAll("to_buy")}>{t.flow.toBuy}</MenuItem>
-            <MenuItem onSelect={() => void setStatusAll("ordered")}>{t.flow.markOrdered}</MenuItem>
-            <MenuItem onSelect={() => void setStatusAll("purchased")}>{t.flow.markReceived}</MenuItem>
+            <MenuItem onSelect={() => void setStatusAll("ordered")}>
+              <span className="flex-1">{t.flow.markOrdered}</span> <kbd className="font-sans text-[11px] text-faint">O</kbd>
+            </MenuItem>
+            <MenuItem onSelect={() => void setStatusAll("purchased")}>
+              <span className="flex-1">{t.flow.markReceived}</span> <kbd className="font-sans text-[11px] text-faint">R</kbd>
+            </MenuItem>
           </MenuContent>
         </Menu>
 
@@ -194,7 +198,7 @@ export function SelectionBar() {
           </Pop>
         )}
 
-        <Button size="sm" variant="ghost" onClick={() => void remove()} className="text-danger hover:bg-danger-soft hover:text-danger">
+        <Button size="sm" variant="ghost" onClick={() => void remove()} title={`${t.select.delete} · Del`} className="text-danger hover:bg-danger-soft hover:text-danger">
           <Trash2 />
           <span className="max-sm:hidden">{t.select.delete}</span>
         </Button>

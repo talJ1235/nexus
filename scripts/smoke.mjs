@@ -1082,6 +1082,119 @@ try {
           await other.waitFor({ state: "detached", timeout: 3000 });
           ok(true, "toast swipes away sideways");
         });
+        // Round 11 C1/C2: quick actions. Phone: row swipe → status blocks / Delete (full swipe), long-press row = select,
+        // long-press card = action sheet. Desktop: hover bar, right-click menu, O / M / Delete keys. Every change undone.
+        await step("quick actions: swipe / long-press (phone), hover bar / right-click / keys (desktop), with undo", async () => {
+          const backup = async () => (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
+          const statusOf = async (id) => (await backup()).find((i) => i.id === id)?.status ?? "gone";
+          const undo = async () => {
+            const btn = page.locator("[data-sonner-toast]").getByRole("button", { name: /^(Undo|ביטול)$/ }).last();
+            await btn.waitFor({ timeout: 8000 });
+            await btn.click();
+            await page.waitForTimeout(1500);
+          };
+          const until = async (fn, want) => {
+            for (let k = 0; k < 20; k++) {
+              if ((await fn()) === want) return true;
+              await page.waitForTimeout(250);
+            }
+            return false;
+          };
+          const r = {};
+          try {
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY, { timeout: 15000 });
+          await page.locator("[data-sonner-toast]").first().waitFor({ state: "detached", timeout: 1 }).catch(() => {});
+          const ids = await page.$$eval("main [data-item-card]", (els) => els.map((e) => e.getAttribute("data-item-card")));
+          const id = ids[1] ?? ids[0];
+          const card = () => page.locator(`main [data-item-card="${id}"]`).first();
+          if (MOBILE) {
+            const cdp = await ctx.newCDPSession(page);
+            const t = (type, x, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
+            const swipe = async (dx) => {
+              await card().scrollIntoViewIfNeeded();
+              const b = await card().boundingBox();
+              const y = b.y + b.height / 2, x0 = b.x + b.width / 2;
+              await t("touchStart", x0, y);
+              for (let k = 1; k <= 12; k++) await t("touchMove", x0 + (dx * k) / 12, y);
+              await t("touchEnd");
+              await page.waitForTimeout(350);
+            };
+            const longPress = async () => {
+              await card().scrollIntoViewIfNeeded();
+              const b = await card().boundingBox();
+              await t("touchStart", b.x + b.width / 2, b.y + b.height / 2);
+              await page.waitForTimeout(650);
+              await t("touchEnd");
+              await page.waitForTimeout(300);
+            };
+            // Grid card: long-press → the action sheet; Move → list; Esc → back; Esc → closed.
+            await longPress();
+            r.sheet = await page.locator("[data-item-actions=menu]").isVisible();
+            await page.locator("[data-item-action=move]").click();
+            r.moveList = await page.locator("[data-move-list]").isVisible();
+            await page.keyboard.press("Escape");
+            await page.waitForTimeout(250);
+            r.sheetBack = await page.locator("[data-item-action=delete]").isVisible();
+            await page.keyboard.press("Escape");
+            await page.waitForTimeout(300);
+            r.sheetClosed = (await page.locator("[data-item-actions]").count()) === 0;
+            // Rows.
+            await page.locator("[data-phone-layout-toggle] [role=radio]").nth(1).click();
+            await page.waitForTimeout(300);
+            // Swipe toward the end edge (right in LTR) → two status blocks, held open; tap "On the way".
+            await swipe(160);
+            r.held = (await page.locator(`[data-swipe-held="1"]`).count()) === 1 && (await page.locator("[data-swipe-action]").count()) === 2;
+            await page.locator("[data-swipe-action=ordered]").click();
+            r.ordered = await until(() => statusOf(id), "ordered");
+            await undo();
+            r.orderedUndo = await until(() => statusOf(id), "to_buy");
+            // Full swipe toward the start edge → deleted; Undo brings it back.
+            await page.goto(`${BASE}/`);
+            await page.waitForSelector(READY, { timeout: 15000 });
+            await swipe(-330);
+            r.deleted = await until(() => statusOf(id), "gone");
+            await undo();
+            r.deleteUndo = await until(() => statusOf(id), "to_buy");
+            // Long-press a row → selected.
+            await page.goto(`${BASE}/`);
+            await page.waitForSelector(READY, { timeout: 15000 });
+            await longPress();
+            r.select = await page.locator("[data-selection-bar]").isVisible();
+            await page.locator("[data-selection-bar] button").first().click();
+            await page.locator("[data-phone-layout-toggle] [role=radio]").nth(0).click();
+          } else {
+            await card().scrollIntoViewIfNeeded();
+            await card().hover();
+            await page.waitForTimeout(250);
+            r.hoverBar = (await card().locator("[data-hover-bar] [data-hover-action]").count()) === 4 && (await card().locator("[data-hover-bar]").evaluate((e) => getComputedStyle(e).opacity)) === "1";
+            // Right-click → the menu with the same actions.
+            await card().click({ button: "right", position: { x: 30, y: 30 } });
+            await page.locator("[data-item-menu]").waitFor({ timeout: 5000 });
+            r.menu = (await page.locator("[data-item-menu] [data-item-action]").count()) >= 5;
+            await page.keyboard.press("Escape");
+            // Keys on the focused card: O → on the way (undo), M → move list, Delete → deleted (undo).
+            await card().locator("button.absolute.inset-0").focus();
+            await page.keyboard.press("o");
+            r.keyO = await until(() => statusOf(id), "ordered");
+            await undo();
+            r.keyOUndo = await until(() => statusOf(id), "to_buy");
+            await card().locator("button.absolute.inset-0").focus();
+            await page.keyboard.press("m");
+            r.keyM = await page.locator("[data-item-actions=move]").isVisible({ timeout: 3000 }).catch(() => false);
+            await page.keyboard.press("Escape");
+            await page.waitForTimeout(250);
+            await card().locator("button.absolute.inset-0").focus();
+            await page.keyboard.press("Delete");
+            r.keyDel = await until(() => statusOf(id), "gone");
+            await undo();
+            r.keyDelUndo = await until(() => statusOf(id), "to_buy");
+          }
+          } catch (e) {
+            r.error = String(e?.message || e).split(String.fromCharCode(10))[0].slice(0, 160);
+          }
+          ok(Object.values(r).every(Boolean) && !r.error, "quick actions: swipe / long-press (phone), hover bar / right-click / keys (desktop), with undo", JSON.stringify(r));
+        });
         await step("partial move splits the item", async () => {
           // Long grids mount in chunks: count once the number stops changing.
           const settled = async () => {

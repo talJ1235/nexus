@@ -12,6 +12,7 @@ import { dragIds, ProductImage, useStatusFlow } from "./item-card";
 import { useStore, type PendingAdd } from "./store";
 import { PendingRow } from "./pending";
 import { COLLECTION_COLORS } from "./view-items";
+import { ItemContextMenu } from "./quick-actions";
 
 function QtyCell({ item }: { item: ItemWithSources }) {
   const s = useStore();
@@ -83,15 +84,18 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
             const next = i.status === "to_buy" ? "ordered" : i.status === "ordered" ? "purchased" : "to_buy";
             const nextLabel = i.status === "to_buy" ? t.flow.markOrdered : i.status === "ordered" ? t.flow.markReceived : t.flow.backToBuy;
             return (
+              <ItemContextMenu key={i.id} item={i}>
               <tr
-                key={i.id}
+                data-item-row={i.id}
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && e.target === e.currentTarget && s.openItem(i.id)}
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData("application/x-nexus-items", JSON.stringify(dragIds(i.id, s.selected)));
                   e.dataTransfer.effectAllowed = "move";
                 }}
                 onClick={(e) => (s.selected.size || e.metaKey || e.ctrlKey ? s.toggleSelect(i.id, e.shiftKey ? { range: order } : undefined) : s.openItem(i.id))}
-                className={cn("cursor-pointer border-b border-line transition last:border-0", s.fresh.has(i.id) && "fill-in", checked ? "bg-accent-soft/50" : "hover:bg-sunken/60", purchased && "text-muted")}
+                className={cn("cursor-pointer border-b border-line outline-none transition last:border-0 focus-visible:bg-sunken", s.fresh.has(i.id) && "fill-in", checked ? "bg-accent-soft/50" : "hover:bg-sunken/60", purchased && "text-muted")}
               >
                 <td className="py-2 ps-4" onClick={(e) => e.stopPropagation()}>
                   <input
@@ -168,6 +172,7 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
                   </div>
                 </td>
               </tr>
+              </ItemContextMenu>
             );
           })}
         </tbody>

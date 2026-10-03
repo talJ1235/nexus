@@ -56,7 +56,7 @@ Me sheet and in search results ("Go to History").
 
 ## Part C — quick actions on products (phone and desktop)
 
-### C1. [ ] Phone: swipe = delete one way, status the other
+### C1. [x] Phone: swipe = delete one way, status the other
 On list rows (and anywhere a row appears: To buy, On the way, project pages):
 - Swipe toward **one side** → red "Delete" (full swipe deletes; toast with Undo).
 - Swipe toward **the other side** → two action blocks revealed side by side: **On the way** and **Received**
@@ -68,7 +68,7 @@ On list rows (and anywhere a row appears: To buy, On the way, project pages):
 - **Phone cards (grid)**: long-press a card → a compact action sheet: On the way, Received, Delete, Move to project,
   Select. Same on the item sheet's "…" menu.
 
-### C2. [ ] Desktop: the same actions without hunting
+### C2. [x] Desktop: the same actions without hunting
 - Card hover reveals a small action bar on the card (icon buttons with tooltips): On the way, Received, Move, Delete.
 - Right-click on a card/row → context menu with the same actions + Open, Copy link, Compare.
 - Keyboard: with a card focused or items selected — `O` on the way, `R` received, `M` move, `Delete` delete (Undo

@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { Command } from "cmdk";
 import { Dialog as D } from "radix-ui";
-import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell, Sparkles, Wand2, ReceiptText, Check, ScanBarcode, ShoppingCart, MessageSquareWarning, Inbox } from "lucide-react";
+import { FolderPlus, Languages, LayoutGrid, Link2, ListPlus, Moon, Rows3, Search, ShoppingBag, History, Zap, Coins, Settings2, Sun, Monitor, Puzzle, LogOut, Store, Truck, ChartColumn, FileSpreadsheet, Download, Bell, Sparkles, Wand2, ReceiptText, Check, ScanBarcode, ShoppingCart, MessageSquareWarning, Inbox, FolderInput, Trash2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { Kbd } from "@/components/ui/button";
 import { CURRENCIES } from "@/lib/money";
 import { download, exportUrl } from "@/lib/export-url";
 import { ProductImage } from "./item-card";
+import { openItemActions, SHORTCUT, StatusIcon, useItemActions } from "./quick-actions";
 import { useStore } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
 import { PaletteSwatch, Segmented } from "./settings-dialog";
@@ -68,6 +69,8 @@ export function CommandPalette() {
     return () => window.removeEventListener("keydown", onKey);
   }, [s]);
 
+  const acts = useItemActions();
+  const chosen = s.selected.size ? s.items.filter((i) => s.selected.has(i.id)) : [];
   const run = (fn: () => void) => {
     s.setPaletteOpen(false);
     setSearch("");
@@ -103,6 +106,23 @@ export function CommandPalette() {
                     <span className="min-w-0 truncate">
                       {t.ai.askPalette}: <span className="text-muted">“{search.trim()}”</span>
                     </span>
+                  </Command.Item>
+                </Command.Group>
+              )}
+
+              {chosen.length > 0 && (
+                // Round 11 C2: the quick actions on the selected items, with their keys.
+                <Command.Group heading={`${t.quick.selectedGroup} (${chosen.length})`} className={groupCls} data-cmd-selected>
+                  {(["ordered", "purchased"] as const).map((x) => (
+                    <Command.Item key={x} value={`selected ${x} ${x === "ordered" ? t.quick.onTheWay : t.quick.received}`} onSelect={() => run(() => void acts.setStatus(chosen, x))} className={itemCls}>
+                      <StatusIcon status={x} /> <span className="flex-1">{x === "ordered" ? t.quick.onTheWay : t.quick.received}</span> <Kbd>{SHORTCUT[x]}</Kbd>
+                    </Command.Item>
+                  ))}
+                  <Command.Item value={`selected move ${t.quick.move}`} onSelect={() => run(() => openItemActions(chosen.map((i) => i.id), "move"))} className={itemCls}>
+                    <FolderInput /> <span className="flex-1">{t.quick.move}</span> <Kbd>{SHORTCUT.move}</Kbd>
+                  </Command.Item>
+                  <Command.Item value={`selected delete ${t.quick.delete}`} onSelect={() => run(() => void acts.remove(chosen))} className={itemCls}>
+                    <Trash2 /> <span className="flex-1">{t.quick.delete}</span> <Kbd>{SHORTCUT.delete}</Kbd>
                   </Command.Item>
                 </Command.Group>
               )}

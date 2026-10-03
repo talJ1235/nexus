@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Check, ExternalLink, Flag, Minus, Package, PackageCheck, Plus, Scale, Split, Truck, Undo2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Flag, FolderInput, Inbox, Minus, Package, Plus, Split, Trash2, Truck } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { setStatus, updateItem } from "@/app/actions";
 import { useI18n } from "@/components/providers";
@@ -13,7 +13,10 @@ import { normalizeCategory } from "@/lib/categories";
 import { importCheck, isForeignStore } from "@/lib/import-vat";
 import { useDataStore } from "./store";
 import { useReadOnly } from "./offline-banner";
+import { useMedia } from "@/components/ui/use-media";
 import { COLLECTION_COLORS } from "./view-items";
+import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
+import { ItemContextMenu, openItemActions, SHORTCUT, StatusIcon, statusActs, useActionLabels, useItemActions } from "./quick-actions";
 
 export function ProductImage({ src, alt, className, iconClass, pending, ...rest }: { src: string | null; alt: string; className?: string; iconClass?: string; pending?: boolean } & React.HTMLAttributes<HTMLDivElement> & Record<`data-${string}`, string | boolean>) {
   const [failed, setFailed] = useState(false);
@@ -235,9 +238,7 @@ export function SelectBox({ checked, onToggle, className }: { checked: boolean; 
 export function ItemCard({ item, order }: { item: ItemWithSources; order: string[] }) {
   const s = useDataStore();
   const { t, f, locale, dir } = useI18n();
-  const flow = useStatusFlow();
   const ro = useReadOnly();
-  const src = activeSource(item, s.rates);
   const cheapest = cheapestSource(item, s.rates);
   const collection = item.collectionId ? s.collections.find((c) => c.id === item.collectionId) : null;
   const total = lineTotal(item, s.rates, s.currency);
@@ -258,9 +259,23 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
     if (vals.length > 1) spread = Math.max(...vals) - Math.min(...vals);
   }
 
-  const next = NEXT[item.status];
-  const nextLabel = item.status === "to_buy" ? t.flow.markOrdered : item.status === "ordered" ? t.flow.markReceived : t.flow.backToBuy;
-  const swipe = useRowSwipe(() => void flow.setTo(item, next), () => s.toggleSelect(item.id), !ro.ro && item.status !== "purchased");
+  const acts = useItemActions();
+  const labels = useActionLabels();
+  const moves = statusActs(item.status);
+  const [leaving, setLeaving] = useState(false);
+  // Phone rows: swipe toward the start edge = Delete, toward the end edge = status blocks; long-press = select.
+  // Phone cards: long-press = the action sheet (Round 11 C1).
+  const g = useCardGestures({
+    enabled: !ro.ro,
+    blocks: moves.length,
+    onRowHold: () => s.toggleSelect(item.id),
+    onCardHold: () => openItemActions([item.id]),
+    onDelete: () => void acts.remove([item]),
+  });
+  const leave = (fn: () => unknown) => {
+    setLeaving(true);
+    setTimeout(fn, 200);
+  };
 
   const category = normalizeCategory(item.category);
   const flag =
@@ -271,41 +286,54 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
     : item.priority === "someday" ? { label: t.item.someday, cls: "bg-surface text-muted" }
     : null;
 
-  const endSwipe = (dir === "rtl" ? -swipe.dx : swipe.dx) > 0;
+  const side = Math.sign(g.dx * (dir === "rtl" ? -1 : 1));
   const [firstStatus] = useState(item.status);
   const sweep = firstStatus !== item.status;
   return (
-    <div className="relative flex flex-col">
-      {/* Phone swipe: toward the end = next status, toward the start = select (actions bar). */}
-      {swipe.dx !== 0 && (
-        <div
-          aria-hidden
-          dir="ltr"
-          className={cn(
-            "absolute inset-0 hidden items-center rounded-[22px] px-5 text-sm font-bold prow:flex",
-            swipe.dx > 0 ? "justify-start" : "justify-end",
-            endSwipe ? "bg-info text-white" : "bg-ink text-bg",
-            Math.abs(swipe.dx) < SWIPE_AT && "opacity-70",
-          )}
-        >
-          {endSwipe ? (
-            <span className="flex items-center gap-2">{item.status === "to_buy" ? <Truck className="size-5" /> : <PackageCheck className="size-5" />}{nextLabel}</span>
-          ) : (
-            <span className="flex items-center gap-2"><Check className="size-5" />{t.select.select}</span>
-          )}
+    <div className={cn("relative flex flex-col", leaving && "row-leave")} data-swipe-held={g.held || undefined}>
+      {/* Phone row swipe layers (behind the row): status blocks at the start edge, Delete at the end edge. */}
+      {side > 0 && (
+        <div dir={dir} className="absolute inset-0 hidden overflow-hidden rounded-[22px] prow:flex" data-swipe-layer="status">
+          {moves.map((x) => (
+            <button
+              key={x}
+              type="button"
+              onClick={() => {
+                g.close();
+                leave(() => acts.setStatus([item], x));
+              }}
+              className={cn(
+                "flex w-[84px] shrink-0 flex-col items-center justify-center gap-1 text-[11.5px] font-bold text-white",
+                x === "ordered" ? "bg-info" : x === "purchased" ? "bg-ok" : "bg-ink text-bg",
+              )}
+              data-swipe-action={x}
+            >
+              <StatusIcon status={x} className="size-5" />
+              {labels.status(x)}
+            </button>
+          ))}
         </div>
       )}
+      {side < 0 && (
+        <div dir={dir} className="absolute inset-0 hidden justify-end overflow-hidden rounded-[22px] bg-danger prow:flex" data-swipe-layer="delete">
+          <button type="button" onClick={() => leave(() => acts.remove([item]))} className="flex w-[92px] flex-col items-center justify-center gap-1 text-[11.5px] font-bold text-white" data-swipe-action="delete">
+            <Trash2 className="size-5" />
+            {t.quick.delete}
+          </button>
+        </div>
+      )}
+    <ItemContextMenu item={item}>
     <article
-      draggable
+      draggable={!g.touch}
       onDragStart={(e) => {
         e.dataTransfer.setData("application/x-nexus-items", JSON.stringify(dragIds(item.id, s.selected)));
         e.dataTransfer.effectAllowed = "move";
       }}
-      {...swipe.handlers}
-      style={swipe.dx ? { transform: `translateX(${swipe.dx}px)`, transition: "none" } : undefined}
+      {...g.handlers}
+      style={g.dx ? { transform: `translateX(${g.dx}px)`, transition: g.dragging ? "none" : "transform 260ms var(--ease-out)" } : undefined}
       data-item-card={item.id}
       className={cn(
-        "group relative flex flex-1 flex-col rounded-[var(--radius-card)] border bg-surface p-1.5 transition-[border-color,box-shadow,transform] duration-[250ms] ease-[var(--ease-out)] prow:flex-row prow:items-center prow:gap-3 prow:rounded-[22px] prow:p-[7px] prow:pe-3 pcard:rounded-[22px] pcard:p-1",
+        "group relative flex flex-1 flex-col rounded-[var(--radius-card)] border bg-surface p-1.5 prow:touch-pan-y transition-[border-color,box-shadow,transform] duration-[250ms] ease-[var(--ease-out)] prow:flex-row prow:items-center prow:gap-3 prow:rounded-[22px] prow:p-[7px] prow:pe-3 pcard:rounded-[22px] pcard:p-1",
         isSelected
           ? "border-brand shadow-[0_0_0_1px_var(--brand)]"
           : "border-line shadow-card hover:-translate-y-[3px] hover:border-line-strong hover:shadow-lift active:shadow-lift",
@@ -355,43 +383,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
           </span>
         </div>
 
-        {!selecting && (
-          <div className="absolute bottom-2 end-2 z-[2] flex gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 max-sm:hidden">
-            {item.status === "to_buy" && (
-              <button
-                type="button"
-                onClick={() => s.setCompareItemId(item.id)}
-                title={t.compare.button}
-                aria-label={t.compare.button}
-                className="grid size-8 place-items-center rounded-full bg-surface text-ink shadow-card transition hover:bg-surface-2"
-              >
-                <Scale className="size-4" />
-              </button>
-            )}
-            {src?.url && (
-              <a
-                href={src.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={t.item.openStore}
-                aria-label={t.item.openStore}
-                className="grid size-8 place-items-center rounded-full bg-surface text-ink shadow-card transition hover:bg-surface-2"
-              >
-                <ExternalLink className="size-4" />
-              </a>
-            )}
-            <button
-              type="button"
-              onClick={() => void flow.setTo(item, next)}
-              disabled={ro.ro}
-              title={ro.title ?? nextLabel}
-              aria-label={nextLabel}
-              className="grid size-8 place-items-center rounded-full bg-brand text-on-brand shadow-card transition hover:bg-brand-hover"
-            >
-              {item.status === "to_buy" ? <Truck className="size-4" /> : item.status === "ordered" ? <PackageCheck className="size-4" /> : <Undo2 className="size-4" />}
-            </button>
-          </div>
-        )}
+        {!selecting && <HoverBar item={item} moves={moves} />}
       </div>
 
       <div className="flex flex-1 flex-col gap-[5px] px-2 pb-1.5 pt-2.5 prow:min-w-0 prow:gap-[3px] prow:p-0 pcard:gap-1 pcard:px-1.5 pcard:pb-1 pcard:pt-2">
@@ -444,66 +436,194 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
         {item.quantity > 1 && <span className="tabular text-[11px] text-muted" dir="ltr">×{item.quantity}</span>}
       </span>
     </article>
+    </ItemContextMenu>
     </div>
   );
 }
 
-const SWIPE_AT = 84;
+/** Desktop: hover (or keyboard focus) shows the card's quick actions — status, Move, Delete — with their keys. */
+function HoverBar({ item, moves }: { item: ItemWithSources; moves: Status[] }) {
+  const s = useDataStore();
+  const { t } = useI18n();
+  const ro = useReadOnly();
+  const acts = useItemActions();
+  const labels = useActionLabels();
+  const btn = "grid size-8 place-items-center rounded-full bg-surface text-ink shadow-card transition hover:bg-surface-2 disabled:opacity-50 [&_svg]:size-4";
+  const collections = s.collections.filter((c) => !c.archived);
+  return (
+    <div className="absolute bottom-2 end-2 z-[2] flex gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-state=open]]:opacity-100 max-sm:hidden" data-hover-bar>
+      {moves.map((x, i) => (
+        <button
+          key={x}
+          type="button"
+          onClick={() => void acts.setStatus([item], x)}
+          disabled={ro.ro}
+          title={ro.title ?? labels.tip(labels.status(x), SHORTCUT[x])}
+          aria-label={labels.status(x)}
+          className={cn(btn, i === 0 && "bg-brand text-on-brand hover:bg-brand-hover")}
+          data-hover-action={x}
+        >
+          <StatusIcon status={x} />
+        </button>
+      ))}
+      <Menu>
+        <MenuTrigger asChild>
+          <button type="button" disabled={ro.ro} title={ro.title ?? labels.tip(t.quick.moveShort, SHORTCUT.move)} aria-label={t.quick.move} className={btn} data-hover-action="move">
+            <FolderInput />
+          </button>
+        </MenuTrigger>
+        <MenuContent align="end" className="max-h-80 overflow-y-auto">
+          <MenuItem onSelect={() => void acts.move([item], null)}>
+            <Inbox /> {t.nav.unsorted}
+          </MenuItem>
+          <MenuSeparator />
+          {collections.map((c) => (
+            <MenuItem key={c.id} onSelect={() => void acts.move([item], c.id)}>
+              <i className={cn("size-2.5 shrink-0", c.kind === "project" ? "rounded-[3px]" : "rounded-full")} style={{ background: COLLECTION_COLORS[c.color] }} />
+              <span className="bidi truncate">{c.name}</span>
+            </MenuItem>
+          ))}
+        </MenuContent>
+      </Menu>
+      <button type="button" onClick={() => void acts.remove([item])} disabled={ro.ro} title={ro.title ?? labels.tip(t.quick.delete, SHORTCUT.delete)} aria-label={t.quick.delete} className={cn(btn, "hover:text-danger")} data-hover-action="delete">
+        <Trash2 />
+      </button>
+    </div>
+  );
+}
 
-/** Horizontal swipe on phone rows (vertical scrolling stays native). RTL: "toward the end" is to the left. */
-function useRowSwipe(onEnd: () => void, onStart: () => void, enabled: boolean) {
+const REVEAL = 64;
+const BLOCK = 84;
+const DEL_W = 92;
+const HOLD_MS = 480;
+/** Only one row is held open at a time. */
+let closeHeldRow: (() => void) | null = null;
+const tick = (ms = 8) => {
+  try {
+    navigator.vibrate?.(ms);
+  } catch {}
+};
+
+/**
+ * Phone gestures on a product (Round 11 C1). Rows (`[data-phone-layout=rows]`): swipe toward the start edge reveals
+ * Delete (a full swipe deletes), toward the end edge the status blocks; past the threshold the row stays open until a
+ * tap. Long-press: a row toggles selection, a grid card opens the action sheet. Vertical scrolling stays native; RTL
+ * mirrors the directions (the dock stays LTR). Haptic tick at each threshold.
+ */
+function useCardGestures({ enabled, blocks, onRowHold, onCardHold, onDelete }: { enabled: boolean; blocks: number; onRowHold: () => void; onCardHold: () => void; onDelete: () => void }) {
   const [dx, setDx] = useState(0);
-  const st = useRef<{ x: number; y: number; on: boolean; dir: number } | null>(null);
-  const swiped = useRef(false);
-  const handlers = enabled
-    ? {
-        onPointerDown: (e: React.PointerEvent) => {
-          if (e.pointerType === "mouse" || !window.matchMedia("(max-width: 639px)").matches || !(e.currentTarget as HTMLElement).closest('[data-phone-layout="rows"]')) return;
-          st.current = { x: e.clientX, y: e.clientY, on: false, dir: document.documentElement.dir === "rtl" ? -1 : 1 };
-          swiped.current = false;
-        },
-        onPointerMove: (e: React.PointerEvent) => {
-          const g = st.current;
-          if (!g) return;
-          const mx = e.clientX - g.x;
-          const my = e.clientY - g.y;
-          if (!g.on) {
-            if (Math.abs(my) > 10 && Math.abs(my) > Math.abs(mx)) return void (st.current = null);
-            if (Math.abs(mx) < 12) return;
-            g.on = true;
-            (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-          }
-          setDx(Math.max(-140, Math.min(140, mx * 0.9)));
-        },
-        onPointerUp: () => {
-          const g = st.current;
-          st.current = null;
-          if (!g?.on) return;
-          swiped.current = true;
-          const towardEnd = dx * g.dir > 0;
-          if (Math.abs(dx) >= SWIPE_AT) {
-            try {
-              navigator.vibrate?.(20);
-            } catch {}
-            if (towardEnd) onEnd();
-            else onStart();
-          }
-          setDx(0);
-        },
-        onPointerCancel: () => {
-          st.current = null;
-          setDx(0);
-        },
-        onClickCapture: (e: React.MouseEvent) => {
-          if (swiped.current) {
-            e.stopPropagation();
-            e.preventDefault();
-            swiped.current = false;
-          }
-        },
+  const [held, setHeld] = useState<0 | 1 | -1>(0);
+  const [dragging, setDragging] = useState(false);
+  const touch = useMedia("(hover: none) and (pointer: coarse)");
+  const st = useRef<{ x: number; y: number; base: number; on: boolean; rows: boolean; dir: number; w: number; ticks: Set<string>; timer: number } | null>(null);
+  const suppress = useRef(false);
+  const close = () => {
+    setDx(0);
+    setHeld(0);
+  };
+  const closeRef = useRef(close);
+  useEffect(() => {
+    closeRef.current = close;
+  });
+  const hold = (side: 0 | 1 | -1, x: number) => {
+    setDx(x);
+    setHeld(side);
+    if (side) {
+      if (closeHeldRow && closeHeldRow !== closeRef.current) closeHeldRow();
+      closeHeldRow = () => closeRef.current();
+    }
+  };
+  if (!enabled) return { dx: 0, held: 0, dragging: false, touch, close, handlers: {} };
+  const handlers = {
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.pointerType === "mouse" || !window.matchMedia("(max-width: 639px)").matches) return;
+      const el = e.currentTarget as HTMLElement;
+      const rows = !!el.closest('[data-phone-layout="rows"]');
+      const dir = document.documentElement.dir === "rtl" ? -1 : 1;
+      const timer = window.setTimeout(() => {
+        const g = st.current;
+        if (!g || g.on) return;
+        st.current = null;
+        suppress.current = true;
+        tick(14);
+        if (g.rows) onRowHold();
+        else onCardHold();
+      }, HOLD_MS);
+      st.current = { x: e.clientX, y: e.clientY, base: dx, on: false, rows, dir, w: el.offsetWidth, ticks: new Set(), timer };
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      const g = st.current;
+      if (!g) return;
+      const mx = e.clientX - g.x;
+      const my = e.clientY - g.y;
+      if (Math.abs(mx) > 8 || Math.abs(my) > 8) clearTimeout(g.timer);
+      if (!g.rows) {
+        if (Math.abs(mx) > 8 || Math.abs(my) > 8) st.current = null;
+        return;
       }
-    : {};
-  return { dx, handlers };
+      if (!g.on) {
+        if (Math.abs(my) > 10 && Math.abs(my) > Math.abs(mx)) return void (st.current = null);
+        if (Math.abs(mx) < 12) return;
+        g.on = true;
+        setDragging(true);
+        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      }
+      const statusW = blocks * BLOCK;
+      let logical = (g.base + mx) * g.dir;
+      if (logical > statusW) logical = statusW + (logical - statusW) * 0.25; // rubber band past the blocks
+      logical = Math.max(-g.w, logical);
+      for (const [k, hit] of [["s", logical >= REVEAL], ["d", logical <= -REVEAL], ["f", logical <= -g.w * 0.5]] as const) {
+        if (hit && !g.ticks.has(k)) {
+          g.ticks.add(k);
+          tick();
+        } else if (!hit) g.ticks.delete(k);
+      }
+      setDx(logical * g.dir);
+    },
+    onPointerUp: () => {
+      const g = st.current;
+      st.current = null;
+      if (!g) return;
+      clearTimeout(g.timer);
+      setDragging(false);
+      if (!g.on) {
+        // A tap on a row that is held open just closes it.
+        if (held) {
+          suppress.current = true;
+          close();
+        }
+        return;
+      }
+      suppress.current = true;
+      const logical = dx * g.dir;
+      if (logical <= -g.w * 0.5) {
+        setDx(-g.w * g.dir);
+        setHeld(0);
+        setTimeout(onDelete, 180);
+      } else if (logical <= -REVEAL) hold(-1, -DEL_W * g.dir);
+      else if (logical >= REVEAL) hold(1, blocks * BLOCK * g.dir);
+      else close();
+    },
+    onPointerCancel: () => {
+      const g = st.current;
+      if (g) clearTimeout(g.timer);
+      st.current = null;
+      setDragging(false);
+      if (!held) setDx(0);
+    },
+    onClickCapture: (e: React.MouseEvent) => {
+      if (suppress.current) {
+        e.stopPropagation();
+        e.preventDefault();
+        suppress.current = false;
+      }
+    },
+    // Long-press must not open the browser's own menu / image callout on phones.
+    onContextMenu: (e: React.MouseEvent) => {
+      if (window.matchMedia("(max-width: 639px)").matches && touch) e.preventDefault();
+    },
+  };
+  return { dx, held, dragging, touch, close, handlers };
 }
 
 /** Card price: big and plain (no tag), "No price" muted. */
