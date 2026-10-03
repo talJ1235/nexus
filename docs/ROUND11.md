@@ -103,3 +103,49 @@ Add a contrast check for tag fg/bg to `scripts/contrast.mjs`.
 ---
 
 ## Open
+
+### End-of-run summary (2026-10-03)
+All 8 items (A1, A2, B1, B2, C1, C2, D1, D2) shipped on `round11`. A1+A2 share one commit, and so do C1+C2; there is
+one follow-up commit (the hover bar's position). Green at the end: typecheck + lint + build, 20 unit-test scripts (new: `test:picture-style`; contrast now checks tags), full smoke with `SMOKE_WRITE=1` on a `NEXUS_AI_MOCK=1` server — desktop 49 checks, phone 55 (new: boot modes, nested overlays, insights/history, quick actions).
+Nothing to configure. D1's backfill only writes where Blob storage exists, so it runs on Vercel: 30 pictures per daily
+cron run, or all at once with `scripts/backfill-pictures.ts` and the production env.
+Worth checking on the real phone: the intro (A2) and how it hands off to the top-bar logo, the reload loader (A1), how
+the swipe thresholds and haptics feel (C1), and the dimmed paper tile in dark mode (D1).
+
+### Notes and decisions (Round 11 run)
+- **Open reports**: still unreadable. `REPORTS_TOKEN` isn't set locally, and there are no `from-app` GitHub issues.
+- **A1 rules**: the full intro plays when navigation type is `navigate` / `prerender` and this tab has no
+  `sessionStorage["nexus.opened"]` yet (new tab, PWA launch, first page of the session). Everything else gets the
+  small loader: `reload` (including our pull-to-refresh), `back_forward`, and any later load in the same tab. If
+  storage throws, the full intro plays. As before, the desktop browser shows neither; only phones and the installed
+  app do.
+- **A2**: the intro reaches "ready" at about 2.3 s and hands off within 480 ms. The frame trace is 16–17 ms per frame
+  for the whole sequence. The mark flies into the top-bar Box (`[data-topbar-logo]`); on pages without one (login,
+  shared lists) it settles in place. The spark dot comes to rest on the top face with a thin outline in the
+  background colour, so it stays visible on the amber top face.
+- **B1 cause**: Settings is a `Modal` (z-50) and Reports was a `Sheet` (z-40). Reports opened underneath, but Radix
+  treated it as the top layer, so the first outside click closed the invisible Reports. Radix already closes only the
+  top layer, so the fix is one z-layer for every surface (the newest portal is on top) plus the Reports sub-page. The
+  other listed pairs were already sequential or inline: memory is a section, assistant history is a pane, the + menu
+  closes before a scanner opens, and the project plan opens the assistant.
+- **B2**: I kept the dock icon (bar chart) because it fits "Insights". History's search is separate from the global
+  search, so typing there doesn't open the top-bar search. History drops the project chips in favour of a Project menu
+  (the chips were hidden on phones anyway). The month timeline is the "order timeline"; the desktop table layout stays
+  one flat table.
+- **C1**: delete is a swipe toward the start edge (left in English, right in Hebrew) and status toward the end edge.
+  The row is held open past 64 px. Releasing past half the row width deletes at once. Received items get a single
+  block, "Back to To buy". Long-press is 480 ms. Swipes apply to the rows layout; grid cards only have long-press.
+  Rows now set `touch-action: pan-y`: without it Chrome cancels the pointer as soon as it treats the touch as a pan,
+  so the old swipe was unreliable.
+- **C2**: the hover bar shows the status moves, Move and Delete in the picture's top-end corner. At the bottom-end it
+  reached the middle of the card, where a click meant to open the item could change its status instead. Compare and
+  Open in store moved to the right-click menu. Backspace also deletes (Mac keyboards). The command menu shows the
+  "Selected items" actions only while something is selected.
+- **D1**: the style is stored in the picture's file name (`…-c.webp` / `…-p.webp`) rather than a DB column, so it
+  travels with the picture, needs no migration, and covers all eight places that store pictures.
+  - Pictures on a uniform dark or coloured background (e.g. black) are trimmed and then treated as photos (they fill
+    the frame). Turning a black background white would also eat dark products.
+  - Pictures not normalized yet look like cut-outs: paper tile with an 8 % inset.
+  - Locally (no Blob token) nothing gets normalized. I checked the frame with normalized fixture files served for one
+    run. The unit test covers white, black, transparent and photo inputs.
+- **Fixed in passing**: a picture that failed to load before hydration stayed invisible. It now shows the placeholder.
