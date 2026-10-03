@@ -74,3 +74,16 @@ writes the round briefs. Everything durable lives in this repo, not in chat hist
   `docs/design/` are the shareable copy. New design exploration: make a new canvas in your own account.
 - Optional env not yet set (as of Round 10): `REPORTS_TOKEN` (read in-app reports), `GITHUB_ISSUES_TOKEN`; check
   `SERPER_API_KEY` status in the latest Open.
+
+## Working from two Claude accounts (coordination)
+- The repo is the only shared memory. Chat history, claude.ai memory and design canvases are per account.
+- Start of every planning chat: pull, read this file + the latest round's "## Open". Never rely on "what the other
+  chat said".
+- Any decision made in chat that isn't in a brief yet → add one line to "Decisions that stand" (or "Product
+  direction") here and push before ending the chat.
+- One round at a time: only one `docs/ROUND<n>.md` is "in progress". The next number is always latest + 1 on `main`.
+- Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
+
+### Planning log
+- 2026-10-03 · A · Product direction discussed (multi-user, Capacitor first, supermarket); PLANNER.md created.
+- 2026-10-02 · A · Round 10 brief (animations, camera, projects page, pictures via Serper).
