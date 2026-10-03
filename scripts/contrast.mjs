@@ -46,6 +46,8 @@ const pairs = [
   ["faint", "surface"], ["faint", "bg"],
   ["on-brand", "brand"], ["tint-ink", "tint"], ["tint-ink", "surface"],
   ["ok", "surface"], ["danger", "surface"], ["danger", "danger-soft"], ["info", "surface"],
+  // Round 11 D2: tags over pictures (solid fills).
+  ["ink", "tag-bg"], ["muted", "tag-bg"], ["danger", "tag-bg"], ["tag-low-ink", "tag-low"], ["tag-info-ink", "tag-info"], ["tag-ok-ink", "tag-ok"],
 ];
 let fails = 0;
 for (const [name, t] of Object.entries(themes)) {

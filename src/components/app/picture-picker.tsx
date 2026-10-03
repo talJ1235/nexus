@@ -121,7 +121,7 @@ export function PicturePicker({
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- remote pictures from many hosts */}
                   <img src={c.url} alt="" className="size-full object-contain" loading="lazy" referrerPolicy="no-referrer" />
-                  <span className="absolute inset-x-1 bottom-1 truncate rounded-full bg-black/55 px-2 py-0.5 text-[10.5px] font-semibold text-white">
+                  <span className="nx-tag absolute inset-x-1 bottom-1 justify-center" data-tone={c.url === current ? "ink" : undefined}>
                     {c.url === current ? t.pictures.current : t.pictures.sources[c.source]}
                   </span>
                   {picked === c.url && (

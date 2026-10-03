@@ -293,11 +293,11 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
 
   const category = normalizeCategory(item.category);
   const flag =
-    item.status === "ordered" ? { label: t.flow.ordered, cls: "bg-info text-white", icon: <Truck className="size-3" /> }
-    : item.status === "purchased" ? { label: t.flow.received, cls: "bg-ok text-white", icon: <Check className="size-3" strokeWidth={3} /> }
-    : item.priority === "urgent" ? { label: t.item.urgent, cls: "bg-surface text-danger shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--danger)_35%,transparent)]", icon: <Flag className="size-3" strokeWidth={2.6} /> }
-    : atLowest ? { label: t.item.lowestShort, cls: "bg-tint text-tint-ink", title: t.history.atLowest }
-    : item.priority === "someday" ? { label: t.item.someday, cls: "bg-surface text-muted" }
+    item.status === "ordered" ? { label: t.flow.ordered, tone: "info", icon: <Truck className="size-3" /> }
+    : item.status === "purchased" ? { label: t.flow.received, tone: "ok", icon: <Check className="size-3" strokeWidth={3} /> }
+    : item.priority === "urgent" ? { label: t.item.urgent, tone: "urgent", icon: <Flag className="size-3" strokeWidth={2.6} /> }
+    : atLowest ? { label: t.item.lowestShort, tone: "low", title: t.history.atLowest }
+    : item.priority === "someday" ? { label: t.item.someday, tone: "muted" }
     : null;
 
   const side = Math.sign(g.dx * (dir === "rtl" ? -1 : 1));
@@ -367,15 +367,15 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
       <div className="relative prow:shrink-0" data-card-img>
         <ProductImage src={item.imageUrl} alt="" pending={s.imagePending.has(item.id)} className="aspect-[5/4] w-full rounded-[var(--radius-tile)] prow:size-14 prow:rounded-[17px] pcard:aspect-square pcard:rounded-[18px]" iconClass="prow:size-6" />
         {item.imageSource === "icon" && (
-          <span className="pointer-events-none absolute bottom-2 start-2 rounded-full bg-surface/90 px-2 py-0.5 text-[10.5px] font-bold text-muted max-sm:hidden" title={t.item.iconHint}>
+          <span className="nx-tag pointer-events-none absolute bottom-2 start-2 max-sm:hidden" data-tone="muted" title={t.item.iconHint}>
             {t.item.iconBadge}
           </span>
         )}
         <div className="pointer-events-none absolute inset-x-[9px] top-[9px] flex items-start justify-between gap-2 prow:hidden pcard:inset-x-1.5 pcard:top-1.5">
           <span className="relative min-w-0">
             {category && (
-              <span className={cn("block truncate rounded-full bg-surface px-[9px] py-1 text-[11px] font-bold text-muted transition-opacity max-sm:hidden", (selecting || isSelected) ? "opacity-0" : "sm:group-hover:opacity-0")}>
-                {t.categories[category]}
+              <span className={cn("nx-tag transition-opacity max-sm:hidden", (selecting || isSelected) ? "opacity-0" : "sm:group-hover:opacity-0")} data-tone="muted" data-tag="category">
+                <span>{t.categories[category]}</span>
               </span>
             )}
             <SelectBox
@@ -386,10 +386,10 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
           </span>
           <span className="flex shrink-0 gap-1">
             {item.quantity > 1 && item.status !== "to_buy" && (
-              <span dir="ltr" className="tabular rounded-full bg-surface px-[9px] py-1 text-[11px] font-bold text-ink">×{item.quantity}</span>
+              <span dir="ltr" className="nx-tag tabular">×{item.quantity}</span>
             )}
             {flag && (
-              <span title={flag.title} className={cn("inline-flex items-center gap-1 rounded-full px-[9px] py-1 text-[11px] font-bold", flag.cls)}>
+              <span title={flag.title} className="nx-tag" data-tone={flag.tone} data-tag="flag">
                 {flag.icon}
                 {flag.label}
               </span>

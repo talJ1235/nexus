@@ -94,7 +94,7 @@ picture look like it belongs to one catalogue, always:
 - Backfill all existing pictures (bounded batches via the daily cron + a one-off script). Unit test trim/detect on
   fixtures (white bg, black bg, transparent PNG, lifestyle photo).
 
-### D2. [ ] Tags you can always read
+### D2. [x] Tags you can always read
 "Lowest price" (and every tag drawn over a picture: Urgent, category, check, etc.) is semi-transparent and gets lost
 on the picture. Make tags solid: opaque fill from tokens, 1 px edge, a tiny shadow for separation, consistent size and
 position (category top-start, status/price flags top-end), readable on white tiles and photos in all four themes.
