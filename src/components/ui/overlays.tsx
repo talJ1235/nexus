@@ -1,9 +1,15 @@
 "use client";
 
 import { Dialog as D, DropdownMenu as M, Popover as P } from "radix-ui";
-import { X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Layering rule (Round 11 B1): every overlay surface (Modal, Sheet, full-screen cameras, command menu) sits on the same
+ * z-layer, so the one opened last — portalled last — is always the one on top; Radix closes only the top layer on an
+ * outside click or Esc. Something opened from inside a surface is either a sub-page of it (`onBack`: a back arrow in the
+ * header, Esc goes back) or a new surface fully on top.
+ */
 export function Modal({
   open,
   onOpenChange,
@@ -11,6 +17,8 @@ export function Modal({
   description,
   children,
   className,
+  onBack,
+  backLabel,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -18,6 +26,9 @@ export function Modal({
   description?: string;
   children: React.ReactNode;
   className?: string;
+  /** Showing a sub-page: a back arrow before the title; Esc goes back instead of closing. */
+  onBack?: () => void;
+  backLabel?: string;
 }) {
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
@@ -25,6 +36,11 @@ export function Modal({
         <D.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] overlay-in" />
         <D.Content
           onInteractOutside={keepOpenForToasts}
+          onEscapeKeyDown={(e) => {
+            if (!onBack) return;
+            e.preventDefault();
+            onBack();
+          }}
           onOpenAutoFocus={(e) => {
             // Focus the first field if the dialog has one; otherwise the dialog itself (no stray ring on the close button).
             const root = e.currentTarget as HTMLElement;
@@ -39,7 +55,12 @@ export function Modal({
           )}
         >
           <div className="mb-4 flex items-start justify-between gap-4">
-            <div>
+            {onBack && (
+              <button type="button" onClick={onBack} className="-m-1 -me-2 grid size-8 shrink-0 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label={backLabel} data-modal-back>
+                <ArrowLeft className="size-4 rtl:-scale-x-100" />
+              </button>
+            )}
+            <div className="min-w-0 flex-1">
               <D.Title className="text-base font-semibold">{title}</D.Title>
               {description ? <D.Description className="mt-1 text-sm text-muted">{description}</D.Description> : <D.Description className="sr-only">{title}</D.Description>}
             </div>
@@ -90,12 +111,12 @@ export function Sheet({
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-40 bg-black/35 overlay-in" />
+        <D.Overlay className="fixed inset-0 z-50 bg-black/35 overlay-in" />
         <D.Content
           onInteractOutside={keepOpenForToasts}
           onOpenAutoFocus={deferredSheetFocus}
           className={cn(
-            "fixed inset-y-0 z-40 flex w-full flex-col bg-surface shadow-pop outline-none sm:max-w-[520px]",
+            "fixed inset-y-0 z-50 flex w-full flex-col bg-surface shadow-pop outline-none sm:max-w-[520px]",
             side === "end" ? "end-0 border-s border-line sheet-in-end" : "start-0 border-e border-line sheet-in-start",
             className,
           )}

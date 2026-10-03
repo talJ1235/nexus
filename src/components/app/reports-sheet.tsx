@@ -21,13 +21,30 @@ const STATUS_TONE: Record<ReportStatus, string> = {
   wont_fix: "bg-surface-2 text-muted",
 };
 
-/** Owner screen "Reports" (Round 8 D3): list with status chips → detail, change status, copy for Claude Code. */
+/** Report rows, loaded each time `open` turns true. */
+function useReportRows(open: boolean) {
+  const [rows, setRows] = useState<ReportView[] | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    let gone = false;
+    listReports()
+      .then((r) => !gone && setRows(r))
+      .catch(() => !gone && setRows([]));
+    return () => {
+      gone = true;
+    };
+  }, [open]);
+  return [rows, setRows] as const;
+}
+
+/** Owner screen "Reports" (Round 8 D3): list with status chips → detail, change status, copy for Claude Code. A side
+ *  sheet from the Me sheet / command menu / toasts; inside Settings it is a sub-page (`ReportsSubpage`, Round 11 B1). */
 export function ReportsSheet() {
   const s = useStore();
-  const { t, locale } = useI18n();
-  const [rows, setRows] = useState<ReportView[] | null>(null);
+  const { t } = useI18n();
   const [openId, setOpenId] = useState<string | null>(null);
   const open = s.reportsOpen;
+  const [rows, setRows] = useReportRows(open);
 
   // Deep link from the Telegram message: /?panel=reports.
   useEffect(() => {
@@ -39,18 +56,73 @@ export function ReportsSheet() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    let gone = false;
-    listReports()
-      .then((r) => !gone && setRows(r))
-      .catch(() => !gone && setRows([]));
-    return () => {
-      gone = true;
-    };
-  }, [open]);
-
   const current = rows?.find((r) => r.id === openId) ?? null;
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={(o) => {
+        s.setReportsOpen(o);
+        if (!o) setOpenId(null);
+      }}
+      title={t.report.reports}
+    >
+      <div className="flex items-center gap-2 border-b border-line px-4 py-3 pt-[max(12px,env(safe-area-inset-top))]" data-reports>
+        {current ? (
+          <Button variant="ghost" size="icon-sm" onClick={() => setOpenId(null)} aria-label={t.report.back}>
+            <ArrowLeft className="rtl:-scale-x-100" />
+          </Button>
+        ) : null}
+        <h2 className="flex-1 text-[17px] font-extrabold">{current ? current.title : t.report.reports}</h2>
+        {!current && (
+          <Button variant="outline" size="sm" className="h-9" onClick={() => s.openReport()} data-reports-new>
+            {t.report.menu}
+          </Button>
+        )}
+        <SheetClose className="grid size-10 place-items-center rounded-full text-muted hover:bg-surface-2" aria-label={t.phone.closeMenu}>
+          <X className="size-5" />
+        </SheetClose>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <ReportsBody rows={rows} setRows={setRows} current={current} onOpen={setOpenId} />
+      </div>
+    </Sheet>
+  );
+}
+
+/** Reports as a sub-page of Settings: the Settings modal shows its back arrow (detail → list → Settings). */
+export function ReportsSubpage({ openId, onOpen }: { openId: string | null; onOpen: (id: string | null) => void }) {
+  const s = useStore();
+  const { t } = useI18n();
+  const [rows, setRows] = useReportRows(true);
+  const current = rows?.find((r) => r.id === openId) ?? null;
+  return (
+    <div className="space-y-4" data-reports data-settings-subpage="reports">
+      {current ? (
+        <h3 className="bidi text-[17px] font-extrabold">{current.title}</h3>
+      ) : (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" className="h-9" onClick={() => s.openReport()}>
+            {t.report.menu}
+          </Button>
+        </div>
+      )}
+      <ReportsBody rows={rows} setRows={setRows} current={current} onOpen={onOpen} />
+    </div>
+  );
+}
+
+function ReportsBody({
+  rows,
+  setRows,
+  current,
+  onOpen,
+}: {
+  rows: ReportView[] | null;
+  setRows: React.Dispatch<React.SetStateAction<ReportView[] | null>>;
+  current: ReportView | null;
+  onOpen: (id: string) => void;
+}) {
+  const { t, locale } = useI18n();
   const date = (ms: number) => new Date(ms).toLocaleString(locale === "he" ? "he-IL" : "en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const changeStatus = async (r: ReportView, status: ReportStatus) => {
     setRows((xs) => xs?.map((x) => (x.id === r.id ? { ...x, status } : x)) ?? xs);
@@ -69,66 +141,36 @@ export function ReportsSheet() {
     }
   };
 
+  if (!rows)
+    return (
+      <div className="grid place-items-center py-16">
+        <Spinner />
+      </div>
+    );
+  if (current) return <ReportDetail r={current} date={date} onStatus={(st) => void changeStatus(current, st)} onCopy={() => void copy(current)} />;
+  if (rows.length === 0) return <p className="rounded-[20px] border border-dashed border-line-strong px-5 py-12 text-center text-sm text-muted">{t.report.empty}</p>;
   return (
-    <Sheet
-      open={open}
-      onOpenChange={(o) => {
-        s.setReportsOpen(o);
-        if (!o) setOpenId(null);
-      }}
-      title={t.report.reports}
-    >
-      <div className="flex items-center gap-2 border-b border-line px-4 py-3 pt-[max(12px,env(safe-area-inset-top))]" data-reports>
-        {current ? (
-          <Button variant="ghost" size="icon-sm" onClick={() => setOpenId(null)} aria-label={t.report.back}>
-            <ArrowLeft className="rtl:-scale-x-100" />
-          </Button>
-        ) : null}
-        <h2 className="flex-1 text-[17px] font-extrabold">{current ? current.title : t.report.reports}</h2>
-        {!current && (
-          <Button variant="outline" size="sm" className="h-9" onClick={() => s.openReport()}>
-            {t.report.menu}
-          </Button>
-        )}
-        <SheetClose className="grid size-10 place-items-center rounded-full text-muted hover:bg-surface-2" aria-label={t.phone.closeMenu}>
-          <X className="size-5" />
-        </SheetClose>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        {!rows ? (
-          <div className="grid place-items-center py-16">
-            <Spinner />
-          </div>
-        ) : current ? (
-          <ReportDetail r={current} date={date} onStatus={(st) => void changeStatus(current, st)} onCopy={() => void copy(current)} />
-        ) : rows.length === 0 ? (
-          <p className="rounded-[20px] border border-dashed border-line-strong px-5 py-12 text-center text-sm text-muted">{t.report.empty}</p>
-        ) : (
-          <ul className="space-y-2">
-            {rows.map((r) => {
-              const Icon = TYPE_ICON[r.type];
-              return (
-                <li key={r.id}>
-                  <button type="button" onClick={() => setOpenId(r.id)} className="flex w-full items-center gap-3 rounded-[18px] border border-line bg-surface p-3 text-start transition hover:bg-surface-2" data-report-row={r.status}>
-                    <span className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-surface-2">
-                      <Icon className="size-[18px]" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[14px] font-bold">{r.title}</span>
-                      <span className="block text-xs text-muted">
-                        {t.report[r.type]} · {date(r.createdAt)}
-                      </span>
-                    </span>
-                    <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-bold", STATUS_TONE[r.status])}>{t.report[r.status]}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </Sheet>
+    <ul className="space-y-2">
+      {rows.map((r) => {
+        const Icon = TYPE_ICON[r.type];
+        return (
+          <li key={r.id}>
+            <button type="button" onClick={() => onOpen(r.id)} className="flex w-full items-center gap-3 rounded-[18px] border border-line bg-surface p-3 text-start transition hover:bg-surface-2" data-report-row={r.status}>
+              <span className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-surface-2">
+                <Icon className="size-[18px]" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] font-bold">{r.title}</span>
+                <span className="block text-xs text-muted">
+                  {t.report[r.type]} · {date(r.createdAt)}
+                </span>
+              </span>
+              <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-bold", STATUS_TONE[r.status])}>{t.report[r.status]}</span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

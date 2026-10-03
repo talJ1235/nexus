@@ -15,6 +15,7 @@ import { BudgetEditor } from "./budget-card";
 import { saveImportLimit } from "@/app/money-actions";
 import { pictureSearchStatus } from "@/app/picture-actions";
 import { MemorySection } from "./memory-section";
+import { ReportsSubpage } from "./reports-sheet";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 import { usePalette } from "@/components/use-palette";
@@ -141,14 +142,54 @@ export function SettingsDialog() {
   const { theme, setTheme } = useTheme();
   const [palette, setPalette] = usePalette();
   const ext = useExtension();
+  // Sub-pages slide in inside the same modal (Round 11 B1): back arrow / Esc → report list → Settings.
+  const [sub, setSub] = useState<null | "reports">(null);
+  const [reportId, setReportId] = useState<string | null>(null);
+  const [dir, setDir] = useState<"in" | "back">("in");
+  const go = (to: null | "reports") => {
+    setDir(to ? "in" : "back");
+    setSub(to);
+    setReportId(null);
+  };
+  const back = !sub
+    ? undefined
+    : () => {
+        if (!reportId) return go(null);
+        setDir("back");
+        setReportId(null);
+      };
   const rates = s.rates.fetchedAt
     ? f(t.settings.rates, { time: new Date(s.rates.fetchedAt).toLocaleString(locale === "he" ? "he-IL" : "en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) })
     : t.settings.ratesFallback;
 
   return (
     <>
-      <Modal open={s.settingsOpen} onOpenChange={s.setSettingsOpen} title={t.settings.title} className="max-w-xl">
-        <div className="space-y-6">
+      <Modal
+        open={s.settingsOpen}
+        onOpenChange={(o) => {
+          s.setSettingsOpen(o);
+          if (o) return;
+          setSub(null);
+          setReportId(null);
+          setDir("in");
+        }}
+        title={sub === "reports" ? t.report.reports : t.settings.title}
+        onBack={back}
+        backLabel={t.report.back}
+        className="max-w-xl"
+      >
+        {sub === "reports" ? (
+          <div key={`reports-${reportId ?? ""}`} className={dir === "in" ? "subpage-in" : "subpage-back"}>
+            <ReportsSubpage
+              openId={reportId}
+              onOpen={(id) => {
+                setDir("in");
+                setReportId(id);
+              }}
+            />
+          </div>
+        ) : (
+        <div key="main" className={cn("space-y-6", dir === "back" && "subpage-back")}>
           <section className="space-y-4">
             <h3 className="text-xs font-medium text-faint">{t.settings.display}</h3>
             <Row title={t.settings.currency} hint={rates}>
@@ -207,7 +248,7 @@ export function SettingsDialog() {
             <Row title={t.settings.extension} hint={ext.available ? `${t.ext.connected} · v${ext.version}` : t.ext.notInstalled}>
               <div className="flex items-center justify-end gap-2">
                 <span className={cn("size-2 rounded-full", ext.available ? "bg-ok" : "bg-faint")} aria-hidden />
-                <Button size="sm" variant={ext.available ? "outline" : "accent"} onClick={() => s.setExtOpen(true)}>
+                <Button size="sm" variant={ext.available ? "outline" : "accent"} onClick={() => s.setExtOpen(true)} data-settings-ext>
                   <Puzzle />
                   {ext.available ? t.settings.manage : t.settings.setUp}
                 </Button>
@@ -216,7 +257,7 @@ export function SettingsDialog() {
             <PictureSearchRow />
             <Row title={t.report.menu}>
               <div className="flex items-center justify-end gap-2">
-                <Button size="sm" variant="ghost" onClick={() => s.setReportsOpen(true)} data-settings-reports>
+                <Button size="sm" variant="ghost" onClick={() => go("reports")} data-settings-reports>
                   {t.report.reports}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => s.openReport()} data-settings-report>
@@ -233,6 +274,7 @@ export function SettingsDialog() {
             </form>
           </section>
         </div>
+        )}
       </Modal>
       <BookmarkletDialog open={s.extOpen} onOpenChange={s.setExtOpen} />
     </>

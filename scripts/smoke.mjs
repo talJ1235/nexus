@@ -742,6 +742,93 @@ try {
       });
     }
 
+    // Round 11 B1: one overlay opened from another is either a sub-page of it or fully on top; Esc / an outside click
+    // closes only the top layer, with a visible result each time.
+    await step("nested overlays: the newer one is on top and closes alone", async () => {
+      const go = async (path = "/") => {
+        await page.goto(`${BASE}${path}`);
+        await page.waitForSelector(READY, { timeout: 15000 });
+      };
+      const dialogs = () => page.locator("[role=dialog]:visible").count();
+      // The element at the surface's centre (or 40 px down) belongs to it → it is the visible top layer.
+      const onTop = (sel) =>
+        page.evaluate((sel) => {
+          const els = [...document.querySelectorAll(sel)];
+          const el = els[els.length - 1];
+          if (!el) return false;
+          const r = el.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(r.height / 2, 40));
+          return !!hit && el.contains(hit);
+        }, sel);
+      const settle = () => page.waitForTimeout(350);
+      const r = {};
+      // Settings → Reports: a sub-page in the same modal; Esc and the back arrow return to Settings, Esc again closes.
+      await go();
+      await openPalette();
+      await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Open settings|פתיחת ההגדרות|Settings|הגדרות/ }).first().click();
+      await page.locator("[data-settings-reports]").click();
+      await page.locator("[data-settings-subpage=reports]").waitFor({ timeout: 8000 });
+      await settle();
+      r.reportsSub = (await onTop("[data-settings-subpage=reports]")) && (await dialogs()) === 1;
+      await page.keyboard.press("Escape");
+      await settle();
+      r.escBack = (await page.locator("[data-settings-reports]").isVisible()) && (await dialogs()) === 1;
+      await page.locator("[data-settings-reports]").click();
+      await page.locator("[data-modal-back]").click();
+      await settle();
+      r.arrowBack = await page.locator("[data-settings-reports]").isVisible();
+      // Settings → extension: a new modal fully on top; an outside click closes it alone, then Settings.
+      await page.locator("[data-settings-ext]").click();
+      await settle();
+      r.extTop = (await dialogs()) === 2 && (await onTop("[role=dialog]"));
+      await page.mouse.click(4, 4);
+      await settle();
+      r.extAlone = (await dialogs()) === 1 && (await page.locator("[data-settings-reports]").isVisible());
+      await page.keyboard.press("Escape");
+      await settle();
+      r.settingsClosed = (await dialogs()) === 0;
+      // Reports sheet → "Report a problem" form on top; Esc closes the form, then the sheet.
+      await openPalette();
+      await page.locator("[data-cmd-reports]").click();
+      await page.locator("[data-reports-new]").click();
+      await page.locator("[data-report-form]").waitFor({ timeout: 8000 });
+      await settle();
+      r.formTop = await onTop("[data-report-form]");
+      await page.keyboard.press("Escape");
+      await settle();
+      r.formAlone = (await page.locator("[data-report-form]").count()) === 0 && (await page.locator("[data-reports]").isVisible());
+      await page.keyboard.press("Escape");
+      await settle();
+      r.sheetClosed = (await dialogs()) === 0;
+      // Item sheet → picture picker on top; Esc closes the picker, then the sheet.
+      const items = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
+      const it = items.find((i) => i.status === "to_buy") ?? items[0];
+      await go(`/?item=${it.id}`);
+      await page.locator("[data-change-picture]").waitFor({ timeout: 15000 });
+      await page.locator("[data-change-picture]").click();
+      await page.locator("[data-picture-picker]").waitFor({ timeout: 8000 });
+      await settle();
+      r.pickerTop = await onTop("[data-picture-picker]");
+      await page.keyboard.press("Escape");
+      await settle();
+      r.pickerAlone = (await page.locator("[data-picture-picker]").count()) === 0 && (await page.locator("[data-change-picture]").isVisible());
+      await page.keyboard.press("Escape");
+      await settle();
+      r.itemClosed = (await dialogs()) === 0;
+      if (MOBILE) {
+        // Me sheet → Reports: the Me sheet steps aside, Reports is visible on top.
+        await go();
+        await page.locator("[data-me-open]").click();
+        await page.locator("[data-me-reports]").click();
+        await page.locator("[data-reports]").waitFor({ timeout: 8000 });
+        await settle();
+        r.meReports = (await onTop("[data-reports]")) && (await page.locator("[data-me]").count()) === 0;
+        await page.keyboard.press("Escape");
+        await settle();
+      }
+      ok(Object.values(r).every(Boolean), "nested overlays: the newer one is on top and closes alone", JSON.stringify(r));
+    });
+
     await step("orders view: cards ↔ table toggle switches layout", async () => {
       await page.goto(`${BASE}/?v=orders`);
       await page.waitForSelector("[data-orders-layout]", { timeout: 15000 });

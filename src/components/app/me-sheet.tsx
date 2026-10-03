@@ -102,7 +102,7 @@ export function MeSheet() {
             <Send /> <span className="flex-1">{t.me.telegram}</span>
             {status(telegram, t.me.telegramOn, t.me.telegramOff)}
           </button>
-          <button type="button" className={row} onClick={go(() => s.setReportsOpen(true))}>
+          <button type="button" className={row} onClick={go(() => s.setReportsOpen(true))} data-me-reports>
             <Inbox /> <span className="flex-1">{t.report.reports}</span> <ChevronRight className="size-4 text-faint rtl:-scale-x-100" />
           </button>
           <button type="button" className={row} onClick={go(() => s.openReport())}>

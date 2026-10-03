@@ -37,7 +37,7 @@ in the active palette:
 
 ## Part B — overlays and navigation
 
-### B1. [ ] Settings → Reports opens behind settings; two clicks to close
+### B1. [x] Settings → Reports opens behind settings; two clicks to close
 Opening Reports from Settings shows a side sheet you can't see because Settings stays on top; outside click closes
 Reports first and needs a second click for Settings. Fix: Reports opens as a **sub-page inside Settings** (slide in,
 back arrow returns to Settings) on desktop and phone. Audit every place where one overlay opens another (settings →

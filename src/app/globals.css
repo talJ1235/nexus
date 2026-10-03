@@ -786,3 +786,13 @@ html body[data-scroll-locked] { margin-right: 0 !important; --removed-body-scrol
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*) { animation-duration: 0s; }
 }
+
+/* Sub-pages inside one surface (Settings → Reports, Round 11 B1): forward slides in from the inline-end, back from
+   the inline-start. */
+.subpage-in { animation: subpage-in 260ms var(--ease-out) both; }
+.subpage-back { animation: subpage-back 260ms var(--ease-out) both; }
+@keyframes subpage-in { from { opacity: 0; transform: translateX(28px); } }
+@keyframes subpage-back { from { opacity: 0; transform: translateX(-28px); } }
+[dir="rtl"] .subpage-in { animation-name: subpage-back; }
+[dir="rtl"] .subpage-back { animation-name: subpage-in; }
+@media (prefers-reduced-motion: reduce) { .subpage-in, .subpage-back { animation: none; } }
