@@ -12,7 +12,7 @@ desktop (1366), light + dark, Graphite + Plum; frame traces for every animation 
 
 ## Part A — opening the app
 
-### A1. [ ] Full intro only when the app is opened; a small loader on reload
+### A1. [x] Full intro only when the app is opened; a small loader on reload
 Round 10 made the boot sequence play on every load; Tal now wants:
 - **App open** (cold start: new tab / PWA launch / first visit of the session) → the full intro.
 - **Reload / pull-to-refresh / revisit within the session** → only the small loader: the Box mark in a small circle
@@ -20,7 +20,7 @@ Round 10 made the boot sequence play on every load; Tal now wants:
 - Decide with `performance.getEntriesByType("navigation")[0].type` (`reload` → small) plus a session flag
   (sessionStorage, which in an installed PWA lives as long as the app is open). Document the rules in Open.
 
-### A2. [ ] A more impressive intro
+### A2. [x] A more impressive intro
 Tal loves the current Box assembly; make it a little longer (~2–2.4 s to "ready", still never holding a ready app
 more than ~500 ms past the sequence) and fill the whole screen, not just a black field with a mark in the middle.
 Reference Tal gave: the Cal AI app opener (a coloured full screen, the logo with a dot that bounces). Our version,

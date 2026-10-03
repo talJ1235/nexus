@@ -62,7 +62,7 @@ export function PhoneTopBar() {
           >
             {t.shell.owner.slice(0, 1).toUpperCase()}
           </button>
-          <button type="button" onClick={() => s.setView({ type: "to_buy" })} className="me-auto" aria-label={t.nav.toBuy}>
+          <button type="button" onClick={() => s.setView({ type: "to_buy" })} className="me-auto" aria-label={t.nav.toBuy} data-topbar-logo>
             <LogoPill className="h-[46px] text-[18px]" />
           </button>
           <button

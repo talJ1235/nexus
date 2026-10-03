@@ -10,7 +10,7 @@
 //     transitions: open an item (card → sheet), switch views, change the sort, the + menu.
 //   SMOKE_MOBILE=1 runs the owner checks in a 390×844 touch phone context; screenshots get a "-m" suffix.
 //   SMOKE_ONLY=text runs only the steps whose name contains `text` (after logging in).
-//   SMOKE_TRACE=1 records every painted frame of the first 2.5 s after goto("/") (CDP screencast, timestamped)
+//   SMOKE_TRACE=1 records every painted frame of the first 3.4 s after goto("/") (CDP screencast, timestamped)
 //     into $SMOKE_OUT/trace[-m]/ plus one contact sheet (trace[-m].png) to judge load flashes from frames.
 //     SMOKE_TRACE_PATH=/?v=urgent traces another URL; SMOKE_THROTTLE=1 emulates a slow phone network (Fast 3G-ish)
 //     and SMOKE_TRACE_LAYOUT=table stores that layout preference first (to catch a cards→table second render).
@@ -1466,22 +1466,33 @@ try {
     });
 
     await step("boot screen", async () => {
-      // Phones see the opening animation on every full load and reload (Round 10 A3), then it hands off; desktop never.
+      // Phones: the full intro when the app is opened (a new tab), the small Box-in-a-circle loader on reloads,
+      // pull-to-refresh and later loads in the session (Round 11 A1); both hand off to the app. Desktop never.
       const p = await ctx.newPage();
+      const mode = () => p.evaluate(() => document.documentElement.dataset.boot);
       await p.goto(`${BASE}/`, { waitUntil: "commit" });
       await p.waitForSelector("#boot", { state: "attached", timeout: 10000 });
       if (MOBILE) {
-        const shown = await p.locator("#boot").isVisible();
+        const shown = await p.locator("#boot .boot-mark").isVisible();
+        const first = await mode();
+        const t0 = Date.now();
         await p.waitForSelector("#boot.boot-gone", { state: "attached", timeout: 10000 });
-        ok(shown && (await p.locator(READY).isVisible()), "boot screen: shown on phone, hands off to the app");
+        const fullMs = Date.now() - t0;
+        ok(shown && first === "full" && (await p.locator(READY).isVisible()), "boot screen: full intro when the app is opened, hands off to the app", `mode=${first} gone after ${fullMs} ms`);
         const again = [];
         for (let k = 0; k < 2; k++) {
           await p.reload({ waitUntil: "commit" });
           await p.waitForSelector("#boot", { state: "attached", timeout: 10000 });
-          again.push(await p.locator("#boot").isVisible());
+          again.push(`${await mode()}:${await p.locator("#boot .boot-small").isVisible()}:${await p.locator("#boot .boot-mark").isVisible()}`);
           await p.waitForSelector("#boot.boot-gone", { state: "attached", timeout: 10000 });
         }
-        // Our pull-to-refresh replaces Chrome's: pull down at the top → the Box mark → release → reload → boot again.
+        // Same tab, a fresh navigation (not a reload) later in the session → still small.
+        await p.goto(`${BASE}/?v=history`, { waitUntil: "commit" });
+        again.push(`${await mode()}:${await p.locator("#boot .boot-small").isVisible()}:false`);
+        await p.waitForSelector("#boot.boot-gone", { state: "attached", timeout: 10000 });
+        await p.goto(`${BASE}/`);
+        await p.waitForSelector(READY, { timeout: 15000 });
+        // Our pull-to-refresh replaces Chrome's: pull down at the top → the Box mark → release → reload → small loader.
         const overscroll = await p.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY);
         const cdp = await ctx.newCDPSession(p);
         const touch = (type, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x: 195, y }] });
@@ -1492,12 +1503,22 @@ try {
         const nav = p.waitForEvent("framenavigated", { timeout: 5000 }).then(() => true, () => false);
         await touch("touchEnd");
         const reloaded = await nav;
-        let bootAfterPull = false;
+        let afterPull = "";
         if (reloaded) {
           await p.waitForSelector("#boot", { state: "attached", timeout: 10000 });
-          bootAfterPull = await p.locator("#boot").isVisible();
+          afterPull = `${await mode()}:${await p.locator("#boot .boot-small").isVisible()}`;
         }
-        ok(again.every(Boolean) && overscroll === "contain" && ind === 1 && reloaded && bootAfterPull, "boot screen: plays on every reload; pull-to-refresh shows the Box mark and reloads into it", `reloads=${again} overscroll=${overscroll} indicator=${ind} reloaded=${reloaded} boot=${bootAfterPull}`);
+        ok(
+          again.every((a) => a === "small:true:false") && overscroll === "contain" && ind === 1 && reloaded && afterPull === "small:true",
+          "boot screen: small loader on reload / later loads; pull-to-refresh shows the Box mark and reloads into it",
+          `loads=${again} overscroll=${overscroll} indicator=${ind} reloaded=${reloaded} afterPull=${afterPull}`,
+        );
+        // A new tab is a new app open → the full intro again.
+        const p2 = await ctx.newPage();
+        await p2.goto(`${BASE}/`, { waitUntil: "commit" });
+        await p2.waitForSelector("#boot", { state: "attached", timeout: 10000 });
+        ok((await p2.evaluate(() => document.documentElement.dataset.boot)) === "full", "boot screen: a new tab opens with the full intro");
+        await p2.close();
       } else {
         ok(!(await p.locator("#boot").isVisible()), "boot screen: never shown on desktop");
       }
@@ -1543,7 +1564,7 @@ try {
           await page.evaluate((l) => localStorage.setItem("nexus.layout", l), layout);
           await ctx.addCookies([{ name: "nexus_layout", value: layout, url: BASE }]);
         }
-        const frames = await traceLoad(ctx, `${BASE}${process.env.SMOKE_TRACE_PATH || "/"}`, process.env.SMOKE_THROTTLE ? 5000 : 2500);
+        const frames = await traceLoad(ctx, `${BASE}${process.env.SMOKE_TRACE_PATH || "/"}`, process.env.SMOKE_THROTTLE ? 5000 : 3400);
         console.log(`INFO trace: ${frames.length} frames → ${OUT}/trace${SUFFIX}.png (${frames.map((f) => f.ms).join(",")} ms)`);
         ok(frames.length > 0, "load trace recorded");
       });
