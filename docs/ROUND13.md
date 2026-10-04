@@ -165,7 +165,7 @@ With some data, each section shows itself only when it has content. **Acceptance
 
 ## Part B — Phone "Shopping" tab: To buy ⇄ On the way
 
-### B1. [ ] Dock: Home · Shopping · + · Projects · Insights
+### B1. [x] Dock: Home · Shopping · + · Projects · Insights
 Tal approved (2026-10-04). Changes to the `DOCK` in `phone-shell.tsx`:
 - **Home** (house icon) first.
 - **Shopping** (`he`: **קניות**, shopping-bag icon) replaces both To buy and On the way. It opens the last sub-tab

@@ -18,24 +18,33 @@ turns them into buttons; only these addresses work:
 - `nexus:plan` — Plan a project with Nexus
 - `nexus:commands` — the command menu (Esc)
 - `nexus:report` — Report a problem (sends the details to Tal)
-- `nexus:view/to_buy`, `nexus:view/urgent`, `nexus:view/unsorted`, `nexus:view/ordered`, `nexus:view/history`,
+- `nexus:view/home`, `nexus:view/to_buy`, `nexus:view/urgent`, `nexus:view/unsorted`, `nexus:view/ordered`, `nexus:view/history`,
   `nexus:view/orders`, `nexus:view/spending`, `nexus:view/projects`
 Example: `[Open settings → Palette](nexus:settings)`.
 
 ## Where things are
 <!-- spec: UI, Desktop shell, Phone shell, Collections, Phone fit, Home hierarchy, Phone shell v2 -->
-- **Desktop**: sidebar with To buy (לקנות), Urgent (דחוף), Unsorted (לא משויך), On the way (בדרך), Order by store
+- **Desktop**: sidebar with Home (בית), To buy (לקנות), Urgent (דחוף), Unsorted (לא משויך), On the way (בדרך), Order by store
   (הזמנה לפי חנות), History (היסטוריה), Spending (הוצאות), then Projects (פרויקטים) and Lists (רשימות). The sidebar
-  collapses with the arrow at its top. Top bar: search, "Ask Nexus", alerts bell. The paste bar floats at the bottom.
+  collapses with the panel button at its top (or by dragging its edge, or Ctrl+B). Top bar: search, "Ask Nexus",
+  alerts bell. The paste bar floats at the bottom. The Nexus logo always goes back to Home.
 - **Phone**: top bar (your initial, logo, search, Ask, alerts) and a dock at the bottom, the same order in every
-  language: To buy · On the way · **+** · Projects · Stats (נתונים). **+** opens four coloured tiles: Scan a barcode
+  language: Home (בית) · Shopping (קניות) · **+** · Projects · Insights (נתונים). Shopping holds To buy ⇄ On the way
+  (the two big cards at its top switch between them; it reopens the one you used last), with a List / Grid switch
+  (list by default, remembered) and Sort (By project / By arrival). **+** opens four coloured tiles: Scan a barcode
   (סריקת ברקוד), Scan a receipt (סריקת קבלה), Paste a link (הדבקת קישור), Plan with Nexus (תכנון עם Nexus).
 - **Settings on the phone**: tap your initial (the round button at the start of the top bar) → the "Me" sheet:
   Settings, palette and theme, Browser extension, Telegram, Reports, Report a problem, Export to Excel, Backup, Sign out.
 - **Command menu**: press **Esc** (or Ctrl/⌘+K) anywhere — search items, jump to views, change settings, run actions.
-- **Home (To buy)**: the totals card (what's left, total, split by project, Urgent · On the way · Spent this month —
+- **Home** (בית, the screen the app opens on): the date and greeting, a status strip (things that need you · packages
+  this week · ahead of or behind your budget pace — each scrolls to its section), four stats (Left to buy, Month
+  budget, On the way, Saved this year), "Nexus suggests" (one idea at a time; Not now hides it for 7 days), This week,
+  Needs you (price drops, late packages, free-shipping gaps, time to reorder — ✕ or a swipe hides one for 7 days),
+  On the way, Month pace, Projects and "Nexus noticed". **Customize** (top of Home) reorders or hides sections.
+  Settings → Assistant → "AI-written suggestions" switches the AI wording of suggestions off (templates only).
+- **To buy**: the totals card (what's left, total, split by project, Urgent · On the way · Spent this month —
   each is tappable), then the "To buy" header with project chips, Category, Sort and the layout switch. Desktop: cards
-  or table. Phone: 2-column cards or rows (the switch at the end of the "To buy" header).
+  or table. Phone: list (grouped by project) or 2-column grid.
 - An item opens in a sheet: picture, price, open in store, Plan (qty, priority, project/list), Stores, Price history
   and watch/target, Tags & notes, Receipts, Advanced.
 

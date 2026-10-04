@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { ChartColumn, Folder, Plus, Search, ShoppingCart, Truck, X } from "lucide-react";
+import { ChartColumn, Folder, House, Plus, Search, ShoppingBag, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoPill } from "@/components/logo";
 import { cn } from "@/lib/utils";
@@ -83,18 +83,32 @@ export function PhoneTopBar() {
   );
 }
 
-const DOCK: { view: View; icon: React.ReactNode; label: (t: ReturnType<typeof useI18n>["t"]) => string }[] = [
-  { view: { type: "to_buy" }, icon: <ShoppingCart />, label: (t) => t.nav.toBuy },
-  { view: { type: "ordered" }, icon: <Truck />, label: (t) => t.nav.onTheWay },
-  { view: { type: "projects" }, icon: <Folder />, label: (t) => t.projects.title },
+type DockTarget = "home" | "shopping" | "projects" | "spending";
+const DOCK: { id: DockTarget; icon: React.ReactNode; label: (t: ReturnType<typeof useI18n>["t"]) => string }[] = [
+  { id: "home", icon: <House />, label: (t) => t.dash.title },
+  // Shopping (Round 13 B1): To buy ⇄ On the way in one tab; opens the sub-tab used last.
+  { id: "shopping", icon: <ShoppingBag />, label: (t) => t.shopTab.title },
+  { id: "projects", icon: <Folder />, label: (t) => t.projects.title },
   // "Insights": Spending · History (Round 11 B2).
-  { view: { type: "spending" }, icon: <ChartColumn />, label: (t) => t.insights.title },
+  { id: "spending", icon: <ChartColumn />, label: (t) => t.insights.title },
 ];
 
+const SHOP_TAB_KEY = "nexus.shopTab";
+/** The Shopping tab's last sub-tab (per device; default To buy). */
+export function lastShopTab(): "to_buy" | "ordered" {
+  try {
+    return localStorage.getItem(SHOP_TAB_KEY) === "ordered" ? "ordered" : "to_buy";
+  } catch {
+    return "to_buy";
+  }
+}
+const dockOf = (v: View): DockTarget | null =>
+  v.type === "home" ? "home" : v.type === "to_buy" || v.type === "ordered" || v.type === "urgent" || v.type === "unsorted" ? "shopping" : v.type === "collection" || v.type === "projects" ? "projects" : v.type === "orders" || v.type === "history" || v.type === "spending" ? "spending" : null;
+
 /**
- * Floating dock: To buy · On the way · + · Projects · Stats — physically left to right in every language (Tal's
- * decision: not mirrored in Hebrew; labels keep their own direction). Rendered into document.body so no animated or
- * transformed ancestor can move it; safe-area aware; hidden while items are selected.
+ * Floating dock: Home · Shopping · + · Projects · Insights (Round 13 B1) — physically left to right in every language
+ * (Tal's decision: not mirrored in Hebrew; labels keep their own direction). Rendered into document.body so no animated
+ * or transformed ancestor can move it; safe-area aware; hidden while items are selected.
  */
 export function Dock() {
   const mounted = useMounted();
@@ -105,22 +119,29 @@ export function Dock() {
 function DockBar() {
   const s = useStore();
   const { t } = useI18n();
-  const activeType = s.view.type === "collection" ? "projects" : s.view.type === "orders" || s.view.type === "history" ? "spending" : s.view.type;
+  const active = dockOf(s.view);
+  const urgent = s.items.filter((i) => i.status === "to_buy" && i.priority === "urgent").length;
+  const go = (id: DockTarget) => s.setView(id === "shopping" ? { type: lastShopTab() } : { type: id });
   const item = (d: (typeof DOCK)[number]) => (
     <button
-      key={d.view.type}
+      key={d.id}
       type="button"
-      onClick={() => s.setView(d.view)}
-      data-dock-target={d.view.type}
-      aria-label={d.label(t)}
-      aria-current={activeType === d.view.type ? "page" : undefined}
-      data-carry={`view:${d.view.type}`}
+      onClick={() => go(d.id)}
+      data-dock-target={d.id}
+      aria-label={d.id === "shopping" && urgent ? `${d.label(t)} (${urgent})` : d.label(t)}
+      aria-current={active === d.id ? "page" : undefined}
+      data-carry={`view:${d.id === "shopping" ? "to_buy" : d.id}`}
       className={cn(
-        "grid size-[46px] place-items-center rounded-full transition-[background-color,opacity,transform] duration-200 active:scale-90 [&_svg]:size-[22px] [&_svg]:stroke-[1.8]",
-        activeType === d.view.type ? "bg-surface-2 opacity-100" : "opacity-50",
+        "relative grid size-[46px] place-items-center rounded-full transition-[background-color,opacity,transform] duration-200 active:scale-90 [&_svg]:size-[22px] [&_svg]:stroke-[1.8]",
+        active === d.id ? "bg-surface-2 opacity-100" : "opacity-50",
       )}
     >
       {d.icon}
+      {d.id === "shopping" && urgent > 0 && (
+        <span className="tabular absolute end-1 top-1 grid h-[17px] min-w-[17px] place-items-center rounded-full bg-warn px-1 text-[10.5px] font-bold leading-none text-bg" data-dock-badge>
+          {urgent}
+        </span>
+      )}
     </button>
   );
   return (

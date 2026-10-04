@@ -4,7 +4,7 @@
 # Then: SMOKE_FRESH=http://localhost:3101 npm run smoke
 cd "$(dirname "$0")/.."
 PORT=${PORT:-3101}
-DB=".next/fresh.db"
+DB="fresh-smoke.db"
 case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) WIN=1 ;; *) WIN= ;; esac
 if [ -n "$WIN" ]; then
   for pid in $(netstat -ano | awk -v p=":$PORT" '$2 ~ p"$" && $4 == "LISTENING" {print $5}' | sort -u); do taskkill //F //T //PID "$pid" > /dev/null 2>&1; done

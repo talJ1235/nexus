@@ -17,6 +17,7 @@ export const NEXUS_ACTIONS = [
   "plan",
   "commands",
   "report",
+  "view/home",
   "view/to_buy",
   "view/urgent",
   "view/unsorted",

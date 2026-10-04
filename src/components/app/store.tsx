@@ -318,7 +318,8 @@ export function StoreProvider({
   const [altOpenId, setAltOpenId] = useState<string | null>(null);
   const [currency, setCurrencyState] = useState<Currency>(initialCurrency);
   const [layout, setLayoutState] = useState<Layout>(ui.layout ?? "cards");
-  const [phoneLayout, setPhoneLayoutState] = useState<PhoneLayout>(ui.phoneLayout ?? "cards");
+  // Round 13 B3: phones default to the list (rows); the last choice is remembered (cookie).
+  const [phoneLayout, setPhoneLayoutState] = useState<PhoneLayout>(ui.phoneLayout ?? "rows");
   const [sort, setSortState] = useState<SortKey>(ui.sort ?? "newest");
   const [view, setViewState] = useState<View>(() => paramToView(ui.view));
   const [navSeq, setNavSeq] = useState(0);
@@ -452,6 +453,11 @@ export function StoreProvider({
 
   const applyView = useCallback((v: View) => {
     recordNav(v.type);
+    if (v.type === "to_buy" || v.type === "ordered") {
+      try {
+        localStorage.setItem("nexus.shopTab", v.type);
+      } catch {}
+    }
     setNavDir(VIEW_ORDER.indexOf(v.type) >= VIEW_ORDER.indexOf(viewRef.current.type) ? 1 : -1);
     viewRef.current = v;
     setViewState(v);

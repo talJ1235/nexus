@@ -629,7 +629,7 @@ try {
     }
 
     if (MOBILE) {
-      // Round 9 A2: the dock is physically To buy · On the way · + · Projects · Stats in every language, and it never
+      // Round 9 A2 / Round 13 B1: the dock is physically Home · Shopping · + · Projects · Insights in every language, and it never
       // moves: its box is sampled every animation frame while switching through all five targets.
       await step("phone dock: fixed order in en + he, dock and top bar perfectly still while switching", async () => {
         const order = async () =>
@@ -645,7 +645,7 @@ try {
         await page.reload();
         await page.waitForSelector(READY);
         const moves = [];
-        for (const target of ["ordered", "projects", "spending", "to_buy", "plus", "ordered", "to_buy"]) {
+        for (const target of ["home", "projects", "spending", "shopping", "plus", "home", "shopping"]) {
           const d = await page.evaluate(async (target) => {
             const dock = document.querySelector("[data-dock]");
             const top = [...document.querySelectorAll("[data-app-header]")].find((e) => e.offsetHeight > 0);
@@ -674,7 +674,7 @@ try {
           }, target);
           if (d > 0.5) moves.push(`${target}: ${d.toFixed(1)} px`);
         }
-        const want = ["to_buy", "ordered", "plus", "projects", "spending"];
+        const want = ["home", "shopping", "plus", "projects", "spending"];
         ok(JSON.stringify(en) === JSON.stringify(want) && JSON.stringify(he) === JSON.stringify(want) && !moves.length, "phone dock: fixed order in en + he, dock and top bar perfectly still while switching", JSON.stringify({ en, he, moves }));
       });
     }
