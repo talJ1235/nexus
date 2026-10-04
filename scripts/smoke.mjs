@@ -541,7 +541,7 @@ try {
         try {
           const cdp = await ctx.newCDPSession(page);
           const t = (type, x, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
-          const go = async (path = "/") => {
+          const go = async (path = "/?v=to_buy") => {
             await page.goto(`${BASE}${path}`);
             await page.waitForSelector(READY, { timeout: 15000 });
           };
@@ -823,7 +823,8 @@ try {
           await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: re }).first().click();
         };
         const screens = [
-          ["to buy", () => go("/")],
+          ["home", () => go("/")],
+          ["to buy", () => go("/?v=to_buy")],
           ["urgent", () => go("/?v=urgent")],
           ["on the way", () => go("/?v=ordered")],
           ["history", () => go("/?v=history")],
@@ -1081,7 +1082,7 @@ try {
     // Round 11 B1: one overlay opened from another is either a sub-page of it or fully on top; Esc / an outside click
     // closes only the top layer, with a visible result each time.
     await step("nested overlays: the newer one is on top and closes alone", async () => {
-      const go = async (path = "/") => {
+      const go = async (path = "/?v=to_buy") => {
         await page.goto(`${BASE}${path}`);
         await page.waitForSelector(READY, { timeout: 15000 });
       };
@@ -2031,6 +2032,9 @@ try {
         await p.goto(`${BASE}/login`);
         await p.fill("#password", PASSWORD);
         await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), p.click("button[type=submit]")]);
+        await p.waitForSelector(READY, { timeout: 15000 });
+        // Login lands on Home (Round 13); count the list's cards.
+        await p.goto(`${BASE}/?v=to_buy`);
         await p.waitForSelector(READY, { timeout: 15000 });
         await p.waitForTimeout(1500); // long grids mount in chunks
         const online = await p.locator("main article").count();
