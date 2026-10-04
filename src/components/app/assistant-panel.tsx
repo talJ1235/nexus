@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, ArrowUpRight, Brain, Bug, ChartColumn, Check, ChevronRight, CircleHelp, History, MessageSquare, MessageSquareWarning, Send, Square, SquarePen, Wand2, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { LogoMark } from "@/components/logo";
+import { LOGO_EDGE, LogoMark } from "@/components/logo";
 import { toast } from "@/lib/toast";
 import { planWithAi } from "@/app/ai-actions";
 import { getConversation, latestConversation, listConversations, saveExchange, titleConversation, type MessageView } from "@/app/chat-actions";
@@ -126,7 +126,7 @@ export type ChatMode = "chat" | "plan";
 function BoxThinking({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={cn("box-think size-7 shrink-0", className)} aria-hidden>
-      <path d="M10 20l22 12v24L10 44z" fill="var(--logo-c1)" />
+      <path d="M10 20l22 12v24L10 44z" fill="var(--logo-c1)" {...LOGO_EDGE} />
       <path d="M54 20 32 32v24l22-12z" fill="var(--logo-c2)" />
       <path d="M32 8 54 20 32 32 10 20z" fill="var(--logo-c3)" />
     </svg>

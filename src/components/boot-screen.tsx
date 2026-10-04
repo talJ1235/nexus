@@ -140,8 +140,8 @@ export function BootScreen() {
         </div>
         <span className="boot-small">
           <svg viewBox="0 0 64 64" className="box-think">
+            <path d={LEFT} fill="var(--logo-c1)" stroke="var(--logo-edge)" strokeWidth={1.2} strokeLinejoin="round" />
             <path d={TOP} fill="var(--logo-c3)" />
-            <path d={LEFT} fill="var(--logo-c1)" />
             <path d={RIGHT} fill="var(--logo-c2)" />
           </svg>
         </span>
