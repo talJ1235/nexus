@@ -507,6 +507,48 @@ Brief and checklist: `docs/ROUND13.md`. Shipped (branch `round13`, 2026-10-04):
 - **Card borders**: `--card-line` / `--line-in` (+ warn / info / AI tints) on Home, Shopping and search cards; border vs
   surface ≥ 1.25:1 in all four themes (`npm run test:contrast`).
 
+## Round 14 — fixes after Round 13: AI on Home, match the design, calmer light theme, calendar
+Brief and checklist: `docs/ROUND14.md` (results and decisions under its "Open"). Shipped (branch `round14`, 2026-10-04):
+- Ask seed: a question handed to the assistant (phone search, command menu) is sent exactly once — the store clears it
+  (`consumeAskSeed`) and sent keys live outside the chat, so New chat, a reopen or a reload never resend it.
+- **Home suggestions**: Home always speaks when the account has items. Order in each section: exact rules → the AI's
+  look → broad rule fallbacks (≤ 4 suggestions, ≤ 3 insights). The AI look (`homeLook`, `src/lib/home-ai.ts`) runs once
+  a day when the rules give < 2 suggestions or < 2 insights: the chat's compact snapshot → ≤ 3 suggestions
+  `{title, why, action}` + ≤ 3 insights; unknown item / project ids and any number not in the snapshot are dropped;
+  cached in kv by day + language, a failure retries after 3 h, off with "AI-written suggestions". Fallbacks
+  (`fallbackSuggestions` / `fallbackInsights`): set a monthly budget, a target price for the priciest item, an arrival
+  date, "Still want X?" after 30 days, the extension (desktop), a first receipt; this month's top store / category, the
+  most expensive open project, items waiting > 30 days. Settings → Assistant shows last run · source · N · last error
+  (kv `home:ai:diag`). `SEED_PROFILE=sparse` + `SMOKE_SPARSE` check it with AI on (mock) and off.
+- **To buy filters**: one To buy with chips All · Urgent · No project (counts; `?v=to_buy&f=urgent|none`; old
+  `?v=urgent` / `?v=unsorted` links redirect). Urgent / Unsorted are gone from the sidebar, command menu, assistant
+  links and help. Desktop toolbar + phone Shopping (To buy side). Taking items out of a project: drop on "No project"
+  or Move to → Remove from project (both with Undo). No totals card on To buy; store pages keep theirs, project pages
+  their own header.
+- **Phone layouts**: below 640 px the desktop Cards / Table pref is ignored everywhere (`useTable()`), the phone uses
+  List / Grid only (the layout command flips it there); the table's checkbox sits 12 px from the picture.
+- **Sidebar v4**: on the page background, 224 / 68 px (drag edge 68–224), 34 px rows (13.5 px / 500, 17 px muted
+  icons), active row = soft tint (`--nav-active`) + 3 px accent bar (`--nav-bar`: spark; Plum: brand), 8 px project dots
+  (budget ring only with a budget), avatar footer under a hairline.
+- **Phone shell v4**: dock icons with labels (10.5 px / 600, active ink), top bar Box + Nexus, search / Ask / avatar
+  as 36 px circles (40 px tap areas); price alerts moved to Me → Price alerts, the avatar shows an unread dot.
+- Dark mode = the home-v4 mockups (cards #161616 — the mockup's #141414 misses the contrast test's card-depth rule —
+  raised #1d1d1d, muted #a1a19e, ok #4ade9a, info #7aa7ff, 12–13 % tints, paper #ecebe8).
+- **Calmer light theme** ("B · toned"): page #eeede9, cards #f8f7f4, lines and tints one step darker, muted / faint /
+  status inks darkened to keep `test:contrast` green; Plum light the same, a little cooler; picture tiles stay white.
+- Graphite logo: the left face follows the theme (#ecebe6 + 1.2 px edge #cfcdc6 / #232323 + #3d3d3d), everywhere the
+  Box is drawn except the app icons and favicon.
+- **Month view**: This week → Month (desktop: the card grows in place; phone: a sheet), ‹ › months, dots per event
+  type, a day lists its events, each opens its item (`monthGrid`, `model.events`).
+- **Calendar sync**: `GET /api/cal/<token>.ics` (public, token in kv `cal:token`, regenerable; 404 on a wrong token;
+  best-effort rate limit) — arrivals (late ones on their eta day) and reorder dates, 14 days back / 60 ahead, stable
+  UIDs, SEQUENCE / LAST-MODIFIED bump when a date moves (kv `cal:seq`), received / deleted / eta-less items omitted,
+  titles only. Settings → Calendar: Google subscribe, Apple / Outlook (webcal), Copy, Regenerate, the refresh note.
+  Month-view events get a one-off "Add to Google Calendar" until the feed is subscribed (kv `cal:subscribed`).
+  `npm run test:ics` (parsed back with ical.js).
+- Design parity proof: `scripts/parity.mjs` renders the mockups next to the app (same viewport, light + dark) into
+  `docs/design/parity-r14/`.
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.

@@ -40,29 +40,50 @@ Example: `[Open settings → Palette](nexus:settings)`.
 - **Command menu**: press **Esc** (or Ctrl/⌘+K) anywhere — search items, jump to views, change settings, run actions.
 - **Home** (בית, the screen the app opens on): the date and greeting, a status strip (things that need you · packages
   this week · ahead of or behind your budget pace — each scrolls to its section), four stats (Left to buy, Month
-  budget, On the way, Saved this year), "Nexus suggests" (one idea at a time; Not now hides it for 7 days), This week,
+  budget, On the way, Saved this year), "Nexus suggests" (one idea at a time; Not now hides it for 7 days), This week
+  (its **Month** link opens the month calendar — see Calendar below),
   Needs you (price drops, late packages, free-shipping gaps, time to reorder — ✕ or a swipe hides one for 7 days),
   On the way, Month pace, Projects and "Nexus noticed". **Customize** (top of Home) reorders or hides sections.
   Settings → Assistant → "AI-written suggestions" switches the AI wording of suggestions off (templates only).
+<!-- spec: To buy filters, Phone layouts -->
 - **To buy** (one list — there are no separate Urgent / Unsorted pages any more): the "To buy" header with filter chips
   **All · Urgent (דחוף) · No project (ללא פרויקט)**, each with its count, then project chips, Category, Sort and the
   layout switch. Desktop: cards or table. Phone: the same chips under the To buy ⇄ On the way switch; list (grouped by
   project) or 2-column grid. To take items out of a project: select them → Move to → Remove from project (הסרה
   מהפרויקט), or on desktop drag them onto the "No project" chip. The totals and indicators live on Home and Spending
   (a project's or a store's page keeps its own budget / free-shipping summary).
+- **List / Grid on the phone**: the round switch next to Sort (or "Grid" / "List" in the phone search). Phones always
+  use List or Grid; the desktop's Cards / Table choice never applies there.
 - An item opens in a sheet: picture, price, open in store, Plan (qty, priority, project/list), Stores, Price history
   and watch/target, Tags & notes, Receipts, Advanced.
 
 ## Home suggestions, insights and deliveries
-<!-- spec: Nexus suggests, Nexus noticed, Delivery track -->
+<!-- spec: Nexus suggests, Nexus noticed, Delivery track, Home suggestions -->
 - **Nexus suggests** (top of Home): one idea at a time — a deal on something you want (sometimes "order both" when
   another item makes the order ship free), time to reorder something you buy regularly, a cheaper weekday, a project
   without a budget. The main button does it; "Not now" hides it for 7 days. Wording comes from the AI once a day;
   Settings → Assistant → "AI-written suggestions" off = plain wording, no AI calls.
+- Home always has something to say once you have items: when those exact rules find little, the AI looks at your list
+  once a day (it may only point at your own items and numbers), and simple tips fill in — set a monthly budget, a target
+  price for your priciest item, an arrival date for an order, "still want X?" after 30 days, the extension, a receipt.
+  Settings → Assistant shows "Home suggestions: last run … · source rules/AI · N items" and the last error, if any.
 - **Nexus noticed**: short facts from your own data (shipping saved by ordering together, a cheaper weekday for a
   category, a project without a budget), each with one link.
 - Deliveries show one 4-step track — Ordered · Shipped · In country · Delivered — estimated from the order date and the
   expected date (we don't read carrier stages); late = all four in orange; no date = one step and "No date".
+
+## Calendar
+<!-- spec: Month view, Calendar sync -->
+- **Month view**: on Home, This week → **Month** (חודש). Desktop: the card grows into a month grid; phone: a sheet.
+  ‹ › move between months; coloured dots mark arrivals, late packages, reorder dates, price drops and the budget week
+  close; tap a day to list its events, tap an event to open the item.
+- **Calendar sync**: Settings → **Calendar** (לוח שנה) → **Subscribe in Google Calendar**, or **Apple / Outlook** (a
+  webcal link), or **Copy link**. Your calendar then shows "📦 X arrives" on each expected date and "🔁 Reorder X";
+  moved dates move and received or deleted items disappear on their own. Google refreshes subscribed calendars every
+  few hours, so changes can take up to a day. Only item names are shared — no prices or stores. **Regenerate link**
+  makes a new secret address and stops the old one (subscribe again with the new one).
+- Before you subscribe, each event in the month view has an **Add to Google Calendar** button (a one-off copy that
+  won't follow later changes); once you've subscribed, those buttons go away to avoid duplicates.
 
 ## Search, menus and gestures
 <!-- spec: One search, Nested overlays, Quick actions, Row swipes, Phone bottom sheets -->
@@ -202,7 +223,9 @@ Example: `[Open settings → Palette](nexus:settings)`.
 - Revoke a link from the same Share window. Guests can't use the assistant or report problems.
 
 ## Look and language
-<!-- spec: Design system, Box logo, Mixed Hebrew/English text, Dark mode depth, One picture style, Solid tags, Ask button, Card borders -->
+<!-- spec: Design system, Box logo, Mixed Hebrew/English text, Dark mode depth, One picture style, Solid tags, Ask button, Card borders, Sidebar v4, Phone shell v4, Calmer light theme -->
+- The desktop sidebar marks the open page with a soft tint and a thin coloured bar; the phone dock has labels; the light
+  theme is a calm, slightly darker paper tone; the logo's side face follows light / dark (Graphite).
 - Pictures share one style (cut-outs on a white tile, photos full-bleed); tags over pictures are solid; "Ask Nexus" is
   always a rounded pill; Home and Shopping cards have a clearer 1 px outline.
 - Palette: Settings (הגדרות) → Palette (צבעים) → **Graphite & Amber** (גרפיט וענבר, default) or **Plum** (שזיף). Theme
