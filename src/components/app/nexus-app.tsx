@@ -48,6 +48,7 @@ import { ShoppingMode, ShopOutboxSync } from "./shopping-mode";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
+import { SIDEBAR_MAX, SIDEBAR_MIN, SidebarEdge } from "./sidebar-edge";
 import { StoreProvider, useOpenItemId, useStore, type PendingAdd, type UiInit } from "./store";
 import { ContentSkeleton, ProjectHeaderSkeleton, Skel } from "./skeletons";
 import { COLLECTION_COLORS, useViewItems } from "./view-items";
@@ -99,11 +100,14 @@ function Shell({ incoming }: { incoming?: Incoming }) {
   const collapsed = s.sidebarCollapsed;
   const size = useLayoutSize();
   useHeaderHeightVar();
+  // Round 13 C2: while the sidebar's edge is dragged, the grid follows the pointer (no transition).
+  const [liveW, setLiveW] = useState<number | null>(null);
+  const sw = liveW ?? (collapsed ? SIDEBAR_MIN : SIDEBAR_MAX);
 
   return (
     <div
       className="min-h-lvh"
-      style={{ "--sw": collapsed ? "76px" : "248px" } as React.CSSProperties}
+      style={{ "--sw": `${sw}px` } as React.CSSProperties}
       data-app-shell
       data-phone-layout={s.phoneLayout}
       data-ready={s.loading ? undefined : ""}
@@ -111,12 +115,13 @@ function Shell({ incoming }: { incoming?: Incoming }) {
     >
       <div
         className={cn(
-          "lg:grid lg:gap-5 lg:pe-[26px] lg:ps-4 lg:transition-[grid-template-columns] lg:duration-[450ms] lg:ease-[var(--ease-out)]",
-          collapsed ? "lg:grid-cols-[76px_minmax(0,1fr)]" : "lg:grid-cols-[248px_minmax(0,1fr)]",
+          "lg:grid lg:grid-cols-[var(--sw)_minmax(0,1fr)] lg:gap-5 lg:pe-[26px] lg:ps-4",
+          liveW == null && "lg:transition-[grid-template-columns] lg:duration-[400ms] lg:ease-[var(--ease-out)]",
         )}
       >
-        <aside className="sticky top-4 hidden h-[calc(100dvh-32px)] min-w-0 lg:mt-4 lg:block">
-          {size !== "phone" && <Sidebar collapsed={collapsed} onToggle={() => s.setSidebarCollapsed(!collapsed)} />}
+        <aside className="sticky top-4 hidden h-[calc(100dvh-32px)] min-w-0 lg:mt-4 lg:block" data-sidebar-w={sw}>
+          {size !== "phone" && <Sidebar collapsed={liveW != null ? liveW < (SIDEBAR_MIN + SIDEBAR_MAX) / 2 : collapsed} onToggle={() => s.setSidebarCollapsed(!collapsed)} />}
+          {size !== "phone" && <SidebarEdge onLive={setLiveW} />}
         </aside>
         <Sheet open={s.navOpen} onOpenChange={s.setNavOpen} title={t.appName} side="start" phone="side" className="max-w-[300px] bg-bg">
           <Sidebar floating={false} />

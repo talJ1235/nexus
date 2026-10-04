@@ -642,6 +642,43 @@ try {
       });
     }
 
+    // Round 13 C2: the desktop sidebar collapses by dragging its edge (and persists), Ctrl+B toggles; Hebrew mirrors.
+    if (!MOBILE)
+      await step("sidebar: drag the edge to collapse, persists, Ctrl+B expands (en + he)", async () => {
+        const r = {};
+        const collapsed = () => page.locator("aside nav[data-collapsed]").count().then((n) => n > 0);
+        const dragEdge = async (dx) => {
+          const b = await page.locator("[data-sidebar-edge]").boundingBox();
+          const x = b.x + b.width / 2, y = b.y + b.height / 2;
+          await page.mouse.move(x, y);
+          await page.mouse.down();
+          for (let k = 1; k <= 12; k++) await page.mouse.move(x + (dx * k) / 12, y);
+          r.mid = Number(await page.locator("aside[data-sidebar-w]").getAttribute("data-sidebar-w"));
+          await page.mouse.up();
+          await page.waitForTimeout(600);
+        };
+        for (const lang of ["en", "he"]) {
+          await ctx.addCookies([{ name: "nexus_locale", value: lang, url: BASE }, { name: "nexus_sidebar", value: "open", url: BASE }]);
+          await page.goto(`${BASE}/?v=to_buy`);
+          await page.waitForSelector(READY);
+          const sign = lang === "he" ? -1 : 1;
+          if (TRACE && lang === "en") await traceFrames(page, "trace-sidebar-drag", () => dragEdge(-120 * sign), 1100);
+          else await dragEdge(-120 * sign);
+          r[`${lang}Live`] = r.mid > 76 && r.mid < 248;
+          r[`${lang}Collapsed`] = await collapsed();
+          await page.reload();
+          await page.waitForSelector(READY);
+          r[`${lang}Persisted`] = await collapsed();
+          await page.locator("main h1").first().click({ position: { x: 2, y: 2 } }).catch(() => {});
+          await page.keyboard.press("Control+b");
+          await page.waitForTimeout(600);
+          r[`${lang}CtrlB`] = !(await collapsed());
+        }
+        await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }, { name: "nexus_sidebar", value: "open", url: BASE }]);
+        delete r.mid;
+        ok(Object.values(r).every(Boolean), "sidebar: drag the edge to collapse, persists, Ctrl+B expands (en + he)", JSON.stringify(r));
+      });
+
     if (MOBILE) {
       // Round 9 A2 / Round 13 B1: the dock is physically Home · Shopping · + · Projects · Insights in every language, and it never
       // moves: its box is sampled every animation frame while switching through all five targets.

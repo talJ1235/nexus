@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "@/lib/toast";
 import { moveItems } from "@/app/actions";
-import { ChartColumn, ChevronLeft, Flag, History, House, Inbox, Plus, Settings, ShoppingCart, Store, Truck } from "lucide-react";
+import { ChartColumn, Flag, History, House, Inbox, PanelLeftClose, Plus, Settings, ShoppingCart, Store, Truck } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoPill } from "@/components/logo";
 import { Ring } from "@/components/ui/ring";
@@ -175,16 +175,16 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
           <button
             type="button"
             onClick={onToggle}
-            aria-label={c ? t.shell.expand : t.shell.collapse}
-            title={c ? t.shell.expand : t.shell.collapse}
+            aria-label={`${c ? t.shell.expand : t.shell.collapse} (Ctrl+B)`}
+            title={`${c ? t.shell.expand : t.shell.collapse} · Ctrl+B`}
             aria-expanded={!c}
             data-sidebar-toggle
             className={cn(
-              "grid size-9 shrink-0 place-items-center rounded-full border border-line bg-surface text-muted transition-transform duration-[450ms] ease-[var(--ease-out)] hover:text-ink",
+              "grid size-9 shrink-0 place-items-center rounded-lg text-muted transition-[transform,color,background-color] duration-[400ms] ease-[var(--ease-out)] hover:bg-surface-2 hover:text-ink",
               c ? "rotate-180" : "ms-auto",
             )}
           >
-            <ChevronLeft className="size-4 rtl:-scale-x-100" strokeWidth={2.2} />
+            <PanelLeftClose className="size-[18px] rtl:-scale-x-100" strokeWidth={1.9} />
           </button>
         )}
       </div>

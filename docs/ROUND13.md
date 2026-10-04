@@ -222,7 +222,7 @@ settings and actions exist only in the desktop command palette (`command-palette
 - **Acceptance:** a smoke test on the phone types "dark", toggles the theme from the result, and checks the theme
   changed. Typing "חשמל" (he) finds the matching items.
 
-### C2. [ ] Desktop sidebar: collapse button at the top + drag the edge
+### C2. [x] Desktop sidebar: collapse button at the top + drag the edge
 A collapsed rail already exists (`sidebarCollapsed`, 76 px). Tal wants:
 - **Button at the top:** a panel icon next to the logo. In the rail it sits under the logo, and it rotates 180° when
   collapsed.
