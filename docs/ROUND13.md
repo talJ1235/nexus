@@ -156,7 +156,7 @@ Each tile (icon chip + bold line + muted line + chevron) scrolls smoothly to its
 The tile colours match the section (warn / info / ok). On the phone the tiles show a big number + a 2-line label
 (mockup). **Acceptance:** a smoke test clicks each tile and checks the target section is in view.
 
-### A7. [ ] Empty and new-user states (prepares the multi-user work)
+### A7. [x] Empty and new-user states (prepares the multi-user work)
 With no items: Home shows the greeting, a short "Start by adding something" line, and the 3–4 big add actions from the
 phone + menu (paste a link, scan a barcode, scan a receipt, plan with Nexus). Other sections are hidden, not zero-filled.
 With some data, each section shows itself only when it has content. **Acceptance:** a smoke test on a fresh DB.

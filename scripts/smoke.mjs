@@ -15,6 +15,8 @@
 //     SMOKE_TRACE_PATH=/?v=urgent traces another URL; SMOKE_THROTTLE=1 emulates a slow phone network (Fast 3G-ish)
 //     and SMOKE_TRACE_LAYOUT=table stores that layout preference first (to catch a cards→table second render).
 //     With SMOKE_TRACE, animations get their own frame series too (trace-sheet-*, trace-cover-*).
+//   SMOKE_FRESH=http://localhost:3101 also checks Home on an empty account (a second server on a fresh DB:
+//     `bash scripts/serve-fresh.sh`), Round 13 A7.
 //   SMOKE_VISUAL=/?v=projects screenshots that view in Graphite + Plum × light + dark (phone: at 360 and 390 px)
 //     into $SMOKE_OUT/visual/, for judging a visual change by screenshot. SMOKE_VISUAL_FULL=1 takes full-page shots.
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -2139,6 +2141,23 @@ try {
       }
       await p.close();
     });
+
+    // Round 13 A7: a new account opens on Home with the greeting, one line and the big add actions — nothing else.
+    if (process.env.SMOKE_FRESH)
+      await step("home: empty account shows the add actions only", async () => {
+        const FRESH = process.env.SMOKE_FRESH.replace(/\/$/, "");
+        const fctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE });
+        const p = await fctx.newPage();
+        await p.goto(`${FRESH}/login`);
+        await p.fill("#password", PASSWORD);
+        await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), p.click("button[type=submit]")]);
+        await p.waitForSelector("[data-home-empty]", { timeout: 15000 });
+        const actions = await p.locator("[data-home-empty-action]").count();
+        const sections = await p.locator("[data-home-section], [data-home-stats], [data-home-status]").count();
+        if (OUT) await p.screenshot({ path: `${OUT}/home-empty${SUFFIX}.png` });
+        await fctx.close();
+        ok(actions >= 3 && actions <= 4 && sections === 0, "home: empty account shows the add actions only", `${actions} actions, ${sections} other sections`);
+      });
 
     if (process.env.SMOKE_VISUAL) {
       await step("visual matrix", async () => {
