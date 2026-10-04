@@ -82,3 +82,7 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   wrote this file and linked it from `CLAUDE.md` and `docs/PLANNER.md`.
 - 2026-10-04 (chat): full `npm run -s check` runs in the chat sandbox with a file DB (~3 min); Playwright installs there.
 - 2026-10-04 (chat): Vercel Function Storage hit 10 GB; `vercel.json` now builds `main` only (branch `chore/vercel-main-only`).
+- 2026-10-04 (chat, account B): design canvas recreated in this account as a claude.ai Design artifact from Tal's HTML export of
+  account A's canvas (the export is a self-unpacking bundle; the page sources inside match `docs/design/home-v3/`). Canvas
+  boards are `.dc.html` files; copies of each approved round go to `docs/design/<name>/` so the builder can read them.
+  Chat has no git push credentials (`GH_TOKEN` invalid) — docs are pushed with the GitHub connector.
