@@ -291,6 +291,61 @@ try {
         ok(n === 4, "phone: dock + '+' menu opens four actions and closes on the scrim", `actions=${n}`);
       });
 
+      // Round 12 #2: a slow (~15 px per frame) swipe locks open on either side by distance, like a fast one; a short one
+      // closes. Read-only (nothing is tapped), in English and Hebrew (mirrored).
+      await step("phone rows: slow swipes lock open both ways (en + he), short ones close", async () => {
+        const r = {};
+        try {
+          const cdp = await ctx.newCDPSession(page);
+          const t = (type, x, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
+          const held = () => page.evaluate(() => document.querySelector("[data-swipe-held]")?.getAttribute("data-swipe-held") ?? "0");
+          for (const lang of ["en", "he"]) {
+            await ctx.addCookies([{ name: "nexus_locale", value: lang, url: BASE }]);
+            await page.goto(`${BASE}/`);
+            await page.waitForSelector(READY, { timeout: 15000 });
+            await page.locator("[data-phone-layout-toggle] [role=radio]").nth(1).click();
+            await page.waitForTimeout(400);
+            const card = page.locator("main [data-item-card]").nth(1);
+            const dir = lang === "he" ? -1 : 1;
+            // Slow drag: 15 px per ~frame, then a still moment before lifting (no fling).
+            const slow = async (dx) => {
+              await card.scrollIntoViewIfNeeded();
+              const b = await card.boundingBox();
+              const y = b.y + b.height / 2, x0 = b.x + b.width / 2;
+              await t("touchStart", x0, y);
+              const n = Math.ceil(Math.abs(dx) / 15);
+              for (let k = 1; k <= n; k++) {
+                await t("touchMove", x0 + (dx * k) / n, y);
+                await page.waitForTimeout(16);
+              }
+              await page.waitForTimeout(150);
+              await t("touchEnd");
+              await page.waitForTimeout(400);
+            };
+            const tapClose = async () => {
+              const b = await card.boundingBox();
+              await t("touchStart", b.x + b.width / 2, b.y + b.height / 2);
+              await t("touchEnd");
+              await page.waitForTimeout(400);
+            };
+            await slow(90 * dir); // toward the end edge: status (threshold 40 % of 168 px)
+            r[`${lang}Status`] = (await held()) === "1" && (await page.locator("[data-swipe-action]").count()) >= 2;
+            await tapClose();
+            r[`${lang}Closed`] = (await held()) === "0";
+            await slow(-60 * dir); // toward the start edge: Delete (threshold 40 % of 92 px)
+            r[`${lang}Delete`] = (await held()) === "-1" && (await page.locator("[data-swipe-action=delete]").count()) === 1;
+            await tapClose();
+            await slow(45 * dir); // short: below the status threshold
+            r[`${lang}Short`] = (await held()) === "0";
+            await page.locator("[data-phone-layout-toggle] [role=radio]").nth(0).click();
+          }
+        } catch (e) {
+          r.error = String(e?.message || e).split(String.fromCharCode(10))[0].slice(0, 160);
+        }
+        await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }]);
+        ok(Object.values(r).every(Boolean) && !r.error, "phone rows: slow swipes lock open both ways (en + he), short ones close", JSON.stringify(r));
+      });
+
       // Round 12 #1: every phone bottom sheet closes with a swipe down (handle/header or content at its top), springs
       // back on a short drag, closes on a fling, on the scrim and on the back gesture; one shared implementation.
       await step("phone sheets: drag down to close, spring back, fling, scrim, back gesture", async () => {

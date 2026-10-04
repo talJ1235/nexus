@@ -14,7 +14,7 @@ downward fling, springs back otherwise; tapping the scrim and the back gesture c
 every bottom sheet on the phone (audit: item sheet on phone, picture picker, me sheet, reports, assistant on phone
 already swipes — keep one shared implementation). Smoke: drag-to-close on each sheet at 390 px.
 
-### 2. [ ] Slow swipes lock the status actions like delete does
+### 2. [x] Slow swipes lock the status actions like delete does
 Swiping a list row slowly toward the status side doesn't always stay open on "On the way / Received", while delete
 locks reliably. Make both directions use the same rule: decide by **distance**, not only velocity — past the reveal
 threshold (e.g. 40 % of the actions' width) the row snaps open and stays, below it snaps closed; a fast fling still

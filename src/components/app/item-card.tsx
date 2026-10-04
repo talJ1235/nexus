@@ -16,6 +16,7 @@ import { useReadOnly } from "./offline-banner";
 import { useMedia } from "@/components/ui/use-media";
 import { COLLECTION_COLORS } from "./view-items";
 import { pictureStyleOf } from "@/lib/picture-url";
+import { revealAt, swipeRelease, velocity } from "@/lib/gestures";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { ItemContextMenu, openItemActions, SHORTCUT, StatusIcon, statusActs, useActionLabels, useItemActions } from "./quick-actions";
 
@@ -507,12 +508,11 @@ function HoverBar({ item, moves }: { item: ItemWithSources; moves: Status[] }) {
   );
 }
 
-const REVEAL = 64;
 const BLOCK = 84;
 const DEL_W = 92;
 const HOLD_MS = 480;
-/** Only one row is held open at a time. */
-let closeHeldRow: (() => void) | null = null;
+/** Only one row is held open at a time: the row that holds it (its stable close ref). */
+let heldRow: { current: () => void } | null = null;
 const tick = (ms = 8) => {
   try {
     navigator.vibrate?.(ms);
@@ -524,17 +524,21 @@ const tick = (ms = 8) => {
  * Delete (a full swipe deletes), toward the end edge the status blocks; past the threshold the row stays open until a
  * tap. Long-press: a row toggles selection, a grid card opens the action sheet. Vertical scrolling stays native; RTL
  * mirrors the directions (the dock stays LTR). Haptic tick at each threshold.
+ * Round 12 #2: both directions use one rule (`swipeRelease`): the distance decides — past 40 % of that side's actions
+ * the row snaps open and stays, below it closes — and a fast fling decides too. The release reads the live offset
+ * (a ref, not the last rendered state), and a pointer cancelled after the drag began is released the same way.
  */
 function useCardGestures({ enabled, blocks, onRowHold, onCardHold, onDelete }: { enabled: boolean; blocks: number; onRowHold: () => void; onCardHold: () => void; onDelete: () => void }) {
   const [dx, setDx] = useState(0);
   const [held, setHeld] = useState<0 | 1 | -1>(0);
   const [dragging, setDragging] = useState(false);
   const touch = useMedia("(hover: none) and (pointer: coarse)");
-  const st = useRef<{ x: number; y: number; base: number; on: boolean; rows: boolean; dir: number; w: number; ticks: Set<string>; timer: number } | null>(null);
+  const st = useRef<{ x: number; y: number; base: number; cur: number; on: boolean; rows: boolean; dir: 1 | -1; w: number; ticks: Set<string>; timer: number; samples: { t: number; v: number }[] } | null>(null);
   const suppress = useRef(false);
   const close = () => {
     setDx(0);
     setHeld(0);
+    if (heldRow === closeRef) heldRow = null;
   };
   const closeRef = useRef(close);
   useEffect(() => {
@@ -544,17 +548,44 @@ function useCardGestures({ enabled, blocks, onRowHold, onCardHold, onDelete }: {
     setDx(x);
     setHeld(side);
     if (side) {
-      if (closeHeldRow && closeHeldRow !== closeRef.current) closeHeldRow();
-      closeHeldRow = () => closeRef.current();
+      // Round 12 #2: compare the stable ref — comparing a fresh closure never matched, so a row held open a second
+      // time (after a tap closed it) closed itself straight away.
+      if (heldRow && heldRow !== closeRef) heldRow.current();
+      heldRow = closeRef;
     }
   };
   if (!enabled) return { dx: 0, held: 0, dragging: false, touch, close, handlers: {} };
+  const release = (cancelled: boolean) => {
+    const g = st.current;
+    st.current = null;
+    if (!g) return;
+    clearTimeout(g.timer);
+    setDragging(false);
+    if (!g.on) {
+      // A tap on a row that is held open just closes it; a cancelled touch (the page scrolled) leaves it as it was.
+      if (held && !cancelled) {
+        suppress.current = true;
+        close();
+      } else if (!held) setDx(0);
+      return;
+    }
+    suppress.current = true;
+    g.samples.push({ t: performance.now(), v: g.cur }); // a finger that stopped before lifting is not a fling
+    const res = swipeRelease({ dx: g.cur, vx: velocity(g.samples), dir: g.dir, statusW: blocks * BLOCK, deleteW: DEL_W, rowW: g.w });
+    if (res === "remove") {
+      setDx(-g.w * g.dir);
+      setHeld(0);
+      setTimeout(onDelete, 180);
+    } else if (res === "delete") hold(-1, -DEL_W * g.dir);
+    else if (res === "status") hold(1, blocks * BLOCK * g.dir);
+    else close();
+  };
   const handlers = {
     onPointerDown: (e: React.PointerEvent) => {
       if (e.pointerType === "mouse" || !window.matchMedia("(max-width: 639px)").matches) return;
       const el = e.currentTarget as HTMLElement;
       const rows = !!el.closest('[data-phone-layout="rows"]');
-      const dir = document.documentElement.dir === "rtl" ? -1 : 1;
+      const dir: 1 | -1 = document.documentElement.dir === "rtl" ? -1 : 1;
       const timer = window.setTimeout(() => {
         const g = st.current;
         if (!g || g.on) return;
@@ -564,7 +595,7 @@ function useCardGestures({ enabled, blocks, onRowHold, onCardHold, onDelete }: {
         if (g.rows) onRowHold();
         else onCardHold();
       }, HOLD_MS);
-      st.current = { x: e.clientX, y: e.clientY, base: dx, on: false, rows, dir, w: el.offsetWidth, ticks: new Set(), timer };
+      st.current = { x: e.clientX, y: e.clientY, base: dx, cur: dx, on: false, rows, dir, w: el.offsetWidth, ticks: new Set(), timer, samples: [] };
     },
     onPointerMove: (e: React.PointerEvent) => {
       const g = st.current;
@@ -587,45 +618,19 @@ function useCardGestures({ enabled, blocks, onRowHold, onCardHold, onDelete }: {
       let logical = (g.base + mx) * g.dir;
       if (logical > statusW) logical = statusW + (logical - statusW) * 0.25; // rubber band past the blocks
       logical = Math.max(-g.w, logical);
-      for (const [k, hit] of [["s", logical >= REVEAL], ["d", logical <= -REVEAL], ["f", logical <= -g.w * 0.5]] as const) {
+      for (const [k, hit] of [["s", logical >= revealAt(statusW)], ["d", logical <= -revealAt(DEL_W)], ["f", logical <= -g.w * 0.5]] as const) {
         if (hit && !g.ticks.has(k)) {
           g.ticks.add(k);
           tick();
         } else if (!hit) g.ticks.delete(k);
       }
-      setDx(logical * g.dir);
+      g.cur = logical * g.dir;
+      g.samples.push({ t: performance.now(), v: g.cur });
+      if (g.samples.length > 8) g.samples.shift();
+      setDx(g.cur);
     },
-    onPointerUp: () => {
-      const g = st.current;
-      st.current = null;
-      if (!g) return;
-      clearTimeout(g.timer);
-      setDragging(false);
-      if (!g.on) {
-        // A tap on a row that is held open just closes it.
-        if (held) {
-          suppress.current = true;
-          close();
-        }
-        return;
-      }
-      suppress.current = true;
-      const logical = dx * g.dir;
-      if (logical <= -g.w * 0.5) {
-        setDx(-g.w * g.dir);
-        setHeld(0);
-        setTimeout(onDelete, 180);
-      } else if (logical <= -REVEAL) hold(-1, -DEL_W * g.dir);
-      else if (logical >= REVEAL) hold(1, blocks * BLOCK * g.dir);
-      else close();
-    },
-    onPointerCancel: () => {
-      const g = st.current;
-      if (g) clearTimeout(g.timer);
-      st.current = null;
-      setDragging(false);
-      if (!held) setDx(0);
-    },
+    onPointerUp: () => release(false),
+    onPointerCancel: () => release(true),
     onClickCapture: (e: React.MouseEvent) => {
       if (suppress.current) {
         e.stopPropagation();
