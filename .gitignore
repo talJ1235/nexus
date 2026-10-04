@@ -50,3 +50,4 @@ test-data/*
 # self-hosted ML receipt detector assets (copied from node_modules/scanic-ml by scripts/copy-scanic-ml.mjs)
 /public/scanic-ml/
 fresh-smoke.db
+fresh-smoke.log

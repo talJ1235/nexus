@@ -12,12 +12,12 @@ fi
 rm -f "$DB"
 TURSO_DATABASE_URL="file:$DB" npx tsx src/db/migrate.ts > /dev/null || { echo "FAIL migrate"; exit 1; }
 if [ -n "$WIN" ]; then
-  powershell.exe -NoProfile -Command "Start-Process cmd -ArgumentList '/c set TURSO_DATABASE_URL=file:$DB&& npx next start -p $PORT > .next\\serve-fresh.log 2>&1' -WindowStyle Hidden" < /dev/null
+  powershell.exe -NoProfile -Command "Start-Process cmd -ArgumentList '/c set TURSO_DATABASE_URL=file:$DB&& npx next start -p $PORT > fresh-smoke.log 2>&1' -WindowStyle Hidden" < /dev/null
 else
-  TURSO_DATABASE_URL="file:$DB" nohup npx next start -p "$PORT" > .next/serve-fresh.log 2>&1 < /dev/null &
+  TURSO_DATABASE_URL="file:$DB" nohup npx next start -p "$PORT" > fresh-smoke.log 2>&1 < /dev/null &
 fi
 for _ in $(seq 1 40); do
   curl -s -o /dev/null --noproxy '*' "http://localhost:$PORT/login" && { echo "OK fresh DB serving on :$PORT"; exit 0; }
   sleep 0.5
 done
-echo "FAIL fresh server did not start"; tail -15 .next/serve-fresh.log; exit 1
+echo "FAIL fresh server did not start"; tail -15 fresh-smoke.log; exit 1

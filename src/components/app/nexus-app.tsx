@@ -380,8 +380,9 @@ function ViewHeader() {
     </div>
     {s.view.type === "history" && !s.loading && <HistoryTools />}
     {!s.loading && <FiltersRow showProjects={s.view.type !== "collection" && s.view.type !== "orders" && s.view.type !== "history"} />}
-    <HistoryHint />
     </div>
+    {/* Search elsewhere → "Go to History" (stays visible in the phone Shopping tab too). */}
+    <HistoryHint />
     </>
   );
 }
@@ -479,10 +480,11 @@ function ShopGroups({ groups, pending }: { groups: [string, ItemWithSources[]][]
   return (
     <div className="flex flex-col gap-3">
       {pending.length > 0 && <CardGrid items={[]} pending={pending} altGroups={s.altGroups} stagger={false} />}
-      {shown.map(([id, list]) => (
+      {shown.map(([id, list], k) => (
         <section key={id || "none"} className="shop-group">
           <ShopGroupHeader id={id} count={list.length} />
-          <CardGrid items={list} pending={NO_PENDING} altGroups={s.altGroups} stagger={false} />
+          {/* The first group paints with the page (no empty frame on load or when the list replaces the flat grid). */}
+          <CardGrid items={list} pending={NO_PENDING} altGroups={s.altGroups} stagger={k === 0} />
         </section>
       ))}
     </div>

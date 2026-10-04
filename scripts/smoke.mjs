@@ -43,18 +43,26 @@ const ok = (cond, msg, extra = "") => {
   if (!cond) failed++;
   console.log(`${cond ? "PASS" : "FAIL"} ${msg}${extra && !cond ? ` — ${extra}` : ""}`);
 };
-// SMOKE_ONLY=text runs only the steps whose name contains it (plus login), for quick iteration.
+// SMOKE_ONLY=text runs only the steps whose name contains it (plus login), for quick iteration; a|b for several.
 const ONLY = process.env.SMOKE_ONLY;
 const step = async (msg, fn) => {
-  if (ONLY && !msg.includes(ONLY) && !["owner login", "app renders items"].includes(msg)) return;
+  if (ONLY && !ONLY.split("|").some((o) => msg.includes(o)) && !["owner login", "app renders items"].includes(msg)) return;
   try {
     await fn();
   } catch (e) {
     ok(false, msg, String(e?.message || e).split("\n")[0].slice(0, 200));
+    // With SMOKE_OUT, a failing step leaves a screenshot of the main page as it was.
+    if (OUT && failShotPage) await failShotPage.screenshot({ path: `${OUT}/fail-${msg.replace(/[^a-z0-9]+/gi, "-").slice(0, 40)}${SUFFIX}.png` }).catch(() => {});
   }
 };
+let failShotPage = null;
+// Scroll an element to the middle of the viewport (never under the sticky top bar, where a tap would hit the header).
+const centerIn = async (loc) => {
+  await loc.waitFor({ state: "attached" });
+  await loc.evaluate((e) => e.scrollIntoView({ block: "center" }));
+};
 // The app with its data (not the streamed loading shell, whose clicks are replaced when the data arrives).
-const READY = "[data-app-shell][data-ready] main h1";
+const READY = "[data-app-shell][data-ready] main h1 >> visible=true";
 // Esc opens the command menu once the app's key handler is attached (right after READY it can still be hydrating).
 let openPalette;
 const shot = async (page, name) => OUT && page.screenshot({ path: `${OUT}/${name}${SUFFIX}.png` });
@@ -214,10 +222,13 @@ async function homeChecks(page) {
         await sw.scrollIntoViewIfNeeded();
         if ((await sw.getAttribute("aria-checked")) !== String(on)) await sw.click();
         await page.waitForTimeout(400);
-        await page.keyboard.press("Escape");
-        await page.waitForTimeout(300);
-        if (await page.getByRole("dialog").count()) await page.keyboard.press("Escape");
-        await page.waitForTimeout(400);
+        // Close every layer (phone: settings over the Me sheet) and make sure nothing stays open for later steps.
+        for (let k = 0; k < 5 && (await page.locator("[role=dialog]:visible").count()); k++) {
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(450);
+        }
+        await page.goto(`${BASE}/`);
+        await page.waitForSelector("[data-home]", { timeout: 15000 });
       };
       await setAi(false);
       const src = await card.locator("[data-sug-source]").getAttribute("data-sug-source");
@@ -341,6 +352,7 @@ try {
   } else {
     const ctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, colorScheme: "dark", permissions: ["camera"] });
     const page = await ctx.newPage();
+    failShotPage = page;
     const errors = [];
     page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
     page.on("console", (m) => m.type() === "error" && !/Failed to load resource|favicon|net::ERR/.test(m.text()) && errors.push(`console: ${m.text().slice(0, 160)}`));
@@ -377,7 +389,7 @@ try {
       const ids = await page.$$eval("main [data-item-card]", (els) => [...new Set(els.map((e) => e.getAttribute("data-item-card")))].slice(0, 10));
       const tap = async (id) => {
         const btn = page.locator(`main [data-item-card="${id}"] button.absolute.inset-0`).first();
-        await btn.scrollIntoViewIfNeeded();
+        await centerIn(btn);
         const b = await btn.boundingBox();
         if (MOBILE) await page.touchscreen.tap(b.x + 20, b.y + 20);
         else await page.mouse.click(b.x + 20, b.y + 20);
@@ -386,7 +398,7 @@ try {
       // its picture is the one that flies).
       let worst = 0, what = "";
       for (const id of ids.slice(0, 3)) {
-        await page.locator(`main [data-item-card="${id}"]`).first().scrollIntoViewIfNeeded();
+        await centerIn(page.locator(`main [data-item-card="${id}"]`).first());
         if (!MOBILE) await page.mouse.move(2, VIEWPORT.height - 2);
         await page.waitForTimeout(350);
         await page.evaluate((id) => {
@@ -491,13 +503,13 @@ try {
             await ctx.addCookies([{ name: "nexus_locale", value: lang, url: BASE }]);
             await page.goto(`${BASE}/?v=to_buy`);
             await page.waitForSelector(READY, { timeout: 15000 });
-            await page.locator("[data-phone-layout-toggle] [role=radio]").nth(1).click();
+            await page.locator("[data-phone-layout-toggle] [role=radio]").nth(0).click();
             await page.waitForTimeout(400);
             const card = page.locator("main [data-item-card]").nth(1);
             const dir = lang === "he" ? -1 : 1;
             // Slow drag: 15 px per ~frame, then a still moment before lifting (no fling).
             const slow = async (dx) => {
-              await card.scrollIntoViewIfNeeded();
+              await centerIn(card);
               const b = await card.boundingBox();
               const y = b.y + b.height / 2, x0 = b.x + b.width / 2;
               await t("touchStart", x0, y);
@@ -563,6 +575,8 @@ try {
           const sheetH = async () => (await page.locator("[role=dialog]").last().boundingBox()).height;
           // Quick-action sheet (long-press a card): short slow drag springs back; 50 % closes; scrim tap closes.
           await go();
+          await page.locator("[data-phone-layout-toggle] [role=radio]").nth(1).click(); // grid (Round 13: the list is the default)
+          await page.waitForTimeout(400);
           const card = page.locator("main [data-item-card]").first();
           const longPress = async () => {
             const b = await card.boundingBox();
@@ -636,14 +650,18 @@ try {
           page.evaluate(() => [...document.querySelectorAll("[data-dock] > [data-dock-target]")].sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left).map((e) => e.getAttribute("data-dock-target")));
         await page.goto(`${BASE}/?v=to_buy`);
         await page.waitForSelector(READY);
+        await page.waitForSelector("[data-dock]");
         const en = await order();
         await ctx.addCookies([{ name: "nexus_locale", value: "he", url: BASE }]);
         await page.reload();
         await page.waitForSelector(READY);
+        await page.waitForSelector("[data-dock]");
         const he = await order();
         await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }]);
         await page.reload();
         await page.waitForSelector(READY);
+        await page.waitForSelector("[data-dock]");
+        await page.waitForTimeout(300);
         const moves = [];
         for (const target of ["home", "projects", "spending", "shopping", "plus", "home", "shopping"]) {
           const d = await page.evaluate(async (target) => {
@@ -1560,8 +1578,10 @@ try {
           if (MOBILE) {
             const cdp = await ctx.newCDPSession(page);
             const t = (type, x, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
+            await page.locator("[data-phone-layout-toggle] [role=radio]").nth(1).click(); // grid (Round 13: the list is the default)
+            await page.waitForTimeout(300);
             const swipe = async (dx) => {
-              await card().scrollIntoViewIfNeeded();
+              await centerIn(card());
               const b = await card().boundingBox();
               const y = b.y + b.height / 2, x0 = b.x + b.width / 2;
               await t("touchStart", x0, y);
@@ -1570,7 +1590,7 @@ try {
               await page.waitForTimeout(350);
             };
             const longPress = async () => {
-              await card().scrollIntoViewIfNeeded();
+              await centerIn(card());
               const b = await card().boundingBox();
               await t("touchStart", b.x + b.width / 2, b.y + b.height / 2);
               await page.waitForTimeout(650);
@@ -1589,7 +1609,7 @@ try {
             await page.waitForTimeout(300);
             r.sheetClosed = (await page.locator("[data-item-actions]").count()) === 0;
             // Rows.
-            await page.locator("[data-phone-layout-toggle] [role=radio]").nth(1).click();
+            await page.locator("[data-phone-layout-toggle] [role=radio]").nth(0).click();
             await page.waitForTimeout(300);
             // Swipe toward the end edge (right in LTR) → two status blocks, held open; tap "On the way".
             await swipe(160);
@@ -1613,7 +1633,7 @@ try {
             await page.locator("[data-selection-bar] button").first().click();
             await page.locator("[data-phone-layout-toggle] [role=radio]").nth(0).click();
           } else {
-            await card().scrollIntoViewIfNeeded();
+            await centerIn(card());
             await card().hover();
             await page.waitForTimeout(250);
             r.hoverBar = (await card().locator("[data-hover-bar] [data-hover-action]").count()) === 4 && (await card().locator("[data-hover-bar]").evaluate((e) => getComputedStyle(e).opacity)) === "1";
@@ -1656,14 +1676,24 @@ try {
             }
             return n;
           };
+          await page.goto(`${BASE}/?v=to_buy`);
+          await page.waitForSelector(READY);
           const before = await settled();
-          await page.locator("main article button[aria-label]").first().click();
+          // An item with more than one to split (the phone list is grouped by project, so not simply the first card).
+          const many = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items.find((i) => i.status === "to_buy" && i.quantity > 1);
+          const target = many ? page.locator(`main [data-item-card="${many.id}"] button[aria-label]`).first() : page.locator("main article button[aria-label]").first();
+          await centerIn(target);
+          await target.click();
           const sheet = page.getByRole("dialog");
           await sheet.waitFor();
           await shot(page, "sheet");
           await sheet.locator("button[aria-haspopup=menu]:not([data-sheet-more])").first().click();
           await page.getByRole("menuitemradio").nth(1).click();
-          await sheet.getByRole("button", { name: /^−$/ }).last().click();
+          // Step down to moving exactly one (the item's quantity depends on earlier runs).
+          for (let k = 0; k < 12 && !(await sheet.getByRole("button", { name: /Move 1$|העבר 1$/ }).count()); k++) {
+            await sheet.getByRole("button", { name: /^−$/ }).last().click();
+            await page.waitForTimeout(120);
+          }
           await shot(page, "split-panel");
           await sheet.getByRole("button", { name: /Move 1|העבר 1/ }).click();
           await page.getByText(/Moved 1 to|הועברו 1 אל/).first().waitFor({ timeout: 10000 });
