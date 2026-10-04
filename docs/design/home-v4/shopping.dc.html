@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shopping · To buy and On the way</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.r{--bg:#f4f4f2;--s:#ffffff;--s2:#f1f1ee;--ink:#171717;--ink2:#3a3a3a;--muted:#686866;--line:#dcdcd7;--line-in:#e8e8e4;--brand:#171717;--on-brand:#fff;--spark:#f59e0b;--warn:#b45309;--warn-t:#fff3e0;--ok:#11805a;--ok-t:#e5f5ec;--info:#1f5fd1;--info-t:#e8effd;--ai:#7c4ddb;--paper:#fff;--shadow:0 1px 2px rgba(0,0,0,.04);background:var(--bg);color:var(--ink);font-family:'Heebo',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+.r.dark{--bg:#0b0b0b;--s:#141414;--s2:#1d1d1d;--ink:#f2f2f0;--ink2:#d6d6d3;--muted:#a1a19e;--line:#313131;--line-in:#262626;--brand:#f2f2f0;--on-brand:#0b0b0b;--warn:#fbbf24;--warn-t:rgba(251,191,36,.13);--ok:#4ade9a;--ok-t:rgba(74,222,154,.12);--info:#7aa7ff;--info-t:rgba(122,167,255,.13);--paper:#ecebe8;--shadow:none;color-scheme:dark}
+.tab{font-variant-numeric:tabular-nums}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.pic{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.ph{width:390px;height:844px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.top{height:54px;display:flex;align-items:center;gap:8px;padding:0 14px;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;margin-right:auto}
+.brand svg{width:20px;height:20px}
+.ib{width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:var(--s);display:grid;place-items:center;color:var(--ink)}
+.ib.ai{background:linear-gradient(var(--s),var(--s)) padding-box,linear-gradient(100deg,var(--brand),var(--spark)) border-box;border:1.5px solid transparent;color:var(--spark)}
+.av{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:12px;font-weight:700}
+
+/* switch */
+.sw{margin:2px 12px 0;position:relative;display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:16px;background:var(--s2);border:1px solid var(--line)}
+.sw .th{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:12px;background:var(--s);border:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.08);transition:transform .45s cubic-bezier(.34,1.4,.5,1)}
+.sw.way .th{transform:translateX(100%)}
+.sw button{position:relative;z-index:1;border:0;background:none;text-align:left;padding:10px 12px;border-radius:12px;cursor:pointer;font-family:inherit;color:var(--muted);display:flex;flex-direction:column;gap:1px;transition:color .3s}
+.sw button .l{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600}
+.sw button .l span.ic{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:var(--s2);transition:background .3s,color .3s}
+.sw button .l svg{width:13px;height:13px}
+.sw button b{font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--muted);transition:color .3s}
+.sw button small{font-size:11.5px}
+.sw:not(.way) .bb{color:var(--ink)}.sw:not(.way) .bb b{color:var(--ink)}.sw:not(.way) .bb .ic{background:var(--warn-t);color:var(--warn)}
+.sw.way .bw{color:var(--ink)}.sw.way .bw b{color:var(--ink)}.sw.way .bw .ic{background:var(--info-t);color:var(--info)}
+
+/* toolbar */
+.tb{display:flex;align-items:center;gap:8px;padding:12px 14px 8px;flex-shrink:0}
+.tb .sort{display:flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.tb .sum{font-size:12px;color:var(--muted)}
+.vt{margin-left:auto;display:flex;padding:3px;border-radius:999px;background:var(--s2);border:1px solid var(--line);position:relative}
+.vt .th{position:absolute;top:3px;left:3px;width:32px;height:28px;border-radius:999px;background:var(--s);box-shadow:0 1px 4px rgba(0,0,0,.1);transition:transform .35s cubic-bezier(.34,1.4,.5,1)}
+.vt.grid .th{transform:translateX(32px)}
+.vt button{position:relative;z-index:1;width:32px;height:28px;border:0;background:none;display:grid;place-items:center;color:var(--muted);cursor:pointer;transition:color .25s}
+.vt:not(.grid) .vl,.vt.grid .vg{color:var(--ink)}
+
+/* pane + animations */
+.pane{flex:1;overflow:hidden;padding:0 12px 100px}
+@keyframes inRa{from{opacity:0;transform:translateX(36px)}to{opacity:1;transform:none}}
+@keyframes inRb{from{opacity:0;transform:translateX(36px)}to{opacity:1;transform:none}}
+@keyframes inLa{from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:none}}
+@keyframes inLb{from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:none}}
+@keyframes inZa{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes inZb{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+.pane .it{animation-duration:.45s;animation-timing-function:cubic-bezier(.2,.8,.2,1);animation-fill-mode:both;animation-delay:var(--d,0s)}
+.pane.Ra .it{animation-name:inRa}.pane.Rb .it{animation-name:inRb}
+.pane.La .it{animation-name:inLa}.pane.Lb .it{animation-name:inLb}
+.pane.Za .it{animation-name:inZa}.pane.Zb .it{animation-name:inZb}
+
+/* list */
+.list{background:var(--s);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.gh{display:flex;align-items:center;gap:8px;padding:10px 14px 8px;font-size:13px;font-weight:700;background:var(--s2);border-top:1px solid var(--line-in)}
+.gh:first-child{border-top:0}
+.gh small{font-size:11.5px;color:var(--muted);font-weight:500}
+.gh .bar{margin-left:auto;width:56px;height:4px;border-radius:2px;background:var(--line-in);overflow:hidden}
+.gh .bar i{display:block;height:100%}
+.row{display:flex;align-items:center;gap:11px;padding:10px 14px;border-top:1px solid var(--line-in)}
+.gh + .row{border-top:1px solid var(--line-in)}
+.thumb{width:42px;height:42px;border-radius:9px;background:var(--paper);border:1px solid var(--line-in);display:grid;place-items:center;color:#2b2b2b;flex-shrink:0}
+.thumb svg{width:30px;height:30px}
+.row .t{flex:1;min-width:0}
+.row .t b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t span{display:block;font-size:12px;color:var(--muted)}
+.row .pr{font-size:14px;font-weight:700;white-space:nowrap}
+.urg{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--ink);color:var(--bg)}
+.eta{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.eta.ok{background:var(--info-t);color:var(--info)}.eta.late{background:var(--warn-t);color:var(--warn)}
+.trk{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:6px}
+.trk i{height:3px;border-radius:2px;background:var(--s2)}
+.trk i.on{background:var(--info)}.trk i.lt{background:var(--warn)}
+.stg{display:grid;grid-template-columns:repeat(4,1fr);font-size:9.5px;color:var(--muted);margin-top:3px}
+
+/* grid */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cd{background:var(--s);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.cd .im{aspect-ratio:4/3;background:var(--paper);display:grid;place-items:center;color:#2b2b2b;border-bottom:1px solid var(--line-in);position:relative}
+.cd .im svg{width:62px;height:62px}
+.cd .im .urg,.cd .im .eta{position:absolute;top:8px;left:8px}
+.cd .im .pj{position:absolute;bottom:8px;left:8px;font-size:10.5px;font-weight:600;color:#3a3a3a;background:rgba(255,255,255,.9);border:1px solid #e5e5e1;border-radius:999px;padding:1px 7px;display:flex;align-items:center;gap:5px}
+.cd .bd{padding:9px 11px 11px;display:flex;flex-direction:column;gap:2px}
+.cd .bd b{font-size:13px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:34px}
+.cd .bd span{font-size:11.5px;color:var(--muted)}
+.cd .bd .pr{font-size:15px;font-weight:800;margin-top:3px}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+
+.dock{position:absolute;left:12px;right:12px;bottom:18px;height:62px;border-radius:999px;background:var(--s);border:1px solid var(--line);box-shadow:0 8px 28px rgba(0,0,0,.12);display:grid;grid-template-columns:repeat(5,1fr);align-items:center}
+.dock a{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--muted);text-decoration:none}
+.dock a.on{color:var(--ink)}
+.dock svg{width:21px;height:21px}
+.dock .plus{width:52px;height:52px;border-radius:999px;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;justify-self:center}
+.fade{position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(transparent,var(--bg) 60%);pointer-events:none}
+</style>
+</helmet>
+<div class="r ph {{cls}}">
+<div class="top">
+<div class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="#fb7a3c"></path><path d="M10 20l22 12v24L10 44z" fill="var(--ink)"></path><path d="M54 20 32 32v24l22-12z" fill="#f59e0b"></path></svg>Nexus</div>
+<button class="ib" type="button" aria-label="Search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4-4"></path></svg></button>
+<button class="ib ai" type="button" aria-label="Ask Nexus"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg></button>
+<span class="av">T</span>
+</div>
+
+<div class="sw {{swCls}}">
+<span class="th"></span>
+<button class="bb" type="button" onClick="{{toBuy}}"><span class="l"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 4h2l2.4 11h10.2L20 8H7"></path><circle cx="9" cy="19" r="1.4"></circle><circle cx="17" cy="19" r="1.4"></circle></svg></span>To buy</span><b class="tab">7</b><small>₪832 · 2 urgent</small></button>
+<button class="bw" type="button" onClick="{{toWay}}"><span class="l"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"></path><circle cx="7" cy="18" r="1.6"></circle><circle cx="17" cy="18" r="1.6"></circle></svg></span>On the way</span><b class="tab">3</b><small>Next Tue · 1 late</small></button>
+</div>
+
+<div class="tb">
+<span class="sort">{{sortLabel}}<svg class="i" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M6 9l6 6 6-6"></path></svg></span>
+<span class="sum">{{sum}}</span>
+<div class="vt {{vtCls}}"><span class="th"></span>
+<button class="vl" type="button" aria-label="List" onClick="{{toList}}"><svg class="i" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg></button>
+<button class="vg" type="button" aria-label="Grid" onClick="{{toGrid}}"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg></button>
+</div>
+</div>
+
+<div class="pane {{anim}}">
+<sc-if value="{{isList}}" hint-placeholder-val="{{ true }}">
+<div class="list">
+<sc-for list="{{items}}" as="x" hint-placeholder-count="6">
+<sc-if value="{{x.head}}" hint-placeholder-val="{{ false }}">
+<div class="gh it" style="--d:{{x.d}}"><i class="dot" style="background:{{x.color}}"></i>{{x.name}}<small>{{x.sub}}</small><span class="bar"><i style="width:{{x.pct}};background:{{x.color}}"></i></span></div>
+</sc-if>
+<sc-if value="{{x.item}}" hint-placeholder-val="{{ true }}">
+<div class="row it" style="--d:{{x.d}}">
+<span class="thumb">
+<sc-if value="{{x.k.motor}}" hint-placeholder-val="{{ true }}"><svg class="pic" viewBox="0 0 84 84"><rect x="20" y="24" width="40" height="40" rx="4"></rect><circle cx="40" cy="44" r="10"></circle><path d="M60 44h14M26 30h2M52 30h2M26 58h2M52 58h2"></path></svg></sc-if>
+<sc-if value="{{x.k.rail}}" hint-placeholder-val="{{ false }}"><svg class="pic" viewBox="0 0 84 84"><rect x="8" y="34" width="68" height="16" rx="2"></rect><path d="M8 42h68M20 34v16M36 34v16M52 34v16M68 34v16"></path></svg></sc-if>
+<sc-if value="{{x.k.belt}}" hint-placeholder-val="{{ false }}"><svg class="pic" viewBox="0 0 84 84"><rect x="12" y="28" width="60" height="28" rx="14"></rect><path d="M22 28v-4M30 28v-4M38 28v-4M46 28v-4M54 28v-4M62 28v-4"></path></svg></sc-if>
+<sc-if value="{{x.k.charger}}" hint-placeholder-val="{{ false }}"><svg class="pic" viewBox="0 0 84 84"><rect x="18" y="26" width="48" height="40" rx="6"></rect><path d="M30 26v-6h24v6M44 36l-8 12h10l-4 10"></path></svg></sc-if>
+<sc-if value="{{x.k.fan}}" hint-placeholder-val="{{ false }}"><svg class="pic" viewBox="0 0 84 84"><circle cx="42" cy="34" r="20"></circle><circle cx="42" cy="34" r="3"></circle><path d="M42 31c0-8 6-12 10-10M45 35c7 3 8 10 4 13M39 36c-6 5-13 3-14-2M42 54v16M30 72h24"></path></svg></sc-if>
+<sc-if value="{{x.k.board}}" hint-placeholder-val="{{ false }}"><svg class="pic" viewBox="0 0 84 84"><rect x="16" y="26" width="52" height="32" rx="3"></rect><rect x="34" y="34" width="16" height="16" rx="1"></rect><path d="M22 58v6M30 58v6M38 58v6M46 58v6M54 58v6M62 58v6M22 26v-6M62 26v-6"></path></svg></sc-if>
+<sc-if value="{{x.k.tool}}" hint-placeholder-val="{{ false }}"><svg class="pic" viewBox="0 0 84 84"><rect x="14" y="30" width="56" height="30" rx="5"></rect><path d="M24 30v-6h36v6M24 40v10M32 40v10M40 40v10M48 40v10M56 40v10"></path></svg></sc-if>
+</span>
+<div class="t"><b>{{x.name}}</b><span>{{x.sub}}</span>
+<sc-if value="{{x.way}}" hint-placeholder-val="{{ false }}"><div class="trk"><i class="{{x.t1}}"></i><i class="{{x.t2}}"></i><i class="{{x.t3}}"></i><i class="{{x.t4}}"></i></div><div class="stg"><span>Ordered</span><span>Shipped</span><span>In Israel</span><span>Delivered</span></div></sc-if>
+</div>
+<sc-if value="{{x.urgent}}" hint-placeholder-val="{{ false }}"><span class="urg">Urgent</span></sc-if>
+<sc-if value="{{x.way}}" hint-placeholder-val="{{ false }}"><span class="eta {{x.etaCls}}">{{x.eta}}</span></sc-if>
+<sc-if value="{{x.buy}}" hint-placeholder-val="{{ true }}"><span class="pr tab">{{x.price}}</span></sc-if>
+</div>
+</sc-if>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isGrid}}" hint-placeholder-val="{{ false }}">
+<div class="cards">
+<sc-for list="{{cards}}" as="x" hint-placeholder-count="6">
+<div class="cd it" style="--d:{{x.d}}">
+<div class="im">
+<sc-if value="{{x.k.motor}}" hint-placeholder-val="{{ true }}"><svg class="pic" viewBox="0 0 84 84"><rect x="20" y="24" width="40" height="40" rx="4"></rect><circle cx="40" cy="44" r="10"></circle><path d="M60 44h14M26 30h2M52 30h2M26 58h2M52 58h2"></path></svg></sc-if>
+<sc-if value="{{x.k.rail}}" hint-placeholder-val="{{ false }}"><svg class="pic" viewBox="0 0 84 84"><rect x="8" y="34" width="68" height="16" rx="2"></rect><path d="M8 42h68M20 34v16M36 34v16M52 34v16M68 34v16"></path></svg></sc-if>
+<sc-if value="{{x.k.belt}}" hint-placeholder-val="{{ false }}"><svg class="pic" viewBox="0 0 84 84"><rect x="12" y="28" width="60" height="28" rx="14"></rect><path d="M22 28v-4M30 28v-4M38 28v-4M46 28v-4M54 28v-4M62 28v-4"></path></svg></sc-if>
+<sc-if value="{{x.k.charger}}" hint-placeholder-val="{{ false }}"><svg class="pic" viewBox="0 0 84 84"><rect x="18" y="26" width="48" height="40" rx="6"></rect><path d="M30 26v-6h24v6M44 36l-8 12h10l-4 10"></path></svg></sc-if>
+<sc-if value="{{x.k.fan}}" hint-placeholder-val="{{ false }}"><svg class="pic" viewBox="0 0 84 84"><circle cx="42" cy="34" r="20"></circle><circle cx="42" cy="34" r="3"></circle><path d="M42 31c0-8 6-12 10-10M45 35c7 3 8 10 4 13M39 36c-6 5-13 3-14-2M42 54v16M30 72h24"></path></svg></sc-if>
+<sc-if value="{{x.k.board}}" hint-placeholder-val="{{ false }}"><svg class="pic" viewBox="0 0 84 84"><rect x="16" y="26" width="52" height="32" rx="3"></rect><rect x="34" y="34" width="16" height="16" rx="1"></rect><path d="M22 58v6M30 58v6M38 58v6M46 58v6M54 58v6M62 58v6M22 26v-6M62 26v-6"></path></svg></sc-if>
+<sc-if value="{{x.k.tool}}" hint-placeholder-val="{{ false }}"><svg class="pic" viewBox="0 0 84 84"><rect x="14" y="30" width="56" height="30" rx="5"></rect><path d="M24 30v-6h36v6M24 40v10M32 40v10M40 40v10M48 40v10M56 40v10"></path></svg></sc-if>
+<sc-if value="{{x.urgent}}" hint-placeholder-val="{{ false }}"><span class="urg">Urgent</span></sc-if>
+<sc-if value="{{x.way}}" hint-placeholder-val="{{ false }}"><span class="eta {{x.etaCls}}">{{x.eta}}</span></sc-if>
+<span class="pj"><i class="dot" style="background:{{x.color}}"></i>{{x.proj}}</span>
+</div>
+<div class="bd"><b>{{x.name}}</b><span>{{x.sub}}</span>
+<sc-if value="{{x.buy}}" hint-placeholder-val="{{ true }}"><span class="pr tab">{{x.price}}</span></sc-if>
+<sc-if value="{{x.way}}" hint-placeholder-val="{{ false }}"><div class="trk"><i class="{{x.t1}}"></i><i class="{{x.t2}}"></i><i class="{{x.t3}}"></i><i class="{{x.t4}}"></i></div></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<div class="fade"></div>
+
+<nav class="dock">
+<a href="#"><svg class="i" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"></path><path d="M10 20v-6h4v6"></path></svg><span>Home</span></a>
+<a class="on" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg><span>Shopping</span></a>
+<span class="plus"><svg class="i" viewBox="0 0 24 24" style="width:24px;height:24px"><path d="M12 5v14M5 12h14"></path></svg></span>
+<a href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span>Projects</span></a>
+<a href="#"><svg class="i" viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6"></path></svg><span>Insights</span></a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"Look"},"startView":{"editor":"enum","options":["list","grid"],"default":"list","section":"Start"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const st = this.state || {};
+    const tab = st.tab || 'buy';
+    const view = st.view || (p.startView ?? 'list');
+    const anim = st.anim || 'Za';
+    const K = (k) => ({ motor: k === 'motor', rail: k === 'rail', belt: k === 'belt', charger: k === 'charger', fan: k === 'fan', board: k === 'board', tool: k === 'tool' });
+    const P = { Railcam: '#8a96b8', Home: '#c9976a', Tools: '#7da592' };
+    const BUY = [
+      { proj: 'Railcam', name: 'NEMA 17 stepper motor 42-40', sub: 'AliExpress · ×2', price: '₪77', k: 'motor', urgent: true },
+      { proj: 'Railcam', name: 'V-slot 2040 rail, 1500 mm', sub: 'AliExpress', price: '₪96', k: 'rail' },
+      { proj: 'Railcam', name: 'GT2 timing belt 6 mm, 5 m', sub: 'AliExpress', price: '₪22.40', k: 'belt' },
+      { proj: 'Railcam', name: 'Arduino Uno R4 Minima', sub: 'AliExpress', price: '₪54', k: 'board' },
+      { proj: 'Home', name: 'Xiaomi Smart Standing Fan 2 Lite', sub: 'KSP · dropped ₪20', price: '₪329', k: 'fan', urgent: true },
+      { proj: 'Home', name: 'LED strip 5 m, warm white', sub: 'Amazon', price: '₪89', k: 'rail' },
+      { proj: 'Tools', name: 'Wera Kraftform screwdriver set', sub: 'Amazon', price: '₪165', k: 'tool' }
+    ];
+    const WAY = [
+      { proj: 'Home', name: 'NOCO GENIUS1EU charger', sub: 'Amazon · ₪289', eta: '1 day late', etaCls: 'late', k: 'charger', t: ['lt', 'lt', 'lt', ''] },
+      { proj: 'Railcam', name: 'NEMA 17 stepper ×2', sub: 'AliExpress · ₪77', eta: 'Tue 6 Oct', etaCls: 'ok', k: 'motor', t: ['on', 'on', 'on', ''] },
+      { proj: 'Railcam', name: 'Arduino Nano ESP32', sub: 'Bug · ₪96', eta: 'Thu 8 Oct', etaCls: 'ok', k: 'board', t: ['on', '', '', ''] }
+    ];
+    const src = tab === 'buy' ? BUY : WAY;
+    const deco = (x, n) => Object.assign({}, x, { item: true, buy: tab === 'buy', way: tab === 'way', k: K(x.k), color: P[x.proj], d: (0.04 * n).toFixed(2) + 's', t1: (x.t || [])[0] || '', t2: (x.t || [])[1] || '', t3: (x.t || [])[2] || '', t4: (x.t || [])[3] || '' });
+    const items = [];
+    let n = 0;
+    if (tab === 'buy') {
+      ['Railcam', 'Home', 'Tools'].forEach((g) => {
+        const gi = src.filter((x) => x.proj === g);
+        items.push({ head: true, item: false, name: g, sub: gi.length + ' items', color: P[g], pct: g === 'Railcam' ? '42%' : g === 'Home' ? '20%' : '75%', d: (0.04 * n++).toFixed(2) + 's' });
+        gi.forEach((x) => items.push(deco(x, n++)));
+      });
+    } else {
+      src.forEach((x) => items.push(deco(x, n++)));
+    }
+    const go = (t, v) => {
+      let a;
+      if (t !== tab) a = t === 'way' ? 'R' : 'L';
+      else a = 'Z';
+      const flip = anim.charAt(1) === 'a' ? 'b' : 'a';
+      this.setState({ tab: t, view: v, anim: a + flip });
+    };
+    return {
+      cls: (p.dark ?? false) ? 'dark' : '',
+      swCls: tab === 'way' ? 'way' : '',
+      vtCls: view === 'grid' ? 'grid' : '',
+      anim: anim,
+      isList: view === 'list',
+      isGrid: view === 'grid',
+      sortLabel: tab === 'buy' ? 'By project' : 'By arrival',
+      sum: tab === 'buy' ? '3 projects' : '1 late',
+      items: items,
+      cards: src.map((x, i) => deco(x, i)),
+      toBuy: () => go('buy', view),
+      toWay: () => go('way', view),
+      toList: () => go(tab, 'list'),
+      toGrid: () => go(tab, 'grid')
+    };
+  }
+}
+</script>
+</body>
+</html>
