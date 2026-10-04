@@ -293,8 +293,6 @@ function ViewHeader() {
     switch (s.view.type) {
       case "to_buy":
         return t.nav.toBuy;
-      case "urgent":
-        return t.nav.urgent;
       case "history":
         return t.nav.history;
       case "ordered":
@@ -303,8 +301,6 @@ function ViewHeader() {
         return t.orders.title;
       case "spending":
         return t.spending.title;
-      case "unsorted":
-        return t.nav.unsorted;
       case "collection":
         return collection?.name ?? "—";
       case "store": {

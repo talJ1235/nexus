@@ -23,7 +23,7 @@ import type { ReportFields } from "@/lib/reports";
 import { createReport } from "@/app/report-actions";
 import { extractActions, type NexusAction } from "@/lib/help/links";
 import { applyPalette } from "@/lib/palette";
-import type { View } from "@/lib/views";
+import { paramToView } from "@/lib/views";
 import { useTheme } from "next-themes";
 import { extensionVersion } from "./use-extension";
 import { formatMoney } from "@/lib/money";
@@ -292,7 +292,8 @@ function useNexusAction() {
     if (a === "plan") return s.setPanel("planner");
     if (a === "report") return s.openReport({ assistant: getLastExchange() });
     s.setPanel(null);
-    if (a.startsWith("view/")) return s.setView({ type: a.slice(5) } as View);
+    // Through paramToView: an old saved answer linking Urgent / Unsorted opens the filtered To buy (R14 B4).
+    if (a.startsWith("view/")) return s.setView(paramToView(a.slice(5)));
     if (a === "settings") s.setSettingsOpen(true);
     else if (a === "extension") s.setExtOpen(true);
     else if (a === "alerts") s.setPanel("alerts");

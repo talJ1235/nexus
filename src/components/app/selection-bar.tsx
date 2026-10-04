@@ -47,7 +47,7 @@ export function SelectionBar() {
       const req = bulkUpdate(ids, patch);
       let id: string | number | undefined;
       if (patch.collectionId !== undefined) {
-        const name = patch.collectionId ? s.collections.find((c) => c.id === patch.collectionId)?.name ?? "" : t.nav.unsorted;
+        const name = patch.collectionId ? s.collections.find((c) => c.id === patch.collectionId)?.name ?? "" : t.home.noProject;
         id = toast.success(f(t.select.moved, { name }), { description: f(t.collection.itemsCount, { n }) });
       }
       s.clearSelection();
@@ -125,7 +125,9 @@ export function SelectionBar() {
             </Button>
           </MenuTrigger>
           <MenuContent align="center" className="max-h-80 overflow-y-auto">
-            <MenuItem onSelect={() => void setPatch({ collectionId: null })}>{t.nav.unsorted}</MenuItem>
+            <MenuItem onSelect={() => void setPatch({ collectionId: null })} data-select-unassign>
+              {t.select.removeFromProject}
+            </MenuItem>
             <MenuSeparator />
             {collections.map((c) => (
               <MenuItem key={c.id} onSelect={() => void setPatch({ collectionId: c.id })}>

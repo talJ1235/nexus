@@ -18,12 +18,16 @@ export async function GET(req: NextRequest) {
   const v = p.get("view") ?? "";
   if (cid) view = { type: "collection", id: cid };
   else if (v.startsWith("store:")) view = { type: "store", key: v.slice(6) };
-  else if (["to_buy", "urgent", "history", "unsorted"].includes(v)) view = { type: v as "to_buy" };
+  else if (v === "history") view = { type: "history" };
+  // The export keeps the old view names for To buy's filters (R14 B4).
+  else if (v === "urgent") view = { type: "to_buy", f: "urgent" };
+  else if (v === "unsorted") view = { type: "to_buy", f: "none" };
 
   const collection = cid ? data.collections.find((c) => c.id === cid) : null;
   const items = itemsForView(data.items, view);
-  const navKey = { to_buy: "toBuy", urgent: "urgent", history: "history", unsorted: "unsorted" } as const;
-  const title = collection?.name ?? (view.type === "store" ? view.key : view.type === "collection" ? "Nexus" : t.nav[navKey[view.type]]);
+  const title =
+    collection?.name ??
+    (view.type === "store" ? view.key : view.type === "collection" ? "Nexus" : view.type === "history" ? t.nav.history : view.type === "to_buy" && view.f ? (view.f === "urgent" ? t.nav.urgent : t.nav.unsorted) : t.nav.toBuy);
 
   const wb = new ExcelJS.Workbook();
   wb.creator = "Nexus";

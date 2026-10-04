@@ -9,6 +9,7 @@ import { dayKeyIn, deliveryTrack } from "@/lib/home";
 import { formatMoney } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { BuyFilterChips } from "./buy-filters";
 import { useStore, type SortKey } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
 
@@ -24,6 +25,8 @@ export function ShoppingHeader({ className }: { className?: string }) {
     <div className={cn("mb-3 flex flex-col gap-2", className)} data-shop-header>
       <h1 className="sr-only">{s.view.type === "ordered" ? t.shopTab.onTheWay : t.shopTab.toBuy}</h1>
       <ShopSwitch />
+      {/* R14 B4: the same filter chips as the desktop toolbar, To buy side only. */}
+      {s.view.type === "to_buy" && <BuyFilterChips className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none]" />}
       <ShopToolbar />
     </div>
   );

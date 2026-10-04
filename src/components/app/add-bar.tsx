@@ -15,13 +15,14 @@ import { hostOf, normalizeUrl } from "@/lib/stores";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 import { useReadOnly } from "./offline-banner";
+import { buyFilter } from "@/lib/views";
 
 export type Incoming = { url?: string; payload?: ClientPayload } | null;
 
 type DupPrompt = { preview: PreviewResult; resolve: (choice: "source" | "separate" | "cancel") => void };
 
 /** Views whose grid/table shows placeholder cards for links being read. Elsewhere the add bar shows a small status line. */
-export const SHOWS_PENDING = ["to_buy", "urgent", "unsorted", "collection", "store"];
+export const SHOWS_PENDING = ["to_buy", "collection", "store"];
 
 export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed?: boolean }) {
   const s = useStore();
@@ -128,7 +129,7 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
         s.markFresh(item.id);
         const partial = preview.draft.quality !== "full";
         const v = viewRef.current;
-        const visible = v.type === "to_buy" || (v.type === "collection" && v.id === item.collectionId) || (v.type === "unsorted" && !item.collectionId);
+        const visible = v.type === "to_buy" ? buyFilter(item, v.f) : v.type === "collection" && v.id === item.collectionId;
         if (preview.draft.quality === "failed") toast.warning(t.add.failed, { action: { label: t.item.edit, onClick: () => s.openItem(item.id) } });
         else if (partial && interactive) toast(t.add.partial, { description: item.title, action: { label: t.item.edit, onClick: () => s.openItem(item.id) } });
         else if (!visible) toast.success(t.add.added, { description: item.title, action: { label: t.dup.open, onClick: () => s.openItem(item.id) } });

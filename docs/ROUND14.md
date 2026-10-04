@@ -222,3 +222,20 @@ Tal wants Google Calendar to follow the app: new events appear, changed dates mo
 - Changing the PWA icon.
 
 ## Open
+
+### Run notes (session 2026-10-04, stopped at the usage limit)
+- Done + committed: A1, A2, A3, B1, B2, B3, B5, B6, B4 (code). Not started: B parity PNGs (`docs/design/parity-r14/`),
+  C1 month view, C2 calendar feed, Part D. `main` NOT merged (not everything green).
+- B4 smoke: filters, counts, `?f=` and the old-link redirects pass on desktop + phone. The desktop write half (drag a
+  card onto "No project", Move to → Remove from project) moves the item, but the smoke can't find the toast's Undo
+  afterwards (toast gone before the DB check) — fix the step before trusting it. Each failed run leaves the newest
+  to-buy-with-project item out of its project in `local.db` (put it back by hand).
+- Boot-screen frame trace (≤ 2 dropped frames) is borderline on this PC: `main` also fails it 2/4 runs (3 dropped,
+  worst ~183 ms); round14 passes 3/4 (worst 167 ms). Not a regression.
+- Dark cards are `#161616`, not the mockup's `#141414`: `#141414` misses test:contrast's card-depth rule by 0.01.
+- Number guard (A2) is applied to AI suggestions too, not only insights.
+- Phone top bar follows the mockup (no bell): price alerts moved to a "Price alerts" row in Me; the avatar shows an
+  unread dot.
+- Project pages never had the summary card (they have their own header since R9); A3's smoke checks the project
+  header and a store page's summary instead.
+- Open report `r_rWtP3XmuRl` (price drop) was fixed in R13 (`ce81ec3`) but is still open in the app — close it there.

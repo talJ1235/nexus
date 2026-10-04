@@ -49,7 +49,9 @@ assert.deepEqual(a.actions.map((x) => x.action), ["receipt"]);
 a = extractActions("[Delete everything](nexus:wipe) — no.");
 assert.equal(a.actions.length, 0);
 assert.equal(a.text, "Delete everything — no.");
-a = extractActions(["a", "b", "c", "d"].map((k, i) => `[${k}](nexus:view/${["urgent", "history", "orders", "spending"][i]})`).join("\n") + "\n[again](nexus:view/urgent)");
+a = extractActions(["a", "b", "c", "d"].map((k, i) => `[${k}](nexus:view/${["to_buy", "history", "orders", "spending"][i]})`).join("\n") + "\n[again](nexus:view/to_buy)");
+// R14 B4: Urgent / Unsorted are To buy filters now, not pages — no longer action links.
+assert.equal(extractActions("[Urgent](nexus:view/urgent)").actions.length, 0);
 assert.equal(a.actions.length, 3);
 assert.equal(a.text, "");
 

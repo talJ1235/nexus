@@ -13,6 +13,7 @@ import { convert, formatMoney, formatMoneyCompact } from "@/lib/money";
 import { gapSuggestions, shippingGap, shippingRule } from "@/lib/shipping";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { BuyFilterChips } from "./buy-filters";
 import { useStore, type SortKey } from "./store";
 import { COLLECTION_COLORS, itemsForView } from "./view-items";
 
@@ -200,7 +201,7 @@ export function HomeSummary() {
                 <button
                   key={g.key}
                   type="button"
-                  onClick={() => s.setView(g.key === "none" ? { type: "unsorted" } : { type: "collection", id: g.key })}
+                  onClick={() => s.setView(g.key === "none" ? { type: "to_buy", f: "none" } : { type: "collection", id: g.key })}
                   className={cn(hit, "flex min-w-0 max-w-full items-center gap-1.5 opacity-90 transition hover:opacity-100")}
                 >
                   <i className="size-2 shrink-0 rounded-[3px]" style={{ background: g.color }} />
@@ -218,7 +219,7 @@ export function HomeSummary() {
         )}
         <div className={cn("flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/12 pt-2 text-[12px] lg:text-[13px]", segTotal <= 0 && "mt-auto")} data-totals-strip>
           {[
-            { key: "urgent", label: t.nav.urgent, value: String(strip.urgent), go: () => s.setView({ type: "urgent" }) },
+            { key: "urgent", label: t.nav.urgent, value: String(strip.urgent), go: () => s.setView({ type: "to_buy", f: "urgent" }) },
             { key: "ordered", label: t.nav.onTheWay, value: String(strip.onTheWay), go: () => s.setView({ type: "ordered" }) },
             { key: "spent", label: t.home.spentMonth, value: mK(strip.spent), go: () => s.setView({ type: "spending" }) },
           ].map((x, i) => (
@@ -380,6 +381,8 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
   const dd = "flex h-[38px] shrink-0 items-center gap-1.5 rounded-full bg-surface-2 pe-3 ps-[15px] text-[13px] font-semibold text-ink transition hover:bg-line";
   const history = s.view.type === "history";
   const orders = s.view.type === "orders";
+  const buy = s.view.type === "to_buy";
+  const buyF = s.view.type === "to_buy" ? s.view.f : undefined;
 
   return (
     <div
@@ -400,11 +403,16 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
           </p>
         </div>
       )}
-      {showProjects && chips.length > 0 && (
+      {/* R14 B4: To buy's own filters first (All · Urgent · No project); the project chips narrow it further. */}
+      {buy && <BuyFilterChips className="max-sm:hidden" />}
+      {buy && showProjects && chips.length > 0 && buyF !== "none" && <span className="h-6 w-px shrink-0 bg-line max-sm:hidden" aria-hidden />}
+      {showProjects && chips.length > 0 && buyF !== "none" && (
         <div className="-my-1 flex min-w-0 gap-2 overflow-x-auto py-1 [scrollbar-width:none] max-sm:hidden">
-          <button type="button" className={chip(!s.collectionFilter)} onClick={() => s.setCollectionFilter(null)}>
-            {t.home.all}
-          </button>
+          {!buy && (
+            <button type="button" className={chip(!s.collectionFilter)} onClick={() => s.setCollectionFilter(null)}>
+              {t.home.all}
+            </button>
+          )}
           {chips.map((c) => (
             <button key={c.id} type="button" className={chip(s.collectionFilter === c.id)} onClick={() => s.setCollectionFilter(s.collectionFilter === c.id ? null : c.id)}>
               <i className={cn("size-[9px] shrink-0", c.kind === "project" ? "rounded-[3px]" : "rounded-full")} style={{ background: COLLECTION_COLORS[c.color] }} />

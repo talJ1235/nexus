@@ -18,23 +18,25 @@ turns them into buttons; only these addresses work:
 - `nexus:plan` — Plan a project with Nexus
 - `nexus:commands` — the command menu (Esc)
 - `nexus:report` — Report a problem (sends the details to Tal)
-- `nexus:view/home`, `nexus:view/to_buy`, `nexus:view/urgent`, `nexus:view/unsorted`, `nexus:view/ordered`, `nexus:view/history`,
-  `nexus:view/orders`, `nexus:view/spending`, `nexus:view/projects`
+- `nexus:view/home`, `nexus:view/to_buy`, `nexus:view/ordered`, `nexus:view/history`, `nexus:view/orders`,
+  `nexus:view/spending`, `nexus:view/projects`
 Example: `[Open settings → Palette](nexus:settings)`.
 
 ## Where things are
 <!-- spec: UI, Desktop shell, Phone shell, Collections, Phone fit, Home hierarchy, Phone shell v2, Home, Shopping tab, Sidebar collapse, Customize, Insights -->
-- **Desktop**: sidebar with Home (בית), To buy (לקנות), Urgent (דחוף), Unsorted (לא משויך), On the way (בדרך), Order by store
+- **Desktop**: sidebar with Home (בית), To buy (לקנות), On the way (בדרך), Order by store
   (הזמנה לפי חנות), History (היסטוריה), Spending (הוצאות), then Projects (פרויקטים) and Lists (רשימות). The sidebar
   collapses with the panel button at its top (or by dragging its edge, or Ctrl+B). Top bar: search, "Ask Nexus",
   alerts bell. The paste bar floats at the bottom. The Nexus logo always goes back to Home.
-- **Phone**: top bar (your initial, logo, search, Ask, alerts) and a dock at the bottom, the same order in every
-  language: Home (בית) · Shopping (קניות) · **+** · Projects · Insights (נתונים). Shopping holds To buy ⇄ On the way
+- **Phone**: top bar (the Nexus logo, search, Ask and your initial — an orange dot on it means unread price alerts) and
+  a dock at the bottom with labels, the same order in every language: Home (בית) · Shopping (קניות) · **+** · Projects ·
+  Insights (נתונים). Shopping holds To buy ⇄ On the way
   (the two big cards at its top switch between them; it reopens the one you used last), with a List / Grid switch
   (list by default, remembered) and Sort (By project / By arrival). **+** opens four coloured tiles: Scan a barcode
   (סריקת ברקוד), Scan a receipt (סריקת קבלה), Paste a link (הדבקת קישור), Plan with Nexus (תכנון עם Nexus).
-- **Settings on the phone**: tap your initial (the round button at the start of the top bar) → the "Me" sheet:
-  Settings, palette and theme, Browser extension, Telegram, Reports, Report a problem, Export to Excel, Backup, Sign out.
+- **Settings on the phone**: tap your initial (the round button at the end of the top bar) → the "Me" sheet:
+  Settings, palette and theme, Browser extension, Price alerts (התראות מחיר), Telegram, Reports, Report a problem,
+  Export to Excel, Backup, Sign out.
 - **Command menu**: press **Esc** (or Ctrl/⌘+K) anywhere — search items, jump to views, change settings, run actions.
 - **Home** (בית, the screen the app opens on): the date and greeting, a status strip (things that need you · packages
   this week · ahead of or behind your budget pace — each scrolls to its section), four stats (Left to buy, Month
@@ -42,9 +44,12 @@ Example: `[Open settings → Palette](nexus:settings)`.
   Needs you (price drops, late packages, free-shipping gaps, time to reorder — ✕ or a swipe hides one for 7 days),
   On the way, Month pace, Projects and "Nexus noticed". **Customize** (top of Home) reorders or hides sections.
   Settings → Assistant → "AI-written suggestions" switches the AI wording of suggestions off (templates only).
-- **To buy**: the totals card (what's left, total, split by project, Urgent · On the way · Spent this month —
-  each is tappable), then the "To buy" header with project chips, Category, Sort and the layout switch. Desktop: cards
-  or table. Phone: list (grouped by project) or 2-column grid.
+- **To buy** (one list — there are no separate Urgent / Unsorted pages any more): the "To buy" header with filter chips
+  **All · Urgent (דחוף) · No project (ללא פרויקט)**, each with its count, then project chips, Category, Sort and the
+  layout switch. Desktop: cards or table. Phone: the same chips under the To buy ⇄ On the way switch; list (grouped by
+  project) or 2-column grid. To take items out of a project: select them → Move to → Remove from project (הסרה
+  מהפרויקט), or on desktop drag them onto the "No project" chip. The totals and indicators live on Home and Spending
+  (a project's or a store's page keeps its own budget / free-shipping summary).
 - An item opens in a sheet: picture, price, open in store, Plan (qty, priority, project/list), Stores, Price history
   and watch/target, Tags & notes, Receipts, Advanced.
 

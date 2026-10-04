@@ -9,7 +9,7 @@ import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
 import type { Alert, AltGroup, AppData, Collection, ItemWithSources, StoreSetting } from "@/lib/types";
 import { DEFAULT_HOME_PREFS, type HomePrefs } from "@/lib/home";
 import { DEFAULT_SHOP_SORT, readShopSort, saveShopSort, type ShopSort } from "@/lib/shop-sort";
-import type { View } from "@/lib/views";
+import { paramToView, type View } from "@/lib/views";
 import { markBooted } from "@/lib/boot";
 import { primeCamera } from "@/lib/camera";
 import { prewarmScanners } from "@/lib/barcode-reader";
@@ -36,7 +36,7 @@ export type SortKey = "newest" | "price" | "priority" | "name";
 type Editor = { mode: "create"; kind: "project" | "list" } | { mode: "edit"; collection: Collection } | null;
 
 /** Server-known state for the first paint: prefs from cookies, `?v=` from the URL. */
-export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; sidebarCollapsed?: boolean; phoneLayout?: PhoneLayout | null; homeLayout?: string | null; now?: number; tz?: string | null };
+export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; filter?: string | null; sidebarCollapsed?: boolean; phoneLayout?: PhoneLayout | null; homeLayout?: string | null; now?: number; tz?: string | null };
 
 /** Home's clock: the first paint uses the server's time + the saved time zone (same HTML on both sides), then the
  *  device's. weekStartsOn from the browser locale (Monday-first where it says so). */
@@ -235,7 +235,7 @@ export function useDataStore() {
 }
 
 /** Sidebar order: view switches slide forward/back along it. */
-const VIEW_ORDER: View["type"][] = ["home", "to_buy", "urgent", "unsorted", "ordered", "orders", "history", "spending", "projects", "collection", "store"];
+const VIEW_ORDER: View["type"][] = ["home", "to_buy", "ordered", "orders", "history", "spending", "projects", "collection", "store"];
 
 function viewToParam(v: View) {
   switch (v.type) {
@@ -248,14 +248,7 @@ function viewToParam(v: View) {
   }
 }
 
-/** No `?v=` (or an unknown one) = Home, the default screen (Tal, 2026-10-03). */
-export function paramToView(p: string | null): View {
-  if (!p) return { type: "home" };
-  if (p.startsWith("c:")) return { type: "collection", id: p.slice(2) };
-  if (p.startsWith("s:")) return { type: "store", key: p.slice(2) };
-  if (["to_buy", "urgent", "history", "unsorted", "ordered", "orders", "spending", "projects"].includes(p)) return { type: p } as View;
-  return { type: "home" };
-}
+export { paramToView };
 
 function readLocal<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   try {
@@ -336,10 +329,10 @@ export function StoreProvider({
   // Round 13 B3: phones default to the list (rows); the last choice is remembered (cookie).
   const [phoneLayout, setPhoneLayoutState] = useState<PhoneLayout>(ui.phoneLayout ?? "rows");
   const [sort, setSortState] = useState<SortKey>(ui.sort ?? "newest");
-  const [view, setViewState] = useState<View>(() => paramToView(ui.view));
+  const [view, setViewState] = useState<View>(() => paramToView(ui.view, ui.filter));
   const [navSeq, setNavSeq] = useState(0);
   const [navDir, setNavDir] = useState<1 | -1>(1);
-  const viewRef = useRef<View>(paramToView(ui.view));
+  const viewRef = useRef<View>(paramToView(ui.view, ui.filter));
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
@@ -457,6 +450,14 @@ export function StoreProvider({
       if (so !== "newest") setSortState(so);
     }
     const params = new URLSearchParams(window.location.search);
+    // R14 B4: an old Urgent / Unsorted link → the filtered To buy (the address too).
+    const legacy = params.get("v");
+    if (legacy === "urgent" || legacy === "unsorted") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("v", "to_buy");
+      url.searchParams.set("f", legacy === "urgent" ? "urgent" : "none");
+      window.history.replaceState(null, "", url);
+    }
     const itemParam = params.get("item");
     if (itemParam) {
       setOpenItemId(itemParam);
@@ -492,6 +493,8 @@ export function StoreProvider({
     const p = viewToParam(v);
     if (p === "home") url.searchParams.delete("v");
     else url.searchParams.set("v", p);
+    if (v.type === "to_buy" && v.f) url.searchParams.set("f", v.f);
+    else url.searchParams.delete("f");
     window.history.replaceState(null, "", url);
   }, []);
   const setView = useCallback((v: View) => {

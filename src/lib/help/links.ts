@@ -19,8 +19,6 @@ export const NEXUS_ACTIONS = [
   "report",
   "view/home",
   "view/to_buy",
-  "view/urgent",
-  "view/unsorted",
   "view/ordered",
   "view/history",
   "view/orders",

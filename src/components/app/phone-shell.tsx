@@ -114,7 +114,7 @@ export function lastShopTab(): "to_buy" | "ordered" {
   }
 }
 const dockOf = (v: View): DockTarget | null =>
-  v.type === "home" ? "home" : v.type === "to_buy" || v.type === "ordered" || v.type === "urgent" || v.type === "unsorted" ? "shopping" : v.type === "collection" || v.type === "projects" ? "projects" : v.type === "orders" || v.type === "history" || v.type === "spending" ? "spending" : null;
+  v.type === "home" ? "home" : v.type === "to_buy" || v.type === "ordered" ? "shopping" : v.type === "collection" || v.type === "projects" ? "projects" : v.type === "orders" || v.type === "history" || v.type === "spending" ? "spending" : null;
 
 /**
  * Floating dock: Home · Shopping · + · Projects · Insights (Round 13 B1) — physically left to right in every language

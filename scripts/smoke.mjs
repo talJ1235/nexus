@@ -452,6 +452,76 @@ try {
       }
     });
 
+    // Round 14 B4: one To buy with filter chips (All · Urgent · No project); old Urgent / Unsorted links redirect; no
+    // Urgent / Unsorted rows left. Desktop (write mode): drag a card onto "No project", and Move to → Remove from
+    // project from the selection bar (each undone).
+    await step("to buy filters: chips + counts, ?f= in the URL, old links redirect, moves out of a project", async () => {
+      const r = {};
+      const chip = (k) => page.locator(`[data-buy-filter=${k}]`).filter({ visible: true }).first();
+      const pressed = async (k) => (await chip(k).getAttribute("aria-pressed")) === "true";
+      const f = () => new URL(page.url()).searchParams.get("f");
+      for (const [old, want] of [["urgent", "urgent"], ["unsorted", "none"]]) {
+        await page.goto(`${BASE}/?v=${old}`);
+        await page.waitForSelector(READY, { timeout: 15000 });
+        await page.waitForFunction((w) => new URL(location.href).searchParams.get("f") === w, want, { timeout: 5000 }).catch(() => {});
+        r[`redirect_${old}`] = new URL(page.url()).searchParams.get("v") === "to_buy" && f() === want && (await pressed(want));
+      }
+      // The urgent chip's count = the urgent cards shown.
+      const n = Number(await chip("urgent").locator("[data-buy-count]").textContent());
+      await chip("urgent").click();
+      await page.waitForTimeout(500);
+      r.urgentCount = (await page.locator("main [data-item-card]").count()) === n && f() === "urgent";
+      await chip("all").click();
+      await page.waitForTimeout(400);
+      r.all = f() === null && (await pressed("all"));
+      await chip("none").click();
+      await page.waitForTimeout(400);
+      r.none = f() === "none" && (await pressed("none"));
+      r.noOldRows = (await page.locator("[data-carry='view:urgent'], [data-carry='view:unsorted']").count()) === 0;
+      await shot(page, "to-buy-filters");
+      if (!MOBILE && WRITE) {
+        const items = async () => (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
+        const collOf = async (id) => (await items()).find((i) => i.id === id)?.collectionId ?? null;
+        const until = async (id, want) => {
+          for (let k = 0; k < 20; k++) {
+            if ((await collOf(id)) === want) return true;
+            await page.waitForTimeout(250);
+          }
+          return false;
+        };
+        const undoBtn = () => page.locator("[data-sonner-toast]").getByRole("button", { name: /^(Undo|ביטול)$/ }).last();
+        // Hovering a toast pauses its timer, so Undo is still there after the database check.
+        const holdToast = () => undoBtn().hover({ timeout: 5000 }).then(() => true, () => false);
+        const undo = async () => {
+          await undoBtn().click();
+          await page.waitForTimeout(800);
+        };
+        // Any to-buy item that is in a project (the newest, so its card is near the top).
+        const pick = (await items()).filter((i) => i.status === "to_buy" && i.collectionId).sort((a, b) => b.createdAt - a.createdAt)[0];
+        const id = pick?.id;
+        const was = pick?.collectionId ?? null;
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector(READY, { timeout: 15000 });
+        const card = page.locator(`[data-item-card="${id}"]`);
+        await centerIn(card);
+        await card.dragTo(chip("none"));
+        await holdToast();
+        r.dragMoved = !!was && (await until(id, null));
+        if (r.dragMoved) await undo();
+        r.dragUndo = await until(id, was);
+        await centerIn(card);
+        await card.click({ modifiers: ["Control"] });
+        await page.locator("[data-selection-bar]").getByRole("button", { name: /Move to|העבר אל/ }).click();
+        await page.locator("[data-select-unassign]").click();
+        await holdToast();
+        r.selectMoved = await until(id, null);
+        if (r.selectMoved) await undo();
+        r.selectUndo = await until(id, was);
+        await page.keyboard.press("Escape");
+      }
+      ok(Object.values(r).every(Boolean), "to buy filters: chips + counts, ?f= in the URL, old links redirect, moves out of a project", JSON.stringify(r));
+    });
+
     // Round 14 A3: no indicators on To buy (it opens on the toolbar + list); a store page keeps its summary card and
     // a project page its own header (budget ring, numbers — Round 9 E1).
     await step("to buy: no summary card, toolbar first; store + project pages keep theirs", async () => {

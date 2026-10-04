@@ -16,13 +16,13 @@ import { extensionToken } from "@/lib/ext-token";
  * The shell streams at once (same component, empty store, skeleton content); the data-dependent app replaces it
  * in the same response when `getAppData` resolves — no blank page and no whole-page loading swap.
  */
-export default async function Home({ searchParams }: { searchParams: Promise<{ v?: string }> }) {
-  const [{ v }, currency, prefs, token] = await Promise.all([searchParams, getCurrencyPref(), getUiPrefs(), extensionToken()]);
+export default async function Home({ searchParams }: { searchParams: Promise<{ v?: string; f?: string }> }) {
+  const [{ v, f }, currency, prefs, token] = await Promise.all([searchParams, getCurrencyPref(), getUiPrefs(), extensionToken()]);
   const jar = await cookies();
   const tz = decodeURIComponent(jar.get("nexus_tz")?.value ?? "").slice(0, 60) || null;
   // `now` + `tz`: Home's first paint matches on server and client (store.tsx Clock). A server component renders once.
   // eslint-disable-next-line react-hooks/purity
-  const boot: AppBoot = { currency, ...prefs, view: typeof v === "string" ? v : null, aiEnabled: aiEnabled(), now: Date.now(), tz: tz && isTimeZone(tz) ? tz : null };
+  const boot: AppBoot = { currency, ...prefs, view: typeof v === "string" ? v : null, filter: typeof f === "string" ? f : null, aiEnabled: aiEnabled(), now: Date.now(), tz: tz && isTimeZone(tz) ? tz : null };
   // The weekly Telegram summary is written in the owner's language and currency (the cron has no cookies).
   const locale = jar.get(LOCALE_COOKIE)?.value === "he" ? "he" : "en";
   after(() => rememberOwner(locale, currency).catch(() => {}));

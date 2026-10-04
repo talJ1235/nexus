@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ChartColumn, Coins, Download, FileSpreadsheet, FolderPlus, History, House, Inbox, Languages, LayoutGrid, Link2, ListPlus, LogOut, MessageSquareWarning, Monitor, Moon, Puzzle, ReceiptText, Rows3, ScanBarcode, Settings2, ShoppingBag, ShoppingCart, Sparkles, Store, Sun, Truck, Wand2, Zap } from "lucide-react";
+import { Bell, ChartColumn, Coins, Download, FileSpreadsheet, FolderPlus, History, House, Inbox, Languages, LayoutGrid, Link2, ListPlus, LogOut, MessageSquareWarning, Monitor, Moon, Puzzle, ReceiptText, Rows3, ScanBarcode, Settings2, ShoppingBag, ShoppingCart, Sparkles, Store, Sun, Truck, Wand2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { usePalette } from "@/components/use-palette";
@@ -96,7 +96,7 @@ export function useCommands(): AppCommand[] {
       label: t.me.export,
       keywords: "export excel xlsx bom download ייצוא אקסל",
       icon: <FileSpreadsheet />,
-      run: () => download(exportUrl(s.view.type === "collection" ? { collection: s.view.id } : { view: ["urgent", "history", "unsorted"].includes(s.view.type) ? s.view.type : "to_buy" }, s.currency, locale)),
+      run: () => download(exportUrl(s.view.type === "collection" ? { collection: s.view.id } : { view: s.view.type === "history" ? "history" : s.view.type === "to_buy" && s.view.f ? (s.view.f === "urgent" ? "urgent" : "unsorted") : "to_buy" }, s.currency, locale)),
       testId: "export",
     },
     { id: "import", group: "settings", label: t.io.importSheet, keywords: "import excel csv spreadsheet ייבוא", icon: <FileSpreadsheet />, run: () => s.setPanel("import") },
@@ -121,7 +121,6 @@ export function useCommands(): AppCommand[] {
     // Views
     { id: "view-home", group: "views", label: t.dash.title, keywords: "view home dashboard בית לוח", icon: <House />, run: () => s.setView({ type: "home" }) },
     { id: "view-to_buy", group: "views", label: t.nav.toBuy, keywords: "view to buy shopping", icon: <ShoppingBag />, run: () => s.setView({ type: "to_buy" }) },
-    { id: "view-urgent", group: "views", label: t.nav.urgent, keywords: "view urgent", icon: <Zap />, run: () => s.setView({ type: "urgent" }) },
     { id: "view-orders", group: "views", label: t.nav.orders, keywords: "view orders store", icon: <Store />, run: () => s.setView({ type: "orders" }) },
     { id: "view-ordered", group: "views", label: t.nav.onTheWay, keywords: "view ordered shipping tracking", icon: <Truck />, run: () => s.setView({ type: "ordered" }) },
     { id: "view-history", group: "views", label: t.nav.history, keywords: "view history", icon: <History />, run: () => s.setView({ type: "history" }) },

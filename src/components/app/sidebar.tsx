@@ -1,9 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { toast } from "@/lib/toast";
-import { moveItems } from "@/app/actions";
-import { ChartColumn, Flag, History, House, Inbox, PanelLeftClose, Plus, Settings, ShoppingCart, Store, Truck } from "lucide-react";
+import { ChartColumn, History, House, PanelLeftClose, Plus, Settings, ShoppingCart, Store, Truck } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { Ring } from "@/components/ui/ring";
@@ -13,6 +11,7 @@ import { useStore, type View } from "./store";
 import { COLLECTION_COLORS, itemsForView } from "./view-items";
 import { NavRowsSkeleton, Skel } from "./skeletons";
 import { useExtension } from "./use-extension";
+import { DRAG_TYPE, useMoveItems } from "./buy-filters";
 
 function sameView(a: View, b: View) {
   if (a.type !== b.type) return false;
@@ -21,7 +20,6 @@ function sameView(a: View, b: View) {
   return true;
 }
 
-const DRAG_TYPE = "application/x-nexus-items";
 
 function NavItem({
   active,
@@ -119,45 +117,19 @@ function SectionHeader({ label, onAdd, addLabel, carry, collapsed, onLabel }: { 
  *  Also used inside the phone nav sheet (`floating={false}`, never collapsed). */
 export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: boolean; onToggle?: () => void; floating?: boolean }) {
   const s = useStore();
-  const { t, f } = useI18n();
+  const { t } = useI18n();
   const ext = useExtension();
 
   const counts = useMemo(
     () => ({
       to_buy: itemsForView(s.items, { type: "to_buy" }).length,
-      urgent: itemsForView(s.items, { type: "urgent" }).length,
       history: itemsForView(s.items, { type: "history" }).length,
-      unsorted: itemsForView(s.items, { type: "unsorted" }).length,
       ordered: itemsForView(s.items, { type: "ordered" }).length,
     }),
     [s.items],
   );
 
-  const move = async (ids: string[], collectionId: string | null) => {
-    const prev = s.items.filter((i) => ids.includes(i.id));
-    s.upsertItems(prev.map((i) => ({ ...i, collectionId })));
-    const req = moveItems(ids, collectionId);
-    const name = collectionId ? s.collections.find((c) => c.id === collectionId)?.name ?? "" : t.nav.unsorted;
-    let id: string | number | undefined;
-    try {
-      id = toast.success(f(t.select.moved, { name }), {
-        description: ids.length > 1 ? (ids.length === 1 ? t.collection.itemsCountOne : f(t.collection.itemsCount, { n: ids.length })) : prev[0]?.title,
-        action: {
-          label: t.item.undo,
-          onClick: async () => {
-            s.upsertItems(prev);
-            await req.catch(() => null);
-            for (const p of prev) await moveItems([p.id], p.collectionId);
-          },
-        },
-      });
-      s.clearSelection();
-      await req;
-    } catch {
-      s.upsertItems(prev);
-      toast.error(t.errors.generic, { id });
-    }
-  };
+  const move = useMoveItems();
 
   const active = (v: View) => sameView(s.view, v);
   const n = (v: number) => (s.loading ? null : v);
@@ -199,10 +171,6 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
         <div className="flex flex-col gap-px">
           <NavItem collapsed={c} active={active({ type: "home" })} onClick={() => s.setView({ type: "home" })} carry="view:home" icon={<House />} label={t.dash.title} />
           <NavItem collapsed={c} active={active({ type: "to_buy" })} onClick={() => s.setView({ type: "to_buy" })} carry="view:to_buy" icon={<ShoppingCart />} label={t.nav.toBuy} count={n(counts.to_buy)} />
-          <NavItem collapsed={c} active={active({ type: "urgent" })} onClick={() => s.setView({ type: "urgent" })} carry="view:urgent" icon={<Flag />} label={t.nav.urgent} count={n(counts.urgent)} />
-          {counts.unsorted > 0 && (
-            <NavItem collapsed={c} active={active({ type: "unsorted" })} onClick={() => s.setView({ type: "unsorted" })} carry="view:unsorted" icon={<Inbox />} label={t.nav.unsorted} count={counts.unsorted} onDropItems={(ids) => move(ids, null)} />
-          )}
           <NavItem collapsed={c} active={active({ type: "ordered" })} onClick={() => s.setView({ type: "ordered" })} carry="view:ordered" icon={<Truck />} label={t.nav.onTheWay} count={n(counts.ordered)} />
           <NavItem collapsed={c} active={active({ type: "orders" })} onClick={() => s.setView({ type: "orders" })} carry="view:orders" icon={<Store />} label={t.nav.orders} />
           <NavItem collapsed={c} active={active({ type: "history" })} onClick={() => s.setView({ type: "history" })} carry="view:history" icon={<History />} label={t.nav.history} count={n(counts.history)} />

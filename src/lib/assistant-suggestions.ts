@@ -175,7 +175,7 @@ export function suggestQuestions(input: SuggestionInput): Suggestion[] {
 
     // Many unsorted items.
     const unsorted = toBuy.filter((i) => !i.collectionId).length;
-    if (unsorted >= 3 && active.some((x) => x.kind === "project")) c.push(render("unsorted", "unsorted", t, 40 + Math.min(20, unsorted * 2) + (view.type === "unsorted" ? 40 : 0)));
+    if (unsorted >= 3 && active.some((x) => x.kind === "project")) c.push(render("unsorted", "unsorted", t, 40 + Math.min(20, unsorted * 2) + (view.type === "to_buy" && view.f === "none" ? 40 : 0)));
 
     // Recent additions.
     const fresh = items.filter((i) => i.createdAt >= now - 3 * DAY).length;
