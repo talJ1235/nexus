@@ -70,8 +70,21 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
 ## Repo visibility & secrets
 - The repo is **public** for now; Tal plans to make it **private** at launch
   (GitHub → repo Settings → General → Danger Zone → Change visibility).
-- After it goes private: Vercel and Claude Code keep working; the chat's anonymous `git clone` stops — use the
-  connector, or Tal uploads a zip for full test runs. GitHub Actions (smoke.yml) then uses the private-repo minutes quota.
+- What changes when it goes private (checked 2026-10-04):
+  - **Vercel:** keeps deploying (Hobby supports private repos of a personal account). Commits must come from Tal's
+    GitHub identity (Claude Code commits as Tal; the chat pushes via the connector signed in as `talJ1235`) — commits
+    authored by another GitHub user are not deployed on Hobby.
+  - **Claude Code on Tal's PC:** no change (already authenticated).
+  - **Planning chat:** the anonymous `git clone` stops working. Reading and docs pushes still work through the GitHub
+    connector; full test runs in the chat sandbox need either a read-only fine-grained token for this one repo (never
+    pasted into a doc) or Tal uploading a zip. Heavy testing belongs to Claude Code anyway.
+  - **GitHub Actions** (`smoke.yml`): runs from the private-repo free minutes quota of a GitHub Free account instead of
+    unlimited public minutes — check usage under Settings ← Billing after the first week.
+  - **Security tooling:** GitHub's free secret scanning/push protection and CodeQL code scanning are for public repos;
+    after going private, CI runs **gitleaks** and **Semgrep CE** instead (`docs/SECURITY.md` §11). Dependabot alerts stay free.
+  - **Nobody else can read the code** — good for the product, but not a security control: the app must be safe even
+    if the code leaks.
+  - Links to files in the repo (e.g. in-app help pointing at GitHub, the extension zip) stop working for others.
 - Secrets live only in `.env.local` and Vercel env vars. `.env.example` has names only, no values.
 - **Secret audit 2026-10-04:** gitleaks 8.28.0 over all 150 commits → no leaks; manual pattern search for
   Gemini / Telegram / Turso / Vercel Blob / GitHub tokens → none. Re-run before going private or launching:
@@ -87,3 +100,4 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   boards are `.dc.html` files; copies of each approved round go to `docs/design/<name>/` so the builder can read them.
   Chat has no git push credentials (`GH_TOKEN` invalid) — docs are pushed with the GitHub connector.
 - 2026-10-04 (Claude Code, Round 13): smoke tooling — `SMOKE_ONLY=a|b`, failure screenshots with `SMOKE_OUT`, `SMOKE_FRESH` + `scripts/serve-fresh.sh` (a second local server on an empty DB, :3101, files `fresh-smoke.db/.log` gitignored); `npm run test:home`.
+- 2026-10-04 (chat, account B): documented what making the repo private changes (Vercel, chat clone, Actions minutes, CodeQL/secret scanning → gitleaks + Semgrep). Security plan `docs/SECURITY.md` adds CI tools (Semgrep CE, OWASP ZAP baseline) and Cloudflare Turnstile keys for R15.

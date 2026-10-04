@@ -89,6 +89,10 @@ to setup, tooling or workflow is recorded there in the same session.
   retired; Telegram + extension **off for everyone** from R15 (alerts → web push + in-app inbox); AI quota per user per day;
   AI privacy = disclose + minimise (free Gemini tier); onboarding = why / stores / budget+currency / who you shop with;
   admin panel = users+invites, AI usage, all reports, metrics. Split into R15 (foundation) + R16 (product layer).
+- **Security (Tal 2026-10-04):** "maximum security, can't be bypassed, with good UX and a beautiful look" → `docs/SECURITY.md`:
+  OWASP ASVS 5.0 L2 + L3 for auth/sessions/access control, defence in depth, guards in CI, red-team pass before invites.
+  Sign-up works on phone and website (same flow; Android wrapper via Custom Tabs later). Hosting stays on Vercel for the
+  closed circle. Auth/space screens get mockups **before** the R15 brief.
 - Free-tier stack (Vercel Hobby, Turso, Gemini free + Groq/OpenRouter fallback). Tal declined paid usage credits.
 
 ## Product direction (discussed 2026-10-03, not started)
@@ -120,6 +124,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-04 · B · Tal: sign-up on phone + web, hosting alternatives, private-repo impact, top security. Wrote `docs/SECURITY.md` (threat model, findings: no SSRF guard in `extract.ts`, no CSP), extended `MULTIUSER.md` (§4.10 phone/web, QR number matching, checklist 1–11, mockups before R15), private-repo impact in `ENVIRONMENT.md`. Next: prep steps with Tal (name first), then auth/space mockups.
 - 2026-10-04 · B · Tal tested prod (R13) mid-R14: phone stuck on the desktop table (list/grid switch dead, checkbox against the picture). Reproduced in the sandbox — `layout=table` wins over `phoneLayout` in `Content()`; set from the phone search "Table view" command. Added A4 (do first) to `docs/ROUND14.md` on branch `round14`; builder must merge `origin/main` into `round14` before the final `--ff-only`.
 - 2026-10-04 · B · Multi-user planned in full with Tal (4 question batches): wrote `docs/MULTIUSER.md` (decisions, data model, scoping guards, migration, R15/R16 split, Tal's setup checklist); roadmap shifted (supermarket → R17, Android → R18). ROUND15 brief to be cut after R14's Open.
 - 2026-10-04 · B · Tal tested R13: no AI on Home (rules too strict), sidebar/phone shell/dark mode not matching mockups, Ask seed resent on every new chat, indicators on To buy. Canvas page "Round 14" (logo swap, light tone). Advised: keep the PWA, wrap as an app after multi-user. Wrote `docs/ROUND14.md`.
@@ -128,6 +133,6 @@ to setup, tooling or workflow is recorded there in the same session.
 - 2026-10-04 · A · Tal: drop the big "Today's best move" hero, fewer rounded boxes. Canvas page "Home v3 — open layout": one surface with hairline sections, status sentence header, flat stats with sparklines, slim "Nexus suggests" line (1/4), "This week" strip, Needs you + On the way, pace + projects, Nexus noticed; flatter To buy ⇄ On the way. Awaiting Tal.
 - 2026-10-04 · A · Round 12 brief = small fixes (sheet swipe-down, slow-swipe lock, assistant header + suggestion rows, Ask pill). Dashboard redesign moved to Round 13: research done (Oura, Linear, Monzo, Ramp, Brex, Stripe, Shopify, Mercury); canvas page "Home v2 — value first" (best-move hero, Needs-you queue, KPIs vs your usual, budget pace, delivery tracker, project rings, Nexus noticed; phone To buy ⇄ On the way switch cards) — awaiting Tal before the Round 13 brief.
 - 2026-10-03 · A · Round 12 mockups on the canvas (page "Round 12 — mature look + dashboard"): Q quiet-pro vs E editorial; dashboard, customize mode + presets, grouped To buy, history table, phone. Proposed phone dock: Home · To buy · + · Projects · Insights (On the way moves into To buy) — awaiting Tal.
-- 2026-10-03 · A · Round 11 brief (intro on open only + bigger intro, nested overlays, phone History, swipe/long-press/hover quick actions, uniform pictures, solid tags). Round 12 planned: visual maturity (fewer rounded boxes, flat sidebar, order history), customizable dashboard, decluttered product page with AI groupings — mockups first.
+- 2026-10-03 · A · Round 11 brief (intro on open only + bigger intro, nested overlays, phone History, swipe/long-press/hover quick actions, uniform pictures, solid tags). Round 12 planned: visual maturity (fewer rounded boxes, flat sidebar, order history), customizable dashboard, decluttered products page with AI groupings — mockups first.
 - 2026-10-03 · A · Product direction discussed (multi-user, Capacitor first, supermarket); PLANNER.md created.
 - 2026-10-02 · A · Round 10 brief (animations, camera, projects page, pictures via Serper).
