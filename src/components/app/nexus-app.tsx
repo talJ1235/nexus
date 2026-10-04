@@ -115,11 +115,11 @@ function Shell({ incoming }: { incoming?: Incoming }) {
     >
       <div
         className={cn(
-          "lg:grid lg:grid-cols-[var(--sw)_minmax(0,1fr)] lg:gap-5 lg:pe-[26px] lg:ps-4",
+          "lg:grid lg:grid-cols-[var(--sw)_minmax(0,1fr)] lg:gap-2 lg:pe-[26px] lg:ps-1",
           liveW == null && "lg:transition-[grid-template-columns] lg:duration-[400ms] lg:ease-[var(--ease-out)]",
         )}
       >
-        <aside className="sticky top-4 hidden h-[calc(100dvh-32px)] min-w-0 lg:mt-4 lg:block" data-sidebar-w={sw}>
+        <aside className="sticky top-0 hidden h-dvh min-w-0 lg:block" data-sidebar-w={sw}>
           {size !== "phone" && <Sidebar collapsed={liveW != null ? liveW < (SIDEBAR_MIN + SIDEBAR_MAX) / 2 : collapsed} onToggle={() => s.setSidebarCollapsed(!collapsed)} />}
           {size !== "phone" && <SidebarEdge onLive={setLiveW} />}
         </aside>

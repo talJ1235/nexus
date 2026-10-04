@@ -5,7 +5,7 @@ import { toast } from "@/lib/toast";
 import { moveItems } from "@/app/actions";
 import { ChartColumn, Flag, History, House, Inbox, PanelLeftClose, Plus, Settings, ShoppingCart, Store, Truck } from "lucide-react";
 import { useI18n } from "@/components/providers";
-import { LogoPill } from "@/components/logo";
+import { LogoMark } from "@/components/logo";
 import { Ring } from "@/components/ui/ring";
 import { budgetStats } from "@/lib/calc";
 import { cn } from "@/lib/utils";
@@ -72,37 +72,42 @@ function NavItem({
           if (Array.isArray(ids) && ids.length) onDropItems!(ids);
         } catch {}
       }}
+      // R14 B1 (home-v4 sidebar): 34 px rows, 13.5 px / 500, 17 px muted icons; active = a soft tint, ink 600 and a
+      // 3 px accent bar on the start edge (Tal: never a solid black pill).
       className={cn(
-        "group relative flex h-11 w-full shrink-0 items-center gap-[11px] whitespace-nowrap rounded-full px-[13px] text-start text-[14px] font-semibold transition-[background-color,color,box-shadow,padding] duration-200 active:scale-[0.98]",
-        over ? "bg-tint text-ink ring-2 ring-brand" : active ? "bg-ink text-bg" : "text-ink/85 hover:bg-surface-2 hover:text-ink",
+        "group relative flex h-[34px] w-full shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 text-start text-[13.5px] transition-[background-color,color,box-shadow,padding] duration-200 active:scale-[0.98]",
+        "before:absolute before:inset-y-[9px] before:start-0 before:w-[3px] before:rounded-full before:bg-[var(--nav-bar)] before:transition-opacity before:duration-200",
+        collapsed && "justify-center px-0",
+        over ? "bg-tint font-medium text-ink ring-2 ring-brand before:opacity-0" : active ? "bg-[var(--nav-active)] font-semibold text-ink" : "font-medium text-ink/80 before:opacity-0 hover:bg-surface-2 hover:text-ink",
       )}
+      data-nav-row
     >
-      <span className="flex size-[19px] shrink-0 items-center justify-center [&_svg]:size-[19px] [&_svg]:stroke-[1.8]">{icon}</span>
-      <span className={cn("min-w-0 flex-1 truncate transition-opacity duration-200", collapsed && "opacity-0")}>{label}</span>
+      <span className={cn("flex size-[17px] shrink-0 items-center justify-center [&_svg]:size-[17px] [&_svg]:stroke-[1.8]", active ? "text-ink" : "text-muted")}>{icon}</span>
+      {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
       {!collapsed &&
         (trailing ??
           (count === null ? (
             <Skel className="skeleton-in h-2.5 w-3.5" />
           ) : (
-            count != null && count > 0 && <span className={cn("tabular load-in text-xs font-medium", active ? "opacity-70" : "text-muted")}>{count}</span>
+            count != null && count > 0 && <span className="tabular load-in text-xs font-normal text-muted">{count}</span>
           )))}
     </button>
   );
 }
 
 function SectionHeader({ label, onAdd, addLabel, carry, collapsed, onLabel }: { label: string; onAdd?: () => void; addLabel?: string; carry?: string; collapsed?: boolean; onLabel?: () => void }) {
-  if (collapsed) return <div className="mx-auto my-[11px] h-px w-6 shrink-0 bg-line" aria-hidden />;
+  if (collapsed) return <div className="mx-auto my-[9px] h-px w-6 shrink-0 bg-line" aria-hidden />;
   return (
-    <div className="flex h-8 items-center justify-between ps-3 pe-1.5">
+    <div className="flex h-7 items-center justify-between ps-2.5 pe-1">
       {onLabel ? (
-        <button type="button" onClick={onLabel} className="text-xs font-semibold text-muted transition hover:text-ink">
+        <button type="button" onClick={onLabel} className="text-[11px] font-semibold text-muted transition hover:text-ink">
           {label}
         </button>
       ) : (
-        <span className="text-xs font-semibold text-muted">{label}</span>
+        <span className="text-[11px] font-semibold text-muted">{label}</span>
       )}
       {onAdd && (
-        <button type="button" onClick={onAdd} aria-label={addLabel} title={addLabel} data-carry={carry} className="grid size-7 place-items-center rounded-full text-muted transition hover:bg-surface-2 hover:text-ink">
+        <button type="button" onClick={onAdd} aria-label={addLabel} title={addLabel} data-carry={carry} className="grid size-6 place-items-center rounded-md text-muted transition hover:bg-surface-2 hover:text-ink">
           <Plus className="size-3.5" />
         </button>
       )}
@@ -110,8 +115,8 @@ function SectionHeader({ label, onAdd, addLabel, carry, collapsed, onLabel }: { 
   );
 }
 
-/** The floating sidebar (desktop ≥1024 px), collapsible to 76 px icons. Also used inside the phone nav sheet
- *  (`floating={false}`, never collapsed). */
+/** The desktop sidebar (≥1024 px, R14 B1 = home-v4): on the page background, no card; collapsible to icons.
+ *  Also used inside the phone nav sheet (`floating={false}`, never collapsed). */
 export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: boolean; onToggle?: () => void; floating?: boolean }) {
   const s = useStore();
   const { t, f } = useI18n();
@@ -163,13 +168,14 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
 
   return (
     <nav
-      className={cn("flex h-full flex-col gap-4 overflow-hidden p-3", floating ? "rounded-[28px] border border-line bg-surface" : "bg-transparent")}
+      className={cn("flex h-full flex-col gap-[18px] overflow-hidden bg-transparent px-2.5 py-3.5", !floating && "px-1")}
       aria-label="Main"
       data-collapsed={c ? "" : undefined}
     >
-      <div className={cn("flex shrink-0 items-center gap-2", c && "flex-col")}>
-        <button type="button" onClick={() => s.setView({ type: "home" })} aria-label={t.dash.title} data-sidebar-logo data-carry="view:home" className="shrink-0 rounded-full">
-          <LogoPill collapsed={c} />
+      <div className={cn("flex shrink-0 items-center justify-between gap-2 px-2 py-1", c && "flex-col gap-2.5 px-0")}>
+        <button type="button" onClick={() => s.setView({ type: "home" })} aria-label={t.dash.title} data-sidebar-logo data-carry="view:home" className="flex shrink-0 items-center gap-[9px] rounded-lg">
+          <LogoMark className="size-[22px]" />
+          {!c && <span className="text-[17px] font-extrabold tracking-[-0.01em]">Nexus</span>}
         </button>
         {onToggle && (
           <button
@@ -180,17 +186,17 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
             aria-expanded={!c}
             data-sidebar-toggle
             className={cn(
-              "grid size-9 shrink-0 place-items-center rounded-lg text-muted transition-[transform,color,background-color] duration-[400ms] ease-[var(--ease-out)] hover:bg-surface-2 hover:text-ink",
-              c ? "rotate-180" : "ms-auto",
+              "grid size-7 shrink-0 place-items-center rounded-[7px] border border-transparent text-muted transition-[transform,color,background-color,border-color] duration-[400ms] ease-[var(--ease-out)] hover:border-line hover:bg-surface hover:text-ink",
+              c && "rotate-180",
             )}
           >
-            <PanelLeftClose className="size-[18px] rtl:-scale-x-100" strokeWidth={1.9} />
+            <PanelLeftClose className="size-4 rtl:-scale-x-100" strokeWidth={1.8} />
           </button>
         )}
       </div>
 
-      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-1">
-        <div className="flex flex-col gap-[3px]">
+      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-[18px] overflow-y-auto overflow-x-hidden px-1">
+        <div className="flex flex-col gap-px">
           <NavItem collapsed={c} active={active({ type: "home" })} onClick={() => s.setView({ type: "home" })} carry="view:home" icon={<House />} label={t.dash.title} />
           <NavItem collapsed={c} active={active({ type: "to_buy" })} onClick={() => s.setView({ type: "to_buy" })} carry="view:to_buy" icon={<ShoppingCart />} label={t.nav.toBuy} count={n(counts.to_buy)} />
           <NavItem collapsed={c} active={active({ type: "urgent" })} onClick={() => s.setView({ type: "urgent" })} carry="view:urgent" icon={<Flag />} label={t.nav.urgent} count={n(counts.urgent)} />
@@ -203,10 +209,10 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
           <NavItem collapsed={c} active={active({ type: "spending" })} onClick={() => s.setView({ type: "spending" })} carry="view:spending" icon={<ChartColumn />} label={t.nav.spending} />
         </div>
 
-        <div className="flex flex-col gap-[3px]">
+        <div className="flex flex-col gap-px">
           <SectionHeader collapsed={c} label={t.nav.projects} onLabel={() => s.setView({ type: "projects" })} carry="editor:project" onAdd={() => s.setEditor({ mode: "create", kind: "project" })} addLabel={t.nav.newProject} />
           {s.loading && !c && <NavRowsSkeleton rows={[58, 42]} />}
-          <div className={cn("flex flex-col gap-[3px]", fade)}>
+          <div className={cn("flex flex-col gap-px", fade)}>
             {projects.map((p) => {
               const b = budgetStats(p, s.items, s.altGroups, s.rates, s.currency);
               const inProject = s.items.filter((i) => i.collectionId === p.id);
@@ -220,9 +226,10 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
                   active={active({ type: "collection", id: p.id })}
                   onClick={() => s.setView({ type: "collection", id: p.id })}
                   onDropItems={(ids) => move(ids, p.id)}
-                  icon={<span className="size-2.5 rounded-[4px]" style={{ background: color }} />}
+                  icon={<span className="size-2 rounded-full" style={{ background: color }} />}
                   label={p.name}
-                  trailing={<Ring value={ratio} color={b.state === "over" ? "var(--danger)" : color} />}
+                  // The budget ring only when the project has a budget; otherwise the dot says it all.
+                  trailing={b.budget != null ? <Ring value={ratio} size={18} stroke={3.5} color={b.state === "over" ? "var(--danger)" : color} /> : <span />}
                 />
               );
             })}
@@ -230,9 +237,9 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
               <button
                 type="button"
                 onClick={() => s.setEditor({ mode: "create", kind: "project" })}
-                className="flex h-10 w-full items-center gap-[11px] rounded-full px-[13px] text-start text-[13px] font-medium text-muted transition hover:bg-surface-2 hover:text-ink"
+                className="flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-start text-[13px] font-medium text-muted transition hover:bg-surface-2 hover:text-ink"
               >
-                <Plus className="size-[19px] stroke-[1.8]" />
+                <Plus className="size-[17px] stroke-[1.8]" />
                 {t.nav.newProject}
               </button>
             )}
@@ -240,10 +247,10 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
         </div>
 
         {(lists.length > 0 || s.loading) && (
-          <div className="flex flex-col gap-[3px]">
+          <div className="flex flex-col gap-px">
             <SectionHeader collapsed={c} label={t.nav.lists} carry="editor:list" onAdd={() => s.setEditor({ mode: "create", kind: "list" })} addLabel={t.nav.newList} />
             {s.loading && !c && <NavRowsSkeleton rows={[46, 62]} round />}
-            <div className={cn("flex flex-col gap-[3px]", fade)}>
+            <div className={cn("flex flex-col gap-px", fade)}>
               {lists.map((l) => (
                 <NavItem
                   key={l.id}
@@ -251,7 +258,7 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
                   active={active({ type: "collection", id: l.id })}
                   onClick={() => s.setView({ type: "collection", id: l.id })}
                   onDropItems={(ids) => move(ids, l.id)}
-                  icon={<span className="size-2.5 rounded-full" style={{ background: COLLECTION_COLORS[l.color] ?? COLLECTION_COLORS.amber }} />}
+                  icon={<span className="size-2 rounded-full" style={{ background: COLLECTION_COLORS[l.color] ?? COLLECTION_COLORS.amber }} />}
                   label={l.name}
                   count={s.items.filter((i) => i.collectionId === l.id && i.status === "to_buy").length}
                 />
@@ -261,7 +268,8 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
         )}
       </div>
 
-      <div className={cn("flex shrink-0 items-center gap-2.5 rounded-[22px] p-1.5 transition-colors", c ? "justify-center bg-transparent" : "bg-surface-2")}>
+      {/* Bottom: avatar + name + extension state, under a hairline. */}
+      <div className={cn("-mx-0.5 flex shrink-0 items-center gap-2.5 border-t border-line px-2 pt-2.5", c && "justify-center px-0")}>
         <button
           type="button"
           onClick={() => s.setSettingsOpen(true)}
@@ -269,15 +277,15 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
           title={c ? t.nav.settings : undefined}
           aria-label={c ? t.nav.settings : undefined}
           tabIndex={c ? 0 : -1}
-          className="grid size-[38px] shrink-0 place-items-center rounded-full bg-ink text-[15px] font-extrabold text-bg"
+          className="grid size-7 shrink-0 place-items-center rounded-full bg-ink text-xs font-bold text-bg"
         >
           {t.shell.owner.slice(0, 1).toUpperCase()}
         </button>
         {!c && (
           <>
             <div className="min-w-0 flex-1 leading-tight">
-              <b className="block truncate text-[14px] font-bold">{t.shell.owner}</b>
-              <span className="flex items-center gap-1.5 truncate text-xs text-muted">
+              <b className="block truncate text-[13px] font-semibold">{t.shell.owner}</b>
+              <span className="flex items-center gap-1.5 truncate text-[11.5px] text-muted">
                 <span className={cn("size-1.5 shrink-0 rounded-full", ext.available ? "bg-ok" : "bg-faint")} aria-hidden />
                 {ext.available ? t.ext.connected : t.ext.notInstalled}
               </span>
@@ -288,9 +296,9 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
               data-carry="settings"
               aria-label={t.nav.settings}
               title={t.nav.settings}
-              className="grid size-[34px] shrink-0 place-items-center rounded-full text-muted transition hover:bg-surface hover:text-ink"
+              className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-ink"
             >
-              <Settings className="size-[18px]" />
+              <Settings className="size-4" />
             </button>
           </>
         )}

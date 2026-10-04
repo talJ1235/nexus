@@ -666,6 +666,27 @@ try {
       });
     }
 
+    // Round 14 B1: the v4 sidebar — 34 px rows; the active row is a soft tint + accent bar, never the --ink fill.
+    if (!MOBILE)
+      await step("sidebar rows: 34 px, active = soft tint + accent bar (not --ink)", async () => {
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector(READY);
+        const r = await page.locator("aside nav [data-nav-row][aria-current=page]").first().evaluate((el) => {
+          const cs = getComputedStyle(el);
+          const bar = getComputedStyle(el, "::before");
+          const probe = document.createElement("i");
+          probe.style.color = "var(--ink)";
+          document.body.append(probe);
+          const ink = getComputedStyle(probe).color;
+          probe.remove();
+          const inkRgb = ink.match(/\d+/g).slice(0, 3).join(",");
+          const bgRgb = (cs.backgroundColor.match(/[\d.]+/g) ?? []).slice(0, 3).join(",");
+          return { h: el.getBoundingClientRect().height, bg: cs.backgroundColor, notInk: bgRgb !== inkRgb, barW: bar.width, barOpacity: bar.opacity, weight: cs.fontWeight, asideBg: getComputedStyle(el.closest("nav")).backgroundColor };
+        });
+        await shot(page, "sidebar-v4");
+        ok(Math.abs(r.h - 34) <= 1 && r.notInk && r.barW === "3px" && r.barOpacity === "1" && Number(r.weight) >= 600 && /rgba\(0, 0, 0, 0\)|transparent/.test(r.asideBg), "sidebar rows: 34 px, active = soft tint + accent bar (not --ink)", JSON.stringify(r));
+      });
+
     // Round 13 C2: the desktop sidebar collapses by dragging its edge (and persists), Ctrl+B toggles; Hebrew mirrors.
     if (!MOBILE)
       await step("sidebar: drag the edge to collapse, persists, Ctrl+B expands (en + he)", async () => {
@@ -688,7 +709,7 @@ try {
           const sign = lang === "he" ? -1 : 1;
           if (TRACE && lang === "en") await traceFrames(page, "trace-sidebar-drag", () => dragEdge(-120 * sign), 1100);
           else await dragEdge(-120 * sign);
-          r[`${lang}Live`] = r.mid > 76 && r.mid < 248;
+          r[`${lang}Live`] = r.mid > 68 && r.mid < 224;
           r[`${lang}Collapsed`] = await collapsed();
           await page.reload();
           await page.waitForSelector(READY);

@@ -5,8 +5,8 @@ import { useI18n } from "@/components/providers";
 import { cn } from "@/lib/utils";
 import { useStore } from "./store";
 
-export const SIDEBAR_MIN = 76;
-export const SIDEBAR_MAX = 248;
+export const SIDEBAR_MIN = 68;
+export const SIDEBAR_MAX = 224;
 /** Release snaps to the nearer state: past 40 % of the way from where the drag started, it switches. */
 export function snapCollapsed(width: number, startCollapsed: boolean) {
   const span = SIDEBAR_MAX - SIDEBAR_MIN;
@@ -15,7 +15,7 @@ export function snapCollapsed(width: number, startCollapsed: boolean) {
 
 /**
  * The desktop sidebar's end edge (Round 13 C2): a 9 px hit area with a grip pill on hover. Dragging it moves the
- * sidebar's width with the pointer (76–248 px); on release it snaps to collapsed / open. Double-click toggles;
+ * sidebar's width with the pointer (68–224 px); on release it snaps to collapsed / open. Double-click toggles;
  * Enter / Space on the focused grip too; Ctrl+B anywhere. In Hebrew the edge is on the left and the drag mirrors.
  * `onLive(w)` streams the width while dragging (null when done) so the grid follows without a transition.
  */
@@ -50,7 +50,7 @@ export function SidebarEdge({ onLive }: { onLive: (w: number | null) => void }) 
       aria-valuenow={collapsed ? SIDEBAR_MIN : SIDEBAR_MAX}
       tabIndex={0}
       title={collapsed ? t.shell.expand : t.shell.collapse}
-      className="group absolute inset-y-6 -end-[14px] z-10 flex w-[9px] cursor-col-resize touch-none select-none justify-center outline-none"
+      className="group absolute inset-y-6 -end-[5px] z-10 flex w-[9px] cursor-col-resize touch-none select-none justify-center outline-none"
       onPointerDown={(e) => {
         if (e.button !== 0) return;
         e.currentTarget.setPointerCapture(e.pointerId);
