@@ -38,13 +38,29 @@ const items = [
   ["demo-3", "Elegoo PLA 1.75mm אדום", "pla", "demo-c-print", "normal", 3, "to_buy", ["AliExpress", "aliexpress", 14.2, "USD", 2.1, "https://www.aliexpress.com/item/1005001.html"], ["3d printing"]],
   ["demo-4", "NEMA 17 Stepper Motor 42-40 1.5A", "motor", "demo-c-railcam", "urgent", 2, "to_buy", ["AliExpress", "aliexpress", 8.9, "USD", 1.5, "https://www.aliexpress.com/item/1005002.html"], ["electronics"]],
   ["demo-5", "מנורת שולחן LED עם עמעום", "lamp", "demo-c-home", "someday", 1, "to_buy", ["IKEA", "ikea", 129, "ILS", null, "https://www.ikea.com/il/he/p/12345"], ["home", "lighting"]],
-  ["demo-6", "Ergonomic office chair — כיסא משרדי ארגונומי", "chair", null, "normal", 1, "ordered", ["Office Depot", "officedepot", 899, "ILS", 50, "https://www.officedepot.co.il/item/1"], ["furniture"]],
+  ["demo-6", "Ergonomic office chair — כיסא משרדי ארגונומי", "chair", null, "normal", 1, "ordered", ["Office Depot", "officedepot", 899, "ILS", 50, "https://www.officedepot.co.il/item/1"], ["furniture"], 6, -1],
   ["demo-7", "Raspberry Pi 5 8GB", "pi", "demo-c-railcam", "normal", 1, "to_buy", ["Raspberry Pi Store", "raspberrypi", 80, "USD", 9, "https://www.raspberrypi.com/products/raspberry-pi-5/"], ["electronics"]],
   ["demo-8", "מברגה נטענת Makita DDF485 18V", "drill", null, "normal", 1, "purchased", ["Ace", "ace", 649, "ILS", 0, "https://www.ace.co.il/item/2"], ["tools"]],
 ];
 
 // A year of purchases (Round 8: spending/stats and the totals look like real data, with big amounts and long names so
 // phone layouts are tested against them). [.., daysAgo] as the 10th field.
+// Round 13 Home: packages with dates (late / this week / later), a deal + a free-shipping gap at one store, a
+// someday item that closes it, a regular buy that is due again, and an order that crossed free shipping this month.
+items.push(
+  ["demo-o1", "Arduino Nano ESP32", "pi", "demo-c-railcam", "normal", 1, "ordered", ["AliExpress", "aliexpress", 21, "USD", 0, "https://www.aliexpress.com/item/1005003.html"], [], 1, 4],
+  ["demo-o2", "NEMA 17 bracket ×2", "motor", "demo-c-railcam", "normal", 2, "ordered", ["AliExpress", "aliexpress", 3.5, "USD", 0, "https://www.aliexpress.com/item/1005004.html"], [], 5, 2],
+  ["demo-o3", "Bench power supply 30V 5A", "charger", null, "normal", 1, "ordered", ["Amazon", "amazon", 69, "USD", 0, "https://www.amazon.com/dp/B0POWER"], [], 3, 16],
+  ["demo-9", "Raspberry Pi 5 Active Cooler", "pi", "demo-c-railcam", "someday", 1, "to_buy", ["Raspberry Pi Store", "raspberrypi", 12, "USD", 0, "https://www.raspberrypi.com/products/active-cooler/"], ["electronics"]],
+  ["demo-b1", "Raspberry Pi Camera cable 50cm", "pi", "demo-c-railcam", "normal", 4, "purchased", ["Raspberry Pi Store", "raspberrypi", 15, "USD", 0, "https://www.raspberrypi.com/products/camera-cable/"], [], 2],
+  ["demo-b2", "Raspberry Pi 27W USB-C power supply", "charger", "demo-c-railcam", "normal", 4, "purchased", ["Raspberry Pi Store", "raspberrypi", 14, "USD", 0, "https://www.raspberrypi.com/products/27w-power-supply/"], [], 2],
+  ["demo-r1", "Coffee beans 1kg — פולי קפה", "lamp", null, "normal", 1, "purchased", ["KSP", "ksp", 89, "ILS", 0, "https://example.com/coffee/1"], [], 89],
+  ["demo-r2", "Coffee beans 1kg — פולי קפה", "lamp", null, "normal", 1, "purchased", ["KSP", "ksp", 89, "ILS", 0, "https://example.com/coffee/2"], [], 59],
+  ["demo-r3", "Coffee beans 1kg — פולי קפה", "lamp", null, "normal", 1, "purchased", ["KSP", "ksp", 92, "ILS", 0, "https://example.com/coffee/3"], [], 29],
+);
+// Price history per item (days ago → factor of today's price); the Pi is well under its usual price.
+const PTS = { "demo-7": [[40, 1.2], [30, 1.18], [20, 1.2], [10, 1.17], [0, 1]] };
+
 const HIST = [
   ["Bambu Lab P1S 3D printer combo", "pla", "demo-c-print", "Bambu Lab Official Store Europe", "bambulab", 4800],
   ["MacBook Air sleeve", "chair", null, "Amazon", "amazon", 129],
@@ -68,6 +84,7 @@ HIST.forEach(([title, img, col, store, key, price], i) => {
 const CAT = { charger: "electronics", fan: "home-kitchen", pla: "materials", motor: "mechanical", lamp: "home-kitchen", chair: "home-kitchen", pi: "computers", drill: "tools" };
 
 await db.execute("DELETE FROM price_points WHERE item_id LIKE 'demo-%'");
+await db.execute("DELETE FROM alerts WHERE item_id LIKE 'demo-%'");
 await db.execute("DELETE FROM sources WHERE item_id LIKE 'demo-%'");
 await db.execute("DELETE FROM items WHERE id LIKE 'demo-%'");
 await db.execute("DELETE FROM collections WHERE id LIKE 'demo-%'");
@@ -76,22 +93,27 @@ for (const [i, c] of collections.entries())
     sql: "INSERT INTO collections (id, kind, name, color, budget, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
     args: [c.id, c.kind, c.name, c.color, c.budget, i],
   });
-for (const [n, [id, title, img, col, prio, qty, status, src, tags, ago]] of items.entries()) {
+for (const [n, [id, title, img, col, prio, qty, status, src, tags, ago, etaDays]] of items.entries()) {
   const t = now - (ago ?? n) * day;
   await db.execute({
-    sql: `INSERT INTO items (id, collection_id, title, image_url, category, tags, status, priority, quantity, ordered_at, purchased_at, purchased_price, purchased_currency, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [id, col, title, IMG[img], CAT[img], JSON.stringify(tags), status, prio, qty, status !== "to_buy" ? t : null, status === "purchased" ? t : null, status !== "to_buy" ? src[2] : null, status !== "to_buy" ? src[3] : null, t, t],
+    sql: `INSERT INTO items (id, collection_id, title, image_url, category, tags, status, priority, quantity, ordered_at, purchased_at, purchased_price, purchased_currency, eta, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [id, col, title, IMG[img], CAT[img], JSON.stringify(tags), status, prio, qty, status !== "to_buy" ? t : null, status === "purchased" ? t : null, status !== "to_buy" ? src[2] + (src[4] ?? 0) : null, status !== "to_buy" ? src[3] : null, etaDays != null ? now + etaDays * day : null, t, t],
   });
   const [store, key, price, currency, shipping, url] = src;
   await db.execute({
     sql: "INSERT INTO sources (id, item_id, url, normalized_url, store, store_key, price, currency, shipping, raw_title, fetched_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     args: [`${id}-s`, id, url, url, store, key, price, currency, shipping, title, t, t],
   });
-  for (const [k, f] of [[20, 1.12], [10, 1.05], [0, 1]].entries())
+  for (const [k, f] of (PTS[id] ?? [[20, 1.12], [10, 1.05], [0, 1]]).entries())
     await db.execute({
       sql: "INSERT INTO price_points (id, source_id, item_id, price, currency, recorded_at) VALUES (?, ?, ?, ?, ?, ?)",
       args: [`${id}-p${k}`, `${id}-s`, id, Math.round(price * f[1] * 100) / 100, currency, t - f[0] * day],
     });
 }
+// An unread price drop on the fan; the Raspberry Pi store's free-shipping rule (fee known); a monthly cap.
+await db.execute({ sql: "INSERT INTO alerts (id, item_id, source_id, kind, old_price, new_price, currency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", args: ["demo-a1", "demo-2", "demo-2-s", "drop", 379, 349, "ILS", now - 3600_000] });
+await db.execute({ sql: "INSERT OR REPLACE INTO store_settings (store_key, free_shipping_min, currency, shipping_fee, updated_at) VALUES (?, ?, ?, ?, ?)", args: ["raspberrypi", 100, "USD", 9, now] });
+const month = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit" }).format(new Date(now)).slice(0, 7);
+await db.execute({ sql: "INSERT OR REPLACE INTO kv (key, value, updated_at) VALUES (?, ?, ?)", args: [`pref:budget:${month}`, JSON.stringify({ cap: 9000, currency: "ILS" }), now] });
 console.log(`OK seeded ${items.length} demo items`);

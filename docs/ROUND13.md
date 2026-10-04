@@ -20,7 +20,7 @@ Mockups → items: `home-v4/desktop` (A, C2) · `home-v4/phone` (A, B1) · `home
 
 ## Part A — Home (the dashboard) becomes the default screen
 
-### A1. [ ] New `home` view, opened by default
+### A1. [x] New `home` view, opened by default
 Tal decided on 2026-10-03 that the dashboard is the home screen. Today the app still opens on `to_buy`
 (`paramToView` in `store.tsx` falls back to `to_buy`), and the top-bar logo goes to `to_buy`.
 - Add a view `{ type: "home" }`. It is the fallback in `paramToView`, `?v=home` is the default URL with no param,
@@ -201,7 +201,7 @@ toggle a sliding thumb.
 - Existing swipe, long-press and selection behaviour must keep working in both modes.
 - **Acceptance:** smoke for each mode × each sub-tab at 360 and 390 px, with no overflow.
 
-### B4. [ ] One delivery-track component
+### B4. [x] One delivery-track component
 The same 4-segment track (A2 rules) is used on Home, in the On the way list, on the On the way cards and in the item
 sheet. One component, one function, unit-tested in `test:home`.
 

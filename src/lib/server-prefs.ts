@@ -11,6 +11,7 @@ export const LAYOUT_COOKIE = "nexus_layout";
 export const SORT_COOKIE = "nexus_sort";
 export const SIDEBAR_COOKIE = "nexus_sidebar";
 export const PHONE_LAYOUT_COOKIE = "nexus_phone_layout";
+export const HOME_COOKIE = "nexus_home";
 const LAYOUTS = ["cards", "table"] as const;
 const PHONE_LAYOUTS = ["cards", "rows"] as const;
 const SORTS = ["newest", "price", "priority", "name"] as const;
@@ -26,5 +27,7 @@ export async function getUiPrefs() {
     layout: (LAYOUTS as readonly string[]).includes(l ?? "") ? (l as (typeof LAYOUTS)[number]) : null,
     sort: (SORTS as readonly string[]).includes(s ?? "") ? (s as (typeof SORTS)[number]) : null,
     phoneLayout: (PHONE_LAYOUTS as readonly string[]).includes(pl ?? "") ? (pl as (typeof PHONE_LAYOUTS)[number]) : null,
+    // Home sections (Round 13 A5): order + hidden, parsed by the store (parseHomeLayout).
+    homeLayout: jar.get(HOME_COOKIE)?.value?.slice(0, 200) ?? null,
   };
 }

@@ -63,7 +63,7 @@ export function PhoneTopBar() {
           >
             {t.shell.owner.slice(0, 1).toUpperCase()}
           </button>
-          <button type="button" onClick={() => s.setView({ type: "to_buy" })} className="me-auto" aria-label={t.nav.toBuy} data-topbar-logo>
+          <button type="button" onClick={() => s.setView({ type: "home" })} className="me-auto" aria-label={t.dash.title} data-topbar-logo data-carry="view:home">
             <LogoPill className="h-[46px] text-[18px]" />
           </button>
           <button
@@ -238,7 +238,7 @@ function PlusMenuSheet() {
 
 // ---------- "+" menu illustrations (Round 9 A3): drawn in currentColor (the action's ink) ----------
 
-function BarcodeArt() {
+export function BarcodeArt() {
   return (
     <svg viewBox="0 0 56 44" className="size-full" fill="currentColor">
       <rect x="4" y="6" width="48" height="32" rx="8" fill="currentColor" opacity=".12" />
@@ -251,7 +251,7 @@ function BarcodeArt() {
   );
 }
 
-function ReceiptArt() {
+export function ReceiptArt() {
   return (
     <svg viewBox="0 0 56 44" className="size-full" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17 4h22v34l-3.7-2.6-3.6 2.6-3.7-2.6-3.7 2.6-3.6-2.6L17 38z" fill="currentColor" fillOpacity=".14" />
@@ -261,7 +261,7 @@ function ReceiptArt() {
   );
 }
 
-function LinkArt() {
+export function LinkArt() {
   return (
     <svg viewBox="0 0 56 44" className="size-full" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
       <g transform="rotate(-35 28 22)">
@@ -273,7 +273,7 @@ function LinkArt() {
   );
 }
 
-function PlanArt() {
+export function PlanArt() {
   return (
     <svg viewBox="0 0 56 44" className="size-full" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
       <path d="M15 6l2.4 6.1L23.5 14.5l-6.1 2.4L15 23l-2.4-6.1L6.5 14.5l6.1-2.4z" fill="currentColor" stroke="none" />

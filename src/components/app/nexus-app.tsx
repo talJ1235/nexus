@@ -26,6 +26,7 @@ import { AlertsPanel } from "./alerts-panel";
 import { TopBar } from "./top-bar";
 import { Dock, PhoneTopBar, PlusMenu } from "./phone-shell";
 import { FiltersRow, HomeSummary, SUMMARY_VIEWS } from "./home-summary";
+import { HomeView } from "./home-view";
 import { AssistantPanel } from "./assistant-panel";
 import { ShareDialog } from "./share-dialog";
 import { ReceiptDialog } from "./receipt-dialog";
@@ -137,7 +138,9 @@ function Shell({ incoming }: { incoming?: Incoming }) {
           <main className="mx-auto max-w-[1400px] px-4 pb-40 pt-2 [overflow-x:clip] sm:px-6 lg:px-0 lg:pt-2">
             {/* Header + content switch together as one soft cross-fade; the very first paint is not animated. */}
             <div key={viewKey(s.view)} className={s.navSeq > 0 ? (s.navDir > 0 ? "view-in view-fwd" : "view-in view-back") : undefined}>
-              {s.loading && s.view.type === "spending" ? (
+              {s.view.type === "home" ? (
+                <HomeView />
+              ) : s.loading && s.view.type === "spending" ? (
                 <ContentSkeleton />
               ) : s.view.type === "spending" ? (
                 <SpendingView />

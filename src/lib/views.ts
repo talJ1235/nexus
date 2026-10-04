@@ -1,6 +1,7 @@
 import type { ItemWithSources } from "./types";
 
 export type View =
+  | { type: "home" }
   | { type: "to_buy" }
   | { type: "urgent" }
   | { type: "history" }
@@ -14,6 +15,8 @@ export type View =
 
 export function itemsForView(items: ItemWithSources[], view: View) {
   switch (view.type) {
+    case "home":
+      return [];
     case "to_buy":
       return items.filter((i) => i.status === "to_buy");
     case "urgent":

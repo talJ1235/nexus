@@ -18,9 +18,13 @@ import { extensionToken } from "@/lib/ext-token";
  */
 export default async function Home({ searchParams }: { searchParams: Promise<{ v?: string }> }) {
   const [{ v }, currency, prefs, token] = await Promise.all([searchParams, getCurrencyPref(), getUiPrefs(), extensionToken()]);
-  const boot: AppBoot = { currency, ...prefs, view: typeof v === "string" ? v : null, aiEnabled: aiEnabled() };
+  const jar = await cookies();
+  const tz = decodeURIComponent(jar.get("nexus_tz")?.value ?? "").slice(0, 60) || null;
+  // `now` + `tz`: Home's first paint matches on server and client (store.tsx Clock). A server component renders once.
+  // eslint-disable-next-line react-hooks/purity
+  const boot: AppBoot = { currency, ...prefs, view: typeof v === "string" ? v : null, aiEnabled: aiEnabled(), now: Date.now(), tz: tz && isTimeZone(tz) ? tz : null };
   // The weekly Telegram summary is written in the owner's language and currency (the cron has no cookies).
-  const locale = (await cookies()).get(LOCALE_COOKIE)?.value === "he" ? "he" : "en";
+  const locale = jar.get(LOCALE_COOKIE)?.value === "he" ? "he" : "en";
   after(() => rememberOwner(locale, currency).catch(() => {}));
   return (
     <>
@@ -34,6 +38,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
       </Suspense>
     </>
   );
+}
+
+function isTimeZone(tz: string) {
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const CARRY_SCRIPT = `document.addEventListener("click",function(e){var el=e.target.closest&&e.target.closest("[data-carry]");var shell=el&&el.closest("[data-app-shell]");if(!shell||shell.hasAttribute("data-ready"))return;e.preventDefault();var p=document.querySelector("[data-carry-armed]");if(p)p.removeAttribute("data-carry-armed");el.setAttribute("data-carry-armed","");window.__nexusCarry=el.getAttribute("data-carry")},true)`;

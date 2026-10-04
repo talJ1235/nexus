@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "@/lib/toast";
 import { moveItems } from "@/app/actions";
-import { ChartColumn, ChevronLeft, Flag, History, Inbox, Plus, Settings, ShoppingCart, Store, Truck } from "lucide-react";
+import { ChartColumn, ChevronLeft, Flag, History, House, Inbox, Plus, Settings, ShoppingCart, Store, Truck } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoPill } from "@/components/logo";
 import { Ring } from "@/components/ui/ring";
@@ -168,7 +168,9 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
       data-collapsed={c ? "" : undefined}
     >
       <div className={cn("flex shrink-0 items-center gap-2", c && "flex-col")}>
-        <LogoPill collapsed={c} />
+        <button type="button" onClick={() => s.setView({ type: "home" })} aria-label={t.dash.title} data-sidebar-logo data-carry="view:home" className="shrink-0 rounded-full">
+          <LogoPill collapsed={c} />
+        </button>
         {onToggle && (
           <button
             type="button"
@@ -189,6 +191,7 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
 
       <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-1">
         <div className="flex flex-col gap-[3px]">
+          <NavItem collapsed={c} active={active({ type: "home" })} onClick={() => s.setView({ type: "home" })} carry="view:home" icon={<House />} label={t.dash.title} />
           <NavItem collapsed={c} active={active({ type: "to_buy" })} onClick={() => s.setView({ type: "to_buy" })} carry="view:to_buy" icon={<ShoppingCart />} label={t.nav.toBuy} count={n(counts.to_buy)} />
           <NavItem collapsed={c} active={active({ type: "urgent" })} onClick={() => s.setView({ type: "urgent" })} carry="view:urgent" icon={<Flag />} label={t.nav.urgent} count={n(counts.urgent)} />
           {counts.unsorted > 0 && (

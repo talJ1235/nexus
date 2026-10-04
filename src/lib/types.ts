@@ -1,5 +1,6 @@
 import type { Alert, AltGroup, Attachment, Collection, Grant, Invite, Item, Member, PricePoint, Receipt, Source, StoreSetting } from "@/db/schema";
 import type { BudgetHistory } from "./budget";
+import type { HomePrefs } from "./home";
 import type { Rates } from "./money";
 
 export type { Alert, AltGroup, Attachment, Collection, Grant, Invite, Item, Member, PricePoint, Receipt, Source, StoreSetting };
@@ -16,6 +17,9 @@ export type AppData = {
   aiEnabled: boolean;
   /** VAT-free personal import limit in USD (G2); missing in older offline snapshots → the default. */
   importLimitUsd?: number;
+  /** Round 13 Home: recent alerts (Needs you) and the owner's Home prefs; missing in older offline snapshots. */
+  alerts?: Alert[];
+  home?: HomePrefs;
 };
 
 export type SourceDraft = {

@@ -26,7 +26,7 @@ export default async function AddPage({ searchParams }: { searchParams: Promise<
   return (
     <>
       <meta name="nexus-ext-token" content={token} />
-      <NexusApp boot={{ currency, ...prefs, view: null, aiEnabled: aiEnabled() }} initial={data} incoming={incoming} />
+      <NexusApp boot={{ currency, ...prefs, view: "to_buy", aiEnabled: aiEnabled() }} initial={data} incoming={incoming} />
     </>
   );
 }

@@ -559,5 +559,13 @@ export function homeSuggestions(model: HomeModel): Suggestion[] {
   return out.filter((x) => !((dismissed[`sug:${x.key}`] ?? 0) > now)).sort((a, b) => b.score - a.score).slice(0, 4);
 }
 
-/** Keys for the kv-backed hide/snooze map (7 days). */
+/** "✕" on a row / "Not now" on a suggestion hides it this long. */
 export const HIDE_MS = 7 * DAY;
+
+export type HomePrefs = {
+  /** Row / suggestion key ("sug:…") → hidden until (ms). kv `pref:home:dismissed`. */
+  dismissed: Record<string, number>;
+  /** Phrase "Nexus suggests" with the AI once a day (on by default); off = templates only. kv `pref:home:ai`. */
+  aiSuggestions: boolean;
+};
+export const DEFAULT_HOME_PREFS: HomePrefs = { dismissed: {}, aiSuggestions: true };

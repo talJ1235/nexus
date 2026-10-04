@@ -6,7 +6,8 @@ import { installClientErrorCapture } from "@/lib/client-errors";
 import { recordNav } from "@/lib/client-diag";
 import type { ReportFields } from "@/lib/reports";
 import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
-import type { AltGroup, AppData, Collection, ItemWithSources, StoreSetting } from "@/lib/types";
+import type { Alert, AltGroup, AppData, Collection, ItemWithSources, StoreSetting } from "@/lib/types";
+import { DEFAULT_HOME_PREFS, type HomePrefs } from "@/lib/home";
 import type { View } from "@/lib/views";
 import { markBooted } from "@/lib/boot";
 import { primeCamera } from "@/lib/camera";
@@ -34,12 +35,40 @@ export type SortKey = "newest" | "price" | "priority" | "name";
 type Editor = { mode: "create"; kind: "project" | "list" } | { mode: "edit"; collection: Collection } | null;
 
 /** Server-known state for the first paint: prefs from cookies, `?v=` from the URL. */
-export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; sidebarCollapsed?: boolean; phoneLayout?: PhoneLayout | null };
+export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; sidebarCollapsed?: boolean; phoneLayout?: PhoneLayout | null; homeLayout?: string | null; now?: number; tz?: string | null };
+
+/** Home's clock: the first paint uses the server's time + the saved time zone (same HTML on both sides), then the
+ *  device's. weekStartsOn from the browser locale (Monday-first where it says so). */
+export type Clock = { now: number; tz: string; weekStartsOn: 0 | 1 };
+const TZ_COOKIE = "nexus_tz";
+const DEFAULT_TZ = "Asia/Jerusalem";
+
+/** Home sections that Customize can move or hide (the header card is fixed). */
+export const HOME_SECTIONS = ["suggest", "week", "needs", "ontheway", "pace", "projects", "noticed"] as const;
+export type HomeSection = (typeof HOME_SECTIONS)[number];
+export type HomeLayout = { order: HomeSection[]; hidden: HomeSection[] };
+export const DEFAULT_HOME_LAYOUT: HomeLayout = { order: [...HOME_SECTIONS], hidden: [] };
+/** Cookie form: "suggest.week.-noticed…" (order; "-" = hidden). Unknown ids dropped, missing ones appended. */
+export function parseHomeLayout(v: string | null | undefined): HomeLayout {
+  if (!v) return DEFAULT_HOME_LAYOUT;
+  const order: HomeSection[] = [];
+  const hidden: HomeSection[] = [];
+  for (const raw of v.split(".")) {
+    const id = raw.replace(/^-/, "") as HomeSection;
+    if (!HOME_SECTIONS.includes(id) || order.includes(id)) continue;
+    order.push(id);
+    if (raw.startsWith("-")) hidden.push(id);
+  }
+  for (const id of HOME_SECTIONS) if (!order.includes(id)) order.push(id);
+  return { order, hidden };
+}
+export const homeLayoutCookie = (l: HomeLayout) => l.order.map((id) => (l.hidden.includes(id) ? `-${id}` : id)).join(".");
 
 const LAYOUT_COOKIE = "nexus_layout";
 const SORT_COOKIE = "nexus_sort";
 const PHONE_LAYOUT_COOKIE = "nexus_phone_layout";
 const SIDEBAR_COOKIE = "nexus_sidebar";
+const HOME_COOKIE = "nexus_home";
 const setCookie = (k: string, v: string) => {
   document.cookie = `${k}=${v}; path=/; max-age=31536000; samesite=lax`;
 };
@@ -56,6 +85,15 @@ type Store = {
   upsertStoreSetting: (s: StoreSetting) => void;
   budget: BudgetHistory;
   setBudget: (b: BudgetHistory) => void;
+  /** Recent price alerts (Home "Needs you"); refreshed with the page. */
+  alerts: Alert[];
+  /** Home: dismissed rows / snoozed suggestions, the AI-phrasing switch. */
+  homePrefs: HomePrefs;
+  setHomePrefs: (p: HomePrefs) => void;
+  /** Home section order + hidden ones (Customize, cookie). */
+  homeLayout: HomeLayout;
+  setHomeLayout: (l: HomeLayout) => void;
+  clock: Clock;
   upsertItems: (items: ItemWithSources[]) => void;
   removeItems: (ids: string[]) => void;
   /** Multi-select */
@@ -191,7 +229,7 @@ export function useDataStore() {
 }
 
 /** Sidebar order: view switches slide forward/back along it. */
-const VIEW_ORDER: View["type"][] = ["to_buy", "urgent", "unsorted", "ordered", "orders", "history", "spending", "projects", "collection", "store"];
+const VIEW_ORDER: View["type"][] = ["home", "to_buy", "urgent", "unsorted", "ordered", "orders", "history", "spending", "projects", "collection", "store"];
 
 function viewToParam(v: View) {
   switch (v.type) {
@@ -204,12 +242,13 @@ function viewToParam(v: View) {
   }
 }
 
-function paramToView(p: string | null): View {
-  if (!p) return { type: "to_buy" };
+/** No `?v=` (or an unknown one) = Home, the default screen (Tal, 2026-10-03). */
+export function paramToView(p: string | null): View {
+  if (!p) return { type: "home" };
   if (p.startsWith("c:")) return { type: "collection", id: p.slice(2) };
   if (p.startsWith("s:")) return { type: "store", key: p.slice(2) };
-  if (["urgent", "history", "unsorted", "ordered", "orders", "spending", "projects"].includes(p)) return { type: p } as View;
-  return { type: "to_buy" };
+  if (["to_buy", "urgent", "history", "unsorted", "ordered", "orders", "spending", "projects"].includes(p)) return { type: p } as View;
+  return { type: "home" };
 }
 
 function readLocal<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
@@ -248,6 +287,31 @@ export function StoreProvider({
   const [altGroups, setAltGroups] = useState(initial.altGroups);
   const [storeSettings, setStoreSettings] = useState(initial.storeSettings);
   const [budget, setBudget] = useState(initial.budget);
+  const [alerts] = useState<Alert[]>(initial.alerts ?? []);
+  const [homePrefs, setHomePrefs] = useState<HomePrefs>(initial.home ?? DEFAULT_HOME_PREFS);
+  const [clock, setClock] = useState<Clock>(() => ({ now: ui.now ?? Date.now(), tz: ui.tz || DEFAULT_TZ, weekStartsOn: 0 }));
+  useEffect(() => {
+    const tick = () => {
+      let tz = DEFAULT_TZ;
+      let weekStartsOn: 0 | 1 = 0;
+      try {
+        tz = Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TZ;
+        const loc = new Intl.Locale(navigator.language) as Intl.Locale & { weekInfo?: { firstDay: number }; getWeekInfo?: () => { firstDay: number } };
+        weekStartsOn = (loc.getWeekInfo?.() ?? loc.weekInfo)?.firstDay === 1 ? 1 : 0;
+      } catch {}
+      setClock({ now: Date.now(), tz, weekStartsOn });
+      setCookie(TZ_COOKIE, encodeURIComponent(tz));
+    };
+    tick();
+    // Day/greeting roll-over while the app stays open.
+    const id = window.setInterval(tick, 10 * 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+  const [homeLayout, setHomeLayoutState] = useState<HomeLayout>(() => parseHomeLayout(ui.homeLayout));
+  const setHomeLayout = useCallback((l: HomeLayout) => {
+    setHomeLayoutState(l);
+    setCookie(HOME_COOKIE, homeLayoutCookie(l));
+  }, []);
   const upsertStoreSetting = useCallback((row: StoreSetting) => setStoreSettings((prev) => [...prev.filter((x) => x.storeKey !== row.storeKey), row]), []);
   const [selected, setSelectedState] = useState<Set<string>>(() => new Set());
   const [lastSelected, setLastSelected] = useState<string | null>(null);
@@ -340,9 +404,9 @@ export function StoreProvider({
   }, [loading, offline]);
   useEffect(() => {
     if (loading || offline || !online) return;
-    const t = setTimeout(() => void saveSnapshot({ data: { ...initial, items, collections, altGroups, storeSettings, budget, importLimitUsd }, at: Date.now(), currency }), 1200);
+    const t = setTimeout(() => void saveSnapshot({ data: { ...initial, items, collections, altGroups, storeSettings, budget, importLimitUsd, home: homePrefs }, at: Date.now(), currency }), 1200);
     return () => clearTimeout(t);
-  }, [loading, offline, online, initial, items, collections, altGroups, storeSettings, budget, currency, importLimitUsd]);
+  }, [loading, offline, online, initial, items, collections, altGroups, storeSettings, budget, currency, importLimitUsd, homePrefs]);
 
   // Recent client errors, for problem reports and the assistant's troubleshooting (lib/client-errors).
   useEffect(() => {
@@ -404,7 +468,7 @@ export function StoreProvider({
     window.scrollTo({ top: 0 });
     const url = new URL(window.location.href);
     const p = viewToParam(v);
-    if (p === "to_buy") url.searchParams.delete("v");
+    if (p === "home") url.searchParams.delete("v");
     else url.searchParams.set("v", p);
     window.history.replaceState(null, "", url);
   }, []);
@@ -563,6 +627,12 @@ export function StoreProvider({
       upsertStoreSetting,
       budget,
       setBudget,
+      alerts,
+      homePrefs,
+      setHomePrefs,
+      homeLayout,
+      setHomeLayout,
+      clock,
       upsertItems,
       removeItems,
       selected,
@@ -654,7 +724,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, plusOpen, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, plusOpen, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

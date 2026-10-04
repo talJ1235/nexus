@@ -909,3 +909,46 @@ html body[data-scroll-locked] { margin-right: 0 !important; --removed-body-scrol
   box-shadow: var(--card-shadow);
 }
 .r13-rows > * + * { border-top: 1px solid var(--line-in); }
+
+/* ---------- Round 13 Home ---------- */
+/* Cards rise in with a 60 ms stagger (--d) on the first paint. */
+.r13-rise { animation: rise-in 420ms var(--ease-out) both; animation-delay: var(--d, 0ms); }
+/* Status tile → section: scroll there, then a 600 ms outline fade (opacity of a pseudo-element: compositor only). */
+.r13-section { position: relative; scroll-margin-top: calc(var(--app-header-h, 0px) + 12px); }
+.r13-section::after {
+  content: ""; position: absolute; inset: -3px; border-radius: 15px; pointer-events: none;
+  box-shadow: 0 0 0 2px var(--ink); opacity: 0;
+}
+.r13-flash::after { animation: r13-flash 1.3s ease both; }
+@keyframes r13-flash { 0%, 45% { opacity: 0.9; } 100% { opacity: 0; } }
+/* Content swaps (suggestion pager, insight carousel). */
+.r13-swap { animation: r13-swap 350ms var(--ease-out) both; }
+@keyframes r13-swap { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+[dir="rtl"] .r13-swap { animation-name: r13-swap-rtl; }
+@keyframes r13-swap-rtl { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+
+/* "Nexus suggests" (A3): a 1.5 px gradient border whose sheen slides on the compositor (a wide pseudo-element moves
+   with transform; nothing repaints or lays out per frame), a soft tinted inside, a gradient orb that twinkles. */
+.r13-sug {
+  border-radius: 14px; padding: 1.5px; overflow: hidden; isolation: isolate;
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--ai) 16%, transparent);
+}
+.r13-sug::before {
+  content: ""; position: absolute; top: 0; bottom: 0; inset-inline-start: 0; width: 300%; z-index: -1;
+  background: linear-gradient(100deg, var(--ai), var(--spark), var(--ai)) 0 0 / 33.3334% 100% repeat-x;
+  animation: r13-sheen 10s linear infinite; will-change: transform;
+}
+@keyframes r13-sheen { from { transform: translateX(-33.3334%); } to { transform: translateX(0); } }
+.r13-sug::after { inset: -1.5px; }
+.r13-sug-in {
+  position: relative; border-radius: 12.5px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--ai) 9%, var(--surface)), var(--surface) 45%, color-mix(in srgb, var(--spark) 8%, var(--surface)));
+}
+.r13-orb { background: linear-gradient(135deg, var(--ai), var(--spark)); }
+.r13-orb svg { animation: r13-twinkle 3.2s ease-in-out infinite; }
+@keyframes r13-twinkle { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.12) rotate(12deg); } }
+.r13-sug:focus-visible { outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .r13-rise, .r13-swap, .r13-sug::before, .r13-orb svg { animation: none; }
+  .r13-flash::after { animation-duration: 1ms; }
+}

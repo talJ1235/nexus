@@ -105,6 +105,75 @@ async function traceLoad(ctx, url, ms = 2500) {
   return list;
 }
 
+// ---- Round 13 Part A: Home (the dashboard) — default screen, section order, phone height, tiles, logo.
+const HOME_ORDER = ["suggest", "week", "needs", "ontheway", "pace", "projects", "noticed"];
+/** Visible Home sections in page order (the phone's merged "pace projects" card counts as both). */
+const homeSections = (page) =>
+  page.$$eval("[data-home-section]", (els) => els.filter((e) => e.offsetParent !== null).flatMap((e) => e.getAttribute("data-home-section").split(" ")));
+async function homeChecks(page) {
+  await step("home is the default screen", async () => {
+    const url = new URL(page.url());
+    const home = await page.locator("[data-home]").count();
+    ok(home === 1 && !url.searchParams.get("v"), "home is the default screen", `home=${home} url=${url.search}`);
+  });
+  await step("home section order", async () => {
+    const got = await homeSections(page);
+    const expect = HOME_ORDER.filter((id) => got.includes(id));
+    ok(got.length >= 4 && JSON.stringify(got) === JSON.stringify(expect), "home section order", `${got.join(",")} (want ${expect.join(",")})`);
+    await shot(page, "home-v4");
+  });
+  await step("home status count = Needs-you queue", async () => {
+    const tile = await page.locator('[data-home-tile="needs"] b').first().textContent().catch(() => null);
+    const badge = await page.locator('[data-home-count="needs"]').first().textContent().catch(() => null);
+    const n = (x) => (x ?? "").match(/\d+/)?.[0];
+    ok(n(tile) != null && n(tile) === n(badge), "home status count = Needs-you queue", `tile "${tile}" badge "${badge}"`);
+  });
+  if (MOBILE)
+    await step("home phone height ≤ 1800 px and no overflow at 360/390", async () => {
+      const h = await page.locator("[data-home]").evaluate((e) => e.offsetHeight);
+      const widths = [];
+      for (const w of [360, 390]) {
+        await page.setViewportSize({ width: w, height: VIEWPORT.height });
+        await page.waitForTimeout(250);
+        widths.push(await page.evaluate((w) => document.documentElement.scrollWidth - w, w));
+      }
+      await page.setViewportSize(VIEWPORT);
+      ok(h <= 1800 && widths.every((x) => x <= 0), "home phone height ≤ 1800 px and no overflow at 360/390", `height ${h}, overflow ${widths.join("/")}`);
+    });
+  // A6: each status tile scrolls to its section and flashes it.
+  await step("home status tiles scroll to their sections", async () => {
+    const tiles = await page.$$eval("[data-home-tile]", (els) => els.filter((e) => e.offsetParent !== null).map((e) => e.getAttribute("data-home-tile")));
+    const bad = [];
+    for (const id of tiles) {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForTimeout(150);
+      await page.locator(`[data-home-tile="${id}"]:visible`).first().click();
+      await page.waitForTimeout(1000);
+      const r = await page.evaluate((id) => {
+        const el = [...document.querySelectorAll(`[data-home-section~="${id}"]`)].find((x) => x.offsetParent !== null);
+        if (!el) return null;
+        const b = el.getBoundingClientRect();
+        return { top: b.top, inView: b.top >= 0 && b.top < innerHeight - 60, flash: el.classList.contains("r13-flash") };
+      }, id);
+      if (!r?.inView || !r.flash) bad.push(`${id}:${JSON.stringify(r)}`);
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+    ok(tiles.length >= 2 && !bad.length, "home status tiles scroll to their sections", `${tiles.length} tiles; ${bad.join(" ")}`);
+  });
+  // The logo returns to Home from every view.
+  await step("logo returns to Home from every view", async () => {
+    const bad = [];
+    for (const v of ["to_buy", "ordered", "projects", "spending", "history", "orders"]) {
+      await page.goto(`${BASE}/?v=${v}`);
+      await page.waitForSelector(READY, { timeout: 15000 });
+      await page.locator(MOBILE ? "[data-topbar-logo]" : "[data-sidebar-logo]").first().click();
+      await page.waitForSelector("[data-home]", { timeout: 4000 }).catch(() => {});
+      if (!(await page.locator("[data-home]").count()) || new URL(page.url()).searchParams.get("v")) bad.push(v);
+    }
+    ok(!bad.length, "logo returns to Home from every view", bad.join(","));
+  });
+}
+
 try {
   await fetch(`${BASE}/login`, { redirect: "manual" });
 } catch (e) {
@@ -181,6 +250,11 @@ try {
       ok(true, "app renders", "");
       await shot(page, "home");
     });
+
+    // ---- Round 13 Part A: Home is the default screen (login lands on it); then the list for the item checks below.
+    await homeChecks(page);
+    await page.goto(`${BASE}/?v=to_buy`);
+    await page.waitForSelector(READY, { timeout: 15000 });
 
     // Round 10 A1: opening a product must not move anything behind the sheet (> 1 px), and closing must fly the
     // picture back and leave no clone — also when items are opened and closed quickly in a row.
@@ -301,7 +375,7 @@ try {
           const held = () => page.evaluate(() => document.querySelector("[data-swipe-held]")?.getAttribute("data-swipe-held") ?? "0");
           for (const lang of ["en", "he"]) {
             await ctx.addCookies([{ name: "nexus_locale", value: lang, url: BASE }]);
-            await page.goto(`${BASE}/`);
+            await page.goto(`${BASE}/?v=to_buy`);
             await page.waitForSelector(READY, { timeout: 15000 });
             await page.locator("[data-phone-layout-toggle] [role=radio]").nth(1).click();
             await page.waitForTimeout(400);
@@ -446,7 +520,7 @@ try {
       await step("phone dock: fixed order in en + he, dock and top bar perfectly still while switching", async () => {
         const order = async () =>
           page.evaluate(() => [...document.querySelectorAll("[data-dock] > [data-dock-target]")].sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left).map((e) => e.getAttribute("data-dock-target")));
-        await page.goto(`${BASE}/`);
+        await page.goto(`${BASE}/?v=to_buy`);
         await page.waitForSelector(READY);
         const en = await order();
         await ctx.addCookies([{ name: "nexus_locale", value: "he", url: BASE }]);
@@ -536,7 +610,7 @@ try {
       });
 
       await step("phone home: totals legend + strip, first row of products above the fold, cards ↔ rows", async () => {
-        await page.goto(`${BASE}/`);
+        await page.goto(`${BASE}/?v=to_buy`);
         await page.waitForSelector(READY);
         await page.waitForSelector("[data-item-card]");
         const r = await page.evaluate(() => {
@@ -560,7 +634,7 @@ try {
 
     if (MOBILE) {
       await step("receipt camera: shutter → corner adjust → add a part → use", async () => {
-        await page.goto(`${BASE}/`);
+        await page.goto(`${BASE}/?v=to_buy`);
         await page.waitForSelector(READY);
         await page.click("[data-plus]");
         await page.click("[data-plus-action=receipt]");
@@ -592,7 +666,7 @@ try {
         try {
           const c2 = await b2.newContext({ viewport: VIEWPORT, ...DEVICE, colorScheme: "dark", permissions: ["camera"], storageState: await ctx.storageState() });
           const p2 = await c2.newPage();
-          await p2.goto(`${BASE}/`);
+          await p2.goto(`${BASE}/?v=to_buy`);
           await p2.waitForSelector(READY, { timeout: 15000 });
           await p2.click("[data-plus]");
           await p2.click("[data-plus-action=receipt]");
@@ -758,7 +832,7 @@ try {
 
     if (process.env.SMOKE_PERF) {
       await step("motion: no long tasks > 50 ms during the main transitions (CPU ×4)", async () => {
-        await page.goto(`${BASE}/`);
+        await page.goto(`${BASE}/?v=to_buy`);
         await page.waitForSelector(READY);
         await page.waitForTimeout(1500);
         const cdp = await ctx.newCDPSession(page);
@@ -825,7 +899,7 @@ try {
         if (cmd !== 1) throw new Error("no Export to Excel in the command menu");
       }
       ok(n > 0 && covers === n && add === 1 && header === 1 && /v=c%3A|v=c:/.test(page.url()), "projects screen: cards with covers, order projects → lists → start-new, New menu → project page with its header → Excel export", `cards=${n} covers=${covers} add=${add} header=${header} url=${page.url()}`);
-      await page.goto(`${BASE}/`);
+      await page.goto(`${BASE}/?v=to_buy`);
       await page.waitForSelector(READY, { timeout: 15000 });
     });
 
@@ -867,7 +941,7 @@ try {
       }
       const round = (r) => r.length > 0 && r.every((x) => x === r[0] && parseFloat(x) >= 20);
       ok(round(fwd) && round(rev), "project cover morph: rounded corners the whole way, both directions", `in: ${[...new Set(fwd)].join("/") || "no transition"}; back: ${[...new Set(rev)].join("/") || "no transition"}`);
-      await page.goto(`${BASE}/`);
+      await page.goto(`${BASE}/?v=to_buy`);
       await page.waitForSelector(READY, { timeout: 15000 });
     });
 
@@ -983,7 +1057,7 @@ try {
       const r = {};
       const data = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data;
       const bought = data.items.filter((i) => i.status === "purchased");
-      await page.goto(`${BASE}/`);
+      await page.goto(`${BASE}/?v=to_buy`);
       await page.waitForSelector(READY, { timeout: 15000 });
       if (MOBILE) {
         await page.locator('[data-dock-target="spending"]').click();
@@ -1028,7 +1102,7 @@ try {
         await page.waitForTimeout(300);
         r.searchEmpty = (await page.locator("main [data-item-card]").count()) === 0;
         // Searching To buy → "Go to History" carries the search over.
-        await page.goto(`${BASE}/`);
+        await page.goto(`${BASE}/?v=to_buy`);
         await page.waitForSelector(READY, { timeout: 15000 });
         await page.evaluate(() => window.scrollTo(0, 0));
         if (MOBILE) await page.locator("[data-phone-search]").click();
@@ -1081,7 +1155,7 @@ try {
     if (process.env.SMOKE_SLOW) {
       // Needs a server started with NEXUS_TRACE_DELAY_MS (slow data): a click in the loading shell must survive.
       await step("panel opened while loading stays open when the data arrives", async () => {
-        await page.goto(`${BASE}/`, { waitUntil: "commit" });
+        await page.goto(`${BASE}/?v=to_buy`, { waitUntil: "commit" });
         const btn = page.locator("[data-app-shell]:not([data-ready]) [data-ask]").filter({ visible: true }).first();
         await btn.waitFor({ timeout: 10000 });
         await page.waitForTimeout(400); // let the shell hydrate
@@ -1111,7 +1185,7 @@ try {
     }
 
     await step("assistant panel opens", async () => {
-      await page.goto(`${BASE}/`);
+      await page.goto(`${BASE}/?v=to_buy`);
       await page.waitForSelector(READY, { timeout: 15000 });
       const btn = page.locator("[data-ask]").filter({ visible: true }).first();
       if (!(await btn.count())) return ok(true, "assistant panel (AI off or not in this layout, skipped)");
@@ -1196,7 +1270,7 @@ try {
           await page.press("#add-input", "Enter");
         };
         await step("pasted link shows a placeholder card at once", async () => {
-          await page.goto(`${BASE}/`);
+          await page.goto(`${BASE}/?v=to_buy`);
           await page.waitForSelector(READY);
           await page.evaluate(() => localStorage.setItem("nexus.layout", "cards"));
           await paste();
@@ -1266,7 +1340,7 @@ try {
           };
           const r = {};
           try {
-          await page.goto(`${BASE}/`);
+          await page.goto(`${BASE}/?v=to_buy`);
           await page.waitForSelector(READY, { timeout: 15000 });
           await page.locator("[data-sonner-toast]").first().waitFor({ state: "detached", timeout: 1 }).catch(() => {});
           const ids = await page.$$eval("main [data-item-card]", (els) => els.map((e) => e.getAttribute("data-item-card")));
@@ -1314,14 +1388,14 @@ try {
             await undo();
             r.orderedUndo = await until(() => statusOf(id), "to_buy");
             // Full swipe toward the start edge → deleted; Undo brings it back.
-            await page.goto(`${BASE}/`);
+            await page.goto(`${BASE}/?v=to_buy`);
             await page.waitForSelector(READY, { timeout: 15000 });
             await swipe(-330);
             r.deleted = await until(() => statusOf(id), "gone");
             await undo();
             r.deleteUndo = await until(() => statusOf(id), "to_buy");
             // Long-press a row → selected.
-            await page.goto(`${BASE}/`);
+            await page.goto(`${BASE}/?v=to_buy`);
             await page.waitForSelector(READY, { timeout: 15000 });
             await longPress();
             r.select = await page.locator("[data-selection-bar]").isVisible();
@@ -1383,7 +1457,7 @@ try {
           await sheet.getByRole("button", { name: /Move 1|העבר 1/ }).click();
           await page.getByText(/Moved 1 to|הועברו 1 אל/).first().waitFor({ timeout: 10000 });
           await page.keyboard.press("Escape");
-          await page.goto(`${BASE}/`);
+          await page.goto(`${BASE}/?v=to_buy`);
           await page.waitForSelector(READY);
           const after = await settled();
           ok(after === before + 1, "partial move splits the item", `${before} → ${after}`);
@@ -1429,7 +1503,7 @@ try {
         });
         await step("import VAT: a low limit shows the notice in Order by store", async () => {
           const setLimit = async (v) => {
-            await page.goto(`${BASE}/`);
+            await page.goto(`${BASE}/?v=to_buy`);
             await page.waitForSelector(READY);
             await openPalette();
             await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Open settings|פתיחת ההגדרות|Settings/ }).first().click();
@@ -1453,7 +1527,7 @@ try {
           const items = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
           const target = items.find((i) => i.status === "to_buy" && i.id.startsWith("demo-"));
           if (!target) return ok(true, "compare stores (no demo item, skipped)");
-          await page.goto(`${BASE}/?item=${target.id}`);
+          await page.goto(`${BASE}/?v=to_buy&item=${target.id}`);
           await page.waitForSelector(READY);
           await page.locator("[data-compare-open]").click();
           await page.locator("[data-compare-row]").first().waitFor({ timeout: 20000 });
@@ -1464,7 +1538,7 @@ try {
         });
         // Needs NEXUS_AI_MOCK=1: the mock answer is streamed word by word through /api/ask.
         await step("assistant: streamed answer with lead line, mini cards, then follow-ups", async () => {
-          await page.goto(`${BASE}/`);
+          await page.goto(`${BASE}/?v=to_buy`);
           await page.waitForSelector(READY);
           await page.locator("[data-ask]").filter({ visible: true }).first().click();
           await page.locator("[data-ai-new]").click(); // a fresh chat (the panel reopens recent conversations)
@@ -1482,7 +1556,7 @@ try {
         });
         // Round 8 D2 (mock): a how-to question is routed to the help, answered with an action button that works.
         await step("assistant help: how-to question → help answer with a working action button + how-to follow-ups", async () => {
-          await page.goto(`${BASE}/`);
+          await page.goto(`${BASE}/?v=to_buy`);
           await page.waitForSelector(READY);
           await page.locator("[data-ask]").filter({ visible: true }).first().click();
           await page.locator("[data-ai-new]").click(); // a fresh chat (the panel reopens recent conversations)
@@ -1504,7 +1578,7 @@ try {
         });
         // Round 8 D3 (mock): a complaint gets a report card; sent, it shows up in Reports with its diagnostics.
         await step("report: 'this is broken' → report card → send → in Reports with diagnostics", async () => {
-          await page.goto(`${BASE}/`);
+          await page.goto(`${BASE}/?v=to_buy`);
           await page.waitForSelector(READY);
           await page.locator("[data-ask]").filter({ visible: true }).first().click();
           await page.locator("[data-ai-new]").click(); // a fresh chat (the panel reopens recent conversations)
@@ -1542,7 +1616,7 @@ try {
         });
         // Round 9 C1 (mock): one chat — Plan mode turns the next message into a plan card; add a line, then the rest.
         await step("assistant plan mode: description → plan card in the chat → add a line → add all", async () => {
-          await page.goto(`${BASE}/`);
+          await page.goto(`${BASE}/?v=to_buy`);
           await page.waitForSelector(READY);
           await page.locator("[data-ask]").filter({ visible: true }).first().click();
           await page.locator("[data-ai-new]").click(); // a fresh chat (the panel reopens recent conversations)
@@ -1565,7 +1639,7 @@ try {
         });
         // Round 9 C2 (mock): conversations are saved — reopening continues one, History finds, deletes (Undo), new chat.
         await step("assistant history: reopen continues, history search, delete + undo, new chat", async () => {
-          await page.goto(`${BASE}/`);
+          await page.goto(`${BASE}/?v=to_buy`);
           await page.waitForSelector(READY);
           await page.locator("[data-ask]").filter({ visible: true }).first().click();
           await page.locator("[data-ai-new]").click();
@@ -1595,7 +1669,7 @@ try {
         });
         // Round 9 C3 (mock): a stated preference → "Remember?" chip → saved → listed in Settings with the profile.
         await step("assistant memory: preference → remember chip → in Settings with the profile", async () => {
-          await page.goto(`${BASE}/`);
+          await page.goto(`${BASE}/?v=to_buy`);
           await page.waitForSelector(READY);
           await page.locator("[data-ask]").filter({ visible: true }).first().click();
           await page.locator("[data-ai-new]").click();
@@ -1621,7 +1695,7 @@ try {
         });
         // Needs the server started with NEXUS_AI_MOCK=1 (the mock proposes "first two to-buy items → ordered").
         await step("assistant action: propose → apply → undo", async () => {
-          await page.goto(`${BASE}/`);
+          await page.goto(`${BASE}/?v=to_buy`);
           await page.waitForSelector(READY);
           const btn = page.locator("[data-ask]").filter({ visible: true }).first();
           if (!(await btn.count())) return ok(true, "assistant action (AI off or not in this layout, skipped)");
@@ -1652,7 +1726,7 @@ try {
         });
         // Needs NEXUS_AI_MOCK=1 (lookups answer "Mock product" without the network). No camera in headless: type it.
         await step("barcode: type a code → found → add to list (with its barcode)", async () => {
-          await page.goto(`${BASE}/`);
+          await page.goto(`${BASE}/?v=to_buy`);
           await page.waitForSelector(READY);
           if (MOBILE) {
             await page.click("[data-plus]");
@@ -1683,7 +1757,7 @@ try {
         await step("shopping mode: check → finish → undo; offline finish queues and syncs", async () => {
           const backup = async () => (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
           const openTrip = async () => {
-            await page.goto(`${BASE}/`);
+            await page.goto(`${BASE}/?v=to_buy`);
             await page.waitForSelector(READY);
             await openPalette();
             await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Shopping mode|מצב קנייה/ }).first().click();
@@ -1856,7 +1930,7 @@ try {
         await p.waitForFunction(async () => !!navigator.serviceWorker.controller && (await caches.keys()).some((k) => k.startsWith("nexus-shell")) && (await indexedDB.databases()).some((d) => d.name === "nexus-offline"), null, { timeout: 20000, polling: 500 });
         await p.waitForTimeout(1500);
         await oc.setOffline(true);
-        await p.goto(`${BASE}/`);
+        await p.goto(`${BASE}/?v=to_buy`);
         await p.waitForSelector("[data-offline-banner=snapshot]", { timeout: 10000 });
         await p.waitForSelector(READY, { timeout: 10000 });
         await p.waitForTimeout(1500);
@@ -1899,7 +1973,7 @@ try {
       // pull-to-refresh and later loads in the session (Round 11 A1); both hand off to the app. Desktop never.
       const p = await ctx.newPage();
       const mode = () => p.evaluate(() => document.documentElement.dataset.boot);
-      await p.goto(`${BASE}/`, { waitUntil: "commit" });
+      await p.goto(`${BASE}/?v=to_buy`, { waitUntil: "commit" });
       await p.waitForSelector("#boot", { state: "attached", timeout: 10000 });
       if (MOBILE) {
         const shown = await p.locator("#boot .boot-mark").isVisible();
@@ -1919,7 +1993,7 @@ try {
         await p.goto(`${BASE}/?v=history`, { waitUntil: "commit" });
         again.push(`${await mode()}:${await p.locator("#boot .boot-small").isVisible()}:false`);
         await p.waitForSelector("#boot.boot-gone", { state: "attached", timeout: 10000 });
-        await p.goto(`${BASE}/`);
+        await p.goto(`${BASE}/?v=to_buy`);
         await p.waitForSelector(READY, { timeout: 15000 });
         // Our pull-to-refresh replaces Chrome's: pull down at the top → the Box mark → release → reload → small loader.
         const overscroll = await p.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY);
@@ -1944,7 +2018,7 @@ try {
         );
         // A new tab is a new app open → the full intro again.
         const p2 = await ctx.newPage();
-        await p2.goto(`${BASE}/`, { waitUntil: "commit" });
+        await p2.goto(`${BASE}/?v=to_buy`, { waitUntil: "commit" });
         await p2.waitForSelector("#boot", { state: "attached", timeout: 10000 });
         ok((await p2.evaluate(() => document.documentElement.dataset.boot)) === "full", "boot screen: a new tab opens with the full intro");
         await p2.close();

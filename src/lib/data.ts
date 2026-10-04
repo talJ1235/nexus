@@ -4,6 +4,7 @@ import { db, schema } from "@/db";
 import { aiEnabled } from "./ai";
 import { BUDGET_KV_PREFIX, type BudgetHistory } from "./budget";
 import { DEFAULT_IMPORT_LIMIT_USD, IMPORT_LIMIT_KEY } from "./import-vat";
+import { loadHomePrefs } from "./home-prefs";
 import { getRates } from "./rates";
 import type { AppData, ItemWithSources } from "./types";
 
@@ -31,7 +32,7 @@ export async function loadItems(): Promise<ItemWithSources[]> {
 }
 
 export async function getAppData(): Promise<AppData> {
-  const [collections, items, altGroups, storeSettings, budget, rates, importLimitUsd] = await Promise.all([
+  const [collections, items, altGroups, storeSettings, budget, rates, importLimitUsd, alerts, home] = await Promise.all([
     db.select().from(schema.collections).orderBy(asc(schema.collections.sortOrder), asc(schema.collections.createdAt)),
     loadItems(),
     db.select().from(schema.altGroups),
@@ -39,8 +40,10 @@ export async function getAppData(): Promise<AppData> {
     loadBudgetHistory(),
     getRates(),
     loadImportLimit(),
+    db.select().from(schema.alerts).orderBy(desc(schema.alerts.createdAt)).limit(60),
+    loadHomePrefs(),
   ]);
-  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd };
+  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, alerts, home };
 }
 
 export async function loadImportLimit(): Promise<number> {
