@@ -123,7 +123,12 @@ const homeSections = (page) =>
 async function openSettings(page) {
   const btn = page.locator('[data-carry="settings"]:visible').first();
   if (await btn.count()) await btn.click();
-  else await page.locator("[data-me-open]").click();
+  else {
+    await page.locator("[data-me-open]").click();
+    // Phones: Me → Settings (R14 A2 needs the full Settings, where the Home diagnostics live).
+    const row = page.locator("[data-me-settings]");
+    if (await row.waitFor({ timeout: 3000 }).then(() => true, () => false)) await row.click();
+  }
   await page.waitForSelector("[data-ai-suggestions-switch]", { timeout: 5000 }).catch(() => {});
 }
 async function homeChecks(page) {
@@ -2458,6 +2463,54 @@ try {
         if (OUT) await p.screenshot({ path: `${OUT}/home-empty${SUFFIX}.png` });
         await fctx.close();
         ok(actions >= 3 && actions <= 4 && sections === 0, "home: empty account shows the add actions only", `${actions} actions, ${sections} other sections`);
+      });
+
+    // Round 14 A2: a sparse account (SEED_PROFILE=sparse server, NEXUS_AI_MOCK=1) — Home always has a voice.
+    // AI on: ≥ 2 suggestions incl. the AI's, ≥ 1 insight; AI off: ≥ 1 suggestion and ≥ 1 insight, none from the AI.
+    if (process.env.SMOKE_SPARSE)
+      await step("home: sparse account still shows suggestions + insights (AI on and off)", async () => {
+        const SPARSE = process.env.SMOKE_SPARSE.replace(/\/$/, "");
+        const fctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE });
+        const p = await fctx.newPage();
+        await p.goto(`${SPARSE}/login`);
+        await p.fill("#password", PASSWORD);
+        await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), p.click("button[type=submit]")]);
+        const read = async (wantAi) => {
+          await p.waitForSelector("[data-home]", { timeout: 15000 });
+          const sug = p.locator("[data-home-section=suggest]");
+          await sug.waitFor({ timeout: 8000 }).catch(() => {});
+          if (wantAi) await p.waitForSelector("[data-sug-kinds~=ai]", { timeout: 10000 }).catch(() => {});
+          else await p.waitForTimeout(1500);
+          const attr = async (sel, a) => (await p.locator(sel).count()) ? await p.locator(sel).first().getAttribute(a) : null;
+          return {
+            sugs: Number((await attr("[data-home-section=suggest]", "data-sug-count")) ?? 0),
+            sugKinds: (await attr("[data-home-section=suggest]", "data-sug-kinds")) ?? "",
+            ins: Number((await attr("[data-home-section=noticed]", "data-noticed-count")) ?? 0),
+            insKinds: (await attr("[data-home-section=noticed]", "data-noticed-kinds")) ?? "",
+          };
+        };
+        const setAi = async (on) => {
+          await openSettings(p);
+          const sw = p.locator("[data-ai-suggestions-switch]");
+          if ((await sw.getAttribute("aria-checked")) !== String(on)) await sw.click();
+          await p.waitForTimeout(500);
+          const diag = (await p.locator("[data-home-diag]").count()) ? await p.locator("[data-home-diag]").innerText() : "";
+          await p.keyboard.press("Escape");
+          return diag;
+        };
+        await setAi(true);
+        await p.goto(`${SPARSE}/`);
+        const on = await read(true);
+        if (OUT) await p.screenshot({ path: `${OUT}/home-sparse-ai${SUFFIX}.png` });
+        const diag = await setAi(false);
+        await p.goto(`${SPARSE}/`);
+        const off = await read(false);
+        if (OUT) await p.screenshot({ path: `${OUT}/home-sparse-rules${SUFFIX}.png` });
+        await setAi(true);
+        await fctx.close();
+        const good =
+          on.sugs >= 2 && /\bai\b/.test(on.sugKinds) && on.ins >= 1 && off.sugs >= 1 && !/\bai\b/.test(off.sugKinds) && off.ins >= 1 && !/\bai\b/.test(off.insKinds) && /AI|בינה/.test(diag);
+        ok(good, "home: sparse account still shows suggestions + insights (AI on and off)", JSON.stringify({ on, off, diag: diag.slice(0, 90) }));
       });
 
     if (process.env.SMOKE_VISUAL) {

@@ -2,6 +2,8 @@
 // Idempotent: wipes and re-creates rows whose id starts with "demo-". Never touches remote databases.
 //
 //   node --env-file=.env.local scripts/seed-local.mjs
+//   SEED_PROFILE=sparse … — Round 14 A2: items + projects only (no alerts, no etas, no price points, no budgets), so
+//   Home's exact rules find nothing and the AI look / broad fallbacks have to speak.
 import { createClient } from "@libsql/client";
 
 const url = process.env.TURSO_DATABASE_URL || "";
@@ -26,6 +28,7 @@ const IMG = {
 
 const now = Date.now();
 const day = 86400000;
+const SPARSE = process.env.SEED_PROFILE === "sparse";
 const collections = [
   { id: "demo-c-railcam", kind: "project", name: "Railcam", color: "amber", budget: 1500 },
   { id: "demo-c-home", kind: "list", name: "בית", color: "teal", budget: null },
@@ -82,6 +85,21 @@ HIST.forEach(([title, img, col, store, key, price], i) => {
   }
 });
 
+// Sparse: a few to-buy items (two waiting > 30 days), one order with no eta, two buys this month; no budgets.
+if (SPARSE) {
+  const keep = new Set(["demo-1", "demo-2", "demo-4", "demo-5", "demo-6", "demo-7", "demo-8", "demo-10", "demo-h0-0", "demo-h1-0"]);
+  const ago = { "demo-1": 45, "demo-5": 38 };
+  const kept = items.filter((x) => keep.has(x[0])).map((x) => {
+    const y = [...x];
+    y[9] = ago[y[0]] ?? (y[6] === "purchased" ? 1 : y[9] ?? 3);
+    y[10] = undefined;
+    return y;
+  });
+  items.length = 0;
+  items.push(...kept);
+  for (const c of collections) c.budget = null;
+}
+
 const CAT = { charger: "electronics", fan: "home-kitchen", pla: "materials", motor: "mechanical", lamp: "home-kitchen", chair: "home-kitchen", pi: "computers", drill: "tools" };
 
 await db.execute("DELETE FROM price_points WHERE item_id LIKE 'demo-%'");
@@ -106,11 +124,16 @@ for (const [n, [id, title, img, col, prio, qty, status, src, tags, ago, etaDays]
     sql: "INSERT INTO sources (id, item_id, url, normalized_url, store, store_key, price, currency, shipping, raw_title, fetched_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     args: [`${id}-s`, id, url, url, store, key, price, currency, shipping, title, t, t],
   });
-  for (const [k, f] of (PTS[id] ?? [[20, 1.12], [10, 1.05], [0, 1]]).entries())
+  for (const [k, f] of (SPARSE ? [] : (PTS[id] ?? [[20, 1.12], [10, 1.05], [0, 1]])).entries())
     await db.execute({
       sql: "INSERT INTO price_points (id, source_id, item_id, price, currency, recorded_at) VALUES (?, ?, ?, ?, ?, ?)",
       args: [`${id}-p${k}`, `${id}-s`, id, Math.round(price * f[1] * 100) / 100, currency, t - f[0] * day],
     });
+}
+if (SPARSE) {
+  await db.execute("DELETE FROM kv WHERE key LIKE 'pref:budget:%'");
+  console.log(`OK seeded ${items.length} demo items (sparse)`);
+  process.exit(0);
 }
 // An unread price drop on the fan; the Raspberry Pi store's free-shipping rule (fee known); a monthly cap.
 await db.execute({ sql: "INSERT INTO alerts (id, item_id, source_id, kind, old_price, new_price, currency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", args: ["demo-a1", "demo-2", "demo-2-s", "drop", 379, 349, "ILS", now - 3600_000] });

@@ -5,9 +5,12 @@ import { AlertTriangle, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Ch
 import { useI18n } from "@/components/providers";
 import { toast } from "@/lib/toast";
 import { updateItem } from "@/app/actions";
-import { buyAgain, dismissHome, phraseSuggestions, undismissHome, type Phrased } from "@/app/home-actions";
+import { buyAgain, dismissHome, homeLook, phraseSuggestions, undismissHome, type Phrased } from "@/app/home-actions";
+import type { HomeAi } from "@/lib/home-ai";
+import { useMedia } from "@/components/ui/use-media";
+import { useExtension } from "./use-extension";
 import { activeSource } from "@/lib/calc";
-import { dayKeyIn, HIDE_MS, homeModel, homeSuggestions, type HomeModel, type Insight, type NeedRow, type Suggestion, type WeekEvent } from "@/lib/home";
+import { dayKeyIn, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, type HomeModel, type Insight, type NeedRow, type Suggestion, type WeekEvent } from "@/lib/home";
 import { formatMoney, formatMoneyCompact } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { DeliveryTrack } from "./delivery-track";
@@ -103,7 +106,34 @@ export function HomeView() {
       }),
     [s.items, s.alerts, s.budget, s.storeSettings, s.rates, clock, s.collections, s.altGroups, s.currency, s.homePrefs.dismissed],
   );
-  const sugs = useMemo(() => homeSuggestions(model), [model]);
+  const ruleSugs = useMemo(() => homeSuggestions(model), [model]);
+  const ext = useExtension();
+  const desktop = useMedia("(min-width: 1024px)");
+  const extOk = desktop ? ext.available : null;
+  const fbCounts = useMemo(() => [fallbackSuggestions(model, { extension: extOk, receipts: null }).length, fallbackInsights(model).length] as const, [model, extOk]);
+  const look = useHomeLook(model.empty ? -1 : ruleSugs.length, model.noticed.length, fbCounts[0], fbCounts[1]);
+  // R14 A2: exact rules first, then the AI's look, then the broad fallbacks (≤ 4 suggestions, ≤ 3 insights).
+  const sugs = useMemo(() => {
+    const now = clock.now;
+    const hidden = (key: string) => (s.homePrefs.dismissed[`sug:${key}`] ?? 0) > now;
+    const ai: Suggestion[] = (look.ai?.suggestions ?? []).map((x, k) => ({
+      key: `ai:${model.today}:${k}`,
+      kind: "ai",
+      score: 0,
+      facts: { title: x.title, why: x.why },
+      action:
+        x.action.type === "open" && x.action.itemId ? { type: "open", itemId: x.action.itemId }
+        : x.action.type === "add" && x.action.itemId ? { type: "add", itemId: x.action.itemId }
+        : x.action.type === "budget" && x.action.collectionId ? { type: "budget", collectionId: x.action.collectionId }
+        : { type: "none" },
+    }));
+    const fb = fallbackSuggestions(model, { extension: extOk, receipts: look.receipts });
+    return mergeHome(ruleSugs, ai.filter((x) => !hidden(x.key)), fb, 4);
+  }, [ruleSugs, look, model, extOk, clock.now, s.homePrefs.dismissed]);
+  const noticed = useMemo(() => {
+    const ai: Insight[] = (look.ai?.insights ?? []).map((x, k) => ({ key: `ai:${model.today}:${k}`, kind: "ai", text: x.text, ...(x.action && x.action.type !== "none" && { action: { ...x.action, type: x.action.type } }) }));
+    return mergeHome(model.noticed, ai, fallbackInsights(model), 3);
+  }, [look, model]);
   const [editing, setEditing] = useState<HomeLayout | null>(null);
 
   if (s.loading) return <HomeSkeleton />;
@@ -116,7 +146,7 @@ export function HomeView() {
     ontheway: model.packages.length > 0,
     pace: model.pace.cap != null || model.pace.usual != null || model.stats.budget.spent > 0,
     projects: model.projects.length > 0,
-    noticed: model.noticed.length > 0,
+    noticed: noticed.length > 0,
   };
   const layout = editing ?? s.homeLayout;
   const shown = layout.order.filter((id) => has[id] && !layout.hidden.includes(id));
@@ -131,13 +161,13 @@ export function HomeView() {
       {editing ? (
         <CustomizeList layout={editing} has={has} onChange={setEditing} />
       ) : (
-        <Sections shown={shown} model={model} sugs={sugs} stagger={stagger} />
+        <Sections shown={shown} model={model} sugs={sugs} noticed={noticed} stagger={stagger} />
       )}
     </div>
   );
 }
 
-function Sections({ shown, model, sugs, stagger }: { shown: HomeSection[]; model: HomeModel; sugs: Suggestion[]; stagger: boolean }) {
+function Sections({ shown, model, sugs, noticed, stagger }: { shown: HomeSection[]; model: HomeModel; sugs: Suggestion[]; noticed: Insight[]; stagger: boolean }) {
   // Desktop spans: two adjacent half sections share a row (their own widths when they add up to 12, else 6 + 6).
   const spans = new Map<HomeSection, number>();
   for (let k = 0; k < shown.length; k++) {
@@ -187,7 +217,7 @@ function Sections({ shown, model, sugs, stagger }: { shown: HomeSection[]; model
             );
           }
           case "noticed":
-            return <NoticedCard key={id} model={model} className={cls} style={style} />;
+            return <NoticedCard key={id} list={noticed} className={cls} style={style} />;
         }
       })}
     </>
@@ -490,7 +520,46 @@ function template(x: Suggestion, t: T, fm: Fmt) {
       return { title: fm.f(t.dash.sug.wait.title, { item: v("item"), day: fm.weekday(Number(F.day)) }), why: fm.f(t.dash.sug.wait.why, { pct: v("pct") }), cta: t.dash.sug.wait.cta };
     case "budget":
       return { title: fm.f(t.dash.sug.budget.title, { project: v("project") }), why: fm.f(t.dash.sug.budget.why, { min: fm.money(Number(F.min)), max: fm.money(Number(F.max)) }), cta: t.dash.sug.budget.cta };
+    case "ai": {
+      const a = x.action.type;
+      return { title: v("title"), why: v("why"), cta: a === "none" ? null : a === "add" ? t.dash.sug.ai.ctaAdd : a === "budget" ? t.dash.sug.ai.ctaBudget : t.dash.sug.ai.cta };
+    }
+    case "set_budget":
+      return t.dash.sug.setBudget;
+    case "target":
+      return { ...t.dash.sug.target, title: fm.f(t.dash.sug.target.title, { item: v("item") }) };
+    case "eta":
+      return { ...t.dash.sug.eta, title: fm.f(t.dash.sug.eta.title, { item: v("item") }) };
+    case "stale":
+      return { title: fm.f(t.dash.sug.stale.title, { item: v("item") }), why: fm.f(t.dash.sug.stale.why, { days: v("days") }), cta: t.dash.sug.stale.cta };
+    case "extension":
+      return t.dash.sug.extension;
+    case "receipt":
+      return t.dash.sug.receipt;
   }
+}
+
+/**
+ * R14 A2: the AI's own look at Home (server: once a day when the rules are thin, cached; off / no key → null) and
+ * the receipt count the fallbacks need. Never blocks render. `ruleSugs` −1 = empty account (no call).
+ */
+function useHomeLook(ruleSugs: number, ruleIns: number, fbSugs: number, fbIns: number) {
+  const s = useStore();
+  const { locale } = useI18n();
+  const [look, setLook] = useState<{ ai: HomeAi | null; receipts: number | null }>({ ai: null, receipts: null });
+  const on = s.homePrefs.aiSuggestions;
+  useEffect(() => {
+    if (ruleSugs < 0 || s.offlineAt != null || s.loading) return;
+    let alive = true;
+    homeLook({ ruleSugs, ruleIns, fbSugs: Math.min(fbSugs, 20), fbIns, currency: s.currency, locale: locale === "he" ? "he" : "en" })
+      .then((r) => alive && setLook(r))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per rule counts / language / switch
+  }, [ruleSugs, ruleIns, fbSugs, fbIns, locale, on, s.loading]);
+  return on ? look : { ai: null, receipts: look.receipts };
 }
 
 /** AI phrasing for today's candidates (server: once a day, cached; {} = keep the templates). Never blocks render. */
@@ -545,7 +614,8 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
   const { t, f, dir } = useI18n();
   const fm = useFmt();
   const ro = useReadOnly();
-  const phrased = usePhrased(sugs);
+  // Only the exact rules get AI phrasing; AI items are already written and fallbacks keep their templates.
+  const phrased = usePhrased(sugs.filter((y) => y.kind === "deal" || y.kind === "reorder" || y.kind === "wait" || y.kind === "budget"));
   const dismiss = useDismiss();
   const [idx, setIdx] = useState(0);
   const i = Math.min(idx, sugs.length - 1);
@@ -555,6 +625,12 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
   const go = (d: number) => setIdx((i + d + sugs.length) % sugs.length);
   const run = async () => {
     const a = x.action;
+    if (a.type === "none") return;
+    if (a.type === "cmd") {
+      if (a.cmd === "monthly_budget") return s.setView({ type: "spending" });
+      if (a.cmd === "extension") return s.setExtOpen(true);
+      return s.openReceipt();
+    }
     if (a.type === "open") return s.openItem(a.itemId);
     if (a.type === "budget") {
       const c = s.collections.find((c) => c.id === a.collectionId);
@@ -620,6 +696,8 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
         if (e.key === "ArrowRight") (e.preventDefault(), go(rtl ? -1 : 1));
       }}
       data-sug-index={i}
+      data-sug-count={sugs.length}
+      data-sug-kinds={sugs.map((y) => y.kind).join(" ")}
     >
       <div className="r13-sug-in flex flex-col gap-2 px-3.5 py-3 lg:flex-row lg:items-center lg:gap-[18px] lg:px-5 lg:py-4">
         <div className="flex items-center gap-2.5 lg:contents">
@@ -629,7 +707,7 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
           <span className="flex flex-1 items-center gap-2 text-[11px] font-bold uppercase tracking-[0.06em] text-ai lg:hidden">{t.dash.suggests}</span>
           {sugs.length > 1 && <span className="lg:hidden">{pager}</span>}
         </div>
-        <div key={x.key} className="r13-swap flex min-w-0 flex-1 flex-col gap-[3px]" data-sug-key={x.key} data-sug-source={ai ? "ai" : "template"} aria-live="polite">
+        <div key={x.key} className="r13-swap flex min-w-0 flex-1 flex-col gap-[3px]" data-sug-key={x.key} data-sug-kind={x.kind} data-sug-source={ai || x.kind === "ai" ? "ai" : "template"} aria-live="polite">
           <span className="flex items-center gap-2 text-[11.5px] font-bold uppercase tracking-[0.06em] text-ai max-lg:hidden">
             {t.dash.suggests}
             {sugs.length > 1 && <em className="font-semibold normal-case not-italic tracking-normal text-muted">{f(t.dash.ofN, { i: i + 1, n: sugs.length })}</em>}
@@ -640,9 +718,11 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
           <span className="text-[12.5px] text-muted max-lg:line-clamp-1">{ai?.why || tpl.why}</span>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => void run()} disabled={ro.ro && x.action.type !== "open"} className="h-9 rounded-full bg-brand px-4 text-[13px] font-semibold text-on-brand transition active:scale-[0.97] disabled:opacity-50" data-sug-cta>
-            {tpl.cta}
-          </button>
+          {tpl.cta && (
+            <button type="button" onClick={() => void run()} disabled={ro.ro && x.action.type !== "open"} className="h-9 rounded-full bg-brand px-4 text-[13px] font-semibold text-on-brand transition active:scale-[0.97] disabled:opacity-50" data-sug-cta>
+              {tpl.cta}
+            </button>
+          )}
           <button type="button" onClick={() => dismiss(`sug:${x.key}`, ai?.title ?? tpl.title)} className="h-9 rounded-full px-3 text-[13px] font-semibold text-muted transition hover:text-ink" data-sug-notnow>
             {t.dash.notNow}
           </button>
@@ -1124,22 +1204,41 @@ function insightText(x: Insight, t: T, fm: Fmt) {
     }
     case "no_budget":
       return { text: fm.f(t.dash.ins.noBudget, { project: x.collection.name, min: fm.money(x.min), max: fm.money(x.max) }), link: t.dash.ins.noBudgetLink };
+    case "ai":
+      return { text: x.text, link: x.action ? t.dash.ins.aiLink : null };
+    case "top_store":
+      return { text: fm.f(t.dash.ins.topStore, { store: x.store, amount: fm.money(x.amount), total: fm.money(x.total) }), link: t.dash.ins.topLink };
+    case "top_category": {
+      const cats = t.categories as Record<string, string>;
+      return { text: fm.f(t.dash.ins.topCategory, { category: cats[x.category] ?? x.category, amount: fm.money(x.amount), total: fm.money(x.total) }), link: t.dash.ins.topLink };
+    }
+    case "big_project":
+      return { text: fm.f(t.dash.ins.bigProject, { project: x.collection.name, amount: fm.money(x.left) }), link: t.dash.ins.bigProjectLink };
+    case "waiting":
+      return { text: fm.f(x.count === 1 ? t.dash.ins.waitingOne : t.dash.ins.waiting, { n: x.count, amount: fm.money(x.amount) }), link: t.dash.ins.waitingLink };
   }
 }
 
-function NoticedCard({ model, className, style }: { model: HomeModel; className?: string; style?: React.CSSProperties }) {
+function NoticedCard({ list, className, style }: { list: Insight[]; className?: string; style?: React.CSSProperties }) {
   const s = useStore();
   const { t, f } = useI18n();
   const fm = useFmt();
   const [idx, setIdx] = useState(0);
-  const list = model.noticed;
+
   const i = Math.min(idx, list.length - 1);
   const act = (x: Insight) => {
     if (x.kind === "batch") s.setView({ type: "history" });
     else if (x.kind === "weekday") {
       s.setView({ type: "to_buy" });
       s.setCategoryFilter(x.category);
-    } else s.setEditor({ mode: "edit", collection: x.collection });
+    } else if (x.kind === "no_budget") s.setEditor({ mode: "edit", collection: x.collection });
+    else if (x.kind === "top_store" || x.kind === "top_category") s.setView({ type: "spending" });
+    else if (x.kind === "big_project") s.setView({ type: "collection", id: x.collection.id });
+    else if (x.kind === "waiting") s.setView({ type: "to_buy" });
+    else if (x.action?.type === "budget") {
+      const c = s.collections.find((c) => c.id === x.action!.collectionId);
+      if (c) s.setEditor({ mode: "edit", collection: c });
+    } else if (x.action?.itemId) s.openItem(x.action.itemId);
   };
   const swipe = useRef<{ x: number; id: number } | null>(null);
   const dots = list.length > 1 && (
@@ -1152,7 +1251,7 @@ function NoticedCard({ model, className, style }: { model: HomeModel; className?
     </span>
   );
   return (
-    <section className={cn("r13-card r13-section flex min-w-0 flex-col", className)} style={style} data-home-section="noticed">
+    <section className={cn("r13-card r13-section flex min-w-0 flex-col", className)} style={style} data-home-section="noticed" data-noticed-count={list.length} data-noticed-kinds={list.map((y) => y.kind).join(" ")}>
       <div className="flex min-h-[42px] items-center gap-2 border-b border-line-in px-4 py-2 lg:min-h-[46px] lg:px-[18px] lg:py-2.5">
         <Sparkles className="size-4 text-ai" />
         <h2 className="text-[12px] font-bold uppercase tracking-[0.05em] text-ai">{t.dash.noticed}</h2>
@@ -1166,9 +1265,9 @@ function NoticedCard({ model, className, style }: { model: HomeModel; className?
             <div key={x.key} className={cn("flex flex-col gap-2 px-[18px] pb-4 pt-3.5", k > 0 && "border-s border-line-in")} data-insight={x.kind}>
               <span className="text-[11.5px] font-bold text-ai">{String(k + 1).padStart(2, "0")}</span>
               <p className="flex-1 text-[13.5px] leading-relaxed">{it.text}</p>
-              <button type="button" onClick={() => act(x)} className="self-start text-[13px] font-semibold underline underline-offset-4">
+              {it.link && (<button type="button" onClick={() => act(x)} className="self-start text-[13px] font-semibold underline underline-offset-4">
                 {it.link}
-              </button>
+              </button>)}
             </div>
           );
         })}
@@ -1195,9 +1294,9 @@ function NoticedCard({ model, className, style }: { model: HomeModel; className?
           return (
             <div key={x.key} className="r13-swap flex flex-col gap-2" data-insight={x.kind}>
               <p className="text-[13.5px] leading-relaxed">{it.text}</p>
-              <button type="button" onClick={() => act(x)} className="self-start py-1 text-[13px] font-semibold underline underline-offset-4">
+              {it.link && (<button type="button" onClick={() => act(x)} className="self-start py-1 text-[13px] font-semibold underline underline-offset-4">
                 {it.link}
-              </button>
+              </button>)}
             </div>
           );
         })()}

@@ -36,7 +36,7 @@ applies to every entry that seeds the chat: command palette, phone search, Home 
 empty with no user bubble; closing and reopening the assistant shows the last conversation, not a resend; a full page
 reload doesn't resend. Repeat from the desktop command palette.
 
-### A2. [ ] Home shows no AI ("Nexus suggests" and "Nexus noticed" are missing)
+### A2. [x] Home shows no AI ("Nexus suggests" and "Nexus noticed" are missing)
 On Tal's real data both sections are hidden.
 
 **Cause:** `homeSuggestions` and `noticed` (`src/lib/home.ts`) only fire on strict facts: a ≥ 10 % drop vs the usual

@@ -15,7 +15,7 @@ import { BudgetEditor } from "./budget-card";
 import { saveImportLimit } from "@/app/money-actions";
 import { pictureSearchStatus } from "@/app/picture-actions";
 import { MemorySection } from "./memory-section";
-import { setAiSuggestions } from "@/app/home-actions";
+import { homeDiag, setAiSuggestions, type HomeDiag } from "@/app/home-actions";
 import { ReportsSubpage } from "./reports-sheet";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
@@ -294,7 +294,31 @@ function AssistantSection() {
       <Row title={t.dash.aiSetting} hint={t.dash.aiSettingHint}>
         <AiSuggestionsSwitch />
       </Row>
+      <HomeDiagLine />
     </section>
+  );
+}
+
+/** R14 A2: why Home's suggestions look the way they do (last run, source, count, last error). */
+function HomeDiagLine() {
+  const { t, f, locale } = useI18n();
+  const [d, setD] = useState<HomeDiag | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    homeDiag()
+      .then((x) => alive && setD(x))
+      .catch(() => alive && setD(null));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (d === undefined) return null;
+  const time = d ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(d.at) : "";
+  return (
+    <p className="text-xs leading-relaxed text-muted" data-home-diag={d?.source ?? "never"}>
+      {d ? f(t.dash.diag, { time, source: d.source === "ai" ? t.dash.diagAi : t.dash.diagRules, n: d.n }) : t.dash.diagNever}
+      {d?.error && <span className="block text-warn">{f(t.dash.diagError, { error: d.error })}</span>}
+    </p>
   );
 }
 

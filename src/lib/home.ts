@@ -215,7 +215,13 @@ export type ProjectRow = { collection: Collection; pctBought: number; left: numb
 export type Insight =
   | { key: string; kind: "batch"; store: string; storeKey: string; saved: number; count: number }
   | { key: string; kind: "weekday"; category: string; day: number; pct: number }
-  | { key: string; kind: "no_budget"; collection: Collection; min: number; max: number };
+  | { key: string; kind: "no_budget"; collection: Collection; min: number; max: number }
+  // Round 14 A2: the AI's own observations, then the broad rule fallbacks.
+  | { key: string; kind: "ai"; text: string; action?: { type: "open" | "add" | "budget"; itemId?: string; collectionId?: string } }
+  | { key: string; kind: "top_store"; store: string; amount: number; total: number }
+  | { key: string; kind: "top_category"; category: string; amount: number; total: number }
+  | { key: string; kind: "big_project"; collection: Collection; left: number }
+  | { key: string; kind: "waiting"; count: number; amount: number };
 
 export type HomeModel = ReturnType<typeof homeModel>;
 
@@ -492,7 +498,7 @@ function noBudgetProject(collections: Collection[], items: ItemWithSources[], al
 
 // ---------- A3: "Nexus suggests" — rules find, AI phrases ----------
 
-export type SuggestionKind = "deal" | "reorder" | "wait" | "budget";
+export type SuggestionKind = "deal" | "reorder" | "wait" | "budget" | "ai" | "set_budget" | "target" | "eta" | "stale" | "extension" | "receipt";
 export type Suggestion = {
   key: string;
   kind: SuggestionKind;
@@ -504,7 +510,9 @@ export type Suggestion = {
     | { type: "order"; itemId: string; partner: { itemId: string; apply: { chosenSourceId: string } | { priority: "normal" } } | null }
     | { type: "add"; itemId: string }
     | { type: "open"; itemId: string }
-    | { type: "budget"; collectionId: string };
+    | { type: "budget"; collectionId: string }
+    | { type: "cmd"; cmd: "monthly_budget" | "extension" | "receipt" }
+    | { type: "none" };
 };
 
 /** Usual price of an item's active link: the median of its recorded prices (needs ≥ 3 readings). */
@@ -557,6 +565,71 @@ export function homeSuggestions(model: HomeModel): Suggestion[] {
   const nb = noBudgetProject(collections, items, altGroups, rates, currency);
   if (nb) out.push({ key: `budget:${nb.collection.id}`, kind: "budget", score: 50, facts: { project: nb.collection.name, min: Math.round(nb.min), max: Math.round(nb.max) }, action: { type: "budget", collectionId: nb.collection.id } });
   return out.filter((x) => !((dismissed[`sug:${x.key}`] ?? 0) > now)).sort((a, b) => b.score - a.score).slice(0, 4);
+}
+
+// ---------- Round 14 A2: Home always has a voice — broad rule fallbacks, merged with the AI's look ----------
+
+export const WAITING_MS = 30 * DAY;
+
+/** Things the model doesn't hold: is the extension connected (null = not applicable, e.g. phones), receipts so far. */
+export type HomeEnv = { extension: boolean | null; receipts: number | null };
+
+/** Broad suggestions, each only when its facts exist (shown after the exact rules and the AI). */
+export function fallbackSuggestions(model: HomeModel, env: HomeEnv): Suggestion[] {
+  const { items, toBuy, rates, currency, now, dismissed } = model.ctx;
+  const out: Suggestion[] = [];
+  if (model.stats.budget.cap == null) out.push({ key: `fb:budget:${model.month}`, kind: "set_budget", score: 0, facts: {}, action: { type: "cmd", cmd: "monthly_budget" } });
+  const priciest = [...toBuy].filter((i) => i.targetPrice == null).sort((a, b) => (lineTotal(b, rates, currency) ?? 0) - (lineTotal(a, rates, currency) ?? 0))[0];
+  if (priciest && (lineTotal(priciest, rates, currency) ?? 0) > 0)
+    out.push({ key: `fb:target:${priciest.id}`, kind: "target", score: 0, facts: { item: priciest.title }, action: { type: "open", itemId: priciest.id } });
+  const noEta = items.filter((i) => i.status === "ordered" && i.eta == null).sort((a, b) => (a.orderedAt ?? a.updatedAt) - (b.orderedAt ?? b.updatedAt));
+  if (noEta.length) out.push({ key: `fb:eta:${noEta[0].id}`, kind: "eta", score: 0, facts: { item: noEta[0].title, n: noEta.length }, action: { type: "open", itemId: noEta[0].id } });
+  const stale = toBuy.filter((i) => now - i.createdAt > WAITING_MS).sort((a, b) => a.createdAt - b.createdAt);
+  if (stale.length) out.push({ key: `fb:stale:${stale[0].id}`, kind: "stale", score: 0, facts: { item: stale[0].title, days: Math.floor((now - stale[0].createdAt) / DAY) }, action: { type: "open", itemId: stale[0].id } });
+  if (env.extension === false) out.push({ key: "fb:extension", kind: "extension", score: 0, facts: {}, action: { type: "cmd", cmd: "extension" } });
+  if (env.receipts === 0) out.push({ key: "fb:receipt", kind: "receipt", score: 0, facts: {}, action: { type: "cmd", cmd: "receipt" } });
+  return out.filter((x) => !((dismissed[`sug:${x.key}`] ?? 0) > now));
+}
+
+/** Broad insights: this month's top store (else category) by spend, the most expensive open project, long waits. */
+export function fallbackInsights(model: HomeModel): Insight[] {
+  const { items, toBuy, collections, rates, currency, tz, now } = model.ctx;
+  const out: Insight[] = [];
+  const byStore = new Map<string, number>();
+  const byCat = new Map<string, number>();
+  let total = 0;
+  for (const i of items) {
+    if (i.status === "to_buy") continue;
+    const at = spendDate(i);
+    if (at == null || monthKeyIn(at, tz) !== model.month) continue;
+    const v = lineTotal(i, rates, currency) ?? 0;
+    if (v <= 0) continue;
+    total += v;
+    const store = activeSource(i, rates)?.store;
+    if (store) byStore.set(store, (byStore.get(store) ?? 0) + v);
+    if (i.category) byCat.set(i.category, (byCat.get(i.category) ?? 0) + v);
+  }
+  const top = (m: Map<string, number>) => [...m].sort((a, b) => b[1] - a[1])[0];
+  const store = top(byStore);
+  const cat = top(byCat);
+  if (store) out.push({ key: `top:${model.month}:${store[0]}`, kind: "top_store", store: store[0], amount: store[1], total });
+  else if (cat) out.push({ key: `topcat:${model.month}:${cat[0]}`, kind: "top_category", category: cat[0], amount: cat[1], total });
+  let big: { collection: Collection; left: number } | null = null;
+  for (const c of collections) {
+    if (c.archived) continue;
+    const left = countable(toBuy.filter((i) => i.collectionId === c.id), model.ctx.altGroups, rates).reduce((a, i) => a + (lineTotal(i, rates, currency) ?? 0), 0);
+    if (left > 0 && (!big || left > big.left)) big = { collection: c, left };
+  }
+  if (big) out.push({ key: `big:${big.collection.id}`, kind: "big_project", ...big });
+  const waiting = toBuy.filter((i) => now - i.createdAt > WAITING_MS);
+  if (waiting.length) out.push({ key: "waiting", kind: "waiting", count: waiting.length, amount: waiting.reduce((a, i) => a + (lineTotal(i, rates, currency) ?? 0), 0) });
+  return out;
+}
+
+/** The order inside each section: exact rules, then the AI, then the fallbacks; at most 4 suggestions and 3 insights. */
+export function mergeHome<T extends { key: string }>(rules: T[], ai: T[], fallbacks: T[], max: number): T[] {
+  const seen = new Set<string>();
+  return [...rules, ...ai, ...fallbacks].filter((x) => !seen.has(x.key) && !!seen.add(x.key)).slice(0, max);
 }
 
 /** "✕" on a row / "Not now" on a suggestion hides it this long. */

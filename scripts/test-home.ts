@@ -1,6 +1,7 @@
 // Unit test for src/lib/home.ts (Home model, delivery track, cadence, suggestions).  npm run test:home
 import assert from "node:assert/strict";
-import { addDays, cadenceOf, dayKeyIn, deliveryTrack, HIDE_MS, homeModel, homeSuggestions, reorderDue, weekDays, type HomeInput } from "../src/lib/home";
+import { addDays, cadenceOf, dayKeyIn, deliveryTrack, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, reorderDue, weekDays, type HomeInput } from "../src/lib/home";
+import { numbersIn, numbersKnown, validateHomeAi } from "../src/lib/home-ai";
 import { FALLBACK_RATES } from "../src/lib/money";
 import type { Alert, Collection, ItemWithSources, PricePoint, Source } from "../src/lib/types";
 
@@ -234,6 +235,67 @@ assert.equal(addDays("2026-10-31", 1), "2026-11-01");
   assert.ok(wd && wd.kind === "weekday" && wd.day === 2 && wd.category === "electronics");
   const few = item({ category: "electronics", pts: pts.slice(0, 7) });
   assert.equal(homeModel(base({ items: [few] })).noticed.length, 0);
+}
+
+// ---- Round 14 A2: the AI's look — unknown ids are dropped, invented numbers are dropped.
+{
+  const ids = { items: new Set(["i1", "i2"]), collections: new Set(["c1"]) };
+  const known = numbersIn('[[i1]] Fan | unit=349.5 | qty=2\n- [c1] project "Rail": 3 items, planned 1200, spent 80');
+  assert.deepEqual(numbersIn("₪1,234.50 and 30% of 3"), [1234.5, 30, 3]);
+  assert.ok(numbersKnown("Fan costs ₪349.5 now", known));
+  assert.ok(numbersKnown("Fan costs about ₪350", known)); // a rounding of a known number
+  assert.ok(numbersKnown("Rail has 1,200 planned", known));
+  assert.ok(!numbersKnown("You saved 999 this year", known));
+  assert.ok(numbersKnown("No numbers at all", known));
+  const r = validateHomeAi(
+    {
+      suggestions: [
+        { title: "Open the fan", why: "It costs 349.5", action: { type: "open", itemId: "i1" } },
+        { title: "Ghost", why: "", action: { type: "open", itemId: "nope" } },
+        { title: "Budget for Rail", why: "", action: { type: "budget", collectionId: "c1" } },
+        { title: "Bad budget", why: "", action: { type: "budget", collectionId: "c9" } },
+        { title: "Open nothing", why: "", action: { type: "open" } },
+        { title: "Made-up saving of 42", why: "", action: { type: "none" } },
+        { title: "Just a thought", why: "", action: { type: "none" } },
+        { title: "Fourth valid one", why: "", action: { type: "add", itemId: "i2" } },
+      ],
+      insights: [{ text: "Rail: 3 items planned" }, { text: "You spent 7777" }, { text: "Fan", action: { type: "open", itemId: "zz" } }, { text: "Fan again", action: { type: "open", itemId: "i2" } }, { text: "" }],
+    },
+    ids,
+    known,
+  );
+  assert.deepEqual(r.suggestions.map((x) => x.title), ["Open the fan", "Budget for Rail", "Just a thought"]); // ≤ 3
+  assert.deepEqual(r.insights.map((x) => x.text), ["Rail: 3 items planned", "Fan again"]);
+  assert.deepEqual(r.insights[1].action, { type: "open", itemId: "i2" });
+  assert.deepEqual(validateHomeAi(null, ids, known), { suggestions: [], insights: [] });
+  assert.deepEqual(validateHomeAi({ suggestions: "x", insights: [null] }, ids, known), { suggestions: [], insights: [] });
+}
+
+// ---- Round 14 A2: broad fallbacks, only when their facts exist; order rules → AI → fallbacks.
+{
+  const p = coll({ name: "Desk" });
+  const old = item({ title: "Old lamp", price: 300, createdAt: NOW - 40 * DAY, collectionId: p.id });
+  const cheap = item({ title: "Cable", price: 20, targetPrice: null });
+  const ord = item({ title: "Chair", status: "ordered", orderedAt: at(2), eta: null });
+  const bought = item({ title: "Mouse", status: "purchased", purchasedAt: at(2), purchasedPrice: 120, purchasedCurrency: "ILS", category: "electronics", store: "KSP" });
+  const m = homeModel(base({ items: [old, cheap, ord, bought], collections: [p] }));
+  const fb = fallbackSuggestions(m, { extension: false, receipts: 0 });
+  assert.deepEqual(fb.map((x) => x.kind), ["set_budget", "target", "eta", "stale", "extension", "receipt"]);
+  assert.equal(fb[1].facts.item, "Old lamp"); // the most expensive to-buy item without a target
+  assert.equal(fb[3].facts.days, 40);
+  // Phones (extension null), a known receipt, a budget and targets set: those fallbacks go away.
+  const withBudget = homeModel(base({ items: [{ ...old, targetPrice: 250 }, { ...cheap, targetPrice: 15 }], budget: { "2026-10": { cap: 5000, currency: "ILS" } } }));
+  assert.deepEqual(fallbackSuggestions(withBudget, { extension: null, receipts: 3 }).map((x) => x.kind), ["stale"]);
+  const ins = fallbackInsights(m);
+  assert.deepEqual(ins.map((x) => x.kind), ["top_store", "big_project", "waiting"]);
+  assert.ok(ins[0].kind === "top_store" && ins[0].store === "KSP");
+  assert.ok(ins[1].kind === "big_project" && ins[1].collection.id === p.id && ins[1].left === 300);
+  assert.ok(ins[2].kind === "waiting" && ins[2].count === 1 && ins[2].amount === 300);
+  // A truly empty account says nothing (R13 A7).
+  const empty = homeModel(base({}));
+  assert.deepEqual(fallbackInsights(empty), []);
+  assert.equal(fallbackSuggestions(empty, { extension: null, receipts: null }).length, 1); // set_budget — but Home shows the empty state
+  assert.deepEqual(mergeHome([{ key: "a" }, { key: "b" }], [{ key: "c" }, { key: "a" }], [{ key: "d" }, { key: "e" }], 4).map((x) => x.key), ["a", "b", "c", "d"]);
 }
 
 console.log("OK test-home");

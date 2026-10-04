@@ -137,7 +137,7 @@ function priceMoves(i: AppData["items"][number], rates: Rates, currency: string)
 }
 
 /** Compact snapshot of the user's data for the model. Items are referenced as [[id]]. */
-function snapshot(data: AppData, currency: string, rates: Rates) {
+export function snapshot(data: AppData, currency: string, rates: Rates) {
   const cName = new Map(data.collections.map((c) => [c.id, c.name]));
   const lines = data.items.slice(0, 450).map((i) => {
     const unit = unitPrice(i, rates, currency);
