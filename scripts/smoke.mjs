@@ -223,6 +223,24 @@ async function homeChecks(page) {
       const back = await page.waitForSelector('[data-sug-source="ai"]', { timeout: 15000 }).then(() => true, () => false);
       ok(ai && src === "template" && back, "suggest: AI text when on, template when off", `ai first ${ai}, off → ${src}, on again ${back}`);
     });
+  // A4: "Nexus noticed" — true insights only; desktop shows them side by side, the phone one at a time with dots.
+  await step("noticed: insights render (phone: dots switch)", async () => {
+    const sec = page.locator('[data-home-section="noticed"]');
+    if (!(await sec.count())) return ok(true, "noticed: insights render (phone: dots switch) (none in this data)");
+    const visible = await sec.locator("[data-insight]:visible").count();
+    let switched = true;
+    if (MOBILE) {
+      const dots = sec.locator('[role="tab"]');
+      if ((await dots.count()) > 1) {
+        const a = await sec.locator("[data-noticed-phone] [data-insight]").getAttribute("data-insight");
+        const txt = await sec.locator("[data-noticed-phone] p").textContent();
+        await dots.nth(1).click();
+        await page.waitForTimeout(300);
+        switched = (await sec.locator("[data-noticed-phone] p").textContent()) !== txt || !a;
+      }
+    }
+    ok(visible >= 1 && (!MOBILE || visible === 1) && switched, "noticed: insights render (phone: dots switch)", `${visible} visible, switched ${switched}`);
+  });
   // The logo returns to Home from every view.
   await step("logo returns to Home from every view", async () => {
     const bad = [];

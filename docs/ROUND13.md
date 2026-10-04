@@ -127,7 +127,7 @@ Tal wants it to "jump out a little" so good suggestions aren't missed, and to lo
   shows the template. The pager works with the keyboard (←/→ while focused). Frame trace: the border sheen stays on
   the compositor (no layout per frame).
 
-### A4. [ ] "Nexus noticed" — 3 short, true insights
+### A4. [x] "Nexus noticed" — 3 short, true insights
 Rules only (no AI needed), from `homeModel`:
 - shipping saved by batching this month,
 - the cheapest weekday for a category you track (needs ≥ 8 price points),
@@ -146,7 +146,7 @@ default. The header card is fixed; everything else can move or hide. Keep it sim
 **Acceptance:** a smoke test hides "Nexus noticed", moves "Projects" up, reloads, and checks the order persisted on
 desktop and phone.
 
-### A6. [ ] Status strip tiles are links
+### A6. [x] Status strip tiles are links
 Each tile (icon chip + bold line + muted line + chevron) scrolls smoothly to its section and briefly highlights it
 (a 600 ms outline fade):
 - need you → Needs you,
