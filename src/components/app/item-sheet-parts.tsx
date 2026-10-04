@@ -1,5 +1,7 @@
 "use client";
 
+import { DeliveryTrack } from "./delivery-track";
+import { deliveryTrack } from "@/lib/home";
 import { useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { BellRing, ExternalLink, Search, FileText, Paperclip, Split, Trash2, TrendingDown, Truck } from "lucide-react";
@@ -120,6 +122,8 @@ export function ShippingSection({ item }: { item: ItemWithSources }) {
           </span>
         )}
       </div>
+      {/* Round 13 B4: the same delivery track as Home and the On the way list. */}
+      <DeliveryTrack track={deliveryTrack(item, s.clock.now, s.clock.tz)} labels className="mb-4" />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <Label htmlFor="trk">{t.track.number}</Label>

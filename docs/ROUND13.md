@@ -201,7 +201,7 @@ toggle a sliding thumb.
 - Existing swipe, long-press and selection behaviour must keep working in both modes.
 - **Acceptance:** smoke for each mode × each sub-tab at 360 and 390 px, with no overflow.
 
-### B4. [ ] One delivery-track component
+### B4. [x] One delivery-track component
 The same 4-segment track (A2 rules) is used on Home, in the On the way list, on the On the way cards and in the item
 sheet. One component, one function, unit-tested in `test:home`.
 
