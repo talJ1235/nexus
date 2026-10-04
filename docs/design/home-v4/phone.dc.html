@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home v4 · phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.r{--bg:#f4f4f2;--s:#ffffff;--s2:#f1f1ee;--ink:#171717;--ink2:#3a3a3a;--muted:#686866;--line:#dcdcd7;--line-in:#e8e8e4;--brand:#171717;--on-brand:#fff;--spark:#f59e0b;--warn:#b45309;--warn-t:#fff3e0;--ok:#11805a;--ok-t:#e5f5ec;--info:#1f5fd1;--info-t:#e8effd;--ai:#7c4ddb;--ai-t:#f3edfd;--ai2:#e9a23b;--paper:#fff;--shadow:0 1px 2px rgba(0,0,0,.04);background:var(--bg);color:var(--ink);font-family:'Heebo',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+.r.soft{--line:#e7e7e4;--line-in:#efefec}
+.r.strong{--line:#cacac4;--line-in:#dcdcd7;--shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.05)}
+.r.dark{--bg:#0b0b0b;--s:#141414;--s2:#1d1d1d;--ink:#f2f2f0;--ink2:#d6d6d3;--muted:#a1a19e;--line:#313131;--line-in:#262626;--brand:#f2f2f0;--on-brand:#0b0b0b;--warn:#fbbf24;--warn-t:rgba(251,191,36,.13);--ok:#4ade9a;--ok-t:rgba(74,222,154,.12);--info:#7aa7ff;--info-t:rgba(122,167,255,.13);--ai:#b69cff;--ai-t:rgba(182,156,255,.13);--ai2:#f5b544;--paper:#ecebe8;--shadow:none;color-scheme:dark}
+.r.dark.soft{--line:#262626;--line-in:#1f1f1f}
+.r.dark.strong{--line:#3d3d3d;--line-in:#303030}
+.tab{font-variant-numeric:tabular-nums}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.thumb{background:var(--paper);border:1px solid var(--line-in);display:grid;place-items:center;color:#2b2b2b;flex-shrink:0;width:34px;height:34px;border-radius:7px}
+.thumb svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;font:600 12px 'Heebo',sans-serif;border:1px solid var(--line);background:var(--s);color:var(--ink);white-space:nowrap}
+.btn.pri{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:0 6px}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes sheen{from{background-position:0% 0}to{background-position:300% 0}}
+@keyframes twinkle{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.12) rotate(12deg)}}
+@keyframes fill{from{width:0}}
+.rise{animation:rise .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s)}
+.w{background:var(--warn-t);color:var(--warn)}.o{background:var(--ok-t);color:var(--ok)}.f{background:var(--info-t);color:var(--info)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+
+.ph{width:390px;min-height:1760px;position:relative;padding-bottom:96px}
+.top{height:54px;display:flex;align-items:center;gap:8px;padding:0 14px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;margin-right:auto}
+.brand svg{width:20px;height:20px}
+.ib{width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:var(--s);display:grid;place-items:center;color:var(--ink)}
+.ib.ai{background:linear-gradient(var(--s),var(--s)) padding-box,linear-gradient(100deg,var(--brand),var(--spark)) border-box;border:1.5px solid transparent;color:var(--spark)}
+.av{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:12px;font-weight:700}
+.stack{display:flex;flex-direction:column;gap:10px;padding:0 12px}
+.card{background:var(--s);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.ch{display:flex;align-items:center;gap:7px;padding:10px 14px;border-bottom:1px solid var(--line-in)}
+.ch h3{margin:0;font-size:11.5px;font-weight:700;letter-spacing:.05em}
+.ch .sub{font-size:11.5px;color:var(--muted)}
+.ch a{margin-left:auto;font-size:12px;color:var(--muted);text-decoration:none}
+.cnt{font-size:10.5px;font-weight:700;color:#fff;background:var(--warn);border-radius:999px;padding:0 6px;line-height:16px}
+.r.dark .cnt{color:#111}
+
+.hello{padding:6px 16px 4px}
+.hello .d{font-size:12px;color:var(--muted)}
+.hello h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.025em}
+.status{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.st{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-left:1px solid var(--line-in);text-decoration:none;color:var(--ink)}
+.st:first-child{border-left:0}
+.st .top2{display:flex;align-items:center;gap:6px}
+.st .ic{width:24px;height:24px;border-radius:7px;display:grid;place-items:center}
+.st .ic svg{width:14px;height:14px}
+.st b{font-size:18px;font-weight:800;letter-spacing:-.02em}
+.st span.s{font-size:11.5px;color:var(--muted);line-height:1.25}
+.stats{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line-in)}
+.k{padding:10px 12px 12px;display:flex;flex-direction:column;gap:3px;border-left:1px solid var(--line-in)}
+.k:nth-child(odd){border-left:0}
+.k:nth-child(n+3){border-top:1px solid var(--line-in)}
+.k .l{font-size:11.5px;font-weight:600;color:var(--muted)}
+.k .v{font-size:21px;font-weight:800;letter-spacing:-.03em;line-height:1.15}
+.k .v small{font-size:11.5px;font-weight:500;color:var(--muted);letter-spacing:0;margin-left:3px}
+.k .c{font-size:11.5px;color:var(--muted)}
+.k .c b{font-weight:700}
+.meter{height:5px;border-radius:3px;background:var(--s2);overflow:hidden;display:flex;gap:2px;margin-top:4px;position:relative}
+.meter i{display:block;height:100%;animation:fill 1.1s .3s both}
+.meter em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+
+.sug{border-radius:14px;padding:1.5px;background:linear-gradient(100deg,var(--ai),var(--ai2),var(--ai),var(--ai2));background-size:300% 100%;animation:sheen 10s linear infinite;box-shadow:0 6px 20px color-mix(in oklab,var(--ai) 18%,transparent)}
+.sug .in{border-radius:12.5px;background:linear-gradient(120deg,color-mix(in oklab,var(--ai) 10%,var(--s)),var(--s) 55%,color-mix(in oklab,var(--ai2) 9%,var(--s)));padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.sug .hd{display:flex;align-items:center;gap:8px}
+.orb{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,var(--ai),var(--ai2));color:#fff}
+.orb svg{width:15px;height:15px;animation:twinkle 3.2s ease-in-out infinite}
+.sug .ey{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ai)}
+.sug .pg{margin-left:auto;display:flex;gap:4px}
+.sug .pg i{width:5px;height:5px;border-radius:999px;background:var(--line)}
+.sug .pg i.on{width:14px;background:var(--ai)}
+.sug .t{font-size:14px;font-weight:600;line-height:1.35}
+.sug .why{font-size:11.5px;color:var(--muted)}
+.sug .acts{display:flex;gap:6px;align-items:center}
+
+.days{display:grid;grid-template-columns:repeat(7,1fr);padding:10px 8px 6px;text-align:center}
+.days div{display:flex;flex-direction:column;align-items:center;gap:3px}
+.days .dn{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.04em}
+.days .dd{font-size:15px;font-weight:700;width:30px;height:30px;border-radius:999px;display:grid;place-items:center}
+.days .today .dd{background:var(--ink);color:var(--bg)}
+.days .m{display:flex;gap:2px;height:5px}
+.days .m i{width:5px;height:5px;border-radius:50%}
+.ev{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--line-in);font-size:12.5px}
+.ev svg{width:14px;height:14px}
+.ev b{font-weight:600}
+.ev span{color:var(--muted)}
+.ev .dy{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--muted)}
+
+.rw{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid var(--line-in)}
+.ch + .rw,.ch + div > .rw:first-child{border-top:0}
+.rw .ic{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;flex-shrink:0}
+.rw .ic svg{width:15px;height:15px}
+.rw .t{flex:1;min-width:0}
+.rw .t b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rw .t span{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.when{font-size:11.5px;font-weight:700;white-space:nowrap}
+.trk{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:5px}
+.trk i{height:3px;border-radius:2px;background:var(--s2)}
+.trk i.on{background:var(--info)}.trk i.lt{background:var(--warn)}
+
+.money{padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px}
+.money .big{font-size:20px;font-weight:800;letter-spacing:-.03em}
+.money .big small{font-size:12px;color:var(--muted);font-weight:500;margin-left:3px}
+.say{font-size:12px;color:var(--ink2)}.say b{color:var(--ok)}
+.pjr{display:grid;grid-template-columns:76px minmax(0,1fr) 70px;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--line-in)}
+.pjr b{font-size:12.5px;display:flex;align-items:center;gap:6px}
+.pjr .bar{height:5px;border-radius:3px;background:var(--s2);overflow:hidden}
+.pjr .bar i{display:block;height:100%;animation:fill 1.1s .4s both}
+.pjr .lf{font-size:11.5px;font-weight:600;text-align:right}
+
+.nt{padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;line-height:1.45;color:var(--ink2)}
+.nt .row{display:flex;align-items:center;gap:8px}
+.link{font:600 12px 'Heebo',sans-serif;color:var(--ink);text-decoration:underline;text-underline-offset:3px;background:none;border:0;padding:0}
+.pg2{margin-left:auto;display:flex;gap:4px}.pg2 i{width:5px;height:5px;border-radius:999px;background:var(--line)}.pg2 i.on{width:14px;background:var(--ai)}
+
+.dock{position:absolute;left:12px;right:12px;bottom:18px;height:62px;border-radius:999px;background:var(--s);border:1px solid var(--line);box-shadow:0 8px 28px rgba(0,0,0,.12);display:grid;grid-template-columns:repeat(5,1fr);align-items:center}
+.dock a{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--muted);text-decoration:none}
+.dock a.on{color:var(--ink)}
+.dock svg{width:21px;height:21px}
+.dock .plus{width:52px;height:52px;border-radius:999px;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;justify-self:center}
+.dock .plus svg{width:24px;height:24px}
+</style>
+</helmet>
+<div class="r ph {{cls}}">
+<div class="top">
+<div class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="#fb7a3c"></path><path d="M10 20l22 12v24L10 44z" fill="var(--ink)"></path><path d="M54 20 32 32v24l22-12z" fill="#f59e0b"></path></svg>Nexus</div>
+<button class="ib" type="button" aria-label="Search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4-4"></path></svg></button>
+<button class="ib ai" type="button" aria-label="Ask Nexus"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg></button>
+<span class="av">T</span>
+</div>
+
+<div class="hello"><div class="d">Sunday, 4 October</div><h1>Good evening, Tal</h1></div>
+
+<div class="stack">
+<section class="card rise">
+<div class="status">
+<a class="st" href="#"><span class="top2"><span class="ic w"><svg class="i" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"></path><path d="M12 10v4"></path></svg></span><b>3</b></span><span class="s">need you</span></a>
+<a class="st" href="#"><span class="top2"><span class="ic f"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"></path></svg></span><b>2</b></span><span class="s">arrive this week</span></a>
+<a class="st" href="#"><span class="top2"><span class="ic o"><svg class="i" viewBox="0 0 24 24"><path d="M4 16l5-5 4 4 7-7"></path></svg></span><b>₪220</b></span><span class="s">under your pace</span></a>
+</div>
+<div class="stats">
+<div class="k"><span class="l">Left to buy</span><span class="v tab">₪832</span><span class="c"><b style="color:var(--warn)">7 items</b> · 2 urgent</span><div class="meter"><i style="width:19%;background:#8a96b8"></i><i style="width:49%;background:#c9976a"></i><i style="width:32%;background:#7da592"></i></div></div>
+<div class="k"><span class="l">October budget</span><span class="v tab">₪2,140<small>/ 3,000</small></span><span class="c"><b style="color:var(--ok)">₪860 left</b> · 27 days</span><div class="meter"><i style="width:71%;background:var(--ink)"></i><em style="left:13%"></em></div></div>
+<div class="k"><span class="l">On the way</span><span class="v tab">3</span><span class="c">Next <b style="color:var(--info)">Tue</b> · <b style="color:var(--warn)">1 late</b></span></div>
+<div class="k"><span class="l">Saved this year</span><span class="v tab" style="color:var(--ok)">₪486</span><span class="c"><b style="color:var(--ok)">+₪41</b> this month</span></div>
+</div>
+</section>
+
+<section class="sug rise" style="--d:.06s"><div class="in">
+<div class="hd"><span class="orb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg></span><span class="ey">Nexus suggests</span><span class="pg"><i class="on"></i><i></i><i></i><i></i></span></div>
+<span class="t">NEMA 17 ×2 is 18% cheaper — order it with the GT2 belt and shipping is free.</span>
+<span class="why">Lowest in 60 days · same order as 3 Railcam parts</span>
+<div class="acts"><button class="btn pri" type="button">Order both</button><button class="btn ghost" type="button">Not now</button></div>
+</div></section>
+
+<section class="card rise" style="--d:.1s">
+<div class="ch"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg><h3>THIS WEEK</h3><a href="#">Calendar</a></div>
+<div class="days">
+<div class="today"><span class="dn">SUN</span><span class="dd">4</span><span class="m"><i style="background:var(--warn)"></i></span></div>
+<div><span class="dn">MON</span><span class="dd">5</span><span class="m"></span></div>
+<div><span class="dn">TUE</span><span class="dd">6</span><span class="m"><i style="background:var(--info)"></i></span></div>
+<div><span class="dn">WED</span><span class="dd">7</span><span class="m"><i style="background:var(--ai)"></i></span></div>
+<div><span class="dn">THU</span><span class="dd">8</span><span class="m"><i style="background:var(--info)"></i></span></div>
+<div><span class="dn">FRI</span><span class="dd">9</span><span class="m"><i style="background:var(--warn)"></i></span></div>
+<div><span class="dn">SAT</span><span class="dd">10</span><span class="m"><i style="background:var(--ok)"></i></span></div>
+</div>
+<div class="ev" style="color:var(--warn)"><svg class="i" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"></path></svg><b style="color:var(--ink)">NOCO is late</b><span>due yesterday</span><span class="dy">Today</span></div>
+<div class="ev" style="color:var(--info)"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"></path></svg><b style="color:var(--ink)">NEMA 17 ×2</b><span>arrives</span><span class="dy">Tue</span></div>
+<div class="ev" style="color:var(--ai)"><svg class="i" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2M20 4v5h-5"></path></svg><b style="color:var(--ink)">Elegoo PLA</b><span>reorder</span><span class="dy">Wed</span></div>
+<div class="ev"><span style="color:var(--muted);font-size:12px;font-weight:600">+3 more this week</span></div>
+</section>
+
+<section class="card rise" style="--d:.14s">
+<div class="ch"><h3>NEEDS YOU</h3><span class="cnt">3</span><a href="#">All</a></div>
+<div class="rw"><span class="ic o"><svg class="i" viewBox="0 0 24 24"><path d="M20 12l-8 8-8-8V4h8z"></path></svg></span><div class="t"><b>Xiaomi fan dropped to ₪329</b><span>Lowest in 90 days</span></div><button class="btn" type="button">Buy</button></div>
+<div class="rw"><span class="ic w"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"></path></svg></span><div class="t"><b>Did the NOCO charger arrive?</b><span>Expected yesterday</span></div><button class="btn" type="button">Received</button></div>
+<div class="rw"><span class="ic f"><svg class="i" viewBox="0 0 24 24"><path d="M4 9h16v11H4zM2 5h20v4H2zM12 5v15"></path></svg></span><div class="t"><b>₪9.60 to free shipping</b><span>Add the GT2 belt (₪22)</span></div><button class="btn" type="button">Add</button></div>
+</section>
+
+<section class="card rise" style="--d:.18s">
+<div class="ch"><h3>ON THE WAY</h3><span class="sub">· 3</span><a href="#">Track all</a></div>
+<div class="rw"><span class="thumb"><svg viewBox="0 0 84 84"><rect x="18" y="26" width="48" height="40" rx="6"></rect><path d="M30 26v-6h24v6M44 36l-8 12h10l-4 10"></path></svg></span><div class="t"><b>NOCO GENIUS1EU</b><span>Amazon</span><div class="trk"><i class="lt"></i><i class="lt"></i><i class="lt"></i><i class="lt"></i></div></div><span class="when" style="color:var(--warn)">Late</span></div>
+<div class="rw"><span class="thumb"><svg viewBox="0 0 84 84"><rect x="20" y="24" width="40" height="40" rx="4"></rect><circle cx="40" cy="44" r="10"></circle><path d="M60 44h14"></path></svg></span><div class="t"><b>NEMA 17 ×2</b><span>AliExpress · in Israel</span><div class="trk"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div></div><span class="when" style="color:var(--info)">Tue</span></div>
+<div class="rw"><span class="thumb"><svg viewBox="0 0 84 84"><rect x="16" y="26" width="52" height="32" rx="3"></rect><rect x="34" y="34" width="16" height="16" rx="1"></rect></svg></span><div class="t"><b>Arduino Nano ESP32</b><span>Bug · shipped today</span><div class="trk"><i class="on"></i><i></i><i></i><i></i></div></div><span class="when" style="color:var(--info)">Thu</span></div>
+</section>
+
+<section class="card rise" style="--d:.22s">
+<div class="ch"><h3>MONEY &amp; PROJECTS</h3><a href="#">Spending</a></div>
+<div class="money"><span class="big tab">₪2,140<small>of ₪3,000 in October</small></span><div class="meter" style="height:6px"><i style="width:71%;background:var(--ink)"></i><em style="left:13%"></em></div><span class="say">A little slower than usual — you’ll finish <b>₪220 under budget</b>.</span></div>
+<div class="pjr"><b><i class="dot" style="background:#8a96b8"></i>Railcam</b><div class="bar"><i style="width:42%;background:#8a96b8"></i></div><span class="lf tab">₪499 left</span></div>
+<div class="pjr"><b><i class="dot" style="background:#c9976a"></i>Home</b><div class="bar"><i style="width:20%;background:#c9976a"></i></div><span class="lf tab">₪638 left</span></div>
+<div class="pjr"><b><i class="dot" style="background:#7da592"></i>Tools</b><div class="bar"><i style="width:75%;background:#7da592"></i></div><span class="lf tab">₪165 left</span></div>
+</section>
+
+<section class="card rise" style="--d:.26s">
+<div class="ch" style="color:var(--ai)"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg><h3>NEXUS NOTICED</h3><span class="pg2"><i class="on"></i><i></i><i></i></span></div>
+<div class="nt"><span>Ordering Railcam parts in one AliExpress batch saved ₪41 on shipping this month.</span><button class="link" type="button" style="align-self:flex-start">See orders</button></div>
+</section>
+</div>
+
+<nav class="dock">
+<a class="on" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"></path><path d="M10 20v-6h4v6"></path></svg><span>Home</span></a>
+<a href="#"><svg class="i" viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg><span>{{tabName}}</span></a>
+<span class="plus"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></span>
+<a href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span>Projects</span></a>
+<a href="#"><svg class="i" viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6"></path></svg><span>Insights</span></a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"Look"},"borders":{"editor":"enum","options":["soft","medium","strong"],"default":"medium","section":"Look"},"tabName":{"editor":"enum","options":["Shopping","My list","Orders","Cart"],"default":"Shopping","section":"Dock"},"$preview":{"width":390,"height":1760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const b = p.borders ?? 'medium';
+    return { cls: ((p.dark ?? false) ? 'dark ' : '') + (b === 'medium' ? '' : b), tabName: p.tabName ?? 'Shopping' };
+  }
+}
+</script>
+</body>
+</html>
