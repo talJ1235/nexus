@@ -57,6 +57,7 @@ writes the round briefs. Everything durable lives in this repo, not in chat hist
 - Pictures: Google Images via **Serper** (`SERPER_API_KEY`), Open Food Facts, own items, icons; extension optional.
 - Not wanted: SolidWorks BOM import, item file attachments, event wishlists. Later: parts inventory, monthly "Wrapped".
 - **Dashboard is the default home screen** (Tal, 2026-10-03); everything else via the desktop sidebar / phone dock.
+- **Home design = "Home v3 — open layout"** (Tal approved 2026-10-04): static copies in `docs/design/home-v3/*.html`. Next: write Round 13 from it. Still open for Tal: "This week" strip in or out; dock Home · To buy · + · Projects · Insights.
 - Free-tier stack (Vercel Hobby, Turso, Gemini free + Groq/OpenRouter fallback). Tal declined paid usage credits.
 
 ## Product direction (discussed 2026-10-03, not started)
