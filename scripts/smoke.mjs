@@ -1115,6 +1115,9 @@ try {
       await page.waitForSelector(READY, { timeout: 15000 });
       const btn = page.locator("[data-ask]").filter({ visible: true }).first();
       if (!(await btn.count())) return ok(true, "assistant panel (AI off or not in this layout, skipped)");
+      // Round 12 #4: every Ask button on screen is a fully rounded pill (radius ≥ half its height).
+      const pills = await page.locator("[data-ask]").evaluateAll((els) => els.filter((e) => e.offsetParent).map((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius) >= e.offsetHeight / 2 - 0.5 && parseFloat(getComputedStyle(e).borderBottomRightRadius) >= e.offsetHeight / 2 - 0.5));
+      ok(pills.length > 0 && pills.every(Boolean), "Ask button is a fully rounded pill", JSON.stringify(pills));
       await btn.click();
       await page.getByRole("dialog").waitFor({ timeout: 5000 });
       ok(true, "assistant panel opens");

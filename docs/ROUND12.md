@@ -29,7 +29,7 @@ directions × RTL) and add a smoke check with a slow (~15 px per frame) drag.
   state, a small "Suggested" label above. Follow-ups after an answer use the same row style, compact. No horizontal
   scrolling anywhere.
 
-### 4. [ ] Keep the Ask button a rounded pill
+### 4. [x] Keep the Ask button a rounded pill
 Tal likes the rounded "Ask Nexus" pill (Hairline). Make sure every place it appears (desktop top bar, phone icon
 button, empty states) stays fully rounded — note in CLAUDE.md/UI-V2 that the Ask button is always a pill, even if
 other surfaces move to smaller radii later.

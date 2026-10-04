@@ -9,6 +9,8 @@
 - RTL: use logical Tailwind utilities only (`ms-/me-/ps-/pe-/start-/end-/text-start`).
   Never `ml-/mr-/pl-/pr-/left-/right-` for layout.
 - All UI strings go through `src/lib/i18n` dictionaries (en + he). No hardcoded copy.
+- The "Ask Nexus" button is **always a fully rounded pill** (circle when icon-only), even if other surfaces move to
+  smaller radii: reuse `AskButton` (`top-bar.tsx`, `.ask-hairline` owns the radius) for every placement.
 - DB: Drizzle schema in `src/db/schema.ts`; tables are created idempotently by
   `src/db/migrate.ts` (runs on build via `npm run db:migrate`).
 - Checks before commit: `npm run typecheck && npm run lint && npm run build`.

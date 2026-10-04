@@ -62,6 +62,9 @@ Moments to design:
 - Phone: U phone. Dock = To buy · Projects · **+** · On the way · Stats (Order by store moves out of the dock).
   **+** opens an animated menu: scan barcode, scan receipt, paste link, plan with Nexus; closes on + or outside.
   Top bar: logo, search, Ask (coloured), alerts.
+- **Ask button = always a pill** (Round 12, Tal): the rounded Hairline "Ask Nexus" pill stays fully rounded everywhere
+  it appears — desktop top bar, phone icon button (a circle), any empty state — even if other surfaces later move to
+  smaller radii. One component (`AskButton`); the radius lives in `.ask-hairline`.
 - Animations everywhere (tasteful): see Motion plan above.
 - Round 6 on the canvas: 5 palettes × light/dark × desktop/phone (interactive collapse and + menu).
 - Features wanted next: receipt pipeline upgrade (scanic, preprocessing, unpdf, medium resolution, deterministic

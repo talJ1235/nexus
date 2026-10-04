@@ -43,7 +43,10 @@ export function TopBar() {
   );
 }
 
-/** "Ask Nexus", Hairline variant. `iconOnly` on phones. */
+/**
+ * "Ask Nexus", Hairline variant. `iconOnly` on phones. Always a fully rounded pill (circle when icon-only) — Tal's
+ * call (Round 12 #4); the radius is part of `.ask-hairline`. Any new entry point (empty states etc.) uses this button.
+ */
 export function AskButton({ iconOnly, className }: { iconOnly?: boolean; className?: string }) {
   const s = useStore();
   const { t } = useI18n();

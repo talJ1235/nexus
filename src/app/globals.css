@@ -696,8 +696,11 @@ html[data-boot="small"] #boot.boot-out { animation: boot-fade-out 200ms var(--ea
 }
 
 /* ---------- UI v2 shell (Round 7) ---------- */
-/* "Ask Nexus" — Hairline: neutral surface, 1.5px two-tone outline (brand → spark). */
+/* "Ask Nexus" — Hairline: neutral surface, 1.5px two-tone outline (brand → spark). Always a fully rounded pill
+   (Round 12 #4) — the shape lives here, unlayered, so no utility class passed to AskButton can square it off, even if
+   other surfaces move to smaller radii later. */
 .ask-hairline {
+  border-radius: 9999px;
   border: 1.5px solid transparent;
   background: linear-gradient(var(--surface), var(--surface)) padding-box, linear-gradient(100deg, var(--brand), var(--spark)) border-box;
   color: var(--ink);
