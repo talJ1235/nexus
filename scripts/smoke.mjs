@@ -1700,6 +1700,11 @@ try {
       await page.goto(`${BASE}/?v=orders`);
       await page.waitForSelector("[data-orders-layout]", { timeout: 15000 });
       const layout = () => page.locator("[data-orders-layout]").getAttribute("data-orders-layout");
+      // R14 A4: phones never get the table — the desktop switch is hidden there and the phone List / Grid one shows.
+      if (MOBILE) {
+        const r = { layout: await layout(), desktopSwitch: await page.locator('[data-carry="layout:table"]').filter({ visible: true }).count(), phoneSwitch: await page.locator("[data-phone-layout-toggle]").filter({ visible: true }).count() };
+        return ok(r.layout === "cards" && r.desktopSwitch === 0 && r.phoneSwitch === 1, "orders view: cards ↔ table toggle switches layout (phone: cards only, phone switch)", JSON.stringify(r));
+      }
       const radio = (i) => page.locator("[role=radiogroup] [role=radio]").nth(i);
       const before = await layout();
       await radio(before === "table" ? 0 : 1).click();

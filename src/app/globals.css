@@ -399,7 +399,9 @@ body {
    Cards stagger lightly (≤150 ms in total). */
 .load-in, .load-in-rows tr { animation: fade 220ms ease-out both; }
 /* First paint of the grid: cards rise in, one after another (Round 8 C2) — the products are the page. */
-.load-in-stagger > * > * { animation: rise-in 380ms var(--ease-out) both; }
+/* Only the first 12 (R14): off-screen cards skip rendering (content-visibility), so a rise-in on them stayed parked
+   at its start and played when they were scrolled to or a sheet opened — rows popped 10 px. */
+.load-in-stagger > :nth-child(-n + 12) > * { animation: rise-in 380ms var(--ease-out) both; }
 .load-in-stagger > :nth-child(2) > * { animation-delay: 35ms; }
 .load-in-stagger > :nth-child(3) > * { animation-delay: 70ms; }
 .load-in-stagger > :nth-child(4) > * { animation-delay: 105ms; }
@@ -868,7 +870,8 @@ html body[data-scroll-locked] { margin-right: 0 !important; --removed-body-scrol
    longer restyles every card. A hovered/focused card drops the containment so its lift and shadow aren't clipped. */
 .cv-auto { content-visibility: auto; contain-intrinsic-size: auto 330px; }
 .cv-auto:hover, .cv-auto:focus-within { content-visibility: visible; }
-@media (max-width: 639px) { .cv-auto { contain-intrinsic-size: auto 72px; } }
+/* Phone rows are 64 px (R14: a 72 px guess made off-screen rows shift 8 px each as they rendered). */
+@media (max-width: 639px) { .cv-auto { contain-intrinsic-size: auto 64px; } }
 
 /* Project card → project page (Round 9 E1): only the cover morphs; the rest of the page uses the app's own view
    animation (no root cross-fade, so the dock and top bar never flicker). */
