@@ -2,6 +2,7 @@
 
 Source: Tal, planning chat 2026-10-04 (account B). Source of truth for every multi-user decision; the round briefs
 `docs/ROUND15.md` / `docs/ROUND16.md` are cut from this file after Round 14's "## Open" is read.
+Security controls: `docs/SECURITY.md` (OWASP ASVS 5.0 L2 + L3 for auth/sessions/access control).
 Not legal advice — the privacy items are a sensible baseline, Tal checks the policy text with someone qualified before
 opening to strangers.
 
@@ -22,6 +23,8 @@ opening to strangers.
 | Onboarding questions | Why are you here (home shopping / supermarket / projects & hobbies / price tracking) · stores you buy from · monthly budget + currency · who you shop with (alone / partner / family → offer a shared space + invite). |
 | Admin panel | Users + invites · AI usage & cost per user/provider + quota · reports from all users · metrics & system health. |
 | Split | **Two rounds**: R15 foundation, R16 product layer. Tal tests between them. |
+| Where you sign up | **Phone and website, same flow** (Tal 2026-10-04). Today the phone app is the PWA = the same site, so one flow covers both; the R18 Android wrapper must keep it working (§4.10). |
+| Hosting | **Stay on Vercel** for the closed circle (Tal asked for alternatives, 2026-10-04 — comparison in §8). Revisit before any commercial use: Vercel Pro, or Netlify (free tier allows commercial use, credit-capped). |
 
 Planner decisions (Tal can overrule):
 - **Sharing is per space**, not per list. To share one list with someone, put it in a shared space (lists can be moved between spaces). Public read-only links per list remain.
@@ -84,7 +87,7 @@ Columns added: `space_id` (not null after backfill, indexed) on `collections, it
 - Supermarket mode (R17) lives inside shared spaces — the household is a space.
 
 ### 4.4 QR desktop login (R16)
-Desktop `/login` shows a QR (+ 6-character code) for `/approve/<id>`, refreshed every 2 minutes. Signed-in phone opens it → screen "Sign in on Windows · Chrome · near Tel Aviv?" → Approve. Desktop polls (or SSE) → gets a new session for that user. One-time, 2-minute expiry, approval requires a recent phone session, rate-limited, the new session appears in Devices.
+Desktop `/login` shows a QR (+ 6-character code) for `/approve/<id>`, refreshed every 2 minutes. Signed-in phone opens it → screen "Sign in on Windows · Chrome · near Tel Aviv?" → Approve. **Number matching:** the desktop shows 2 digits, the phone shows 3 choices and the user taps the matching one (stops QR phishing — someone sending you their QR). Desktop polls (or SSE) → gets a new session for that user. One-time, 2-minute expiry, approval requires a recent phone session, rate-limited, the new session appears in Devices.
 
 ### 4.5 Onboarding (R16)
 After the first sign-in, 4 short screens, each skippable, progress dots, ≤ 60 s total: (1) why are you here — multi-select, sets Home sections order and default dock; (2) stores — logo grid + search, seeds store list and suggestions; (3) monthly budget + currency — sets the space budget; (4) who you shop with → offers "Create a shared space" + invite link. Then a small "Try: paste a link or scan a barcode" empty state (R13 A7). Answers are user prefs, editable in Settings; the assistant may use them (not names).
@@ -110,6 +113,12 @@ After the first sign-in, 4 short screens, each skippable, progress dots, ≤ 60 
 - Delete account: typed confirmation → sign out everywhere → personal space + its blobs deleted; in shared spaces the user's items stay (re-attributed to "former member"); sole owner of a shared space must transfer ownership or delete it first. Purge after 7 days (undo window).
 - Export: JSON + Excel of everything in spaces the user owns, plus their own chats/memory.
 
+### 4.10 Phone and web (sign-up anywhere)
+- One auth flow for the website and the installed PWA; every screen is designed phone-first (360/390) and desktop (1366).
+- Google sign-in uses a full-page redirect (not a popup) so it works in an installed PWA on Android and iPhone.
+- Passkeys are created on whichever device the user is on; the sign-in screen offers "Use a passkey from another device" (the browser's QR/hybrid flow) automatically.
+- R18 Android wrapper (Capacitor): Google blocks its sign-in inside embedded WebViews, so the wrapper opens sign-in in a Custom Tab (system browser) and returns by an App Link `https://<domain>/auth/app-callback` that hands a one-time code to the app; passkeys there go through Android Credential Manager. R15 keeps the auth endpoints ready for this (no reliance on popups or third-party cookies).
+
 ## 5. Migration of today's data (Round 15)
 1. Before deploy: full backup (`/api/backup` + Turso dump), stored outside the repo; restore path tested locally on a copy.
 2. Migration creates the admin user from `ADMIN_EMAIL` (no password), Tal's personal space "Tal", backfills `space_id` on every row and `user_id` on chats/memories/reports, moves owner `kv` keys → `user_pref` / `space_pref`.
@@ -128,7 +137,7 @@ After the first sign-in, 4 short screens, each skippable, progress dots, ≤ 60 
 
 **Round 16 — product layer**
 - A. Onboarding questionnaire. B. QR desktop login. C. Web push + inbox + per-kind settings (replaces Telegram alerts/weekly). D. AI quota, usage log, PII stripping, AI switch. E. Admin panel. F. Privacy/terms pages, delete account, export. G. Remove the password fallback and the old guest tables.
-- Mockups first (planner, design canvas): sign-in, invite/join, space switcher, space settings, onboarding (4 screens), inbox, admin — phone + desktop, both palettes. R15 builds its screens with the existing UI v2 components; R16 adjusts them to the approved mockups.
+- **Mockups first, before R15** (Tal 2026-10-04: security with good UX and a beautiful look): R15 screens — sign-in, invite/join, add passkey, recovery, waitlist, space switcher, space settings, devices, security activity; R16 screens — onboarding (4), QR approve, inbox, notification settings, admin, privacy. Phone + desktop, both palettes, light + dark, on the design canvas; Tal approves before the brief.
 
 Then: R17 supermarket mode (inside shared spaces) → R18 Android wrapper + testers.
 
@@ -138,4 +147,20 @@ Then: R17 supermarket mode (inside shared spaces) → R18 Android wrapper + test
 3. **Google Cloud** — new project → Google Auth Platform: branding (app name, support email, logo, privacy/terms URLs on the domain), audience **External**, scopes only `openid email profile` (non-sensitive → no security review; calendar scopes stay out), OAuth client "Web application" with redirect `https://<domain>/api/auth/callback/google` (+ `http://localhost:3000/...` for dev) → Client ID + secret into Vercel env. Publish to production (with basic scopes no 100-test-user cap).
 4. **Resend** — account, add + verify the domain (DNS records in Cloudflare), API key into Vercel env. Free tier: 3 000 emails/month, 100/day — plenty for recovery codes and invites.
 5. Vercel env: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`/`NEXT_PUBLIC_APP_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM`, `ADMIN_EMAIL(S)`; R16 adds `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`.
-6. Make the repo private before inviting anyone (ENVIRONMENT.md has the steps and consequences); re-run `gitleaks`.
+6. **Cloudflare Turnstile** (free) — site key + secret for the waitlist and email-code forms (`TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`).
+7. **Support email** on the domain (e.g. Cloudflare Email Routing → your Gmail) — needed for the Google consent screen, privacy page and Resend sender.
+8. **Admin recovery** — after first sign-in, register two passkeys (phone + PC) and print the one-time recovery codes.
+9. **Privacy policy + terms** — planner drafts them (Hebrew + English); Tal reads and approves; ideally a lawyer glance before opening beyond the closed circle.
+10. **First testers list** — 5–10 names for the first invite codes.
+11. Make the repo private before inviting anyone (ENVIRONMENT.md has the steps and consequences); re-run `gitleaks`.
+
+## 8. Hosting — why Vercel for now (checked 2026-10-04)
+| Option | Free tier | Fit for Nexus |
+|---|---|---|
+| **Vercel Hobby** (today) | 1M function calls, 4 CPU-h, 100 GB transfer, 5 min functions, 10 GB function storage; **non-commercial only** | Made by the Next.js team, zero migration, Blob + cron already used, `sharp` works. Limits: non-commercial, storage cap (housekeeping), daily cron |
+| Vercel Pro | $20/month | Same, commercial allowed — the natural step when Nexus charges money |
+| Netlify Free | 300 credits/month, hard cap (site pauses when used up); commercial use not restricted | Next.js supported via adapter; move Blob → Netlify Blobs, cron → scheduled functions. Real option later |
+| Cloudflare Workers (OpenNext) | 100k requests/day, very small CPU time per request | Cheapest at scale, but `sharp` doesn't run there and Next.js usually needs the $5 paid plan; biggest rewrite |
+| Own server (VPS + Coolify) | ~€5/month | Full control, but Tal maintains the server, security patches and backups himself — not recommended now |
+
+Decision: stay on Vercel through the closed circle; before any paid/commercial use choose Vercel Pro (no work) or Netlify (some work). Keep the code portable: no new Vercel-only features without a note in the brief.
