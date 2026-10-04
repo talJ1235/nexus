@@ -14,7 +14,13 @@ to setup, tooling or workflow is recorded there in the same session.
 - **Claude Code (builder)** — implements a brief unattended, tests, merges, writes results under "## Open".
 
 ## How to talk with Tal
-- Reply in **Hebrew**; technical terms in English go at the end of a sentence or in parentheses (RTL display).
+- Reply in **Hebrew**. Mixed Hebrew/English must read cleanly in RTL (Tal, 2026-10-04):
+  - Every line, bullet and heading **starts with a Hebrew word** — a leading English word flips the line to LTR.
+  - Prefer plain Hebrew words (בדיקה, ענף, מחבר); English only for names: files, commands, products, code terms.
+  - Every English name goes in inline code (`` `CLAUDE.md` ``, `` `npm run -s check` ``); first use of a term:
+    Hebrew word + code in parentheses, e.g. ענף (`branch`). Don't end a sentence with bare English + punctuation.
+  - Multi-word commands, paths and code go in a code block (renders LTR on its own), never inside a Hebrew sentence.
+  - Arrows for steps point right-to-left: Settings ← Connectors ← Add.
 - Professional, direct, no flattery, no repeating his words back. A trusted advisor: give the honest trade-off and a
   recommendation, disagree when warranted.
 - Software: he is a beginner–intermediate → explain step by step, plain words. Hardware/electronics: advanced.
@@ -91,7 +97,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
-- 2026-10-04 · B · Set up this account's chat: sandbox network confirmed (clone, npm ci, typecheck, lint run here), GitHub custom connector via own OAuth App, secret audit of full history clean, repo stays public until launch. Wrote `docs/ENVIRONMENT.md` (setup + rule: every setup/tooling change is logged there).
+- 2026-10-04 · B · Set up this account's chat: sandbox network confirmed (clone, npm ci, typecheck, lint run here), GitHub custom connector via own OAuth App, secret audit of full history clean, repo stays public until launch. Wrote `docs/ENVIRONMENT.md` (setup + rule: every setup/tooling change is logged there). Added Hebrew/English RTL writing rules under "How to talk with Tal".
 - 2026-10-04 · A · Tal: drop the big "Today's best move" hero, fewer rounded boxes. Canvas page "Home v3 — open layout": one surface with hairline sections, status sentence header, flat stats with sparklines, slim "Nexus suggests" line (1/4), "This week" strip, Needs you + On the way, pace + projects, Nexus noticed; flatter To buy ⇄ On the way. Awaiting Tal.
 - 2026-10-04 · A · Round 12 brief = small fixes (sheet swipe-down, slow-swipe lock, assistant header + suggestion rows, Ask pill). Dashboard redesign moved to Round 13: research done (Oura, Linear, Monzo, Ramp, Brex, Stripe, Shopify, Mercury); canvas page "Home v2 — value first" (best-move hero, Needs-you queue, KPIs vs your usual, budget pace, delivery tracker, project rings, Nexus noticed; phone To buy ⇄ On the way switch cards) — awaiting Tal before the Round 13 brief.
 - 2026-10-03 · A · Round 12 mockups on the canvas (page "Round 12 — mature look + dashboard"): Q quiet-pro vs E editorial; dashboard, customize mode + presets, grouped To buy, history table, phone. Proposed phone dock: Home · To buy · + · Projects · Insights (On the way moves into To buy) — awaiting Tal.
