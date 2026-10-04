@@ -57,6 +57,16 @@ Standard: clone the repo, `npm install`, `cp .env.example .env.local` and fill v
 password manager, never from the repo). `.claude/settings.json` holds the SessionStart pull hook and allowed
 commands; per-machine extras (push/merge permissions for a round) go in `.claude/settings.local.json`.
 
+## Vercel (Hobby) — deployments and the Function Storage limit
+- Hobby has a **10 GB Function Storage** cap = the server bundles of *every retained deployment*, all projects together.
+  One Nexus deployment is roughly 100 MB (mostly `sharp`), so ~100 kept deployments fill it, and at the cap new
+  deployments are blocked. Hit 100% on 2026-10-02 (75% on 10-01; a production deploy failed on 10-01).
+- Only `main` builds: `vercel.json` `ignoreCommand` starts with `[ "$VERCEL_GIT_COMMIT_REF" = "main" ] || exit 0`, so
+  round branches (`round<n>`) no longer create preview deployments (exit 0 = skip). On `main`, docs-only pushes still skip.
+  To get previews back for a branch, remove that first clause.
+- Housekeeping: in Vercel → Deployments, delete old deployments now and then; keep the current production one plus 1–2
+  for rollback. The usage counter may lag a day after deleting.
+
 ## Repo visibility & secrets
 - The repo is **public** for now; Tal plans to make it **private** at launch
   (GitHub → repo Settings → General → Danger Zone → Change visibility).
@@ -71,3 +81,4 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
 - 2026-10-04 (chat): confirmed chat sandbox network works; created GitHub OAuth App + custom connector; secret audit clean;
   wrote this file and linked it from `CLAUDE.md` and `docs/PLANNER.md`.
 - 2026-10-04 (chat): full `npm run -s check` runs in the chat sandbox with a file DB (~3 min); Playwright installs there.
+- 2026-10-04 (chat): Vercel Function Storage hit 10 GB; `vercel.json` now builds `main` only (branch `chore/vercel-main-only`).
