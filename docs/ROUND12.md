@@ -35,3 +35,28 @@ button, empty states) stays fully rounded — note in CLAUDE.md/UI-V2 that the A
 other surfaces move to smaller radii later.
 
 ## Open
+
+**Summary (2026-10-04):** all four items done on `round12` (R12.1–R12.4); typecheck + lint + build green; unit tests
+(`test:gestures`) and the full smoke (desktop 1366 + phone 390, write paths with the AI mock) green, except one timing flake: the phone
+"camera opens fast" step once measured a 400 ms first barcode frame under the full run's load (budget 300 ms; the
+camera isn't touched this round); re-run alone it passed twice. Sheet open/close frame trace looks clean (the card →
+sheet morph still fades). Merged to `main` with `--ff-only`.
+
+- **Reports read first:** no open GitHub issues; the in-app reports export couldn't be read locally (`REPORTS_TOKEN`
+  isn't in `.env.local`).
+- **#1 scope:** to keep one implementation, *every* `Modal` and `Sheet` is a bottom sheet on phones (< 640 px), not only
+  the audited ones — settings, share, import, receipt, bulk add, collection dialogs too. The Me sheet used to slide in
+  from the start edge; on phones it now rises from the bottom like the rest. The nav drawer (tablet) stays a side
+  drawer (`phone="side"`). Desktop (≥ 640 px) is unchanged.
+- **#1 back gesture:** handled on phones only (< 640 px; the + menu < 1024 px as before). Each surface pushes one
+  history entry; closing it another way pops it again, so Back never has to be pressed twice.
+- **#1 content pull:** besides the handle/header, a downward pull on the content closes the sheet while that content is
+  scrolled to its top (inputs, sliders and `[data-no-sheet-drag]` are excluded). If Tal finds this too eager in the
+  assistant chat, limit it to the handle/header by adding `data-no-sheet-drag` to the chat list.
+- **#2 root cause:** besides the distance rule, the real bug was the "only one row held open" guard: it compared a new
+  closure with the row's ref, never matched, and so the second time a row was held open it closed itself straight away
+  (a slow status swipe after any earlier swipe on that row looked like "didn't lock"). Slowly dragging a held row back
+  keeps it open until it's under the 40 % threshold (then it closes) — same both ways.
+- **#4:** today the Ask button appears only in the desktop top bar and as the phone icon button; no empty state has one.
+  Nothing was added; any future placement must reuse `AskButton` (CLAUDE.md, UI-V2).
+

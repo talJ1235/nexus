@@ -444,6 +444,23 @@ Brief and checklist: `docs/ROUND11.md`. Shipped (branch `round11`, 2026-10-03):
   `scripts/backfill-pictures.ts`. `npm run test:picture-style`.
 - **Solid tags** over pictures (`.nx-tag`, per-theme `--tag-*` tokens; contrast-checked in `scripts/contrast.mjs`).
 
+## Round 12 — sheet swipe-down, slow-swipe lock, assistant header, Ask pill
+Brief and checklist: `docs/ROUND12.md`. Shipped (branch `round12`, 2026-10-04):
+- **Phone bottom sheets** (`src/components/ui/sheet-drag.ts`, one implementation): below 640 px every `Modal` and
+  `Sheet` (except the nav drawer, `phone="side"`) is a bottom sheet with a drag handle — the quick-action sheet, item
+  sheet, picture picker, Me, Reports, alerts, compare, assistant, settings, share, import… It follows the finger from
+  the handle/header (`[data-sheet-grip]`) or from the content while it is scrolled to the top, closes past 30 % of its
+  height or on a downward fling (`sheetRelease`), springs back otherwise; the scrim fades with the drag. Scrim tap and
+  the back gesture close it: one shared history stack (`useBackClose`) closes only the top surface (the + menu uses it too).
+- **Row swipes**: one rule both ways (`swipeRelease` in `src/lib/gestures.ts`): past 40 % of that side's actions the row
+  snaps open and stays, below it closes; a fast fling decides too; same haptic tick per side. Fixed the real cause of
+  "doesn't always stay open": the one-row-held guard never matched, so a row held open a second time closed itself.
+  `npm run test:gestures` (slow/fast × both directions × RTL); smoke drags at 15 px/frame in en + he.
+- **Assistant**: History button at the start of the header, before the Box mark (hairline between; mirrored in Hebrew),
+  New chat at the end. Suggested questions are full-width rows under a small "Suggested" label — type icon (data /
+  plan / help), up to 2 lines, chevron, hairline separators; follow-ups use the same rows, compact.
+- **Ask button** is always a fully rounded pill (radius in `.ask-hairline`; noted in CLAUDE.md and UI-V2).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
