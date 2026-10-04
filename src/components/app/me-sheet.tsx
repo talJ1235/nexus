@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronRight, Download, FileSpreadsheet, History, Inbox, LogOut, MessageSquareWarning, Monitor, Moon, Puzzle, Send, Settings, Sun, X } from "lucide-react";
+import { Bell, ChevronRight, Download, FileSpreadsheet, History, Inbox, LogOut, MessageSquareWarning, Monitor, Moon, Puzzle, Send, Settings, Sun, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { getAlertsState } from "@/app/alert-actions";
 import { useI18n } from "@/components/providers";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { PaletteSwatch, Segmented } from "./settings-dialog";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
+import { useUnreadAlerts } from "./alerts-panel";
 
 /** Phone "Me" sheet (Round 9 A1), from the avatar in the phone top bar: everything that lives in the sidebar's owner
  * card and Settings on desktop, within thumb reach. Rows are ≥ 52 px. */
@@ -23,6 +24,7 @@ export function MeSheet() {
   const ext = useExtension();
   const [telegram, setTelegram] = useState<boolean | null>(null);
   const open = s.meOpen;
+  const unread = useUnreadAlerts();
 
   useEffect(() => {
     if (!open) return;
@@ -100,6 +102,11 @@ export function MeSheet() {
           <button type="button" className={row} onClick={go(() => s.setExtOpen(true))}>
             <Puzzle /> <span className="flex-1">{t.settings.extension}</span>
             {status(ext.available, t.ext.connected, t.ext.notInstalled)}
+          </button>
+          {/* R14 B2: the phone top bar has no bell (home-v4) — alerts live here, the avatar shows the unread dot. */}
+          <button type="button" className={row} onClick={go(() => s.setPanel("alerts"))} data-me-alerts>
+            <Bell /> <span className="flex-1">{t.alerts.title}</span>
+            {unread > 0 && <span className="tabular grid h-5 min-w-5 place-items-center rounded-full bg-spark px-1.5 text-[11px] font-bold text-white">{unread}</span>}
           </button>
           <button type="button" className={row} onClick={go(() => s.setPanel("alerts"))}>
             <Send /> <span className="flex-1">{t.me.telegram}</span>

@@ -25,10 +25,9 @@ function timeAgo(ts: number, locale: string) {
   return rtf.format(Math.round(h / 24), "day");
 }
 
-/** Header bell: unread count, opens the alerts panel. */
-export function AlertsBell({ size }: { size?: "sm" } = {}) {
+/** Unread price alerts (refreshed when a panel opens or closes). */
+export function useUnreadAlerts() {
   const s = useStore();
-  const { t } = useI18n();
   const [unread, setUnread] = useState(0);
   useEffect(() => {
     if (s.loading) return;
@@ -39,7 +38,15 @@ export function AlertsBell({ size }: { size?: "sm" } = {}) {
     return () => {
       alive = false;
     };
-  }, [s.panel, s.loading]);
+  }, [s.panel, s.loading, s.meOpen]);
+  return unread;
+}
+
+/** Header bell: unread count, opens the alerts panel. */
+export function AlertsBell({ size }: { size?: "sm" } = {}) {
+  const s = useStore();
+  const { t } = useI18n();
+  const unread = useUnreadAlerts();
   return (
     <button
       type="button"

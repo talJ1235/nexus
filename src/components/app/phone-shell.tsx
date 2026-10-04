@@ -4,17 +4,18 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { ChartColumn, Folder, House, Plus, Search, ShoppingBag, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
-import { LogoPill } from "@/components/logo";
+import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { useBackClose } from "@/components/ui/sheet-drag";
 import { prewarmScanners } from "@/lib/barcode-reader";
-import { AlertsBell } from "./alerts-panel";
+import { useUnreadAlerts } from "./alerts-panel";
 import { useReadOnly } from "./offline-banner";
 import { useStore, type View } from "./store";
 import { AskButton } from "./top-bar";
 import { PhoneSearchResults, rememberSearch } from "./phone-search";
 
-/** Phone / tablet (<1024 px) top bar: logo pill, then search, Ask (icon), alerts. Search expands in place. */
+/** Phone / tablet (<1024 px) top bar = home-v4 (R14 B2): Box + "Nexus", then the search circle, the Ask circle and the
+ *  avatar (Me; a dot when price alerts are unread), 36 px controls with ≥ 40 px tap areas. Search expands in place. */
 export function PhoneTopBar() {
   const s = useStore();
   const { t } = useI18n();
@@ -31,11 +32,14 @@ export function PhoneTopBar() {
     setSearching(false);
   };
   useBackClose(open, close, "(max-width: 1023px)");
+  const unread = useUnreadAlerts();
+  // 36 px circles; the ::after grows each tap area to 40 px without moving anything.
+  const circle = "relative grid size-9 shrink-0 place-items-center rounded-full active:scale-95 after:absolute after:-inset-0.5 after:content-['']";
 
   return (
-    <div className="flex h-[46px] items-center gap-1.5 min-[380px]:gap-2" data-phone-top>
+    <div className="flex h-10 items-center gap-2" data-phone-top>
       {open ? (
-        <label className="flex h-[46px] min-w-0 flex-1 animate-pop-in items-center gap-2 rounded-full border border-line bg-surface pe-1 ps-4 text-muted">
+        <label className="flex h-10 min-w-0 flex-1 animate-pop-in items-center gap-2 rounded-full border border-line bg-surface pe-0.5 ps-3.5 text-muted">
           <Search className="size-[19px] shrink-0" />
           <input
             ref={input}
@@ -54,7 +58,7 @@ export function PhoneTopBar() {
           <button
             type="button"
             onClick={close}
-            className="grid size-10 place-items-center rounded-full hover:bg-surface-2"
+            className="grid size-9 place-items-center rounded-full hover:bg-surface-2"
             aria-label={t.phone.closeSearch}
           >
             <X className="size-[18px]" />
@@ -62,32 +66,29 @@ export function PhoneTopBar() {
         </label>
       ) : (
         <>
-          {/* Settings, look, reports, extension, Telegram, export and log out (Round 9 A1). */}
-          <button
-            type="button"
-            onClick={() => s.setMeOpen(true)}
-            className="grid size-10 shrink-0 place-items-center rounded-full bg-ink text-[15px] font-extrabold text-bg active:scale-95"
-            aria-label={t.me.open}
-            data-me-open
-          >
-            {t.shell.owner.slice(0, 1).toUpperCase()}
+          <button type="button" onClick={() => s.setView({ type: "home" })} className="me-auto flex h-10 items-center gap-2 rounded-lg" aria-label={t.dash.title} data-topbar-logo data-carry="view:home">
+            <LogoMark className="size-5" />
+            <span className="text-[16px] font-extrabold tracking-[-0.01em]">Nexus</span>
           </button>
-          <button type="button" onClick={() => s.setView({ type: "home" })} className="me-auto" aria-label={t.dash.title} data-topbar-logo data-carry="view:home">
-            <LogoPill className="h-[46px] text-[18px]" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setSearching(true)}
-            className="grid size-[46px] shrink-0 place-items-center rounded-full border border-line bg-surface text-ink active:scale-95"
-            aria-label={t.phone.search}
-            data-phone-search
-          >
-            <Search className="size-5" />
+          <button type="button" onClick={() => setSearching(true)} className={cn(circle, "border border-line bg-surface text-ink")} aria-label={t.phone.search} data-phone-search>
+            <Search className="size-4" strokeWidth={1.9} />
           </button>
         </>
       )}
-      {s.aiEnabled && !open && <AskButton iconOnly />}
-      {!open && <AlertsBell size="sm" />}
+      {s.aiEnabled && !open && <AskButton iconOnly className="size-9 [&_svg]:size-4 [&_svg]:text-spark" />}
+      {!open && (
+        // Settings, look, alerts, reports, extension, Telegram, export and log out (Round 9 A1).
+        <button
+          type="button"
+          onClick={() => s.setMeOpen(true)}
+          className={cn(circle, "ms-0.5 size-8 bg-ink text-xs font-bold text-bg")}
+          aria-label={unread ? `${t.me.open} · ${t.alerts.title} (${unread})` : t.me.open}
+          data-me-open
+        >
+          {t.shell.owner.slice(0, 1).toUpperCase()}
+          {unread > 0 && <span className="absolute -end-px -top-px size-2.5 rounded-full bg-spark ring-2 ring-bg" data-unread={unread} />}
+        </button>
+      )}
       {open && <PhoneSearchResults q={q} onClose={close} onPick={setQ} />}
     </div>
   );
@@ -141,23 +142,29 @@ function DockBar() {
       aria-label={d.id === "shopping" && urgent ? `${d.label(t)} (${urgent})` : d.label(t)}
       aria-current={active === d.id ? "page" : undefined}
       data-carry={`view:${d.id === "shopping" ? "to_buy" : d.id}`}
+      // R14 B2: icons with labels under them (Tal), active = ink, others muted.
       className={cn(
-        "relative grid size-[46px] place-items-center rounded-full transition-[background-color,opacity,transform] duration-200 active:scale-90 [&_svg]:size-[22px] [&_svg]:stroke-[1.8]",
-        active === d.id ? "bg-surface-2 opacity-100" : "opacity-50",
+        "flex h-full min-w-0 flex-col items-center justify-center gap-[3px] text-[10.5px] font-semibold leading-none transition-[color,transform] duration-200 active:scale-95 [&_svg]:size-[21px] [&_svg]:stroke-[1.8]",
+        active === d.id ? "text-ink" : "text-muted",
       )}
     >
-      {d.icon}
-      {d.id === "shopping" && urgent > 0 && (
-        <span className="tabular absolute end-1 top-1 grid h-[17px] min-w-[17px] place-items-center rounded-full bg-warn px-1 text-[10.5px] font-bold leading-none text-bg" data-dock-badge>
-          {urgent}
-        </span>
-      )}
+      <span className="relative">
+        {d.icon}
+        {d.id === "shopping" && urgent > 0 && (
+          <span className="tabular absolute -end-2.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-warn px-1 text-[10px] font-bold leading-none text-bg" data-dock-badge>
+            {urgent}
+          </span>
+        )}
+      </span>
+      <span className="max-w-full truncate px-0.5" dir="auto" data-dock-label>
+        {d.label(t)}
+      </span>
     </button>
   );
   return (
     <nav
       dir="ltr"
-      className="fixed inset-x-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-40 flex h-[68px] items-center justify-around rounded-full border border-line bg-surface px-2 text-ink shadow-[0_14px_40px_color-mix(in_srgb,var(--ink)_16%,transparent)] transition-[transform,opacity] duration-[320ms] ease-[var(--ease-out)] lg:hidden [[data-selecting]_&]:pointer-events-none [[data-selecting]_&]:translate-y-[140%] [[data-selecting]_&]:opacity-0"
+      className="fixed inset-x-3 bottom-[calc(18px+env(safe-area-inset-bottom))] z-40 grid h-[62px] grid-cols-5 items-center rounded-full border border-line bg-surface px-1 text-ink shadow-[0_8px_28px_color-mix(in_srgb,var(--ink)_12%,transparent)] transition-[transform,opacity] duration-[320ms] ease-[var(--ease-out)] lg:hidden [[data-selecting]_&]:pointer-events-none [[data-selecting]_&]:translate-y-[140%] [[data-selecting]_&]:opacity-0"
       aria-label="Main"
       data-dock
     >
@@ -169,9 +176,9 @@ function DockBar() {
         aria-expanded={s.plusOpen}
         data-plus
         data-dock-target="plus"
-        className="grid size-14 place-items-center rounded-full bg-brand text-on-brand shadow-[0_8px_20px_color-mix(in_srgb,var(--brand)_40%,transparent)] active:scale-95"
+        className="grid size-[52px] place-items-center justify-self-center rounded-full bg-brand text-on-brand shadow-[0_8px_20px_color-mix(in_srgb,var(--brand)_40%,transparent)] active:scale-95"
       >
-        <Plus className={cn("size-[26px] transition-transform duration-[450ms] ease-[var(--ease-spring)]", s.plusOpen && "rotate-[135deg]")} strokeWidth={2.4} />
+        <Plus className={cn("size-6 transition-transform duration-[450ms] ease-[var(--ease-spring)]", s.plusOpen && "rotate-[135deg]")} strokeWidth={2.4} />
       </button>
       {DOCK.slice(2).map(item)}
     </nav>

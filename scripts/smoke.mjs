@@ -503,6 +503,35 @@ try {
     }
 
     if (MOBILE) {
+      // Round 14 B2: the v4 phone shell — dock icons with labels (active = ink), top bar Box + Nexus, 36 px circles.
+      await step("phone shell: dock labels, active ink, v4 top bar (36 px, avatar, no bell)", async () => {
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector("[data-dock]", { timeout: 10000 });
+        const r = await page.evaluate(() => {
+          const labels = [...document.querySelectorAll("[data-dock] [data-dock-label]")];
+          const probe = document.createElement("i");
+          probe.style.color = "var(--ink)";
+          document.body.append(probe);
+          const ink = getComputedStyle(probe).color;
+          probe.remove();
+          const on = document.querySelector("[data-dock] [aria-current=page]");
+          const top = document.querySelector("[data-phone-top]");
+          const size = (sel) => Math.round(top.querySelector(sel)?.getBoundingClientRect().width ?? 0);
+          return {
+            labels: labels.map((l) => l.textContent),
+            font: labels[0] && getComputedStyle(labels[0]).fontSize,
+            activeInk: !!on && getComputedStyle(on).color === ink && on.getAttribute("data-dock-target") === "shopping",
+            logo: top.querySelector("[data-topbar-logo]")?.textContent?.trim(),
+            search: size("[data-phone-search]"),
+            ask: size("[data-ask]"),
+            avatar: size("[data-me-open]"),
+            bell: !!top.querySelector("[data-carry='panel:alerts']"),
+          };
+        });
+        await shot(page, "phone-shell-v4");
+        ok(r.labels.length === 4 && r.labels.every(Boolean) && r.font === "10.5px" && r.activeInk && r.logo === "Nexus" && r.search === 36 && (r.ask === 36 || r.ask === 0) && r.avatar === 32 && !r.bell, "phone shell: dock labels, active ink, v4 top bar (36 px, avatar, no bell)", JSON.stringify(r));
+      });
+
       await step("phone: dock + '+' menu opens four actions and closes on the scrim", async () => {
         await page.waitForSelector("[data-dock]", { timeout: 10000 });
         await page.click("[data-plus]");
