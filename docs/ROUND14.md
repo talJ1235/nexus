@@ -78,7 +78,7 @@ section with no rows. Tal's data has none of those yet, so nothing shows.
 - Unit tests cover the id validation and the number guard.
 - The sections still hide on a truly empty account (A7 of R13).
 
-### A3. [ ] No indicators on To buy
+### A3. [x] No indicators on To buy
 Tal: the indicators belong on Home and Spending, not on the list pages.
 
 **Cause:** `SUMMARY_VIEWS` in `home-summary.tsx` includes `to_buy`, `urgent` and `unsorted`.

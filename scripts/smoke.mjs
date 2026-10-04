@@ -50,7 +50,8 @@ const step = async (msg, fn) => {
   try {
     await fn();
   } catch (e) {
-    ok(false, msg, String(e?.message || e).split("\n")[0].slice(0, 200));
+    // SMOKE_DEBUG=1 keeps the locator / call log lines of the error (which element, what it waited for).
+    ok(false, msg, process.env.SMOKE_DEBUG ? String(e?.message || e).split("\n").slice(0, 8).join(" | ") : String(e?.message || e).split("\n")[0].slice(0, 200));
     // With SMOKE_OUT, a failing step leaves a screenshot of the main page as it was.
     if (OUT && failShotPage) await failShotPage.screenshot({ path: `${OUT}/fail-${msg.replace(/[^a-z0-9]+/gi, "-").slice(0, 40)}${SUFFIX}.png` }).catch(() => {});
   }
@@ -121,13 +122,15 @@ const HOME_ORDER = ["suggest", "week", "needs", "ontheway", "pace", "projects", 
 const homeSections = (page) =>
   page.$$eval("[data-home-section]", (els) => els.filter((e) => e.offsetParent !== null).flatMap((e) => e.getAttribute("data-home-section").split(" ")));
 async function openSettings(page) {
+  // Already opening (a caller tapped Me → Settings): don't tap the sheet underneath.
+  if (await page.locator("[data-settings-assistant]").waitFor({ timeout: 1500 }).then(() => true, () => false)) return;
   const btn = page.locator('[data-carry="settings"]:visible').first();
   if (await btn.count()) await btn.click();
   else {
     await page.locator("[data-me-open]").click();
     // Phones: Me → Settings (R14 A2 needs the full Settings, where the Home diagnostics live).
     const row = page.locator("[data-me-settings]");
-    if (await row.waitFor({ timeout: 3000 }).then(() => true, () => false)) await row.click();
+    if (await row.waitFor({ timeout: 3000 }).then(() => true, () => false)) await row.click({ timeout: 5000 }).catch(() => {});
   }
   await page.waitForSelector("[data-ai-suggestions-switch]", { timeout: 5000 }).catch(() => {});
 }
@@ -252,6 +255,7 @@ async function homeChecks(page) {
       if ((await dots.count()) > 1) {
         const a = await sec.locator("[data-noticed-phone] [data-insight]").getAttribute("data-insight");
         const txt = await sec.locator("[data-noticed-phone] p").textContent();
+        await centerIn(dots.nth(1)); // not under the fixed dock
         await dots.nth(1).click();
         await page.waitForTimeout(300);
         switched = (await sec.locator("[data-noticed-phone] p").textContent()) !== txt || !a;
@@ -448,11 +452,26 @@ try {
       }
     });
 
+    // Round 14 A3: no indicators on To buy (it opens on the toolbar + list); a store page keeps its summary card and
+    // a project page its own header (budget ring, numbers — Round 9 E1).
+    await step("to buy: no summary card, toolbar first; store + project pages keep theirs", async () => {
+      await page.goto(`${BASE}/?v=to_buy`);
+      await page.waitForSelector(READY, { timeout: 15000 });
+      const onToBuy = await page.locator("[data-home-summary]").count();
+      const filters = await page.locator(MOBILE ? "[data-shop-header]" : "[data-filters]").first().isVisible();
+      const capsule = MOBILE || (await page.locator("[data-paste-capsule]").first().isVisible());
+      await page.goto(`${BASE}/?v=c:demo-c-railcam`);
+      await page.waitForSelector(READY, { timeout: 15000 });
+      const onProject = await page.locator("[data-project-header]").first().waitFor({ timeout: 8000 }).then(() => true, () => false);
+      await page.goto(`${BASE}/?v=s:raspberrypi`);
+      await page.waitForSelector(READY, { timeout: 15000 });
+      const onStore = await page.locator("[data-home-summary]").first().waitFor({ timeout: 8000 }).then(() => true, () => false);
+      await page.goto(`${BASE}/?v=to_buy`);
+      await page.waitForSelector(READY, { timeout: 15000 });
+      ok(onToBuy === 0 && filters && capsule && onProject && onStore, "to buy: no summary card, toolbar first; store + project pages keep theirs", JSON.stringify({ onToBuy, filters, capsule, onProject, onStore }));
+    });
+
     if (!MOBILE) {
-      await step("home: totals card, tiles, filters, paste capsule", async () => {
-        const parts = await Promise.all(["[data-totals]", "[data-home-summary]", "[data-filters]", "[data-paste-capsule]", "[data-ask]:visible"].map((q) => page.locator(q).first().isVisible()));
-        ok(parts.every(Boolean), "home: totals card, tiles, filters, paste capsule", JSON.stringify(parts));
-      });
 
       await step("sidebar collapses, capsule glides, state survives reload", async () => {
         const cap = page.locator("[data-paste-capsule] form");

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Eye, EyeOff, GripVertical, LayoutGrid, Package, RefreshCw, Sparkles, Tag, TrendingDown, TrendingUp, Truck, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { toast } from "@/lib/toast";
@@ -552,7 +552,8 @@ function useHomeLook(ruleSugs: number, ruleIns: number, fbSugs: number, fbIns: n
     if (ruleSugs < 0 || s.offlineAt != null || s.loading) return;
     let alive = true;
     homeLook({ ruleSugs, ruleIns, fbSugs: Math.min(fbSugs, 20), fbIns, currency: s.currency, locale: locale === "he" ? "he" : "en" })
-      .then((r) => alive && setLook(r))
+      // A transition: the whole Home re-renders with it, and it often lands during the opening animation.
+      .then((r) => alive && startTransition(() => setLook(r)))
       .catch(() => {});
     return () => {
       alive = false;
@@ -1242,9 +1243,9 @@ function NoticedCard({ list, className, style }: { list: Insight[]; className?: 
   };
   const swipe = useRef<{ x: number; id: number } | null>(null);
   const dots = list.length > 1 && (
-    <span className="ms-auto flex gap-1 lg:hidden" role="tablist">
+    <span className="-me-1.5 ms-auto flex lg:hidden" role="tablist">
       {list.map((x, k) => (
-        <button key={x.key} type="button" role="tab" aria-selected={k === i} aria-label={f(t.dash.insightN, { i: k + 1, n: list.length })} onClick={() => setIdx(k)} className="relative grid h-6 place-items-center after:absolute after:-inset-2 after:content-['']">
+        <button key={x.key} type="button" role="tab" aria-selected={k === i} aria-label={f(t.dash.insightN, { i: k + 1, n: list.length })} onClick={() => setIdx(k)} className="relative grid h-6 w-5 place-items-center after:absolute after:inset-x-0 after:-inset-y-2 after:content-['']">
           <i className={cn("block h-1.5 rounded-full transition-[width,background-color] duration-300", k === i ? "w-4 bg-ai" : "w-1.5 bg-card-line")} />
         </button>
       ))}

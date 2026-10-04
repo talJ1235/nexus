@@ -16,8 +16,13 @@ import { cn } from "@/lib/utils";
 import { useStore, type SortKey } from "./store";
 import { COLLECTION_COLORS, itemsForView } from "./view-items";
 
-/** Views that open with the totals card + tiles. */
-export const SUMMARY_VIEWS = ["to_buy", "urgent", "unsorted", "collection", "store"];
+/**
+ * Views that open with the totals card + tiles: a project's and a store's page (their own budget / free-shipping).
+ * R14 A3: not To buy — the indicators live on Home and Spending; To buy opens on the toolbar and the list.
+ */
+export const SUMMARY_VIEWS = ["collection", "store"];
+/** Views whose toolbar starts with the "To buy · n items · total" head. */
+const SECTION_HEAD_VIEWS = ["to_buy", ...SUMMARY_VIEWS];
 
 /** A money amount with the decimals drawn smaller (hero numbers). */
 export function BigMoney({ value: target, className }: { value: number; className?: string }) {
@@ -352,7 +357,7 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
   const { t, f, locale } = useI18n();
   const [ref, stuck] = useStuck<HTMLDivElement>();
   const sum = useSummary();
-  const section = SUMMARY_VIEWS.includes(s.view.type);
+  const section = SECTION_HEAD_VIEWS.includes(s.view.type);
   const viewItems = useMemo(() => itemsForView(s.items, s.view), [s.items, s.view]);
   const chips = useMemo(() => {
     const ids = new Set(viewItems.map((i) => i.collectionId).filter(Boolean));
