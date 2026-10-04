@@ -97,6 +97,7 @@ export const en = {
     ofCap: "of {amount}",
     leftDays: "{amount} left · {n} days to go",
     leftDaysOne: "{amount} left · 1 day to go",
+    leftDaysShort: "{amount} left · {n} days",
     overBy: "{amount} over",
     vsUsual: "{pct} vs your usual month",
     noUsual: "Set a budget to track your pace",

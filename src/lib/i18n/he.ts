@@ -99,6 +99,7 @@ export const he: Dict = {
     ofCap: "מתוך {amount}",
     leftDays: "נשארו {amount} · עוד {n} ימים",
     leftDaysOne: "נשארו {amount} · עוד יום",
+    leftDaysShort: "נשארו {amount} · {n} ימים",
     overBy: "{amount} חריגה",
     vsUsual: "{pct} לעומת חודש רגיל",
     noUsual: "הגדר תקציב כדי לעקוב אחרי הקצב",

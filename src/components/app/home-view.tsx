@@ -388,7 +388,10 @@ function Stats({ model }: { model: HomeModel }) {
         <Stat label={f(t.dash.monthBudget, { month })} value={fm.money(b.spent)} small={f(t.dash.ofCap, { amount: fm.money(b.cap) })}>
           <span className="truncate text-[12px] text-muted">
             {b.left! >= 0 ? (
-              <b className="font-bold text-ok">{f(b.daysToGo === 1 ? t.dash.leftDaysOne : t.dash.leftDays, { amount: fm.money(b.left!), n: b.daysToGo })}</b>
+              <b className="font-bold text-ok">
+                <span className="max-lg:hidden">{f(b.daysToGo === 1 ? t.dash.leftDaysOne : t.dash.leftDays, { amount: fm.money(b.left!), n: b.daysToGo })}</span>
+                <span className="lg:hidden">{f(t.dash.leftDaysShort, { amount: fm.money(b.left!), n: b.daysToGo })}</span>
+              </b>
             ) : (
               <b className="font-bold text-danger">{f(t.dash.overBy, { amount: fm.money(-b.left!) })}</b>
             )}
