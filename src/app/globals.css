@@ -31,6 +31,15 @@
   --faint: #6e6e6c;
   --line: #e6e6e3;
   --line-strong: #d2d2ce;
+  /* Round 13 E1: Home + Shopping cards — a clearer outline and an inner separator; tones for status chips. */
+  --card-line: #dcdcd7;
+  --line-in: #e8e8e4;
+  --card-shadow: 0 1px 2px rgb(23 23 23 / 0.04);
+  --warn: #b45309;
+  --warn-soft: #fff3e0;
+  --info-soft: #e8effd;
+  --ai: #7c4ddb;
+  --ai-soft: #f3edfd;
   --brand: #171717;
   --brand-hover: #2e2e2e;
   --on-brand: #ffffff;
@@ -106,6 +115,14 @@
   --faint: #8a8a87;
   --line: rgba(255, 255, 255, 0.12);
   --line-strong: #3a3a3a;
+  --card-line: #313131;
+  --line-in: #262626;
+  --card-shadow: none;
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.13);
+  --info-soft: rgba(106, 169, 242, 0.14);
+  --ai: #b69cff;
+  --ai-soft: rgba(182, 156, 255, 0.13);
   --brand: #f2f2f0;
   --brand-hover: #ffffff;
   --on-brand: #0b0b0b;
@@ -160,6 +177,11 @@
   --faint: #6f6589;
   --line: #ebe5f5;
   --line-strong: #d8cdea;
+  --card-line: #dbd3ea;
+  --line-in: #ebe5f4;
+  --card-shadow: 0 1px 2px rgb(29 18 51 / 0.05);
+  --ai: #6a3ad8;
+  --ai-soft: #f0e9ff;
   --brand: #7c4dff;
   --brand-hover: #6a3af0;
   --on-brand: #ffffff;
@@ -196,6 +218,11 @@
   --faint: #9a8db6;
   --line: rgba(255, 255, 255, 0.12);
   --line-strong: #3d3159;
+  --card-line: #3a2f55;
+  --line-in: #2c2344;
+  --card-shadow: none;
+  --ai: #c4b0ff;
+  --ai-soft: rgba(196, 176, 255, 0.14);
   --brand: #a78bfa;
   --brand-hover: #b9a2fb;
   --on-brand: #100b1a;
@@ -259,6 +286,13 @@
   --color-sunken: var(--sunken);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-card-line: var(--card-line);
+  --color-line-in: var(--line-in);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-info-soft: var(--info-soft);
+  --color-ai: var(--ai);
+  --color-ai-soft: var(--ai-soft);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
   --color-faint: var(--faint);
@@ -865,3 +899,13 @@ html body[data-scroll-locked] { margin-right: 0 !important; --removed-body-scrol
 .nx-tag[data-tone="info"] { background: var(--tag-info); color: var(--tag-info-ink); border-color: transparent; }
 .nx-tag[data-tone="ok"] { background: var(--tag-ok); color: var(--tag-ok-ink); border-color: transparent; }
 .nx-tag[data-tone="ink"] { background: var(--ink); color: var(--bg); border-color: transparent; }
+
+/* ---------- Round 13 E1: Home + Shopping cards ----------
+   1 px clearer outline, 12 px radius, a very light shadow in light themes (none in dark); inner rows split by --line-in. */
+.r13-card {
+  background: var(--surface);
+  border: 1px solid var(--card-line);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+}
+.r13-rows > * + * { border-top: 1px solid var(--line-in); }

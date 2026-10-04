@@ -272,7 +272,7 @@ Tal rejected the chip/tagline version. Keep the text to the wordmark only and th
 
 ## Part E — Look
 
-### E1. [ ] Clearer borders (Tal: "more visible, more professional"; chose the medium strength)
+### E1. [x] Clearer borders (Tal: "more visible, more professional"; chose the medium strength)
 Add tokens and use them on Home and Shopping cards. Check other surfaces for consistency, but don't restyle them:
 - light: `--line` ≈ `#dcdcd7`, an inner separator `--line-in` ≈ `#e8e8e4`;
 - dark: `#313131` / `#262626`;

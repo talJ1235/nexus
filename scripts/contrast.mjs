@@ -48,6 +48,8 @@ const pairs = [
   ["ok", "surface"], ["danger", "surface"], ["danger", "danger-soft"], ["info", "surface"],
   // Round 11 D2: tags over pictures (solid fills).
   ["ink", "tag-bg"], ["muted", "tag-bg"], ["danger", "tag-bg"], ["tag-low-ink", "tag-low"], ["tag-info-ink", "tag-info"], ["tag-ok-ink", "tag-ok"],
+  // Round 13: Home/Shopping tones (status chips, pills, the AI eyebrow).
+  ["warn", "surface"], ["warn", "warn-soft"], ["info", "info-soft"], ["ok", "ok-soft"], ["ai", "surface"], ["ai", "ai-soft"],
 ];
 let fails = 0;
 for (const [name, t] of Object.entries(themes)) {
@@ -71,6 +73,12 @@ for (const [name, t] of Object.entries(themes)) {
     const outline = ratio(over(parse(t.line), bgc), bgc);
     if (outline < 1.3) bad.push(`card outline vs bg ${outline.toFixed(2)} (min 1.3)`);
   }
+  // Round 13 E1: Home/Shopping card borders read clearly against the card (medium strength), inner rows stay quieter.
+  const surf = parse(t.surface);
+  const edge = ratio(over(parse(t["card-line"]), surf), surf);
+  if (edge < 1.25) bad.push(`card-line vs surface ${edge.toFixed(2)} (min 1.25)`);
+  const inner = ratio(over(parse(t["line-in"]), surf), surf);
+  if (inner >= edge) bad.push(`line-in (${inner.toFixed(2)}) should be quieter than card-line (${edge.toFixed(2)})`);
   fails += bad.length;
   console.log(bad.length ? `FAIL ${name}: ${bad.join(", ")}` : `PASS ${name}`);
 }
