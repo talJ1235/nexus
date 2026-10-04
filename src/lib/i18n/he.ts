@@ -939,6 +939,7 @@ export const he: Dict = {
     showAll: "הצגת הכול ({n})",
     followUps: "שאלות המשך",
     suggestions: "שאלות מוצעות",
+    suggested: "מוצע",
     askPlaceholder: "שאל על הרכישות שלך…",
     send: "שליחה",
     thinking: "חושב…",

@@ -1125,6 +1125,19 @@ try {
       const h = (await chips.first().boundingBox())?.height ?? 0;
       const row = await page.locator("[data-testid=ai-suggestions]").evaluate((el) => getComputedStyle(el).flexWrap);
       ok(n >= 1 && n <= 4 && (!MOBILE || (h >= 40 && row === "nowrap")), "assistant suggestion chips render", `n=${n} h=${h} wrap=${row}`);
+      // Round 12 #3: History sits at the start before the mark (mirrored in RTL), New chat at the end; suggestion rows
+      // carry a type icon + chevron under a "Suggested" label; nothing in the panel scrolls sideways.
+      const hdr = await page.locator("[data-ai-header]").evaluate((el) => {
+        const rtl = getComputedStyle(el).direction === "rtl";
+        const x = (q) => el.querySelector(q).getBoundingClientRect();
+        const start = (r) => (rtl ? -r.right : r.left);
+        const hist = x("[data-ai-history-open]"), logo = x(":scope > svg"), add = x("[data-ai-new]");
+        const sideways = [el.closest("[role=dialog]"), ...el.closest("[role=dialog]").querySelectorAll("*")].some((n) => n.scrollWidth > n.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(n).overflowX));
+        return { order: start(hist) < start(logo) && start(logo) < start(add), sideways };
+      });
+      const rows = await page.locator("[data-testid=ai-suggestions] [data-ai-chip]").evaluateAll((els) => els.every((e) => e.querySelectorAll("svg").length === 2));
+      const label = await page.locator("[data-testid=ai-suggestions] [data-ai-sug-label]").isVisible();
+      ok(hdr.order && !hdr.sideways && rows && label, "assistant header (History at the start) + suggestion rows, no sideways scroll", JSON.stringify({ ...hdr, rows, label }));
       await page.waitForTimeout(400); // let the sheet finish sliding in before the screenshot
       await shot(page, "assistant");
       await page.keyboard.press("Escape");

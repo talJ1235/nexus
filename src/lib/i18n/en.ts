@@ -937,6 +937,7 @@ export const en = {
     showAll: "Show all ({n})",
     followUps: "Follow-up questions",
     suggestions: "Suggested questions",
+    suggested: "Suggested",
     askPlaceholder: "Ask about your purchases…",
     send: "Send",
     thinking: "Thinking…",

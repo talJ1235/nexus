@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ArrowUpRight, Brain, Bug, Check, CornerDownRight, History, MessageSquare, MessageSquareWarning, Send, Square, SquarePen, Wand2, X } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Brain, Bug, ChartColumn, Check, ChevronRight, CircleHelp, History, MessageSquare, MessageSquareWarning, Send, Square, SquarePen, Wand2, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { LogoMark } from "@/components/logo";
 import { toast } from "@/lib/toast";
@@ -33,40 +33,63 @@ import { ProductImage } from "./item-card";
 import { ActionCard } from "./assistant-action-card";
 import { useStore } from "./store";
 
-// ---------- Suggestion chips (Round 8 D1: a vertical list, never a sideways scroll) ----------
+// ---------- Suggested questions (Round 8 D1: a vertical list, never a sideways scroll; Round 12 #3: rows) ----------
 
 const CHIPS_SHOWN = 4;
+/** What kind of question a suggestion is: a question about the data, a plan request, or how-to help. */
+const sugKind = (family: string) => (family === "plan" ? "plan" : family === "help" ? "help" : "data");
+const KIND_ICON = { data: ChartColumn, plan: Wand2, help: CircleHelp } as const;
 
-function Chips({ list, onPick, label, testId }: { list: Suggestion[]; onPick: (text: string) => void; label: string; testId: string }) {
+/**
+ * A list of full-width rows under a small label: type icon, the question (max 2 lines), a subtle chevron; hairline
+ * separators, hover/press state. Follow-ups after an answer use the same rows, `compact`.
+ */
+function Chips({ list, onPick, label, heading, testId, compact }: { list: Suggestion[]; onPick: (text: string) => void; label: string; heading: string; testId: string; compact?: boolean }) {
   const { t } = useI18n();
   const [all, setAll] = useState(false);
   if (!list.length) return null;
   const shown = all ? list : list.slice(0, CHIPS_SHOWN);
   return (
-    <div role="group" aria-label={label} data-testid={testId} className="flex flex-col items-stretch gap-1.5">
-      {shown.map((sug) => (
-        <button
-          key={sug.text}
-          type="button"
-          onClick={() => onPick(sug.text)}
-          title={sug.text}
-          className="flex min-h-11 w-full items-center gap-2.5 rounded-[16px] border border-line bg-surface px-3.5 py-2 text-start text-[13.5px] leading-snug text-muted transition hover:border-line-strong hover:text-fg active:bg-sunken"
-          data-ai-chip
-        >
-          <CornerDownRight className="size-3.5 shrink-0 opacity-60 rtl:-scale-x-100" aria-hidden />
-          <span className="line-clamp-2 min-w-0 flex-1">
-            {sug.parts.map((p, i) =>
-              p.name ? (
-                <span key={i} className="bidi font-medium text-fg">
-                  {p.text}
-                </span>
-              ) : (
-                <Fragment key={i}>{p.text}</Fragment>
-              ),
-            )}
-          </span>
-        </button>
-      ))}
+    <div role="group" aria-label={label} data-testid={testId} className="flex min-w-0 flex-col items-stretch gap-1.5">
+      <span className="px-1 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-faint" aria-hidden data-ai-sug-label>
+        {heading}
+      </span>
+      <div className="overflow-hidden rounded-[16px] border border-line bg-surface">
+        {shown.map((sug, i) => {
+          const kind = sugKind(sug.family);
+          const Icon = KIND_ICON[kind];
+          return (
+            <button
+              key={sug.text}
+              type="button"
+              onClick={() => onPick(sug.text)}
+              title={sug.text}
+              className={cn(
+                "group flex w-full items-center gap-3 px-3 text-start leading-snug text-fg transition-colors hover:bg-surface-2 active:bg-sunken",
+                i > 0 && "border-t border-line",
+                compact ? "min-h-10 py-1.5 text-[13px]" : "min-h-12 py-2 text-[13.5px]",
+              )}
+              data-ai-chip={kind}
+            >
+              <span className={cn("grid shrink-0 place-items-center rounded-[9px] bg-surface-2 text-muted transition-colors group-hover:text-fg", compact ? "size-6 [&_svg]:size-3.5" : "size-7 [&_svg]:size-4")} aria-hidden>
+                <Icon />
+              </span>
+              <span className="line-clamp-2 min-w-0 flex-1 break-words">
+                {sug.parts.map((p, j) =>
+                  p.name ? (
+                    <span key={j} className="bidi font-semibold">
+                      {p.text}
+                    </span>
+                  ) : (
+                    <Fragment key={j}>{p.text}</Fragment>
+                  ),
+                )}
+              </span>
+              <ChevronRight className="size-4 shrink-0 text-faint transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" aria-hidden />
+            </button>
+          );
+        })}
+      </div>
       {list.length > CHIPS_SHOWN && !all && (
         <button type="button" onClick={() => setAll(true)} className="h-10 self-start rounded-full px-2 text-[13px] font-semibold text-muted transition hover:text-fg" data-ai-more>
           {t.ai.moreSuggestions}
@@ -653,13 +676,13 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
         {waiting && <Waiting />}
         {followUps.length > 0 && (
           <div className="rise-in">
-            <Chips list={followUps} onPick={(q) => void send(q)} label={t.ai.followUps} testId="ai-followups" />
+            <Chips list={followUps} onPick={(q) => void send(q)} label={t.ai.followUps} heading={t.ai.followUps} testId="ai-followups" compact />
           </div>
         )}
         <div ref={endRef} />
       </div>
       <div className="flex flex-col gap-2 border-t border-line px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3">
-        {!msgs.length && !loading && mode === "chat" && <Chips list={suggestions} onPick={(q) => void send(q)} label={t.ai.suggestions} testId="ai-suggestions" />}
+        {!msgs.length && !loading && mode === "chat" && <Chips list={suggestions} onPick={(q) => void send(q)} label={t.ai.suggestions} heading={t.ai.suggested} testId="ai-suggestions" />}
         {/* Mode switch, like the "thinking" toggles in AI apps: the next message is a chat question or a plan request. */}
         <div role="radiogroup" aria-label={t.ai.modeLabel} className="flex gap-1.5" data-ai-mode={mode}>
           {(["chat", "plan"] as const).map((k) => (
@@ -753,6 +776,19 @@ export function AssistantPanel() {
     <Sheet open={open} onOpenChange={(o) => !o && s.setPanel(null)} title={t.ai.title} className="assistant-sheet sm:max-w-[420px]">
       <div className="flex h-full flex-col" data-assistant>
         <div className="flex items-center gap-2 px-4 pb-2 pt-1 sm:pt-4" data-sheet-grip data-ai-header>
+          {/* Round 12 #3: History at the start, before the mark — a separate control (hairline between), mirrored in RTL. */}
+          <button
+            type="button"
+            onClick={() => setPane(pane === "history" ? "chat" : "history")}
+            aria-pressed={pane === "history"}
+            className={cn("-ms-1.5 grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-ink", pane === "history" && "bg-surface-2 text-ink")}
+            aria-label={t.chats.open}
+            title={t.chats.open}
+            data-ai-history-open
+          >
+            <History className="size-[18px]" />
+          </button>
+          <span className="h-5 w-px shrink-0 bg-line" aria-hidden />
           <LogoMark className="size-7" />
           <span className="min-w-0">
             <span className="block text-[17px] font-extrabold leading-tight tracking-[-0.02em]">Nexus</span>
@@ -768,23 +804,12 @@ export function AssistantPanel() {
           <button
             type="button"
             onClick={() => s.openReport({ assistant: getLastExchange() })}
-            className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-semibold text-muted hover:bg-surface-2 hover:text-ink"
+            className="flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[12.5px] font-semibold text-muted hover:bg-surface-2 hover:text-ink"
             title={t.report.menu}
             data-ai-report
           >
             <MessageSquareWarning className="size-4" />
             <span className="max-sm:sr-only">{t.report.menu}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setPane(pane === "history" ? "chat" : "history")}
-            aria-pressed={pane === "history"}
-            className={cn("grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-ink", pane === "history" && "bg-surface-2 text-ink")}
-            aria-label={t.chats.open}
-            title={t.chats.open}
-            data-ai-history-open
-          >
-            <History className="size-[18px]" />
           </button>
           {(
             <button type="button" onClick={newChat} className="grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-ink" aria-label={t.ai.newChat} title={t.ai.newChat} data-ai-new>

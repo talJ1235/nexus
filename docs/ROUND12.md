@@ -21,7 +21,7 @@ threshold (e.g. 40 % of the actions' width) the row snaps open and stays, below 
 works. Same haptic tick at the threshold both ways. Unit-test the swipe decision function (slow/fast × both
 directions × RTL) and add a smoke check with a slow (~15 px per frame) drag.
 
-### 3. [ ] Assistant header and suggestions
+### 3. [x] Assistant header and suggestions
 - Move the **History** button to the start side of the header, right before the Box mark + "Nexus" (so the two are
   clearly separate controls); New chat stays at the end. Mirror correctly in Hebrew.
 - Suggested questions look more professional: a vertical list of full-width rows, each with a small type icon (data
