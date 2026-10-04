@@ -51,7 +51,7 @@ import { Sidebar } from "./sidebar";
 import { SIDEBAR_MAX, SIDEBAR_MIN, SidebarEdge } from "./sidebar-edge";
 import { StoreProvider, useOpenItemId, useStore, type PendingAdd, type UiInit } from "./store";
 import { ContentSkeleton, ProjectHeaderSkeleton, Skel } from "./skeletons";
-import { COLLECTION_COLORS, useViewItems } from "./view-items";
+import { COLLECTION_COLORS, useTable, useViewItems } from "./view-items";
 import { FALLBACK_RATES, type Currency } from "@/lib/money";
 import { DEFAULT_IMPORT_LIMIT_USD } from "@/lib/import-vat";
 
@@ -402,6 +402,7 @@ function Content() {
   const s = useStore();
   const { t } = useI18n();
   const items = useViewItems();
+  const table = useTable();
   const pending = SHOWS_PENDING.includes(s.view.type) ? s.pending : NO_PENDING;
 
   if (s.loading) return <ContentSkeleton />;
@@ -425,9 +426,10 @@ function Content() {
         <OrdersView items={items} />
       </div>
     );
-  if (s.layout === "table")
+  if (table)
     return (
-      <div className={s.navSeq === 0 ? "load-in-rows" : undefined}>
+      // max-sm:hidden: the server render can't know the width yet (never flash the table on a phone).
+      <div className={cn("max-sm:hidden", s.navSeq === 0 && "load-in-rows")}>
         <ItemTable items={items} pending={pending} />
       </div>
     );

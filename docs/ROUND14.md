@@ -88,7 +88,7 @@ on project (`collection`) and store pages (Tal: they hold that page's own budget
 
 **Acceptance:** a smoke test asserts no `HomeSummary` on `?v=to_buy` and that it is present on a project page.
 
-### A4. [ ] Phones stuck on the table: the list ⇄ grid switch does nothing, checkboxes squeezed against the pictures
+### A4. [x] Phones stuck on the table: the list ⇄ grid switch does nothing, checkboxes squeezed against the pictures
 Added by the planner 2026-10-04 after Tal tested prod (R13). Do this item **first**.
 Tal: on every product screen the phone shows a list with a checkbox at the edge that sits almost inside the product
 picture; tapping grid (or list) changes nothing.

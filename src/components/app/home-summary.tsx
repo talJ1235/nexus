@@ -473,7 +473,8 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
           </MenuContent>
         </Menu>
       )}
-      <div className={cn("flex shrink-0 rounded-full bg-surface-2 p-[3px]", !orders && "max-sm:hidden")} role="radiogroup" aria-label={`${t.view.cards} / ${t.view.table}`}>
+      {/* R14 A4: the desktop switch never shows on a phone (Order by store included); phones get the list / grid one. */}
+      <div className="flex shrink-0 rounded-full bg-surface-2 p-[3px] max-sm:hidden" role="radiogroup" aria-label={`${t.view.cards} / ${t.view.table}`}>
         {(["cards", "table"] as const).map((l) => (
           <button
             key={l}
@@ -489,7 +490,7 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
           </button>
         ))}
       </div>
-      {!orders && (
+      {(
         <div className="flex shrink-0 rounded-full bg-surface-2 p-[3px] sm:hidden" role="radiogroup" aria-label={`${t.view.cards} / ${t.view.rows}`} data-phone-layout-toggle>
           {(["cards", "rows"] as const).map((l) => (
             <button

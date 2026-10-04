@@ -16,6 +16,7 @@ import { optimisticStatus, ProductImage, useImportWarning } from "./item-card";
 import { ItemTable } from "./item-table";
 import { GapList, ShippingRow, ShippingSettings } from "./orders-shipping";
 import { useStore } from "./store";
+import { useTable } from "./view-items";
 
 /**
  * Everything left to buy, grouped by the store each item will be ordered from. Someday items are left out of the
@@ -47,7 +48,7 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
   const order = list.filter((i) => i.priority !== "someday");
   const leftOut = list.filter((i) => i.priority === "someday");
 
-  const table = s.layout === "table";
+  const table = useTable();
   const groups = new Map<string, { store: string; url: string | null; items: ItemWithSources[]; leftOut: ItemWithSources[] }>();
   for (const i of list) {
     const src = activeSource(i, s.rates);

@@ -7,9 +7,20 @@ import type { ItemWithSources } from "@/lib/types";
 import { itemsForView } from "@/lib/views";
 import { normalizeCategory } from "@/lib/categories";
 import { monthKey } from "@/lib/budget";
+import { PHONE, useMedia } from "@/components/ui/use-media";
 import { useStore } from "./store";
 
 export { itemsForView };
+
+/**
+ * The desktop table (R14 A4): only when `layout` is "table" AND the screen is ≥ 640 px. Phones ignore `layout`
+ * entirely and use `phoneLayout` (rows / cards) — a stored "table" once trapped phones in it with no way back.
+ */
+export function useTable() {
+  const s = useStore();
+  const phone = useMedia(PHONE);
+  return !phone && s.layout === "table";
+}
 
 export function matchesQuery(i: ItemWithSources, q: string) {
   if (!q.trim()) return true;

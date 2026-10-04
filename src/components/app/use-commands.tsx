@@ -12,6 +12,7 @@ import { PALETTES } from "@/lib/palette";
 import { toast } from "@/lib/toast";
 import { PaletteSwatch } from "./settings-dialog";
 import { useStore } from "./store";
+import { PHONE, useMedia } from "@/components/ui/use-media";
 
 function postForm(action: string) {
   const f = document.createElement("form");
@@ -27,6 +28,7 @@ function postForm(action: string) {
  */
 export function useCommands(): AppCommand[] {
   const s = useStore();
+  const phone = useMedia(PHONE);
   const { t, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
   const [palette, setPalette] = usePalette();
@@ -40,7 +42,10 @@ export function useCommands(): AppCommand[] {
     ...(s.aiEnabled ? [{ id: "plan", group: "actions" as const, label: t.ai.planTab, keywords: "plan project ai parts bom תכנון", icon: <Wand2 />, run: () => s.setPanel("planner") }] : []),
     { id: "new-project", group: "actions", label: t.nav.newProject, keywords: "project new פרויקט חדש", icon: <FolderPlus />, run: () => s.setEditor({ mode: "create", kind: "project" }) },
     { id: "new-list", group: "actions", label: t.nav.newList, keywords: "list new רשימה חדשה", icon: <ListPlus />, run: () => s.setEditor({ mode: "create", kind: "list" }) },
-    { id: "layout", group: "actions", label: s.layout === "cards" ? t.view.table : t.view.cards, keywords: `layout ${t.view.cards} ${t.view.table}`, icon: s.layout === "cards" ? <Rows3 /> : <LayoutGrid />, run: () => s.setLayout(s.layout === "cards" ? "table" : "cards") },
+    // R14 A4: on a phone this is List / Grid (phoneLayout); the desktop Cards / Table pref is never touched there.
+    phone
+      ? { id: "layout", group: "actions", label: s.phoneLayout === "rows" ? t.view.cards : t.view.rows, keywords: `layout ${t.view.cards} ${t.view.rows} ${t.view.table}`, icon: s.phoneLayout === "rows" ? <LayoutGrid /> : <Rows3 />, run: () => s.setPhoneLayout(s.phoneLayout === "rows" ? "cards" : "rows") }
+      : { id: "layout", group: "actions", label: s.layout === "cards" ? t.view.table : t.view.cards, keywords: `layout ${t.view.cards} ${t.view.table}`, icon: s.layout === "cards" ? <Rows3 /> : <LayoutGrid />, run: () => s.setLayout(s.layout === "cards" ? "table" : "cards") },
     // Settings
     { id: "settings", group: "settings", label: t.settings.open, keywords: "settings preferences הגדרות", icon: <Settings2 />, run: () => s.setSettingsOpen(true), testId: "open-settings" },
     ...(["light", "dark", "system"] as const).map((m) => ({

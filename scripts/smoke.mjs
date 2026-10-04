@@ -452,6 +452,74 @@ try {
       }
     });
 
+    // Round 14 A4: phones never show the desktop table, even with the `table` cookie; list ⇄ grid works; the layout
+    // command flips the phone layout. Desktop: Cards ⇄ Table both ways on every product view, checkbox ≥ 8 px from the
+    // picture (en + he).
+    await step("layouts: phone ignores the table pref (list ⇄ grid, command); desktop cards ⇄ table on every view", async () => {
+      const r = {};
+      if (MOBILE) {
+        const pctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, storageState: { cookies: await ctx.cookies(), origins: [] } });
+        await pctx.addCookies([{ name: "nexus_layout", value: "table", url: BASE }]);
+        const p = await pctx.newPage();
+        const counts = async () => ({ rows: await p.locator("[data-item-row]").count(), cards: await p.locator("main [data-item-card]").count(), layout: await p.locator("[data-app-shell]").getAttribute("data-phone-layout") });
+        for (const [name, path] of [["toBuy", "/?v=to_buy"], ["history", "/?v=history"], ["project", "/?v=c:demo-c-railcam"]]) {
+          await p.goto(`${BASE}${path}`);
+          await p.waitForSelector(READY, { timeout: 15000 });
+          await p.waitForTimeout(400);
+          const c = await counts();
+          r[name] = c.rows === 0 && c.cards > 0;
+        }
+        const toggle = p.locator("[data-phone-layout-toggle] [role=radio]").filter({ visible: true });
+        await toggle.nth(0).click();
+        await p.waitForTimeout(500);
+        const grid = await p.locator("main [data-item-card]").evaluateAll((els) => new Set(els.slice(0, 6).map((e) => Math.round(e.getBoundingClientRect().left))).size);
+        r.grid = (await counts()).layout === "cards" && grid === 2 && (await counts()).rows === 0;
+        await toggle.nth(1).click();
+        await p.waitForTimeout(500);
+        r.list = (await counts()).layout === "rows" && (await counts()).rows === 0;
+        if (OUT) await p.screenshot({ path: `${OUT}/a4-phone-after${SUFFIX}.png` });
+        // The layout command from phone search: flips List / Grid, never the table.
+        await p.locator("[data-phone-search]").click();
+        await p.locator("[data-phone-search-input]").fill("layout");
+        await p.locator("[data-search-cmd=layout]").first().click();
+        await p.waitForTimeout(500);
+        r.command = (await counts()).layout === "cards" && (await counts()).rows === 0;
+        await p.locator("[data-phone-search]").click();
+        await p.locator("[data-phone-search-input]").fill("layout");
+        await p.locator("[data-search-cmd=layout]").first().click();
+        await p.waitForTimeout(500);
+        r.commandBack = (await counts()).layout === "rows";
+        await pctx.close();
+      } else {
+        const views = ["/?v=to_buy", "/?v=to_buy&f=urgent", "/?v=ordered", "/?v=history", "/?v=orders", "/?v=c:demo-c-railcam", "/?v=c:demo-c-home", "/?v=s:raspberrypi"];
+        for (const v of views) {
+          await page.goto(`${BASE}${v}`);
+          await page.waitForSelector(READY, { timeout: 15000 });
+          await page.locator('[data-carry="layout:table"]').filter({ visible: true }).first().click();
+          const rows = await page.locator("[data-item-row]").first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+          await page.locator('[data-carry="layout:cards"]').filter({ visible: true }).first().click();
+          await page.waitForTimeout(400);
+          const back = (await page.locator("[data-item-row]").count()) === 0;
+          r[v] = rows && back;
+        }
+        // Checkbox ↔ picture gap in the table (both directions).
+        for (const lang of ["en", "he"]) {
+          await ctx.addCookies([{ name: "nexus_locale", value: lang, url: BASE }, { name: "nexus_layout", value: "table", url: BASE }]);
+          await page.goto(`${BASE}/?v=to_buy`);
+          await page.waitForSelector("[data-item-row]", { timeout: 15000 });
+          r[`gap_${lang}`] = await page.locator("[data-item-row]").first().evaluate((row) => {
+            const box = row.querySelector("[data-row-check] input").getBoundingClientRect();
+            const pic = row.querySelector("[data-row-check]").nextElementSibling.firstElementChild.getBoundingClientRect();
+            return Math.round(document.documentElement.dir === "rtl" ? box.left - pic.right : pic.left - box.right);
+          });
+          if (lang === "he") await shot(page, "table-rtl");
+        }
+        await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }, { name: "nexus_layout", value: "cards", url: BASE }]);
+        r.gaps = r.gap_en >= 8 && r.gap_he >= 8;
+      }
+      ok(Object.values(r).every(Boolean), "layouts: phone ignores the table pref (list ⇄ grid, command); desktop cards ⇄ table on every view", JSON.stringify(r));
+    });
+
     // Round 14 B4: one To buy with filter chips (All · Urgent · No project); old Urgent / Unsorted links redirect; no
     // Urgent / Unsorted rows left. Desktop (write mode): drag a card onto "No project", and Move to → Remove from
     // project from the selection bar (each undone).

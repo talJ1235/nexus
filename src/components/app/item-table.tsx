@@ -49,7 +49,7 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
       <table className={cn("w-full min-w-[760px] text-sm", bare && "table-fixed")}>
         <thead>
           <tr className="border-b border-line text-start text-xs font-semibold text-muted">
-            <th className="w-10 py-2.5 ps-3">
+            <th className="w-10 py-2.5 pe-3 ps-4">
               <input
                 type="checkbox"
                 aria-label={t.select.selectAll}
@@ -97,7 +97,7 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
                 onClick={(e) => (s.selected.size || e.metaKey || e.ctrlKey ? s.toggleSelect(i.id, e.shiftKey ? { range: order } : undefined) : s.openItem(i.id))}
                 className={cn("cursor-pointer border-b border-line outline-none transition last:border-0 focus-visible:bg-sunken", s.fresh.has(i.id) && "fill-in", checked ? "bg-accent-soft/50" : "hover:bg-sunken/60", purchased && "text-muted")}
               >
-                <td className="py-2 ps-4" onClick={(e) => e.stopPropagation()}>
+                <td className="py-2 pe-3 ps-4" onClick={(e) => e.stopPropagation()} data-row-check>
                   <input
                     type="checkbox"
                     aria-label={t.select.select}

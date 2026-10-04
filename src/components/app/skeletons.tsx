@@ -4,6 +4,7 @@ import { useI18n } from "@/components/providers";
 import { cn } from "@/lib/utils";
 import { ItemCardSkeleton } from "./item-card";
 import { useStore } from "./store";
+import { useTable } from "./view-items";
 
 /** A flat placeholder block; every block shares one slow light sweep (see `.skeleton` in globals.css). */
 export function Skel({ className, style }: { className?: string; style?: React.CSSProperties }) {
@@ -17,11 +18,12 @@ export function Skel({ className, style }: { className?: string; style?: React.C
  */
 export function ContentSkeleton() {
   const s = useStore();
+  const table = useTable();
   const v = s.view.type;
   if (v === "spending") return <SpendingSkeleton />;
   if (v === "projects") return <ProjectsSkeleton />;
   if (v === "orders") return <OrdersSkeleton />;
-  if (s.layout === "table") return <TableSkeleton />;
+  if (table) return <TableSkeleton />;
   return (
     <div className="skeleton-in grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] sm:gap-4" aria-busy="true" data-skeleton="items">
       {Array.from({ length: 8 }, (_, i) => (
