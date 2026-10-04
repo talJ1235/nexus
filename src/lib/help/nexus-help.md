@@ -23,7 +23,7 @@ turns them into buttons; only these addresses work:
 Example: `[Open settings → Palette](nexus:settings)`.
 
 ## Where things are
-<!-- spec: UI, Desktop shell, Phone shell, Collections, Phone fit, Home hierarchy, Phone shell v2 -->
+<!-- spec: UI, Desktop shell, Phone shell, Collections, Phone fit, Home hierarchy, Phone shell v2, Home, Shopping tab, Sidebar collapse, Customize, Insights -->
 - **Desktop**: sidebar with Home (בית), To buy (לקנות), Urgent (דחוף), Unsorted (לא משויך), On the way (בדרך), Order by store
   (הזמנה לפי חנות), History (היסטוריה), Spending (הוצאות), then Projects (פרויקטים) and Lists (רשימות). The sidebar
   collapses with the panel button at its top (or by dragging its edge, or Ctrl+B). Top bar: search, "Ask Nexus",
@@ -47,6 +47,27 @@ Example: `[Open settings → Palette](nexus:settings)`.
   or table. Phone: list (grouped by project) or 2-column grid.
 - An item opens in a sheet: picture, price, open in store, Plan (qty, priority, project/list), Stores, Price history
   and watch/target, Tags & notes, Receipts, Advanced.
+
+## Home suggestions, insights and deliveries
+<!-- spec: Nexus suggests, Nexus noticed, Delivery track -->
+- **Nexus suggests** (top of Home): one idea at a time — a deal on something you want (sometimes "order both" when
+  another item makes the order ship free), time to reorder something you buy regularly, a cheaper weekday, a project
+  without a budget. The main button does it; "Not now" hides it for 7 days. Wording comes from the AI once a day;
+  Settings → Assistant → "AI-written suggestions" off = plain wording, no AI calls.
+- **Nexus noticed**: short facts from your own data (shipping saved by ordering together, a cheaper weekday for a
+  category, a project without a budget), each with one link.
+- Deliveries show one 4-step track — Ordered · Shipped · In country · Delivered — estimated from the order date and the
+  expected date (we don't read carrier stages); late = all four in orange; no date = one step and "No date".
+
+## Search, menus and gestures
+<!-- spec: One search, Nested overlays, Quick actions, Row swipes, Phone bottom sheets -->
+- Phone: the search button opens one search for everything — settings and actions first (theme, palette, currency,
+  language and AI suggestions switch right in the results), then items, projects, stores and "Ask Nexus about …".
+  Computer: the same in the command menu (Ctrl K or Esc); typing in the top search also lists matching settings.
+- A window opened from another opens on top, and Esc / an outside click closes only the top one.
+- Quick actions: phone rows swipe toward the start edge to delete, toward the end edge for On the way / Received
+  (past 40 % they stay open); long-press a row to select, a card for its action sheet; computer: hover bar, right-click,
+  keys O / R / M / Delete. Every bottom sheet on the phone closes with a swipe down, the scrim or Back.
 
 ## Adding products
 <!-- spec: Adding items, Extraction pipeline, Product pictures, Real product pictures, Categories -->
@@ -176,14 +197,18 @@ Example: `[Open settings → Palette](nexus:settings)`.
 - Revoke a link from the same Share window. Guests can't use the assistant or report problems.
 
 ## Look and language
-<!-- spec: Design system, Box logo, Mixed Hebrew/English text, Dark mode depth -->
+<!-- spec: Design system, Box logo, Mixed Hebrew/English text, Dark mode depth, One picture style, Solid tags, Ask button, Card borders -->
+- Pictures share one style (cut-outs on a white tile, photos full-bleed); tags over pictures are solid; "Ask Nexus" is
+  always a rounded pill; Home and Shopping cards have a clearer 1 px outline.
 - Palette: Settings (הגדרות) → Palette (צבעים) → **Graphite & Amber** (גרפיט וענבר, default) or **Plum** (שזיף). Theme
   (ערכת נושא): Light / Dark / System. Both
   change instantly, per device. Language: Settings → Language (English / עברית, full right-to-left).
 - Mixed Hebrew/English titles are shown in their natural direction.
 
 ## Offline and the phone app
-<!-- spec: Offline, read-only v1, First load, Loading skeletons -->
+<!-- spec: Offline, read-only v1, First load, Loading skeletons, Opening, Opening v4 -->
+- The opening (3 s): on the phone when the app is opened, on the computer the first time each day; reloads show only a
+  small Box mark. It always plays to the end.
 - On the phone the Nexus box animation plays on every open and reload; pull down at the top of a page to reload.
   While a page loads, its outline (cards, store groups, project header) shows in place.
 - Install: in the phone browser menu → "Add to Home screen" (Chrome) / Share → "Add to Home Screen" (Safari).

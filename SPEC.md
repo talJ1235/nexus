@@ -461,6 +461,52 @@ Brief and checklist: `docs/ROUND12.md`. Shipped (branch `round12`, 2026-10-04):
   plan / help), up to 2 lines, chevron, hairline separators; follow-ups use the same rows, compact.
 - **Ask button** is always a fully rounded pill (radius in `.ask-hairline`; noted in CLAUDE.md and UI-V2).
 
+## Round 13 — Home dashboard, Shopping tab, one search, new opening
+Brief and checklist: `docs/ROUND13.md`. Shipped (branch `round13`, 2026-10-04):
+- **Home** (`home-view.tsx`, view `home`, the default screen — no `?v=`; both logos open it; first in the sidebar):
+  header card (date, greeting, Customize) with a status strip of 3 linked tiles (need you · packages this week · ahead
+  of / behind the budget pace — each scrolls to its section and flashes it) and 4 stats with meters (Left to buy split by
+  project, Month budget with a today marker or vs the usual month, On the way pips, Saved this year = price drops +
+  free shipping, never invented); then Nexus suggests, This week (Sun–Sat in the user's time zone; day strip + next 3
+  on phones), Needs you (alerts → late → free-shipping gap → reorder; ✕/swipe hides a row 7 days), On the way, Month
+  pace (spend line, usual month dashed, cap), Projects, Nexus noticed. Desktop 12-col grid; phone ≤ 1,800 px with demo
+  data (pace + projects merge into "Money & projects"). Every number comes from one pure `homeModel()`
+  (`src/lib/home.ts`, `npm run test:home`), incl. the reorder cadence (median gap, ≥ 3 buys, ±3 days). Empty account:
+  greeting + the big add actions only. Alerts + Home prefs ride in `AppData` (`pref:home:dismissed`, `pref:home:ai`).
+- **Nexus suggests**: rules find (`homeSuggestions`: a deal ≥ 10 % under the usual price, with a free-shipping partner
+  when one closes the gap; reorder due; wait for the cheap weekday; a project with no budget), at most 4, "Not now" =
+  7 days. Once a day the facts only go to the AI chain for a short title + why (kv `home:ai:<date>:<lang>`, mock with
+  `NEXUS_AI_MOCK=1`); any failure or the setting off = templates. Settings → Assistant → "AI-written suggestions" (also
+  in the command menu). Animated gradient border slides on the compositor; keyboard ←/→ pages.
+- **Nexus noticed**: rules only — shipping saved by batching this month, the cheapest weekday for a tracked category
+  (≥ 8 price points), a project with no budget vs similar ones; desktop 3 columns, phone one at a time with dots/swipe.
+- **Customize**: reorder (drag or ↑/↓ keys on desktop, arrows on phones) and hide sections; Done saves the cookie
+  `nexus_home`, Reset restores the default; the header card is fixed.
+- **Shopping tab** (phone dock Home · Shopping · + · Projects · Insights; the urgent count as a badge; reopens the last
+  sub-tab): two segmented cards To buy ⇄ On the way with a spring thumb (moves on the tap; the list renders in a
+  transition), the list pane slides in from the end/start side (40 ms stagger, first 8), toolbar with sort (By project /
+  By arrival or the usual sorts) and list ⇄ grid (list by default, remembered). List: To buy grouped by project (dot,
+  count, %-bought bar), rows with a 42 px picture, store, Urgent pill, price; On the way rows with the track and an ETA
+  pill. Grid: 4:3 picture on paper, Urgent/ETA pill, project pill. Swipes, long-press and selection unchanged.
+- **Delivery track**: one 4-segment component (Ordered · Shipped · In country · Delivered) and one rule
+  (`deliveryTrack`: time-based over the first 3, late = all 4 warn, no eta = 1 + "No date") on Home, in the On the way
+  list and cards and in the item sheet.
+- **One search**: the command menu's actions/settings/views live in one list (`lib/commands.ts` + `useCommands`). The
+  phone search shows grouped results — Settings & actions first with theme / palette / currency / language / AI
+  controls working in place and "Open all settings", then Items, Projects, Stores, "Ask Nexus about …"; empty = recent
+  searches + 4 quick actions; word-aware matching in en + he. Desktop: "Search items, projects, settings…" (Ctrl K),
+  matching settings/actions drop down under the field.
+- **Sidebar collapse**: a panel button at the top (rotates when collapsed), a 9 px drag edge (width follows the pointer
+  76–248 px, snaps at 40 %, double-click toggles, grip with aria-label + Enter/Space), Ctrl+B; mirrored in Hebrew;
+  cookie `nexus_sidebar`.
+- **Opening v4** (`boot-screen.tsx`, `lib/boot.ts`): 3.0 s, wordmark only — cubes gather, faces assemble, the dot lands
+  and the box squashes, two rings + 14 particles, a sweep, the letters rise, a moving hold, then the box flies into the
+  top-bar / sidebar logo and Home's cards rise in. Phones/PWA on app open; desktop on the first open of the day
+  (`localStorage nexus.bootDay`), small loader otherwise; reduced motion = mark + word, 600 ms fade. Transform/opacity
+  only (no letter blur).
+- **Card borders**: `--card-line` / `--line-in` (+ warn / info / AI tints) on Home, Shopping and search cards; border vs
+  surface ≥ 1.25:1 in all four themes (`npm run test:contrast`).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.

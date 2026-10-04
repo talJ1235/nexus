@@ -1841,7 +1841,7 @@ try {
         // Needs NEXUS_AI_MOCK=1 without a search key: two mock offers, sorted by total.
         await step("compare stores: item sheet → results sorted by price", async () => {
           const items = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
-          const target = items.find((i) => i.status === "to_buy" && i.id.startsWith("demo-"));
+          const target = items.find((i) => i.id === "demo-1" && i.status === "to_buy") ?? items.find((i) => i.status === "to_buy" && i.id.startsWith("demo-"));
           if (!target) return ok(true, "compare stores (no demo item, skipped)");
           await page.goto(`${BASE}/?v=to_buy&item=${target.id}`);
           await page.waitForSelector(READY);

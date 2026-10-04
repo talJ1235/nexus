@@ -282,7 +282,7 @@ Cards: 1 px `--line`, radius 12 px, a very light shadow in light mode and none i
 `--line-in`. **Acceptance:** `npm run test:contrast` is extended so the border vs surface reaches ≥ 1.25:1 in all 4
 themes.
 
-### E2. [ ] Keep the house rules
+### E2. [x] Keep the house rules
 The Ask button is always a fully rounded pill (the v3 desktop mockup had 8 px — wrong). One brand colour + neutrals.
 The spark/AI colours are used only on AI surfaces (Nexus suggests / noticed / Ask). Font Heebo.
 
@@ -294,3 +294,52 @@ The spark/AI colours are used only on AI surfaces (Nexus suggests / noticed / As
 - Multi-user / sign-up / onboarding (planned for Round 15, after a bug-fix Round 14).
 
 ## Open
+
+**Summary (2026-10-04):** all items done on `round13` (A1–A7, B1–B4, C1–C2, D1, E1–E2), plus a fix for the one open
+in-app report. Typecheck + lint + build green; all unit tests green (new `npm run test:home`; `test:help` was red since
+Rounds 11–12 — fixed); `test:contrast` green in all 4 themes. Full smoke (desktop 1366 + phone 390, write paths, AI
+mock, fresh-DB empty account) green: 62 + 74 checks. Looked at Home / Shopping / search / opening at 360, 390 and 1366,
+light + dark, Graphite + Plum, English + Hebrew. Merged to `main` with `--ff-only`.
+
+- **Reports read first:** one open — "price drop not recognised by the AI" (`r_rWtP3XmuRl`). Cause: the assistant's item
+  snapshot had no price history. Fixed: items whose price moved now carry `price_first` / `price_low` (commit
+  "R13: assistant sees price history"). The report is still marked open in the app — close it after checking on prod.
+- **A1 Home:** one CSS-driven tree for desktop and phone (no layout flash on hydration). The "Calendar" link from the
+  mockup is left out (there is no calendar view). On phones "Money & projects" merges Pace + Projects only when the two
+  are next to each other (after Customize they can be apart, then they show separately). Dates are composed from
+  single Intl fields: whole-date patterns differ between Node's and Chrome's ICU and broke hydration.
+- **A2 definitions (decisions):** "packages this week" counts ordered items with an eta in this week (late ones show as
+  "N late"). Saved → price drops compare the first recorded price *incl. the link's shipping* with the price paid;
+  free shipping counts only for stores with a known fee (the built-in Amazon / AliExpress / iHerb rules have no fee,
+  so they count only after a fee is saved in Order by store). "Left to buy" includes someday items (same countable set
+  as the To buy totals). The week's budget close sits on the week's last day (Sat, or Sun in Monday-first locales).
+  Projects = any collection (projects and lists), top 3 by latest activity. Track: time-based fill over the first three
+  segments; "Delivered" only once received; late = all four warn.
+- **A3:** a plain "deal" (≥ 10 % under usual, no shipping partner) is also a suggestion; with a partner it's "order
+  both" (the CTA adds the partner to the order and opens Order by store). AI phrasing: one call per day per language;
+  a failed call retries after 3 h; keys first seen later that day stay on templates. Locally the smoke saw the real AI
+  chain's text (keys in `.env.local`; today's phrasing was already cached) — the mock path is covered by the same check.
+- **A5:** edit mode shows a compact list of the sections (handle / arrows / eye) instead of the full cards; Done saves.
+  The order is a per-device cookie (`nexus_home`, like layout/sort), not synced across devices.
+- **B1:** the dock stays icon-only (the mockup's labels weren't in the brief).
+- **B2 performance:** the thumb moves on the tap and the list renders in a React transition, so painted frames stay
+  continuous (0 dropped on a ×4 CPU profile). The local DB has ~290 leftover smoke items in To buy, and switching still
+  costs main-thread tasks of 120–330 ms (style/layout of ~20k nodes). Real lists are much smaller; if it ever shows,
+  virtualise the phone list.
+- **B3:** list rows stay separate 12 px cards (not one joined list) so the swipe layers keep working; grouping by project
+  applies to the list only (the grid is flat). Phone rows/cards show the store instead of project/category. Tablets
+  640–1023 px keep the desktop-style cards under the new switch.
+- **C1:** the phone search no longer filters the list in place — it shows the grouped results; "Go to History" moved into
+  them. On desktop, typing in the top search on Home jumps to To buy (Home has no list to filter).
+- **C2:** "dragging toward the content collapses it" read as the natural resize: the width follows the pointer, so
+  dragging toward the sidebar's own side narrows it and past 40 % it collapses. Tell me if you meant the reverse.
+- **D1:** the letters' blur from the mockup is left out (transform/opacity only). Desktop now shows the small loader on
+  later loads (it showed nothing before); desktop pages other than the app (login, shared lists) show no opening.
+  Home's cards wait (paused) under the opening and rise in with the exit.
+- **E1:** new tokens are `--card-line` / `--line-in` (+ `--warn(-soft)`, `--info-soft`, `--ai(-soft)`) instead of
+  redefining `--line`, so other surfaces keep their look; used on Home, Shopping and search cards.
+- **Smoke / tooling:** READY waits for a *visible* `main h1`; steps that need the list open `/?v=to_buy`; taps centre the
+  card first (never under the sticky top bar); failing steps leave a screenshot with `SMOKE_OUT`; `SMOKE_ONLY=a|b`;
+  `SMOKE_FRESH` + `scripts/serve-fresh.sh` (empty-account server on :3101). The demo seed now covers every Home section
+  (etas, a drop alert, a reorder cadence, a free-shipping gap, a Hebrew "חשמל" item) and sets this month's cap to ₪9,000.
+- **Not verified:** a real phone and prod (Vercel builds `main` only).

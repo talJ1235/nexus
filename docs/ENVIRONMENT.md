@@ -86,3 +86,4 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   account A's canvas (the export is a self-unpacking bundle; the page sources inside match `docs/design/home-v3/`). Canvas
   boards are `.dc.html` files; copies of each approved round go to `docs/design/<name>/` so the builder can read them.
   Chat has no git push credentials (`GH_TOKEN` invalid) — docs are pushed with the GitHub connector.
+- 2026-10-04 (Claude Code, Round 13): smoke tooling — `SMOKE_ONLY=a|b`, failure screenshots with `SMOKE_OUT`, `SMOKE_FRESH` + `scripts/serve-fresh.sh` (a second local server on an empty DB, :3101, files `fresh-smoke.db/.log` gitignored); `npm run test:home`.
