@@ -75,6 +75,14 @@ to setup, tooling or workflow is recorded there in the same session.
 - Roadmap (Tal 2026-10-04): R13 home/shopping/search/intro → R14 bug fixes → R15 multi-user foundation (site sign-in on
   web + phone, Google + email, desktop QR login, short onboarding questionnaire that adapts the app, per-user data,
   privacy) → R16 Android wrapper + testers. Tal to prepare for R15: domain, Google Cloud OAuth client, Resend, name check.
+- **Round 14 decisions (Tal 2026-10-04):** light theme "B · toned" (page `#eeede9`, cards `#f8f7f4`); active nav row = soft
+  tint + 3 px spark accent bar (never solid black); logo left face follows the theme (light face in light mode, dark in
+  dark, thin edge; Graphite only; app icon unchanged); To buy / Urgent / Unsorted merged into one To buy with filter
+  chips; indicators only on Home, Spending, project and store pages; calendar = month view + ICS feed that also removes
+  deleted/received events; Home always shows AI or rule suggestions when the account has items. Every visual round now
+  ships side-by-side parity PNGs (mockup vs app).
+- **Roadmap update:** R14 fixes → R15 multi-user foundation → R16 supermarket mode (recurring household purchasing,
+  Tal's next big feature, also gets a sidebar entry) → R17 Android wrapper. Native app: not before R15–R16 (Tal asked).
 - Free-tier stack (Vercel Hobby, Turso, Gemini free + Groq/OpenRouter fallback). Tal declined paid usage credits.
 
 ## Product direction (discussed 2026-10-03, not started)
@@ -106,6 +114,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-04 · B · Tal tested R13: no AI on Home (rules too strict), sidebar/phone shell/dark mode not matching mockups, Ask seed resent on every new chat, indicators on To buy. Canvas page "Round 14" (logo swap, light tone). Advised: keep the PWA, wrap as an app after multi-user. Wrote `docs/ROUND14.md`.
 - 2026-10-04 · B · Rebuilt the design canvas "Nexus Style Directions" on account B from Tal's export (Home v3), then Home v4 per Tal's notes (status tiles, meters instead of sparklines, stronger borders, louder AI suggestion, compact phone, Shopping switch with list/grid, phone search incl. settings, collapsible sidebar, 3 s intro). Tal approved; wrote `docs/ROUND13.md` and saved mockups to `docs/design/home-v4/`.
 - 2026-10-04 · B · Set up this account's chat: sandbox network confirmed (clone, npm ci, typecheck, lint run here), GitHub custom connector via own OAuth App, secret audit of full history clean, repo stays public until launch. Wrote `docs/ENVIRONMENT.md` (setup + rule: every setup/tooling change is logged there). Added Hebrew/English RTL writing rules under "How to talk with Tal".
 - 2026-10-04 · A · Tal: drop the big "Today's best move" hero, fewer rounded boxes. Canvas page "Home v3 — open layout": one surface with hairline sections, status sentence header, flat stats with sparklines, slim "Nexus suggests" line (1/4), "This week" strip, Needs you + On the way, pace + projects, Nexus noticed; flatter To buy ⇄ On the way. Awaiting Tal.
