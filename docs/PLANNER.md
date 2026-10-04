@@ -59,13 +59,22 @@ to setup, tooling or workflow is recorded there in the same session.
   neutrals, "spark" colour only for the AI; Ask button = **Hairline, always a fully rounded pill** (Tal, 2026-10-04:
   the 8 px square-ish Ask button in the Round 12 "Q" mockups is rejected); logo = **Box**; font Heebo. Details:
   `docs/UI-V2.md`, `docs/ROUND7.md` Part A, mockups `docs/design/*.html`.
-- Phone dock: **To buy · On the way · + · Projects · Insights** (Spending · History), physically left→right in every
-  language. Proposal Home · To buy · + · Projects · Insights still awaits Tal.
 - No workarounds that impersonate other clients / third-party fetchers for blocked stores (decided 2026-09-30).
 - Pictures: Google Images via **Serper** (`SERPER_API_KEY`), Open Food Facts, own items, icons; extension optional.
 - Not wanted: SolidWorks BOM import, item file attachments, event wishlists. Later: parts inventory, monthly "Wrapped".
 - **Dashboard is the default home screen** (Tal, 2026-10-03); everything else via the desktop sidebar / phone dock.
-- **Home design = "Home v3 — open layout"** (Tal approved 2026-10-04): static copies in `docs/design/home-v3/*.html`. Next: write Round 13 from it. Still open for Tal: "This week" strip in or out; dock Home · To buy · + · Projects · Insights.
+- **Home design = "Home v4"** (Tal approved 2026-10-04, replaces v3): mockups `docs/design/home-v4/*.dc.html`, brief `docs/ROUND13.md`.
+  Stats set A (left to buy · month budget · on the way · saved) with meters, no sparklines; medium-strength borders; status
+  strip of 3 linked tiles; "Nexus suggests" = rules find + AI phrases, with a setting to switch to rules only (multi-user
+  cost); Customize (hide/reorder) in R13; no "buy by" date; "This week" strip stays.
+- **Phone dock = Home · Shopping (קניות) · + · Projects · Insights** (Tal 2026-10-04); Shopping holds To buy ⇄ On the way
+  with list (default, remembered) and grid. One phone search that also finds settings/actions.
+- **Opening animation:** 3.0 s, wordmark only, real visuals (cubes gather, faces assemble, dot lands, rings + particles,
+  hold with moving background), no skip; phone on app open, desktop first open of the day.
+- Desktop sidebar collapses by a button at the top or by dragging its edge.
+- Roadmap (Tal 2026-10-04): R13 home/shopping/search/intro → R14 bug fixes → R15 multi-user foundation (site sign-in on
+  web + phone, Google + email, desktop QR login, short onboarding questionnaire that adapts the app, per-user data,
+  privacy) → R16 Android wrapper + testers. Tal to prepare for R15: domain, Google Cloud OAuth client, Resend, name check.
 - Free-tier stack (Vercel Hobby, Turso, Gemini free + Groq/OpenRouter fallback). Tal declined paid usage credits.
 
 ## Product direction (discussed 2026-10-03, not started)
@@ -82,7 +91,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Repo `talJ1235/nexus`; prod https://nexus-ashen-beta.vercel.app (auto-deploys from `main`).
 - `SPEC.md` (shipped features per round), `CLAUDE.md` (builder rules + map), `docs/ROUND*.md` (briefs + results),
   `docs/UI-V2.md` (design history + motion plan), `docs/design/` (static mockups), `src/lib/help/nexus-help.md`.
-- Design canvas "Nexus Style Directions" is a private claude.ai artifact on Tal's first account; the exported mockups in
+- Design canvas "Nexus Style Directions" is a private claude.ai artifact on each account (A: original; B: rebuilt 2026-10-04 with Home v4); the exported mockups in
   `docs/design/` are the shareable copy. New design exploration: make a new canvas in your own account.
 - Optional env not yet set (as of Round 10): `REPORTS_TOKEN` (read in-app reports), `GITHUB_ISSUES_TOKEN`; check
   `SERPER_API_KEY` status in the latest Open.
@@ -97,6 +106,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-04 · B · Rebuilt the design canvas "Nexus Style Directions" on account B from Tal's export (Home v3), then Home v4 per Tal's notes (status tiles, meters instead of sparklines, stronger borders, louder AI suggestion, compact phone, Shopping switch with list/grid, phone search incl. settings, collapsible sidebar, 3 s intro). Tal approved; wrote `docs/ROUND13.md` and saved mockups to `docs/design/home-v4/`.
 - 2026-10-04 · B · Set up this account's chat: sandbox network confirmed (clone, npm ci, typecheck, lint run here), GitHub custom connector via own OAuth App, secret audit of full history clean, repo stays public until launch. Wrote `docs/ENVIRONMENT.md` (setup + rule: every setup/tooling change is logged there). Added Hebrew/English RTL writing rules under "How to talk with Tal".
 - 2026-10-04 · A · Tal: drop the big "Today's best move" hero, fewer rounded boxes. Canvas page "Home v3 — open layout": one surface with hairline sections, status sentence header, flat stats with sparklines, slim "Nexus suggests" line (1/4), "This week" strip, Needs you + On the way, pace + projects, Nexus noticed; flatter To buy ⇄ On the way. Awaiting Tal.
 - 2026-10-04 · A · Round 12 brief = small fixes (sheet swipe-down, slow-swipe lock, assistant header + suggestion rows, Ask pill). Dashboard redesign moved to Round 13: research done (Oura, Linear, Monzo, Ramp, Brex, Stripe, Shopify, Mercury); canvas page "Home v2 — value first" (best-move hero, Needs-you queue, KPIs vs your usual, budget pace, delivery tracker, project rings, Nexus noticed; phone To buy ⇄ On the way switch cards) — awaiting Tal before the Round 13 brief.
