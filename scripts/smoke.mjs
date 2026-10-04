@@ -241,6 +241,37 @@ async function homeChecks(page) {
     }
     ok(visible >= 1 && (!MOBILE || visible === 1) && switched, "noticed: insights render (phone: dots switch)", `${visible} visible, switched ${switched}`);
   });
+  // A5: Customize — hide "Nexus noticed", move "Projects" up one, Done, reload: the order persisted; then Reset.
+  await step("customize: hide + move persist after reload", async () => {
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.locator("[data-home-customize]").click();
+    await page.waitForSelector("[data-home-customizing]");
+    await page.locator('[data-customize-row="noticed"] [data-customize-eye]').click();
+    if (MOBILE) await page.locator('[data-customize-row="projects"] [data-customize-up]').click();
+    else {
+      await page.locator('[data-customize-row="projects"] [data-customize-handle]').focus();
+      await page.keyboard.press("ArrowUp");
+    }
+    const draft = await page.$$eval("[data-customize-row]", (els) => els.map((e) => e.getAttribute("data-customize-row")));
+    await page.locator("[data-home-done]").click();
+    await page.reload();
+    await page.waitForSelector("[data-home]", { timeout: 15000 });
+    await page.waitForTimeout(400);
+    const got = await homeSections(page);
+    const cookie = (await page.context().cookies()).find((c) => c.name === "nexus_home")?.value ?? "";
+    const iP = draft.indexOf("projects");
+    const moved = iP >= 0 && draft[iP + 1] === "pace";
+    const persisted = cookie.includes("projects.pace") && cookie.includes("-noticed") && !got.includes("noticed");
+    // Desktop shows the order directly; the phone merges pace + projects into one card either way.
+    const domOrder = MOBILE || got.indexOf("projects") < got.indexOf("pace");
+    // Reset restores the default.
+    await page.locator("[data-home-customize]").click();
+    await page.locator("[data-home-reset]").click();
+    await page.locator("[data-home-done]").click();
+    await page.waitForTimeout(300);
+    const reset = (await page.context().cookies()).find((c) => c.name === "nexus_home")?.value === HOME_ORDER.join(".");
+    ok(moved && persisted && domOrder && reset, "customize: hide + move persist after reload", `draft ${draft.join(",")} cookie "${cookie}" dom ${got.join(",")} reset ${reset}`);
+  });
   // The logo returns to Home from every view.
   await step("logo returns to Home from every view", async () => {
     const bad = [];

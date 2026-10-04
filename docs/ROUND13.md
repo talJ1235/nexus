@@ -136,7 +136,7 @@ Rules only (no AI needed), from `homeModel`:
 Each insight has one link-action. Show it only when its facts exist, and hide the whole section when none do.
 Desktop: 3 columns. Phone: one insight at a time.
 
-### A5. [ ] Customize (Tal: in this round)
+### A5. [x] Customize (Tal: in this round)
 **Customize** switches Home into edit mode. Each section gets a handle and an eye toggle.
 - Desktop: drag to reorder.
 - Phone: ↑/↓ buttons on each section.
