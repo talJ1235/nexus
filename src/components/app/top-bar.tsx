@@ -52,7 +52,7 @@ export function TopBar() {
         )}
       </label>
       {focus && found.length > 0 && (
-        <div className="absolute inset-x-3 top-[54px] z-30 overflow-hidden rounded-2xl border border-line bg-raised p-1.5 shadow-pop" data-search-commands>
+        <div className="absolute inset-x-3 top-[54px] z-30 overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-pop" data-search-commands>
           <div className="px-2.5 pb-1 pt-1.5 text-xs text-faint">{t.search.settingsActions}</div>
           {found.map((c) => (
             <button
@@ -63,7 +63,7 @@ export function TopBar() {
                 s.setQuery("");
                 c.run();
               }}
-              className="flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-start text-sm hover:bg-sunken [&_svg]:size-4 [&_svg]:text-muted"
+              className="flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-start text-sm hover:bg-surface-2 [&_svg]:size-4 [&_svg]:text-muted"
               data-search-cmd={c.id}
             >
               {c.icon}
@@ -74,7 +74,7 @@ export function TopBar() {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => s.setPaletteOpen(true)}
-            className="flex h-9 w-full items-center gap-1 rounded-lg px-2.5 text-start text-[12.5px] font-medium text-muted hover:bg-sunken hover:text-ink"
+            className="flex h-9 w-full items-center gap-1 rounded-lg px-2.5 text-start text-[12.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
           >
             {t.search.moreCommands}
             <ChevronRight className="size-3.5 rtl:-scale-x-100" />
