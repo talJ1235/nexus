@@ -2289,7 +2289,24 @@ try {
 
     await step("boot screen", async () => {
       // Phones: the full intro when the app is opened (a new tab), the small Box-in-a-circle loader on reloads,
-      // pull-to-refresh and later loads in the session (Round 11 A1); both hand off to the app. Desktop never.
+      // pull-to-refresh and later loads in the session (Round 11 A1); both hand off to the app.
+      // Round 13 D1: the full opening lasts 3.0 s (ends ≥ 2,950 ms after it starts, by its own animation clock);
+      // desktop plays it on the first open of the day, then the small loader.
+      const bootMs = (pg) =>
+        pg.evaluate(
+          () =>
+            new Promise((res) => {
+              let t0 = null;
+              const tick = () => {
+                const a = document.querySelector("#boot .boot-left")?.getAnimations?.()[0];
+                if (t0 == null && a?.startTime != null) t0 = a.startTime;
+                if (document.getElementById("boot")?.classList.contains("boot-gone")) return res(t0 == null ? -1 : Math.round(document.timeline.currentTime - t0));
+                requestAnimationFrame(tick);
+              };
+              tick();
+              setTimeout(() => res(-2), 12000);
+            }),
+        );
       const p = await ctx.newPage();
       const mode = () => p.evaluate(() => document.documentElement.dataset.boot);
       await p.goto(`${BASE}/?v=to_buy`, { waitUntil: "commit" });
@@ -2297,10 +2314,8 @@ try {
       if (MOBILE) {
         const shown = await p.locator("#boot .boot-mark").isVisible();
         const first = await mode();
-        const t0 = Date.now();
-        await p.waitForSelector("#boot.boot-gone", { state: "attached", timeout: 10000 });
-        const fullMs = Date.now() - t0;
-        ok(shown && first === "full" && (await p.locator(READY).isVisible()), "boot screen: full intro when the app is opened, hands off to the app", `mode=${first} gone after ${fullMs} ms`);
+        const fullMs = await bootMs(p);
+        ok(shown && first === "full" && fullMs >= 2950 && fullMs < 3400 && (await p.locator(READY).isVisible()), "boot screen: full 3.0 s intro when the app is opened, hands off to the app", `mode=${first} ends at ${fullMs} ms`);
         const again = [];
         for (let k = 0; k < 2; k++) {
           await p.reload({ waitUntil: "commit" });
@@ -2342,10 +2357,50 @@ try {
         ok((await p2.evaluate(() => document.documentElement.dataset.boot)) === "full", "boot screen: a new tab opens with the full intro");
         await p2.close();
       } else {
-        ok(!(await p.locator("#boot").isVisible()), "boot screen: never shown on desktop");
+        await p.close();
+        // A browser with no record of today's opening (fresh storage, same session cookie): full first, then small.
+        const dctx = await browser.newContext({ viewport: VIEWPORT, storageState: { cookies: await ctx.cookies(), origins: [] } });
+        const d = await dctx.newPage();
+        await d.goto(`${BASE}/`, { waitUntil: "commit" });
+        await d.waitForSelector("#boot", { state: "attached", timeout: 10000 });
+        const first = await d.evaluate(() => document.documentElement.dataset.boot);
+        const ms = await bootMs(d);
+        await d.goto(`${BASE}/?v=history`, { waitUntil: "commit" });
+        await d.waitForSelector("#boot", { state: "attached", timeout: 10000 });
+        const second = await d.evaluate(() => document.documentElement.dataset.boot);
+        await d.goto(`${BASE}/login`, { waitUntil: "commit" }).catch(() => {});
+        await dctx.close();
+        ok(first === "full" && ms >= 2950 && second === "small", "boot screen: desktop plays the opening once a day (then the small loader)", `first=${first} (${ms} ms) second=${second}`);
+        return;
       }
       await p.close();
     });
+
+    // Round 13 D1: the opening on a mid phone (CPU ×4): painted frames keep coming for its 3 s (≤ 2 dropped).
+    if (MOBILE)
+      await step("boot screen: frame trace on a mid phone (≤ 2 dropped frames)", async () => {
+        const fctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, storageState: { cookies: await ctx.cookies(), origins: [] } });
+        const p = await fctx.newPage();
+        const cdp = await fctx.newCDPSession(p);
+        await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+        const frames = [];
+        cdp.on("Page.screencastFrame", ({ sessionId, metadata }) => {
+          frames.push(metadata.timestamp * 1000);
+          cdp.send("Page.screencastFrameAck", { sessionId }).catch(() => {});
+        });
+        await cdp.send("Page.startScreencast", { format: "jpeg", quality: 30, maxWidth: 195, maxHeight: 422, everyNthFrame: 1 });
+        await p.goto(`${BASE}/`, { waitUntil: "commit" });
+        await p.waitForSelector("#boot.boot-gone", { state: "attached", timeout: 15000 }).catch(() => {});
+        await cdp.send("Page.stopScreencast");
+        await fctx.close();
+        // From the first painted frame of the opening through its 3 s.
+        const f = frames.sort((a, b) => a - b);
+        const start = f.find((t, k) => k > 0 && t - f[k - 1] < 100) ?? f[0];
+        const win = f.filter((t) => t >= start && t <= start + 3000);
+        const gaps = win.slice(1).map((t, k) => t - win[k]);
+        const dropped = gaps.filter((g) => g > 34).length;
+        ok(win.length > 60 && dropped <= 2, "boot screen: frame trace on a mid phone (≤ 2 dropped frames)", `${win.length} frames, dropped ${dropped}, worst ${Math.round(Math.max(0, ...gaps))} ms`);
+      });
 
     // Round 13 A7: a new account opens on Home with the greeting, one line and the big add actions — nothing else.
     if (process.env.SMOKE_FRESH)

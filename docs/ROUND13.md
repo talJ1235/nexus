@@ -239,7 +239,7 @@ A collapsed rail already exists (`sidebarCollapsed`, 76 px). Tal wants:
 
 ## Part D — New opening animation (3.0 s)
 
-### D1. [ ] Replace the boot intro with the v4 sequence
+### D1. [x] Replace the boot intro with the v4 sequence
 Tal rejected the chip/tagline version. Keep the text to the wordmark only and the motion to real visuals. Build it from
 `home-v4/intro.dc.html` into `boot-screen.tsx` + `globals.css` (pure SVG + CSS in the initial HTML, as today; keep the
 `full`/`small` modes and `markBooted`/`aimAtLogo`). Timeline (seconds from start):
