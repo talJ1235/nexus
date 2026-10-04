@@ -121,7 +121,7 @@ both ways on each view above. Screenshots of phone before/after go in "## Open".
 
 ## Part B — Match the approved design (desktop sidebar, phone shell, dark mode)
 
-### B1. [ ] Desktop sidebar = the v4 mockup, with a soft active item
+### B1. [x] Desktop sidebar = the v4 mockup, with a soft active item
 Round 13 kept the old "U" sidebar: 44 px pill rows, and the active row is a solid black pill. Rebuild `sidebar.tsx`
 to the `home-v4/desktop` sidebar:
 - The sidebar sits on the page background with no card and no border. The content sits in its own pane, as in the
@@ -137,7 +137,7 @@ to the `home-v4/desktop` sidebar:
 - **Acceptance:** parity PNGs (desktop light + dark, expanded + collapsed). A smoke test asserts the active row's
   computed background is not `--ink` and that its height is 34 ± 1 px.
 
-### B2. [ ] Phone shell = the v4 mockup
+### B2. [x] Phone shell = the v4 mockup
 - **Dock:** icons **with labels** under them (10.5 px / 600), as in `home-v4/phone` and `home-v4/shopping`:
   Home · Shopping · + · Projects · Insights. Active = `--ink`, others `--muted`. The R13 note said "the dock stays
   icon-only"; Tal wants the labels.
@@ -145,7 +145,7 @@ to the `home-v4/desktop` sidebar:
   avatar, with 36 px controls, as in the mockup.
 - **Acceptance:** parity PNGs for Home and Shopping, phone light + dark.
 
-### B3. [ ] Dark mode = the mockups
+### B3. [x] Dark mode = the mockups
 Light mode matches; dark doesn't. Compare every dark token the mockups use with `globals.css` `.dark` (and Plum
 dark), and align them:
 - Mockup dark: page `#0b0b0b`, cards `#141414`, raised `#1d1d1d`, card line `#313131`, inner line `#262626`, ink
@@ -156,7 +156,7 @@ dark), and align them:
 **Acceptance:** parity PNGs (Home desktop + phone, Shopping, sidebar) in dark. `test:contrast` stays green in all 4
 themes.
 
-### B4. [ ] One "To buy" with filters (merges To buy, Urgent and Unsorted)
+### B4. [x] One "To buy" with filters (merges To buy, Urgent and Unsorted)
 Tal: having three pages is confusing.
 - Remove **Urgent** and **Unsorted** from the sidebar, the command palette, the assistant navigation actions and help.
   The To buy toolbar gets filter chips **All · Urgent · No project**, each with a count. The URL is
@@ -167,7 +167,7 @@ Tal: having three pages is confusing.
 
 **Acceptance:** smoke for each filter on desktop + phone, the redirect, and the drag/selection move.
 
-### B5. [ ] Light theme: calmer, a little darker (Tal chose "B · toned")
+### B5. [x] Light theme: calmer, a little darker (Tal chose "B · toned")
 The light theme is too bright for Tal. Apply on phone and desktop:
 
 | token | today | new |
@@ -186,7 +186,7 @@ The light theme is too bright for Tal. Apply on phone and desktop:
 
 **Acceptance:** parity PNGs show the new tone. The contrast test is green.
 
-### B6. [ ] Logo: swap the dark face (Tal chose "B")
+### B6. [x] Logo: swap the dark face (Tal chose "B")
 Graphite only. The left face of the Box follows the theme so the mark sits in the page:
 - **light:** fill `#ecebe6` + 1.2 px edge `#cfcdc6` (in the 64-unit viewBox, round joins);
 - **dark:** fill `#232323` + edge `#3d3d3d`.
