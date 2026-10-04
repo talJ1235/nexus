@@ -36,6 +36,18 @@ export function weekDays(today: string, weekStartsOn: 0 | 1 = 0) {
   return Array.from({ length: 7 }, (_, i) => addDays(start, i));
 }
 
+/** R14 C1: the month view's grid — 6 weeks (42 day keys) from the week holding the 1st of `month` ("YYYY-MM"). */
+export function monthGrid(month: string, weekStartsOn: 0 | 1 = 0) {
+  return Array.from({ length: 6 }, (_, w) => weekDays(addDays(`${month}-01`, w * 7), weekStartsOn)).flat();
+}
+
+/** "YYYY-MM" ± n months. */
+export function shiftMonth(month: string, n: number) {
+  const [y, m] = month.split("-").map(Number);
+  const k = y * 12 + (m - 1) + n;
+  return `${Math.floor(k / 12)}-${String((k % 12) + 1).padStart(2, "0")}`;
+}
+
 const median = (xs: number[]) => {
   if (!xs.length) return null;
   const s = [...xs].sort((a, b) => a - b);
@@ -392,7 +404,7 @@ export function homeModel(input: HomeInput) {
     if (p.track.late) events.push({ kind: "late", item: p.item, day: today });
     else {
       const d = dayKeyIn(p.item.eta, tz);
-      if (inWeek(d)) events.push({ kind: "arrive", item: p.item, day: d });
+      events.push({ kind: "arrive", item: p.item, day: d });
     }
   }
   for (const r of reorders) {
@@ -413,6 +425,7 @@ export function homeModel(input: HomeInput) {
   const order = { late: 0, deal: 1, arrive: 2, reorder: 3, budget: 4 } as const;
   events.sort((a, b) => a.day.localeCompare(b.day) || order[a.kind] - order[b.kind]);
   const week = { days, today, events: events.filter((e) => inWeek(e.day)) };
+  // R14 C1: the month view shows the same events on every day they fall on (this week's budget close included).
 
   // ----- Projects: % bought by money, money left, next item; top 3 by recent activity.
   const projects: ProjectRow[] = collections
@@ -468,6 +481,8 @@ export function homeModel(input: HomeInput) {
     status,
     stats: { leftToBuy, budget: budgetStat, onTheWay, saved },
     week,
+    /** Every calendar event (arrivals, late, reorder due, open price drops, budget close), sorted by day. */
+    events,
     needs: queue,
     packages,
     pace,

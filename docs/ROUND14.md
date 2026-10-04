@@ -200,7 +200,7 @@ backgrounds). **Acceptance:** parity PNG of the logo in all four places, light +
 
 ## Part C — Calendar
 
-### C1. [ ] "This week" opens a month view
+### C1. [x] "This week" opens a month view
 Tapping the section header (or a new "Month" link) opens a month calendar:
 - **desktop:** the card expands in place to a 6-row month grid with smooth height;
 - **phone:** a bottom sheet (the shared Sheet).

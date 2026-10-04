@@ -452,6 +452,33 @@ try {
       }
     });
 
+    // Round 14 C1: This week → Month (desktop: in place; phone: a sheet), ‹ › between months, a day with an arrival
+    // lists it, tapping it opens the item.
+    await step("month view: open, next month, a day with an arrival → its item", async () => {
+      await page.goto(`${BASE}/`);
+      await page.waitForSelector("[data-home]", { timeout: 15000 });
+      const link = page.locator("[data-card-link=week]").filter({ visible: true }).first();
+      await centerIn(link);
+      await link.click();
+      const cal = page.locator("[data-month]").filter({ visible: true }).first();
+      await cal.waitFor({ timeout: 5000 });
+      await page.waitForTimeout(400);
+      const first = await cal.getAttribute("data-month");
+      await cal.locator("[data-month-next]").click();
+      let moved = (await cal.getAttribute("data-month")) !== first;
+      // The seeded order arrives in ~40 days: next month or the one after.
+      let day = cal.locator("[data-month-kinds~=arrive]").first();
+      for (let k = 0; k < 2 && !(await day.count()); k++) await cal.locator("[data-month-next]").click();
+      await day.click();
+      const ev = cal.locator("[data-month-ev=arrive]").first();
+      await ev.waitFor({ timeout: 3000 });
+      await shot(page, "month-view");
+      await ev.click();
+      const opened = await page.locator("[data-sheet-img]").first().waitFor({ timeout: 8000 }).then(() => true, () => false);
+      await page.keyboard.press("Escape");
+      ok(moved && opened, "month view: open, next month, a day with an arrival → its item", JSON.stringify({ first, moved, opened }));
+    });
+
     // Round 14 A4: phones never show the desktop table, even with the `table` cookie; list ⇄ grid works; the layout
     // command flips the phone layout. Desktop: Cards ⇄ Table both ways on every product view, checkbox ≥ 8 px from the
     // picture (en + he).

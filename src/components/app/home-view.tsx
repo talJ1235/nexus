@@ -9,8 +9,9 @@ import { buyAgain, dismissHome, homeLook, phraseSuggestions, undismissHome, type
 import type { HomeAi } from "@/lib/home-ai";
 import { useMedia } from "@/components/ui/use-media";
 import { useExtension } from "./use-extension";
+import { Sheet } from "@/components/ui/overlays";
 import { activeSource } from "@/lib/calc";
-import { dayKeyIn, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, type HomeModel, type Insight, type NeedRow, type Suggestion, type WeekEvent } from "@/lib/home";
+import { dayKeyIn, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, monthGrid, shiftMonth, type HomeModel, type Insight, type NeedRow, type Suggestion, type WeekEvent } from "@/lib/home";
 import { formatMoney, formatMoneyCompact } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { DeliveryTrack } from "./delivery-track";
@@ -493,7 +494,7 @@ function Card({ id, title, icon, count, badge, link, onLink, className, style, c
             <span className="tabular text-[12px] text-muted">· {count}</span>
           ))}
         {link && (
-          <button type="button" onClick={onLink} className="relative ms-auto flex items-center gap-0.5 text-[12.5px] font-medium text-muted transition hover:text-ink after:absolute after:-inset-3 after:content-['']">
+          <button type="button" onClick={onLink} className="relative ms-auto flex items-center gap-0.5 text-[12.5px] font-medium text-muted transition hover:text-ink after:absolute after:-inset-3 after:content-['']" data-card-link={id}>
             {link}
             <ChevronRight className="size-3.5 rtl:-scale-x-100" />
           </button>
@@ -756,16 +757,38 @@ function WeekCard({ model, className, style }: { model: HomeModel; className?: s
   const { t, f } = useI18n();
   const fm = useFmt();
   const [open, setOpen] = useState(false);
+  // R14 C1: "Month" — desktop: the card grows in place to the month grid; phone: a bottom sheet.
+  const [month, setMonth] = useState(false);
+  const desktop = useMedia("(min-width: 1024px)");
   const { days, today, events } = model.week;
   const tz = model.ctx.tz;
-  const onEv = (e: WeekEvent) => (e.kind === "budget" ? s.setView({ type: "spending" }) : s.openItem(e.item.id));
+  const onEv = (e: WeekEvent) => {
+    setMonth(false);
+    if (e.kind === "budget") s.setView({ type: "spending" });
+    else s.openItem(e.item.id);
+  };
   const upcoming = events.filter((e) => e.day >= today);
   const list = open ? upcoming : upcoming.slice(0, 3);
+  const fold = (shown: boolean) => cn("grid transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-out)]", shown ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0");
   return (
-    <Card id="week" title={t.dash.week} icon={<CalendarDays />} className={className} style={style}>
+    <Card id="week" title={t.dash.week} icon={<CalendarDays />} className={className} style={style} link={month && desktop ? t.dash.monthClose : t.dash.monthLink} onLink={() => setMonth(!month)}>
       <span className="sr-only">{events.length === 1 ? t.dash.weekCountOne : f(t.dash.weekCount, { n: events.length })}</span>
+      {desktop && (
+        <div className={fold(month)} aria-hidden={!month} inert={!month}>
+          <div className="min-h-0 overflow-hidden">
+            <MonthCalendar model={model} onEv={onEv} />
+          </div>
+        </div>
+      )}
+      {!desktop && (
+        <Sheet open={month} onOpenChange={setMonth} title={t.dash.monthTitle}>
+          <MonthCalendar model={model} onEv={onEv} />
+        </Sheet>
+      )}
       {/* Desktop: 7 columns on a line, at most 2 events a day. */}
-      <div className="relative grid grid-cols-7 px-2 pb-4 pt-3.5 max-lg:hidden" data-week-desktop>
+      <div className={cn(fold(!(month && desktop)), "max-lg:hidden")}>
+      <div className="min-h-0 overflow-hidden">
+      <div className="relative grid grid-cols-7 px-2 pb-4 pt-3.5" data-week-desktop>
         <span className="absolute inset-x-[18px] top-[66px] h-px bg-card-line" aria-hidden />
         {days.map((d) => {
           const evs = events.filter((e) => e.day === d);
@@ -796,6 +819,8 @@ function WeekCard({ model, className, style }: { model: HomeModel; className?: s
             </div>
           );
         })}
+      </div>
+      </div>
       </div>
       {/* Phone: a day strip with coloured dots, the next 3 events, "+N more" expands in place. */}
       <div className="lg:hidden" data-week-phone>
@@ -838,6 +863,95 @@ function WeekCard({ model, className, style }: { model: HomeModel; className?: s
         </div>
       </div>
     </Card>
+  );
+}
+
+/**
+ * R14 C1: a month calendar — ‹ › between months, coloured dots per event type on each day (as the week strip), a
+ * tapped day lists its events, each opens its item. Same events as This week (arrivals, late, reorder due, price
+ * drops, budget close).
+ */
+function MonthCalendar({ model, onEv }: { model: HomeModel; onEv: (e: WeekEvent) => void }) {
+  const s = useStore();
+  const { t } = useI18n();
+  const fm = useFmt();
+  const [month, setMonth] = useState(model.month);
+  const [sel, setSel] = useState(model.today);
+  const grid = useMemo(() => monthGrid(month, s.clock.weekStartsOn ?? 0), [month, s.clock.weekStartsOn]);
+  const byDay = useMemo(() => {
+    const m = new Map<string, WeekEvent[]>();
+    for (const e of model.events) m.set(e.day, [...(m.get(e.day) ?? []), e]);
+    return m;
+  }, [model.events]);
+  const go = (n: number) => {
+    const next = shiftMonth(month, n);
+    setMonth(next);
+    setSel(next === model.month ? model.today : `${next}-01`);
+  };
+  const evs = byDay.get(sel) ?? [];
+  const nav = "grid size-9 place-items-center rounded-full border border-card-line bg-surface text-ink transition hover:bg-surface-2 active:scale-95";
+  return (
+    <div className="flex flex-col gap-3 px-3 pb-4 pt-3 lg:px-[18px]" data-month={month}>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => go(-1)} className={nav} aria-label={t.dash.monthPrev} data-month-prev>
+          <ChevronLeft className="size-4 rtl:-scale-x-100" />
+        </button>
+        <b className="flex-1 text-center text-[15px] font-bold" aria-live="polite" data-month-label>
+          {fm.month(month)} {month.slice(0, 4)}
+        </b>
+        <button type="button" onClick={() => go(1)} className={nav} aria-label={t.dash.monthNext} data-month-next>
+          <ChevronRight className="size-4 rtl:-scale-x-100" />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-y-1 text-center" role="grid">
+        {grid.slice(0, 7).map((d) => (
+          <span key={d} className="pb-1 text-[10.5px] font-bold uppercase tracking-[0.04em] text-muted">
+            {fm.wd(d)}
+          </span>
+        ))}
+        {grid.map((d) => {
+          const kinds = [...new Set((byDay.get(d) ?? []).map((e) => e.kind))].slice(0, 3);
+          const inMonth = d.startsWith(month);
+          const on = d === sel;
+          return (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setSel(d)}
+              aria-pressed={on}
+              aria-label={`${fm.dateLong(d)}${kinds.length ? ` · ${(byDay.get(d) ?? []).length}` : ""}`}
+              className={cn("mx-auto flex h-11 w-full max-w-[52px] flex-col items-center justify-center gap-1 rounded-xl transition", on ? "bg-[var(--nav-active)]" : "hover:bg-surface-2", !inMonth && "opacity-40")}
+              data-month-day={d}
+              data-month-kinds={kinds.join(" ") || undefined}
+            >
+              <span className={cn("grid size-6 place-items-center rounded-full text-[13px] font-semibold tabular", d === model.today && "bg-ink text-bg")}>{Number(d.slice(8))}</span>
+              <span className="flex h-1.5 gap-0.5" aria-hidden>
+                {kinds.map((k) => (
+                  <i key={k} className={cn("size-1.5 rounded-full", EV_TONE[k].dot)} />
+                ))}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex flex-col border-t border-line-in pt-2" data-month-list={sel}>
+        <span className="pb-1 text-[12px] font-semibold text-muted">{fm.dateLong(sel)}</span>
+        {evs.length === 0 && <p className="py-2 text-[13px] text-muted">{t.dash.monthNone}</p>}
+        {evs.map((e, k) => {
+          const x = evText(e, t, fm, model.ctx.tz);
+          return (
+            <div key={k} className="flex min-h-[40px] items-center gap-2" data-month-row={e.kind}>
+              <button type="button" onClick={() => onEv(e)} className="flex min-h-[40px] min-w-0 flex-1 items-center gap-2.5 text-start text-[13px]" data-month-ev={e.kind}>
+                <span className={cn("shrink-0 [&_svg]:size-4", EV_TONE[e.kind].text)}>{EV_TONE[e.kind].icon}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  <b className="font-semibold">{x.title}</b> <span className="text-muted">{x.sub}</span>
+                </span>
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

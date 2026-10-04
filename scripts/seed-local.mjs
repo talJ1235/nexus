@@ -54,6 +54,8 @@ items.push(
   ["demo-o1", "Arduino Nano ESP32", "pi", "demo-c-railcam", "normal", 1, "ordered", ["AliExpress", "aliexpress", 21, "USD", 0, "https://www.aliexpress.com/item/1005003.html"], [], 1, 4],
   ["demo-o2", "NEMA 17 bracket ×2", "motor", "demo-c-railcam", "normal", 2, "ordered", ["AliExpress", "aliexpress", 3.5, "USD", 0, "https://www.aliexpress.com/item/1005004.html"], [], 5, 2],
   ["demo-o3", "Bench power supply 30V 5A", "charger", null, "normal", 1, "ordered", ["Amazon", "amazon", 69, "USD", 0, "https://www.amazon.com/dp/B0POWER"], [], 3, 16],
+  // Round 14 C1: an order arriving in ~40 days — the month view always has an arrival in a later month.
+  ["demo-o4", "USB-C hub 7-in-1", "charger", null, "normal", 1, "ordered", ["Amazon", "amazon", 39, "USD", 0, "https://www.amazon.com/dp/B0HUB7"], [], 2, 40],
   ["demo-10", "כבל מאריך חשמל 5 מטר עם 4 שקעים", "charger", "demo-c-home", "normal", 1, "to_buy", ["ACE", "ace", 59, "ILS", 0, "https://www.ace.co.il/item/3"], ["home"]],
   ["demo-9", "Raspberry Pi 5 Active Cooler", "pi", "demo-c-railcam", "someday", 1, "to_buy", ["Raspberry Pi Store", "raspberrypi", 12, "USD", 0, "https://www.raspberrypi.com/products/active-cooler/"], ["electronics"]],
   ["demo-b1", "Raspberry Pi Camera cable 50cm", "pi", "demo-c-railcam", "normal", 4, "purchased", ["Raspberry Pi Store", "raspberrypi", 15, "USD", 0, "https://www.raspberrypi.com/products/camera-cable/"], [], 2],

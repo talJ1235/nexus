@@ -1,6 +1,6 @@
 // Unit test for src/lib/home.ts (Home model, delivery track, cadence, suggestions).  npm run test:home
 import assert from "node:assert/strict";
-import { addDays, cadenceOf, dayKeyIn, deliveryTrack, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, reorderDue, weekDays, type HomeInput } from "../src/lib/home";
+import { addDays, cadenceOf, dayKeyIn, deliveryTrack, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, monthGrid, reorderDue, shiftMonth, weekDays, type HomeInput } from "../src/lib/home";
 import { numbersIn, numbersKnown, validateHomeAi } from "../src/lib/home-ai";
 import { FALLBACK_RATES } from "../src/lib/money";
 import type { Alert, Collection, ItemWithSources, PricePoint, Source } from "../src/lib/types";
@@ -296,6 +296,21 @@ assert.equal(addDays("2026-10-31", 1), "2026-11-01");
   assert.deepEqual(fallbackInsights(empty), []);
   assert.equal(fallbackSuggestions(empty, { extension: null, receipts: null }).length, 1); // set_budget — but Home shows the empty state
   assert.deepEqual(mergeHome([{ key: "a" }, { key: "b" }], [{ key: "c" }, { key: "a" }], [{ key: "d" }, { key: "e" }], 4).map((x) => x.key), ["a", "b", "c", "d"]);
+}
+
+// ---- Round 14 C1: month grid (6 weeks from the week holding the 1st), month shifts, events beyond this week.
+{
+  const g = monthGrid("2026-10");
+  assert.equal(g.length, 42);
+  assert.equal(g[0], "2026-09-27"); // Sunday before Thu 1 Oct
+  assert.equal(monthGrid("2026-10", 1)[0], "2026-09-28");
+  assert.ok(g.includes("2026-10-31"));
+  assert.equal(shiftMonth("2026-12", 1), "2027-01");
+  assert.equal(shiftMonth("2026-01", -1), "2025-12");
+  const later = item({ title: "Hub", status: "ordered", orderedAt: at(2), eta: Date.UTC(2026, 10, 13, 9) });
+  const m = homeModel(base({ items: [later] }));
+  assert.ok(m.events.some((e) => e.kind === "arrive" && e.day === "2026-11-13"));
+  assert.equal(m.week.events.filter((e) => e.kind === "arrive").length, 0); // not this week
 }
 
 console.log("OK test-home");
