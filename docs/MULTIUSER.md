@@ -68,7 +68,9 @@ Columns added: `space_id` (not null after backfill, indexed) on `collections, it
 - Sessions: database sessions (Better Auth), 60 days sliding; Settings → Devices lists them (device, last seen, "sign out" per device / "sign out everywhere").
 - Old `nexus_session` cookies stop working when R15 deploys (one re-login for Tal).
 - **Lock-out guard:** until `GOOGLE_CLIENT_ID` + `BETTER_AUTH_SECRET` are set in Vercel, `/login` still shows the old password form and it signs in as the admin user (`ADMIN_EMAIL`). Removed in R16 once Tal confirms Google sign-in works on prod.
-- **Passkeys are bound to the domain.** Enable passkey registration only on the final domain (`NEXT_PUBLIC_APP_URL`); on `*.vercel.app` hide it. That's why the domain should exist before R15 ships.
+- **Passkeys are bound to the domain.** Enable passkey registration only on the final domain (`NEXT_PUBLIC_APP_URL`); on `*.vercel.app` hide it.
+- **Before the domain exists (Tal 2026-10-04: name not final, no domain yet)** R15 still ships, in "closed-circle mode": the app runs on its `*.vercel.app` address; sign-in = **Google only** (OAuth client left in *Testing* with the testers' emails as test users, max 100 — no domain verification needed); passkeys and email-code recovery stay hidden behind `NEXT_PUBLIC_APP_URL` + `RESEND_API_KEY` and switch on automatically once the domain exists (Resend can't send to other people without a verified domain). Admin keeps the password fallback until then. Every passkey/recovery code path is built and tested in R15 on localhost.
+- **Brand name in one place:** `APP_NAME` (+ i18n strings, manifest, emails, icons alt text) read from one config, so renaming from Nexus to the final name is a one-line change.
 
 ### 4.2 Scoping — the core guarantee
 - Every request resolves a context once: `ctx = { user, space, role }` (`requireCtx(need: "view" | "edit" | "owner")`), replacing `assertOwner()` everywhere. Current space = cookie `nexus_space`, validated against membership on every request; fallback = personal space.
@@ -142,8 +144,8 @@ After the first sign-in, 4 short screens, each skippable, progress dots, ≤ 60 
 Then: R17 supermarket mode (inside shared spaces) → R18 Android wrapper + testers.
 
 ## 7. Tal's checklist before Round 15 ships (step by step in the chat)
-1. **Name** — pick it (domain, Google consent screen and app name depend on it).
-2. **Domain** — buy it (e.g. Cloudflare Registrar), connect to Vercel (Project ← Settings ← Domains).
+1. **Name** — candidates (2026-10-04): `Karto` (planner's pick), `Carty`, `Shopix`. Not final; R15 can ship before it is (§4.1 closed-circle mode). Needed before the domain, the Google consent screen branding and the public launch.
+2. **Domain** — after the name is final (not needed for R15 in closed-circle mode); buy it (e.g. Cloudflare Registrar), connect to Vercel (Project ← Settings ← Domains).
 3. **Google Cloud** — new project → Google Auth Platform: branding (app name, support email, logo, privacy/terms URLs on the domain), audience **External**, scopes only `openid email profile` (non-sensitive → no security review; calendar scopes stay out), OAuth client "Web application" with redirect `https://<domain>/api/auth/callback/google` (+ `http://localhost:3000/...` for dev) → Client ID + secret into Vercel env. Publish to production (with basic scopes no 100-test-user cap).
 4. **Resend** — account, add + verify the domain (DNS records in Cloudflare), API key into Vercel env. Free tier: 3 000 emails/month, 100/day — plenty for recovery codes and invites.
 5. Vercel env: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`/`NEXT_PUBLIC_APP_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM`, `ADMIN_EMAIL(S)`; R16 adds `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`.
