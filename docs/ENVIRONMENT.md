@@ -38,6 +38,18 @@ Feature work is documented as before (round brief "## Open" + `SPEC.md`).
 4. Optional: put the chat in a Claude Project "Nexus" with the instruction "Read `docs/PLANNER.md` and
    `docs/ENVIRONMENT.md` in talJ1235/nexus first".
 
+## Running checks in the chat sandbox
+The sandbox has no real secrets, so it uses a throwaway local `.env.local` (never committed; `.env*` is gitignored):
+```
+TURSO_DATABASE_URL=file:local.db
+APP_PASSWORD=sandbox-pass
+SESSION_SECRET=<40 random chars>
+```
+- `npm ci` then `npm run -s check` (typecheck + lint + build) → green on 2026-10-04, ~3 min (build is most of it).
+  Use `SKIP_BUILD=1` for a ~30 s typecheck + lint when the build isn't needed.
+- Playwright for smoke: `npx playwright install --with-deps chromium` (~1–2 min, once per sandbox).
+  Full smoke in the sandbox not verified yet. No Gemini/Telegram/Blob here — AI paths only with the smoke's AI mock.
+
 Don't use Claude in Chrome for repo work (slow, unreliable, expensive) — clone or connector instead.
 
 ## Claude Code setup
@@ -58,3 +70,4 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
 ## Log
 - 2026-10-04 (chat): confirmed chat sandbox network works; created GitHub OAuth App + custom connector; secret audit clean;
   wrote this file and linked it from `CLAUDE.md` and `docs/PLANNER.md`.
+- 2026-10-04 (chat): full `npm run -s check` runs in the chat sandbox with a file DB (~3 min); Playwright installs there.
