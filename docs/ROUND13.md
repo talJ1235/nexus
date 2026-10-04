@@ -48,7 +48,7 @@ Tal decided on 2026-10-03 that the dashboard is the home screen. Today the app s
   phone page height is ≤ 1,800 px with the smoke demo data. No horizontal overflow at 360 px (extend the overflow
   smoke). The logo returns to Home from every view.
 
-### A2. [ ] One pure data module for Home (`src/lib/home.ts`) + unit tests
+### A2. [x] One pure data module for Home (`src/lib/home.ts`) + unit tests
 Put every number on Home in one pure function: `homeModel({ items, alerts, budget, storeSettings, rates, now, tz })`.
 It must not call the network and must run in `scripts/test-home.ts` (`npm run test:home`). Definitions:
 - **Status strip:**

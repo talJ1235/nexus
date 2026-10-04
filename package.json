@@ -29,6 +29,7 @@
     "test:receipt-e2e": "tsx --conditions=react-server scripts/receipt-e2e.ts",
     "test:help": "tsx scripts/test-help.ts",
     "test:gestures": "tsx scripts/test-gestures.ts",
+    "test:home": "tsx scripts/test-home.ts",
     "test:reports": "tsx scripts/test-reports.ts",
     "test:memory": "tsx --conditions=react-server scripts/test-memory.ts",
     "test:pictures": "tsx scripts/test-pictures.ts",
