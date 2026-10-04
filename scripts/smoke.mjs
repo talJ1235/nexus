@@ -723,26 +723,122 @@ try {
         ok(first.frame < 400 && first.decoder < 800 && again.frame < 400 && receipt.frame < 400 && offs.every((x) => x === "off"), "camera opens fast: barcode viewfinder < 300 ms, decoder < 800 ms; receipt camera too; off as soon as each closes", JSON.stringify({ first, again, receipt, offs }));
       });
 
-      await step("phone home: totals legend + strip, first row of products above the fold, cards ↔ rows", async () => {
+      // Round 13 B2: the Shopping tab's switch — both ways in en + he: URL/view and where the thumb sits.
+      await step("phone shopping: switch both ways in en + he (URL, thumb)", async () => {
+        const bad = [];
+        for (const loc of ["en", "he"]) {
+          await ctx.addCookies([{ name: "nexus_locale", value: loc, url: BASE }]);
+          await page.goto(`${BASE}/?v=to_buy`);
+          await page.waitForSelector(READY);
+          const check = async (want) => {
+            await page.waitForTimeout(650);
+            const r = await page.evaluate(() => {
+              const sw = document.querySelector("[data-shop-switch]").getBoundingClientRect();
+              const th = document.querySelector("[data-shop-thumb]").getBoundingClientRect();
+              return { mid: th.left + th.width / 2 - (sw.left + sw.width / 2), v: new URL(location.href).searchParams.get("v"), sw: document.querySelector("[data-shop-switch]").getAttribute("data-shop-switch") };
+            });
+            // To buy is the start card: left in English, right in Hebrew.
+            const startSide = (want === "to_buy") === (loc === "en") ? r.mid < 0 : r.mid > 0;
+            if (r.v !== want || r.sw !== want || !startSide) bad.push(`${loc}→${want}:${JSON.stringify(r)}`);
+          };
+          await page.locator('[data-shop-tab="ordered"]').click();
+          await check("ordered");
+          await page.locator('[data-shop-tab="to_buy"]').click();
+          await check("to_buy");
+        }
+        await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }]);
+        ok(!bad.length, "phone shopping: switch both ways in en + he (URL, thumb)", bad.join(" "));
+      });
+
+      // B2 frame check: a switch on a mid phone (CPU ×4). What the eye sees is the compositor: painted frames
+      // (screencast) during the thumb's 450 ms spring must keep coming (≤ 2 gaps over 2 vsyncs), and the dock never
+      // moves. Main-thread long frames are reported too (they grow with the list's length, not with the switch).
+      await step("phone shopping: switch frames on a mid phone (no dropped frames, dock still)", async () => {
         await page.goto(`${BASE}/?v=to_buy`);
         await page.waitForSelector(READY);
-        await page.waitForSelector("[data-item-card]");
-        const r = await page.evaluate(() => {
-          const cards = [...(document.querySelector("[data-card-grid]")?.children ?? [])].slice(0, 2).map((e) => e.getBoundingClientRect());
-          const dock = document.querySelector("[data-dock]")?.getBoundingClientRect().top ?? innerHeight;
-          return {
-            legend: !!document.querySelector("[data-totals-legend]") || !document.querySelector("[data-totals] .grow-x"),
-            strip: document.querySelectorAll("[data-totals-strip] [data-totals-go]").length,
-            row: cards.length === 2 && Math.abs(cards[0].top - cards[1].top) < 2,
-            visible: cards.length > 0 && Math.max(...cards.map((c) => c.bottom)) <= dock,
-            bottom: Math.round(Math.max(...cards.map((c) => c.bottom))),
-            dock: Math.round(dock),
+        await page.waitForTimeout(1200);
+        const cdp = await ctx.newCDPSession(page);
+        await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+        const run = async (target) => {
+          const frames = [];
+          const onFrame = ({ sessionId, metadata }) => {
+            frames.push(metadata.timestamp * 1000);
+            cdp.send("Page.screencastFrameAck", { sessionId }).catch(() => {});
           };
-        });
-        await page.locator("[data-phone-layout-toggle] [role=radio]").nth(1).click();
-        const rows = await page.locator("[data-app-shell][data-phone-layout=rows]").count();
+          cdp.on("Page.screencastFrame", onFrame);
+          await cdp.send("Page.startScreencast", { format: "jpeg", quality: 30, maxWidth: 195, maxHeight: 422, everyNthFrame: 1 });
+          await page.waitForTimeout(250);
+          const r = await page.evaluate(async (target) => {
+            const dock = document.querySelector("[data-dock]");
+            const d0 = dock.getBoundingClientRect();
+            let moved = 0;
+            const gaps = [];
+            let last = performance.now();
+            let on = true;
+            const tick = (t) => {
+              gaps.push(t - last);
+              last = t;
+              const d = dock.getBoundingClientRect();
+              moved = Math.max(moved, Math.abs(d.top - d0.top), Math.abs(d.left - d0.left));
+              if (on) requestAnimationFrame(tick);
+            };
+            const t0 = Date.now();
+            document.querySelector(`[data-shop-tab="${target}"]`).click();
+            requestAnimationFrame(tick);
+            await new Promise((r) => setTimeout(r, 1100));
+            on = false;
+            return { t0, longMain: gaps.filter((g) => g > 34).length, worstMain: Math.round(Math.max(...gaps)), moved };
+          }, target);
+          await cdp.send("Page.stopScreencast");
+          cdp.off("Page.screencastFrame", onFrame);
+          // Painted-frame gaps inside the thumb's spring (first 450 ms after the tap).
+          const inSpring = frames.filter((t) => t >= r.t0 - 20 && t <= r.t0 + 470).sort((a, b) => a - b);
+          const gaps = inSpring.slice(1).map((t, k) => t - inSpring[k]);
+          return { painted: inSpring.length, dropped: gaps.filter((g) => g > 34).length, worstPaint: Math.round(Math.max(0, ...gaps)), longMain: r.longMain, worstMain: r.worstMain, moved: r.moved };
+        };
+        const items = await page.locator("main [data-item-card]").count();
+        const a = await run("ordered");
+        const b = await run("to_buy");
+        if (TRACE) {
+          await traceFrames(page, "trace-shop-switch", () => page.locator('[data-shop-tab="ordered"]').click(), 900);
+          await page.locator('[data-shop-tab="to_buy"]').click();
+        }
+        await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+        await cdp.detach();
+        console.log(`INFO shop switch (${items} cards in To buy): ${JSON.stringify({ toWay: a, back: b })}`);
+        ok(a.dropped + b.dropped <= 2 && a.painted >= 5 && a.moved < 0.5 && b.moved < 0.5, "phone shopping: switch frames on a mid phone (no dropped frames, dock still)", JSON.stringify({ toWay: a, back: b }));
+      });
+
+      // B3: list and grid in both sub-tabs, at 360 and 390 px: items render the right way, nothing overflows.
+      await step("phone shopping: list + grid × To buy + On the way at 360/390, no overflow", async () => {
+        const bad = [];
+        for (const layout of ["rows", "cards"]) {
+          for (const v of ["to_buy", "ordered"]) {
+            for (const w of [360, 390]) {
+              await page.setViewportSize({ width: w, height: VIEWPORT.height });
+              await page.goto(`${BASE}/?v=${v}`);
+              await page.waitForSelector(READY);
+              const toggle = page.locator(`[data-phone-layout-toggle] [role=radio]`).nth(layout === "rows" ? 0 : 1);
+              if ((await toggle.getAttribute("aria-checked")) !== "true") await toggle.click();
+              await page.waitForTimeout(500);
+              const r = await page.evaluate(() => ({
+                over: document.documentElement.scrollWidth - innerWidth,
+                cards: document.querySelectorAll("main [data-item-card]").length,
+                groups: document.querySelectorAll("[data-shop-group]").length,
+                tracks: [...document.querySelectorAll("main [data-item-card] [data-track]")].filter((e) => e.offsetParent).length,
+                pills: [...document.querySelectorAll("main [data-item-card] [data-pill]")].filter((e) => e.offsetParent).length,
+                layout: document.querySelector("[data-app-shell]").getAttribute("data-phone-layout"),
+              }));
+              const fine = r.over <= 0 && r.cards > 0 && r.layout === layout && (v !== "ordered" || (r.tracks > 0 && r.pills > 0)) && (!(v === "to_buy" && layout === "rows") || r.groups > 0);
+              if (!fine) bad.push(`${layout}/${v}/${w}:${JSON.stringify(r)}`);
+              if (w === 390) await shot(page, `shop-${v}-${layout}`);
+            }
+          }
+        }
+        await page.setViewportSize(VIEWPORT);
+        // Back to the default (list).
         await page.locator("[data-phone-layout-toggle] [role=radio]").nth(0).click();
-        ok(r.legend && r.strip === 3 && r.row && r.visible && rows === 1, "phone home: totals legend + strip, first row of products above the fold, cards ↔ rows", JSON.stringify({ ...r, rows }));
+        ok(!bad.length, "phone shopping: list + grid × To buy + On the way at 360/390, no overflow", bad.join(" "));
       });
     }
 

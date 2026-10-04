@@ -175,7 +175,7 @@ Tal approved (2026-10-04). Changes to the `DOCK` in `phone-shell.tsx`:
 The dock order is physically left→right in every language, as today. Badges: Shopping shows the urgent count. Update
 help (`nexus-help.md`) and the assistant's navigation actions.
 
-### B2. [ ] The switch — seamless and a bit playful
+### B2. [x] The switch — seamless and a bit playful
 The top of the Shopping tab is two big segmented cards: **To buy** (count, "₪X · N urgent") and **On the way**
 (count, "Next Tue · 1 late").
 - A white "thumb" slides between them with a soft spring (~450 ms, slight overshoot).
@@ -188,7 +188,7 @@ The top of the Shopping tab is two big segmented cards: **To buy** (count, "₪X
 - **Acceptance:** a frame trace of a switch shows no dropped frames on a mid phone profile and no layout shift of the
   dock. A smoke test switches both ways in en + he and asserts the URL/view and the thumb position.
 
-### B3. [ ] List and grid in both sub-tabs (Tal: list by default, remember the last choice)
+### B3. [x] List and grid in both sub-tabs (Tal: list by default, remember the last choice)
 Reuse `phoneLayout` (`rows` = list, `cards` = grid). Change the default to `rows`, keep it persisted, and give the
 toggle a sliding thumb.
 - **List, To buy:** grouped by project. Each group header has a dot, name, "N items" and a thin %-bought bar. Rows:

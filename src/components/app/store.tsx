@@ -8,6 +8,7 @@ import type { ReportFields } from "@/lib/reports";
 import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
 import type { Alert, AltGroup, AppData, Collection, ItemWithSources, StoreSetting } from "@/lib/types";
 import { DEFAULT_HOME_PREFS, type HomePrefs } from "@/lib/home";
+import { DEFAULT_SHOP_SORT, readShopSort, saveShopSort, type ShopSort } from "@/lib/shop-sort";
 import type { View } from "@/lib/views";
 import { markBooted } from "@/lib/boot";
 import { primeCamera } from "@/lib/camera";
@@ -94,6 +95,9 @@ type Store = {
   homeLayout: HomeLayout;
   setHomeLayout: (l: HomeLayout) => void;
   clock: Clock;
+  /** Phone Shopping tab sort: To buy "By project" / On the way "By arrival", or the plain sort (localStorage). */
+  shopSort: ShopSort;
+  setShopSort: (v: ShopSort) => void;
   upsertItems: (items: ItemWithSources[]) => void;
   removeItems: (ids: string[]) => void;
   /** Multi-select */
@@ -306,6 +310,15 @@ export function StoreProvider({
     // Day/greeting roll-over while the app stays open.
     const id = window.setInterval(tick, 10 * 60_000);
     return () => window.clearInterval(id);
+  }, []);
+  const [shopSort, setShopSortState] = useState<ShopSort>(DEFAULT_SHOP_SORT);
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only pref */
+    setShopSortState(readShopSort());
+  }, []);
+  const setShopSort = useCallback((v: ShopSort) => {
+    setShopSortState(v);
+    saveShopSort(v);
   }, []);
   const [homeLayout, setHomeLayoutState] = useState<HomeLayout>(() => parseHomeLayout(ui.homeLayout));
   const setHomeLayout = useCallback((l: HomeLayout) => {
@@ -639,6 +652,8 @@ export function StoreProvider({
       homeLayout,
       setHomeLayout,
       clock,
+      shopSort,
+      setShopSort,
       upsertItems,
       removeItems,
       selected,
@@ -730,7 +745,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, plusOpen, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, plusOpen, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

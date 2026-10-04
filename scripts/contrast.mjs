@@ -49,7 +49,7 @@ const pairs = [
   // Round 11 D2: tags over pictures (solid fills).
   ["ink", "tag-bg"], ["muted", "tag-bg"], ["danger", "tag-bg"], ["tag-low-ink", "tag-low"], ["tag-info-ink", "tag-info"], ["tag-ok-ink", "tag-ok"],
   // Round 13: Home/Shopping tones (status chips, pills, the AI eyebrow).
-  ["warn", "surface"], ["warn", "warn-soft"], ["info", "info-soft"], ["ok", "ok-soft"], ["ai", "surface"], ["ai", "ai-soft"],
+  ["warn", "surface"], ["warn", "warn-soft"], ["bg", "warn"], ["bg", "info"], ["info", "info-soft"], ["ok", "ok-soft"], ["ai", "surface"], ["ai", "ai-soft"],
 ];
 let fails = 0;
 for (const [name, t] of Object.entries(themes)) {

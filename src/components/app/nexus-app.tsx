@@ -27,6 +27,8 @@ import { TopBar } from "./top-bar";
 import { Dock, PhoneTopBar, PlusMenu } from "./phone-shell";
 import { FiltersRow, HomeSummary, SUMMARY_VIEWS } from "./home-summary";
 import { HomeView } from "./home-view";
+import { byArrival, groupByProject, ShopGroupHeader, ShoppingHeader } from "./shopping-tab";
+import { PHONE, useMedia } from "@/components/ui/use-media";
 import { AssistantPanel } from "./assistant-panel";
 import { ShareDialog } from "./share-dialog";
 import { ReceiptDialog } from "./receipt-dialog";
@@ -137,7 +139,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
               widens the layout viewport and moved the fixed dock, Round 9 A2). Clip keeps sticky headers working. */}
           <main className="mx-auto max-w-[1400px] px-4 pb-40 pt-2 [overflow-x:clip] sm:px-6 lg:px-0 lg:pt-2">
             {/* Header + content switch together as one soft cross-fade; the very first paint is not animated. */}
-            <div key={viewKey(s.view)} className={s.navSeq > 0 ? (s.navDir > 0 ? "view-in view-fwd" : "view-in view-back") : undefined}>
+            <div key={viewKey(s.view, size === "phone")} className={s.navSeq > 0 && !(size === "phone" && isShop(s.view)) ? (s.navDir > 0 ? "view-in view-fwd" : "view-in view-back") : undefined}>
               {s.view.type === "home" ? (
                 <HomeView />
               ) : s.loading && s.view.type === "spending" ? (
@@ -257,7 +259,10 @@ function ReceiptDrop() {
   );
 }
 
-function viewKey(v: ReturnType<typeof useStore>["view"]) {
+/** Phone Shopping tab: To buy and On the way stay one view (the switch's thumb animates; the list pane slides). */
+const isShop = (v: ReturnType<typeof useStore>["view"]) => v.type === "to_buy" || v.type === "ordered";
+function viewKey(v: ReturnType<typeof useStore>["view"], phone = false) {
+  if (phone && isShop(v)) return "shop";
   return v.type === "collection" ? `c:${v.id}` : v.type === "store" ? `s:${v.key}` : v.type;
 }
 
@@ -305,6 +310,7 @@ function ViewHeader() {
   })();
 
   const summary = SUMMARY_VIEWS.includes(s.view.type);
+  const shop = isShop(s.view);
   const spentView = s.view.type === "history" || s.view.type === "ordered";
   const totals = sumTotals(spentView ? items : countable(items.filter((i) => i.status === "to_buy"), s.altGroups, s.rates), s.rates, s.currency);
   // Data-dependent parts fade in on the first paint after the streamed shell (never on view switches).
@@ -313,6 +319,8 @@ function ViewHeader() {
 
   return (
     <>
+    {shop && <ShoppingHeader className="lg:hidden" />}
+    <div className={shop ? "contents max-lg:hidden" : "contents"}>
     {s.view.type === "history" && <InsightsSwitch />}
     <div className="mb-3 flex flex-col gap-[18px]">
       <div className={cn("flex flex-wrap items-center justify-between gap-x-6 gap-y-2", s.view.type === "to_buy" && "sr-only")}>
@@ -373,6 +381,7 @@ function ViewHeader() {
     {s.view.type === "history" && !s.loading && <HistoryTools />}
     {!s.loading && <FiltersRow showProjects={s.view.type !== "collection" && s.view.type !== "orders" && s.view.type !== "history"} />}
     <HistoryHint />
+    </div>
     </>
   );
 }
@@ -422,7 +431,62 @@ function Content() {
     );
 
   if (s.view.type === "history") return <HistoryTimeline items={items} />;
+  if (isShop(s.view)) return <ShopContent items={items} pending={pending} />;
   return <CardGrid items={items} pending={pending} altGroups={s.altGroups} stagger={s.navSeq === 0} />;
+}
+
+/**
+ * To buy / On the way. Phones (< 640 px): the Shopping tab's list (To buy grouped by project) or grid, in a pane that
+ * slides in from the end side going to On the way and from the start side coming back (rows stagger 40 ms, first 8
+ * only); list ⇄ grid zooms in (0.96 → 1). Wider screens: the plain grid, as before.
+ */
+function ShopContent({ items, pending }: { items: ItemWithSources[]; pending: PendingAdd[] }) {
+  const s = useStore();
+  const phone = useMedia(PHONE);
+  const way = s.view.type === "ordered";
+  const ordered = useMemo(() => (phone && way && s.shopSort.way === "arrival" ? byArrival(items, s.clock.now, s.clock.tz) : items), [phone, way, s.shopSort.way, items, s.clock]);
+  const groups = useMemo(() => (phone && !way && s.phoneLayout === "rows" && s.shopSort.buy === "project" ? groupByProject(ordered, s) : null), [phone, way, s, ordered]);
+  // What changed since the last render decides the entrance: the sub-tab slides, list ⇄ grid zooms.
+  const [last, setLast] = useState({ v: s.view.type, l: s.phoneLayout, mode: "" as "" | "slide" | "zoom" });
+  if (last.v !== s.view.type || last.l !== s.phoneLayout) setLast({ v: s.view.type, l: s.phoneLayout, mode: last.v !== s.view.type ? "slide" : "zoom" });
+  if (!phone) return <CardGrid items={items} pending={pending} altGroups={s.altGroups} stagger={s.navSeq === 0} />;
+  const anim = last.mode === "slide" ? `shop-pane ${s.navDir > 0 ? "shop-fwd" : "shop-back"}` : last.mode === "zoom" ? "shop-zoom" : "";
+  return (
+    <div key={`${s.view.type}:${s.phoneLayout}`} className={anim} data-shop-pane={s.view.type}>
+      {groups ? (
+        <ShopGroups groups={groups} pending={pending} />
+      ) : (
+        <CardGrid items={ordered} pending={pending} altGroups={s.altGroups} stagger={false} />
+      )}
+    </div>
+  );
+}
+
+/** To buy grouped by project (phone list). Groups mount a few at a time (about 12 rows a frame), like CardGrid's
+ *  chunks, so opening a long list never blocks a frame. */
+function ShopGroups({ groups, pending }: { groups: [string, ItemWithSources[]][]; pending: PendingAdd[] }) {
+  const s = useStore();
+  const [budget, setBudget] = useState(FIRST_CARDS);
+  const total = groups.reduce((a, g) => a + g[1].length, 0);
+  useEffect(() => {
+    if (budget >= total) return;
+    const id = requestAnimationFrame(() => setBudget((b) => b + FIRST_CARDS));
+    return () => cancelAnimationFrame(id);
+  }, [budget, total]);
+  // Groups whose first row starts within the budget (running totals, no mutation during render).
+  const starts = groups.map((_, k) => groups.slice(0, k).reduce((a, g) => a + g[1].length, 0));
+  const shown = groups.filter((_, k) => starts[k] < budget);
+  return (
+    <div className="flex flex-col gap-3">
+      {pending.length > 0 && <CardGrid items={[]} pending={pending} altGroups={s.altGroups} stagger={false} />}
+      {shown.map(([id, list]) => (
+        <section key={id || "none"} className="shop-group">
+          <ShopGroupHeader id={id} count={list.length} />
+          <CardGrid items={list} pending={NO_PENDING} altGroups={s.altGroups} stagger={false} />
+        </section>
+      ))}
+    </div>
+  );
 }
 
 /** History as a timeline (Round 11 B2): bought items grouped by month, newest first, each with its count and total. */

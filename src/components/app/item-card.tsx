@@ -18,6 +18,8 @@ import { COLLECTION_COLORS } from "./view-items";
 import { pictureStyleOf } from "@/lib/picture-url";
 import { revealAt, swipeRelease, velocity } from "@/lib/gestures";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
+import { DeliveryTrack } from "./delivery-track";
+import { dayKeyIn, deliveryTrack } from "@/lib/home";
 import { ItemContextMenu, openItemActions, SHORTCUT, StatusIcon, statusActs, useActionLabels, useItemActions } from "./quick-actions";
 
 /**
@@ -308,7 +310,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
     <div className={cn("relative flex flex-col", leaving && "row-leave")} data-swipe-held={g.held || undefined}>
       {/* Phone row swipe layers (behind the row): status blocks at the start edge, Delete at the end edge. */}
       {side > 0 && (
-        <div dir={dir} className="absolute inset-0 hidden overflow-hidden rounded-[22px] prow:flex" data-swipe-layer="status">
+        <div dir={dir} className="absolute inset-0 hidden overflow-hidden rounded-[12px] prow:flex" data-swipe-layer="status">
           {moves.map((x) => (
             <button
               key={x}
@@ -330,7 +332,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
         </div>
       )}
       {side < 0 && (
-        <div dir={dir} className="absolute inset-0 hidden justify-end overflow-hidden rounded-[22px] bg-danger prow:flex" data-swipe-layer="delete">
+        <div dir={dir} className="absolute inset-0 hidden justify-end overflow-hidden rounded-[12px] bg-danger prow:flex" data-swipe-layer="delete">
           <button type="button" onClick={() => leave(() => acts.remove([item]))} className="flex w-[92px] flex-col items-center justify-center gap-1 text-[11.5px] font-bold text-white" data-swipe-action="delete">
             <Trash2 className="size-5" />
             {t.quick.delete}
@@ -348,10 +350,10 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
       style={g.dx ? { transform: `translateX(${g.dx}px)`, transition: g.dragging ? "none" : "transform 260ms var(--ease-out)" } : undefined}
       data-item-card={item.id}
       className={cn(
-        "group relative flex flex-1 flex-col rounded-[var(--radius-card)] border bg-surface p-1.5 prow:touch-pan-y transition-[border-color,box-shadow,transform] duration-[250ms] ease-[var(--ease-out)] prow:flex-row prow:items-center prow:gap-3 prow:rounded-[22px] prow:p-[7px] prow:pe-3 pcard:rounded-[22px] pcard:p-1",
+        "group relative flex flex-1 flex-col rounded-[var(--radius-card)] border bg-surface p-1.5 prow:touch-pan-y transition-[border-color,box-shadow,transform] duration-[250ms] ease-[var(--ease-out)] prow:flex-row prow:items-center prow:gap-[11px] prow:rounded-[12px] prow:px-3 prow:py-2.5 pcard:overflow-hidden pcard:rounded-[12px] pcard:p-0",
         isSelected
           ? "border-brand shadow-[0_0_0_1px_var(--brand)]"
-          : "border-line shadow-card hover:-translate-y-[3px] hover:border-line-strong hover:shadow-lift active:shadow-lift",
+          : "border-line shadow-card hover:-translate-y-[3px] hover:border-line-strong hover:shadow-lift active:shadow-lift max-sm:border-card-line max-sm:shadow-[var(--card-shadow)]",
         fresh === "new" && "fill-in",
         fresh === "bump" && "bump",
       )}
@@ -359,20 +361,29 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
       <button
         type="button"
         onClick={(e) => (selecting || e.metaKey || e.ctrlKey ? s.toggleSelect(item.id, e.shiftKey ? { range: order } : undefined) : morphOpen(item.id, () => s.openItem(item.id)))}
-        className="absolute inset-0 z-[1] rounded-[var(--radius-card)] max-sm:rounded-[22px]"
+        className="absolute inset-0 z-[1] rounded-[var(--radius-card)] max-sm:rounded-[12px]"
         aria-label={item.title}
       />
 
       {/* A status change sweeps a soft tint across the card (not on first paint). */}
       {sweep && <span key={item.status} aria-hidden className="status-sweep pointer-events-none absolute inset-0 z-[3] overflow-hidden rounded-[inherit]" />}
       <div className="relative prow:shrink-0" data-card-img>
-        <ProductImage src={item.imageUrl} alt="" pending={s.imagePending.has(item.id)} className="aspect-[5/4] w-full rounded-[var(--radius-tile)] prow:size-14 prow:rounded-[17px] pcard:aspect-square pcard:rounded-[18px]" iconClass="prow:size-6" />
+        <ProductImage src={item.imageUrl} alt="" pending={s.imagePending.has(item.id)} className="aspect-[5/4] w-full rounded-[var(--radius-tile)] prow:size-[42px] prow:rounded-[9px] pcard:aspect-[4/3] pcard:rounded-none pcard:border-b pcard:border-line-in" iconClass="prow:size-5" />
         {item.imageSource === "icon" && (
           <span className="nx-tag pointer-events-none absolute bottom-2 start-2 max-sm:hidden" data-tone="muted" title={t.item.iconHint}>
             {t.item.iconBadge}
           </span>
         )}
-        <div className="pointer-events-none absolute inset-x-[9px] top-[9px] flex items-start justify-between gap-2 prow:hidden pcard:inset-x-1.5 pcard:top-1.5">
+        <span className="pointer-events-none absolute start-2 top-2 hidden pcard:block">
+          {item.status === "ordered" ? <EtaPill item={item} solid /> : item.priority === "urgent" && item.status === "to_buy" ? <UrgentPill /> : null}
+        </span>
+        {collection && (
+          <span className="pointer-events-none absolute bottom-2 start-2 hidden max-w-[calc(100%-16px)] items-center gap-[5px] rounded-full border border-[#e5e5e1] bg-white/90 px-[7px] py-px text-[10.5px] font-semibold text-[#3a3a3a] pcard:flex">
+            <i className="size-[7px] shrink-0 rounded-full" style={{ background: COLLECTION_COLORS[collection.color] }} />
+            <span className="bidi truncate">{collection.name}</span>
+          </span>
+        )}
+        <div className="pointer-events-none absolute inset-x-[9px] top-[9px] flex items-start justify-between gap-2 prow:hidden pcard:hidden">
           <span className="relative min-w-0">
             {category && (
               <span className={cn("nx-tag transition-opacity max-sm:hidden", (selecting || isSelected) ? "opacity-0" : "sm:group-hover:opacity-0")} data-tone="muted" data-tag="category">
@@ -401,30 +412,36 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
         {!selecting && <HoverBar item={item} moves={moves} />}
       </div>
 
-      <div className="flex flex-1 flex-col gap-[5px] px-2 pb-1.5 pt-2.5 prow:min-w-0 prow:gap-[3px] prow:p-0 pcard:gap-1 pcard:px-1.5 pcard:pb-1 pcard:pt-2">
-        <h3 className="bidi line-clamp-2 min-h-[2.7em] text-[14px] font-semibold leading-[1.35] text-ink prow:line-clamp-1 prow:min-h-0 prow:font-bold pcard:text-[13px]">
-          {item.priority === "urgent" && item.status === "to_buy" && <i aria-hidden className="me-1.5 hidden size-2 rounded-full bg-danger align-middle prow:inline-block" />}
+      <div className="flex flex-1 flex-col gap-[5px] px-2 pb-1.5 pt-2.5 prow:min-w-0 prow:gap-[2px] prow:p-0 pcard:gap-0.5 pcard:px-[11px] pcard:pb-[11px] pcard:pt-[9px]">
+        <h3 className="bidi line-clamp-2 min-h-[2.7em] text-[14px] font-semibold leading-[1.35] text-ink prow:line-clamp-1 prow:min-h-0 prow:text-[13.5px] pcard:min-h-[34px] pcard:text-[13px] pcard:leading-[1.3]">
           {item.title}
         </h3>
-        <div className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted">
+        {/* Phones show the store here (rows are grouped by project; cards carry a project pill). */}
+        <div className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted pcard:text-[11.5px]">
           {collection && (
             <>
-              <i className={cn("size-2 shrink-0", collection.kind === "project" ? "rounded-[3px]" : "rounded-full")} style={{ background: COLLECTION_COLORS[collection.color] }} />
-              <span className="bidi min-w-0 truncate">{collection.name}</span>
+              <i className={cn("size-2 shrink-0 max-sm:hidden", collection.kind === "project" ? "rounded-[3px]" : "rounded-full")} style={{ background: COLLECTION_COLORS[collection.color] }} />
+              <span className="bidi min-w-0 truncate max-sm:hidden">{collection.name}</span>
             </>
           )}
           {collection && stores[0] && <span aria-hidden className="max-sm:hidden">·</span>}
-          {stores[0] && <span className="min-w-0 truncate max-sm:hidden">{stores[0]}</span>}
+          {stores[0] && <span className="min-w-0 truncate">{stores[0]}</span>}
           {stores.length > 1 && (
             <span dir="ltr" className="shrink-0 text-[11px] max-sm:hidden">
               +{stores.length - 1}
             </span>
           )}
-          {category && collection && <span aria-hidden className="hidden prow:inline">·</span>}
-          {category && <span className="hidden min-w-0 truncate prow:block">{t.categories[category]}</span>}
+          {item.status === "ordered" && total != null && (
+            <span className="hidden min-w-0 shrink-0 prow:inline">
+              · <span className="tabular">{formatMoney(total, s.currency, locale)}</span>
+            </span>
+          )}
+          {!stores[0] && category && <span className="hidden min-w-0 truncate max-sm:block">{t.categories[category]}</span>}
         </div>
-        <div className="mt-auto flex min-h-[34px] items-center gap-2 pt-0.5 prow:hidden pcard:min-h-0 pcard:pt-0">
-          <CardPrice item={item} className="pcard:text-[17px]" />
+        {/* On the way, phones: the 4-segment track (with stage names in the list). */}
+        {item.status === "ordered" && <PhoneTrack item={item} />}
+        <div className={cn("mt-auto flex min-h-[34px] items-center gap-2 pt-0.5 prow:hidden pcard:min-h-0 pcard:pt-[3px]", item.status === "ordered" && "pcard:hidden")}>
+          <CardPrice item={item} className="pcard:text-[15px]" />
           {item.quantity > 1 && item.status === "to_buy" && <span className="tabular hidden text-[12px] font-semibold text-muted pcard:inline" dir="ltr">×{item.quantity}</span>}
           {item.status === "to_buy" ? (
             <QtyStepper item={item} className="relative z-[2] ms-auto max-sm:hidden" />
@@ -446,13 +463,64 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
           </span>
         ) : null)}
       </div>
-      <span className="hidden shrink-0 flex-col items-end gap-0.5 prow:flex">
-        <CardPrice item={item} className="text-[16px]" />
-        {item.quantity > 1 && <span className="tabular text-[11px] text-muted" dir="ltr">×{item.quantity}</span>}
+      {/* Phone rows, end side: Urgent pill + price (To buy), the ETA pill (On the way). */}
+      <span className="hidden shrink-0 items-center gap-2 prow:flex">
+        {item.status === "ordered" ? (
+          <EtaPill item={item} />
+        ) : (
+          <>
+            {item.priority === "urgent" && item.status === "to_buy" && <UrgentPill />}
+            <span className="flex flex-col items-end gap-0.5">
+              <CardPrice item={item} className="text-[14px]" />
+              {item.quantity > 1 && <span className="tabular text-[11px] text-muted" dir="ltr">×{item.quantity}</span>}
+            </span>
+          </>
+        )}
       </span>
     </article>
     </ItemContextMenu>
     </div>
+  );
+}
+
+function UrgentPill() {
+  const { t } = useI18n();
+  return (
+    <span className="rounded-full bg-ink px-[7px] py-0.5 text-[10.5px] font-bold text-bg" data-pill="urgent">
+      {t.shopTab.urgent}
+    </span>
+  );
+}
+
+/** On the way: when it arrives (info), or late (warn), or no date — the same rules as the track (lib/home). */
+function EtaPill({ item, solid }: { item: ItemWithSources; solid?: boolean }) {
+  const s = useDataStore();
+  const { t, f, locale } = useI18n();
+  const tr = deliveryTrack(item, s.clock.now, s.clock.tz);
+  let label = t.shopTab.noDate;
+  if (tr.late) {
+    const days = Math.round((Date.parse(dayKeyIn(s.clock.now, s.clock.tz)) - Date.parse(dayKeyIn(item.eta!, s.clock.tz))) / 86_400_000);
+    label = days > 1 ? f(t.shopTab.daysLate, { n: days }) : t.shopTab.late;
+  } else if (item.eta != null) {
+    const ahead = (item.eta - s.clock.now) / 86_400_000;
+    label = new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", ahead < 6.5 ? { weekday: "short", timeZone: s.clock.tz } : { day: "numeric", month: "short", timeZone: s.clock.tz }).format(new Date(item.eta));
+  }
+  return (
+    // On a picture (grid cards) the pill is a solid fill, like every tag over pictures (Round 11 D2).
+    <span className={cn("whitespace-nowrap rounded-full px-[9px] py-[3px] text-[11.5px] font-bold", solid ? (tr.late ? "bg-warn text-bg" : item.eta != null ? "bg-info text-bg" : "bg-ink text-bg") : tr.late ? "bg-warn-soft text-warn" : item.eta != null ? "bg-info-soft text-info" : "bg-surface-2 text-muted")} data-pill="eta" data-late={tr.late || undefined} suppressHydrationWarning>
+      {label}
+    </span>
+  );
+}
+
+function PhoneTrack({ item }: { item: ItemWithSources }) {
+  const s = useDataStore();
+  const tr = deliveryTrack(item, s.clock.now, s.clock.tz);
+  return (
+    <>
+      <DeliveryTrack track={tr} labels className="mt-1.5 hidden prow:block" />
+      <DeliveryTrack track={tr} className="mt-1.5 hidden pcard:block" />
+    </>
   );
 }
 
