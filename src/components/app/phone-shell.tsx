@@ -12,17 +12,25 @@ import { AlertsBell } from "./alerts-panel";
 import { useReadOnly } from "./offline-banner";
 import { useStore, type View } from "./store";
 import { AskButton } from "./top-bar";
+import { PhoneSearchResults, rememberSearch } from "./phone-search";
 
 /** Phone / tablet (<1024 px) top bar: logo pill, then search, Ask (icon), alerts. Search expands in place. */
 export function PhoneTopBar() {
   const s = useStore();
   const { t } = useI18n();
   const [searching, setSearching] = useState(false);
+  // Round 13 C1: the phone search has its own text and shows grouped results (it no longer filters the list).
+  const [q, setQ] = useState("");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (searching) input.current?.focus();
   }, [searching]);
-  const open = searching || !!s.query;
+  const open = searching;
+  const close = () => {
+    setQ("");
+    setSearching(false);
+  };
+  useBackClose(open, close, "(max-width: 1023px)");
 
   return (
     <div className="flex h-[46px] items-center gap-1.5 min-[380px]:gap-2" data-phone-top>
@@ -31,20 +39,21 @@ export function PhoneTopBar() {
           <Search className="size-[19px] shrink-0" />
           <input
             ref={input}
-            value={s.query}
-            onChange={(e) => s.setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Escape" && (s.setQuery(""), setSearching(false))}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") close();
+              if (e.key === "Enter") rememberSearch(q);
+            }}
             placeholder={t.shell.searchPlaceholder}
             aria-label={t.view.search}
             enterKeyHint="search"
             className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-muted"
+            data-phone-search-input
           />
           <button
             type="button"
-            onClick={() => {
-              s.setQuery("");
-              setSearching(false);
-            }}
+            onClick={close}
             className="grid size-10 place-items-center rounded-full hover:bg-surface-2"
             aria-label={t.phone.closeSearch}
           >
@@ -77,8 +86,9 @@ export function PhoneTopBar() {
           </button>
         </>
       )}
-      {s.aiEnabled && <AskButton iconOnly />}
-      <AlertsBell size="sm" />
+      {s.aiEnabled && !open && <AskButton iconOnly />}
+      {!open && <AlertsBell size="sm" />}
+      {open && <PhoneSearchResults q={q} onClose={close} onPick={setQ} />}
     </div>
   );
 }

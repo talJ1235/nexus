@@ -16,22 +16,16 @@ import { COLLECTION_COLORS } from "./view-items";
 import { PaletteSwatch, Segmented } from "./settings-dialog";
 import { usePalette } from "@/components/use-palette";
 import { PALETTES } from "@/lib/palette";
+import { matchScore } from "@/lib/commands";
+import { useCommands } from "./use-commands";
 import type { Currency } from "@/lib/money";
 
 const itemCls =
   "flex h-11 cursor-default select-none items-center gap-3 rounded-lg px-3 text-sm text-fg outline-none data-[selected=true]:bg-sunken [&_svg]:size-4 [&_svg]:text-muted";
 const groupCls = "px-1.5 pb-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:text-faint";
 
-/** Word-aware matching: "sett" finds "Open settings", not every value that happens to contain s-e-t-t. */
-function paletteFilter(value: string, search: string) {
-  const q = search.toLowerCase().trim();
-  if (!q) return 1;
-  const v = value.toLowerCase();
-  const words = q.split(/\s+/);
-  if (!words.every((w) => v.includes(w))) return 0;
-  const wordStarts = words.every((w) => new RegExp(`(^|[\\s/,.-])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(v));
-  return wordStarts ? 1 : 0.5;
-}
+/** Word-aware matching (lib/commands, shared with the phone search): "sett" finds "Open settings". */
+const paletteFilter = matchScore;
 
 export function CommandPalette() {
   const s = useStore();
@@ -70,6 +64,7 @@ export function CommandPalette() {
   }, [s]);
 
   const acts = useItemActions();
+  const cmds = useCommands();
   const chosen = s.selected.size ? s.items.filter((i) => s.selected.has(i.id)) : [];
   const run = (fn: () => void) => {
     s.setPaletteOpen(false);
@@ -127,135 +122,27 @@ export function CommandPalette() {
                 </Command.Group>
               )}
 
-              <Command.Group heading={t.cmd.actions} className={groupCls}>
-                <Command.Item value={`add ${t.cmd.addLink}`} onSelect={() => run(s.focusAdd)} className={itemCls}>
-                  <Link2 /> {t.cmd.addLink}
-                </Command.Item>
-                <Command.Item value={`receipt invoice order confirmation purchased ${t.scan.title}`} onSelect={() => run(() => s.openReceipt())} className={itemCls}>
-                  <ReceiptText /> {t.scan.title}
-                </Command.Item>
-                <Command.Item value={`shopping mode store supermarket list ${t.shop.title}`} onSelect={() => run(() => s.setShop("pick"))} className={itemCls}>
-                  <ShoppingCart /> {t.shop.title}
-                </Command.Item>
-                <Command.Item value={`scan barcode ean upc ${t.barcode.title}`} onSelect={() => run(() => s.setScanner("barcode"))} className={itemCls}>
-                  <ScanBarcode /> {t.barcode.title}
-                </Command.Item>
-                {s.aiEnabled && (
-                  <Command.Item value={`plan project ai parts bom ${t.ai.planTab}`} onSelect={() => run(() => s.setPanel("planner"))} className={itemCls}>
-                    <Wand2 /> {t.ai.planTab}
-                  </Command.Item>
-                )}
-                <Command.Item value={`project ${t.nav.newProject}`} onSelect={() => run(() => s.setEditor({ mode: "create", kind: "project" }))} className={itemCls}>
-                  <FolderPlus /> {t.nav.newProject}
-                </Command.Item>
-                <Command.Item value={`list ${t.nav.newList}`} onSelect={() => run(() => s.setEditor({ mode: "create", kind: "list" }))} className={itemCls}>
-                  <ListPlus /> {t.nav.newList}
-                </Command.Item>
-                <Command.Item value={`layout ${t.view.cards} ${t.view.table}`} onSelect={() => run(() => s.setLayout(s.layout === "cards" ? "table" : "cards"))} className={itemCls}>
-                  {s.layout === "cards" ? <Rows3 /> : <LayoutGrid />} {s.layout === "cards" ? t.view.table : t.view.cards}
-                </Command.Item>
-              </Command.Group>
-
-              <Command.Group heading={t.settings.title} className={groupCls}>
-                <Command.Item value={`settings preferences ${t.settings.open}`} onSelect={() => run(() => s.setSettingsOpen(true))} className={itemCls}>
-                  <Settings2 /> {t.settings.open}
-                </Command.Item>
-                {(["light", "dark", "system"] as const).map((m) => (
-                  <Command.Item key={m} value={`theme mode ${m} ${t.settings.theme} ${t.settings[m]}`} onSelect={() => run(() => setTheme(m))} className={itemCls}>
-                    {m === "light" ? <Sun /> : m === "dark" ? <Moon /> : <Monitor />} {t.settings.theme}: {t.settings[m]}
-                    {theme === m && <Check className="ms-auto !size-3.5 !text-muted" />}
-                  </Command.Item>
-                ))}
-                {PALETTES.map((p) => (
-                  <Command.Item key={p} value={`palette colors ${p} ${t.settings.palette} ${t.settings[p]}`} onSelect={() => run(() => setPalette(p))} className={itemCls}>
-                    <PaletteSwatch palette={p} /> {t.settings.palette}: {t.settings[p]}
-                    {palette === p && <Check className="ms-auto !size-3.5 !text-muted" />}
-                  </Command.Item>
-                ))}
-                <Command.Item value={`language hebrew english ${t.cmd.switchLang}`} onSelect={() => run(() => setLocale(locale === "en" ? "he" : "en"))} className={itemCls}>
-                  <Languages /> {t.cmd.switchLang}
-                </Command.Item>
-                {CURRENCIES.filter((c) => c !== s.currency).map((c) => (
-                  <Command.Item key={c} value={`currency ${c}`} onSelect={() => run(() => s.setCurrency(c))} className={itemCls}>
-                    <Coins /> {t.settings.currency} {c}
-                  </Command.Item>
-                ))}
-                <Command.Item value={`alerts price telegram notifications ${t.alerts.title}`} onSelect={() => run(() => s.setPanel("alerts"))} className={itemCls}>
-                  <Bell /> {t.alerts.title}
-                </Command.Item>
-                <Command.Item
-                  value={`export excel xlsx bom download ${t.me.export}`}
-                  onSelect={() =>
-                    run(() => download(exportUrl(s.view.type === "collection" ? { collection: s.view.id } : { view: ["urgent", "history", "unsorted"].includes(s.view.type) ? s.view.type : "to_buy" }, s.currency, locale)))
-                  }
-                  className={itemCls}
-                  data-cmd-export
-                >
-                  <FileSpreadsheet /> {t.me.export}
-                </Command.Item>
-                <Command.Item value={`import excel csv spreadsheet ${t.io.importSheet}`} onSelect={() => run(() => s.setPanel("import"))} className={itemCls}>
-                  <FileSpreadsheet /> {t.io.importSheet}
-                </Command.Item>
-                <Command.Item
-                  value={`backup export download ${t.io.backup}`}
-                  onSelect={() =>
-                    run(() => {
-                      // A file download, not a page navigation.
-                      const a = document.createElement("a");
-                      a.href = "/api/backup";
-                      a.download = "";
-                      a.click();
-                    })
-                  }
-                  className={itemCls}
-                >
-                  <Download /> {t.io.backup}
-                </Command.Item>
-                <Command.Item value={`extension clipper chrome ${t.settings.extension}`} onSelect={() => run(() => s.setExtOpen(true))} className={itemCls}>
-                  <Puzzle /> {t.settings.extension}
-                </Command.Item>
-                <Command.Item value={`report problem bug complaint idea feedback ${t.report.menu}`} onSelect={() => run(() => s.openReport())} className={itemCls} data-cmd-report>
-                  <MessageSquareWarning /> {t.report.menu}
-                </Command.Item>
-                <Command.Item value={`reports bugs issues ${t.report.reports}`} onSelect={() => run(() => s.setReportsOpen(true))} className={itemCls} data-cmd-reports>
-                  <Inbox /> {t.report.reports}
-                </Command.Item>
-                <Command.Item
-                  value={`logout sign out ${t.nav.signOut}`}
-                  onSelect={() =>
-                    run(() => {
-                      const f = document.createElement("form");
-                      f.method = "post";
-                      f.action = "/api/logout";
-                      document.body.appendChild(f);
-                      f.submit();
-                    })
-                  }
-                  className={itemCls}
-                >
-                  <LogOut /> {t.nav.signOut}
-                </Command.Item>
-              </Command.Group>
+              {(["actions", "settings"] as const).map((g) => (
+                <Command.Group key={g} heading={g === "actions" ? t.cmd.actions : t.settings.title} className={groupCls}>
+                  {cmds
+                    .filter((c) => c.group === g)
+                    .map((c) => (
+                      <Command.Item key={c.id} value={`${c.keywords} ${c.label} ${c.id}`} onSelect={() => run(c.run)} className={itemCls} {...(c.testId ? { [`data-cmd-${c.testId}`]: "" } : {})}>
+                        {c.icon} {c.label}
+                        {c.active && c.control !== "ai" && <Check className="ms-auto !size-3.5 !text-muted" />}
+                      </Command.Item>
+                    ))}
+                </Command.Group>
+              ))}
 
               <Command.Group heading={t.cmd.collections} className={groupCls}>
-                <Command.Item value={`view ${t.nav.toBuy}`} onSelect={() => run(() => s.setView({ type: "to_buy" }))} className={itemCls}>
-                  <ShoppingBag /> {t.nav.toBuy}
-                </Command.Item>
-                <Command.Item value={`view ${t.nav.urgent}`} onSelect={() => run(() => s.setView({ type: "urgent" }))} className={itemCls}>
-                  <Zap /> {t.nav.urgent}
-                </Command.Item>
-                <Command.Item value={`view orders store ${t.nav.orders}`} onSelect={() => run(() => s.setView({ type: "orders" }))} className={itemCls}>
-                  <Store /> {t.nav.orders}
-                </Command.Item>
-                <Command.Item value={`view ordered shipping tracking ${t.nav.onTheWay}`} onSelect={() => run(() => s.setView({ type: "ordered" }))} className={itemCls}>
-                  <Truck /> {t.nav.onTheWay}
-                </Command.Item>
-                <Command.Item value={`view ${t.nav.history}`} onSelect={() => run(() => s.setView({ type: "history" }))} className={itemCls}>
-                  <History /> {t.nav.history}
-                </Command.Item>
-                <Command.Item value={`view spending dashboard ${t.nav.spending}`} onSelect={() => run(() => s.setView({ type: "spending" }))} className={itemCls}>
-                  <ChartColumn /> {t.nav.spending}
-                </Command.Item>
+                {cmds
+                  .filter((c) => c.group === "views")
+                  .map((c) => (
+                    <Command.Item key={c.id} value={`${c.keywords} ${c.label}`} onSelect={() => run(c.run)} className={itemCls}>
+                      {c.icon} {c.label}
+                    </Command.Item>
+                  ))}
                 {s.collections.map((c) => (
                   <Command.Item key={c.id} value={`collection ${c.name} ${c.id}`} onSelect={() => run(() => s.setView({ type: "collection", id: c.id }))} className={itemCls}>
                     <span className={c.kind === "project" ? "size-2.5 rounded-[3px]" : "size-2.5 rounded-full"} style={{ background: COLLECTION_COLORS[c.color] }} />

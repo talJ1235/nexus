@@ -43,7 +43,8 @@ export function Segmented<T extends string>({
   options: { value: T; label: React.ReactNode; title?: string }[];
   onChange: (v: T) => void;
   label: string;
-  size?: "md" | "sm";
+  /** "touch": the phone search's inline controls (≥ 40 px targets). */
+  size?: "md" | "sm" | "touch";
 }) {
   return (
     <div
@@ -63,7 +64,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(o.value)}
           className={cn(
             "inline-flex items-center justify-center gap-1.5 rounded-full font-medium transition [&_svg]:size-3.5",
-            size === "sm" ? "h-7 min-w-8 px-2" : "h-8",
+            size === "sm" ? "h-7 min-w-8 px-2" : size === "touch" ? "h-9 min-w-10 px-2.5 [&_svg]:size-4" : "h-8",
             value === o.value ? "bg-surface text-fg shadow-card" : "text-muted hover:text-fg",
           )}
         >

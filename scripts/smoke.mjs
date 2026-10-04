@@ -741,6 +741,44 @@ try {
         ok(first.frame < 400 && first.decoder < 800 && again.frame < 400 && receipt.frame < 400 && offs.every((x) => x === "off"), "camera opens fast: barcode viewfinder < 300 ms, decoder < 800 ms; receipt camera too; off as soon as each closes", JSON.stringify({ first, again, receipt, offs }));
       });
 
+      // Round 13 C1: one phone search that also finds settings. "dark" → the theme control works in place;
+      // "חשמל" in Hebrew finds the matching items; an empty search offers recent searches + 4 quick actions.
+      await step("phone search: settings in place (theme) + Hebrew items", async () => {
+        const r = {};
+        const openSearch = async () => {
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY);
+          await page.locator("[data-phone-search]").click();
+          await page.locator("[data-phone-search-input]").waitFor();
+        };
+        await openSearch();
+        r.quick = await page.locator("[data-search-quick]").count();
+        await page.locator("[data-phone-search-input]").fill("dark");
+        const ctl = page.locator('[data-search-control="theme"]');
+        await ctl.waitFor({ timeout: 5000 });
+        r.first = (await page.locator("[data-search-group]").first().getAttribute("data-search-group")) === "settings";
+        const isDark = () => page.evaluate(() => document.documentElement.classList.contains("dark"));
+        await ctl.locator('[role=radio]').nth(0).click(); // light
+        await page.waitForTimeout(300);
+        r.light = !(await isDark());
+        await ctl.locator('[role=radio]').nth(1).click(); // dark
+        await page.waitForTimeout(300);
+        r.dark = await isDark();
+        r.stillOpen = await page.locator("[data-phone-search-results]").isVisible();
+        await ctl.locator('[role=radio]').nth(2).click(); // back to system
+        await shot(page, "phone-search-dark");
+        await page.keyboard.press("Escape");
+        await ctx.addCookies([{ name: "nexus_locale", value: "he", url: BASE }]);
+        await openSearch();
+        await page.locator("[data-phone-search-input]").fill("חשמל");
+        await page.locator("[data-search-item]").first().waitFor({ timeout: 5000 }).catch(() => {});
+        r.he = await page.locator("[data-search-item]").count();
+        await shot(page, "phone-search-he");
+        await page.keyboard.press("Escape");
+        await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }]);
+        ok(r.quick === 4 && r.first && r.light && r.dark && r.stillOpen && r.he >= 1, "phone search: settings in place (theme) + Hebrew items", JSON.stringify(r));
+      });
+
       // Round 13 B2: the Shopping tab's switch — both ways in en + he: URL/view and where the thumb sits.
       await step("phone shopping: switch both ways in en + he (URL, thumb)", async () => {
         const bad = [];

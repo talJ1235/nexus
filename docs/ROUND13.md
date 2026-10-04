@@ -209,7 +209,7 @@ sheet. One component, one function, unit-tested in `test:home`.
 
 ## Part C — Search and navigation
 
-### C1. [ ] One search on the phone that also finds settings (Tal asked: "can I search settings on the phone?")
+### C1. [x] One search on the phone that also finds settings (Tal asked: "can I search settings on the phone?")
 Today the phone search (the `searching` state in `phone-shell.tsx`) only filters items via `s.setQuery`, while
 settings and actions exist only in the desktop command palette (`command-palette.tsx`).
 - Move the palette's commands into a shared list (e.g. `src/lib/commands.ts` + a hook) used by both.
