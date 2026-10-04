@@ -48,7 +48,21 @@ export function SelectionBar() {
       let id: string | number | undefined;
       if (patch.collectionId !== undefined) {
         const name = patch.collectionId ? s.collections.find((c) => c.id === patch.collectionId)?.name ?? "" : t.home.noProject;
-        id = toast.success(f(t.select.moved, { name }), { description: f(t.collection.itemsCount, { n }) });
+        // Undo puts every item back in the project it came from (R14 B4: same as a drag onto a project / No project).
+        const before = chosen.map((i) => ({ ...i }));
+        id = toast.success(f(t.select.moved, { name }), {
+          description: f(t.collection.itemsCount, { n }),
+          action: {
+            label: t.item.undo,
+            onClick: async () => {
+              s.upsertItems(before);
+              await req.catch(() => null);
+              const byColl = new Map<string | null, string[]>();
+              for (const i of before) byColl.set(i.collectionId, [...(byColl.get(i.collectionId) ?? []), i.id]);
+              for (const [c, list] of byColl) await bulkUpdate(list, { collectionId: c }).catch(() => null);
+            },
+          },
+        });
       }
       s.clearSelection();
       try {

@@ -572,16 +572,23 @@ try {
         await page.waitForSelector(READY, { timeout: 15000 });
         const card = page.locator(`[data-item-card="${id}"]`);
         await centerIn(card);
+        // The move is a server action (POST): wait for it, check the database once, then Undo while its toast is up
+        // (polling the full backup export outlasted the toast).
+        const saved = () => page.waitForResponse((res) => res.request().method() === "POST", { timeout: 8000 }).catch(() => null);
+        let posted = saved();
         await card.dragTo(chip("none"));
         await holdToast();
+        await posted;
         r.dragMoved = !!was && (await until(id, null));
         if (r.dragMoved) await undo();
         r.dragUndo = await until(id, was);
         await centerIn(card);
         await card.click({ modifiers: ["Control"] });
         await page.locator("[data-selection-bar]").getByRole("button", { name: /Move to|העבר אל/ }).click();
+        posted = saved();
         await page.locator("[data-select-unassign]").click();
         await holdToast();
+        await posted;
         r.selectMoved = await until(id, null);
         if (r.selectMoved) await undo();
         r.selectUndo = await until(id, was);
