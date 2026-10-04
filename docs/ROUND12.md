@@ -7,7 +7,7 @@ One **unattended** run, same rules as Rounds 7–11 "How to run": branch **`roun
 only when all green, don't touch power settings. Read open reports first. Verify on phone (360/390) and desktop
 (1366), light + dark, Graphite + Plum; frame traces for anything that moves.
 
-### 1. [ ] Long-press action sheet closes with a swipe down
+### 1. [x] Long-press action sheet closes with a swipe down
 On the phone, long-pressing a product opens the quick-action sheet, but it only closes with the ✕. Make it a real
 bottom sheet: drag handle at the top, follows the finger, closes when dragged down past ~30 % of its height or with a
 downward fling, springs back otherwise; tapping the scrim and the back gesture close it too. Apply the same behaviour to

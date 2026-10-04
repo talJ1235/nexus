@@ -3,13 +3,26 @@
 import { Dialog as D, DropdownMenu as M, Popover as P } from "radix-ui";
 import { ArrowLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBackClose, useSheetDrag } from "./sheet-drag";
 
 /**
  * Layering rule (Round 11 B1): every overlay surface (Modal, Sheet, full-screen cameras, command menu) sits on the same
  * z-layer, so the one opened last — portalled last — is always the one on top; Radix closes only the top layer on an
  * outside click or Esc. Something opened from inside a surface is either a sub-page of it (`onBack`: a back arrow in the
  * header, Esc goes back) or a new surface fully on top.
+ *
+ * Phones (< 640 px, Round 12 #1): Modal and Sheet are bottom sheets — a drag handle, swipe down to close (from the
+ * handle/header, or from the content while it is scrolled to the top), scrim tap and the back gesture close too.
  */
+/** The phone bottom sheet's drag handle. */
+export function SheetHandle({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex shrink-0 justify-center pb-1 pt-2 sm:hidden", className)} data-sheet-grip data-sheet-handle aria-hidden>
+      <span className="h-1.5 w-10 rounded-full bg-line-strong" />
+    </div>
+  );
+}
+
 export function Modal({
   open,
   onOpenChange,
@@ -30,11 +43,14 @@ export function Modal({
   onBack?: () => void;
   backLabel?: string;
 }) {
+  const drag = useSheetDrag(() => onOpenChange(false));
+  useBackClose(open, () => onOpenChange(false));
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] overlay-in" />
+        <D.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] overlay-in" data-sheet-scrim />
         <D.Content
+          ref={drag}
           onInteractOutside={keepOpenForToasts}
           onEscapeKeyDown={(e) => {
             if (!onBack) return;
@@ -50,11 +66,12 @@ export function Modal({
             }
           }}
           className={cn(
-            "fixed inset-x-0 top-[10vh] z-50 mx-auto max-h-[84vh] w-[calc(100vw-24px)] max-w-md animate-pop-in overflow-y-auto rounded-2xl border border-line bg-surface p-5 shadow-pop outline-none",
+            "fixed inset-x-0 top-[10vh] z-50 mx-auto max-h-[84vh] w-[calc(100vw-24px)] max-w-md animate-pop-in overflow-y-auto rounded-2xl border border-line bg-surface p-5 shadow-pop outline-none modal-phone",
             className,
           )}
         >
-          <div className="mb-4 flex items-start justify-between gap-4">
+          <SheetHandle className="-mt-3 mb-1" />
+          <div className="mb-4 flex items-start justify-between gap-4" data-sheet-grip>
             {onBack && (
               <button type="button" onClick={onBack} className="-m-1 -me-2 grid size-8 shrink-0 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label={backLabel} data-modal-back>
                 <ArrowLeft className="size-4 rtl:-scale-x-100" />
@@ -92,13 +109,18 @@ const deferredSheetFocus = (e: Event) => {
   });
 };
 
-/** Side sheet: slides from the inline-end edge (right in LTR, left in RTL). Full screen on mobile. */
+/**
+ * Side sheet: slides from the inline-end edge (right in LTR, left in RTL). On phones a near-full-height bottom sheet
+ * (`phone="bottom"`, the default) with a handle; `phone="side"` keeps a side drawer (the nav drawer). Put
+ * `data-sheet-grip` on the sheet's header so it drags too.
+ */
 export function Sheet({
   open,
   onOpenChange,
   title,
   children,
   side = "end",
+  phone = "bottom",
   className,
 }: {
   open: boolean;
@@ -106,24 +128,37 @@ export function Sheet({
   title: string;
   children: React.ReactNode;
   side?: "start" | "end";
+  phone?: "bottom" | "side";
   className?: string;
 }) {
+  const bottom = phone === "bottom";
+  const drag = useSheetDrag(() => onOpenChange(false));
+  useBackClose(open, () => onOpenChange(false));
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-50 bg-black/35 overlay-in" />
+        <D.Overlay className="fixed inset-0 z-50 bg-black/35 overlay-in" data-sheet-scrim />
         <D.Content
+          ref={bottom ? drag : undefined}
           onInteractOutside={keepOpenForToasts}
           onOpenAutoFocus={deferredSheetFocus}
           className={cn(
             "fixed inset-y-0 z-50 flex w-full flex-col bg-surface shadow-pop outline-none sm:max-w-[520px]",
             side === "end" ? "end-0 border-s border-line sheet-in-end" : "start-0 border-e border-line sheet-in-start",
+            bottom && "sheet-phone",
             className,
           )}
         >
           <D.Title className="sr-only">{title}</D.Title>
           <D.Description className="sr-only">{title}</D.Description>
-          {children}
+          {bottom ? (
+            <>
+              <SheetHandle />
+              <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+            </>
+          ) : (
+            children
+          )}
         </D.Content>
       </D.Portal>
     </D.Root>

@@ -6,6 +6,7 @@ import { ChartColumn, Folder, Plus, Search, ShoppingCart, Truck, X } from "lucid
 import { useI18n } from "@/components/providers";
 import { LogoPill } from "@/components/logo";
 import { cn } from "@/lib/utils";
+import { useBackClose } from "@/components/ui/sheet-drag";
 import { prewarmScanners } from "@/lib/barcode-reader";
 import { AlertsBell } from "./alerts-panel";
 import { useReadOnly } from "./offline-banner";
@@ -162,25 +163,19 @@ function PlusMenuSheet() {
   const { t } = useI18n();
   const ro = useReadOnly();
   const open = s.plusOpen;
-  // Back gesture / Esc closes: one history entry while open.
+  // Back gesture (the shared surface stack, like every sheet) / Esc closes.
+  useBackClose(open, () => s.setPlusOpen(false), "(max-width: 1023px)");
   useEffect(() => {
     if (!open) return;
     prewarmScanners(); // two of its four actions are camera screens (Round 10 B1)
-    history.pushState({ nxPlus: 1 }, "");
-    const pop = () => s.setPlusOpen(false);
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
         s.setPlusOpen(false);
       }
     };
-    window.addEventListener("popstate", pop);
     window.addEventListener("keydown", key, true);
-    return () => {
-      window.removeEventListener("popstate", pop);
-      window.removeEventListener("keydown", key, true);
-      if (history.state?.nxPlus) history.back();
-    };
+    return () => window.removeEventListener("keydown", key, true);
   }, [open, s]);
 
   const choose = (fn: () => void) => {

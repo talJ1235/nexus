@@ -10,6 +10,8 @@ import { toast } from "@/lib/toast";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { morphOpen, optimisticStatus, useImportWarning, useStatusFlow, type Status } from "./item-card";
+import { SheetHandle } from "@/components/ui/overlays";
+import { useBackClose, useSheetDrag } from "@/components/ui/sheet-drag";
 import { useReadOnly } from "./offline-banner";
 import { useDataStore, useStore } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
@@ -177,6 +179,9 @@ export function ItemActionSheet() {
   }
   const items = st ? s.items.filter((i) => st.ids.includes(i.id)) : [];
   const one = items.length === 1 ? items[0] : null;
+  const shown = !!st && items.length > 0;
+  const drag = useSheetDrag(closeSheet);
+  useBackClose(shown, closeSheet);
   const statuses = one ? statusActs(one.status) : (["ordered", "purchased", "to_buy"] as Status[]);
   const run = (fn: () => unknown) => {
     closeSheet();
@@ -186,10 +191,11 @@ export function ItemActionSheet() {
   const collections = s.collections.filter((c) => !c.archived);
 
   return (
-    <D.Root open={!!st && items.length > 0} onOpenChange={(o) => !o && closeSheet()}>
+    <D.Root open={shown} onOpenChange={(o) => !o && closeSheet()}>
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-50 bg-black/40 overlay-in" />
+        <D.Overlay className="fixed inset-0 z-50 bg-black/40 overlay-in" data-sheet-scrim />
         <D.Content
+          ref={drag}
           className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80vh] w-full max-w-md flex-col rounded-t-[26px] border border-line bg-surface pb-[max(12px,env(safe-area-inset-bottom))] shadow-pop outline-none actions-sheet sm:inset-x-0 sm:bottom-auto sm:top-[14vh] sm:w-[calc(100vw-24px)] sm:rounded-2xl sm:pb-2"
           aria-describedby={undefined}
           data-item-actions={page}
@@ -200,8 +206,8 @@ export function ItemActionSheet() {
             }
           }}
         >
-          <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-line sm:hidden" aria-hidden />
-          <div className="flex items-center gap-2 px-4 pb-2 pt-3">
+          <SheetHandle />
+          <div className="flex items-center gap-2 px-4 pb-2 pt-1 sm:pt-3" data-sheet-grip>
             {page === "move" && st?.page === "menu" && (
               <button type="button" onClick={() => setPage("menu")} className="-ms-1 grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2" aria-label={t.report.back} data-item-actions-back>
                 <ArrowLeft className="size-[18px] rtl:-scale-x-100" />

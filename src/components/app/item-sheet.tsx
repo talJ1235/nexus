@@ -429,7 +429,7 @@ export function ItemSheet() {
     <Sheet open={!!item} onOpenChange={(o) => !o && morphClose(openItemId, () => s.openItem(null))} title={item?.title ?? ""} className="bg-bg">
       {item && (
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between gap-2 border-b border-line bg-surface px-4 py-2.5">
+          <div className="flex items-center justify-between gap-2 border-b border-line bg-surface px-4 py-2.5" data-sheet-grip>
             <fieldset disabled={ro.ro} title={ro.title} className="m-0 min-w-0 border-0 p-0">
               <StatusControl item={item} />
             </fieldset>

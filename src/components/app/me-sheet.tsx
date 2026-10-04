@@ -51,7 +51,7 @@ export function MeSheet() {
 
   return (
     <Sheet open={open} onOpenChange={s.setMeOpen} title={t.me.open} side="start">
-      <div className="flex items-center gap-3 border-b border-line px-4 pb-4 pt-[max(16px,env(safe-area-inset-top))]" data-me>
+      <div className="flex items-center gap-3 border-b border-line px-4 pb-4 pt-2 sm:pt-4" data-sheet-grip data-me>
         <span className="grid size-14 shrink-0 place-items-center rounded-full bg-ink text-[22px] font-extrabold text-bg">{t.shell.owner.slice(0, 1).toUpperCase()}</span>
         <div className="min-w-0 flex-1">
           <b className="block truncate text-[18px] font-extrabold">{t.shell.owner}</b>

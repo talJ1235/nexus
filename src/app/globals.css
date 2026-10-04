@@ -495,6 +495,15 @@ body {
 .sheet-in-start[data-state="open"] { animation: slide-from-left 220ms cubic-bezier(0.2, 0.9, 0.3, 1); }
 [dir="rtl"] .sheet-in-end[data-state="open"] { animation-name: slide-from-left; }
 [dir="rtl"] .sheet-in-start[data-state="open"] { animation-name: slide-from-right; }
+/* Phones (Round 12 #1): sheets and modals are bottom sheets — rounded top, a handle, rise from the bottom, swipe down
+   to close (src/components/ui/sheet-drag.ts). The grip never scrolls the page under it. */
+[data-sheet-grip] { touch-action: none; }
+@media (max-width: 639px) {
+  .sheet-phone { top: max(10px, env(safe-area-inset-top)); max-width: none; border: 0; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; overflow: hidden; }
+  .sheet-phone[data-state="open"], [dir="rtl"] .sheet-phone[data-state="open"] { animation: sheet-up 380ms var(--ease-out); }
+  .modal-phone { top: auto; bottom: 0; width: 100%; max-width: none; max-height: 90vh; border-width: 1px 0 0; border-radius: 26px 26px 0 0; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+  .modal-phone[data-state="open"] { animation: sheet-up 320ms var(--ease-out); }
+}
 
 /* ---------- Mixed Hebrew/English text ----------
    Product and user titles work out their own reading order (so "Elegoo PLA 1.75mm אדום" keeps

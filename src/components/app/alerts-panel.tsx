@@ -252,7 +252,7 @@ export function AlertsPanel() {
   return (
     <Sheet open={open} onOpenChange={(o) => !o && s.setPanel(null)} title={t.alerts.title}>
       <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
+        <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3" data-sheet-grip>
           <h2 className="flex items-center gap-2 text-base font-semibold">
             <Bell className="size-4 text-muted" />
             {t.alerts.title}

@@ -87,7 +87,7 @@ export function CompareSheet() {
     <Sheet open={!!item} onOpenChange={(o) => !o && s.setCompareItemId(null)} title={t.compare.title} className="sm:max-w-[480px]">
       {item && (
         <div className="flex h-full flex-col" data-compare>
-          <div className="flex items-center gap-3 border-b border-line p-4">
+          <div className="flex items-center gap-3 border-b border-line p-4" data-sheet-grip>
             <ProductImage src={item.imageUrl} alt="" className="size-14 shrink-0 rounded-[16px]" iconClass="size-5" />
             <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold text-muted">{t.compare.title}</div>

@@ -722,8 +722,8 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
 // ---------- Panel ----------
 
 /**
- * Desktop: a 420 px side panel that slides in with a spring. Phone: a full-screen sheet with a drag handle —
- * swipe down to close. Header: Box + "Nexus" + model status dot, new chat, close.
+ * Desktop: a 420 px side panel that slides in with a spring. Phone: the shared bottom sheet (handle, swipe down to
+ * close — `Sheet`). Header: Box + "Nexus" + model status dot, new chat, close.
  */
 export function AssistantPanel() {
   const s = useStore();
@@ -749,44 +749,10 @@ export function AssistantPanel() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the entry point picks the mode
     if (s.panel === "planner") setMode("plan");
   }, [s.panel]);
-  const wrap = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ y: number; dy: number } | null>(null);
-
-  // Swipe the handle down to close (phone).
-  const sheetEl = () => wrap.current?.closest<HTMLElement>("[role=dialog]") ?? null;
-  const onDown = (e: React.PointerEvent) => {
-    if (!window.matchMedia("(max-width: 639px)").matches || (e.target as HTMLElement).closest("button")) return;
-    drag.current = { y: e.clientY, dy: 0 };
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-  };
-  const onMove = (e: React.PointerEvent) => {
-    if (!drag.current) return;
-    drag.current.dy = Math.max(0, e.clientY - drag.current.y);
-    const el = sheetEl();
-    if (el) {
-      el.style.transition = "none";
-      el.style.transform = `translateY(${drag.current.dy}px)`;
-    }
-  };
-  const onUp = () => {
-    const d = drag.current;
-    drag.current = null;
-    const el = sheetEl();
-    if (!el || !d) return;
-    el.style.transition = "transform 320ms var(--ease-out)";
-    if (d.dy > 110) {
-      el.style.transform = "translateY(100%)";
-      setTimeout(() => s.setPanel(null), 200);
-    } else el.style.transform = "";
-  };
-
   return (
     <Sheet open={open} onOpenChange={(o) => !o && s.setPanel(null)} title={t.ai.title} className="assistant-sheet sm:max-w-[420px]">
-      <div ref={wrap} className="flex h-full flex-col" data-assistant>
-        <div className="flex justify-center pt-2 sm:hidden" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ touchAction: "none" }} data-ai-handle>
-          <span className="h-1.5 w-10 rounded-full bg-line-strong" />
-        </div>
-        <div className="flex items-center gap-2 px-4 pb-2 pt-2 sm:pt-4" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+      <div className="flex h-full flex-col" data-assistant>
+        <div className="flex items-center gap-2 px-4 pb-2 pt-1 sm:pt-4" data-sheet-grip data-ai-header>
           <LogoMark className="size-7" />
           <span className="min-w-0">
             <span className="block text-[17px] font-extrabold leading-tight tracking-[-0.02em]">Nexus</span>

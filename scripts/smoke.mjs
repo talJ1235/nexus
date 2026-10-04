@@ -290,6 +290,99 @@ try {
         await page.waitForSelector("[data-plus-menu=closed]", { state: "attached", timeout: 3000 });
         ok(n === 4, "phone: dock + '+' menu opens four actions and closes on the scrim", `actions=${n}`);
       });
+
+      // Round 12 #1: every phone bottom sheet closes with a swipe down (handle/header or content at its top), springs
+      // back on a short drag, closes on a fling, on the scrim and on the back gesture; one shared implementation.
+      await step("phone sheets: drag down to close, spring back, fling, scrim, back gesture", async () => {
+        const r = {};
+        try {
+          const cdp = await ctx.newCDPSession(page);
+          const t = (type, x, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
+          const go = async (path = "/") => {
+            await page.goto(`${BASE}${path}`);
+            await page.waitForSelector(READY, { timeout: 15000 });
+          };
+          const dialogs = () => page.locator("[role=dialog]:visible").count();
+          // Drag the top sheet's handle down by `dy` in `steps` moves, `gap` ms apart; `hold` ms still before lifting.
+          const drag = async (dy, { steps = 10, gap = 16, hold = 0, from = "[data-sheet-handle]" } = {}) => {
+            const h = page.locator(`[role=dialog] ${from}`).last();
+            const b = await h.boundingBox();
+            const x = b.x + b.width / 2, y = b.y + b.height / 2;
+            await t("touchStart", x, y);
+            for (let k = 1; k <= steps; k++) {
+              await t("touchMove", x, y + (dy * k) / steps);
+              if (gap) await page.waitForTimeout(gap);
+            }
+            if (hold) await page.waitForTimeout(hold);
+            await t("touchEnd");
+            await page.waitForTimeout(600);
+          };
+          const sheetH = async () => (await page.locator("[role=dialog]").last().boundingBox()).height;
+          // Quick-action sheet (long-press a card): short slow drag springs back; 50 % closes; scrim tap closes.
+          await go();
+          const card = page.locator("main [data-item-card]").first();
+          const longPress = async () => {
+            const b = await card.boundingBox();
+            await t("touchStart", b.x + b.width / 2, b.y + b.height / 2);
+            await page.waitForTimeout(650);
+            await t("touchEnd");
+            await page.waitForTimeout(400);
+          };
+          await longPress();
+          await page.locator("[data-item-actions=menu]").waitFor({ timeout: 5000 });
+          await drag(40, { hold: 150 });
+          const top = await page.locator("[data-item-actions]").evaluate((e) => e.getBoundingClientRect().bottom);
+          r.actionsSpringBack = (await page.locator("[data-item-actions]").count()) === 1 && Math.abs(top - 844) < 3;
+          await drag((await sheetH()) * 0.5, { hold: 150 });
+          r.actionsDragClose = (await page.locator("[data-item-actions]").count()) === 0;
+          await longPress();
+          await page.mouse.click(195, 60);
+          await page.waitForTimeout(400);
+          r.actionsScrim = (await page.locator("[data-item-actions]").count()) === 0;
+          // Item sheet: drag from its header (not the handle) past 30 %.
+          const items = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
+          const it = items.find((i) => i.status === "to_buy") ?? items[0];
+          await go(`/?item=${it.id}`);
+          await page.locator("[data-change-picture]").waitFor({ timeout: 15000 });
+          await page.waitForTimeout(400);
+          // Picture picker (a Modal) on top: dragging it closes only the picker.
+          await page.locator("[data-change-picture]").click();
+          await page.locator("[data-picture-picker]").waitFor({ timeout: 8000 });
+          await page.waitForTimeout(400);
+          await drag((await sheetH()) * 0.45, { hold: 150 });
+          r.pickerDragClose = (await page.locator("[data-picture-picker]").count()) === 0 && (await dialogs()) === 1;
+          await drag(844 * 0.45, { hold: 150 });
+          r.itemDragClose = (await dialogs()) === 0;
+          // Me sheet: a quick fling (3 big moves, no pause) closes it even though it moved < 30 %.
+          await go();
+          await page.locator("[data-me-open]").click();
+          await page.locator("[data-me]").waitFor({ timeout: 5000 });
+          await page.waitForTimeout(450);
+          await drag(150, { steps: 3, gap: 0 });
+          r.meFling = (await page.locator("[data-me]").count()) === 0;
+          // Reports (from the Me sheet): the back gesture closes it, the page stays.
+          await page.locator("[data-me-open]").click();
+          await page.locator("[data-me-reports]").click();
+          await page.locator("[data-reports]").waitFor({ timeout: 8000 });
+          await page.waitForTimeout(450);
+          await page.goBack();
+          await page.waitForTimeout(500);
+          r.reportsBack = (await page.locator("[data-reports]").count()) === 0 && (await page.locator(READY).count()) === 1;
+          // Assistant: drag its handle down.
+          const ask = page.locator("[data-ask]").filter({ visible: true }).first();
+          if (await ask.count()) {
+            await ask.click();
+            await page.locator("[data-assistant]").waitFor({ timeout: 5000 });
+            await page.waitForTimeout(500);
+            await drag(844 * 0.4, { hold: 150 });
+            r.assistantDragClose = (await page.locator("[data-assistant]").count()) === 0;
+          }
+          await shot(page, "sheets-after");
+        } catch (e) {
+          r.error = String(e?.message || e).split(String.fromCharCode(10))[0].slice(0, 160);
+        }
+        ok(Object.values(r).every(Boolean) && !r.error, "phone sheets: drag down to close, spring back, fling, scrim, back gesture", JSON.stringify(r));
+      });
     }
 
     if (MOBILE) {

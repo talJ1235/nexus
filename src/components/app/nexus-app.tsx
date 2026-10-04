@@ -115,7 +115,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
         <aside className="sticky top-4 hidden h-[calc(100dvh-32px)] min-w-0 lg:mt-4 lg:block">
           {size !== "phone" && <Sidebar collapsed={collapsed} onToggle={() => s.setSidebarCollapsed(!collapsed)} />}
         </aside>
-        <Sheet open={s.navOpen} onOpenChange={s.setNavOpen} title={t.appName} side="start" className="max-w-[300px] bg-bg">
+        <Sheet open={s.navOpen} onOpenChange={s.setNavOpen} title={t.appName} side="start" phone="side" className="max-w-[300px] bg-bg">
           <Sidebar floating={false} />
         </Sheet>
 

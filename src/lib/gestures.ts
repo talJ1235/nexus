@@ -1,0 +1,56 @@
+/**
+ * Release decisions for the phone gestures (Round 12). Pure functions so they can be unit-tested
+ * (`npx tsx scripts/test-gestures.ts`); the components only feed them distances and velocities.
+ */
+
+/** A fling: release speed in px/ms (≈ 500 px/s). Below it only the distance decides. */
+export const FLING = 0.5;
+
+/**
+ * Bottom sheet released after a downward drag: close when dragged past 30 % of its height, or flung down
+ * (a short flick still counts once it moved a little); otherwise it springs back.
+ */
+export function sheetRelease(dy: number, height: number, vy: number): "close" | "stay" {
+  if (dy <= 0) return "stay";
+  if (dy >= height * 0.3) return "close";
+  return vy >= FLING && dy >= 16 ? "close" : "stay";
+}
+
+/** Share of an action group's width a row must be dragged to reveal it (both directions use the same rule). */
+export const REVEAL_SHARE = 0.4;
+/** Distance (px) at which a side's actions are revealed — the haptic tick fires here too. */
+export const revealAt = (actionsWidth: number) => actionsWidth * REVEAL_SHARE;
+
+export type SwipeResult = "closed" | "status" | "delete" | "remove";
+
+/**
+ * List row released after a horizontal drag. `dx`/`vx` are physical (px, px/ms; + = right), `dir` is 1 for LTR and
+ * −1 for RTL: status blocks sit toward the inline end, Delete toward the inline start. Distance decides — past
+ * `revealAt(width)` the side snaps open and stays, below it the row closes — and a fling decides when it is fast:
+ * toward the side that is showing opens it, back toward the middle closes. Past half the row's width = full delete.
+ */
+export function swipeRelease({ dx, vx, dir, statusW, deleteW, rowW }: { dx: number; vx: number; dir: 1 | -1; statusW: number; deleteW: number; rowW: number }): SwipeResult {
+  const x = dx * dir;
+  const v = vx * dir;
+  if (x <= -rowW * 0.5) return "remove";
+  if (Math.abs(v) >= FLING) {
+    if (v > 0) return x > 0 ? "status" : "closed";
+    return x < 0 ? "delete" : "closed";
+  }
+  if (x >= revealAt(statusW)) return "status";
+  if (x <= -revealAt(deleteW)) return "delete";
+  return "closed";
+}
+
+/** Velocity (px/ms) from recent samples, over the last ~100 ms of the gesture. */
+export function velocity(samples: { t: number; v: number }[]): number {
+  if (samples.length < 2) return 0;
+  const last = samples[samples.length - 1];
+  let first = samples[0];
+  for (const s of samples) if (last.t - s.t <= 100) {
+    first = s;
+    break;
+  }
+  const dt = last.t - first.t;
+  return dt > 0 ? (last.v - first.v) / dt : 0;
+}

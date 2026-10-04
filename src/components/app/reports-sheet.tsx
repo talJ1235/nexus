@@ -66,7 +66,7 @@ export function ReportsSheet() {
       }}
       title={t.report.reports}
     >
-      <div className="flex items-center gap-2 border-b border-line px-4 py-3 pt-[max(12px,env(safe-area-inset-top))]" data-reports>
+      <div className="flex items-center gap-2 border-b border-line px-4 py-3 max-sm:pt-1" data-sheet-grip data-reports>
         {current ? (
           <Button variant="ghost" size="icon-sm" onClick={() => setOpenId(null)} aria-label={t.report.back}>
             <ArrowLeft className="rtl:-scale-x-100" />
