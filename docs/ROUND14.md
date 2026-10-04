@@ -252,19 +252,61 @@ Tal wants Google Calendar to follow the app: new events appear, changed dates mo
 
 ## Open
 
-### Run notes (session 2026-10-04, stopped at the usage limit)
-- Done + committed: A1, A2, A3, B1, B2, B3, B5, B6, B4 (code). Not started: B parity PNGs (`docs/design/parity-r14/`),
-  C1 month view, C2 calendar feed, Part D. `main` NOT merged (not everything green).
-- B4 smoke: filters, counts, `?f=` and the old-link redirects pass on desktop + phone. The desktop write half (drag a
-  card onto "No project", Move to → Remove from project) moves the item, but the smoke can't find the toast's Undo
-  afterwards (toast gone before the DB check) — fix the step before trusting it. Each failed run leaves the newest
-  to-buy-with-project item out of its project in `local.db` (put it back by hand).
-- Boot-screen frame trace (≤ 2 dropped frames) is borderline on this PC: `main` also fails it 2/4 runs (3 dropped,
-  worst ~183 ms); round14 passes 3/4 (worst 167 ms). Not a regression.
-- Dark cards are `#161616`, not the mockup's `#141414`: `#141414` misses test:contrast's card-depth rule by 0.01.
-- Number guard (A2) is applied to AI suggestions too, not only insights.
-- Phone top bar follows the mockup (no bell): price alerts moved to a "Price alerts" row in Me; the avatar shows an
-  unread dot.
-- Project pages never had the summary card (they have their own header since R9); A3's smoke checks the project
-  header and a store page's summary instead.
-- Open report `r_rWtP3XmuRl` (price drop) was fixed in R13 (`ce81ec3`) but is still open in the app — close it there.
+### Results (2026-10-04, two sessions)
+- All items done: A1–A4, B1–B6, C1, C2, D. Every commit is `R14.<item>: …` on `round14`.
+- Green at the end: typecheck + lint + build; 20 unit-test scripts (new: `test:ics`; `test:home` covers the AI
+  validation, the number guard, the fallbacks and the month grid; `test:help` 79 SPEC features); `test:contrast` in all
+  4 themes; full smoke with `SMOKE_WRITE=1` on a `NEXUS_AI_MOCK=1` server plus a fresh (`:3101`) and a sparse (`:3102`,
+  `SEED_PROFILE=sparse`) account — desktop 70 / 70, phone 83 / 83 (final runs on `0ac05bf`).
+- Parity proof: `docs/design/parity-r14/` (11 PNGs, all ≤ 210 KB), made by `node scripts/parity.mjs` (reusable for later
+  rounds): desktop Home + collapsed sidebar, phone Home + Shopping, each light + dark, mockup left / app right; the logo
+  in its four places (sidebar, assistant header, phone top bar, opening), light + dark.
+- A4 before / after (390 px, cookie `nexus_layout=table`, History, grid tapped):
+  `docs/design/parity-r14/a4-phone-before.png` (the desktop table, checkbox against the picture, grid does nothing) →
+  `docs/design/parity-r14/a4-phone-after.png` (2-column grid).
+
+### Differences from the mockups kept on purpose
+- Active nav row: Tal's soft tint + 3 px accent bar instead of the mockup's outlined white row.
+- Desktop top bar keeps the wide R13 search field ("Search items, projects, settings…") instead of the mockup's page
+  title + 340 px field; the floating paste capsule is app-only.
+- Dark cards `#161616`, not `#141414`: the mockup value misses `test:contrast`'s card-depth rule by 0.01.
+- Phone top bar has no bell (as in the mockup): price alerts moved to Me → Price alerts, and the avatar shows an orange
+  dot when alerts are unread.
+- Phone Home has the Customize button next to the greeting (R13 feature, not in the mockup). Status tiles / stats
+  differ only where the data differs (e.g. no budget pace tile without a monthly cap).
+- The mockups render as plain HTML, so their `{{…}}` holes and both stats variants show; ignore those.
+
+### Decisions
+- A2: the number guard also applies to AI suggestions (title + why), not only insights. Diagnostics "N items" = what
+  Home shows (rules + AI + fallbacks, ≤ 4 + 3). The AI look runs from Home's first render once a day; with ≥ 2 rule
+  suggestions and ≥ 2 rule insights it doesn't call the AI at all.
+- A3: project pages never had the summary card (their own header since R9); the smoke checks that header and a store
+  page's summary.
+- A4: `layout` is ignored below 640 px but the cookie is never rewritten on a phone; the table additionally has
+  `max-sm:hidden` so a server render can't flash it on a phone.
+- B4: the selection bar's Move to now has Undo (it had none — the drag already did). Old saved assistant answers that
+  link `nexus:view/urgent|unsorted` still open the filtered To buy.
+- B6: Graphite only; the app icons and favicon are unchanged.
+- C1: the month view shows every event the This-week strip knows (arrivals anywhere in time now, not only this week).
+- C2: the feed's time zone is Asia/Jerusalem and its language the owner's saved one (no cookies on a feed request).
+  The rate limit (30 / 10 min per IP) is per server instance — enough against hammering, not a hard guarantee on
+  Vercel. A regenerated link also clears the "subscribed" mark, so the per-event buttons come back until the next
+  subscribe.
+- D: the sidebar drag keeps the R13 behaviour (the width follows the pointer), now 68–224 px.
+
+### Found and fixed along the way
+- Phone "Nexus noticed" dots: tapping dot 2 hit dot 3 (overlapping tap areas).
+- The first-paint card stagger gave every card a 10 px rise; off-screen cards (content-visibility) kept it parked and
+  popped when scrolled to or when a sheet opened. Now only the first 12 animate; the phone row size estimate is 64 px.
+- The table's row checkbox sat flush against the picture (now 12 px apart).
+
+### Still open
+- Two phone timing checks are borderline on this PC and pass or fail with the machine's load, on `main` as much as on
+  round14: the boot-screen frame trace (≤ 2 dropped frames; `main` failed it 2 of 4 runs, 3 dropped, worst ~183 ms) and
+  "camera opens fast" (first frame < 400 ms; run alone it takes 1.2–1.9 s on both `main` and round14, inside the full
+  run 279–540 ms). The final full phone run passed both. Worth a quieter machine or a looser budget next round; the
+  camera check's name still says 300 ms while it tests 400.
+- Report `r_rWtP3XmuRl` (price drop not recognised) was fixed in R13 (`ce81ec3`) but is still open in the app — close it
+  there (there is no CLI to close reports).
+- Calendar sync can't be tested end-to-end against Google from here (it needs a public URL): after the deploy,
+  subscribe once from Settings → Calendar on prod and check an arrival shows up within a day.
