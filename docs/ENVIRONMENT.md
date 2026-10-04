@@ -1,0 +1,60 @@
+# Environment & tooling — how Nexus is wired to Claude
+
+Read this when setting up a new Claude account, a new machine, or when a connection stops working.
+It is shared by both workspaces: the **planning chat** (claude.ai, playbook `docs/PLANNER.md`) and
+**Claude Code** (the builder, `CLAUDE.md`). The repo is the only shared memory between them — chat history
+and account settings are not, so anything needed to rebuild the setup is written here.
+
+**Rule for every session (chat or Claude Code):** if you change the setup, tooling, connectors, secrets
+layout or the workflow itself, update this file in the same session and add a line to the log at the end.
+Feature work is documented as before (round brief "## Open" + `SPEC.md`).
+
+## Two workspaces, one repo
+| | Planning chat (claude.ai) | Claude Code |
+|---|---|---|
+| Role | plan, research, design, deep checks, write `docs/ROUND<n>.md` | implement, test, merge, push |
+| Gets the code | `git clone` of the public repo in its sandbox + GitHub connector | local checkout, SessionStart hook pulls |
+| Writes to GitHub | GitHub connector (OAuth) — docs-only to `main`; anything else on a branch / PR | `git push` |
+| Secrets (`.env.local`) | none — can't reach prod DB, Gemini, Telegram | local `.env.local` |
+
+`main` auto-deploys to Vercel, so the chat never pushes code to `main` directly. Docs-only pushes don't deploy.
+
+## Planning chat setup (claude.ai) — do once per account
+1. **Network for code execution.** Settings → Capabilities → Code execution → network access: *All domains*
+   (or at least `github.com`, `codeload.github.com`, `objects.githubusercontent.com`, `registry.npmjs.org`).
+   Lets the chat `git clone`, `npm ci`, and run `npm run -s check`, `test:*`, smoke against a local server.
+   Verified 2026-10-04: clone + `npm ci` + typecheck + lint all ran in the chat sandbox.
+2. **GitHub OAuth App** (github.com → Settings → Developer settings → OAuth Apps → New OAuth App):
+   - Application name `Claude`, Homepage `https://claude.ai`
+   - Callback / Redirect URI `https://claude.ai/api/mcp/auth_callback`
+   - Wildcard matching off, Device Flow off, "Expire user access tokens" on
+   - Copy the **Client ID**; generate a **Client secret** (shown once — if lost, generate a new one).
+   The same OAuth App can be reused by another Claude account; never commit or paste the secret in chat.
+3. **GitHub connector in Claude.** Settings → Connectors → Add custom connector:
+   - Name `Github`, URL `https://api.githubcopilot.com/mcp/`
+   - Authentication: *Sign in now*; OAuth client: *Use your own OAuth client* → paste Client ID + secret
+   - Add → Connect → sign in as `talJ1235` → Authorize. Start a new chat so the tools load.
+   Verified 2026-10-04: listing commits of `talJ1235/nexus` works.
+4. Optional: put the chat in a Claude Project "Nexus" with the instruction "Read `docs/PLANNER.md` and
+   `docs/ENVIRONMENT.md` in talJ1235/nexus first".
+
+Don't use Claude in Chrome for repo work (slow, unreliable, expensive) — clone or connector instead.
+
+## Claude Code setup
+Standard: clone the repo, `npm install`, `cp .env.example .env.local` and fill values (from Vercel env /
+password manager, never from the repo). `.claude/settings.json` holds the SessionStart pull hook and allowed
+commands; per-machine extras (push/merge permissions for a round) go in `.claude/settings.local.json`.
+
+## Repo visibility & secrets
+- The repo is **public** for now; Tal plans to make it **private** at launch
+  (GitHub → repo Settings → General → Danger Zone → Change visibility).
+- After it goes private: Vercel and Claude Code keep working; the chat's anonymous `git clone` stops — use the
+  connector, or Tal uploads a zip for full test runs. GitHub Actions (smoke.yml) then uses the private-repo minutes quota.
+- Secrets live only in `.env.local` and Vercel env vars. `.env.example` has names only, no values.
+- **Secret audit 2026-10-04:** gitleaks 8.28.0 over all 150 commits → no leaks; manual pattern search for
+  Gemini / Telegram / Turso / Vercel Blob / GitHub tokens → none. Re-run before going private or launching:
+  `gitleaks git . --redact`.
+
+## Log
+- 2026-10-04 (chat): confirmed chat sandbox network works; created GitHub OAuth App + custom connector; secret audit clean;
+  wrote this file and linked it from `CLAUDE.md` and `docs/PLANNER.md`.

@@ -39,6 +39,8 @@
 - One feature/round per session. At the end, update SPEC.md ("shipped") so the next session starts from it.
 
 ## Session workflow (how Tal works)
+- Environment & tooling (connectors, chat sandbox, secrets layout, account setup): `docs/ENVIRONMENT.md`. Any change to
+  setup, tooling or workflow is recorded there in the same session (add a log line) — the next account/machine relies on it.
 - Planning happens in a separate chat (its playbook: `docs/PLANNER.md`); it writes the task as `docs/ROUND<n>.md` (the brief is the source of truth
   for the task — don't ask for chat history). A session prompt is usually just "Round N, session X".
 - Sync first: a SessionStart hook runs `git pull --rebase --autostash` (`.claude/settings.json`). If its output shows
