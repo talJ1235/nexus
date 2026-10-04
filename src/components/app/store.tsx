@@ -193,6 +193,8 @@ type Store = {
   /** Question handed from the command palette to the assistant. */
   askSeed: string | null;
   askAssistant: (q: string) => void;
+  /** Clear the seed once the chat has sent it (R14 A1: a new chat or a reopen must not resend it). */
+  consumeAskSeed: () => void;
   /** File handed to the receipt dialog (dropped on the app), or ready parts from the camera (E2); null = opened empty. */
   receiptSeed: { file?: File; parts?: Blob[]; at: number } | null;
   /** Read-only offline mode: when the shown data is from (null = online, editing allowed). */
@@ -380,9 +382,10 @@ export function StoreProvider({
   const [askSeed, setAskSeed] = useState<string | null>(null);
   const askAssistant = useCallback((q: string) => {
     // Suffix keeps repeated identical questions distinct.
-    setAskSeed(`${q}\u200b${Date.now() % 1000}`);
+    setAskSeed(`${q}\u200b${Date.now()}`);
     setPanel("assistant");
   }, []);
+  const consumeAskSeed = useCallback(() => setAskSeed(null), []);
   const [receiptSeed, setReceiptSeed] = useState<{ file?: File; parts?: Blob[]; at: number } | null>(null);
   const openReceipt = useCallback((file?: File | null, parts?: Blob[]) => {
     setReceiptSeed(file || parts?.length ? { file: file ?? undefined, parts, at: Date.now() } : null);
@@ -731,6 +734,7 @@ export function StoreProvider({
       setPanel,
       askSeed,
       askAssistant,
+      consumeAskSeed,
       receiptSeed,
       openReceipt,
       offlineAt,
@@ -745,7 +749,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, plusOpen, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, plusOpen, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

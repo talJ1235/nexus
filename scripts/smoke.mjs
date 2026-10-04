@@ -1983,6 +1983,47 @@ try {
           ok(reopened && rows === 1 && back && fresh, "assistant history: reopen continues, history search, delete + undo, new chat", JSON.stringify({ reopened, rows, back, fresh }));
           await page.keyboard.press("Escape");
         });
+        // Round 14 A1 (mock): a question seeded from search (phone) / the command menu (desktop) is sent exactly once —
+        // not again by New chat, a close + reopen, or a reload.
+        await step("ask seed: sent once — new chat empty, reopen shows it once, reload doesn't resend", async () => {
+          await page.goto(`${BASE}/?v=to_buy`);
+          await page.waitForSelector(READY);
+          const marker = `Seed${Date.now() % 100000}`;
+          const question = `How much is left to buy for ${marker}?`;
+          if (MOBILE) {
+            await page.locator("[data-phone-search]").click();
+            await page.locator("[data-phone-search-input]").fill(question);
+            await page.locator("[data-search-ask]").click();
+          } else {
+            await openPalette();
+            await page.getByRole("dialog").locator("input").first().fill(question);
+            await page.locator("[data-cmd-ask]").click();
+          }
+          const dlg = page.getByRole("dialog");
+          const asked = () => dlg.locator("[data-ai-user]").filter({ hasText: marker }).count();
+          await dlg.locator("[data-ai-user]").filter({ hasText: marker }).waitFor({ timeout: 8000 });
+          await dlg.locator("[data-ai-send=send]").waitFor({ timeout: 15000 });
+          const first = await asked();
+          await dlg.locator("[data-ai-new]").click();
+          await page.waitForTimeout(1500);
+          const newChat = (await dlg.locator("[data-ai-user]").count()) === 0;
+          await page.keyboard.press("Escape");
+          await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          await dlg.locator("[data-ai-user]").filter({ hasText: marker }).waitFor({ timeout: 8000 }).catch(() => {});
+          await page.waitForTimeout(1500);
+          const reopen = await asked();
+          await page.keyboard.press("Escape");
+          await page.reload();
+          await page.waitForSelector(READY);
+          await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          await dlg.locator("[data-ai-user]").first().waitFor({ timeout: 8000 }).catch(() => {});
+          await page.waitForTimeout(1500);
+          const reload = await asked();
+          const busy = await dlg.locator("[data-ai-send=stop]").count();
+          await shot(page, "ask-seed-once");
+          ok(first === 1 && newChat && reopen === 1 && reload <= 1 && busy === 0, "ask seed: sent once — new chat empty, reopen shows it once, reload doesn't resend", JSON.stringify({ via: MOBILE ? "phone search" : "command menu", first, newChat, reopen, reload, busy }));
+          await page.keyboard.press("Escape");
+        });
         // Round 9 C3 (mock): a stated preference → "Remember?" chip → saved → listed in Settings with the profile.
         await step("assistant memory: preference → remember chip → in Settings with the profile", async () => {
           await page.goto(`${BASE}/?v=to_buy`);

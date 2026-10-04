@@ -443,6 +443,8 @@ let currentConversation: string | null = null;
 let lastActive = 0;
 // Set by "New chat" (and opening another conversation): the next mount must not fall back to the latest one.
 let freshChat = false;
+// Seeds already sent on this page (R14 A1): outside the component so a remount (New chat, reopen) can't resend one.
+const sentSeeds = new Set<string>();
 const REOPEN_MS = 2 * 3600_000;
 const fromStored = (m: MessageView): Msg => ({
   role: m.role,
@@ -462,7 +464,6 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
-  const seeded = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
   const [recent, setRecent] = useState<string[]>(() => (typeof window === "undefined" ? [] : readRecent()));
   const [now] = useState(() => Date.now());
@@ -629,9 +630,12 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
   useEffect(() => () => abort.current?.abort(), []);
 
   useEffect(() => {
-    if (seed && seedKey && seeded.current !== seedKey) {
-      seeded.current = seedKey;
-      const timer = setTimeout(() => void send(seed), 0);
+    if (seed && seedKey && !sentSeeds.has(seedKey)) {
+      const timer = setTimeout(() => {
+        sentSeeds.add(seedKey);
+        s.consumeAskSeed();
+        void send(seed);
+      }, 0);
       return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

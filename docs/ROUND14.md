@@ -20,7 +20,7 @@ One **unattended** run, same rules as Rounds 7–13 "How to run":
 
 ## Part A — Bugs
 
-### A1. [ ] "Ask Nexus about …" sticks to every new chat
+### A1. [x] "Ask Nexus about …" sticks to every new chat
 Tal searched "dark" on the phone and tapped **Ask Nexus about "dark"**. After that, every **New chat**, and every
 reopening of the assistant, sent "dark" again.
 

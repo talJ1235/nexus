@@ -96,7 +96,7 @@ export function CommandPalette() {
 
               {s.aiEnabled && search.trim().length > 2 && (
                 <Command.Group heading={t.ai.title} className={groupCls} forceMount>
-                  <Command.Item value={`ask ${search}`} forceMount onSelect={() => run(() => s.askAssistant(search.trim()))} className={itemCls}>
+                  <Command.Item value={`ask ${search}`} forceMount onSelect={() => run(() => s.askAssistant(search.trim()))} className={itemCls} data-cmd-ask>
                     <Sparkles className="!text-accent-ink" />
                     <span className="min-w-0 truncate">
                       {t.ai.askPalette}: <span className="text-muted">“{search.trim()}”</span>
