@@ -479,6 +479,36 @@ try {
       ok(moved && opened, "month view: open, next month, a day with an arrival → its item", JSON.stringify({ first, moved, opened }));
     });
 
+    // Round 14 C2: Settings → Calendar shows the feed link; fetched without a session it's an iCalendar (200,
+    // text/calendar, the seeded arrival in it); a wrong token is a 404.
+    await step("calendar feed: link in Settings, 200 text/calendar with the token, 404 without", async () => {
+      await page.goto(`${BASE}/`);
+      await page.waitForSelector(READY, { timeout: 15000 });
+      await openSettings(page);
+      const input = page.locator("[data-cal-url]");
+      await input.scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => /\/api\/cal\/[\w-]+\.ics$/.test(document.querySelector("[data-cal-url]")?.value ?? ""), null, { timeout: 8000 });
+      const url = await input.inputValue();
+      const google = await page.locator("[data-cal-google]").getAttribute("href");
+      await shot(page, "settings-calendar");
+      for (let k = 0; k < 5 && (await page.locator("[role=dialog]:visible").count()); k++) await page.keyboard.press("Escape");
+      // The feed is fetched from this machine's server (the link carries the public origin in production).
+      const local = `${BASE}${new URL(url).pathname}`;
+      const res = await fetch(local);
+      const body = await res.text();
+      const bad = await fetch(local.replace(/\/[\w-]+\.ics$/, "/wrong-token-0000000000000000.ics"));
+      const r = {
+        status: res.status,
+        type: res.headers.get("content-type"),
+        vcal: body.startsWith("BEGIN:VCALENDAR"),
+        arrival: body.includes("UID:demo-o4-eta@nexus"),
+        noPrices: !/₪|\$\d|amazon/i.test(body),
+        bad: bad.status,
+        google: !!google && google.startsWith("https://calendar.google.com/calendar/r?cid=webcal%3A"),
+      };
+      ok(r.status === 200 && /^text\/calendar/.test(r.type ?? "") && r.vcal && r.arrival && r.noPrices && r.bad === 404 && r.google, "calendar feed: link in Settings, 200 text/calendar with the token, 404 without", JSON.stringify(r));
+    });
+
     // Round 14 A4: phones never show the desktop table, even with the `table` cookie; list ⇄ grid works; the layout
     // command flips the phone layout. Desktop: Cards ⇄ Table both ways on every product view, checkbox ≥ 8 px from the
     // picture (en + he).

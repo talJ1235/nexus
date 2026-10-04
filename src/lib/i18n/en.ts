@@ -1261,6 +1261,27 @@ export const en = {
     generic: "Something went wrong. Try again.",
     offline: "You're offline.",
   },
+  // Round 14 C2: the calendar feed + Settings → Calendar.
+  cal: {
+    name: "Nexus",
+    arrives: "📦 {item} arrives",
+    late: "📦 {item} arrives (late)",
+    reorder: "🔁 Reorder {item}",
+    open: "Open in Nexus",
+    section: "Calendar",
+    hint: "Subscribe once: arrivals and reorder dates show up in your calendar, moved dates move, and received or deleted items disappear.",
+    google: "Subscribe in Google Calendar",
+    apple: "Apple / Outlook",
+    copy: "Copy link",
+    copied: "Calendar link copied",
+    regenerate: "Regenerate link",
+    regenerateConfirm: "Make a new link? The old one stops working, so calendars subscribed to it stop updating.",
+    regenerated: "New calendar link — subscribe again with it",
+    note: "Google refreshes subscribed calendars every few hours, so changes can take up to a day to show.",
+    subscribed: "Subscribed",
+    addGoogle: "Add to Google Calendar",
+    addGoogleHint: "Adds a one-off copy: it won't move or disappear if this date changes. Subscribe in Settings → Calendar for that.",
+  },
 } as const;
 
 type Widen<T> = { [K in keyof T]: T[K] extends string ? string : Widen<T[K]> };

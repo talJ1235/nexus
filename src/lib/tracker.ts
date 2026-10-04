@@ -235,7 +235,7 @@ export async function rememberOwner(locale: string, currency: string) {
   const next = JSON.stringify({ locale, currency });
   if ((await kvGet(OWNER_KEY)) !== next) await kvSet(OWNER_KEY, next);
 }
-async function ownerPrefs() {
+export async function ownerPrefs() {
   try {
     const v = JSON.parse((await kvGet(OWNER_KEY)) ?? "{}") as { locale?: string; currency?: string };
     return { locale: isLocale(v.locale) ? v.locale : "en", currency: (CURRENCIES as readonly string[]).includes(v.currency ?? "") ? v.currency! : "ILS" };

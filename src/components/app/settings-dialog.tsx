@@ -15,6 +15,7 @@ import { BudgetEditor } from "./budget-card";
 import { saveImportLimit } from "@/app/money-actions";
 import { pictureSearchStatus } from "@/app/picture-actions";
 import { MemorySection } from "./memory-section";
+import { CalendarSection } from "./calendar-section";
 import { homeDiag, setAiSuggestions, type HomeDiag } from "@/app/home-actions";
 import { ReportsSubpage } from "./reports-sheet";
 import { useStore } from "./store";
@@ -244,6 +245,8 @@ export function SettingsDialog() {
           <DataSection />
 
           <AssistantSection />
+
+          <CalendarSection />
 
           <MemorySection />
 

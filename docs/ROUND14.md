@@ -210,7 +210,7 @@ and each event opens its item. Event types are the same as A2 of R13 (arrivals, 
 budget close). **Acceptance:** a smoke test opens it, moves to next month, taps a day with an arrival, and opens the
 item.
 
-### C2. [ ] Sync to the user's calendar — additions, changes **and deletions**
+### C2. [x] Sync to the user's calendar — additions, changes **and deletions**
 Tal wants Google Calendar to follow the app: new events appear, changed dates move, removed ones disappear.
 - **Feed:** `GET /api/cal/<token>.ics`, an iCalendar feed of the next 60 days + the past 14:
   - Arrivals: an all-day event "📦 <item> arrives", with a link back to the item in the description.

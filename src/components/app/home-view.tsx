@@ -1,10 +1,12 @@
 "use client";
 
 import { Fragment, startTransition, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Eye, EyeOff, GripVertical, LayoutGrid, Package, RefreshCw, Sparkles, Tag, TrendingDown, TrendingUp, Truck, X } from "lucide-react";
+import { AlertTriangle, CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Eye, EyeOff, GripVertical, LayoutGrid, Package, RefreshCw, Sparkles, Tag, TrendingDown, TrendingUp, Truck, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { toast } from "@/lib/toast";
 import { updateItem } from "@/app/actions";
+import { calendarSubscribed } from "@/app/cal-actions";
+import { googleTemplateUrl } from "@/lib/ics";
 import { buyAgain, dismissHome, homeLook, phraseSuggestions, undismissHome, type Phrased } from "@/app/home-actions";
 import type { HomeAi } from "@/lib/home-ai";
 import { useMedia } from "@/components/ui/use-media";
@@ -889,6 +891,23 @@ function MonthCalendar({ model, onEv }: { model: HomeModel; onEv: (e: WeekEvent)
     setSel(next === model.month ? model.today : `${next}-01`);
   };
   const evs = byDay.get(sel) ?? [];
+  // R14 C2: one-off "Add to Google Calendar" per event — only until the feed is subscribed (no duplicates).
+  const [subscribed, setSubscribed] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    calendarSubscribed()
+      .then((v) => alive && setSubscribed(v))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const gcal = (e: WeekEvent) => {
+    if (subscribed !== false || (e.kind !== "arrive" && e.kind !== "late" && e.kind !== "reorder")) return null;
+    const title = (e.kind === "reorder" ? t.cal.reorder : e.kind === "late" ? t.cal.late : t.cal.arrives).replace("{item}", e.item.title);
+    const day = e.kind === "late" && e.item.eta != null ? dayKeyIn(e.item.eta, model.ctx.tz) : e.day;
+    return googleTemplateUrl({ title, day, details: `${t.cal.open}: ${window.location.origin}/?item=${encodeURIComponent(e.item.id)}` });
+  };
   const nav = "grid size-9 place-items-center rounded-full border border-card-line bg-surface text-ink transition hover:bg-surface-2 active:scale-95";
   return (
     <div className="flex flex-col gap-3 px-3 pb-4 pt-3 lg:px-[18px]" data-month={month}>
@@ -939,6 +958,7 @@ function MonthCalendar({ model, onEv }: { model: HomeModel; onEv: (e: WeekEvent)
         {evs.length === 0 && <p className="py-2 text-[13px] text-muted">{t.dash.monthNone}</p>}
         {evs.map((e, k) => {
           const x = evText(e, t, fm, model.ctx.tz);
+          const add = gcal(e);
           return (
             <div key={k} className="flex min-h-[40px] items-center gap-2" data-month-row={e.kind}>
               <button type="button" onClick={() => onEv(e)} className="flex min-h-[40px] min-w-0 flex-1 items-center gap-2.5 text-start text-[13px]" data-month-ev={e.kind}>
@@ -947,6 +967,19 @@ function MonthCalendar({ model, onEv }: { model: HomeModel; onEv: (e: WeekEvent)
                   <b className="font-semibold">{x.title}</b> <span className="text-muted">{x.sub}</span>
                 </span>
               </button>
+              {add && (
+                <a
+                  href={add}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={t.cal.addGoogleHint}
+                  aria-label={`${t.cal.addGoogle} · ${t.cal.addGoogleHint}`}
+                  className="relative grid size-9 shrink-0 place-items-center rounded-full border border-card-line bg-surface text-muted transition hover:text-ink after:absolute after:-inset-0.5 after:content-['']"
+                  data-month-gcal
+                >
+                  <CalendarPlus className="size-4" />
+                </a>
+              )}
             </div>
           );
         })}

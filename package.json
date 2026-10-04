@@ -34,7 +34,8 @@
     "test:memory": "tsx --conditions=react-server scripts/test-memory.ts",
     "test:pictures": "tsx scripts/test-pictures.ts",
     "test:picture-style": "tsx scripts/test-picture-style.ts",
-    "bench:pictures": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/picture-bench.ts"
+    "bench:pictures": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/picture-bench.ts",
+    "test:ics": "tsx scripts/test-ics.ts"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
@@ -71,6 +72,7 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
+    "ical.js": "^2.2.1",
     "playwright": "^1.56.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",

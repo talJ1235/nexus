@@ -3,8 +3,9 @@ import { GUEST_COOKIE, verifyGuestValue } from "@/lib/guest-session";
 import { SESSION_COOKIE, verifySessionValue } from "@/lib/session";
 
 // Authenticated inside the route/page instead: /api/ext/* (extension token), /api/cron/* (CRON_SECRET), /api/telegram (webhook secret + linked chat),
-// /i/* + /api/invite/* (invite token), /s/* (public read-only share token), /api/reports/export (REPORTS_TOKEN).
-const PUBLIC_PREFIXES = ["/login", "/api/login", "/s/", "/i/", "/api/invite/", "/api/share/", "/api/ext/", "/api/cron/", "/api/telegram", "/api/reports/export", "/manifest.webmanifest", "/sw.js", "/nexus-extension.zip"];
+// /i/* + /api/invite/* (invite token), /s/* (public read-only share token), /api/reports/export (REPORTS_TOKEN),
+// /api/cal/<token>.ics (calendar feed token, R14 C2).
+const PUBLIC_PREFIXES = ["/login", "/api/login", "/s/", "/i/", "/api/invite/", "/api/share/", "/api/ext/", "/api/cron/", "/api/telegram", "/api/reports/export", "/api/cal/", "/manifest.webmanifest", "/sw.js", "/nexus-extension.zip"];
 
 const isGuestPath = (p: string) => p === "/g" || p.startsWith("/g/");
 
