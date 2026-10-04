@@ -93,6 +93,13 @@ to setup, tooling or workflow is recorded there in the same session.
   OWASP ASVS 5.0 L2 + L3 for auth/sessions/access control, defence in depth, guards in CI, red-team pass before invites.
   Sign-up works on phone and website (same flow; Android wrapper via Custom Tabs later). Hosting stays on Vercel for the
   closed circle. Auth/space screens get mockups **before** the R15 brief.
+- **Product focus (Tal 2026-10-04):** the main use is **household purchasing** — shared live lists, supermarket mode,
+  recurring buys, supermarket price comparison, household budget — next to products/projects/price tracking.
+  Pitch: "The smart way to run your household shopping — shared lists, supermarket mode, prices and budget, all in one place."
+- **Name (2026-10-04, not final):** Tal's candidates `Karto`, `Carty`, `Shopix`; planner recommends `Karto` (`Shopix` = an
+  Israeli shoppable-content startup; `Carty` = several Shopify cart apps; `Karto` = one small Shopify cart-recovery app).
+  No domain yet — R15 ships in closed-circle mode on `*.vercel.app` (Google sign-in only; passkeys + email recovery
+  switch on with the domain), brand name kept in one config.
 - Free-tier stack (Vercel Hobby, Turso, Gemini free + Groq/OpenRouter fallback). Tal declined paid usage credits.
 
 ## Product direction (discussed 2026-10-03, not started)
@@ -124,6 +131,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-04 · B · Naming session (many rounds; Tal wants global, person/robot-like, no known chain). Shortlist from Tal: Karto / Carty / Shopix → advised Karto. Household purchasing recorded as the main use. No domain for now → `MULTIUSER.md` §4.1 closed-circle mode.
 - 2026-10-04 · B · Tal: sign-up on phone + web, hosting alternatives, private-repo impact, top security. Wrote `docs/SECURITY.md` (threat model, findings: no SSRF guard in `extract.ts`, no CSP), extended `MULTIUSER.md` (§4.10 phone/web, QR number matching, checklist 1–11, mockups before R15), private-repo impact in `ENVIRONMENT.md`. Next: prep steps with Tal (name first), then auth/space mockups.
 - 2026-10-04 · B · Tal tested prod (R13) mid-R14: phone stuck on the desktop table (list/grid switch dead, checkbox against the picture). Reproduced in the sandbox — `layout=table` wins over `phoneLayout` in `Content()`; set from the phone search "Table view" command. Added A4 (do first) to `docs/ROUND14.md` on branch `round14`; builder must merge `origin/main` into `round14` before the final `--ff-only`.
 - 2026-10-04 · B · Multi-user planned in full with Tal (4 question batches): wrote `docs/MULTIUSER.md` (decisions, data model, scoping guards, migration, R15/R16 split, Tal's setup checklist); roadmap shifted (supermarket → R17, Android → R18). ROUND15 brief to be cut after R14's Open.
