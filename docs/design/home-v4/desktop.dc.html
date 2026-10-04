@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home v4 · desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.r{--bg:#f4f4f2;--s:#ffffff;--s2:#f1f1ee;--ink:#171717;--ink2:#3a3a3a;--muted:#686866;--line:#dcdcd7;--line-in:#e8e8e4;--brand:#171717;--on-brand:#fff;--spark:#f59e0b;--warn:#b45309;--warn-t:#fff3e0;--ok:#11805a;--ok-t:#e5f5ec;--info:#1f5fd1;--info-t:#e8effd;--ai:#7c4ddb;--ai-t:#f3edfd;--ai2:#e9a23b;--paper:#fff;--shadow:0 1px 2px rgba(0,0,0,.04);background:var(--bg);color:var(--ink);font-family:'Heebo',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+.r.soft{--line:#e7e7e4;--line-in:#efefec}
+.r.strong{--line:#cacac4;--line-in:#dcdcd7;--shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.05)}
+.r.dark{--bg:#0b0b0b;--s:#141414;--s2:#1d1d1d;--ink:#f2f2f0;--ink2:#d6d6d3;--muted:#a1a19e;--line:#313131;--line-in:#262626;--brand:#f2f2f0;--on-brand:#0b0b0b;--warn:#fbbf24;--warn-t:rgba(251,191,36,.13);--ok:#4ade9a;--ok-t:rgba(74,222,154,.12);--info:#7aa7ff;--info-t:rgba(122,167,255,.13);--ai:#b69cff;--ai-t:rgba(182,156,255,.13);--ai2:#f5b544;--paper:#ecebe8;--shadow:none;color-scheme:dark}
+.r.dark.soft{--line:#262626;--line-in:#1f1f1f}
+.r.dark.strong{--line:#3d3d3d;--line-in:#303030}
+.tab{font-variant-numeric:tabular-nums}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.thumb{background:var(--paper);border:1px solid var(--line-in);display:grid;place-items:center;color:#2b2b2b;flex-shrink:0;width:40px;height:40px;border-radius:8px}
+.thumb svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 13px;border-radius:999px;font:600 12.5px 'Heebo',sans-serif;border:1px solid var(--line);background:var(--s);color:var(--ink);white-space:nowrap;cursor:pointer}
+.btn:hover{border-color:var(--ink2)}
+.btn.pri{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes sheen{from{background-position:0% 0,0 0}to{background-position:300% 0,0 0}}
+@keyframes twinkle{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.12) rotate(12deg)}}
+@keyframes swap{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+@keyframes fill{from{width:0}}
+.rise{animation:rise .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s)}
+
+/* shell */
+.app{width:1280px;display:grid;grid-template-columns:224px minmax(0,1fr)}
+.side{padding:14px 10px;display:flex;flex-direction:column;gap:18px;min-height:100%}
+.brand{display:flex;align-items:center;gap:9px;padding:4px 8px;font-weight:800;font-size:17px}
+.brand svg{width:22px;height:22px}
+.nav{display:flex;flex-direction:column;gap:1px}
+.nl{font-size:11px;font-weight:600;color:var(--muted);padding:6px 10px 4px}
+.ni{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:7px;color:var(--ink2);font-size:13.5px;font-weight:500;text-decoration:none}
+.ni svg{color:var(--muted)}
+.ni .n{margin-left:auto;font-size:12px;color:var(--muted)}
+.ni.on{background:var(--s);color:var(--ink);font-weight:600;box-shadow:inset 0 0 0 1px var(--line)}
+.ni.on svg{color:var(--ink)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-top:1px solid var(--line)}
+.av{width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:12px;font-weight:700}
+.me b{font-size:13px;display:block}.me span{font-size:11.5px;color:var(--muted)}
+.main{min-width:0;display:flex;flex-direction:column;padding:10px 12px 24px 0;gap:14px}
+.top{height:52px;display:flex;align-items:center;gap:10px;padding:0 6px}
+.top h1{margin:0;font-size:15px;font-weight:600}
+.srch{margin-left:auto;width:340px;height:36px;border-radius:999px;background:var(--s);border:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 14px;color:var(--muted);font-size:13px}
+.srch kbd{margin-left:auto;font:600 11px 'Heebo',sans-serif;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.ask{display:flex;align-items:center;gap:8px;height:36px;padding:0 15px 0 12px;border-radius:999px;font:600 13px 'Heebo',sans-serif;color:var(--ink);background:linear-gradient(var(--s),var(--s)) padding-box,linear-gradient(100deg,var(--brand),var(--spark)) border-box;border:1.5px solid transparent}
+.ask svg{color:var(--spark)}
+.ibtn{width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:var(--s);color:var(--ink);display:grid;place-items:center;position:relative}
+.ibtn i{position:absolute;top:8px;right:9px;width:6px;height:6px;border-radius:50%;background:var(--spark)}
+
+/* cards */
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px;align-items:stretch}
+.card{background:var(--s);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);min-width:0;display:flex;flex-direction:column}
+.s12{grid-column:span 12}.s7{grid-column:span 7}.s5{grid-column:span 5}
+.ch{display:flex;align-items:center;gap:8px;padding:13px 18px;border-bottom:1px solid var(--line-in)}
+.ch h3{margin:0;font-size:13px;font-weight:700;letter-spacing:.02em}
+.ch .sub{font-size:12px;color:var(--muted)}
+.ch a{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:none;font-weight:500;display:flex;align-items:center;gap:4px}
+.cnt{font-size:11px;font-weight:700;color:#fff;background:var(--warn);border-radius:999px;padding:0 7px;line-height:18px}
+.r.dark .cnt{color:#111}
+.cb{padding:6px 18px 14px}
+
+/* header */
+.hd{padding:22px 24px 20px;display:flex;flex-direction:column;gap:16px}
+.hd .row1{display:flex;align-items:flex-end;gap:16px}
+.hd .d{font-size:12.5px;color:var(--muted);font-weight:500}
+.hd h2{margin:2px 0 0;font-size:30px;line-height:1.1;font-weight:800;letter-spacing:-.03em}
+.hd .row1 .btn{margin-left:auto}
+.status{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.st{display:flex;align-items:center;gap:12px;padding:12px 16px;text-decoration:none;color:var(--ink);border-left:1px solid var(--line-in);position:relative;transition:background .15s}
+.st:first-child{border-left:0}
+.st:hover{background:var(--s2)}
+.st .ic{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex-shrink:0}
+.st .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.st b{font-size:14.5px;font-weight:700}
+.st span{font-size:12px;color:var(--muted)}
+.st .go{color:var(--muted)}
+.st::before{content:"";position:absolute;left:0;top:0;bottom:0;width:0}
+.w{background:var(--warn-t);color:var(--warn)}.o{background:var(--ok-t);color:var(--ok)}.f{background:var(--info-t);color:var(--info)}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.k{padding:16px 20px 18px;border-left:1px solid var(--line-in);display:flex;flex-direction:column;gap:6px}
+.k:first-child{border-left:0}
+.k .l{font-size:12.5px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:7px}
+.k .v{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.k .v small{font-size:13px;font-weight:500;color:var(--muted);letter-spacing:0;margin-left:4px}
+.k .c{font-size:12px;color:var(--muted)}
+.k .c b{font-weight:700}
+.meter{height:6px;border-radius:3px;background:var(--s2);overflow:hidden;display:flex;gap:2px;margin-top:4px;position:relative}
+.meter i{display:block;height:100%;animation:fill 1.1s .3s cubic-bezier(.3,.7,.2,1) both}
+.meter em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);border-radius:1px}
+.legend{display:flex;gap:10px;font-size:11px;color:var(--muted);margin-top:2px}
+.legend span{display:flex;align-items:center;gap:5px}
+.pips{display:flex;gap:4px;margin-top:6px}
+.pips i{flex:1;height:6px;border-radius:3px}
+
+/* AI suggestion */
+.sug{position:relative;border-radius:14px;padding:1.5px;background:linear-gradient(100deg,var(--ai),var(--ai2),var(--ai),var(--ai2)) ;background-size:300% 100%;animation:sheen 10s linear infinite;box-shadow:0 6px 24px color-mix(in oklab,var(--ai) 18%,transparent)}
+.sug .in{border-radius:12.5px;background:linear-gradient(100deg,color-mix(in oklab,var(--ai) 9%,var(--s)),var(--s) 45%,color-mix(in oklab,var(--ai2) 8%,var(--s)));padding:16px 20px;display:flex;align-items:center;gap:18px}
+.orb{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--ai),var(--ai2));color:#fff;flex-shrink:0}
+.orb svg{width:22px;height:22px;animation:twinkle 3.2s ease-in-out infinite}
+.sug .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;animation:swap .35s cubic-bezier(.2,.8,.2,1) both}
+.sug .ey{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ai);display:flex;align-items:center;gap:8px}
+.sug .ey em{font-style:normal;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
+.sug .main-t{font-size:16px;font-weight:600;line-height:1.35}
+.sug .why{font-size:12.5px;color:var(--muted)}
+.sug .acts{display:flex;align-items:center;gap:8px}
+.pg{display:flex;align-items:center;gap:6px;margin-left:6px}
+.pg button{width:28px;height:28px;border-radius:999px;border:1px solid var(--line);background:var(--s);display:grid;place-items:center;color:var(--ink2);cursor:pointer}
+.pg .dots{display:flex;gap:4px}
+.pg .dots i{width:6px;height:6px;border-radius:999px;background:var(--line);transition:width .25s}
+.pg .dots i.on{width:16px;background:var(--ai)}
+
+/* week */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));position:relative;padding:14px 8px 16px}
+.week::before{content:"";position:absolute;left:18px;right:18px;top:66px;height:1px;background:var(--line)}
+.day{position:relative;padding:0 10px;display:flex;flex-direction:column;gap:5px;min-height:112px}
+.day .dn{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em}
+.day .dd{font-size:20px;font-weight:700;line-height:1}
+.day .nd{width:9px;height:9px;border-radius:50%;background:var(--s);border:2px solid var(--line);position:absolute;top:48px;left:10px}
+.day.today .nd{background:var(--ink);border-color:var(--ink);box-shadow:0 0 0 4px color-mix(in oklab,var(--ink) 12%,transparent)}
+.day.today .dd::after{content:"Today";font-size:10.5px;font-weight:700;color:var(--bg);background:var(--ink);border-radius:999px;padding:1px 7px;margin-left:7px;vertical-align:4px}
+.evs{margin-top:22px;display:flex;flex-direction:column;gap:7px}
+.ev{display:flex;gap:6px;font-size:12px;line-height:1.3;color:var(--muted)}
+.ev svg{width:14px;height:14px;margin-top:1px}
+.ev b{display:block;color:var(--ink);font-weight:600}
+
+/* rows */
+.rw{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line-in)}
+.rw:first-child{border-top:0}
+.rw .ic{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex-shrink:0}
+.rw .t{flex:1;min-width:0}
+.rw .t b{display:block;font-size:13.5px;font-weight:600}
+.rw .t span{font-size:12.5px;color:var(--muted)}
+.when{font-size:12.5px;font-weight:700;white-space:nowrap}
+.trk{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-top:8px}
+.trk i{height:4px;border-radius:2px;background:var(--s2)}
+.trk i.on{background:var(--info)}
+.trk i.lt{background:var(--warn)}
+.dl{padding:11px 0;border-top:1px solid var(--line-in)}
+.dl:first-child{border-top:0}
+.dl .rw{padding:0;border:0}
+
+/* pace + projects */
+.pace{display:flex;flex-direction:column;gap:8px}
+.pace .big{font-size:26px;font-weight:800;letter-spacing:-.03em}
+.pace .big small{font-size:13px;color:var(--muted);font-weight:500;margin-left:4px}
+.pace svg.ch2{width:100%;height:74px;display:block}
+.say{font-size:12.5px;color:var(--ink2)}.say b{color:var(--ok)}
+.pj{display:flex;flex-direction:column}
+.pjr{display:grid;grid-template-columns:120px minmax(0,1fr) 92px;align-items:center;gap:14px;padding:11px 0;border-top:1px solid var(--line-in)}
+.pjr:first-child{border-top:0}
+.pjr b{font-size:13.5px;display:flex;align-items:center;gap:8px}
+.pjr .bar{height:6px;border-radius:3px;background:var(--s2);overflow:hidden}
+.pjr .bar i{display:block;height:100%;border-radius:3px;animation:fill 1.1s .4s both}
+.pjr .nx{font-size:12px;color:var(--muted);grid-column:2;margin-top:-8px}
+.pjr .lf{font-size:12.5px;font-weight:600;text-align:right}
+
+/* noticed */
+.ntc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.nt{padding:14px 18px 16px;border-left:1px solid var(--line-in);display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.5;color:var(--ink2)}
+.nt:first-child{border-left:0}
+.nt .n{font-size:11.5px;font-weight:800;color:var(--ai)}
+.link{font:600 12.5px 'Heebo',sans-serif;color:var(--ink);text-decoration:underline;text-underline-offset:3px;background:none;border:0;padding:0;cursor:pointer;align-self:flex-start}
+.ail{color:var(--ai)}
+
+/* collapsible sidebar */
+.app{transition:grid-template-columns .4s cubic-bezier(.3,.8,.2,1)}
+.app.col{grid-template-columns:68px minmax(0,1fr)}
+.side{position:relative;overflow:hidden}
+.side .lbl{transition:opacity .2s;white-space:nowrap}
+.app.col .side .lbl,.app.col .ni .n,.app.col .nl,.app.col .me div{opacity:0;pointer-events:none}
+.brand{justify-content:space-between}
+.brand .bl{display:flex;align-items:center;gap:9px}
+.cbtn{width:28px;height:28px;border-radius:7px;border:1px solid transparent;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer;flex-shrink:0}
+.cbtn:hover{border-color:var(--line);background:var(--s);color:var(--ink)}
+.cbtn svg{transition:transform .4s}
+.app.col .cbtn svg{transform:rotate(180deg)}
+.app.col .brand{flex-direction:column;gap:10px;padding:4px 0;align-items:center}
+.app.col .ni{justify-content:center;padding:0}
+.app.col .ni .lbl{display:none}
+.app.col .ni .n{display:none}
+.grip{position:absolute;top:0;bottom:0;right:0;width:9px;cursor:col-resize;display:grid;place-items:center;z-index:2;background:none;border:0;padding:0}
+.grip::before{content:"";position:absolute;top:0;bottom:0;left:4px;width:1px;background:transparent;transition:background .2s}
+.grip:hover::before{background:var(--line)}
+.grip span{width:5px;height:38px;border-radius:999px;background:var(--line);opacity:.0;transition:opacity .2s}
+.grip:hover span{opacity:1}
+.side:hover .grip span{opacity:.8}
+.main{position:relative}
+</style>
+</helmet>
+<div class="r app {{cls}} {{colCls}}">
+<aside class="side">
+<div class="brand"><span class="bl"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="#fb7a3c"></path><path d="M10 20l22 12v24L10 44z" fill="var(--ink)"></path><path d="M54 20 32 32v24l22-12z" fill="#f59e0b"></path></svg><span class="lbl">Nexus</span></span><button class="cbtn" type="button" aria-label="Collapse sidebar" onClick="{{toggle}}"><svg class="i" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"></rect><path d="M9 4.5v15M15.5 10l-2 2 2 2"></path></svg></button></div>
+<nav class="nav">
+<a class="ni on" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"></path><path d="M10 20v-6h4v6"></path></svg><span class="lbl">Home</span></a>
+<a class="ni" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 4h2l2.4 11h10.2L20 8H7"></path><circle cx="9" cy="19" r="1.4"></circle><circle cx="17" cy="19" r="1.4"></circle></svg><span class="lbl">To buy</span><span class="n">7</span></a>
+<a class="ni" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"></path><circle cx="7" cy="18" r="1.6"></circle><circle cx="17" cy="18" r="1.6"></circle></svg><span class="lbl">On the way</span><span class="n">3</span></a>
+<a class="ni" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span class="lbl">Projects</span></a>
+<a class="ni" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M4 9l1.5-5h13L20 9M4 9h16v11H4zM9 20v-6h6v6"></path></svg><span class="lbl">Order by store</span></a>
+<a class="ni" href="#"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg><span class="lbl">History</span></a>
+<a class="ni" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6"></path></svg><span class="lbl">Spending</span></a>
+</nav>
+<nav class="nav"><span class="nl">Projects</span>
+<a class="ni" href="#"><span class="dot" style="background:#8a96b8"></span><span class="lbl">Railcam</span></a>
+<a class="ni" href="#"><span class="dot" style="background:#c9976a"></span><span class="lbl">Home</span></a>
+<a class="ni" href="#"><span class="dot" style="background:#7da592"></span><span class="lbl">Tools</span></a>
+</nav>
+<button class="grip" type="button" aria-label="Drag to collapse" onClick="{{toggle}}"><span></span></button>
+<div class="me"><span class="av">T</span><div><b>Tal</b><span>Extension connected</span></div></div>
+</aside>
+
+<main class="main">
+<div class="top"><h1>Home</h1>
+<label class="srch"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4-4"></path></svg><span>Search items, projects, settings…</span><kbd>Ctrl K</kbd></label>
+<button class="ask" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>Ask Nexus</button>
+<button class="ibtn" type="button" aria-label="Alerts"><svg class="i" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"></path></svg><i></i></button>
+</div>
+
+<div class="grid">
+<!-- header + status + stats: one card -->
+<section class="card s12 rise">
+<div class="hd">
+<div class="row1"><div><div class="d">Sunday, 4 October</div><h2>Good evening, Tal</h2></div>
+<button class="btn" type="button"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1"></rect><rect x="13" y="4" width="7" height="7" rx="1"></rect><rect x="4" y="13" width="7" height="7" rx="1"></rect><rect x="13" y="13" width="7" height="7" rx="1"></rect></svg>Customize</button></div>
+<div class="status">
+<a class="st" href="#needs"><span class="ic w"><svg class="i" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg></span><span class="tx"><b>3 things need you</b><span>A price drop, a late package, free shipping</span></span><svg class="i go" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg></a>
+<a class="st" href="#way"><span class="ic f"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"></path><circle cx="7" cy="18" r="1.6"></circle><circle cx="17" cy="18" r="1.6"></circle></svg></span><span class="tx"><b>2 packages this week</b><span>Next on Tue · NOCO is 1 day late</span></span><svg class="i go" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg></a>
+<a class="st" href="#pace"><span class="ic o"><svg class="i" viewBox="0 0 24 24"><path d="M4 16l5-5 4 4 7-7"></path><path d="M15 8h5v5"></path></svg></span><span class="tx"><b>₪220 under your pace</b><span>On track to finish October under budget</span></span><svg class="i go" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg></a>
+</div>
+</div>
+
+<sc-if value="{{setA}}" hint-placeholder-val="{{ true }}">
+<div class="stats" style="border-top:1px solid var(--line-in)">
+<div class="k"><span class="l">Left to buy</span><span class="v tab">₪832</span><span class="c"><b style="color:var(--warn)">7 items</b> · 2 urgent</span>
+<div class="meter"><i style="width:19%;background:#8a96b8"></i><i style="width:49%;background:#c9976a"></i><i style="width:32%;background:#7da592"></i></div>
+<div class="legend"><span><i class="dot" style="background:#8a96b8"></i>Railcam</span><span><i class="dot" style="background:#c9976a"></i>Home</span><span><i class="dot" style="background:#7da592"></i>Tools</span></div></div>
+<div class="k"><span class="l">October budget</span><span class="v tab">₪2,140<small>of ₪3,000</small></span><span class="c"><b style="color:var(--ok)">₪860 left</b> · 27 days to go</span>
+<div class="meter"><i style="width:71%;background:var(--ink)"></i><em style="left:13%"></em></div>
+<div class="legend"><span>Bar = spent · line = today</span></div></div>
+<div class="k"><span class="l">On the way</span><span class="v tab">3<small>packages</small></span><span class="c">Next <b style="color:var(--info)">Tue 6 Oct</b> · <b style="color:var(--warn)">1 late</b></span>
+<div class="pips"><i style="background:var(--warn)"></i><i style="background:var(--info)"></i><i style="background:color-mix(in oklab,var(--info) 40%,var(--s2))"></i></div>
+<div class="legend"><span>NOCO · NEMA 17 · ESP32</span></div></div>
+<div class="k"><span class="l">Saved this year</span><span class="v tab" style="color:var(--ok)">₪486</span><span class="c"><b style="color:var(--ok)">+₪41</b> this month</span>
+<div class="legend" style="margin-top:6px;flex-direction:column;gap:3px"><span>₪318 from price drops</span><span>₪168 from free shipping</span></div></div>
+</div>
+</sc-if>
+<sc-if value="{{setB}}" hint-placeholder-val="{{ false }}">
+<div class="stats" style="border-top:1px solid var(--line-in)">
+<div class="k"><span class="l">Budget left</span><span class="v tab">₪860</span><span class="c">27 days · about <b>₪32 a day</b></span><div class="meter"><i style="width:71%;background:var(--ink)"></i><em style="left:13%"></em></div></div>
+<div class="k"><span class="l">Ready to order</span><span class="v tab">₪250<small>AliExpress</small></span><span class="c">4 Railcam parts · <b style="color:var(--ok)">free shipping</b></span></div>
+<div class="k"><span class="l">Best deal on your list</span><span class="v tab" style="color:var(--ok)">−18%</span><span class="c">NEMA 17 ×2 · lowest in 60 days</span></div>
+<div class="k"><span class="l">Saved this year</span><span class="v tab">₪486</span><span class="c"><b style="color:var(--ok)">+₪41</b> this month</span></div>
+</div>
+</sc-if>
+</section>
+
+<!-- AI suggestion -->
+<section class="sug s12 rise" style="--d:.08s">
+<div class="in">
+<span class="orb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"></path></svg></span>
+<sc-for list="{{shown}}" as="s" hint-placeholder-count="1">
+<div class="tx">
+<span class="ey">Nexus suggests <em>{{s.n}} of 4</em></span>
+<span class="main-t">{{s.title}}</span>
+<span class="why">{{s.why}}</span>
+</div>
+</sc-for>
+<div class="acts">
+<sc-for list="{{shown}}" as="s" hint-placeholder-count="1"><button class="btn pri" type="button">{{s.cta}}</button></sc-for>
+<button class="btn ghost" type="button">Not now</button>
+<div class="pg"><button type="button" aria-label="Previous" onClick="{{prev}}"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M15 6l-6 6 6 6"></path></svg></button>
+<span class="dots"><sc-for list="{{dots}}" as="d" hint-placeholder-count="4"><i class="{{d.c}}"></i></sc-for></span>
+<button type="button" aria-label="Next" onClick="{{next}}"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M9 6l6 6-6 6"></path></svg></button></div>
+</div>
+</div>
+</section>
+
+<!-- this week -->
+<section class="card s12 rise" style="--d:.12s">
+<div class="ch"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg><h3>THIS WEEK</h3><span class="sub">· 6 things</span><a href="#">Calendar <svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M9 6l6 6-6 6"></path></svg></a></div>
+<div class="week">
+<div class="day today"><span class="dn">SUN</span><span class="dd">4</span><i class="nd"></i><div class="evs"><div class="ev" style="color:var(--warn)"><svg class="i" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"></path><path d="M12 10v4"></path></svg><span><b>NOCO is late</b>Due yesterday</span></div></div></div>
+<div class="day"><span class="dn">MON</span><span class="dd">5</span><i class="nd"></i></div>
+<div class="day"><span class="dn">TUE</span><span class="dd">6</span><i class="nd"></i><div class="evs"><div class="ev" style="color:var(--info)"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"></path></svg><span><b>NEMA 17 ×2</b>Arrives</span></div></div></div>
+<div class="day"><span class="dn">WED</span><span class="dd">7</span><i class="nd"></i><div class="evs"><div class="ev" style="color:var(--ai)"><svg class="i" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M20 4v5h-5M4 20v-5h5"></path></svg><span><b>Elegoo PLA</b>Time to reorder</span></div></div></div>
+<div class="day"><span class="dn">THU</span><span class="dd">8</span><i class="nd"></i><div class="evs"><div class="ev" style="color:var(--info)"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"></path></svg><span><b>Nano ESP32</b>Arrives</span></div></div></div>
+<div class="day"><span class="dn">FRI</span><span class="dd">9</span><i class="nd"></i><div class="evs"><div class="ev" style="color:var(--warn)"><svg class="i" viewBox="0 0 24 24"><path d="M20 12l-8 8-8-8V4h8z"></path><circle cx="8.5" cy="8.5" r="1.2"></circle></svg><span><b>Fan sale ends</b>Best day to buy</span></div></div></div>
+<div class="day"><span class="dn">SAT</span><span class="dd">10</span><i class="nd"></i><div class="evs"><div class="ev" style="color:var(--ok)"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4"></path><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"></path></svg><span><b>Week closes</b>₪860 left</span></div></div></div>
+</div>
+</section>
+
+<!-- needs you -->
+<section class="card s7 rise" style="--d:.16s" id="needs">
+<div class="ch"><h3>NEEDS YOU</h3><span class="cnt">3</span><a href="#">All</a></div>
+<div class="cb">
+<div class="rw"><span class="ic o"><svg class="i" viewBox="0 0 24 24"><path d="M20 12l-8 8-8-8V4h8z"></path><circle cx="8.5" cy="8.5" r="1.2"></circle></svg></span><div class="t"><b>Xiaomi fan dropped to ₪329</b><span>−₪20 since you added it · lowest in 90 days</span></div><button class="btn" type="button">Buy now</button></div>
+<div class="rw"><span class="ic w"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"></path></svg></span><div class="t"><b>Did the NOCO charger arrive?</b><span>Expected yesterday from Amazon</span></div><button class="btn" type="button">Mark received</button></div>
+<div class="rw"><span class="ic f"><svg class="i" viewBox="0 0 24 24"><path d="M4 9h16v11H4zM2 5h20v4H2zM12 5v15"></path></svg></span><div class="t"><b>₪9.60 to free shipping at AliExpress</b><span>Add the GT2 belt (₪22) — it’s already on your list</span></div><button class="btn" type="button">Add belt</button></div>
+</div>
+</section>
+
+<!-- on the way -->
+<section class="card s5 rise" style="--d:.2s" id="way">
+<div class="ch"><h3>ON THE WAY</h3><span class="sub">· 3</span><a href="#">Track all</a></div>
+<div class="cb">
+<div class="dl"><div class="rw"><span class="thumb"><svg viewBox="0 0 84 84"><rect x="18" y="26" width="48" height="40" rx="6"></rect><path d="M30 26v-6h24v6M44 36l-8 12h10l-4 10"></path></svg></span><div class="t"><b>NOCO GENIUS1EU</b><span>Amazon · ₪289</span></div><span class="when" style="color:var(--warn)">1 day late</span></div><div class="trk"><i class="lt"></i><i class="lt"></i><i class="lt"></i><i class="lt"></i></div></div>
+<div class="dl"><div class="rw"><span class="thumb"><svg viewBox="0 0 84 84"><rect x="20" y="24" width="40" height="40" rx="4"></rect><circle cx="40" cy="44" r="10"></circle><path d="M60 44h14"></path></svg></span><div class="t"><b>NEMA 17 ×2</b><span>AliExpress · in Israel</span></div><span class="when" style="color:var(--info)">Tue 6 Oct</span></div><div class="trk"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div></div>
+<div class="dl"><div class="rw"><span class="thumb"><svg viewBox="0 0 84 84"><rect x="16" y="26" width="52" height="32" rx="3"></rect><rect x="34" y="34" width="16" height="16" rx="1"></rect><path d="M22 58v6M38 58v6M54 58v6M22 26v-6M62 26v-6"></path></svg></span><div class="t"><b>Arduino Nano ESP32</b><span>Bug · shipped today</span></div><span class="when" style="color:var(--info)">Thu 8 Oct</span></div><div class="trk"><i class="on"></i><i></i><i></i><i></i></div></div>
+</div>
+</section>
+
+<!-- pace -->
+<section class="card s5 rise" style="--d:.24s" id="pace">
+<div class="ch"><h3>OCTOBER PACE</h3><a href="#">Budget</a></div>
+<div class="cb pace" style="padding-top:12px">
+<span class="big tab">₪2,140<small>of ₪3,000</small></span>
+<svg class="ch2" viewBox="0 0 300 74" preserveAspectRatio="none"><line x1="0" y1="8" x2="300" y2="8" stroke="var(--warn)" stroke-opacity=".5" stroke-width="1.5"></line><polyline points="0,70 40,64 80,58 120,48 160,40 200,30 240,22 300,12" fill="none" stroke="var(--muted)" stroke-dasharray="4 5" stroke-width="1.5"></polyline><polyline points="0,70 30,66 60,62 90,55 120,52 150,46 170,42" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"></polyline><circle cx="170" cy="42" r="4" fill="var(--ink)"></circle></svg>
+<span class="say">Spending a little slower than usual — at this pace you finish <b>₪220 under budget</b>.</span>
+</div>
+</section>
+
+<!-- projects -->
+<section class="card s7 rise" style="--d:.28s">
+<div class="ch"><h3>PROJECTS</h3><a href="#">All projects</a></div>
+<div class="cb pj">
+<div class="pjr"><b><i class="dot" style="background:#8a96b8"></i>Railcam</b><div class="bar"><i style="width:42%;background:#8a96b8"></i></div><span class="lf tab">₪499 left</span><span class="nx">Next: NEMA 17 motors · 42% bought</span></div>
+<div class="pjr"><b><i class="dot" style="background:#c9976a"></i>Home</b><div class="bar"><i style="width:20%;background:#c9976a"></i></div><span class="lf tab">₪638 left</span><span class="nx">Next: NOCO charger · 20% bought</span></div>
+<div class="pjr"><b><i class="dot" style="background:#7da592"></i>Tools</b><div class="bar"><i style="width:75%;background:#7da592"></i></div><span class="lf tab">₪165 left</span><span class="nx">Next: Wera set · 75% bought</span></div>
+</div>
+</section>
+
+<!-- noticed -->
+<section class="card s12 rise" style="--d:.32s">
+<div class="ch ail"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg><h3>NEXUS NOTICED</h3></div>
+<div class="ntc">
+<div class="nt"><span class="n">01</span><span>Ordering Railcam parts in one AliExpress batch saved ₪41 on shipping this month.</span><button class="link" type="button">See orders</button></div>
+<div class="nt"><span class="n">02</span><span>Electronics you track are about 9% cheaper on Tuesdays and Wednesdays.</span><button class="link" type="button">Remind me</button></div>
+<div class="nt"><span class="n">03</span><span>Home has no budget yet — similar projects cost you ₪600–900.</span><button class="link" type="button">Set budget</button></div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"Look"},"borders":{"editor":"enum","options":["soft","medium","strong"],"default":"medium","section":"Look"},"stats":{"editor":"enum","options":["A · overview","B · act now"],"default":"A · overview","section":"Content"},"$preview":{"width":1280,"height":1540}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const SUGS = [
+      { title: 'NEMA 17 ×2 is 18% below its usual price — order it with the GT2 belt and shipping is free.', why: 'Lowest price in 60 days · same AliExpress order as 3 other Railcam parts', cta: 'Order both' },
+      { title: 'Reorder Elegoo PLA this week — you usually run out about now.', why: 'You buy it every ~6 weeks · last order 5 weeks ago', cta: 'Add to list' },
+      { title: 'Wait for Friday to buy the Xiaomi fan — KSP sales usually drop it another ₪25.', why: 'Seen in 3 of the last 4 KSP weekend sales', cta: 'Remind me Fri' },
+      { title: 'Set a ₪700 budget for Home — similar projects cost you ₪600–900.', why: 'Based on your last 2 home projects', cta: 'Set budget' }
+    ];
+    const i = (this.state && this.state.i) || 0;
+    const dark = p.dark ?? false;
+    const b = p.borders ?? 'medium';
+    const st = p.stats ?? 'A · overview';
+    return {
+      cls: (dark ? 'dark ' : '') + (b === 'medium' ? '' : b),
+      colCls: (this.state && this.state.col) ? 'col' : '',
+      toggle: () => this.setState({ col: !(this.state && this.state.col) }),
+      setA: st.indexOf('A') === 0,
+      setB: st.indexOf('B') === 0,
+      shown: [Object.assign({ n: i + 1 }, SUGS[i])],
+      dots: SUGS.map((s, k) => ({ c: k === i ? 'on' : '' })),
+      next: () => this.setState({ i: (i + 1) % SUGS.length }),
+      prev: () => this.setState({ i: (i + SUGS.length - 1) % SUGS.length })
+    };
+  }
+}
+</script>
+</body>
+</html>
