@@ -48,9 +48,11 @@ writes the round briefs. Everything durable lives in this repo, not in chat hist
 
 ## Decisions that stand (don't re-open without Tal)
 - Design: UI v2 = design **U**; palettes **Graphite & Amber** (default) and **Plum**, light + dark; one brand colour +
-  neutrals, "spark" colour only for the AI; Ask button = **Hairline**; logo = **Box**; font Heebo. Details:
+  neutrals, "spark" colour only for the AI; Ask button = **Hairline, always a fully rounded pill** (Tal, 2026-10-04:
+  the 8 px square-ish Ask button in the Round 12 "Q" mockups is rejected); logo = **Box**; font Heebo. Details:
   `docs/UI-V2.md`, `docs/ROUND7.md` Part A, mockups `docs/design/*.html`.
-- Phone dock: **To buy · On the way · + · Projects · Stats**, physically left→right in every language.
+- Phone dock: **To buy · On the way · + · Projects · Insights** (Spending · History), physically left→right in every
+  language. Proposal Home · To buy · + · Projects · Insights still awaits Tal.
 - No workarounds that impersonate other clients / third-party fetchers for blocked stores (decided 2026-09-30).
 - Pictures: Google Images via **Serper** (`SERPER_API_KEY`), Open Food Facts, own items, icons; extension optional.
 - Not wanted: SolidWorks BOM import, item file attachments, event wishlists. Later: parts inventory, monthly "Wrapped".
@@ -86,6 +88,7 @@ writes the round briefs. Everything durable lives in this repo, not in chat hist
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-04 · A · Round 12 brief = small fixes (sheet swipe-down, slow-swipe lock, assistant header + suggestion rows, Ask pill). Dashboard redesign moved to Round 13: research done (Oura, Linear, Monzo, Ramp, Brex, Stripe, Shopify, Mercury) → new mockups, then brief.
 - 2026-10-03 · A · Round 12 mockups on the canvas (page "Round 12 — mature look + dashboard"): Q quiet-pro vs E editorial; dashboard, customize mode + presets, grouped To buy, history table, phone. Proposed phone dock: Home · To buy · + · Projects · Insights (On the way moves into To buy) — awaiting Tal.
 - 2026-10-03 · A · Round 11 brief (intro on open only + bigger intro, nested overlays, phone History, swipe/long-press/hover quick actions, uniform pictures, solid tags). Round 12 planned: visual maturity (fewer rounded boxes, flat sidebar, order history), customizable dashboard, decluttered products page with AI groupings — mockups first.
 - 2026-10-03 · A · Product direction discussed (multi-user, Capacitor first, supermarket); PLANNER.md created.
