@@ -2,7 +2,7 @@ import "server-only";
 import { CATEGORIES, CATEGORY_HINT, generateJson, generateText } from "./ai";
 import { normalizeCategory } from "./categories";
 import { ACTION_FENCE, MAX_ACTION_ITEMS } from "./assistant-actions";
-import { budgetStats, lineTotal, unitPrice } from "./calc";
+import { activeSource, budgetStats, lineTotal, unitPrice } from "./calc";
 import { convert, formatMoney, type Rates } from "./money";
 import type { AskRoute } from "./help/route";
 import { REPORT_FENCE } from "./reports";
@@ -119,6 +119,23 @@ ${input.habits}`
 
 // ---------- Ask Nexus ----------
 
+/**
+ * Price history in one field, only when the active link's price actually moved: the first recorded unit price and the
+ * lowest one (with the link's shipping, like `unit`). Without it the assistant can't answer "what dropped in price?"
+ * (in-app report r_rWtP3XmuRl, 2026-10-03).
+ */
+function priceMoves(i: AppData["items"][number], rates: Rates, currency: string) {
+  if (i.status !== "to_buy") return "";
+  const src = activeSource(i, rates);
+  if (!src) return "";
+  const pts = i.points.filter((p) => p.sourceId === src.id).sort((a, b) => a.recordedAt - b.recordedAt);
+  if (pts.length < 2 || new Set(pts.map((p) => p.price)).size < 2) return "";
+  const v = (p: (typeof pts)[number]) => Math.round(convert(p.price + (src.shipping ?? 0), p.currency, currency, rates) * 100) / 100;
+  const first = pts[0];
+  const low = pts.reduce((a, b) => (v(b) < v(a) ? b : a));
+  return `price_first=${v(first)}@${new Date(first.recordedAt).toISOString().slice(0, 10)} price_low=${v(low)}@${new Date(low.recordedAt).toISOString().slice(0, 10)}`;
+}
+
 /** Compact snapshot of the user's data for the model. Items are referenced as [[id]]. */
 function snapshot(data: AppData, currency: string, rates: Rates) {
   const cName = new Map(data.collections.map((c) => [c.id, c.name]));
@@ -139,6 +156,7 @@ function snapshot(data: AppData, currency: string, rates: Rates) {
       i.purchasedAt ? `bought=${new Date(i.purchasedAt).toISOString().slice(0, 10)}` : "",
       i.orderedAt && i.status === "ordered" ? `ordered=${new Date(i.orderedAt).toISOString().slice(0, 10)}` : "",
       i.targetPrice != null ? `target=${Math.round(convert(i.targetPrice, i.targetCurrency ?? currency, currency, rates))}` : "",
+      priceMoves(i, rates, currency),
     ].filter(Boolean);
     return parts.join(" | ");
   });
@@ -292,7 +310,7 @@ ${input.memory}
 PROJECTS & LISTS ([id] kind "name")
 ${projects.join("\n") || "(none)"}
 
-ITEMS (status: to_buy / ordered / purchased)
+ITEMS (status: to_buy / ordered / purchased; price_first / price_low = first recorded and lowest unit price of its store link, only when the price moved — a drop means unit < price_first)
 ${lines.join("\n") || "(none)"}
 ${pastBlock(input.past)}${
     input.route === "unsure" && input.help
