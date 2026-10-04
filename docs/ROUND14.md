@@ -88,6 +88,35 @@ on project (`collection`) and store pages (Tal: they hold that page's own budget
 
 **Acceptance:** a smoke test asserts no `HomeSummary` on `?v=to_buy` and that it is present on a project page.
 
+### A4. [ ] Phones stuck on the table: the list ⇄ grid switch does nothing, checkboxes squeezed against the pictures
+Added by the planner 2026-10-04 after Tal tested prod (R13). Do this item **first**.
+Tal: on every product screen the phone shows a list with a checkbox at the edge that sits almost inside the product
+picture; tapping grid (or list) changes nothing.
+
+**Cause (reproduced in the planner's sandbox, 390 px, cookie `nexus_layout=table`):** there are two prefs —
+`layout` (desktop cards/table) and `phoneLayout` (phone rows/cards). `Content()` in `nexus-app.tsx` checks
+`s.layout === "table"` **before** anything phone-specific, so once `layout` is `table` the phone renders the desktop
+`ItemTable` (checkbox column + 44 px picture, min-width 760) on To buy, On the way, History, projects, lists, stores.
+The phone switch only changes `phoneLayout`, which that path ignores, and the desktop switch is `max-sm:hidden`, so
+there is no way back. How a phone gets `layout=table`: the "Table view" command in the shared commands (`use-commands.tsx`
+`id: "layout"`, shown in the R13 phone search), the Order-by-store toolbar (its desktop switch is visible on phones),
+an old `nexus.layout` in localStorage, or a desktop window narrower than 640 px.
+
+**Fix:**
+- Below 640 px `layout` is ignored everywhere: `Content()`, `OrdersView`, `ContentSkeleton` choose by `phoneLayout`
+  only (rows / cards). `ItemTable` never renders on a phone.
+- The `layout` command: on phones it toggles `phoneLayout` (label List / Grid); on desktop it stays Cards / Table.
+- The Order-by-store toolbar on phones shows the phone switch, not the desktop one.
+- Don't rewrite the stored `layout` cookie on phones (the same browser can be a desktop window later).
+- Desktop: re-check that Cards ⇄ Table works both ways on every product view (To buy + its filters, On the way,
+  History, Order by store, project, list, store page) and that the table's checkbox has clear space from the picture
+  (≥ 8 px) in English and Hebrew.
+
+**Acceptance:** smoke at 390 px with cookie `nexus_layout=table`: To buy, History and a project page show
+`[data-item-card]` and no `[data-item-row]`; tapping grid gives 2-column cards, tapping list gives rows; running the
+layout command from phone search flips `phoneLayout` and never shows the table. Desktop 1366: the switch toggles
+both ways on each view above. Screenshots of phone before/after go in "## Open".
+
 ---
 
 ## Part B — Match the approved design (desktop sidebar, phone shell, dark mode)
