@@ -110,6 +110,12 @@ const HOME_ORDER = ["suggest", "week", "needs", "ontheway", "pace", "projects", 
 /** Visible Home sections in page order (the phone's merged "pace projects" card counts as both). */
 const homeSections = (page) =>
   page.$$eval("[data-home-section]", (els) => els.filter((e) => e.offsetParent !== null).flatMap((e) => e.getAttribute("data-home-section").split(" ")));
+async function openSettings(page) {
+  const btn = page.locator('[data-carry="settings"]:visible').first();
+  if (await btn.count()) await btn.click();
+  else await page.locator("[data-me-open]").click();
+  await page.waitForSelector("[data-ai-suggestions-switch]", { timeout: 5000 }).catch(() => {});
+}
 async function homeChecks(page) {
   await step("home is the default screen", async () => {
     const url = new URL(page.url());
@@ -160,6 +166,63 @@ async function homeChecks(page) {
     await page.evaluate(() => window.scrollTo(0, 0));
     ok(tiles.length >= 2 && !bad.length, "home status tiles scroll to their sections", `${tiles.length} tiles; ${bad.join(" ")}`);
   });
+  // A3: "Nexus suggests" — pager by keyboard, the border sheen without layout work, AI text vs templates.
+  await step("suggest: keyboard pager", async () => {
+    const card = page.locator('[data-home-section="suggest"]');
+    if (!(await card.count())) return ok(true, "suggest: keyboard pager (no suggestions in this data)");
+    const dots = await card.locator("[data-sug-pager] span button").first().locator("xpath=..").locator("button").count().catch(() => 0);
+    const before = await card.getAttribute("data-sug-index");
+    await card.focus();
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(200);
+    const after = await card.getAttribute("data-sug-index");
+    await page.keyboard.press("ArrowLeft");
+    await page.waitForTimeout(200);
+    const back = await card.getAttribute("data-sug-index");
+    ok(dots < 2 || (after !== before && back === before), "suggest: keyboard pager", `${before} → ${after} → ${back} (${dots} dots)`);
+  });
+  await step("suggest: border sheen runs without layout", async () => {
+    if (!(await page.locator('[data-home-section="suggest"]').count())) return ok(true, "suggest: border sheen runs without layout (no card)");
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(1500);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Performance.enable");
+    const m = async () => Object.fromEntries((await cdp.send("Performance.getMetrics")).metrics.map((x) => [x.name, x.value]));
+    const a = await m();
+    await page.waitForTimeout(2000);
+    const b = await m();
+    await cdp.detach();
+    const layouts = b.LayoutCount - a.LayoutCount;
+    ok(layouts <= 2, "suggest: border sheen runs without layout", `${layouts} layouts, ${b.RecalcStyleCount - a.RecalcStyleCount} style recalcs in 2 s`);
+  });
+  if (WRITE)
+    await step("suggest: AI text when on, template when off", async () => {
+      const card = page.locator('[data-home-section="suggest"]');
+      if (!(await card.count())) return ok(true, "suggest: AI text when on, template when off (no suggestions)");
+      // AI phrasing arrives after render (server: mock or real chain, cached per day); never blocks the card.
+      const ai = await page.waitForSelector('[data-sug-source="ai"]', { timeout: 15000 }).then(() => true, () => false);
+      const setAi = async (on) => {
+        await page.evaluate(() => window.scrollTo(0, 0));
+        if (MOBILE) {
+          await page.locator("[data-me-open]").click();
+          await page.locator("[data-me-settings], [data-settings-open]").first().click().catch(() => {});
+        }
+        if (!(await page.locator("[data-ai-suggestions-switch]").count())) await openSettings(page);
+        const sw = page.locator("[data-ai-suggestions-switch]");
+        await sw.scrollIntoViewIfNeeded();
+        if ((await sw.getAttribute("aria-checked")) !== String(on)) await sw.click();
+        await page.waitForTimeout(400);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300);
+        if (await page.getByRole("dialog").count()) await page.keyboard.press("Escape");
+        await page.waitForTimeout(400);
+      };
+      await setAi(false);
+      const src = await card.locator("[data-sug-source]").getAttribute("data-sug-source");
+      await setAi(true);
+      const back = await page.waitForSelector('[data-sug-source="ai"]', { timeout: 15000 }).then(() => true, () => false);
+      ok(ai && src === "template" && back, "suggest: AI text when on, template when off", `ai first ${ai}, off → ${src}, on again ${back}`);
+    });
   // The logo returns to Home from every view.
   await step("logo returns to Home from every view", async () => {
     const bad = [];

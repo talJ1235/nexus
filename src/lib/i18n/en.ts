@@ -154,6 +154,11 @@ export const en = {
     emptyTitle: "Start by adding something",
     emptyHint: "Paste a link, scan a barcode or a receipt, or let Nexus plan a project with you.",
     goTo: "Go to {name}",
+    assistant: "Assistant",
+    aiSetting: "AI-written suggestions",
+    aiSettingHint: "Once a day, Nexus sends only the facts behind Home’s suggestions to the AI to word them. Off = plain templates (no AI calls).",
+    aiOn: "AI-written suggestions on",
+    aiOff: "AI-written suggestions off",
   },
   memory: {
     title: "What Nexus knows about you",

@@ -15,6 +15,7 @@ import { BudgetEditor } from "./budget-card";
 import { saveImportLimit } from "@/app/money-actions";
 import { pictureSearchStatus } from "@/app/picture-actions";
 import { MemorySection } from "./memory-section";
+import { setAiSuggestions } from "@/app/home-actions";
 import { ReportsSubpage } from "./reports-sheet";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
@@ -241,6 +242,8 @@ export function SettingsDialog() {
 
           <DataSection />
 
+          <AssistantSection />
+
           <MemorySection />
 
           <section className="space-y-4 border-t border-line pt-5">
@@ -278,6 +281,46 @@ export function SettingsDialog() {
       </Modal>
       <BookmarkletDialog open={s.extOpen} onOpenChange={s.setExtOpen} />
     </>
+  );
+}
+
+/** Settings → Assistant (Round 13 A3): AI phrasing of Home's suggestions — the switch for AI cost in the multi-user version. */
+function AssistantSection() {
+  const { t } = useI18n();
+  return (
+    <section className="space-y-4 border-t border-line pt-5" data-settings-assistant>
+      <h3 className="text-xs font-medium text-faint">{t.dash.assistant}</h3>
+      <Row title={t.dash.aiSetting} hint={t.dash.aiSettingHint}>
+        <AiSuggestionsSwitch />
+      </Row>
+    </section>
+  );
+}
+
+export function AiSuggestionsSwitch({ className }: { className?: string }) {
+  const s = useStore();
+  const { t } = useI18n();
+  const on = s.homePrefs.aiSuggestions;
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={t.dash.aiSetting}
+      disabled={s.offlineAt != null}
+      onClick={() => {
+        const before = s.homePrefs;
+        s.setHomePrefs({ ...before, aiSuggestions: !on });
+        setAiSuggestions(!on).catch(() => {
+          s.setHomePrefs(before);
+          toast.error(t.errors.generic);
+        });
+      }}
+      className={cn("relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-50", on ? "bg-brand" : "bg-line-strong", className)}
+      data-ai-suggestions-switch
+    >
+      <span className={cn("absolute top-0.5 size-6 rounded-full bg-surface shadow transition-[inset-inline-start]", on ? "start-[22px]" : "start-0.5")} />
+    </button>
   );
 }
 

@@ -101,7 +101,7 @@ It must not call the network and must run in `scripts/test-home.ts` (`npm run te
 - **Acceptance:** `npm run test:home` covers every definition above, including the empty account, no budget, no
   eta, the cadence edge cases and RTL-independent output. The status count equals the queue length in every test.
 
-### A3. [ ] "Nexus suggests" — stands out, rules find, AI phrases
+### A3. [x] "Nexus suggests" — stands out, rules find, AI phrases
 Tal wants it to "jump out a little" so good suggestions aren't missed, and to look AI.
 - **Look** (mockup): a full-width card with a 1.5 px animated gradient border (AI purple → spark amber, slow 10 s
   sheen), a soft tinted inside, a 44 px gradient "orb" with the sparkle icon (gentle 3 s twinkle), an eyebrow
@@ -201,7 +201,7 @@ toggle a sliding thumb.
 - Existing swipe, long-press and selection behaviour must keep working in both modes.
 - **Acceptance:** smoke for each mode × each sub-tab at 360 and 390 px, with no overflow.
 
-### B4. [x] One delivery-track component
+### B4. [ ] One delivery-track component
 The same 4-segment track (A2 rules) is used on Home, in the On the way list, on the On the way cards and in the item
 sheet. One component, one function, unit-tested in `test:home`.
 
