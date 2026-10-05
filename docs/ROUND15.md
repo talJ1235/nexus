@@ -1,8 +1,10 @@
 # Round 15 brief (from Tal, 2026-10-05) — multi-user foundation: accounts, spaces, data isolation — source of truth
 
-**Status: ready to run after Tal approves the screens** (mockups `docs/design/r15/*.dc.html` — pushed once Tal approves; canvas
-"Nexus R15 — Accounts & Spaces", v2 redesign 2026-10-05: 22 boards, shared stylesheet `nx.css`). Tal's preparation
-steps are in "Before you run" below.
+**Status: screens approved by Tal (2026-10-05).** The mockups (22 boards `*.dc.html` + shared stylesheet `nx.css`;
+canvas `Main` = `SignIn-desktop.dc.html`; states are the `data-props` enums at the bottom of each board) were written
+by the planner straight into Tal's local checkout under `docs/design/r15/` (untracked, not on GitHub yet).
+**First commit of Session 1:** `git add docs/design/r15` on `round15` → `R15.0: mockups`. Ready to run once Tal's
+preparation in "Before you run" is done.
 
 ## Design language for this round (from the v2 canvas — Tal: "less text, mostly visuals, light, premium")
 - **Minimal copy.** One short title + at most one short line per screen; explain with icons, avatars, tiles and states,
@@ -49,8 +51,8 @@ Where this brief is more specific than those files, this brief wins.
   `docs/design/parity-r15/` (≤ 20 files, each ≤ 400 KB). List differences kept on purpose in "## Open".
 - New dependencies need a one-line reason in "## Open" (`docs/SECURITY.md` §11). Pin exact versions.
 - Use plan mode for Part B (it touches most server files); show a ≤ 10-line plan before editing.
-- **Never touch the prod DB from the PC this round.** `.env.local` points at prod Turso; the only script allowed to
-  use that URL is the read-only `db-snapshot.mjs` (0.1). Everything else runs on file DBs (snapshot copies,
+- **Never touch the prod DB from the PC this round.** `.env.local` has the prod URL only as `PROD_TURSO_DATABASE_URL`
+  with a read-only token; the only script allowed to use it is `db-snapshot.mjs` (0.1). Everything else runs on file DBs (snapshot copies,
   `serve-fresh.sh`). `npm run build` runs `db:migrate` — so the R15 migration step refuses a non-`file:` URL unless
   `VERCEL=1` (prod build) and the dev server refuses to start on a remote URL while `R15_LOCAL_GUARD` is on (default on
   for this branch). Remove the dev-server guard in Part G.
@@ -67,8 +69,14 @@ in production until `NEXT_PUBLIC_APP_URL` (own domain) and `RESEND_API_KEY` exis
 4. Optional now: Cloudflare Turnstile keys (`TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`) for the waitlist form.
 5. A manual backup download from the app (Settings → Backup) kept on the PC, before the release session.
 
-### Setup step by step (closed-circle mode, no domain)
-From `MULTIUSER.md` §7 only items 3 (as "Testing"), 5 and 10 are needed now; the rest wait for the name/domain.
+### Setup step by step (closed-circle mode, no domain) — status 2026-10-05
+Done by the planner on Tal's PC (2026-10-05): `.env.local` backed up to `.env.local.bak-r15`, then `BETTER_AUTH_SECRET`
+(new, local only), `BETTER_AUTH_URL=http://localhost:3100`, `ADMIN_EMAIL`, `AUTH_FULL_LOCAL=1` added and the local
+`APP_PASSWORD` replaced by a 24-character one (the old one was 10 → the fallback would have been off locally).
+`.claude/settings.local.json` allows `git push origin round15` / `git push -u origin round15` (no merge permission on
+purpose — Part G is with Tal). Note: the local `TURSO_DATABASE_URL` is a **file** DB, not prod.
+
+Left for Tal:
 1. **Google Cloud** (console.cloud.google.com, signed in as Tal): create project `Nexus` → Google Auth Platform → Get
    started: app name `Nexus`, support email = Tal's Gmail, audience **External**, contact email, agree.
    - Audience → Test users → add Tal's Gmail + the first testers (max 100). Publishing status stays **Testing**
@@ -78,15 +86,21 @@ From `MULTIUSER.md` §7 only items 3 (as "Testing"), 5 and 10 are needed now; th
      `http://localhost:3100`. Redirect URIs: `https://nexus-ashen-beta.vercel.app/api/auth/callback/google`,
      `http://localhost:3100/api/auth/callback/google`. Copy the Client ID and the secret right away (Google shows new
      secrets once). If Google refuses the `vercel.app` address, the fallback is buying the domain first.
-2. **Secrets** — generate on the PC (Node is installed):
-   `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` → `BETTER_AUTH_SECRET`;
-   `node -e "console.log(require('crypto').randomBytes(18).toString('base64url'))"` → new `APP_PASSWORD` (24 chars).
-3. **Vercel** → Project → Settings → Environment Variables (Production): `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
-   `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL=https://nexus-ashen-beta.vercel.app`, `ADMIN_EMAIL=tal.jacoby10@gmail.com`,
-   new `APP_PASSWORD`. Env changes apply on the next deploy (= the R15 release), so the old password keeps working
-   until then. Same moment: GitHub → repo Settings → Secrets → Actions → update `NEXUS_PASSWORD` to the new value.
-4. **`.env.local` on the PC**: the same names, with `BETTER_AUTH_URL=http://localhost:3100`, plus `AUTH_FULL_LOCAL=1`
-   (lets Claude Code test passkeys + recovery locally).
+   - Put both into `.env.local` (`GOOGLE_CLIENT_ID=`, `GOOGLE_CLIENT_SECRET=`) and into Vercel (step 3).
+2. **Prod DB read access for the snapshot (0.1)** — the local `.env.local` has no prod URL, so 0.1 reads two extra
+   names used **only** by `scripts/db-snapshot.mjs`: `PROD_TURSO_DATABASE_URL` (the `libsql://…` URL from Vercel → env
+   `TURSO_DATABASE_URL`) and `PROD_TURSO_READ_TOKEN` = a **read-only** token (Turso dashboard → the database →
+   Create token → access **Read only**, expiry 30 days). `db-restore-prod.mjs` takes a full-access token only as a
+   prompt at run time (Part G emergency), never from a file. Without these two names the builder skips 0.1's prod part,
+   tests on a synthetic DB and says so in "## Open" — the rehearsal on real data then happens in Part G step 2.
+3. **Vercel** → Project → Settings → Environment Variables (Production) — add now (unused until R15 ships):
+   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, a **new** `BETTER_AUTH_SECRET` (generate on the PC:
+   `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`),
+   `BETTER_AUTH_URL=https://nexus-ashen-beta.vercel.app`, `ADMIN_EMAIL=tal.jacoby10@gmail.com`.
+4. **On release day only (Part G, step 1):** new prod `APP_PASSWORD` (≥ 20 chars:
+   `node -e "console.log(require('crypto').randomBytes(18).toString('base64url'))"`) in Vercel **and** the same value in
+   GitHub → repo Settings → Secrets → Actions → `NEXUS_PASSWORD`. Not earlier: any deploy before the release would switch
+   the prod password and break the prod smoke.
 5. Optional: Cloudflare → Turnstile → Add widget (hostnames `nexus-ashen-beta.vercel.app`, `localhost`, mode Managed)
    → `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` in Vercel + `.env.local`.
 6. Testers: 5–10 Gmail addresses (added as test users in step 1; invite codes are made in the app after release).
@@ -97,14 +111,14 @@ From `MULTIUSER.md` §7 only items 3 (as "Testing"), 5 and 10 are needed now; th
 ## Part 0 — Safety net (do first)
 
 ### 0.1 [ ] Prod snapshot and a migration rehearsal path
-- `scripts/db-snapshot.mjs`: **read-only** copy of the prod Turso DB (from `.env.local`) into `snapshots/prod-<date>.db`
+- `scripts/db-snapshot.mjs`: **read-only** copy of the prod Turso DB (from `PROD_TURSO_DATABASE_URL` + `PROD_TURSO_READ_TOKEN` in `.env.local`, see "Before you run" step 2) into `snapshots/prod-<date>.db`
   (gitignored, never committed): every table, every row, then `PRAGMA integrity_check` and a row count per table
   printed as a table. No writes to the source — open it with a read-only query path and assert no statement other
   than `SELECT` / `PRAGMA` is sent.
 - `scripts/db-restore-test.mjs`: restore the existing `/api/backup` JSON into an empty file DB and compare counts
   (proves the backup path works before we need it).
-- `scripts/db-restore-prod.mjs <snapshot>`: the emergency path for Part G — writes a snapshot back to the Turso DB
-  from `.env.local`. Refuses to run without `--i-am-tal-and-prod-is-broken`, prints the counts it will write and waits
+- `scripts/db-restore-prod.mjs <snapshot>`: the emergency path for Part G — writes a snapshot back to the prod Turso DB
+  (URL from `PROD_TURSO_DATABASE_URL`, full-access token typed at the prompt, never stored). Refuses to run without `--i-am-tal-and-prod-is-broken`, prints the counts it will write and waits
   for typed "restore". Test it end-to-end against a **second, throwaway** libSQL file/DB, never prod, in this round.
 - **Acceptance:** all three run green locally; counts printed in "## Open" (counts only, no content).
 
