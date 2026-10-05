@@ -72,7 +72,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - **Opening animation:** 3.0 s, wordmark only, real visuals (cubes gather, faces assemble, dot lands, rings + particles,
   hold with moving background), no skip; phone on app open, desktop first open of the day.
 - Desktop sidebar collapses by a button at the top or by dragging its edge.
-- Roadmap (Tal 2026-10-04, superseded by the updates below): R13 home/shopping/search/intro → R14 bug fixes → R15 multi-user foundation (site sign-in on
+- Roadmap (Tal 2026-10-04, superseded — see "Roadmap (2026-10-05)"): R13 home/shopping/search/intro → R14 bug fixes → R15 multi-user foundation (site sign-in on
   web + phone, Google + email, desktop QR login, short onboarding questionnaire that adapts the app, per-user data,
   privacy) → R16 Android wrapper + testers. Tal to prepare for R15: domain, Google Cloud OAuth client, Resend, name check.
 - **Round 14 decisions (Tal 2026-10-04):** light theme "B · toned" (page `#eeede9`, cards `#f8f7f4`); active nav row = soft
@@ -81,7 +81,7 @@ to setup, tooling or workflow is recorded there in the same session.
   chips; indicators only on Home, Spending, project and store pages; calendar = month view + ICS feed that also removes
   deleted/received events; Home always shows AI or rule suggestions when the account has items. Every visual round now
   ships side-by-side parity PNGs (mockup vs app).
-- **Roadmap update (2026-10-04, later):** R14 fixes → R15 multi-user foundation → R16 multi-user product layer → R17
+- **Roadmap update (2026-10-04, later; superseded 2026-10-05):** R14 fixes → R15 multi-user foundation → R16 multi-user product layer → R17
   supermarket mode (recurring household purchasing, inside shared spaces, sidebar entry) → R18 Android wrapper.
 - **Multi-user (Tal 2026-10-04), full plan in `docs/MULTIUSER.md`:** closed circle first (invite codes); spaces (personal +
   shared household, roles owner/member/viewer, sharing per space); sign-in Google + passkey, email code only for recovery;
@@ -100,6 +100,13 @@ to setup, tooling or workflow is recorded there in the same session.
   Israeli shoppable-content startup; `Carty` = several Shopify cart apps; `Karto` = one small Shopify cart-recovery app).
   No domain yet — R15 ships in closed-circle mode on `*.vercel.app` (Google sign-in only; passkeys + email recovery
   switch on with the domain), brand name kept in one config.
+- **Strategy (Tal 2026-10-05), `docs/STRATEGY.md`:** goal = family-and-friends project with business potential; audience =
+  households first, some makers. No interviews before an MVP: keep building, the MVP carries the research (onboarding
+  answers, in-app feedback, admin metrics, a short survey after 2–3 weeks). **MVP = full set incl. price comparison.**
+- **Roadmap (2026-10-05, replaces earlier):** R15 multi-user foundation → R16 product layer (live list, budget, push +
+  inbox, feedback, metrics) → R17 supermarket mode v2 → R18 price comparison (transparency files) → closed circle on the
+  PWA → Android wrapper. Competitor findings (price comparison is table stakes in Israel; gap = all household buying in
+  one place) in `docs/STRATEGY.md` §4.
 - Free-tier stack (Vercel Hobby, Turso, Gemini free + Groq/OpenRouter fallback). Tal declined paid usage credits.
 
 ## Product direction (discussed 2026-10-03, not started)
@@ -131,6 +138,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-05 · B · Strategy session: wrote `docs/STRATEGY.md` (Lean Canvas hypotheses, research plan). Tal: households first, no interviews before an MVP, MVP = full set incl. price comparison, multi-user first. Desk research on competitors (global list apps + Israeli price apps) → §4. Next: cut `docs/ROUND15.md` from `MULTIUSER.md`.
 - 2026-10-04 · B · Naming session (many rounds; Tal wants global, person/robot-like, no known chain). Shortlist from Tal: Karto / Carty / Shopix → advised Karto. Household purchasing recorded as the main use. No domain for now → `MULTIUSER.md` §4.1 closed-circle mode.
 - 2026-10-04 · B · Tal: sign-up on phone + web, hosting alternatives, private-repo impact, top security. Wrote `docs/SECURITY.md` (threat model, findings: no SSRF guard in `extract.ts`, no CSP), extended `MULTIUSER.md` (§4.10 phone/web, QR number matching, checklist 1–11, mockups before R15), private-repo impact in `ENVIRONMENT.md`. Next: prep steps with Tal (name first), then auth/space mockups.
 - 2026-10-04 · B · Tal tested prod (R13) mid-R14: phone stuck on the desktop table (list/grid switch dead, checkbox against the picture). Reproduced in the sandbox — `layout=table` wins over `phoneLayout` in `Content()`; set from the phone search "Table view" command. Added A4 (do first) to `docs/ROUND14.md` on branch `round14`; builder must merge `origin/main` into `round14` before the final `--ff-only`.

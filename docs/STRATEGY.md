@@ -14,6 +14,10 @@ Status: **hypotheses only; research happens through the MVP** (Tal 2026-10-05, s
   (`MULTIUSER.md` §1), in-app feedback, and usage metrics in the admin panel (weekly active households, shared lists,
   supermarket-mode trips, week-4 retention). Short survey to the circle after 2–3 weeks of use.
 - Planner keeps doing desk research (competitors, app-store review mining) — no cost to Tal; feeds supermarket mode.
+- **MVP scope (Tal 2026-10-05): the full set, including supermarket price comparison**, multi-user first:
+  R15 multi-user foundation → R16 product layer (live shared list, household budget, web push + inbox, in-app feedback,
+  admin metrics) → R17 supermarket mode v2 → R18 price comparison (Israeli transparency files) → release to the
+  closed circle as the PWA → Android wrapper after that.
 
 ## 1. Order of work (original proposal — steps 3–5 postponed until after the MVP)
 | Step | What | Who | Output |
@@ -53,7 +57,24 @@ primary (H1 vs H2 vs H3) — the current app mixes all three; (c) someone would 
 (Interview guide and survey draft go here once written.)
 
 ## 4. Findings log
-(Date · method · n · finding.)
+### 2026-10-05 · desk research · competitors (planner)
+- **Global shared-list apps** (Bring!, AnyList, OurGroceries, Listonic, Google Keep): all free with real-time sync; they
+  compete on sync reliability, speed of adding, aisle/category sorting, recipes. Reviewers rank *reliable instant sync*
+  above smart features; recurring complaints: paywalls appearing after users invested time, aggressive upsells/ads,
+  duplicates and cluttered lists, sync slower than ~2 s, weak offline in the store.
+- **Israel — already crowded where groceries meet prices:** PriceZ (100K+ installs, 4.6★, ~40 chains, shared lists,
+  cheapest basket nearby, price alerts, coupons; reviews: location bugs, Hebrew-only, city-boundary distances), CHP,
+  Savy, IsraBis (claims 49 chains, family shopping, AI), SnaplistAI (list from receipts + basket comparison),
+  "סופרמרקט – רשימת קניות" (Hebrew shared household lists, Israeli product DB, templates, Google sign-in).
+  → Price comparison and a Hebrew shared list are **table stakes in Israel, not a differentiator**.
+- **Gap none of them cover:** they are grocery-only. Nexus already handles online orders, delivery tracking, projects,
+  price history and spending across all stores. Candidate positioning: *one place for all of the household's buying —
+  supermarket and online orders, one budget* (to validate with the closed circle).
+- **Price data feasibility:** open-source parsers for all chains on the gov.il list exist (`OpenIsraeliSupermarkets`,
+  Python, beta, daily tests). Full daily dumps are large → fetch/parse outside Vercel (e.g. scheduled GitHub Action),
+  keep only stores near users and products that appear on users' lists (Turso free-tier size).
+- Lessons for R16–R17: sync must feel instant and never lose an item; no paywall surprises; adding must be fastest
+  path in the app; offline in the store; "someone is shopping now / finished" notification; duplicates merged.
 
 ## 5. Output — what the product should be
 (Filled after step 6. Feature rounds resume from here.)
