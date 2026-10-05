@@ -3,7 +3,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { schema } from "@/db";
-import { requireCtx } from "@/lib/ctx";
+import { allows, requireCtx } from "@/lib/ctx";
 import { scoped } from "@/lib/db-scoped";
 import { getItem } from "@/lib/data";
 import { storeThumbnail } from "@/lib/images";
@@ -64,14 +64,16 @@ export async function pictureIcons(input: { keyword: string }): Promise<Candidat
 
 /** Alternatives for an item's picker: the stored ones, else a fresh search (stored for next time). */
 export async function itemPictureChoices(input: { itemId: string }): Promise<Candidate[]> {
-  const s = scoped(await requireCtx("view"));
+  const ctx = await requireCtx("view");
+  const s = scoped(ctx);
   const { itemId } = z.object({ itemId: z.string().min(1).max(40) }).parse(input);
   const item = await s.byId(schema.items, itemId);
   if (!item) return [];
   if (item.imageCandidates?.length) return item.imageCandidates;
   const [r] = await picturesFor([{ name: item.title, info: item.productInfo, excludeId: item.id }], 20_000, s);
   if (!r) return [];
-  await s.update(schema.items, { imageCandidates: r.ranked.candidates, productInfo: r.info }, eq(schema.items.id, itemId));
+  // Kept on the item for next time — only by someone who may edit this space (a viewer just gets the list).
+  if (allows(ctx.role, "edit")) await s.update(schema.items, { imageCandidates: r.ranked.candidates, productInfo: r.info }, eq(schema.items.id, itemId));
   return r.ranked.candidates;
 }
 

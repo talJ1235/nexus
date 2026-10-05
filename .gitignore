@@ -55,3 +55,4 @@ test-data/*
 # R15: prod snapshots and rehearsal copies (never committed)
 /snapshots/
 /.auth-outbox.jsonl
+/tenancy-test.db*

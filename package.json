@@ -35,7 +35,13 @@
     "test:pictures": "tsx scripts/test-pictures.ts",
     "test:picture-style": "tsx scripts/test-picture-style.ts",
     "bench:pictures": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/picture-bench.ts",
-    "test:ics": "tsx scripts/test-ics.ts"
+    "test:ics": "tsx scripts/test-ics.ts",
+    "test:auth": "tsx scripts/test-auth-config.ts",
+    "test:otp": "tsx --conditions=react-server scripts/test-otp.ts",
+    "test:authz-coverage": "tsx scripts/test-authz-coverage.ts",
+    "test:scope": "tsx scripts/test-scope.ts",
+    "test:roles": "tsx --conditions=react-server scripts/test-role-matrix.ts",
+    "test:tenancy": "node scripts/test-tenancy.mjs"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",

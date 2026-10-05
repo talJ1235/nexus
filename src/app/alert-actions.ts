@@ -37,7 +37,7 @@ export async function getAlertsState(): Promise<AlertsState> {
 }
 
 export async function markAlertsRead() {
-  const s = scoped(await requireCtx("view"));
+  const s = scoped(await requireCtx("edit"));
   await s.update(schema.alerts, { readAt: Date.now() }, isNull(schema.alerts.readAt));
 }
 
