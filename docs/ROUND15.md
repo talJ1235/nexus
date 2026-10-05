@@ -1,7 +1,33 @@
 # Round 15 brief (from Tal, 2026-10-05) — multi-user foundation: accounts, spaces, data isolation — source of truth
 
 **Status: ready to run after Tal approves the screens** (mockups `docs/design/r15/*.dc.html` — pushed once Tal approves; canvas
-"Nexus R15 — Accounts & Spaces"). Tal's preparation steps are in "Before you run" below.
+"Nexus R15 — Accounts & Spaces", v2 redesign 2026-10-05: 22 boards, shared stylesheet `nx.css`). Tal's preparation
+steps are in "Before you run" below.
+
+## Design language for this round (from the v2 canvas — Tal: "less text, mostly visuals, light, premium")
+- **Minimal copy.** One short title + at most one short line per screen; explain with icons, avatars, tiles and states,
+  not paragraphs. Every string still goes through i18n (en + he).
+- **Light brand panel**, never a black one: warm paper gradient (`#faf8f4 → #f5f3ee`, Plum: lavender) with a faint
+  isometric line grid (the Box logo's geometry) and two very soft warm radial lights; dark mode uses `#161616 → #121212`.
+  It sits next to the form on desktop sign-in and as the top band on phone screens.
+- **Show the product, not words:** the sign-in panel shows a live shared list (check-offs, "added by" avatar, a "New"
+  row highlight, budget meter, a price-drop card, a "Noa is shopping" presence chip, a toast).
+- **People are visual:** gradient initial avatars, facepiles with a green presence dot, space identity = rounded tile
+  with icon + gradient colour (6 colours, 10 icons). Space settings has a cover band in the space colour.
+- **Patterns adopted from leading products:** "Last used" badge on the sign-in method (Clerk); returning-user chip with
+  "Not you?" (Google); passkey offer → waiting → "You're all set" with equal-weight "Not now" (Google/FIDO guidance);
+  passkeys listed by device/provider with added + last used; security checkup ring (Google); "Confirm it's you" step-up
+  dialog (GitHub sudo mode); typed-name delete with stats and 7-day undo; invite = QR with the space tile in the
+  centre + WhatsApp first on phone + pending invites with resend/revoke (Linear); join preview card with facepile and
+  counts, joined (confetti) and expired states (Discord-style); roles matrix (Notion).
+- **States are tweaks on one board** (open the board's Tweaks): sign-in returning/new/verifying/error + closed-circle
+  mode; passkey offer/waiting/done; recovery email/code/wrong-code; invite-only no-invite/on-waitlist; join
+  preview/joined/expired; create-space identity/invite; shared list member/viewer; dialogs step-up/delete/leave.
+- **Live presence** ("Noa is shopping", green dots, "Yoav added 3 items" toasts) is drawn as the target. R15 ships the
+  static parts (avatars, "added by", last active from sessions); the realtime layer is R16 (live list) — build the
+  components so R16 only feeds them data.
+- Brands: the mock "G" circle becomes Google's official sign-in button asset; WhatsApp is a share intent with a generic
+  chat icon (no third-party logos drawn).
 
 Why: Nexus goes from one owner with a shared password to real accounts, so family and friends can use it (closed
 circle first). This round builds the foundation — sign-in, per-space data, spaces and invites — and must leave Tal's
@@ -117,7 +143,9 @@ From `MULTIUSER.md` §7 only items 3 (as "Testing"), 5 and 10 are needed now; th
   session list shows the device.
 
 ### A2. [ ] Sign-in screens = the mockups
-Mockups: `SignIn-desktop` (`Main` on the canvas), `SignIn-phone`, `SignIn-he` (Hebrew RTL), `Recovery-phone`, `AddPasskey-phone`.
+Mockups: `SignIn-desktop` (`Main` on the canvas), `SignIn-phone`, `SignIn-he` (Hebrew RTL), `Recovery-phone`,
+`Passkey-phone`, `InviteOnly-phone`, `Welcome-phone` (first run: personal space ready → create household / have a link /
+just me), `Emails` (invite, code, new sign-in — the code and sign-in emails go live with the domain + Resend).
 - `/login`: brand panel + form on desktop, single column on phone. "Continue with Google" (primary), "Sign in with a
   passkey" (full mode only; also offers the browser's "use a passkey from another device"), invite code field under
   "new here?", "Lost access?" (full mode only), Privacy · Terms links (pages come in R16 — link to `/privacy` and
@@ -138,7 +166,7 @@ Mockups: `SignIn-desktop` (`Main` on the canvas), `SignIn-phone`, `SignIn-he` (H
 - New Google user without a valid invite → no user row is created; show `InviteOnly-phone`: code field, "Add me to the
   waitlist" (table `waitlist(email, created_at, ip_hash)`; Turnstile when keys exist; rate-limited), "Use a different
   Google account".
-- Admin (only `ADMIN_EMAIL`) gets **Settings → Invites**: create a code (note, uses, expiry 14 days default), copy,
+- Admin (only `ADMIN_EMAIL`) gets **Settings → Invite codes** (mockup `InvitesAdmin-desktop`: KPI tiles, codes table with usage meters, waitlist with one-tap Invite): create a code (note, uses, expiry 14 days default), copy,
   revoke, see who used it, see the waitlist. (The full admin panel is R16.)
 - **Acceptance:** tenancy-style smoke: unknown Google user without invite → no `user` row; with a valid code → user +
   personal space; a used-up / revoked / expired code → refused with a clear message.
@@ -149,7 +177,8 @@ shared or left). Tal's existing data becomes **his** personal space via the migr
 in with Google as `ADMIN_EMAIL`.
 
 ### A5. [ ] Settings → Security (devices, passkeys, activity)
-Mockups `Devices-desktop`, `Devices-phone`.
+Mockups `Security-desktop`, `Security-phone` (checkup ring, passkey cards, device tiles, activity timeline,
+new-sign-in banner).
 - Sign-in methods (Google, passkeys with name + last used, add / remove — remove and add need **step-up**: a passkey or
   Google re-auth within the last 10 minutes).
 - Devices: browser · OS · approximate place (from Vercel's `x-vercel-ip-city` header, city only, nothing stored beyond
@@ -237,7 +266,9 @@ Mockups `Devices-desktop`, `Devices-phone`.
 ## Part C — Spaces (Session 2)
 
 ### C1. [ ] Space switcher — desktop and phone
-Mockups `Switcher-desktop`, `Switcher-phone`.
+Mockups `Switcher-desktop` (menu with search, `Ctrl+1…9` shortcuts, facepiles, unread dot), `Switcher-phone`
+(2-column space cards + New space), `CreateSpace-desktop` / `CreateSpace-phone` (name, kind, icon, colour with live
+preview → invite step), `LiveList-phone` (shared list with "added by", grouped, viewer state).
 - Desktop: a switch button under the logo at the top of the sidebar (space colour square, name, "Shared · N people").
   Menu: your spaces (personal first; role under each name; check on the current one; avatar stack on shared), then
   "New shared space", "Invite to <space>" (owner/member), "Space settings".
@@ -250,7 +281,7 @@ Mockups `Switcher-desktop`, `Switcher-phone`.
   controls (and the server refuses anyway — B3).
 
 ### C2. [ ] Invite links and joining
-Mockups `Invite-phone`, `Join-phone`.
+Mockups `Invite-desktop`, `Invite-phone`, `Join-phone`.
 - `space_invite`: 32-byte token stored hashed, role **member or viewer** (owners are made by transfer, not invite),
   expiry 7 days, max uses (default 5), revocable. Link `/join/<token>`, share sheet with Copy, native Share, and a QR
   (render the QR client-side; no third-party QR service).
@@ -261,7 +292,8 @@ Mockups `Invite-phone`, `Join-phone`.
   max uses → refused.
 
 ### C3. [ ] Space settings
-Mockup `SpaceSettings-desktop` (phone: the same sections as a full-screen sheet).
+Mockups `SpaceSettings-desktop` (cover band, people with presence + role menu, pending invite row, roles
+matrix; phone: the same sections as a full-screen sheet) and `Dialogs-desktop` (step-up, delete, leave).
 - Name, currency, colour (5 swatches). People: role change (owner only), remove (owner only, step-up), "(you)".
 - Invite links list with uses/expiry, Copy / QR / Revoke. Note that public read-only list links stay under each
   list's Share.
