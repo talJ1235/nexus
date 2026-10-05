@@ -71,7 +71,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <LangSwitch />
           </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 0" }}>
+          <div className="auth-center">
             {admin ? (
               <form action="/api/login" method="post" className="auth-col fade" data-auth="admin">
                 <h1 className="t-title">{t.auth.admin.title}</h1>

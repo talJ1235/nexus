@@ -52,7 +52,7 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
 
   return (
     <div className="auth-col fade">
-      <div className="auth-desk" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div className="auth-desk auth-head">
         <BoxMarkSmall />
         <h1 className="t-title">{props.returning ? a.welcomeBack : f(a.logIn, { app: props.app })}</h1>
       </div>
