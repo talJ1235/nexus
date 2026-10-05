@@ -37,7 +37,7 @@ export async function loadItems(s: Scoped, ids?: string[]): Promise<ItemWithSour
   return items.map((i) => ({ ...i, sources: sm.get(i.id) ?? [], points: p.get(i.id) ?? [], attachments: a.get(i.id) ?? [] }));
 }
 
-export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo): Promise<AppData> {
+export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo, me?: AppData["me"]): Promise<AppData> {
   const [collections, items, altGroups, storeSettings, budget, rates, importLimitUsd, alerts, home] = await Promise.all([
     s.select(schema.collections).orderBy(asc(schema.collections.sortOrder), asc(schema.collections.createdAt)),
     loadItems(s),
@@ -49,7 +49,7 @@ export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo): 
     s.select(schema.alerts).orderBy(desc(schema.alerts.createdAt)).limit(60),
     loadHomePrefs(userId),
   ]);
-  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, alerts, home, ...(space ? { space } : {}) };
+  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, alerts, home, ...(space ? { space } : {}), ...(me ? { me } : {}) };
 }
 
 export async function loadImportLimit(s: Scoped): Promise<number> {

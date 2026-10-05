@@ -60,7 +60,7 @@ const NEW_TABLES = [
     inviter_id text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE)`,
   `CREATE TABLE IF NOT EXISTS auth_rate_limit (id text PRIMARY KEY NOT NULL, key text NOT NULL UNIQUE, count integer NOT NULL, last_request integer NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS signup_invite (
-    id text PRIMARY KEY NOT NULL, code_hash text NOT NULL UNIQUE, hint text NOT NULL, note text, max_uses integer DEFAULT 1 NOT NULL,
+    id text PRIMARY KEY NOT NULL, code_hash text NOT NULL UNIQUE, hint text NOT NULL, code_enc text, note text, max_uses integer DEFAULT 1 NOT NULL,
     uses integer DEFAULT 0 NOT NULL, used_by text DEFAULT '[]' NOT NULL, expires_at integer NOT NULL, revoked_at integer, created_by text,
     created_at integer DEFAULT (unixepoch() * 1000) NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS space_invite (
@@ -175,6 +175,7 @@ export async function migrateR15(client: Client, url: string, log: (s: string) =
     if (!(await columns(client, t)).some((c) => c.name === "user_id")) await client.execute(`ALTER TABLE "${t}" ADD COLUMN user_id text`);
   }
   if (!(await columns(client, "items")).some((c) => c.name === "added_by_user_id")) await client.execute("ALTER TABLE items ADD COLUMN added_by_user_id text");
+  if (!(await columns(client, "signup_invite")).some((c) => c.name === "code_enc")) await client.execute("ALTER TABLE signup_invite ADD COLUMN code_enc text");
 
   // 2. Admin user + personal space (only when there is an admin to own today's data).
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();

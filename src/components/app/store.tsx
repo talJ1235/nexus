@@ -152,6 +152,8 @@ type Store = {
   importLimitUsd: number;
   /** R15: the current space's id ("" in an old offline snapshot) — receipt uploads go under spaces/<id>/. */
   spaceId: string;
+  /** R15: the signed-in user is the admin (Settings → Invite codes). */
+  admin: boolean;
   setImportLimitUsd: (v: number) => void;
   /** Compare-stores sheet (G1) for this item. */
   compareItemId: string | null;
@@ -712,6 +714,7 @@ export function StoreProvider({
       setCompareItemId,
       importLimitUsd,
       spaceId: initial.space?.id ?? "",
+      admin: !!initial.me?.admin,
       setImportLimitUsd,
       sidebarCollapsed,
       setSidebarCollapsed,

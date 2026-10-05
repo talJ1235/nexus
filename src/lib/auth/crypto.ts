@@ -1,5 +1,5 @@
 // Small crypto helpers for auth (Node runtime: server code and proxy). Secrets never leave the server.
-import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 
 export function sha256(s: string) {
   return createHash("sha256").update(s).digest("hex");
@@ -63,4 +63,26 @@ export function normalizeInviteCode(input: string) {
 
 export function randomToken(bytes = 32) {
   return randomBytes(bytes).toString("base64url");
+}
+
+/** Small secrets the admin must see again (invite codes): AES-256-GCM with a key derived from BETTER_AUTH_SECRET. */
+function encKey() {
+  return createHash("sha256").update(`enc:v1:${secret()}`).digest();
+}
+export function encrypt(text: string) {
+  const iv = randomBytes(12);
+  const c = createCipheriv("aes-256-gcm", encKey(), iv);
+  const body = Buffer.concat([c.update(text, "utf8"), c.final()]);
+  return `${iv.toString("base64url")}.${body.toString("base64url")}.${c.getAuthTag().toString("base64url")}`;
+}
+export function decrypt(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    const [iv, body, tag] = value.split(".").map((x) => Buffer.from(x, "base64url"));
+    const d = createDecipheriv("aes-256-gcm", encKey(), iv);
+    d.setAuthTag(tag);
+    return Buffer.concat([d.update(body), d.final()]).toString("utf8");
+  } catch {
+    return null;
+  }
 }

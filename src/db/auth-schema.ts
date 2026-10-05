@@ -166,8 +166,9 @@ export const authRateLimit = sqliteTable("auth_rate_limit", {
 export const signupInvite = sqliteTable("signup_invite", {
   id: text("id").primaryKey(),
   codeHash: text("code_hash").notNull().unique(),
-  // Last 4 characters, to tell codes apart in the admin table without storing the code.
+  // Last 4 characters, and the code encrypted (AES-GCM) so the admin can copy it again; lookups use the hash.
   hint: text("hint").notNull(),
+  codeEnc: text("code_enc"),
   note: text("note"),
   maxUses: integer("max_uses").notNull().default(1),
   uses: integer("uses").notNull().default(0),

@@ -22,6 +22,7 @@ const ROUTE_ALLOW: Record<string, string> = {
   "src/app/api/test-idp/userinfo/route.ts": "test-only OIDC stub (off in production)",
   "src/app/api/auth-flow/invite/route.ts": "pre-sign-in: stores the invite code in a signed cookie before the Google redirect",
   "src/app/api/auth-flow/waitlist/route.ts": "pre-sign-in: the waitlist form (rate-limited, Turnstile when configured)",
+  "src/app/api/auth-flow/forget-device/route.ts": "clears the returning-account chip cookie (no data)",
   "src/app/share/route.ts": "redirect only (Android share target → /add, which is behind the session)",
   "src/app/api/ext/check/route.ts": "retired: 410",
   "src/app/api/ext/collections/route.ts": "retired: 410",

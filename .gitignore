@@ -56,3 +56,5 @@ test-data/*
 /snapshots/
 /.auth-outbox.jsonl
 /tenancy-test.db*
+/auth-flow-test.db*
+/.next-dev*/

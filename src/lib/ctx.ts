@@ -91,6 +91,10 @@ export function spaceInfo(ctx: Ctx): SpaceInfo {
   return { ...ctx.space, role: ctx.role };
 }
 
+export function meInfo(ctx: Ctx) {
+  return { name: ctx.user.name, email: ctx.user.email, admin: isAdmin(ctx) };
+}
+
 export function isAdmin(ctx: Ctx) {
   return ctx.user.role === "admin";
 }

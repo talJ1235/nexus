@@ -1,5 +1,5 @@
 import "server-only";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 /**
@@ -25,3 +25,9 @@ export async function hitLimit(key: string, max: number, windowMs: number) {
 export const MINUTE = 60_000;
 export const HOUR = 60 * MINUTE;
 export const DAY = 24 * HOUR;
+
+/** The current count in this window (no increment). */
+export async function peekLimit(key: string, windowMs: number) {
+  const [r] = await db.select().from(schema.rateLimit).where(eq(schema.rateLimit.key, key)).limit(1);
+  return r && r.windowStart > Date.now() - windowMs ? r.count : 0;
+}

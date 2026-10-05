@@ -9,9 +9,10 @@ import { LOCALE_COOKIE } from "@/lib/i18n";
 import { rememberOwner } from "@/lib/tracker";
 import { NexusApp, type AppBoot } from "@/components/app/nexus-app";
 import { aiEnabled } from "@/lib/ai";
-import { currentCtx, spaceInfo, type Ctx } from "@/lib/ctx";
+import { currentCtx, meInfo, spaceInfo, type Ctx } from "@/lib/ctx";
 import { getAppData } from "@/lib/data";
 import { scoped } from "@/lib/db-scoped";
+import { needsRecoveryPasskey } from "@/lib/auth/security";
 import { getCurrencyPref, getUiPrefs } from "@/lib/server-prefs";
 
 /**
@@ -21,6 +22,7 @@ import { getCurrencyPref, getUiPrefs } from "@/lib/server-prefs";
 export default async function Home({ searchParams }: { searchParams: Promise<{ v?: string; f?: string }> }) {
   const ctx = await currentCtx();
   if (!ctx) redirect("/login");
+  if (await needsRecoveryPasskey(ctx.user.id, ctx.session)) redirect("/passkey?forced=1");
   const [{ v, f }, currency, prefs] = await Promise.all([searchParams, getCurrencyPref(), getUiPrefs()]);
   const jar = await cookies();
   const tz = decodeURIComponent(jar.get("nexus_tz")?.value ?? "").slice(0, 60) || null;
@@ -57,5 +59,5 @@ async function LoadedApp({ boot, ctx }: { boot: AppBoot; ctx: Ctx }) {
   // Local load traces only (scripts/smoke.mjs): simulate a slow database. Unset in production.
   const delay = Number(process.env.NEXUS_TRACE_DELAY_MS) || 0;
   if (delay) await new Promise((r) => setTimeout(r, delay));
-  return <NexusApp boot={boot} initial={await getAppData(scoped(ctx), ctx.user.id, spaceInfo(ctx))} />;
+  return <NexusApp boot={boot} initial={await getAppData(scoped(ctx), ctx.user.id, spaceInfo(ctx), meInfo(ctx))} />;
 }

@@ -15,10 +15,11 @@ import { APP_NAME } from "@/lib/brand";
 import { addMember, ensurePersonalSpace, firstName } from "@/lib/spaces";
 import { adminEmail, authMode, fallbackEnabled, isAdminEmail, SESSION_IDLE_S, sessionCookieName, STEP_UP_MS, testIdpEnabled } from "./config";
 import { safeEqualStr } from "./crypto";
+import { useRecoveryCode } from "./security";
 import { codeEmail, sendEmail } from "./email";
 import { logSecurityEvent, requestCity } from "./events";
 import { checkInviteCookie, consumeJoinToken, consumeSignupCode, INVITE_COOKIE, readInviteCookie } from "./invites";
-import { DAY, HOUR, hitLimit } from "./limits";
+import { DAY, HOUR, hitLimit, peekLimit } from "./limits";
 
 // R15 A1 — accounts with Better Auth. SECURITY.md §2–§4, MULTIUSER.md §4.1. The HTTP surface is an allow-list (below):
 // every space/member/admin write goes through Nexus's own server actions (requireCtx), never the plugins' routes.
@@ -63,6 +64,7 @@ const ALLOWED: Gate[] = [
   { re: /^\/email-otp\/send-verification-otp$/, when: full },
   { re: /^\/sign-in\/email-otp$/, when: full },
   { re: /^\/fallback\/sign-in$/, when: (req) => fallbackEnabled(authMode(requestHost(req.headers))) },
+  { re: /^\/recovery-code\/sign-in$/, when: full },
   { re: /^\/ok$/ },
   { re: /^\/error$/ },
 ];
@@ -103,7 +105,10 @@ const nexusGuard = {
       },
     ],
   },
-  rateLimit: [{ pathMatcher: (p: string) => p === "/fallback/sign-in", window: 60, max: 5 }],
+  rateLimit: [
+    { pathMatcher: (p: string) => p === "/fallback/sign-in", window: 60, max: 5 },
+    { pathMatcher: (p: string) => p === "/recovery-code/sign-in", window: 60, max: 5 },
+  ],
 } satisfies BetterAuthPlugin;
 
 // ---- admin password fallback (closed-circle mode only) ----
@@ -117,10 +122,11 @@ const nexusFallback = {
       if (!fallbackEnabled(mode) || !expected) throw new APIError("NOT_FOUND");
       const email = adminEmail()!;
       const ip = headers?.get("x-real-ip") ?? headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
-      // 5/min per IP via rateLimit above; 20/day per IP here.
-      if (!(await hitLimit(`fallback:day:${ip}`, 20, DAY))) throw new APIError("TOO_MANY_REQUESTS");
+      // 5 attempts/min per IP via rateLimit above; 20 failed attempts/day per IP here (then it's closed for the day).
+      if ((await peekLimit(`fallback:fail:${ip}`, DAY)) >= 20) throw new APIError("TOO_MANY_REQUESTS");
       const found = await ctx.context.internalAdapter.findUserByEmail(email);
       if (!safeEqualStr(ctx.body.password, expected) || !found?.user) {
+        await hitLimit(`fallback:fail:${ip}`, 20, DAY);
         if (found?.user) await logSecurityEvent(found.user.id, "fallback_failed", null, headers);
         await new Promise((r) => setTimeout(r, 600));
         throw new APIError("UNAUTHORIZED", { code: "bad_password", message: "bad_password" });
@@ -128,6 +134,21 @@ const nexusFallback = {
       // Only ever the ADMIN_EMAIL user — there is no input that could choose anyone else.
       const session = await ctx.context.internalAdapter.createSession(found.user.id);
       await setSessionCookie(ctx, { session, user: found.user });
+      return ctx.json({ ok: true });
+    }),
+    // Admin recovery (SECURITY.md §2, L3): a printed one-time code instead of an email code. Same answer for every failure.
+    recoveryCodeSignIn: createAuthEndpoint("/recovery-code/sign-in", { method: "POST", body: z.object({ email: z.string().max(254), code: z.string().max(40) }).strict() }, async (ctx) => {
+      const headers = ctx.request?.headers ?? ctx.headers;
+      const email = ctx.body.email.trim().toLowerCase();
+      if (!(await hitLimit(`recovery-code:day:${email}`, 10, DAY))) throw new APIError("TOO_MANY_REQUESTS");
+      const found = await ctx.context.internalAdapter.findUserByEmail(email);
+      if (!found?.user || !(await useRecoveryCode(found.user.id, ctx.body.code))) {
+        await new Promise((r) => setTimeout(r, 600));
+        throw new APIError("UNAUTHORIZED", { code: "invalid_code", message: "invalid_code" });
+      }
+      const session = await ctx.context.internalAdapter.createSession(found.user.id);
+      await setSessionCookie(ctx, { session, user: found.user });
+      await logSecurityEvent(found.user.id, "recovery_code_used", null, headers);
       return ctx.json({ ok: true });
     }),
   },
@@ -140,6 +161,7 @@ function sessionMethod(path: string | undefined) {
   if (path.startsWith("/passkey/")) return "passkey";
   if (path.startsWith("/sign-in/email-otp")) return "email-otp";
   if (path.startsWith("/fallback/")) return "fallback";
+  if (path.startsWith("/recovery-code/")) return "recovery-code";
   return null;
 }
 
@@ -325,8 +347,8 @@ export const auth = betterAuth({
             .select({ ua: schema.session.userAgent })
             .from(schema.session)
             .where(and(eq(schema.session.userId, s.userId), ne(schema.session.id, s.id)));
-          const kind = method === "fallback" ? "fallback_sign_in" : method === "email-otp" ? "recovery" : "sign_in";
-          await logSecurityEvent(s.userId, kind, { method }, headers);
+          const kind = method === "fallback" ? "fallback_sign_in" : method === "email-otp" ? "recovery" : method === "recovery-code" ? null : "sign_in";
+          if (kind) await logSecurityEvent(s.userId, kind, { method }, headers);
           if (others.length && !others.some((o) => o.ua === ua)) await logSecurityEvent(s.userId, "new_device", { method }, headers);
           // The admin role follows ADMIN_EMAIL (checked on every sign-in, so changing the env moves it).
           const [u] = await db.select({ email: schema.user.email, role: schema.user.role }).from(schema.user).where(eq(schema.user.id, s.userId));

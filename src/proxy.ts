@@ -5,13 +5,14 @@ import { getSessionUser } from "@/lib/auth/session";
 // R15 A1: everything needs a valid DB session (checked here, cached ≤ 60 s), except these public paths — each of
 // them authenticates inside the route/page instead:
 //   /login, /join/* (sign-in and invite screens) · /api/auth/* (Better Auth, allow-listed in lib/auth/server.ts)
-//   /api/login (admin password fallback) · /s/* (public read-only list token) · /api/cal/* (calendar feed token)
+//   /api/auth-flow/* (invite code + waitlist before sign-in) · /api/login (admin password fallback) · /s/* (public read-only list token) · /api/cal/* (calendar feed token)
 //   /api/cron/* (CRON_SECRET) · /api/reports/export (REPORTS_TOKEN) · /privacy, /terms (static)
 //   /g, /i/*, /api/invite/*, /api/ext/*, /api/telegram (retired: notice pages / 410) · /api/csp-report (counts only)
 const PUBLIC_PREFIXES = [
   "/login",
   "/join/",
   "/api/auth/",
+  "/api/auth-flow/",
   "/api/login",
   "/s/",
   "/api/cal/",

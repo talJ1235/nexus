@@ -2,7 +2,7 @@ import "server-only";
 import { and, desc, eq, gt, isNull, lt, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db, schema } from "@/db";
-import { newInviteCode, normalizeInviteCode, sha256, signValue, verifyValue } from "./crypto";
+import { encrypt, newInviteCode, normalizeInviteCode, sha256, signValue, verifyValue } from "./crypto";
 
 // R15 A3: invite-only sign-up. The code (or a /join/<token> link) survives the Google redirect in a short-lived,
 // signed, HttpOnly cookie; the user row is created only when it is still valid (validateUserInfo in server.ts).
@@ -86,6 +86,7 @@ export async function createSignupCode(createdBy: string, opts: { note?: string 
     id: nanoid(),
     codeHash: sha256(code),
     hint: code.slice(-4),
+    codeEnc: encrypt(code),
     note: opts.note?.trim().slice(0, 80) || null,
     maxUses: Math.min(Math.max(opts.maxUses ?? 1, 1), 50),
     expiresAt: Date.now() + days * 86_400_000,
@@ -101,4 +102,15 @@ export async function listSignupCodes() {
 
 export async function revokeSignupCode(id: string) {
   await db.update(schema.signupInvite).set({ revokedAt: Date.now() }).where(and(eq(schema.signupInvite.id, id), isNull(schema.signupInvite.revokedAt)));
+}
+
+/** The Google email of a refused sign-up (kept 10 min under an opaque ref — never in the URL). */
+export async function pendingSignupEmail(ref: string | null | undefined) {
+  if (!ref || !/^[\w-]{10,40}$/.test(ref)) return null;
+  const [row] = await db.select().from(schema.verification).where(eq(schema.verification.identifier, `pending-signup:${ref}`)).limit(1);
+  return row && row.expiresAt.getTime() > Date.now() ? row.value : null;
+}
+
+export async function addToWaitlist(email: string, ipHash: string | null) {
+  await db.insert(schema.waitlist).values({ email: email.toLowerCase(), ipHash, createdAt: Date.now() }).onConflictDoNothing();
 }

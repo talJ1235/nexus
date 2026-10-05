@@ -22,6 +22,8 @@ export type AppData = {
   home?: HomePrefs;
   /** R15: the current space and the caller's role in it (uploads go under spaces/<id>/; viewers get no write controls). */
   space?: SpaceInfo;
+  /** R15: who is signed in (admin = ADMIN_EMAIL's user: Settings → Invite codes). */
+  me?: { name: string; email: string; admin: boolean };
 };
 
 export type SpaceInfo = { id: string; name: string; kind: "personal" | "shared"; color: string; icon: string; currency: string; role: "owner" | "member" | "viewer" };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, FileSpreadsheet, LogOut, Monitor, Moon, Puzzle, Sun, Upload, MessageSquareWarning } from "lucide-react";
+import { Download, FileSpreadsheet, KeyRound, LogOut, Monitor, Moon, Puzzle, ShieldCheck, Sun, Upload, MessageSquareWarning } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
 import { useTheme } from "next-themes";
@@ -17,6 +17,7 @@ import { pictureSearchStatus } from "@/app/picture-actions";
 import { MemorySection } from "./memory-section";
 import { CalendarSection } from "./calendar-section";
 import { homeDiag, setAiSuggestions, type HomeDiag } from "@/app/home-actions";
+import { rememberThisDevice } from "@/app/security-actions";
 import { ReportsSubpage } from "./reports-sheet";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
@@ -149,6 +150,25 @@ export function SettingsDialog() {
   const [sub, setSub] = useState<null | "reports">(null);
   const [reportId, setReportId] = useState<string | null>(null);
   const [dir, setDir] = useState<"in" | "back">("in");
+  // /?panel=settings (back from Settings → Security / Invite codes) reopens Settings. Once a session, this device
+  // remembers who signed in for the sign-in screen's "Continue as …" chip (R15 A2).
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    if (u.searchParams.get("panel") === "settings") {
+      s.setSettingsOpen(true);
+      u.searchParams.delete("panel");
+      window.history.replaceState(null, "", u);
+    }
+    try {
+      if (!sessionStorage.getItem("nexus.remembered")) {
+        sessionStorage.setItem("nexus.remembered", "1");
+        void rememberThisDevice().catch(() => {});
+      }
+    } catch {
+      /* private mode */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const go = (to: null | "reports") => {
     setDir(to ? "in" : "back");
     setSub(to);
@@ -261,6 +281,24 @@ export function SettingsDialog() {
                 </Button>
               </div>
             </Row>
+            <Row title={t.security.title} hint={t.security.hint}>
+              <div className="flex items-center justify-end gap-2">
+                <Button size="sm" variant="outline" onClick={() => window.location.assign("/settings/security")} data-settings-security>
+                  <ShieldCheck />
+                  {t.security.open}
+                </Button>
+              </div>
+            </Row>
+            {s.admin && (
+              <Row title={t.invites.title} hint={t.invites.hint}>
+                <div className="flex items-center justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => window.location.assign("/settings/invites")} data-settings-invites>
+                    <KeyRound />
+                    {t.security.open}
+                  </Button>
+                </div>
+              </Row>
+            )}
             <PictureSearchRow />
             <Row title={t.report.menu}>
               <div className="flex items-center justify-end gap-2">
