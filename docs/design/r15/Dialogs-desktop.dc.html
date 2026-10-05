@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Confirm, delete, leave dialogs</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:1440px;height:900px;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:10px 10px 10px 258px;background:var(--screen);border:1px solid var(--line);border-radius:12px"></div>
+  <div class="scrim"></div>
+
+  <sc-if value="{{isStepUp}}" hint-placeholder-val="{{ true }}">
+    <div class="modal" role="dialog" aria-label="Confirm it's you" style="left:520px;top:280px;width:400px">
+      <div class="mhead"><h2 class="t-h2">Confirm it's you</h2></div>
+      <div class="mbody" style="display:flex;flex-direction:column;gap:10px">
+        <p class="t-body" style="margin-bottom:6px">To remove a member, verify your identity.</p>
+        <a class="btn block" href="#"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"></circle><path d="M3 21v-1a6 6 0 0 1 9-5.2"></path><circle cx="18" cy="15" r="2.5"></circle><path d="M18 17.5V22l1.5-1.2M18 20h1.5"></path></svg>Use passkey</a>
+        <a class="btn block" href="#"><span class="g">G</span>Use Google</a>
+      </div>
+      <div class="mfoot"><a class="btn ghost" href="#">Cancel</a></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isDelete}}" hint-placeholder-val="{{ false }}">
+    <div class="modal" role="alertdialog" aria-label="Delete space" style="left:500px;top:260px;width:440px">
+      <div class="mhead"><h2 class="t-h2">Delete Cohen home?</h2></div>
+      <div class="mbody" style="display:flex;flex-direction:column;gap:14px">
+        <p class="t-body">All lists and items in this space will be deleted for all 3 members. You can restore it within 7 days.</p>
+        <div class="field"><label class="label" for="cn">Type <b>Cohen home</b> to confirm</label><div class="input"><input id="cn" value="Cohen ho"></div></div>
+      </div>
+      <div class="mfoot"><a class="btn" href="#">Cancel</a><a class="btn dng off" href="#">Delete space</a></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isLeave}}" hint-placeholder-val="{{ false }}">
+    <div class="modal" role="alertdialog" aria-label="Leave space" style="left:520px;top:320px;width:400px">
+      <div class="mhead"><h2 class="t-h2">Leave Cohen home?</h2></div>
+      <div class="mbody"><p class="t-body">You'll lose access until someone invites you again.</p></div>
+      <div class="mfoot"><a class="btn" href="#">Cancel</a><a class="btn dng" href="#">Leave</a></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"dialog":{"editor":"enum","options":["confirm-its-you","delete-space","leave-space"],"default":"confirm-its-you"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const d = p.dialog ?? 'confirm-its-you';
+    return { cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''), isStepUp: d === 'confirm-its-you', isDelete: d === 'delete-space', isLeave: d === 'leave-space' };
+  }
+}
+</script>
+</body>
+</html>

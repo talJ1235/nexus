@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Invite-only · waitlist</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:390px;height:844px;display:flex;flex-direction:column;padding:12px 20px 24px;background:var(--screen)">
+  <div style="height:44px;display:flex;align-items:center;justify-content:space-between">
+    <span class="logo"><svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="#fb7a3c"></path><path d="M10 20l22 12v24L10 44z" fill="var(--face)" stroke="var(--edge)" stroke-width="1.2" stroke-linejoin="round"></path><path d="M54 20 32 32v24l22-12z" fill="#f59e0b"></path></svg>Nexus</span>
+    <span class="av sm c6">D</span>
+  </div>
+
+  <sc-if value="{{isBlocked}}" hint-placeholder-val="{{ true }}">
+    <h1 class="t-title" style="margin-top:40px">You need an invite</h1>
+    <p class="t-body" style="margin-top:8px">Nexus is invite-only for now.</p>
+    <div class="field" style="margin-top:28px">
+      <label class="label" for="c">Invite code</label>
+      <div class="input"><input id="c" class="mono" placeholder="XXX-XXXX"></div>
+    </div>
+    <a class="btn lg pri block" href="#" style="margin-top:12px">Continue</a>
+    <div class="or" style="margin:20px 0">or</div>
+    <a class="btn lg block" href="#">Join the waitlist</a>
+    <div style="margin-top:auto;text-align:center" class="sub">Signed in as dana.levi@gmail.com · <a class="link" href="#">Switch</a></div>
+  </sc-if>
+
+  <sc-if value="{{isListed}}" hint-placeholder-val="{{ false }}">
+    <div style="margin-top:96px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px" class="fade">
+      <span class="ic round ok" style="width:72px;height:72px"><svg class="i xl" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M20 6 9 17l-5-5"></path></svg></span>
+      <h1 class="t-title" style="margin-top:6px">You're on the waitlist</h1>
+      <p class="t-body">We'll email you when a spot opens.</p>
+    </div>
+    <div style="margin-top:auto"><a class="btn lg block" href="#">Close</a></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"state":{"editor":"enum","options":["no-invite","on-waitlist"],"default":"no-invite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const st = p.state ?? 'no-invite';
+    return { cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''), isBlocked: st === 'no-invite', isListed: st === 'on-waitlist' };
+  }
+}
+</script>
+</body>
+</html>

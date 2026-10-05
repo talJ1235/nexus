@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Create a space · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.sw{width:34px;height:34px;border-radius:50%}
+.sw.on{box-shadow:0 0 0 2px var(--raised),0 0 0 4px var(--ink)}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:390px;height:844px;display:flex;flex-direction:column;background:var(--screen)">
+  <div style="height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;border-bottom:1px solid var(--line-in)">
+    <a class="btn ghost" href="#">Cancel</a><b style="font-size:16px">New space</b><a class="btn ghost" href="#" style="color:var(--ink);font-weight:700">Create</a>
+  </div>
+  <div style="padding:28px 20px;display:flex;flex-direction:column;gap:22px">
+    <div style="display:flex;justify-content:center"><span class="ws xl w-green" style="width:72px;height:72px;font-size:30px;border-radius:18px">C</span></div>
+    <div style="display:flex;justify-content:center;gap:12px"><span class="sw on w-green"></span><span class="sw w-blue"></span><span class="sw w-violet"></span><span class="sw w-amber"></span><span class="sw w-rose"></span><span class="sw w-slate"></span></div>
+    <div class="field"><label class="label" for="n">Space name</label><div class="input focus"><input id="n" value="Cohen home"></div></div>
+    <div class="field"><label class="label" for="c">Currency</label><div class="input"><select id="c"><option>₪ Israeli shekel (ILS)</option></select></div></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    return { cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') };
+  }
+}
+</script>
+</body>
+</html>

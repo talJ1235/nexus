@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shared list · member or viewer</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.it{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 16px}
+.it+.it{border-top:1px solid var(--line-in)}
+.gh{font-size:12px;font-weight:600;color:var(--muted);padding:16px 16px 6px}
+.dock{position:absolute;left:0;right:0;bottom:0;height:76px;background:var(--raised);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;padding-bottom:10px}
+.dock a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--muted)}
+.dock a.on{color:var(--ink)}
+.plus{width:46px;height:46px;border-radius:50%;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;margin:0 auto}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:390px;height:844px;position:relative;overflow:hidden;background:var(--screen)">
+  <div style="height:56px;display:flex;align-items:center;gap:8px;padding:0 8px 0 4px;border-bottom:1px solid var(--line-in)">
+    <a class="btn icon ghost" href="#" aria-label="Back"><svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></a>
+    <b style="font-size:16px;flex:1">Weekly groceries</b>
+    <div class="pile"><span class="av sm c1">T</span><span class="av sm c2">N</span><span class="av sm c3">Y</span></div>
+    <a class="btn icon ghost" href="#" aria-label="More"><svg class="i" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></a>
+  </div>
+  <sc-if value="{{isViewer}}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--s2);font-size:13.5px"><svg class="i sm" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg><span style="flex:1">You can view this list</span><a class="link" href="#">Request access</a></div>
+  </sc-if>
+  <div class="gh">Dairy</div>
+  <div class="it"><span class="chk on"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="flex:1;color:var(--faint);text-decoration:line-through">Milk 3% · 2</span><span class="av xs c2">N</span></div>
+  <div class="it"><span class="chk" style="opacity:{{op}}"></span><span style="flex:1">Cottage cheese 5%</span><span class="av xs c1">T</span></div>
+  <div class="gh">Pantry</div>
+  <div class="it"><span class="chk" style="opacity:{{op}}"></span><span style="flex:1">Olive oil 1 L</span><span class="av xs c3">Y</span></div>
+  <div class="it"><span class="chk on"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="flex:1;color:var(--faint);text-decoration:line-through">Pasta</span><span class="av xs c2">N</span></div>
+  <div class="it"><span class="chk" style="opacity:{{op}}"></span><span style="flex:1">Coffee beans</span><span class="av xs c1">T</span></div>
+  <div class="gh">Household</div>
+  <div class="it"><span class="chk" style="opacity:{{op}}"></span><span style="flex:1">Dishwasher tablets</span><span class="av xs c1">T</span></div>
+
+  <div class="toast" style="position:absolute;left:16px;right:16px;bottom:92px"><span class="av sm c3">Y</span><span style="flex:1">Yoav added Olive oil</span><a class="link" href="#">Undo</a></div>
+
+  <nav class="dock">
+    <a href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Home</a>
+    <a class="on" href="#"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4"></circle><circle cx="18" cy="20" r="1.4"></circle><path d="M2 3h3l2.7 12.4a1.5 1.5 0 0 0 1.5 1.1h8.6a1.5 1.5 0 0 0 1.5-1.1L21 7H6"></path></svg>Shopping</a>
+    <sc-if value="{{notViewer}}" hint-placeholder-val="{{ true }}"><a href="#" aria-label="Add"><span class="plus"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></span></a></sc-if>
+    <sc-if value="{{isViewer}}" hint-placeholder-val="{{ false }}"><span></span></sc-if>
+    <a href="#"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Projects</a>
+    <a href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg>Insights</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"role":{"editor":"enum","options":["member","viewer"],"default":"member"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const viewer = (p.role ?? 'member') === 'viewer';
+    return { cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''), isViewer: viewer, notViewer: !viewer, op: viewer ? 0.35 : 1 };
+  }
+}
+</script>
+</body>
+</html>

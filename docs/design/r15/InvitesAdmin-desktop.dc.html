@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin · invite codes</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.snav{height:32px;border-radius:7px;display:flex;align-items:center;gap:10px;padding:0 10px;font-size:13.5px;color:var(--ink2)}
+.snav.on{background:var(--sel);color:var(--ink);font-weight:600}
+.snav svg{color:var(--muted)}
+.tabs{display:flex;gap:20px;border-bottom:1px solid var(--line-in)}
+.tabs a{padding:8px 0;font-size:14px;color:var(--muted);font-weight:500}
+.tabs a.on{color:var(--ink);font-weight:600;box-shadow:inset 0 -2px 0 var(--ink)}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:1440px;height:900px;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:10px 10px 10px 258px;background:var(--screen);border:1px solid var(--line);border-radius:12px"></div>
+  <div class="scrim"></div>
+  <div class="modal" role="dialog" aria-label="Settings" style="left:170px;top:40px;width:1100px;height:820px;display:flex;overflow:hidden">
+    <nav style="width:240px;padding:16px 10px;display:flex;flex-direction:column;gap:2px;background:var(--s);border-inline-end:1px solid var(--line-in)">
+      <div class="mlabel">Account</div>
+      <a class="snav" href="#"><svg class="i sm" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>Profile</a>
+      <a class="snav" href="#"><svg class="i sm" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Security</a>
+      <div class="mlabel" style="margin-top:10px">Admin</div>
+      <a class="snav on" href="#"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 7h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4z"></path></svg>Invite codes</a>
+    </nav>
+    <div style="flex:1;min-width:0;padding:28px 36px;display:flex;flex-direction:column;gap:18px;overflow:hidden">
+      <div style="display:flex;align-items:center"><h2 class="t-title" style="flex:1;font-size:22px">Invite codes</h2><a class="btn pri" href="#"><svg class="i sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Create code</a></div>
+      <div class="tabs"><a class="on" href="#">Codes <span class="badge" style="margin-inline-start:4px">4</span></a><a href="#">Waitlist <span class="badge" style="margin-inline-start:4px">41</span></a></div>
+      <div class="card" style="overflow:hidden">
+        <table class="tbl">
+          <thead><tr><th>Code</th><th>Note</th><th>Uses</th><th>Expires</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="mono"><b>KRT-7Q4M</b></td><td>Family</td><td><div style="display:flex;align-items:center;gap:10px"><div class="meter" style="width:72px"><i style="width:66%"></i></div><span class="sub num">2 / 3</span></div></td><td class="sub">Oct 14</td><td><span class="badge ok">Active</span></td><td style="text-align:end"><a class="btn sm ghost" href="#">Copy</a><a class="btn sm ghost" href="#">Revoke</a></td></tr>
+            <tr><td class="mono"><b>KRT-H8PW</b></td><td>Dana</td><td><div style="display:flex;align-items:center;gap:10px"><div class="meter" style="width:72px"><i style="width:0"></i></div><span class="sub num">0 / 1</span></div></td><td class="sub">Oct 18</td><td><span class="badge ok">Active</span></td><td style="text-align:end"><a class="btn sm ghost" href="#">Copy</a><a class="btn sm ghost" href="#">Revoke</a></td></tr>
+            <tr><td class="mono"><b>KRT-2MXC</b></td><td>Work friends</td><td><div style="display:flex;align-items:center;gap:10px"><div class="meter" style="width:72px"><i style="width:100%"></i></div><span class="sub num">5 / 5</span></div></td><td class="sub">Oct 12</td><td><span class="badge">Used up</span></td><td></td></tr>
+            <tr><td class="mono" style="color:var(--faint)"><b>KRT-9BQT</b></td><td class="sub">Test</td><td><span class="sub num">0 / 2</span></td><td class="sub">—</td><td><span class="badge dng">Revoked</span></td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    return { cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>First run · how will you use Nexus</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.opt{display:flex;gap:14px;align-items:center;padding:16px;border-radius:12px;border:1px solid var(--line);background:var(--raised)}
+.opt.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.radio{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line-strong);flex-shrink:0;display:grid;place-items:center}
+.opt.on .radio{border-color:var(--ink)}
+.opt.on .radio::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--ink)}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:390px;height:844px;display:flex;flex-direction:column;padding:12px 20px 24px;background:var(--screen)">
+  <div style="height:44px;display:flex;align-items:center;gap:12px">
+    <div class="meter" style="flex:1"><i style="width:33%"></i></div>
+    <a class="btn sm ghost" href="#">Skip</a>
+  </div>
+  <h1 class="t-title" style="margin-top:28px">How will you use Nexus?</h1>
+  <div style="margin-top:24px;display:flex;flex-direction:column;gap:10px">
+    <a class="opt on" href="#"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg></span><span style="flex:1;line-height:1.35"><b>With my household</b><br><span class="sub">Create a shared space</span></span><span class="radio"></span></a>
+    <a class="opt" href="#"><span class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span><span style="flex:1;line-height:1.35"><b>Just for me</b><br><span class="sub">You can share later</span></span><span class="radio"></span></a>
+    <a class="opt" href="#"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"></path><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg></span><span style="flex:1;line-height:1.35"><b>I have an invite link</b><br><span class="sub">Join an existing space</span></span><span class="radio"></span></a>
+  </div>
+  <div style="margin-top:auto"><a class="btn lg pri block" href="#">Continue</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    return { cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') };
+  }
+}
+</script>
+</body>
+</html>

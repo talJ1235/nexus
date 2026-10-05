@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Emails · invite, code, new sign-in</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.mail{background:#fff;color:#1a1a1a;border:1px solid #e6e4df;border-radius:8px;padding:40px 40px 32px;display:flex;flex-direction:column;gap:18px;font-size:14.5px;line-height:1.55}
+.mail h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em}
+.mail p{margin:0;color:#4a4a47}
+.mbtn{display:inline-flex;align-items:center;justify-content:center;height:42px;padding:0 20px;border-radius:8px;background:#171717;color:#fff;font-weight:600;font-size:14px;align-self:flex-start}
+.code{font:700 32px ui-monospace,Menlo,monospace;letter-spacing:.3em;padding:16px 0;text-align:center;background:#f5f4f1;border-radius:8px;color:#171717}
+.foot{border-top:1px solid #eeece7;padding-top:16px;font-size:12px;color:#8a8984}
+.kv{display:grid;grid-template-columns:90px 1fr;gap:6px 12px;font-size:14px}
+.kv span:nth-child(odd){color:#8a8984}
+</style>
+</helmet>
+<div class="nx" style="width:1440px;height:1000px;padding:60px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:36px;align-items:start;background:#f4f3f0">
+  <div class="mail">
+    <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="#fb7a3c"></path><path d="M10 20l22 12v24L10 44z" fill="#ecebe6" stroke="#cfcdc6" stroke-width="1.2" stroke-linejoin="round"></path><path d="M54 20 32 32v24l22-12z" fill="#f59e0b"></path></svg>
+    <h2>Join Cohen home on Nexus</h2>
+    <p><b style="color:#1a1a1a">Tal Jacoby</b> (tal.jacoby10@gmail.com) invited you to join the space <b style="color:#1a1a1a">Cohen home</b>.</p>
+    <a class="mbtn" href="#">Accept invite</a>
+    <p style="font-size:13px">This invite expires in 7 days.</p>
+    <div class="foot">If you weren't expecting this, you can ignore this email.</div>
+  </div>
+  <div class="mail">
+    <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="#fb7a3c"></path><path d="M10 20l22 12v24L10 44z" fill="#ecebe6" stroke="#cfcdc6" stroke-width="1.2" stroke-linejoin="round"></path><path d="M54 20 32 32v24l22-12z" fill="#f59e0b"></path></svg>
+    <h2>Your verification code</h2>
+    <p>Enter this code to recover your Nexus account.</p>
+    <div class="code">481920</div>
+    <p style="font-size:13px">The code expires in 10 minutes.</p>
+    <div class="foot">If you didn't request this, you can ignore this email. Your account is safe.</div>
+  </div>
+  <div class="mail">
+    <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true"><path d="M32 8 54 20 32 32 10 20z" fill="#fb7a3c"></path><path d="M10 20l22 12v24L10 44z" fill="#ecebe6" stroke="#cfcdc6" stroke-width="1.2" stroke-linejoin="round"></path><path d="M54 20 32 32v24l22-12z" fill="#f59e0b"></path></svg>
+    <h2>New sign-in to your account</h2>
+    <p>We noticed a new sign-in to your Nexus account.</p>
+    <div class="kv"><span>Device</span><span>Safari on iPad</span><span>Location</span><span>Haifa, Israel</span><span>Time</span><span>Sep 23, 10:31</span></div>
+    <p>If this was you, you don't need to do anything.</p>
+    <a class="mbtn" href="#">Review activity</a>
+    <div class="foot">You received this email to keep your account secure.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
