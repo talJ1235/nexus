@@ -111,3 +111,5 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   extra names `PROD_TURSO_DATABASE_URL` + `PROD_TURSO_READ_TOKEN` (read-only token). R15 mockups written into Tal's checkout
   `docs/design/r15/` (+ `nx.css`) — the builder commits them; the sandbox can't `git push` (proxy 403) and the connector
   would need every file pasted, so big file sets go to the PC instead.
+  **Never run `git` from the chat's device shell on Tal's checkout:** it sees every file as modified (CRLF) and left a
+  `.git/index.lock` it couldn't delete (removed with Tal's delete permission). Read/write files only; git stays with Claude Code.
