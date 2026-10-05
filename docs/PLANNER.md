@@ -108,6 +108,12 @@ to setup, tooling or workflow is recorded there in the same session.
   PWA → Android wrapper. Competitor findings (price comparison is table stakes in Israel; gap = all household buying in
   one place) in `docs/STRATEGY.md` §4.
 - Free-tier stack (Vercel Hobby, Turso, Gemini free + Groq/OpenRouter fallback). Tal declined paid usage credits.
+- **Round 15 plan (Tal 2026-10-05):** mockups first (canvas "Nexus R15 — Accounts & Spaces", copies in
+  `docs/design/r15/`), then one brief `docs/ROUND15.md` run in **two unattended sessions** (S1 auth + isolation, S2 spaces,
+  retire, performance, guards) and a short **release session with Tal present** — no merge to `main` without him, because
+  merging runs the migration on the real DB. Planner choices in the brief (Tal can overrule): space invites give
+  member/viewer only (owner by transfer); the admin password fallback stays in closed-circle mode, hardened (only
+  `ADMIN_EMAIL`, ≥ 20-char password, rate-limited, logged) and is what the prod smoke uses; Better Auth pinned 1.7.7.
 
 ## Product direction (discussed 2026-10-03, not started)
 - Toward a multi-user product: sign-up on web or app, short onboarding questionnaire (habits, stores), Google sign-in,
@@ -138,6 +144,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-05 · B · R15 prep: Tal chose mockups first + one round in two sessions. Checked Better Auth 1.7.7 (all needed plugins incl. Turnstile captcha, Next 16 + Drizzle 0.45 peers OK). Made the R15 design canvas (14 screens: sign-in desktop/phone/Hebrew, join, invite-only, recovery, add passkey, switcher desktop/phone, invite sheet, space settings, security desktop/phone, guest notice), copied to `docs/design/r15/` once Tal approves. Wrote `docs/ROUND15.md` (Parts 0, A–G) and the step-by-step setup in its "Before you run". Waiting: Tal's approval of the screens + Google/Vercel setup.
 - 2026-10-05 · B · Strategy session: wrote `docs/STRATEGY.md` (Lean Canvas hypotheses, research plan). Tal: households first, no interviews before an MVP, MVP = full set incl. price comparison, multi-user first. Desk research on competitors (global list apps + Israeli price apps) → §4. Next: cut `docs/ROUND15.md` from `MULTIUSER.md`.
 - 2026-10-04 · B · Naming session (many rounds; Tal wants global, person/robot-like, no known chain). Shortlist from Tal: Karto / Carty / Shopix → advised Karto. Household purchasing recorded as the main use. No domain for now → `MULTIUSER.md` §4.1 closed-circle mode.
 - 2026-10-04 · B · Tal: sign-up on phone + web, hosting alternatives, private-repo impact, top security. Wrote `docs/SECURITY.md` (threat model, findings: no SSRF guard in `extract.ts`, no CSP), extended `MULTIUSER.md` (§4.10 phone/web, QR number matching, checklist 1–11, mockups before R15), private-repo impact in `ENVIRONMENT.md`. Next: prep steps with Tal (name first), then auth/space mockups.
