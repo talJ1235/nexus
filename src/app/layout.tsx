@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { heeboHebrew, heeboLatin } from "./fonts";
@@ -38,11 +38,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = isLocale(raw) ? raw : "en";
   const pal = jar.get(PALETTE_COOKIE)?.value;
   const palette = isPalette(pal) ? pal : DEFAULT_PALETTE;
+  // R15 B4: the per-request CSP nonce (src/proxy.ts) for the inline scripts.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang={locale} dir={locale === "he" ? "rtl" : "ltr"} data-palette={palette} className={`${heeboLatin.variable} ${heeboHebrew.variable}`} suppressHydrationWarning>
       <body>
-        <BootScreen />
-        <Providers locale={locale}>{children}</Providers>
+        <BootScreen nonce={nonce} />
+        <Providers locale={locale} nonce={nonce}>
+          {children}
+        </Providers>
         <SwRegister />
       </body>
     </html>

@@ -41,7 +41,9 @@
     "test:authz-coverage": "tsx scripts/test-authz-coverage.ts",
     "test:scope": "tsx scripts/test-scope.ts",
     "test:roles": "tsx --conditions=react-server scripts/test-role-matrix.ts",
-    "test:tenancy": "node scripts/test-tenancy.mjs"
+    "test:tenancy": "node scripts/test-tenancy.mjs",
+    "test:ssrf": "tsx --conditions=react-server scripts/test-ssrf.ts",
+    "test:headers": "node scripts/test-headers.mjs"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",

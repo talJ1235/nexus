@@ -44,10 +44,10 @@ const AMBIENT: [string, string, number, number, number, number, number, number][
   ["44%", "82%", 24, 2.6, 1.45, 12, -16, 16],
 ];
 
-export function BootScreen() {
+export function BootScreen({ nonce }: { nonce?: string }) {
   return (
     <>
-      <script dangerouslySetInnerHTML={{ __html: MODE_SCRIPT }} />
+      <script nonce={nonce} dangerouslySetInnerHTML={{ __html: MODE_SCRIPT }} />
       <div id="boot" aria-hidden="true">
         <div className="boot-bg">
           <div className="boot-bloom" />

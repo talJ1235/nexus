@@ -74,7 +74,15 @@ export function isBlockedV6(ip: string) {
   return false;
 }
 
+// Tests only (scripts/test-ssrf.ts): let one local "public" test server through, to prove its redirect to a private
+// address is refused. Never set by app code.
+let testAllow: { addresses: Set<string>; ports: Set<string> } | null = null;
+export function __setTestAllow(v: { addresses: string[]; ports: string[] } | null) {
+  testAllow = v && { addresses: new Set(v.addresses), ports: new Set(v.ports) };
+}
+
 export function isBlockedIp(ip: string) {
+  if (testAllow?.addresses.has(ip)) return false;
   const v = isIP(ip.replace(/^\[|\]$/g, ""));
   if (v === 4) return isBlockedV4(ip);
   if (v === 6) return isBlockedV6(ip);
@@ -91,8 +99,9 @@ export function checkUrl(raw: string): URL {
   }
   if (u.protocol !== "http:" && u.protocol !== "https:") throw new BlockedUrlError("scheme");
   if (u.username || u.password) throw new BlockedUrlError("credentials");
-  if (u.port && !((u.protocol === "http:" && u.port === "80") || (u.protocol === "https:" && u.port === "443"))) throw new BlockedUrlError("port");
+  if (u.port && !((u.protocol === "http:" && u.port === "80") || (u.protocol === "https:" && u.port === "443")) && !testAllow?.ports.has(u.port)) throw new BlockedUrlError("port");
   const host = u.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  if (testAllow?.addresses.has(host)) return u;
   if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host.endsWith(".local") || host === "metadata.google.internal") throw new BlockedUrlError("host");
   if (isIP(host) && isBlockedIp(host)) throw new BlockedUrlError("address");
   return u;

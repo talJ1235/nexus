@@ -2,7 +2,7 @@
 export const maxDuration = 60;
 
 import { Suspense } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { LOCALE_COOKIE } from "@/lib/i18n";
@@ -34,7 +34,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
     <>
       {/* The loading shell below is static HTML until the data streams in: remember its last [data-carry] click
           (shown as pressed) for the store to replay once the app is ready (store.tsx). */}
-      <script dangerouslySetInnerHTML={{ __html: CARRY_SCRIPT }} />
+      <script nonce={(await headers()).get("x-nonce") ?? undefined} dangerouslySetInnerHTML={{ __html: CARRY_SCRIPT }} />
       <Suspense fallback={<NexusApp boot={boot} />}>
         <LoadedApp boot={boot} ctx={ctx} />
       </Suspense>

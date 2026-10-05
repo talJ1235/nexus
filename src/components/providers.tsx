@@ -5,6 +5,10 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { markBooted } from "@/lib/boot";
 import { dictionaries, fmt, LOCALE_COOKIE, type Dict, type Locale } from "@/lib/i18n";
+import { z } from "zod";
+
+// R15 B4: no `new Function` probe under the strict CSP (zod would report a caught eval as a CSP violation).
+z.config({ jitless: true });
 
 type I18n = { locale: Locale; t: Dict; f: typeof fmt; setLocale: (l: Locale) => void; dir: "ltr" | "rtl" };
 const I18nContext = createContext<I18n | null>(null);
@@ -22,7 +26,7 @@ const subscribePhone = (cb: () => void) => {
   return () => mq.removeEventListener("change", cb);
 };
 
-export function Providers({ locale, children }: { locale: Locale; children: React.ReactNode }) {
+export function Providers({ locale, nonce, children }: { locale: Locale; nonce?: string; children: React.ReactNode }) {
   const setLocale = useCallback((l: Locale) => {
     document.cookie = `${LOCALE_COOKIE}=${l}; path=/; max-age=31536000; samesite=lax`;
     window.location.reload();
@@ -37,7 +41,7 @@ export function Providers({ locale, children }: { locale: Locale; children: Reac
     [locale, setLocale],
   );
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange nonce={nonce}>
       <I18nContext.Provider value={value}>
         {children}
         {/* Look + motion overrides live in globals.css ("Toasts"). Normal 4 s, with an action (Undo) 7 s; hover pauses. */}
