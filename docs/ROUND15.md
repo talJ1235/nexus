@@ -110,7 +110,7 @@ Left for Tal:
 
 ## Part 0 — Safety net (do first)
 
-### 0.1 [ ] Prod snapshot and a migration rehearsal path
+### 0.1 [x] Prod snapshot and a migration rehearsal path
 - `scripts/db-snapshot.mjs`: **read-only** copy of the prod Turso DB (from `PROD_TURSO_DATABASE_URL` + `PROD_TURSO_READ_TOKEN` in `.env.local`, see "Before you run" step 2) into `snapshots/prod-<date>.db`
   (gitignored, never committed): every table, every row, then `PRAGMA integrity_check` and a row count per table
   printed as a table. No writes to the source — open it with a read-only query path and assert no statement other
@@ -380,3 +380,16 @@ text, delete account / full export, removing the password fallback and guest tab
 price comparison (R18); own domain + passkeys/email recovery live on prod (when the name is final).
 
 ## Open
+
+### Session 1 (2026-10-05)
+- **0.1 — prod snapshot not taken by the builder.** `.env.local` has `PROD_TURSO_DATABASE_URL` + `PROD_TURSO_READ_TOKEN`,
+  but the agent's permission layer refused the read of the production DB from this PC ("Production Reads"). Per the
+  brief's fallback everything ran on file DBs: `db-snapshot.mjs --source file:local.db` (same code path, read-only
+  guard, 32 statements all SELECT/PRAGMA, integrity ok). **Tal runs once:** `node --env-file=.env.local scripts/db-snapshot.mjs`
+  (then `node scripts/db-restore-test.mjs` and `node scripts/r15-rehearsal.mjs` pick the newest `snapshots/prod-*.db`
+  automatically). The real-data rehearsal otherwise happens in Part G step 2.
+- 0.1 counts (local DB copy, no content): collections 13 · items 450 · sources 214 · price_points 164 · alerts 1 ·
+  store_settings 2 · receipts 132 · reports 71 · conversations 269 · conversation_messages 558 · kv 29 · others 0.
+  `db-restore-test.mjs`: backup → empty DB, every table equal, integrity ok. `db-restore-prod.mjs` tested end-to-end
+  against a throwaway file DB (`--target file:snapshots/throwaway.db`, pre-damaged + an extra table): refused without
+  the flag, refused without typed "restore", then restored exactly (extra table gone, 450 items, integrity ok).

@@ -51,3 +51,6 @@ test-data/*
 /public/scanic-ml/
 *-smoke.db
 *-smoke.log
+
+# R15: prod snapshots and rehearsal copies (never committed)
+/snapshots/
