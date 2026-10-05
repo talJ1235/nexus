@@ -126,7 +126,7 @@ Left for Tal:
 
 ## Part A — Sign-in (Better Auth)
 
-### A1. [ ] Better Auth in, the shared password out (with a guarded fallback)
+### A1. [x] Better Auth in, the shared password out (with a guarded fallback)
 - `better-auth@1.7.7` + `@better-auth/passkey@1.7.7` (pin exact). Drizzle adapter on the existing libSQL client.
   Tables created idempotently in `src/db/migrate.ts`, same style as today (`CREATE TABLE IF NOT EXISTS …`).
   `telemetry: { enabled: false }`.
@@ -156,7 +156,7 @@ Left for Tal:
   `NODE_ENV !== "production"` and `AUTH_TEST_IDP=1`; the build fails if both are on in production): sign in, sign out,
   session list shows the device.
 
-### A2. [ ] Sign-in screens = the mockups
+### A2. [x] Sign-in screens = the mockups
 Mockups: `SignIn-desktop` (`Main` on the canvas), `SignIn-phone`, `SignIn-he` (Hebrew RTL), `Recovery-phone`,
 `Passkey-phone`, `InviteOnly-phone`, `Welcome-phone` (first run: personal space ready → create household / have a link /
 just me), `Emails` (invite, code, new sign-in — the code and sign-in emails go live with the domain + Resend).
@@ -173,7 +173,7 @@ just me), `Emails` (invite, code, new sign-in — the code and sign-in emails go
 - **Acceptance:** parity PNGs (desktop + phone, light + dark, Graphite + Plum for `/login`; Hebrew phone). Unit tests
   for OTP: hashed storage, single use, expiry, attempt limit, identical responses for unknown emails.
 
-### A3. [ ] Invite-only sign-up + waitlist
+### A3. [x] Invite-only sign-up + waitlist
 - Table `signup_invite` (`MULTIUSER.md` §3): hashed code (format `XXX-XXXX`, no look-alike characters), note, max
   uses, uses, expires, revoked. A space invite link (C2) also counts as a sign-up invite.
 - The code or `/join/<token>` survives the Google redirect in a short-lived, signed, `HttpOnly` cookie (10 min).
@@ -185,12 +185,12 @@ just me), `Emails` (invite, code, new sign-in — the code and sign-in emails go
 - **Acceptance:** tenancy-style smoke: unknown Google user without invite → no `user` row; with a valid code → user +
   personal space; a used-up / revoked / expired code → refused with a clear message.
 
-### A4. [ ] First sign-in creates the personal space
+### A4. [x] First sign-in creates the personal space
 Every new user gets exactly one personal space ("<first name>", kind `personal`, currency ILS, can't be deleted,
 shared or left). Tal's existing data becomes **his** personal space via the migration (B2), linked when he first signs
 in with Google as `ADMIN_EMAIL`.
 
-### A5. [ ] Settings → Security (devices, passkeys, activity)
+### A5. [x] Settings → Security (devices, passkeys, activity)
 Mockups `Security-desktop`, `Security-phone` (checkup ring, passkey cards, device tiles, activity timeline,
 new-sign-in banner).
 - Sign-in methods (Google, passkeys with name + last used, add / remove — remove and add need **step-up**: a passkey or
@@ -208,7 +208,7 @@ new-sign-in banner).
 
 ## Part B — Data isolation (the core guarantee)
 
-### B1. [ ] Schema: spaces and `space_id` everywhere
+### B1. [x] Schema: spaces and `space_id` everywhere
 - Space = Better Auth `organization` + columns `kind` (personal|shared), `currency`, `color`, `created_by`.
   Membership roles `owner | member | viewer`.
 - Add `space_id` (indexed) to `collections, items, sources, price_points, attachments, alerts, alt_groups,
@@ -222,7 +222,7 @@ new-sign-in banner).
   `pref:owner`, `pref:memory`, `pref:home:*`, `profile:v1`, display language/currency, calendar token → `user_pref`;
   `pref:budget:*`, `pref:import-limit` → `space_pref`. Telegram keys stay untouched (feature off, D2).
 
-### B2. [ ] Migration of today's data (idempotent, rehearsed)
+### B2. [x] Migration of today's data (idempotent, rehearsed)
 - One migration step (`src/db/migrate-r15.ts`, called from `migrate.ts`): creates the admin user from `ADMIN_EMAIL`
   (no password, no Google link yet), Tal's personal space "Tal", backfills `space_id` / `user_id` /
   `added_by_user_id` on every row, moves the `kv` keys (B1), then sets `space_id` NOT NULL (table rebuild in SQLite if
@@ -233,7 +233,7 @@ new-sign-in banner).
   the same To buy / On the way / History counts and budget as prod (compare numbers only). Report the numbers in
   "## Open". Plus a synthetic 2 000-item second space for speed checks (E1).
 
-### B3. [ ] `requireCtx()` + one scoped data layer; every server entry moved
+### B3. [x] `requireCtx()` + one scoped data layer; every server entry moved
 - `requireCtx(need: "view" | "edit" | "owner")` → `{ user, space, role }`. Current space = cookie `nexus_space`,
   validated against membership on **every** request; invalid → personal space. Replaces `assertOwner`/`assertAuth`/
   `requireGuest` in all `src/app/*-actions.ts` (today 110 call sites in 20 files, `rg -c`) and every route under `src/app/api/`.
@@ -264,7 +264,7 @@ new-sign-in banner).
   4. A role-matrix unit test (owner/member/viewer/outsider/signed-out/banned × each action group) with expected
      allow/deny (`SECURITY.md` §4).
 
-### B4. [ ] Server-side fetching guard (SSRF) and security headers
+### B4. [x] Server-side fetching guard (SSRF) and security headers
 - `safeFetch()` per `SECURITY.md` §6, used by `extract.ts` (today `isPublicHttpUrl()` checks only the typed host, then `fetch(…, { redirect: "follow" })`
   at line ~66 follows redirects to anywhere and doesn't check the resolved IP),
   picture search, barcode lookups. `npm run test:ssrf` with the list in §6 (incl. a public URL redirecting to a
@@ -393,3 +393,61 @@ price comparison (R18); own domain + passkeys/email recovery live on prod (when 
   `db-restore-test.mjs`: backup → empty DB, every table equal, integrity ok. `db-restore-prod.mjs` tested end-to-end
   against a throwaway file DB (`--target file:snapshots/throwaway.db`, pre-damaged + an extra table): refused without
   the flag, refused without typed "restore", then restored exactly (extra table gone, 450 items, integrity ok).
+- **Session 1 done: Parts 0, A, B** — commits `R15.0` … `R15.A2` (parity). Not merged to `main` (Part G with Tal).
+- **Before Session 2 / release, Tal:** run the real snapshot + rehearsal on the PC (this agent wasn't allowed to read prod):
+  `node --env-file=.env.local scripts/db-snapshot.mjs` → `node scripts/db-restore-test.mjs` →
+  `node --env-file=.env.local scripts/r15-rehearsal.mjs` (all print counts only). Rehearsal on the local copy (0.1): every
+  table equal before/after (items 450, sources 214, price_points 164, receipts 132, conversations 269, messages 558, reports
+  71, collections 13, store_settings 2, alerts 1), no NULL `space_id`, integrity ok, second run = no-op (whole-DB hash), To buy
+  349 / On the way 11 / History 90 / urgent 2 and this month's budget unchanged; migration ≈ 0.8 s. Synthetic 2 000-item
+  space added to that copy (`snapshots/rehearsal.db`) for E1.
+- `local.db` on this PC is now migrated (backup before: `snapshots/local-before-r15.db`). Tal's first local sign-in:
+  `AUTH_FULL_LOCAL=0 bash scripts/serve.sh` → `/login?admin=1` with the local `APP_PASSWORD`, or Google once the localhost
+  client is in `.env.local`.
+- **Decisions / deviations (please confirm):**
+  - Session tokens: Better Auth stores the token itself in `session.token`; the cookie is `token.HMAC(BETTER_AUTH_SECRET)`, so
+    a DB-only leak can't produce a valid cookie. Hashing the stored token would need wrapping Better Auth's adapter (all of
+    findOne/update/delete/consumeOne/transactions) — left out as risky; revisit if Better Auth adds it.
+  - The sign-in brand panel follows the approved mockups (animated isometric cube field), not the brief's "live shared list"
+    prose (the boards are the approved source).
+  - The admin fallback's daily limit counts **failed** attempts (20/day/IP); the 5/min limit counts all attempts. Counting
+    successes locked the local smoke out after a day of test runs and doesn't stop guessing any better.
+  - Invite codes are stored hashed for lookup **and** AES-GCM-encrypted (key derived from `BETTER_AUTH_SECRET`) so the admin
+    can copy a code again (the mockup's Copy button). Space-invite tokens (C2) stay hash-only.
+  - Settings → Security and → Invite codes are full pages (`/settings/security`, `/settings/invites`) linked from the current
+    Settings dialog; C3's regrouped dialog can embed the same panels (`SecurityPanel`, `InvitesAdmin`).
+  - Telegram and the extension: their **server side** is already off (tg* actions answer "gone"/not connected,
+    `/api/telegram` and `/api/ext/*` = 410, cron sends nothing) because they used global, unscoped state. The UI hiding, help
+    text and extension link removal are still D2 (Session 2). Same for the old guest system: actions error,
+    `/api/invite/accept` = 410, `/g` and `/i/<token>` show a short "access ended / invite gone" message — the
+    `GuestNotice-phone` screen is D1.
+  - Photo guesses from "identify by photo" are no longer written to the shared `barcode:*` cache (another user would read them).
+  - `markAlertsRead` needs edit (a viewer would otherwise change a shared space's alerts); `itemPictureChoices` stores the
+    candidates only for editors (both found by `test:tenancy`).
+  - Welcome → "With my household" goes to `/?welcome=household` (the create-space dialog is C1) and "I have an invite link"
+    to `/join/<token>` (C2) — Session 2 wires both.
+  - `APP_NAME` lives in `src/lib/brand.ts` (`NEXT_PUBLIC_APP_NAME` overrides) and is used by the new screens; the manifest and
+    layout titles still say "Nexus" — switch them in F2 or on rename.
+  - Emails: the recovery-code mail is plain text (Resend REST via `fetch`, no new dependency). The invite and "new sign-in"
+    emails from the `Emails` board aren't sent yet (they need the domain + Resend) — R16 with the inbox/push.
+  - Passkey sign-in: the plugin hard-codes `userVerification: "preferred"` for assertions, so `afterVerification` rejects an
+    assertion without UV; registration requires resident key + UV.
+  - Rotation on role change: role changes are C3 (none exist yet) — revoke the member's sessions there.
+- **New dependencies** (pinned exact): `better-auth@1.7.7`, `@better-auth/passkey@1.7.7` — the auth library chosen in
+  MULTIUSER §1 (Google, passkey, email OTP, organization, admin, rate limits). No others (Resend via `fetch`; the SSRF guard
+  is built on `node:http`).
+- **Blob storage:** `@vercel/blob@2.8.0` supports `access: "private"`, but that needs a private Blob **store** (the existing
+  one is public; switching = a new store + moving files). Kept public, unguessable URLs under `spaces/<spaceId>/receipts/…`
+  (random suffix), only shown inside their space; new attachments/receipts must be under the caller's space prefix.
+- `npm audit --audit-level=high`: 5 high findings, all pre-existing dev/transitive (`braces`/`micromatch` via
+  eslint-config-next; `exceljs`→`uuid` moderate) — none from the new packages. F1 handles the CI gate.
+- Tests added and green: `test:auth`, `test:otp`, `test:authz-coverage` (152 exports), `test:scope`, `test:roles`,
+  `test:tenancy` (B calls 99 actions + 10 routes ≈ 8 700 requests with A's ids → A unchanged, no leaks; viewer can't write;
+  forged `nexus_space` falls back), `test:ssrf`, `test:headers` (no CSP violations), `test:auth-flow` (dev server + stub IdP
+  + virtual authenticator: invite-only, waitlist, used-up/revoked/expired codes, device sign-out, passkey create + sign-in,
+  email recovery → forced passkey). `npm run smoke`: all passed.
+- Smoke note: Playwright's `setOffline(false)` no longer fires the page's `online` event in this browser build; the offline
+  step dispatches it itself (the app logic is unchanged and works).
+- Parity PNGs: `docs/design/parity-r15/` (16). Kept on purpose: "Not you?" under the returning chip and "Lost access?"
+  (brief), the language switch on phone, the real Google "G" mark, Security / Invite codes as pages instead of the Settings
+  modal (C3), activity rows from real data.

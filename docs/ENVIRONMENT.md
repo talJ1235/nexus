@@ -113,3 +113,12 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   would need every file pasted, so big file sets go to the PC instead.
   **Never run `git` from the chat's device shell on Tal's checkout:** it sees every file as modified (CRLF) and left a
   `.git/index.lock` it couldn't delete (removed with Tal's delete permission). Read/write files only; git stays with Claude Code.
+- 2026-10-06 (Claude Code, R15 session 1): new env names — `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ADMIN_EMAIL` (+ optional
+  `ADMIN_NAME`), `GOOGLE_CLIENT_ID/SECRET`, `AUTH_FULL_LOCAL` (localhost only), `NEXT_PUBLIC_APP_URL` + `RESEND_API_KEY` (+
+  `EMAIL_FROM`) switch on full mode, `TURNSTILE_SITE_KEY/SECRET_KEY` (optional), test-only `AUTH_TEST_IDP=1` (dev server only;
+  a production build/server refuses it), `AUTH_SESSION_CACHE=0` (tests), `R15_LOCAL_GUARD=0` (escape hatch; default refuses a
+  non-file DB from a PC). Local servers: `AUTH_FULL_LOCAL=0 bash scripts/serve.sh` = prod-like closed mode (the admin password
+  form is `/login?admin=1`, which `npm run smoke` uses); with `.env.local`'s `AUTH_FULL_LOCAL=1` the fallback is off and
+  passkeys / email recovery show. Email in dev lands in `.auth-outbox.jsonl` (gitignored). New scripts: `db-snapshot.mjs`,
+  `db-restore-test.mjs`, `db-restore-prod.mjs`, `r15-rehearsal.mjs`, `parity-r15.mjs`; tests `test:auth`, `test:otp`,
+  `test:authz-coverage`, `test:scope`, `test:roles`, `test:tenancy`, `test:ssrf`, `test:headers`, `test:auth-flow`.
