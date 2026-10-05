@@ -1,9 +1,13 @@
+import { routeCtx } from "@/lib/ctx";
 import { parseUpload } from "@/lib/importer";
 
 export const maxDuration = 60;
 
-// Owner-only (proxy). Parses an uploaded CSV/XLSX and returns columns + rows for mapping.
+// Signed-in editors of the current space. Parses an uploaded CSV/XLSX and returns columns + rows for mapping
+// (nothing is stored here; importRows writes into the current space).
 export async function POST(req: Request) {
+  const ctx = await routeCtx("edit");
+  if (ctx instanceof Response) return ctx;
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
   if (!file || typeof file === "string") return Response.json({ error: "no_file" }, { status: 400 });

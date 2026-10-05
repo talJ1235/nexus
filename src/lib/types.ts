@@ -20,7 +20,11 @@ export type AppData = {
   /** Round 13 Home: recent alerts (Needs you) and the owner's Home prefs; missing in older offline snapshots. */
   alerts?: Alert[];
   home?: HomePrefs;
+  /** R15: the current space and the caller's role in it (uploads go under spaces/<id>/; viewers get no write controls). */
+  space?: SpaceInfo;
 };
+
+export type SpaceInfo = { id: string; name: string; kind: "personal" | "shared"; color: string; icon: string; currency: string; role: "owner" | "member" | "viewer" };
 
 export type SourceDraft = {
   url: string;

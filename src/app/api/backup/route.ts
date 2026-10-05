@@ -1,10 +1,14 @@
-import { buildBackup, restoreBackup } from "@/lib/backup";
+import { routeCtx } from "@/lib/ctx";
+import { scoped } from "@/lib/db-scoped";
+import { buildBackup, restoreBackup } from "@/lib/db-scoped/backup";
 
 export const maxDuration = 60;
 
-// Owner-only: /api/* is behind the session check in proxy.ts.
+// R15 B3: the current space only, owner role; restore only into a space you own (the current one).
 export async function GET() {
-  const backup = await buildBackup();
+  const ctx = await routeCtx("owner");
+  if (ctx instanceof Response) return ctx;
+  const backup = await buildBackup(scoped(ctx));
   const name = `nexus-backup-${backup.exportedAt.slice(0, 10)}.json`;
   return new Response(JSON.stringify(backup), {
     headers: {
@@ -16,6 +20,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const ctx = await routeCtx("owner");
+  if (ctx instanceof Response) return ctx;
   const mode = new URL(req.url).searchParams.get("mode") === "replace" ? "replace" : "merge";
   let body: unknown;
   try {
@@ -24,7 +30,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "invalid_json" }, { status: 400 });
   }
   try {
-    const counts = await restoreBackup(body, mode);
+    const counts = await restoreBackup(scoped(ctx), body, mode);
     return Response.json({ ok: true, counts });
   } catch (e) {
     const msg = String((e as Error)?.message ?? e);

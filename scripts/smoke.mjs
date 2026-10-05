@@ -367,7 +367,7 @@ try {
     page.on("console", (m) => m.type() === "error" && !/Failed to load resource|favicon|net::ERR/.test(m.text()) && errors.push(`console: ${m.text().slice(0, 160)}`));
 
     await step("owner login", async () => {
-      await page.goto(`${BASE}/login`);
+      await page.goto(`${BASE}/login?admin=1`);
       await page.fill("#password", PASSWORD);
       await Promise.all([page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), page.click("button[type=submit]")]);
       ok(true, "owner login");
@@ -1833,7 +1833,7 @@ try {
       const noImg = b.data.items.filter((i) => !i.imageUrl).length;
       const noPrice = b.data.items.filter((i) => !b.data.sources.some((s) => s.itemId === i.id && s.price != null)).length;
       if (noImg || noPrice) console.log(`WARN items without image: ${noImg}, without any price: ${noPrice} (of ${b.data.items.length})`);
-      const last = b.data.kv.find?.((x) => x.key === "pref:last_check");
+      const last = b.data.kv?.find?.((x) => x.key === "pref:last_check");
       if (last) console.log(`INFO last price check: ${String(last.value).slice(0, 80)}`);
     });
 
@@ -2552,7 +2552,7 @@ try {
       const oc = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, colorScheme: "dark" });
       try {
         const p = await oc.newPage();
-        await p.goto(`${BASE}/login`);
+        await p.goto(`${BASE}/login?admin=1`);
         await p.fill("#password", PASSWORD);
         await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), p.click("button[type=submit]")]);
         await p.waitForSelector(READY, { timeout: 15000 });
@@ -2586,6 +2586,8 @@ try {
         await p.keyboard.press("Escape");
         // Back online: the shell goes back to the live app by itself.
         await oc.setOffline(false);
+        // Playwright's setOffline(false) doesn't always fire the page's "online" event (R15): fire it like the browser would.
+        await p.evaluate(() => window.dispatchEvent(new Event("online")));
         await p.waitForURL((u) => u.pathname === "/", { timeout: 15000 });
         await p.waitForSelector(READY, { timeout: 15000 });
         const banner = await p.locator("[data-offline-banner]").count();
@@ -2730,7 +2732,7 @@ try {
         const FRESH = process.env.SMOKE_FRESH.replace(/\/$/, "");
         const fctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE });
         const p = await fctx.newPage();
-        await p.goto(`${FRESH}/login`);
+        await p.goto(`${FRESH}/login?admin=1`);
         await p.fill("#password", PASSWORD);
         await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), p.click("button[type=submit]")]);
         await p.waitForSelector("[data-home-empty]", { timeout: 15000 });

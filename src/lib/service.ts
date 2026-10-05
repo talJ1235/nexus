@@ -2,7 +2,8 @@ import "server-only";
 import { and, asc, eq, gt, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { db, schema } from "@/db";
+import { schema } from "@/db";
+import { joins, type Scoped } from "@/lib/db-scoped";
 import { categorize, extractWithAi, extractWithUrlContext } from "@/lib/ai";
 import { getItem, recordPrice } from "@/lib/data";
 import { extractFromUrl, hintsFromUrl, type Extracted } from "@/lib/extract";
@@ -30,16 +31,11 @@ export const clientPayload = z.object({
 });
 export type ClientPayload = z.infer<typeof clientPayload>;
 
-export async function findDuplicate(normalizedUrl: string, title: string | null): Promise<Duplicate | null> {
-  const exact = await db
-    .select({ itemId: schema.sources.itemId, title: schema.items.title })
-    .from(schema.sources)
-    .innerJoin(schema.items, eq(schema.items.id, schema.sources.itemId))
-    .where(eq(schema.sources.normalizedUrl, normalizedUrl))
-    .limit(1);
-  if (exact[0]) return { itemId: exact[0].itemId, title: exact[0].title, reason: "url" };
+export async function findDuplicate(s: Scoped, normalizedUrl: string, title: string | null): Promise<Duplicate | null> {
+  const exact = await joins.sourceWithItemTitle(s, normalizedUrl);
+  if (exact) return { itemId: exact.itemId, title: exact.title, reason: "url" };
   if (!title) return null;
-  const candidates = await db.select({ id: schema.items.id, title: schema.items.title }).from(schema.items);
+  const candidates = await s.pick({ id: schema.items.id, title: schema.items.title }, schema.items);
   let best: { id: string; title: string; score: number } | null = null;
   for (const c of candidates) {
     const score = titleSimilarity(title, c.title);
@@ -55,7 +51,7 @@ export async function findDuplicate(normalizedUrl: string, title: string | null)
  */
 const DRAFT_BUDGET_MS = 38_000;
 
-export async function buildDraft(ex: Extracted, hintCollectionId: string | null, originalUrl?: string, startedAt = Date.now()): Promise<ItemDraft> {
+export async function buildDraft(s: Scoped, ex: Extracted, hintCollectionId: string | null, originalUrl?: string, startedAt = Date.now()): Promise<ItemDraft> {
   const deadline = startedAt + DRAFT_BUDGET_MS;
   const left = () => deadline - Date.now();
   let { title, price, currency, brand, image } = ex;
@@ -100,10 +96,11 @@ export async function buildDraft(ex: Extracted, hintCollectionId: string | null,
     }
   }
 
-  const collections = await db
-    .select({ id: schema.collections.id, name: schema.collections.name, kind: schema.collections.kind, description: schema.collections.description })
-    .from(schema.collections)
-    .where(eq(schema.collections.archived, false));
+  const collections = await s.pick(
+    { id: schema.collections.id, name: schema.collections.name, kind: schema.collections.kind, description: schema.collections.description },
+    schema.collections,
+    eq(schema.collections.archived, false),
+  );
 
   let category: string | null = null;
   let tags: string[] = [];
@@ -112,7 +109,7 @@ export async function buildDraft(ex: Extracted, hintCollectionId: string | null,
   let cleanTitle = rawTitle;
 
   if (rawTitle) {
-    const tagRows = await db.select({ tags: schema.items.tags }).from(schema.items);
+    const tagRows = await s.pick({ tags: schema.items.tags }, schema.items);
     const counts = new Map<string, number>();
     for (const r of tagRows) for (const t of r.tags ?? []) counts.set(t, (counts.get(t) ?? 0) + 1);
     const knownTags = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
@@ -153,25 +150,25 @@ export async function buildDraft(ex: Extracted, hintCollectionId: string | null,
   };
 }
 
-export async function previewUrlCore(url: string, hintCollectionId: string | null = null): Promise<PreviewResult> {
+export async function previewUrlCore(s: Scoped, url: string, hintCollectionId: string | null = null): Promise<PreviewResult> {
   const clean = url.trim();
   if (!isHttpUrl(clean)) throw new Error("invalid_url");
-  const early = await findDuplicate(normalizeUrl(clean), null);
+  const early = await findDuplicate(s, normalizeUrl(clean), null);
   if (early) {
     // Exact link already saved — skip the network round-trip.
-    const s = storeFromUrl(clean);
+    const st = storeFromUrl(clean);
     return {
       duplicate: early,
       draft: {
         title: early.title, brand: null, imageUrl: null, category: null, tags: [], collectionId: hintCollectionId, quality: "partial",
-        source: { url: clean, normalizedUrl: normalizeUrl(clean), store: s.name, storeKey: s.key, price: null, currency: s.currency ?? "USD", shipping: null, availability: null, rawTitle: null, extractMethod: "none" },
+        source: { url: clean, normalizedUrl: normalizeUrl(clean), store: st.name, storeKey: st.key, price: null, currency: st.currency ?? "USD", shipping: null, availability: null, rawTitle: null, extractMethod: "none" },
       },
     };
   }
   const started = Date.now();
   const ex = await extractFromUrl(clean);
-  const draft = await buildDraft(ex, hintCollectionId, clean, started);
-  const duplicate = await findDuplicate(draft.source.normalizedUrl, draft.source.rawTitle ? draft.title : null);
+  const draft = await buildDraft(s, ex, hintCollectionId, clean, started);
+  const duplicate = await findDuplicate(s, draft.source.normalizedUrl, draft.source.rawTitle ? draft.title : null);
   return { draft, duplicate };
 }
 
@@ -198,33 +195,34 @@ export function extractedFromPayload(payload: ClientPayload): Extracted {
   };
 }
 
-export async function previewFromClientCore(payload: ClientPayload, hintCollectionId: string | null = null): Promise<PreviewResult> {
-  const draft = await buildDraft(extractedFromPayload(payload), hintCollectionId);
-  const duplicate = await findDuplicate(draft.source.normalizedUrl, draft.source.rawTitle ? draft.title : null);
+export async function previewFromClientCore(s: Scoped, payload: ClientPayload, hintCollectionId: string | null = null): Promise<PreviewResult> {
+  const draft = await buildDraft(s, extractedFromPayload(payload), hintCollectionId);
+  const duplicate = await findDuplicate(s, draft.source.normalizedUrl, draft.source.rawTitle ? draft.title : null);
   return { draft, duplicate };
 }
 
 /** Re-read a store link (server-side, or with data the extension read in the browser) and repair the item. */
-export async function refreshSourceCore(sourceId: string, payload?: ClientPayload | null): Promise<ItemWithSources> {
-  const src = await db.query.sources.findFirst({ where: eq(schema.sources.id, sourceId) });
+export async function refreshSourceCore(s: Scoped, sourceId: string, payload?: ClientPayload | null): Promise<ItemWithSources> {
+  const src = await s.byId(schema.sources, sourceId);
   if (!src) throw new Error("not_found");
-  const item = await getItem(src.itemId);
+  const item = await getItem(s, src.itemId);
   if (!item) throw new Error("not_found");
   const ex = payload ? extractedFromPayload({ ...payload, url: payload.url || src.url }) : await extractFromUrl(src.url);
-  const draft = await buildDraft(ex, item.collectionId, src.url);
+  const draft = await buildDraft(s, ex, item.collectionId, src.url);
   const t = now();
 
-  await db
-    .update(schema.sources)
-    .set({
+  await s.update(
+    schema.sources,
+    {
       fetchedAt: t,
       ...(draft.source.price != null ? { price: draft.source.price, currency: draft.source.currency } : {}),
       ...(draft.source.availability ? { availability: draft.source.availability } : {}),
       ...(draft.source.rawTitle ? { rawTitle: draft.source.rawTitle } : {}),
       extractMethod: draft.source.extractMethod,
-    })
-    .where(eq(schema.sources.id, sourceId));
-  if (draft.source.price != null) await recordPrice(sourceId, item.id, draft.source.price, draft.source.currency);
+    },
+    eq(schema.sources.id, sourceId),
+  );
+  if (draft.source.price != null) await recordPrice(s, sourceId, item.id, draft.source.price, draft.source.currency);
 
   // The first read failed (no real title) → adopt the new name, tags and image.
   const firstReadFailed = !src.rawTitle;
@@ -236,8 +234,8 @@ export async function refreshSourceCore(sourceId: string, payload?: ClientPayloa
     if (!item.brand) patch.brand = draft.brand;
   }
   if (!item.imageUrl && draft.imageUrl) patch.imageUrl = await storeThumbnail(draft.imageUrl, item.id);
-  await db.update(schema.items).set(patch).where(eq(schema.items.id, item.id));
-  return (await getItem(item.id))!;
+  await s.update(schema.items, patch, eq(schema.items.id, item.id));
+  return (await getItem(s, item.id))!;
 }
 
 // ---------- Self-heal: links whose first read came back incomplete ----------
@@ -250,38 +248,35 @@ export function missingDetails(src: { url: string | null; rawTitle: string | nul
 const REPAIR_WINDOW_MS = 21 * 86400_000;
 
 /** Recent incomplete links, oldest attempt first, not retried within `minGapMs`. */
-export async function sourcesNeedingDetails(limit = 20, minGapMs = 6 * 3600_000) {
+export async function sourcesNeedingDetails(s: Scoped, limit = 20, minGapMs = 6 * 3600_000) {
   const t = now();
-  const rows = await db
-    .select({ source: schema.sources, imageUrl: schema.items.imageUrl })
-    .from(schema.sources)
-    .innerJoin(schema.items, eq(schema.items.id, schema.sources.itemId))
-    .where(
-      and(
-        gt(schema.sources.createdAt, t - REPAIR_WINDOW_MS),
-        eq(schema.items.status, "to_buy"),
-        or(isNull(schema.sources.rawTitle), isNull(schema.sources.price), isNull(schema.items.imageUrl)),
-        or(isNull(schema.sources.fetchedAt), lt(schema.sources.fetchedAt, t - minGapMs)),
-        isNotNull(schema.sources.url),
-      ),
-    )
-    .orderBy(asc(schema.sources.fetchedAt))
-    .limit(limit);
+  const rows = await joins.sourcesWithItemImage(
+    s,
+    and(
+      gt(schema.sources.createdAt, t - REPAIR_WINDOW_MS),
+      eq(schema.items.status, "to_buy"),
+      or(isNull(schema.sources.rawTitle), isNull(schema.sources.price), isNull(schema.items.imageUrl)),
+      or(isNull(schema.sources.fetchedAt), lt(schema.sources.fetchedAt, t - minGapMs)),
+      isNotNull(schema.sources.url),
+    )!,
+    asc(schema.sources.fetchedAt),
+    limit,
+  );
   return rows.filter((r) => missingDetails(r.source, { imageUrl: r.imageUrl })).map((r) => r.source);
 }
 
 /** Server-side repair pass (daily cron): re-read incomplete links until the time budget runs out. */
-export async function repairIncomplete(budgetMs = 20_000) {
+export async function repairIncomplete(s: Scoped, budgetMs = 20_000) {
   const started = now();
   let repaired = 0;
   let tried = 0;
-  for (const src of await sourcesNeedingDetails(10)) {
+  for (const src of await sourcesNeedingDetails(s, 10)) {
     if (now() - started > budgetMs) break;
     tried++;
     try {
-      const item = await refreshSourceCore(src.id);
-      const s = item.sources.find((x) => x.id === src.id);
-      if (s && !missingDetails(s, item)) repaired++;
+      const item = await refreshSourceCore(s, src.id);
+      const got = item.sources.find((x) => x.id === src.id);
+      if (got && !missingDetails(got, item)) repaired++;
     } catch {
       /* next one */
     }
@@ -319,19 +314,21 @@ export const draftSchema = z.object({
   gtin: z.string().regex(/^\d{8,14}$/).nullable().optional(),
 });
 
-export async function createItemCore(input: z.input<typeof draftSchema>): Promise<ItemWithSources> {
+export async function createItemCore(s: Scoped, input: z.input<typeof draftSchema>): Promise<ItemWithSources> {
   const d = draftSchema.parse(input);
+  const collectionId = await s.ref(schema.collections, d.collectionId);
   const id = nanoid(12);
   const imageUrl = d.imageUrl?.includes(".blob.vercel-storage.com") ? d.imageUrl : await storeThumbnail(d.imageUrl, id);
   const t = now();
-  await db.insert(schema.items).values({
+  await s.insert(schema.items, {
     id,
     title: d.title,
     brand: d.brand,
     imageUrl,
     category: d.category,
     tags: d.tags,
-    collectionId: d.collectionId,
+    collectionId,
+    addedByUserId: s.scope.userId,
     quantity: d.quantity ?? 1,
     priority: d.priority ?? "normal",
     notes: d.notes ?? null,
@@ -341,23 +338,23 @@ export async function createItemCore(input: z.input<typeof draftSchema>): Promis
   });
   if (d.source) {
     const sourceId = nanoid(12);
-    await db.insert(schema.sources).values({ id: sourceId, itemId: id, ...d.source, fetchedAt: t, createdAt: t });
-    await recordPrice(sourceId, id, d.source.price, d.source.currency);
+    await s.insert(schema.sources, { id: sourceId, itemId: id, ...d.source, fetchedAt: t, createdAt: t });
+    await recordPrice(s, sourceId, id, d.source.price, d.source.currency);
   }
-  return (await getItem(id))!;
+  return (await getItem(s, id))!;
 }
 
-export async function addSourceCore(itemId: string, source: SourceDraft, imageUrl?: string | null): Promise<ItemWithSources> {
-  const s = sourceDraftSchema.parse(source);
+export async function addSourceCore(s: Scoped, itemId: string, source: SourceDraft, imageUrl?: string | null): Promise<ItemWithSources> {
+  const src = sourceDraftSchema.parse(source);
+  const item = await s.mustGet(schema.items, itemId);
   const t = now();
   const sourceId = nanoid(12);
-  await db.insert(schema.sources).values({ id: sourceId, itemId, ...s, fetchedAt: t, createdAt: t });
-  await recordPrice(sourceId, itemId, s.price, s.currency);
-  const item = await db.query.items.findFirst({ where: eq(schema.items.id, itemId) });
-  if (item && !item.imageUrl && imageUrl) {
-    await db.update(schema.items).set({ imageUrl: await storeThumbnail(imageUrl, itemId) }).where(eq(schema.items.id, itemId));
+  await s.insert(schema.sources, { id: sourceId, itemId, ...src, fetchedAt: t, createdAt: t });
+  await recordPrice(s, sourceId, itemId, src.price, src.currency);
+  if (!item.imageUrl && imageUrl) {
+    await s.update(schema.items, { imageUrl: await storeThumbnail(imageUrl, itemId) }, eq(schema.items.id, itemId));
   }
-  await db.update(schema.items).set({ updatedAt: t }).where(eq(schema.items.id, itemId));
-  return (await getItem(itemId))!;
+  await s.update(schema.items, { updatedAt: t }, eq(schema.items.id, itemId));
+  return (await getItem(s, itemId))!;
 }
 

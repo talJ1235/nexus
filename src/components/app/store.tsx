@@ -150,6 +150,8 @@ type Store = {
   fillImages: (ids: string[]) => void;
   /** VAT-free import limit, USD (G2). */
   importLimitUsd: number;
+  /** R15: the current space's id ("" in an old offline snapshot) — receipt uploads go under spaces/<id>/. */
+  spaceId: string;
   setImportLimitUsd: (v: number) => void;
   /** Compare-stores sheet (G1) for this item. */
   compareItemId: string | null;
@@ -709,6 +711,7 @@ export function StoreProvider({
       compareItemId,
       setCompareItemId,
       importLimitUsd,
+      spaceId: initial.space?.id ?? "",
       setImportLimitUsd,
       sidebarCollapsed,
       setSidebarCollapsed,

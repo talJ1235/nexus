@@ -7,8 +7,10 @@ import { applyRanking, cacheKey, filterImageResults, makeCache, type Candidate, 
 import { heuristicLineInfo, linePrompt, LINE_SCHEMA, parseLineInfos, type LineInfo } from "./product-lines";
 import { imageSearch, searchProvider } from "./search";
 import { titleSimilarity } from "./similarity";
-import { db, schema } from "@/db";
+import { schema } from "@/db";
+import type { Scoped } from "./db-scoped";
 import { isNotNull } from "drizzle-orm";
+import { safeFetch } from "./safe-fetch";
 
 // Real pictures for products, like searching Google (Round 10 D): understand the line (D1), gather candidates from the
 // first source that has good ones (D2), let one batched vision call pick for several items at once (D3). Works on phone
@@ -59,8 +61,10 @@ async function offByName(q: string, source: "off" | "generic"): Promise<Candidat
   });
 }
 
-async function ownItems(title: string, excludeId?: string): Promise<Candidate[]> {
-  const rows = await db.select({ id: schema.items.id, title: schema.items.title, imageUrl: schema.items.imageUrl, imageSource: schema.items.imageSource, imageCheck: schema.items.imageCheck }).from(schema.items).where(isNotNull(schema.items.imageUrl));
+/** Pictures of this space's own items with a similar title (R15: never another space's). */
+async function ownItems(s: Scoped | undefined, title: string, excludeId?: string): Promise<Candidate[]> {
+  if (!s) return [];
+  const rows = await s.pick({ id: schema.items.id, title: schema.items.title, imageUrl: schema.items.imageUrl, imageSource: schema.items.imageSource, imageCheck: schema.items.imageCheck }, schema.items, isNotNull(schema.items.imageUrl));
   return rows
     .filter((r) => r.id !== excludeId && r.imageUrl && r.imageSource !== "icon" && r.imageSource !== "generic" && !r.imageCheck)
     .map((r) => ({ r, score: titleSimilarity(title, r.title) }))
@@ -86,12 +90,12 @@ function mockCandidates(info: LineInfo): Candidate[] {
 }
 
 /** Up to 6 candidates from the first source that has good ones (barcode → own → Google he/en → OFF → generic → icon). */
-export async function findCandidates(info: LineInfo, opts: { excludeId?: string } = {}): Promise<Candidate[]> {
+export async function findCandidates(info: LineInfo, opts: { excludeId?: string; s?: Scoped } = {}): Promise<Candidate[]> {
   if (mockAi()) return mockCandidates(info);
   // Own items with a similar title lead, but don't end the search on their own: one old picture is a weak set to
   // choose from (and may no longer load), so Google's results fill the rest and the vision pick decides.
-  const own = await ownItems(info.nameHe || info.raw, opts.excludeId)
-    .then((a) => (a.length ? a : ownItems(info.raw, opts.excludeId)))
+  const own = await ownItems(opts.s, info.nameHe || info.raw, opts.excludeId)
+    .then((a) => (a.length ? a : ownItems(opts.s, info.raw, opts.excludeId)))
     .catch(() => []);
   const steps: (() => Promise<Candidate[]>)[] = [
     () => (info.barcode ? offByBarcode(info.barcode) : Promise.resolve([])),
@@ -154,7 +158,7 @@ async function thumb(url: string): Promise<AiFile | null> {
   try {
     const buf = url.startsWith("data:")
       ? Buffer.from(url.split(",")[1] ?? "", "base64")
-      : Buffer.from(await (await fetch(url, { headers: { ...UA, accept: "image/*" }, signal: AbortSignal.timeout(5000) })).arrayBuffer());
+      : (await safeFetch(url, { headers: { ...UA, accept: "image/*" }, timeoutMs: 5000 })).body;
     const jpg = await sharp(buf, { failOn: "none" }).flatten({ background: "#ffffff" }).resize(192, 192, { fit: "inside" }).jpeg({ quality: 70 }).toBuffer();
     return { mimeType: "image/jpeg", data: jpg.toString("base64") };
   } catch {
@@ -223,14 +227,14 @@ export async function rankCandidates(batch: { info: LineInfo; candidates: Candid
 }
 
 /** D1 → D2 → D3 for a set of names (receipt review, backfill, re-search). Several at a time, bounded by time. */
-export async function picturesFor(entries: { name: string; info?: LineInfo | null; excludeId?: string }[], budgetMs = 40_000): Promise<{ info: LineInfo; ranked: Ranked }[]> {
+export async function picturesFor(entries: { name: string; info?: LineInfo | null; excludeId?: string }[], budgetMs = 40_000, s?: Scoped): Promise<{ info: LineInfo; ranked: Ranked }[]> {
   const t0 = Date.now();
   const missing = entries.filter((e) => !e.info).map((e) => e.name);
   const understood = await understandLines(missing);
   const infos = entries.map((e) => e.info ?? understood[missing.indexOf(e.name)] ?? heuristicLineInfo(e.name));
   const cands: Candidate[][] = infos.map(() => []);
   for (let i = 0; i < infos.length && Date.now() - t0 < budgetMs; i += 4) {
-    const got = await Promise.all(infos.slice(i, i + 4).map((info, k) => findCandidates(info, { excludeId: entries[i + k].excludeId }).catch(() => [])));
+    const got = await Promise.all(infos.slice(i, i + 4).map((info, k) => findCandidates(info, { excludeId: entries[i + k].excludeId, s }).catch(() => [])));
     got.forEach((g, k) => (cands[i + k] = g));
   }
   const ranked = await rankCandidates(infos.map((info, i) => ({ info, candidates: cands[i] })));

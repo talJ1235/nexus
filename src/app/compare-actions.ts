@@ -2,7 +2,8 @@
 
 import { getProfile, memoryEnabled } from "@/lib/profile-server";
 import { z } from "zod";
-import { assertOwner } from "@/lib/auth";
+import { requireCtx, type Ctx } from "@/lib/ctx";
+import { scoped } from "@/lib/db-scoped";
 import { aiEnabled } from "@/lib/ai";
 import { mockAi } from "@/lib/assistant";
 import { cachedCompare, compareQueries, pickCandidates, readCandidates, sameProduct, saveCompare, searchCandidates, toResults, type CompareResult } from "@/lib/compare";
@@ -22,18 +23,19 @@ const currency = z.enum(CURRENCIES);
 
 /** Start (or reuse, 24 h) a comparison for one item. Never adds anything by itself. */
 /** The user's usual stores (memory on), most used first — ties in compare go to them (R9 C3). */
-async function usualStores(currency: string): Promise<string[]> {
-  if (!(await memoryEnabled().catch(() => false))) return [];
-  return ((await getProfile(currency).catch(() => null))?.stores ?? []).map((s) => s.storeKey);
+async function usualStores(ctx: Ctx, currency: string): Promise<string[]> {
+  if (!(await memoryEnabled(ctx).catch(() => false))) return [];
+  return ((await getProfile(ctx, currency).catch(() => null))?.stores ?? []).map((s) => s.storeKey);
 }
 
 export async function compareStart(raw: { itemId: string; currency: string; refresh?: boolean }): Promise<CompareResponse> {
-  await assertOwner();
-  const input = z.object({ itemId: z.string().max(40), currency, refresh: z.boolean().optional() }).parse(raw);
-  const item = await getItem(input.itemId);
+  const ctx = await requireCtx("view");
+  const s = scoped(ctx);
+  const input = z.object({ itemId: z.string().max(40), currency, refresh: z.boolean().optional() }).strict().parse(raw);
+  const item = await getItem(s, input.itemId);
   if (!item) return { status: "not_found" };
   if (!input.refresh) {
-    const c = await cachedCompare(item.id, input.currency);
+    const c = await cachedCompare(s, item.id, input.currency);
     if (c) return { status: "ok", results: c.results, at: c.at, blocked: [] };
   }
   if (!aiEnabled() && !mockAi()) return { status: "no_ai" };
@@ -50,9 +52,9 @@ export async function compareStart(raw: { itemId: string; currency: string; refr
   if (!searchProvider()) return { status: "browser", queries };
   const cands = pickCandidates(item, await searchCandidates(queries));
   const { read, blocked } = await readCandidates(cands);
-  const results = toResults(await sameProduct(item, read), input.currency, await getRates(), await usualStores(input.currency));
+  const results = toResults(await sameProduct(item, read), input.currency, await getRates(), await usualStores(ctx, input.currency));
   const at = Date.now();
-  await saveCompare(item.id, { at, currency: input.currency, results });
+  await saveCompare(s, item.id, { at, currency: input.currency, results });
   return { status: "ok", results, at, blocked };
 }
 
@@ -61,7 +63,8 @@ export async function compareStart(raw: { itemId: string; currency: string; refr
  * for stores that block servers. Verified the same way, merged into the cached comparison.
  */
 export async function compareVerify(raw: { itemId: string; currency: string; candidates?: { url: string; title?: string | null; price?: string | number | null }[]; payloads?: unknown[] }): Promise<CompareResponse> {
-  await assertOwner();
+  const ctx = await requireCtx("view");
+  const s = scoped(ctx);
   const input = z
     .object({
       itemId: z.string().max(40),
@@ -69,8 +72,9 @@ export async function compareVerify(raw: { itemId: string; currency: string; can
       candidates: z.array(z.object({ url: z.string().url().max(2000), title: z.string().max(400).nullish(), price: z.union([z.string().max(60), z.number()]).nullish() })).max(60).optional(),
       payloads: z.array(clientPayload).max(6).optional(),
     })
+    .strict()
     .parse(raw);
-  const item = await getItem(input.itemId);
+  const item = await getItem(s, input.itemId);
   if (!item) return { status: "not_found" };
   const { read, blocked } = await readCandidates(pickCandidates(item, input.candidates ?? []));
   for (const p of input.payloads ?? []) {
@@ -78,10 +82,10 @@ export async function compareVerify(raw: { itemId: string; currency: string; can
     if (ex.title && ex.price != null) read.push({ url: ex.url, ex });
   }
   const rates = await getRates();
-  const fresh = toResults(await sameProduct(item, read), input.currency, rates, await usualStores(input.currency));
-  const prev = input.candidates?.length ? [] : ((await cachedCompare(item.id, input.currency))?.results ?? []);
+  const fresh = toResults(await sameProduct(item, read), input.currency, rates, await usualStores(ctx, input.currency));
+  const prev = input.candidates?.length ? [] : ((await cachedCompare(s, item.id, input.currency))?.results ?? []);
   const results = [...prev, ...fresh].filter((r, i, all) => all.findIndex((x) => x.url === r.url) === i).sort((a, b) => a.total - b.total);
   const at = Date.now();
-  await saveCompare(item.id, { at, currency: input.currency, results });
+  await saveCompare(s, item.id, { at, currency: input.currency, results });
   return { status: "ok", results, at, blocked };
 }

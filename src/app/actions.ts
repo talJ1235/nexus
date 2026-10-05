@@ -1,59 +1,57 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { and, eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { del } from "@vercel/blob";
 import { z } from "zod";
-import { db, schema } from "@/db";
+import { schema } from "@/db";
 import { extractWithAi, extractWithUrlContext } from "@/lib/ai";
-import { getItem, loadItems, recordPrice } from "@/lib/data";
-import { addSourceCore, createItemCore, draftSchema, previewFromClientCore, previewUrlCore, refreshSourceCore, type ClientPayload } from "@/lib/service";
+import { requireCtx } from "@/lib/ctx";
+import { getItem, loadItems, mustItem, recordPrice } from "@/lib/data";
+import { scoped, type Scoped } from "@/lib/db-scoped";
+import { addSourceCore, createItemCore, draftSchema, previewFromClientCore, previewUrlCore, refreshSourceCore, sourceDraftSchema, clientPayload, type ClientPayload } from "@/lib/service";
 import { extractFromUrl, hintsFromUrl } from "@/lib/extract";
 import { storeThumbnail } from "@/lib/images";
-import { dropCollectionSharing } from "@/lib/sharing";
-import { SESSION_COOKIE, verifySessionValue } from "@/lib/session";
 import { storeFromUrl } from "@/lib/stores";
 import type { AltGroup, Collection, ItemWithSources, PreviewResult, SourceDraft } from "@/lib/types";
 import { isHttpUrl } from "@/lib/utils";
 
-async function assertAuth() {
-  const jar = await cookies();
-  if (!(await verifySessionValue(jar.get(SESSION_COOKIE)?.value))) throw new Error("unauthorized");
-}
+// R15 B3: every action resolves the ctx first (requireCtx), then works only inside the current space (scoped).
+const edit = async () => scoped(await requireCtx("edit"));
+const view = async () => scoped(await requireCtx("view"));
 
 const now = () => Date.now();
-
-// ---------- Items ----------
+const Id = z.string().min(1).max(64);
+const Ids = z.array(Id).max(500);
+const NullableId = Id.nullable();
 
 // ---------- Preview & create (logic lives in lib/service) ----------
 
 export async function previewUrl(url: string, hintCollectionId: string | null = null): Promise<PreviewResult> {
-  await assertAuth();
-  return previewUrlCore(url, hintCollectionId);
+  const s = await edit();
+  return previewUrlCore(s, z.string().max(4000).parse(url), await s.ref(schema.collections, NullableId.parse(hintCollectionId)));
 }
 
 export async function previewFromClient(payload: ClientPayload, hintCollectionId: string | null = null): Promise<PreviewResult> {
-  await assertAuth();
-  return previewFromClientCore(payload, hintCollectionId);
+  const s = await edit();
+  return previewFromClientCore(s, clientPayload.parse(payload), await s.ref(schema.collections, NullableId.parse(hintCollectionId)));
 }
 
 export async function createItem(input: z.input<typeof draftSchema>): Promise<ItemWithSources> {
-  await assertAuth();
-  return createItemCore(input);
+  const s = await edit();
+  return createItemCore(s, input);
 }
 
 export async function addSource(itemId: string, source: SourceDraft, imageUrl?: string | null): Promise<ItemWithSources> {
-  await assertAuth();
-  return addSourceCore(itemId, source, imageUrl);
+  const s = await edit();
+  return addSourceCore(s, Id.parse(itemId), sourceDraftSchema.parse(source), z.string().max(400_000).nullish().parse(imageUrl));
 }
-
-
 
 /** Add a store link to an existing item: extracts price from the page. */
 export async function addSourceFromUrl(itemId: string, url: string): Promise<ItemWithSources> {
-  await assertAuth();
-  if (!isHttpUrl(url)) throw new Error("invalid_url");
+  const s = await edit();
+  await s.mustGet(schema.items, Id.parse(itemId));
+  if (typeof url !== "string" || !isHttpUrl(url)) throw new Error("invalid_url");
   const ex = await extractFromUrl(url.trim());
   let { price, currency } = ex;
   if (price == null && ex.pageText && !ex.blocked) {
@@ -78,6 +76,7 @@ export async function addSourceFromUrl(itemId: string, url: string): Promise<Ite
     currency = hints.currency;
   }
   return addSourceCore(
+    s,
     itemId,
     {
       url: ex.url,
@@ -103,11 +102,11 @@ const itemPatch = z
     imageUrl: z.string().max(400_000).nullable(),
     category: z.string().max(40).nullable(),
     tags: z.array(z.string().max(40)).max(12),
-    collectionId: z.string().nullable(),
+    collectionId: NullableId,
     priority: z.enum(["urgent", "normal", "someday"]),
     quantity: z.number().int().min(1).max(100000),
     notes: z.string().max(4000).nullable(),
-    chosenSourceId: z.string().nullable(),
+    chosenSourceId: NullableId,
     trackingNumber: z.string().max(80).nullable(),
     carrier: z.string().max(40).nullable(),
     eta: z.number().int().nullable(),
@@ -115,22 +114,31 @@ const itemPatch = z
     targetCurrency: z.string().min(3).max(3).nullable(),
     watch: z.boolean(),
   })
-  .partial();
+  .partial()
+  .strict();
 
 export async function updateItem(id: string, patch: z.input<typeof itemPatch>): Promise<ItemWithSources> {
-  await assertAuth();
+  const s = await edit();
+  await s.mustGet(schema.items, Id.parse(id));
   const p = itemPatch.parse(patch);
+  if (p.collectionId !== undefined) await s.ref(schema.collections, p.collectionId);
+  if (p.chosenSourceId) {
+    const src = await s.mustGet(schema.sources, p.chosenSourceId);
+    if (src.itemId !== id) throw new Error("not_found");
+  }
   // A picture set by hand is the user's (no "icon" badge any more).
   if (p.imageUrl !== undefined) (p as { imageSource?: string | null }).imageSource = null;
   if (p.imageUrl && /^https?:/.test(p.imageUrl) && !p.imageUrl.includes(".blob.vercel-storage.com")) {
     p.imageUrl = await storeThumbnail(p.imageUrl, id);
   }
-  await db.update(schema.items).set({ ...p, updatedAt: now() }).where(eq(schema.items.id, id));
-  return (await getItem(id))!;
+  await s.update(schema.items, { ...p, updatedAt: now() }, eq(schema.items.id, id));
+  return mustItem(s, id);
 }
 
 type Status = "to_buy" | "ordered" | "purchased";
 type Paid = { price: number; currency: string } | null;
+const StatusZ = z.enum(["to_buy", "ordered", "purchased"]);
+const PaidZ = z.object({ price: z.number().nonnegative(), currency: z.string().min(3).max(3) }).strict().nullable();
 
 function statusPatch(status: Status, paid: Paid, current?: { orderedAt: number | null; purchasedPrice: number | null; purchasedCurrency: string | null }) {
   const t = now();
@@ -142,134 +150,163 @@ function statusPatch(status: Status, paid: Paid, current?: { orderedAt: number |
 
 /** Move an item along to_buy → ordered → purchased (received). `paid` = unit price actually paid. */
 export async function setStatus(id: string, status: Status, paid?: Paid): Promise<ItemWithSources> {
-  await assertAuth();
-  z.enum(["to_buy", "ordered", "purchased"]).parse(status);
-  const cur = await db.query.items.findFirst({ where: eq(schema.items.id, id) });
-  if (!cur) throw new Error("not_found");
-  await db.update(schema.items).set(statusPatch(status, paid ?? null, cur)).where(eq(schema.items.id, id));
-  return (await getItem(id))!;
+  const s = await edit();
+  StatusZ.parse(status);
+  const cur = await s.mustGet(schema.items, Id.parse(id));
+  await s.update(schema.items, statusPatch(status, PaidZ.parse(paid ?? null), cur), eq(schema.items.id, id));
+  return mustItem(s, id);
 }
 
 // ---------- Bulk ----------
 
 const bulkPatch = z
   .object({
-    collectionId: z.string().nullable(),
+    collectionId: NullableId,
     priority: z.enum(["urgent", "normal", "someday"]),
   })
-  .partial();
+  .partial()
+  .strict();
 
 export async function bulkUpdate(ids: string[], patch: z.input<typeof bulkPatch>): Promise<ItemWithSources[]> {
-  await assertAuth();
+  const s = await edit();
+  Ids.parse(ids);
   const p = bulkPatch.parse(patch);
   if (!ids.length) return [];
-  await db.update(schema.items).set({ ...p, updatedAt: now() }).where(inArray(schema.items.id, ids));
-  return (await loadItems()).filter((i) => ids.includes(i.id));
+  if (p.collectionId !== undefined) await s.ref(schema.collections, p.collectionId);
+  await s.update(schema.items, { ...p, updatedAt: now() }, inArray(schema.items.id, ids));
+  return loadItems(s, ids);
 }
 
 /** Bulk status change; each item's paid price comes from its active store (computed on the client). */
 export async function bulkSetStatus(entries: { id: string; paid: Paid }[], status: Status): Promise<ItemWithSources[]> {
-  await assertAuth();
-  z.enum(["to_buy", "ordered", "purchased"]).parse(status);
-  const ids = entries.map((e) => e.id);
-  const current = await db.select().from(schema.items).where(inArray(schema.items.id, ids));
-  for (const e of entries) {
+  const s = await edit();
+  StatusZ.parse(status);
+  const list = z.array(z.object({ id: Id, paid: PaidZ }).strict()).max(500).parse(entries);
+  const ids = list.map((e) => e.id);
+  const current = await s.select(schema.items, inArray(schema.items.id, ids));
+  for (const e of list) {
     const cur = current.find((c) => c.id === e.id);
-    if (cur) await db.update(schema.items).set(statusPatch(status, e.paid, cur)).where(eq(schema.items.id, e.id));
+    if (cur) await s.update(schema.items, statusPatch(status, e.paid, cur), eq(schema.items.id, e.id));
   }
-  return (await loadItems()).filter((i) => ids.includes(i.id));
+  return loadItems(s, ids);
+}
+
+async function deleteItemsIn(s: Scoped, ids: string[]) {
+  await s.delete(schema.sources, inArray(schema.sources.itemId, ids));
+  await s.delete(schema.pricePoints, inArray(schema.pricePoints.itemId, ids));
+  await s.delete(schema.attachments, inArray(schema.attachments.itemId, ids));
+  await s.delete(schema.items, inArray(schema.items.id, ids));
 }
 
 export async function bulkDelete(ids: string[]): Promise<ItemWithSources[]> {
-  await assertAuth();
+  const s = await edit();
+  Ids.parse(ids);
   if (!ids.length) return [];
-  const snaps = (await loadItems()).filter((i) => ids.includes(i.id));
-  await db.delete(schema.sources).where(inArray(schema.sources.itemId, ids));
-  await db.delete(schema.pricePoints).where(inArray(schema.pricePoints.itemId, ids));
-  await db.delete(schema.attachments).where(inArray(schema.attachments.itemId, ids));
-  await db.delete(schema.items).where(inArray(schema.items.id, ids));
-  for (const g of new Set(snaps.map((x) => x.altGroupId).filter(Boolean) as string[])) await cleanupGroup(g);
+  const snaps = await loadItems(s, ids);
+  const own = snaps.map((x) => x.id);
+  if (own.length) await deleteItemsIn(s, own);
+  for (const g of new Set(snaps.map((x) => x.altGroupId).filter(Boolean) as string[])) await cleanupGroup(s, g);
   return snaps;
 }
 
 export async function restoreItems(snapshots: ItemWithSources[]): Promise<ItemWithSources[]> {
-  await assertAuth();
+  const s = await edit();
   const out: ItemWithSources[] = [];
-  for (const snap of snapshots) out.push(await restoreItem(snap));
+  for (const snap of z.array(z.unknown()).max(500).parse(snapshots)) out.push(await restoreOne(s, snap));
   return out;
 }
 
 // ---------- Alternatives ----------
 
-async function cleanupGroup(groupId: string) {
-  const members = await db.select({ id: schema.items.id }).from(schema.items).where(eq(schema.items.altGroupId, groupId));
+async function cleanupGroup(s: Scoped, groupId: string) {
+  const members = await s.pick({ id: schema.items.id }, schema.items, eq(schema.items.altGroupId, groupId));
   if (members.length < 2) {
-    await db.update(schema.items).set({ altGroupId: null }).where(eq(schema.items.altGroupId, groupId));
-    await db.delete(schema.altGroups).where(eq(schema.altGroups.id, groupId));
+    await s.update(schema.items, { altGroupId: null }, eq(schema.items.altGroupId, groupId));
+    await s.delete(schema.altGroups, eq(schema.altGroups.id, groupId));
     return null;
   }
-  const g = await db.query.altGroups.findFirst({ where: eq(schema.altGroups.id, groupId) });
+  const g = await s.byId(schema.altGroups, groupId);
   if (g?.chosenItemId && !members.some((m) => m.id === g.chosenItemId)) {
-    await db.update(schema.altGroups).set({ chosenItemId: null }).where(eq(schema.altGroups.id, groupId));
+    await s.update(schema.altGroups, { chosenItemId: null }, eq(schema.altGroups.id, groupId));
   }
-  return (await db.query.altGroups.findFirst({ where: eq(schema.altGroups.id, groupId) })) ?? null;
+  return s.byId(schema.altGroups, groupId);
 }
 
 type AltState = { items: ItemWithSources[]; altGroups: AltGroup[] };
-async function altState(): Promise<AltState> {
-  const [items, altGroups] = await Promise.all([loadItems(), db.select().from(schema.altGroups)]);
+async function altState(s: Scoped): Promise<AltState> {
+  const [items, altGroups] = await Promise.all([loadItems(s), s.select(schema.altGroups)]);
   return { items, altGroups };
 }
 
 export async function createAltGroup(itemIds: string[], name: string): Promise<AltState & { groupId: string }> {
-  await assertAuth();
-  const ids = z.array(z.string()).min(2).max(20).parse(itemIds);
-  const clean = z.string().min(1).max(80).parse(name.trim());
+  const s = await edit();
+  const ids = z.array(Id).min(2).max(20).parse(itemIds);
+  const clean = z.string().min(1).max(80).parse(String(name).trim());
+  const previous = await s.pick({ id: schema.items.id, g: schema.items.altGroupId }, schema.items, inArray(schema.items.id, ids));
+  if (previous.length !== new Set(ids).size) throw new Error("not_found");
   const id = nanoid(10);
-  const previous = await db.select({ g: schema.items.altGroupId }).from(schema.items).where(inArray(schema.items.id, ids));
-  const [group] = await db.insert(schema.altGroups).values({ id, name: clean, createdAt: now() }).returning();
-  await db.update(schema.items).set({ altGroupId: id, updatedAt: now() }).where(inArray(schema.items.id, ids));
-  for (const p of previous) if (p.g) await cleanupGroup(p.g);
-  return { ...(await altState()), groupId: group.id };
+  await s.insert(schema.altGroups, { id, name: clean, createdAt: now() });
+  await s.update(schema.items, { altGroupId: id, updatedAt: now() }, inArray(schema.items.id, ids));
+  for (const p of previous) if (p.g) await cleanupGroup(s, p.g);
+  return { ...(await altState(s)), groupId: id };
 }
 
 export async function updateAltGroup(id: string, patch: { name?: string; chosenItemId?: string | null }): Promise<AltGroup> {
-  await assertAuth();
-  const p = z.object({ name: z.string().min(1).max(80).optional(), chosenItemId: z.string().nullable().optional() }).parse(patch);
-  const [row] = await db.update(schema.altGroups).set(p).where(eq(schema.altGroups.id, id)).returning();
-  return row;
+  const s = await edit();
+  await s.mustGet(schema.altGroups, Id.parse(id));
+  const p = z.object({ name: z.string().min(1).max(80).optional(), chosenItemId: NullableId.optional() }).strict().parse(patch);
+  if (p.chosenItemId) {
+    const it = await s.mustGet(schema.items, p.chosenItemId);
+    if (it.altGroupId !== id) throw new Error("not_found");
+  }
+  await s.update(schema.altGroups, p, eq(schema.altGroups.id, id));
+  return (await s.byId(schema.altGroups, id))!;
 }
 
 /** Take one item out of its group (the group dissolves when fewer than two remain). */
 export async function leaveAltGroup(itemId: string): Promise<AltState> {
-  await assertAuth();
-  const item = await db.query.items.findFirst({ where: eq(schema.items.id, itemId) });
-  if (item?.altGroupId) {
-    await db.update(schema.items).set({ altGroupId: null }).where(eq(schema.items.id, itemId));
-    await cleanupGroup(item.altGroupId);
+  const s = await edit();
+  const item = await s.mustGet(schema.items, Id.parse(itemId));
+  if (item.altGroupId) {
+    await s.update(schema.items, { altGroupId: null }, eq(schema.items.id, itemId));
+    await cleanupGroup(s, item.altGroupId);
   }
-  return altState();
+  return altState(s);
 }
 
 // ---------- Receipts ----------
 
+/** Files this space may attach: uploaded by the blob route under spaces/<spaceId>/ (or older receipts/ files it already owns). */
+function blobUrlZ(s: Scoped) {
+  return z
+    .string()
+    .url()
+    .refine((u) => {
+      try {
+        const url = new URL(u);
+        return url.protocol === "https:" && url.hostname.endsWith(".blob.vercel-storage.com") && url.pathname.startsWith(`/spaces/${s.spaceId}/`);
+      } catch {
+        return false;
+      }
+    });
+}
+
 export async function addAttachment(itemId: string, file: { url: string; name: string; contentType?: string | null; size?: number | null }): Promise<ItemWithSources> {
-  await assertAuth();
-  const f = z
-    .object({ url: z.string().url().refine((u) => u.includes(".blob.vercel-storage.com/")), name: z.string().min(1).max(200), contentType: z.string().max(100).nullish(), size: z.number().int().nonnegative().nullish() })
-    .parse(file);
-  await db.insert(schema.attachments).values({ id: nanoid(12), itemId, url: f.url, name: f.name, contentType: f.contentType ?? null, size: f.size ?? null, createdAt: now() });
-  return (await getItem(itemId))!;
+  const s = await edit();
+  await s.mustGet(schema.items, Id.parse(itemId));
+  const f = z.object({ url: blobUrlZ(s), name: z.string().min(1).max(200), contentType: z.string().max(100).nullish(), size: z.number().int().nonnegative().nullish() }).strict().parse(file);
+  await s.insert(schema.attachments, { id: nanoid(12), itemId, url: f.url, name: f.name, contentType: f.contentType ?? null, size: f.size ?? null, createdAt: now() });
+  return mustItem(s, itemId);
 }
 
 export async function deleteAttachment(id: string): Promise<ItemWithSources> {
-  await assertAuth();
-  const [row] = await db.delete(schema.attachments).where(eq(schema.attachments.id, id)).returning();
-  if (!row) throw new Error("not_found");
+  const s = await edit();
+  const row = await s.mustGet(schema.attachments, Id.parse(id));
+  await s.delete(schema.attachments, eq(schema.attachments.id, id));
   // A receipt read from a document is attached to every item it paid for: keep the file while anything uses it.
   const [att, rec] = await Promise.all([
-    db.select({ id: schema.attachments.id }).from(schema.attachments).where(eq(schema.attachments.url, row.url)).limit(1),
-    db.select({ id: schema.receipts.id }).from(schema.receipts).where(eq(schema.receipts.url, row.url)).limit(1),
+    s.pick({ id: schema.attachments.id }, schema.attachments, eq(schema.attachments.url, row.url)).limit(1),
+    s.pick({ id: schema.receipts.id }, schema.receipts, eq(schema.receipts.url, row.url)).limit(1),
   ]);
   if (!att.length && !rec.length) {
     try {
@@ -278,29 +315,92 @@ export async function deleteAttachment(id: string): Promise<ItemWithSources> {
       /* file may already be gone */
     }
   }
-  return (await getItem(row.itemId))!;
+  return mustItem(s, row.itemId);
 }
 
 export async function deleteItem(id: string): Promise<ItemWithSources | null> {
-  await assertAuth();
-  const snapshot = await getItem(id);
-  await db.delete(schema.sources).where(eq(schema.sources.itemId, id));
-  await db.delete(schema.pricePoints).where(eq(schema.pricePoints.itemId, id));
-  await db.delete(schema.attachments).where(eq(schema.attachments.itemId, id));
-  await db.delete(schema.items).where(eq(schema.items.id, id));
-  if (snapshot?.altGroupId) await cleanupGroup(snapshot.altGroupId);
+  const s = await edit();
+  const snapshot = await getItem(s, Id.parse(id));
+  if (!snapshot) throw new Error("not_found");
+  await deleteItemsIn(s, [id]);
+  if (snapshot.altGroupId) await cleanupGroup(s, snapshot.altGroupId);
   return snapshot;
 }
 
+// Undo snapshots come back from the client: only known columns, children re-pointed at the restored item.
+const snapItem = z
+  .object({
+    id: Id,
+    collectionId: NullableId,
+    title: z.string().min(1).max(300),
+    brand: z.string().max(120).nullable(),
+    imageUrl: z.string().max(400_000).nullable(),
+    category: z.string().max(40).nullable(),
+    tags: z.array(z.string().max(40)).max(12),
+    status: StatusZ,
+    priority: z.enum(["urgent", "normal", "someday"]),
+    quantity: z.number().int().min(1).max(100000),
+    notes: z.string().max(4000).nullable(),
+    chosenSourceId: NullableId,
+    orderedAt: z.number().nullable(),
+    purchasedAt: z.number().nullable(),
+    purchasedPrice: z.number().nullable(),
+    purchasedCurrency: z.string().max(3).nullable(),
+    trackingNumber: z.string().max(80).nullable(),
+    carrier: z.string().max(40).nullable(),
+    eta: z.number().nullable(),
+    orderNumber: z.string().max(80).nullable(),
+    gtin: z.string().max(20).nullable(),
+    altGroupId: NullableId,
+    imageSource: z.string().max(20).nullable(),
+    productInfo: z.unknown().nullable(),
+    imageCandidates: z.unknown().nullable(),
+    imageCheck: z.boolean(),
+    targetPrice: z.number().nullable(),
+    targetCurrency: z.string().max(3).nullable(),
+    watch: z.boolean(),
+    searchQuery: z.string().max(300).nullable(),
+    addedByUserId: z.string().max(64).nullable().optional(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+  })
+  .partial()
+  .required({ id: true, title: true });
+const snapSource = z.object({ id: Id, url: z.string().max(4000), normalizedUrl: z.string().max(4000), store: z.string().max(80), storeKey: z.string().max(120), price: z.number().nullable(), currency: z.string().max(3), shipping: z.number().nullable(), availability: z.string().max(80).nullable(), rawTitle: z.string().max(500).nullable(), extractMethod: z.string().max(60).nullable(), gtin: z.string().max(20).nullable().optional(), fetchedAt: z.number().nullable(), checkFails: z.number().int().optional(), createdAt: z.number() }).partial().required({ id: true, url: true, normalizedUrl: true, store: true, storeKey: true });
+const snapPoint = z.object({ id: Id, sourceId: Id, price: z.number(), currency: z.string().max(3), recordedAt: z.number() });
+const snapAttachment = z.object({ id: Id, url: z.string().max(2000), name: z.string().max(200), contentType: z.string().max(100).nullable(), size: z.number().nullable(), createdAt: z.number() }).partial().required({ id: true, url: true, name: true });
+
+async function restoreOne(s: Scoped, raw: unknown): Promise<ItemWithSources> {
+  const snap = raw as Record<string, unknown>;
+  const item = snapItem.parse(Object.fromEntries(Object.entries(snap).filter(([k]) => k in snapItem.shape)));
+  const sources = z.array(snapSource).max(50).parse((snap.sources as unknown[] | undefined)?.map((x) => pickKeys(x, snapSource.shape)) ?? []);
+  const points = z.array(snapPoint).max(2000).parse((snap.points as unknown[] | undefined)?.map((x) => pickKeys(x, snapPoint.shape)) ?? []);
+  const blob = blobUrlZ(s);
+  const attachments = z.array(snapAttachment).max(50).parse((snap.attachments as unknown[] | undefined)?.map((x) => pickKeys(x, snapAttachment.shape)) ?? []).filter((a) => blob.safeParse(a.url).success);
+  if (item.collectionId && !(await s.byId(schema.collections, item.collectionId))) item.collectionId = null;
+  if (item.altGroupId && !(await s.byId(schema.altGroups, item.altGroupId))) item.altGroupId = null;
+  const srcIds = new Set(sources.map((x) => x.id));
+  if (item.chosenSourceId && !srcIds.has(item.chosenSourceId)) item.chosenSourceId = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await s.insert(schema.items, item as any).onConflictDoNothing();
+  // A snapshot can only restore into this space: if the id is taken elsewhere nothing was written and we stop here.
+  const restored = await s.byId(schema.items, item.id);
+  if (!restored) throw new Error("not_found");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (sources.length) await s.insert(schema.sources, sources.map((x) => ({ ...x, itemId: item.id })) as any).onConflictDoNothing();
+  const pts = points.filter((p) => srcIds.has(p.sourceId));
+  if (pts.length) await s.insert(schema.pricePoints, pts.map((p) => ({ ...p, itemId: item.id }))).onConflictDoNothing();
+  if (attachments.length) await s.insert(schema.attachments, attachments.map((a) => ({ ...a, itemId: item.id }))).onConflictDoNothing();
+  return mustItem(s, item.id);
+}
+
+function pickKeys(x: unknown, shape: Record<string, unknown>) {
+  return x && typeof x === "object" ? Object.fromEntries(Object.entries(x).filter(([k]) => k in shape)) : x;
+}
+
 export async function restoreItem(snapshot: ItemWithSources): Promise<ItemWithSources> {
-  await assertAuth();
-  const { sources, points, attachments, ...item } = snapshot;
-  if (item.altGroupId && !(await db.query.altGroups.findFirst({ where: eq(schema.altGroups.id, item.altGroupId) }))) item.altGroupId = null;
-  await db.insert(schema.items).values(item).onConflictDoNothing();
-  if (sources.length) await db.insert(schema.sources).values(sources).onConflictDoNothing();
-  if (points?.length) await db.insert(schema.pricePoints).values(points).onConflictDoNothing();
-  if (attachments?.length) await db.insert(schema.attachments).values(attachments).onConflictDoNothing();
-  return (await getItem(item.id))!;
+  const s = await edit();
+  return restoreOne(s, snapshot);
 }
 
 // ---------- Sources ----------
@@ -312,83 +412,81 @@ const sourcePatch = z
     shipping: z.number().nonnegative().nullable(),
     store: z.string().min(1).max(80),
   })
-  .partial();
+  .partial()
+  .strict();
 
 export async function updateSource(id: string, patch: z.input<typeof sourcePatch>): Promise<ItemWithSources> {
-  await assertAuth();
+  const s = await edit();
+  await s.mustGet(schema.sources, Id.parse(id));
   const p = sourcePatch.parse(patch);
-  const [row] = await db.update(schema.sources).set(p).where(eq(schema.sources.id, id)).returning();
-  if (!row) throw new Error("not_found");
-  if (p.price !== undefined || p.currency !== undefined) await recordPrice(row.id, row.itemId, row.price, row.currency);
-  return (await getItem(row.itemId))!;
+  await s.update(schema.sources, p, eq(schema.sources.id, id));
+  const row = (await s.byId(schema.sources, id))!;
+  if (p.price !== undefined || p.currency !== undefined) await recordPrice(s, row.id, row.itemId, row.price, row.currency);
+  return mustItem(s, row.itemId);
 }
 
 export async function deleteSource(id: string): Promise<ItemWithSources> {
-  await assertAuth();
-  const [row] = await db.delete(schema.sources).where(eq(schema.sources.id, id)).returning({ itemId: schema.sources.itemId });
-  if (!row) throw new Error("not_found");
-  await db
-    .update(schema.items)
-    .set({ chosenSourceId: null })
-    .where(and(eq(schema.items.id, row.itemId), eq(schema.items.chosenSourceId, id)));
-  return (await getItem(row.itemId))!;
+  const s = await edit();
+  const row = await s.mustGet(schema.sources, Id.parse(id));
+  await s.delete(schema.sources, eq(schema.sources.id, id));
+  await s.update(schema.items, { chosenSourceId: null }, and(eq(schema.items.id, row.itemId), eq(schema.items.chosenSourceId, id)));
+  return mustItem(s, row.itemId);
 }
 
 export async function refetchSource(id: string, payload?: ClientPayload | null): Promise<ItemWithSources> {
-  await assertAuth();
-  return refreshSourceCore(id, payload);
+  const s = await edit();
+  return refreshSourceCore(s, Id.parse(id), payload ? clientPayload.parse(payload) : null);
 }
 
 // ---------- Collections ----------
 
-const collectionInput = z.object({
-  kind: z.enum(["project", "list"]),
-  name: z.string().min(1).max(80),
-  description: z.string().max(500).nullable().optional(),
-  color: z.string().max(20).optional(),
-  budget: z.number().nonnegative().nullable().optional(),
-  budgetCurrency: z.string().min(3).max(3).optional(),
-});
+const collectionInput = z
+  .object({
+    kind: z.enum(["project", "list"]),
+    name: z.string().min(1).max(80),
+    description: z.string().max(500).nullable().optional(),
+    color: z.string().max(20).optional(),
+    budget: z.number().nonnegative().nullable().optional(),
+    budgetCurrency: z.string().min(3).max(3).optional(),
+  })
+  .strict();
 
 export async function createCollection(input: z.input<typeof collectionInput>): Promise<Collection> {
-  await assertAuth();
+  const s = await edit();
   const c = collectionInput.parse(input);
   const id = nanoid(10);
-  const [row] = await db
-    .insert(schema.collections)
-    .values({ id, ...c, description: c.description ?? null, budget: c.budget ?? null, sortOrder: now() % 1e9 })
-    .returning();
-  return row;
+  await s.insert(schema.collections, { id, ...c, description: c.description ?? null, budget: c.budget ?? null, sortOrder: now() % 1e9 });
+  return (await s.byId(schema.collections, id))!;
 }
 
 export async function updateCollection(id: string, patch: Partial<z.input<typeof collectionInput>> & { archived?: boolean }): Promise<Collection> {
-  await assertAuth();
-  const p = collectionInput.partial().extend({ archived: z.boolean().optional() }).parse(patch);
-  const [row] = await db.update(schema.collections).set(p).where(eq(schema.collections.id, id)).returning();
-  return row;
+  const s = await edit();
+  await s.mustGet(schema.collections, Id.parse(id));
+  const p = collectionInput.partial().extend({ archived: z.boolean().optional() }).strict().parse(patch);
+  await s.update(schema.collections, p, eq(schema.collections.id, id));
+  return (await s.byId(schema.collections, id))!;
 }
 
 export async function deleteCollection(id: string) {
-  await assertAuth();
-  await db.update(schema.items).set({ collectionId: null }).where(eq(schema.items.collectionId, id));
-  await db.delete(schema.collections).where(eq(schema.collections.id, id));
-  await dropCollectionSharing(id);
+  const s = await edit();
+  await s.mustGet(schema.collections, Id.parse(id));
+  await s.update(schema.items, { collectionId: null }, eq(schema.items.collectionId, id));
+  await s.delete(schema.collections, eq(schema.collections.id, id));
 }
 
 export async function setSharing(id: string, on: boolean): Promise<Collection> {
-  await assertAuth();
-  const [row] = await db
-    .update(schema.collections)
-    .set({ shareToken: on ? nanoid(24) : null })
-    .where(eq(schema.collections.id, id))
-    .returning();
-  return row;
+  const s = await edit();
+  await s.mustGet(schema.collections, Id.parse(id));
+  await s.update(schema.collections, { shareToken: z.boolean().parse(on) ? nanoid(24) : null }, eq(schema.collections.id, id));
+  return (await s.byId(schema.collections, id))!;
 }
 
 export async function moveItems(ids: string[], collectionId: string | null) {
-  await assertAuth();
+  const s = await edit();
+  Ids.parse(ids);
   if (!ids.length) return;
-  await db.update(schema.items).set({ collectionId, updatedAt: now() }).where(inArray(schema.items.id, ids));
+  await s.ref(schema.collections, NullableId.parse(collectionId));
+  await s.update(schema.items, { collectionId, updatedAt: now() }, inArray(schema.items.id, ids));
 }
 
 /**
@@ -396,21 +494,21 @@ export async function moveItems(ids: string[], collectionId: string | null) {
  * splits it: a copy with `count` units (same store links and price history) goes to the target, the rest stay.
  */
 export async function splitItem(id: string, count: number, collectionId: string | null): Promise<{ original: ItemWithSources; moved: ItemWithSources }> {
-  await assertAuth();
+  const s = await edit();
   const n = z.number().int().min(1).parse(count);
-  z.string().nullable().parse(collectionId);
-  const cur = await getItem(id);
-  if (!cur) throw new Error("not_found");
+  await s.ref(schema.collections, NullableId.parse(collectionId));
+  const cur = await mustItem(s, Id.parse(id));
   const t = now();
   if (n >= cur.quantity) {
-    await db.update(schema.items).set({ collectionId, updatedAt: t }).where(eq(schema.items.id, id));
-    const it = (await getItem(id))!;
+    await s.update(schema.items, { collectionId, updatedAt: t }, eq(schema.items.id, id));
+    const it = await mustItem(s, id);
     return { original: it, moved: it };
   }
-  const { sources, points, attachments: _receipts, ...item } = cur; // receipts stay with the original line
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { sources, points, attachments: _receipts, spaceId: _space, ...item } = cur; // receipts stay with the original line
   const newId = nanoid();
   const srcIds = new Map(sources.map((x) => [x.id, nanoid()]));
-  await db.insert(schema.items).values({
+  await s.insert(schema.items, {
     ...item,
     id: newId,
     collectionId,
@@ -420,28 +518,28 @@ export async function splitItem(id: string, count: number, collectionId: string 
     createdAt: t,
     updatedAt: t,
   });
-  if (sources.length) await db.insert(schema.sources).values(sources.map((x) => ({ ...x, id: srcIds.get(x.id)!, itemId: newId })));
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  if (sources.length) await s.insert(schema.sources, sources.map(({ spaceId: _s, ...x }) => ({ ...x, id: srcIds.get(x.id)!, itemId: newId })));
   const pts = (points ?? []).filter((p) => srcIds.has(p.sourceId));
-  if (pts.length) await db.insert(schema.pricePoints).values(pts.map((p) => ({ ...p, id: nanoid(), itemId: newId, sourceId: srcIds.get(p.sourceId)! })));
-  await db.update(schema.items).set({ quantity: cur.quantity - n, updatedAt: t }).where(eq(schema.items.id, id));
-  return { original: (await getItem(id))!, moved: (await getItem(newId))! };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  if (pts.length) await s.insert(schema.pricePoints, pts.map(({ spaceId: _s, ...p }) => ({ ...p, id: nanoid(), itemId: newId, sourceId: srcIds.get(p.sourceId)! })));
+  await s.update(schema.items, { quantity: cur.quantity - n, updatedAt: t }, eq(schema.items.id, id));
+  return { original: await mustItem(s, id), moved: await mustItem(s, newId) };
 }
 
 /** Undo a split: fold the moved units back into the original line. */
 export async function unsplitItem(originalId: string, movedId: string): Promise<ItemWithSources> {
-  await assertAuth();
-  if (originalId === movedId) throw new Error("same_item");
-  const [orig, moved] = await Promise.all([getItem(originalId), getItem(movedId)]);
-  if (!orig || !moved) throw new Error("not_found");
-  await db.delete(schema.pricePoints).where(eq(schema.pricePoints.itemId, movedId));
-  await db.delete(schema.sources).where(eq(schema.sources.itemId, movedId));
-  await db.delete(schema.items).where(eq(schema.items.id, movedId));
-  await db.update(schema.items).set({ quantity: orig.quantity + moved.quantity, updatedAt: now() }).where(eq(schema.items.id, originalId));
-  return (await getItem(originalId))!;
+  const s = await edit();
+  if (Id.parse(originalId) === Id.parse(movedId)) throw new Error("same_item");
+  const [orig, moved] = await Promise.all([mustItem(s, originalId), mustItem(s, movedId)]);
+  await s.delete(schema.pricePoints, eq(schema.pricePoints.itemId, movedId));
+  await s.delete(schema.sources, eq(schema.sources.itemId, movedId));
+  await s.delete(schema.items, eq(schema.items.id, movedId));
+  await s.update(schema.items, { quantity: orig.quantity + moved.quantity, updatedAt: now() }, eq(schema.items.id, originalId));
+  return mustItem(s, originalId);
 }
 
 export async function reloadAll(): Promise<ItemWithSources[]> {
-  await assertAuth();
-  return loadItems();
+  const s = await view();
+  return loadItems(s);
 }
-

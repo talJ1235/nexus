@@ -2,7 +2,8 @@ import "server-only";
 import { generateJson } from "./ai";
 import { mockAi } from "./assistant";
 import { extractFromUrl, type Extracted } from "./extract";
-import { kvGet, kvSet } from "./kv";
+import type { Scoped } from "./db-scoped";
+import { spacePrefGet, spacePrefSet } from "./db-scoped/prefs";
 import { convert, parsePrice, type Rates } from "./money";
 import { shoppingSearch, webSearch, searchProvider } from "./search";
 import { titleSimilarity } from "./similarity";
@@ -31,12 +32,13 @@ export type CompareCache = { at: number; currency: string; results: CompareResul
 const TTL = 24 * 3600_000;
 const cacheKey = (id: string) => `compare:${id}`;
 
-export async function cachedCompare(itemId: string, currency: string): Promise<CompareCache | null> {
-  const raw = await kvGet(cacheKey(itemId)).catch(() => null);
+// R15: the cache is the space's (space_pref), keyed by item.
+export async function cachedCompare(s: Scoped, itemId: string, currency: string): Promise<CompareCache | null> {
+  const raw = await spacePrefGet(s, cacheKey(itemId)).catch(() => null);
   const c = raw ? (JSON.parse(raw) as CompareCache) : null;
   return c && Date.now() - c.at < TTL && c.currency === currency ? c : null;
 }
-export const saveCompare = (itemId: string, c: CompareCache) => kvSet(cacheKey(itemId), JSON.stringify(c)).catch(() => {});
+export const saveCompare = (s: Scoped, itemId: string, c: CompareCache) => spacePrefSet(s, cacheKey(itemId), JSON.stringify(c)).catch(() => {});
 
 /** 2–3 search queries from title / brand / model / specs (and the barcode when known). */
 export async function compareQueries(item: ItemWithSources): Promise<string[]> {

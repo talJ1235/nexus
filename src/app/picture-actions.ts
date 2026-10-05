@@ -2,8 +2,9 @@
 
 import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { db, schema } from "@/db";
-import { assertOwner } from "@/lib/auth";
+import { schema } from "@/db";
+import { requireCtx } from "@/lib/ctx";
+import { scoped } from "@/lib/db-scoped";
 import { getItem } from "@/lib/data";
 import { storeThumbnail } from "@/lib/images";
 import { savePictureChoice } from "@/lib/product-image";
@@ -33,29 +34,29 @@ export type LinePicture = { chosen: Candidate | null; candidates: Candidate[]; c
 
 /** D1 for a receipt: one call for all lines. */
 export async function understandReceiptLines(input: { names: string[] }): Promise<LineInfo[]> {
-  await assertOwner();
+  await requireCtx("view");
   const { names } = z.object({ names: z.array(z.string().min(1).max(300)).max(60) }).parse(input);
   return understandLines(names);
 }
 
 /** D2 + D3 for a few lines (the review calls this in chunks; nothing is saved). */
 export async function findLinePictures(input: { infos: LineInfo[] }): Promise<LinePicture[]> {
-  await assertOwner();
+  const s = scoped(await requireCtx("view"));
   const { infos } = z.object({ infos: z.array(info).max(8) }).parse(input);
-  const cands = await Promise.all(infos.map((i) => findCandidates(i).catch((): Candidate[] => [])));
+  const cands = await Promise.all(infos.map((i) => findCandidates(i, { s }).catch((): Candidate[] => [])));
   return rankCandidates(infos.map((i, k) => ({ info: i, candidates: cands[k] })));
 }
 
 /** The picker's search box (Hebrew or English). */
 export async function searchPictures(input: { query: string }): Promise<Candidate[]> {
-  await assertOwner();
+  await requireCtx("view");
   const { query } = z.object({ query: z.string().trim().min(1).max(200) }).parse(input);
   return searchCandidates(query);
 }
 
 /** "Use an icon": a few Fluent Emoji for the product's keyword. */
 export async function pictureIcons(input: { keyword: string }): Promise<Candidate[]> {
-  await assertOwner();
+  await requireCtx("view");
   const { keyword } = z.object({ keyword: z.string().trim().min(1).max(40) }).parse(input);
   const got = await iconsForKeyword(keyword, 4);
   return got.length ? got : iconsForKeyword("package", 2);
@@ -63,14 +64,14 @@ export async function pictureIcons(input: { keyword: string }): Promise<Candidat
 
 /** Alternatives for an item's picker: the stored ones, else a fresh search (stored for next time). */
 export async function itemPictureChoices(input: { itemId: string }): Promise<Candidate[]> {
-  await assertOwner();
+  const s = scoped(await requireCtx("view"));
   const { itemId } = z.object({ itemId: z.string().min(1).max(40) }).parse(input);
-  const item = await db.query.items.findFirst({ where: eq(schema.items.id, itemId) });
+  const item = await s.byId(schema.items, itemId);
   if (!item) return [];
   if (item.imageCandidates?.length) return item.imageCandidates;
-  const [r] = await picturesFor([{ name: item.title, info: item.productInfo, excludeId: item.id }], 20_000);
+  const [r] = await picturesFor([{ name: item.title, info: item.productInfo, excludeId: item.id }], 20_000, s);
   if (!r) return [];
-  await db.update(schema.items).set({ imageCandidates: r.ranked.candidates, productInfo: r.info }).where(eq(schema.items.id, itemId));
+  await s.update(schema.items, { imageCandidates: r.ranked.candidates, productInfo: r.info }, eq(schema.items.id, itemId));
   return r.ranked.candidates;
 }
 
@@ -79,36 +80,36 @@ export async function itemPictureChoices(input: { itemId: string }): Promise<Can
  * 480 px WebP), or no picture (`url: null`). Always approved.
  */
 export async function setItemPicture(input: { itemId: string; url: string | null; source?: Candidate["source"] | "photo" }): Promise<ItemWithSources | null> {
-  await assertOwner();
-  const p = z.object({ itemId: z.string().min(1).max(40), url: z.string().max(400_000).nullable(), source: z.enum(["barcode", "own", "search", "off", "generic", "icon", "photo"]).optional() }).parse(input);
-  const item = await db.query.items.findFirst({ where: eq(schema.items.id, p.itemId) });
+  const s = scoped(await requireCtx("edit"));
+  const p = z.object({ itemId: z.string().min(1).max(40), url: z.string().max(400_000).nullable(), source: z.enum(["barcode", "own", "search", "off", "generic", "icon", "photo"]).optional() }).strict().parse(input);
+  const item = await s.byId(schema.items, p.itemId);
   if (!item) return null;
   if (p.url == null) {
-    await db.update(schema.items).set({ imageUrl: null, imageSource: null, imageCheck: false, updatedAt: Date.now() }).where(eq(schema.items.id, item.id));
+    await s.update(schema.items, { imageUrl: null, imageSource: null, imageCheck: false, updatedAt: Date.now() }, eq(schema.items.id, item.id));
   } else if (p.source === "photo" || !p.source) {
     if (!/^data:image\/(jpeg|png|webp);base64,/.test(p.url)) throw new Error("invalid photo");
     // Blob when configured; locally (no Blob token) the client already shrank it to ~480 px, so keep it as is.
     const url = (await storeThumbnail(p.url, item.id)) ?? (p.url.length <= 160_000 ? p.url : null);
-    await db.update(schema.items).set({ imageUrl: url, imageSource: null, imageCheck: false, updatedAt: Date.now() }).where(eq(schema.items.id, item.id));
+    await s.update(schema.items, { imageUrl: url, imageSource: null, imageCheck: false, updatedAt: Date.now() }, eq(schema.items.id, item.id));
   } else {
     if (!/^https:\/\//.test(p.url) && !p.url.startsWith("data:image/svg+xml;base64,")) throw new Error("invalid picture");
     const chosen: Candidate = { url: p.url, source: p.source };
     const rest = (item.imageCandidates ?? []).filter((c) => c.url !== p.url);
-    await savePictureChoice(item.id, { chosen, candidates: [chosen, ...rest].slice(0, 6), check: false });
+    await savePictureChoice(s, item.id, { chosen, candidates: [chosen, ...rest].slice(0, 6), check: false });
   }
-  return getItem(item.id);
+  return getItem(s, item.id);
 }
 
 /** "Pictures look right": clear the check mark. */
 export async function approvePictures(input: { itemIds: string[] }): Promise<void> {
-  await assertOwner();
+  const s = scoped(await requireCtx("edit"));
   const { itemIds } = z.object({ itemIds: z.array(z.string().min(1).max(40)).max(200) }).parse(input);
-  if (itemIds.length) await db.update(schema.items).set({ imageCheck: false }).where(inArray(schema.items.id, itemIds));
+  if (itemIds.length) await s.update(schema.items, { imageCheck: false }, inArray(schema.items.id, itemIds));
 }
 
 /** Settings: whether Google image search is configured (better pictures). */
 export async function pictureSearchStatus(): Promise<{ search: boolean }> {
-  await assertOwner();
+  await requireCtx("view");
   return { search: !!searchProvider() };
 }
 

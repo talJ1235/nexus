@@ -300,7 +300,7 @@ export function ReceiptsSection({ item }: { item: ItemWithSources }) {
       for (const file of Array.from(files)) {
         if (file.size > 20 * 1024 * 1024) throw new Error("too_big");
         const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-80) || "receipt";
-        const blob = await upload(`receipts/${item.id}/${safe}`, file, { access: "public", handleUploadUrl: "/api/blob/upload", contentType: file.type || undefined });
+        const blob = await upload(`spaces/${s.spaceId}/receipts/${item.id}/${safe}`, file, { access: "public", handleUploadUrl: "/api/blob/upload", contentType: file.type || undefined });
         latest = await addAttachment(item.id, { url: blob.url, name: file.name, contentType: file.type || null, size: file.size });
       }
       s.upsertItem(latest);

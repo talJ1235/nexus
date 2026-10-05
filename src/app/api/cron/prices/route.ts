@@ -1,37 +1,50 @@
 import { type NextRequest } from "next/server";
-import { kvGet, kvSet } from "@/lib/kv";
-import { ensureWebhook, publicOrigin } from "@/lib/telegram";
-import { repairIncomplete } from "@/lib/service";
-import { getProfile } from "@/lib/profile-server";
-import { runServerChecks, sendAlertDigest, sendWeeklySummary } from "@/lib/tracker";
-import { backfillImages } from "@/lib/product-image";
+import { safeEqualStr } from "@/lib/auth/crypto";
+import { Scoped } from "@/lib/db-scoped";
+import { systemSpaces } from "@/lib/db-scoped/system";
+import { kvSet } from "@/lib/kv";
 import { normalizeOldPictures } from "@/lib/picture-backfill";
+import { backfillImages } from "@/lib/product-image";
+import { getProfile } from "@/lib/profile-server";
+import { repairIncomplete } from "@/lib/service";
+import { ownerPrefs, runCronChecks } from "@/lib/tracker";
 
 export const maxDuration = 60;
 
-// Daily price check (vercel.json → crons). Vercel sends `Authorization: Bearer $CRON_SECRET`.
+// Daily price check (vercel.json → crons). Vercel sends `Authorization: Bearer $CRON_SECRET` (authz allow-list:
+// CRON_SECRET, no user). R15 B3: price checks fan out over every space with one fetch per normalized URL; the
+// maintenance passes run per space through that space's Scoped handle. No Telegram (D2).
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return new Response("Unauthorized", { status: 401 });
-  // Local tests: ?only=weekly&force=1 sends the weekly summary now, without the price checks.
-  if (req.nextUrl.searchParams.get("only") === "weekly") {
-    return Response.json(await sendWeeklySummary(publicOrigin(req.nextUrl.origin), { force: req.nextUrl.searchParams.get("force") === "1" }));
+  if (!secret || !safeEqualStr(req.headers.get("authorization") ?? "", `Bearer ${secret}`)) return new Response("Unauthorized", { status: 401 });
+  const started = Date.now();
+  const result = await runCronChecks(26_000);
+  const spaces = await systemSpaces();
+  const repair = { tried: 0, repaired: 0 };
+  const images = { tried: 0, filled: 0 };
+  const pictures = { tried: 0, done: 0 };
+  // Maintenance gets what's left of the minute, shared over the spaces (oldest work is retried on later runs).
+  for (const sp of spaces) {
+    const left = 50_000 - (Date.now() - started);
+    if (left < 3_000) break;
+    const s = new Scoped({ spaceId: sp.id, userId: sp.ownerId });
+    const share = Math.max(2_000, Math.floor(left / Math.max(1, spaces.length)));
+    const r = await repairIncomplete(s, share * 0.5).catch(() => ({ tried: 0, repaired: 0 }));
+    const i = await backfillImages(s, share * 0.3).catch(() => ({ tried: 0, filled: 0 }));
+    const p = await normalizeOldPictures(s, share * 0.2, 10).catch(() => ({ tried: 0, done: 0 }));
+    repair.tried += r.tried;
+    repair.repaired += r.repaired;
+    images.tried += i.tried;
+    images.filled += i.filled;
+    pictures.tried += p.tried;
+    pictures.done += p.done;
+    // The shopping profile the assistant uses (Round 9 C3), refreshed for the space's creator.
+    if (sp.ownerId) {
+      const { currency } = await ownerPrefs(sp.ownerId);
+      await getProfile({ user: { id: sp.ownerId }, space: { id: sp.id } }, currency, true).catch(() => null);
+    }
   }
-  const result = await runServerChecks(28_000);
-  // Links whose first read was incomplete (e.g. a guest added it while the store/AI was unavailable).
-  const repair = await repairIncomplete(16_000).catch(() => ({ tried: 0, repaired: 0 }));
-  // Pictures for items that have none (bounded per run).
-  const images = await backfillImages(12_000).catch(() => ({ tried: 0, filled: 0 }));
-  // Older pictures → the one-catalogue look (Round 11 D1), a bounded batch per run.
-  const pictures = await normalizeOldPictures(8_000, 30).catch(() => ({ tried: 0, done: 0, left: null }));
-  const digest = await sendAlertDigest(req.nextUrl.origin);
-  // Sundays (Israel): the weekly summary, after the day's alerts went out.
-  const weekly = await sendWeeklySummary(publicOrigin(req.nextUrl.origin)).catch(() => ({ weekly: "failed" as const }));
-  await ensureWebhook(req.nextUrl.origin).catch(() => false); // self-heal the bot webhook daily
-  // The shopping profile the assistant uses (Round 9 C3), refreshed once a day in the owner's currency.
-  const owner = JSON.parse((await kvGet("pref:owner").catch(() => null)) ?? "{}") as { currency?: string };
-  await getProfile(owner.currency ?? "ILS", true).catch(() => null);
-  const summary = { at: Date.now(), checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, sent: digest.sent, budget: "budget" in digest ? digest.budget : false, weekly: weekly.weekly, repair, images, pictures };
+  const summary = { at: Date.now(), spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }

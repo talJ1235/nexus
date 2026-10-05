@@ -2,14 +2,12 @@
 
 import { desc, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { db, schema } from "@/db";
-import { assertOwner } from "@/lib/auth";
+import { schema } from "@/db";
+import { requireCtx } from "@/lib/ctx";
 import { loadItems } from "@/lib/data";
+import { scoped } from "@/lib/db-scoped";
 import { kvGet } from "@/lib/kv";
-import { headers } from "next/headers";
-import { after } from "next/server";
-import { disconnect, ensureWebhook, finishLink, saveBotToken, sendTelegram, startLink, telegramStatus } from "@/lib/telegram";
-import { getAlertPrefs, runServerChecks, sendAlertDigest, setAlertPrefs, type AlertPrefs } from "@/lib/tracker";
+import { getAlertPrefs, runServerChecks, setAlertPrefs, type AlertPrefs } from "@/lib/tracker";
 import type { Alert, ItemWithSources } from "@/lib/types";
 
 export type AlertsState = {
@@ -21,76 +19,66 @@ export type AlertsState = {
   cronConfigured: boolean;
 };
 
+// R15 D2: Telegram is off for everyone (state reported as not connected; the tg* actions answer "gone").
+const TELEGRAM_OFF = { hasToken: false, bot: null, connected: false };
+
 export async function getAlertsState(): Promise<AlertsState> {
-  await assertOwner();
-  // Make sure an already-linked bot receives messages (webhook), without delaying the response.
-  const origin = await requestOrigin();
-  after(() => ensureWebhook(origin).catch(() => false));
-  const [alerts, prefs, telegram, last] = await Promise.all([
-    db.select().from(schema.alerts).orderBy(desc(schema.alerts.createdAt)).limit(60),
-    getAlertPrefs(),
-    telegramStatus(),
-    kvGet("pref:last_check"),
-  ]);
+  const ctx = await requireCtx("view");
+  const s = scoped(ctx);
+  const [alerts, prefs, last] = await Promise.all([s.select(schema.alerts).orderBy(desc(schema.alerts.createdAt)).limit(60), getAlertPrefs(ctx.user.id), kvGet("pref:last_check")]);
   return {
     alerts,
     unread: alerts.filter((a) => !a.readAt).length,
     prefs,
-    telegram,
+    telegram: TELEGRAM_OFF,
     lastCheck: last ? JSON.parse(last) : null,
     cronConfigured: !!process.env.CRON_SECRET,
   };
 }
 
 export async function markAlertsRead() {
-  await assertOwner();
-  await db.update(schema.alerts).set({ readAt: Date.now() }).where(isNull(schema.alerts.readAt));
+  const s = scoped(await requireCtx("view"));
+  await s.update(schema.alerts, { readAt: Date.now() }, isNull(schema.alerts.readAt));
 }
 
 export async function saveAlertPrefs(p: Partial<AlertPrefs>) {
-  await assertOwner();
-  return setAlertPrefs(z.object({ minDropPct: z.number().min(1).max(90), telegram: z.boolean(), backInStock: z.boolean(), weekly: z.boolean() }).partial().parse(p));
+  const ctx = await requireCtx("view");
+  return setAlertPrefs(ctx.user.id, z.object({ minDropPct: z.number().min(1).max(90), telegram: z.boolean(), backInStock: z.boolean(), weekly: z.boolean() }).partial().strict().parse(p));
 }
 
 export async function checkPricesNow(origin: string): Promise<{ checked: number; blocked: number; alerts: number; items: ItemWithSources[] }> {
-  await assertOwner();
-  const r = await runServerChecks(40_000);
-  await sendAlertDigest(z.string().url().parse(origin));
-  return { checked: r.checked, blocked: r.blocked, alerts: r.alerts.length, items: await loadItems() };
+  const s = scoped(await requireCtx("edit"));
+  z.string().max(300).parse(origin);
+  const r = await runServerChecks(s, 40_000);
+  return { checked: r.checked, blocked: r.blocked, alerts: r.alerts.length, items: await loadItems(s) };
 }
 
-export async function tgSaveToken(token: string) {
-  await assertOwner();
-  try {
-    return { ok: true as const, bot: await saveBotToken(z.string().max(200).parse(token)) };
-  } catch {
-    return { ok: false as const };
-  }
+async function gone(): Promise<never> {
+  await requireCtx("view");
+  throw new Error("gone");
 }
 
-export async function tgStartLink() {
-  await assertOwner();
-  return startLink();
+export async function tgSaveToken(token: string): Promise<{ ok: true; bot: string } | { ok: false }> {
+  void token;
+  await requireCtx("view");
+  return { ok: false };
 }
 
-async function requestOrigin() {
-  const h = await headers();
-  return `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+export async function tgStartLink(): Promise<{ url: string; code: string }> {
+  return gone();
 }
 
-export async function tgFinishLink() {
-  await assertOwner();
-  const ok = await finishLink();
-  if (ok) await ensureWebhook(await requestOrigin());
-  return ok;
+export async function tgFinishLink(): Promise<boolean> {
+  await requireCtx("view");
+  return false;
 }
 
-export async function tgDisconnect() {
-  await assertOwner();
-  await disconnect();
+export async function tgDisconnect(): Promise<void> {
+  await requireCtx("view");
 }
 
-export async function tgTest(text: string) {
-  await assertOwner();
-  return sendTelegram(z.string().max(500).parse(text));
+export async function tgTest(text: string): Promise<boolean> {
+  void text;
+  await requireCtx("view");
+  return false;
 }

@@ -1,11 +1,13 @@
 "use server";
 
-import { count, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db, schema } from "@/db";
+import { schema } from "@/db";
 import { aiEnabled, generateJson } from "@/lib/ai";
 import { mockAi, snapshot } from "@/lib/assistant";
-import { assertOwner } from "@/lib/auth";
+import { requireCtx } from "@/lib/ctx";
+import { scoped } from "@/lib/db-scoped";
+import { spacePrefGet, spacePrefSet, userPrefGet, userPrefSet } from "@/lib/db-scoped/prefs";
 import { getAppData, getItem } from "@/lib/data";
 import { dayKeyIn, HIDE_MS } from "@/lib/home";
 import { numbersIn, validateHomeAi, type HomeAi } from "@/lib/home-ai";
@@ -17,36 +19,36 @@ import type { ItemWithSources } from "@/lib/types";
 
 /** Hide a Needs-you row (or snooze a suggestion, key "sug:…") for 7 days. Returns the new map. */
 export async function dismissHome(key: string): Promise<Record<string, number>> {
-  await assertOwner();
+  const ctx = await requireCtx("view");
   const k = z.string().min(1).max(300).parse(key);
-  const map = parseDismissed(await kvGet(HOME_DISMISSED_KEY));
+  const map = parseDismissed(await userPrefGet(ctx.user.id, HOME_DISMISSED_KEY));
   map[k] = Date.now() + HIDE_MS;
-  await kvSet(HOME_DISMISSED_KEY, JSON.stringify(map));
+  await userPrefSet(ctx.user.id, HOME_DISMISSED_KEY, JSON.stringify(map));
   return map;
 }
 
 export async function undismissHome(key: string): Promise<Record<string, number>> {
-  await assertOwner();
-  const map = parseDismissed(await kvGet(HOME_DISMISSED_KEY));
+  const ctx = await requireCtx("view");
+  const map = parseDismissed(await userPrefGet(ctx.user.id, HOME_DISMISSED_KEY));
   delete map[z.string().max(300).parse(key)];
-  await kvSet(HOME_DISMISSED_KEY, JSON.stringify(map));
+  await userPrefSet(ctx.user.id, HOME_DISMISSED_KEY, JSON.stringify(map));
   return map;
 }
 
 /** Settings → Assistant → "AI-written suggestions". */
 export async function setAiSuggestions(on: boolean): Promise<boolean> {
-  await assertOwner();
-  await kvSet(HOME_AI_KEY, z.boolean().parse(on) ? null : "off");
+  const ctx = await requireCtx("view");
+  await userPrefSet(ctx.user.id, HOME_AI_KEY, z.boolean().parse(on) ? null : "off");
   return on;
 }
 
 /** "Add to list" for something bought before (reorder due): a new to-buy item with the same picture and links. */
 export async function buyAgain(itemId: string): Promise<ItemWithSources> {
-  await assertOwner();
-  const old = await getItem(z.string().min(1).max(40).parse(itemId));
+  const s = scoped(await requireCtx("edit"));
+  const old = await getItem(s, z.string().min(1).max(40).parse(itemId));
   if (!old) throw new Error("not_found");
   const src = (old.chosenSourceId && old.sources.find((s) => s.id === old.chosenSourceId)) || old.sources[0] || null;
-  const created = await createItemCore({
+  const created = await createItemCore(s, {
     title: old.title,
     brand: old.brand,
     imageUrl: old.imageUrl,
@@ -59,8 +61,8 @@ export async function buyAgain(itemId: string): Promise<ItemWithSources> {
       ? { url: src.url, normalizedUrl: src.normalizedUrl, store: src.store, storeKey: src.storeKey, price: src.price, currency: src.currency, shipping: src.shipping, availability: src.availability, rawTitle: src.rawTitle, extractMethod: src.extractMethod ?? "copy", gtin: src.gtin }
       : null,
   });
-  if (old.imageSource) await db.update(schema.items).set({ imageSource: old.imageSource }).where(eq(schema.items.id, created.id));
-  return (await getItem(created.id))!;
+  if (old.imageSource) await s.update(schema.items, { imageSource: old.imageSource }, eq(schema.items.id, created.id));
+  return (await getItem(s, created.id))!;
 }
 
 const candSchema = z.array(z.object({ key: z.string().max(200), kind: z.string().max(20), facts: z.record(z.string(), z.union([z.string().max(200), z.number(), z.null()])) })).max(4);
@@ -73,15 +75,16 @@ type Cache = { at: number; map: Phrased; failedAt?: number };
  * its templates). Keys first seen after today's call stay on templates until tomorrow (the once-a-day cost cap).
  */
 export async function phraseSuggestions(raw: unknown, locale: string): Promise<Phrased> {
-  await assertOwner();
+  const ctx = await requireCtx("view");
+  const s = scoped(ctx);
   const cands = candSchema.parse(raw);
   const lang = locale === "he" ? "he" : "en";
-  if (!cands.length || (await kvGet(HOME_AI_KEY)) === "off" || !(aiEnabled() || mockAi())) return {};
+  if (!cands.length || (await userPrefGet(ctx.user.id, HOME_AI_KEY)) === "off" || !(aiEnabled() || mockAi())) return {};
   const date = dayKeyIn(Date.now(), "Asia/Jerusalem");
   const key = `home:ai:${date}:${lang}`;
   let cache: Cache | null = null;
   try {
-    cache = JSON.parse((await kvGet(key)) ?? "null");
+    cache = JSON.parse((await spacePrefGet(s, key)) ?? "null");
   } catch {}
   if (cache && !cache.failedAt) return cache.map;
   // A failed call is retried after 3 h, not on every page load.
@@ -105,11 +108,11 @@ export async function phraseSuggestions(raw: unknown, locale: string): Promise<P
     const known = new Set(cands.map((c) => c.key));
     for (const x of res?.items ?? []) if (known.has(x.key) && x.title?.trim()) map[x.key] = { title: x.title.trim().slice(0, 120), why: (x.why ?? "").trim().slice(0, 110) };
     if (!Object.keys(map).length) {
-      await kvSet(key, JSON.stringify({ at: Date.now(), map: {}, failedAt: Date.now() } satisfies Cache));
+      await spacePrefSet(s, key, JSON.stringify({ at: Date.now(), map: {}, failedAt: Date.now() } satisfies Cache));
       return {};
     }
   }
-  await kvSet(key, JSON.stringify({ at: Date.now(), map } satisfies Cache));
+  await spacePrefSet(s, key, JSON.stringify({ at: Date.now(), map } satisfies Cache));
   map = Object.fromEntries(Object.entries(map).filter(([k]) => cands.some((c) => c.key === k)));
   return map;
 }
@@ -135,7 +138,7 @@ async function writeDiag(d: Omit<HomeDiag, "at">) {
 
 /** Settings → Assistant: when Home suggestions last ran, from what, and the last error. */
 export async function homeDiag(): Promise<HomeDiag | null> {
-  await assertOwner();
+  await requireCtx("view");
   try {
     return JSON.parse((await kvGet(DIAG_KEY)) ?? "null");
   } catch {
@@ -169,22 +172,23 @@ function mockLook(data: Awaited<ReturnType<typeof getAppData>>, he: boolean) {
  * language; a failure retries after 3 h. Off / no key → no AI call. Always returns the receipt count (a fallback fact).
  */
 export async function homeLook(raw: unknown): Promise<{ ai: HomeAi | null; receipts: number }> {
-  await assertOwner();
+  const ctx = await requireCtx("view");
+  const s = scoped(ctx);
   const input = lookInput.parse(raw);
-  const [{ n: receipts }] = await db.select({ n: count() }).from(schema.receipts);
+  const receipts = await s.count(schema.receipts);
   // What Home shows: rules, then the AI, then the fallbacks (≤ 4 suggestions + ≤ 3 insights). The receipt fallback is
   // only known here.
   const fbSugs = input.fbSugs + (receipts === 0 ? 1 : 0);
   const shown = (ai: HomeAi | null) => Math.min(4, input.ruleSugs + (ai?.suggestions.length ?? 0) + fbSugs) + Math.min(3, input.ruleIns + (ai?.insights.length ?? 0) + input.fbIns);
   const rules = shown(null);
-  if ((await kvGet(HOME_AI_KEY)) === "off" || !(aiEnabled() || mockAi())) {
+  if ((await userPrefGet(ctx.user.id, HOME_AI_KEY)) === "off" || !(aiEnabled() || mockAi())) {
     await writeDiag({ source: "rules", n: rules, error: null });
     return { ai: null, receipts };
   }
   const key = `home:look:${dayKeyIn(Date.now(), "Asia/Jerusalem")}:${input.locale}`;
   let cache: LookCache | null = null;
   try {
-    cache = JSON.parse((await kvGet(key)) ?? "null");
+    cache = JSON.parse((await spacePrefGet(s, key)) ?? "null");
   } catch {}
   if (cache && !cache.failedAt) {
     await writeDiag(cache.ai ? { source: "ai", n: shown(cache.ai), error: null } : { source: "rules", n: rules, error: null });
@@ -196,7 +200,7 @@ export async function homeLook(raw: unknown): Promise<{ ai: HomeAi | null; recei
   }
   if (cache?.failedAt && Date.now() - cache.failedAt < 3 * 3_600_000) return { ai: null, receipts };
 
-  const data = await getAppData();
+  const data = await getAppData(s, ctx.user.id);
   const { lines, projects } = snapshot(data, input.currency, data.rates);
   const known = numbersIn([...lines, ...projects].join("\n"));
   const ids = { items: new Set(data.items.map((i) => i.id)), collections: new Set(data.collections.map((c) => c.id)) };
@@ -231,11 +235,11 @@ export async function homeLook(raw: unknown): Promise<{ ai: HomeAi | null; recei
   }
   const ai = rawAi == null ? null : validateHomeAi(rawAi, ids, known);
   if (!ai) {
-    await kvSet(key, JSON.stringify({ at: Date.now(), ai: null, failedAt: Date.now(), error: error ?? "failed" } satisfies LookCache));
+    await spacePrefSet(s, key, JSON.stringify({ at: Date.now(), ai: null, failedAt: Date.now(), error: error ?? "failed" } satisfies LookCache));
     await writeDiag({ source: "rules", n: rules, error: error ?? "failed" });
     return { ai: null, receipts };
   }
-  await kvSet(key, JSON.stringify({ at: Date.now(), ai } satisfies LookCache));
+  await spacePrefSet(s, key, JSON.stringify({ at: Date.now(), ai } satisfies LookCache));
   await writeDiag({ source: "ai", n: shown(ai), error: null });
   return { ai, receipts };
 }

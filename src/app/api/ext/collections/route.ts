@@ -1,13 +1,5 @@
-import { asc, eq } from "drizzle-orm";
-import { db, schema } from "@/db";
-import { verifyExtensionRequest } from "@/lib/ext-token";
-
-export async function GET(req: Request) {
-  if (!(await verifyExtensionRequest(req))) return Response.json({ error: "unauthorized" }, { status: 401 });
-  const collections = await db
-    .select({ id: schema.collections.id, name: schema.collections.name, kind: schema.collections.kind })
-    .from(schema.collections)
-    .where(eq(schema.collections.archived, false))
-    .orderBy(asc(schema.collections.sortOrder));
-  return Response.json({ collections });
-}
+// R15 D2: the browser extension is off for everyone — its endpoints answer 410 Gone (authz allow-list: retired, no
+// data). The extension's code stays in the repo (extension/), in case it is revived with per-user tokens.
+const gone = () => new Response("Gone", { status: 410 });
+export const GET = gone;
+export const POST = gone;

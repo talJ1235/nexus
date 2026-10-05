@@ -68,7 +68,7 @@ export function ReceiptDialog() {
         const urls: string[] = [];
         for (const [i, b] of blobs.entries()) {
           const ext = b.type === "application/pdf" ? "pdf" : "jpg";
-          const res = await upload(`receipts/inbox/${safe.replace(/\.\w+$/, "")}-${i + 1}.${ext}`, b, { access: "public", handleUploadUrl: "/api/blob/upload", contentType: b.type || undefined });
+          const res = await upload(`spaces/${s.spaceId}/receipts/inbox/${safe.replace(/\.\w+$/, "")}-${i + 1}.${ext}`, b, { access: "public", handleUploadUrl: "/api/blob/upload", contentType: b.type || undefined });
           urls.push(res.url);
         }
         id = (await createReceipt({ file: { url: urls[0], name, contentType: blobs[0].type || null, size: blobs[0].size }, parts: urls.slice(1) })).id;

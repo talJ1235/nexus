@@ -1,18 +1,19 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { db, schema } from "@/db";
-import { assertOwner } from "@/lib/auth";
-import { getItem, recordPrice } from "@/lib/data";
+import { schema } from "@/db";
+import { requireCtx } from "@/lib/ctx";
+import { loadItems, recordPrice } from "@/lib/data";
+import { scoped } from "@/lib/db-scoped";
 import { hintsFromUrl } from "@/lib/extract";
 import { parsePrice } from "@/lib/money";
 import { normalizeUrl, storeFromUrl } from "@/lib/stores";
 import type { Collection, ItemWithSources } from "@/lib/types";
 import { isHttpUrl } from "@/lib/utils";
 
-const row = z.object({
+const row = z.strictObject({
   title: z.string().max(300).optional(),
   url: z.string().max(2000).optional(),
   quantity: z.string().max(20).optional(),
@@ -24,9 +25,9 @@ const row = z.object({
 });
 export type ImportRow = z.infer<typeof row>;
 
-const input = z.object({
+const input = z.strictObject({
   rows: z.array(row).max(1000),
-  collectionId: z.string().nullable(),
+  collectionId: z.string().max(64).nullable(),
   defaultCurrency: z.string().min(3).max(3),
 });
 
@@ -36,11 +37,13 @@ const PRIORITY: Record<string, "urgent" | "normal" | "someday"> = {
 };
 
 export async function importRows(raw: z.input<typeof input>): Promise<{ items: ItemWithSources[]; collections: Collection[]; skipped: number }> {
-  await assertOwner();
-  const { rows, collectionId, defaultCurrency } = input.parse(raw);
+  const s = scoped(await requireCtx("edit"));
+  const parsed = input.parse(raw);
+  const { rows, defaultCurrency } = parsed;
+  const collectionId = await s.ref(schema.collections, parsed.collectionId);
 
   // Resolve per-row project/list names; create missing ones as lists.
-  const existing = await db.select().from(schema.collections);
+  const existing = await s.select(schema.collections);
   const byName = new Map(existing.map((c) => [c.name.trim().toLowerCase(), c]));
   const createdCollections: Collection[] = [];
   const collectionFor = async (name?: string) => {
@@ -48,14 +51,16 @@ export async function importRows(raw: z.input<typeof input>): Promise<{ items: I
     if (!key) return collectionId;
     let c = byName.get(key);
     if (!c) {
-      [c] = await db.insert(schema.collections).values({ id: nanoid(10), kind: "list", name: name!.trim().slice(0, 80), sortOrder: Date.now() % 1e9 }).returning();
+      const cid = nanoid(10);
+      await s.insert(schema.collections, { id: cid, kind: "list", name: name!.trim().slice(0, 80), sortOrder: Date.now() % 1e9 });
+      c = (await s.byId(schema.collections, cid))!;
       byName.set(key, c);
       createdCollections.push(c);
     }
     return c.id;
   };
 
-  const seen = new Set((await db.select({ n: schema.sources.normalizedUrl }).from(schema.sources)).map((r) => r.n));
+  const seen = new Set((await s.pick({ n: schema.sources.normalizedUrl }, schema.sources)).map((r) => r.n));
   const ids: string[] = [];
   let skipped = 0;
   const t0 = Date.now();
@@ -81,8 +86,9 @@ export async function importRows(raw: z.input<typeof input>): Promise<{ items: I
     const qty = Math.max(1, Math.min(100000, parseInt((r.quantity ?? "").replace(/[^\d]/g, "")) || 1));
     const id = nanoid(12);
     const ts = t0 + (rows.length - i); // keep file order when sorted by newest
-    await db.insert(schema.items).values({
+    await s.insert(schema.items, {
       id,
+      addedByUserId: s.scope.userId,
       title: (title ?? `${store?.name ?? "New"} item`).slice(0, 300),
       tags: [],
       collectionId: await collectionFor(r.collection),
@@ -95,7 +101,7 @@ export async function importRows(raw: z.input<typeof input>): Promise<{ items: I
     if (url && store && normalized) {
       const sourceId = nanoid(12);
       const currency = (price?.currency ?? store.currency ?? defaultCurrency).toUpperCase();
-      await db.insert(schema.sources).values({
+      await s.insert(schema.sources, {
         id: sourceId,
         itemId: id,
         url,
@@ -108,12 +114,12 @@ export async function importRows(raw: z.input<typeof input>): Promise<{ items: I
         extractMethod: r.title?.trim() && !nameIsLink ? "import-titled" : "import",
         createdAt: ts,
       });
-      if (price) await recordPrice(sourceId, id, price.amount, currency);
+      if (price) await recordPrice(s, sourceId, id, price.amount, currency);
     } else if (price) {
       // Known price without a link (bought locally, quote, etc.) → a manual price entry.
       const sourceId = nanoid(12);
       const currency = (price.currency ?? defaultCurrency).toUpperCase();
-      await db.insert(schema.sources).values({
+      await s.insert(schema.sources, {
         id: sourceId,
         itemId: id,
         url: "",
@@ -125,22 +131,26 @@ export async function importRows(raw: z.input<typeof input>): Promise<{ items: I
         extractMethod: "manual",
         createdAt: ts,
       });
-      await recordPrice(sourceId, id, price.amount, currency);
+      await recordPrice(s, sourceId, id, price.amount, currency);
     }
     ids.push(id);
   }
 
-  const items = (await Promise.all(ids.map((id) => getItem(id)))).filter(Boolean) as ItemWithSources[];
+  const items = await loadItems(s, ids);
   return { items, collections: createdCollections, skipped };
 }
 
 /** Items created by an import that still need their details read from the store. */
 export async function needsDetails(ids: string[]): Promise<{ itemId: string; sourceId: string; url: string }[]> {
-  await assertOwner();
+  const s = scoped(await requireCtx("edit"));
+  const list = z.array(z.string().min(1).max(64)).max(1000).parse(ids);
+  if (!list.length) return [];
+  const srcs = await s.select(schema.sources, inArray(schema.sources.itemId, list));
   const out: { itemId: string; sourceId: string; url: string }[] = [];
-  for (const id of ids.slice(0, 1000)) {
-    const src = await db.query.sources.findFirst({ where: eq(schema.sources.itemId, id) });
+  for (const id of list) {
+    const src = srcs.find((x) => x.itemId === id);
     if (src?.url && !src.rawTitle) out.push({ itemId: id, sourceId: src.id, url: src.url });
   }
+  void eq;
   return out;
 }

@@ -1,11 +1,15 @@
 import { type NextRequest } from "next/server";
 import { aiHealth, aiProviders, generateText, lastAiErrors } from "@/lib/ai";
 import { planProject } from "@/lib/assistant";
+import { isAdmin, routeCtx } from "@/lib/ctx";
 
 export const maxDuration = 60;
 
-// Owner-only (proxy): end-to-end check of the Gemini setup. ?plan=1 also runs a small project plan.
+// Admin-only: end-to-end check of the Gemini setup. ?plan=1 also runs a small project plan.
 export async function GET(req: NextRequest) {
+  const ctx = await routeCtx("view");
+  if (ctx instanceof Response) return ctx;
+  if (!isAdmin(ctx)) return Response.json({ error: "not_found" }, { status: 404 });
   const providers = aiProviders();
   const hasKey = providers.length > 0;
   const started = Date.now();

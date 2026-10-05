@@ -1,17 +1,22 @@
 import ExcelJS from "exceljs";
 import { type NextRequest } from "next/server";
 import { activeSource, lineTotal, unitPrice } from "@/lib/calc";
+import { routeCtx } from "@/lib/ctx";
 import { getAppData } from "@/lib/data";
+import { scoped } from "@/lib/db-scoped";
 import { dictionaries, isLocale } from "@/lib/i18n";
 import { CURRENCIES, type Currency } from "@/lib/money";
 import { itemsForView, type View } from "@/lib/views";
 
+// R15 B3: the current space only, owner role.
 export async function GET(req: NextRequest) {
+  const ctx = await routeCtx("owner");
+  if (ctx instanceof Response) return ctx;
   const p = req.nextUrl.searchParams;
   const currency = ((CURRENCIES as readonly string[]).includes(p.get("currency") ?? "") ? p.get("currency") : "ILS") as Currency;
   const locale = isLocale(p.get("locale")) ? (p.get("locale") as "en" | "he") : "en";
   const t = dictionaries[locale];
-  const data = await getAppData();
+  const data = await getAppData(scoped(ctx), ctx.user.id);
 
   let view: View = { type: "to_buy" };
   const cid = p.get("collection");

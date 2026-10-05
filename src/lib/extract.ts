@@ -1,4 +1,5 @@
 import "server-only";
+import { safeFetch } from "./safe-fetch";
 import * as cheerio from "cheerio";
 import { parsePrice } from "./money";
 import { normalizeUrl, storeFromUrl } from "./stores";
@@ -60,33 +61,11 @@ async function fetchHtml(inputUrl: string) {
   if (!isPublicHttpUrl(inputUrl)) throw new Error("blocked_host");
   const target = fetchTarget(inputUrl);
   const url = target.url;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 9000);
-  try {
-    const res = await fetch(url, { headers: target.headers, redirect: "follow", signal: ctrl.signal, cache: "no-store" });
-    const type = res.headers.get("content-type") ?? "";
-    if (!type.includes("html")) return { finalUrl: res.url || url, html: null, status: res.status };
-    // Cap at ~2.5MB to stay within function memory/time.
-    const reader = res.body?.getReader();
-    let html = "";
-    if (reader) {
-      const dec = new TextDecoder();
-      let size = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        size += value.byteLength;
-        html += dec.decode(value, { stream: true });
-        if (size > 2_500_000) {
-          await reader.cancel();
-          break;
-        }
-      }
-    }
-    return { finalUrl: res.url || url, html, status: res.status };
-  } finally {
-    clearTimeout(timer);
-  }
+  // R15 B4: safeFetch checks every hop and the resolved address; capped at ~2.5 MB to stay within memory/time.
+  const res = await safeFetch(url, { headers: target.headers, timeoutMs: 9000, maxBytes: 2_500_000 });
+  const type = res.headers.get("content-type") ?? "";
+  if (!type.includes("html")) return { finalUrl: res.url || url, html: null, status: res.status };
+  return { finalUrl: res.url || url, html: res.text, status: res.status };
 }
 
 type Json = Record<string, unknown>;

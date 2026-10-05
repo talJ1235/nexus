@@ -2,7 +2,8 @@ import { z } from "zod";
 import { aiEnabled, generateTextStream } from "@/lib/ai";
 import { askPrompt, mockAi } from "@/lib/assistant";
 import { newCollections, parseAnswer, planChanges } from "@/lib/assistant-actions";
-import { assertOwner } from "@/lib/auth";
+import { accessResponse, requireCtx } from "@/lib/ctx";
+import { scoped } from "@/lib/db-scoped";
 import { getAppData } from "@/lib/data";
 import { CURRENCIES } from "@/lib/money";
 import { clientDiagSchema } from "@/lib/diag-schema";
@@ -15,7 +16,7 @@ import { diagLines, helpText, serverDiag } from "@/lib/help/server";
 
 export const maxDuration = 60;
 
-const body = z.object({
+const body = z.strictObject({
   question: z.string().min(1).max(1500),
   history: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(4000) })).max(20),
   currency: z.enum(CURRENCIES),
@@ -35,11 +36,13 @@ const body = z.object({
  *   {"t":"error","error":"no_ai"|"failed"}
  */
 export async function POST(req: Request) {
+  let ctx;
   try {
-    await assertOwner();
-  } catch {
-    return Response.json({ error: "unauthorized" }, { status: 401 });
+    ctx = await requireCtx("view");
+  } catch (e) {
+    return accessResponse(e);
   }
+  const s = scoped(ctx);
   let input: z.infer<typeof body>;
   try {
     input = body.parse(await req.json());
@@ -55,16 +58,17 @@ export async function POST(req: Request) {
           send({ t: "error", error: "no_ai" });
           return;
         }
-        const data = await getAppData();
+        // The assistant's context is the caller's current space only (B3); writes still need the user's tap.
+        const data = await getAppData(s, ctx.user.id);
         // Data question, how-to-use-the-app question, or both in front of the model (lib/help/route.ts).
         const { route, complaint } = classifyQuestion(input.question, data.collections.map((c) => c.name));
         const help = route === "data" ? undefined : helpText();
         const diag = route === "data" ? undefined : diagLines(input.diag, await serverDiag());
         // "How did I fix X last time?" → snippets from earlier conversations.
-        const past = await pastSnippets(input.question, input.conversationId ?? null).catch(() => null);
+        const past = await pastSnippets(s, input.question, input.conversationId ?? null).catch(() => null);
         // What Nexus knows about the user (profile + confirmed notes) when memory is on (R9 C3).
-        const memoryOn = await memoryEnabled().catch(() => false);
-        const memory = memoryOn && route !== "help" ? await memoryContext(input.currency, input.locale).catch(() => null) : null;
+        const memoryOn = await memoryEnabled(ctx).catch(() => false);
+        const memory = memoryOn && route !== "help" ? await memoryContext(ctx, input.currency, input.locale).catch(() => null) : null;
         const p = askPrompt({ ...input, data, route, help, diag, complaint, past, memoryOn, memory });
         let full = "";
         if ("mock" in p) {

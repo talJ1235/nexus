@@ -13,14 +13,14 @@ const item = (id: string, sources: Source[], p: Partial<ItemWithSources> = {}) =
 const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 0.01, `${a} ≈ ${b}`);
 
 // Rules: a saved row wins over the pre-filled default; unknown store → none.
-const saved: StoreSetting[] = [{ storeKey: "amazon", freeShippingMin: 200, shippingFee: 30, currency: "ILS", updatedAt: 0 }];
+const saved: StoreSetting[] = [{ spaceId: "s", storeKey: "amazon", freeShippingMin: 200, shippingFee: 30, currency: "ILS", updatedAt: 0 }];
 assert.equal(shippingRule("amazon", saved)?.freeShippingMin, 200);
 assert.equal(shippingRule("amazon", saved)?.saved, true);
-assert.deepEqual(shippingRule("amazon", []), { freeShippingMin: 49, shippingFee: null, currency: "USD", saved: false });
+assert.deepEqual(shippingRule("amazon", []), { spaceId: "s", freeShippingMin: 49, shippingFee: null, currency: "USD", saved: false });
 assert.equal(shippingRule("ksp", []), null);
 
 // Gap: under the threshold → fee charged, remaining; converted from the rule's currency.
-const rule = { freeShippingMin: 200, shippingFee: 30, currency: "ILS" };
+const rule = { spaceId: "s", freeShippingMin: 200, shippingFee: 30, currency: "ILS" };
 let g = shippingGap(150, rule, rates, "ILS");
 assert.deepEqual([g.threshold, g.fee, g.subtotal, g.remaining, g.free], [200, 30, 180, 50, false]);
 near(g.progress, 0.75);

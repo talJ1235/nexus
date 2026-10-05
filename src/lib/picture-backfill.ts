@@ -1,6 +1,7 @@
 import "server-only";
 import { and, eq, isNotNull, ne, or, isNull } from "drizzle-orm";
-import { db, schema } from "@/db";
+import { schema } from "@/db";
+import type { Scoped } from "./db-scoped";
 import { storeThumbnail } from "./images";
 import { pictureSettled, pictureStyleOf } from "./picture-url";
 
@@ -10,13 +11,10 @@ import { pictureSettled, pictureStyleOf } from "./picture-url";
  * Needs Blob storage (BLOB_READ_WRITE_TOKEN); without it there's nothing to write to and it does nothing.
  * Pictures that can't be fetched any more are skipped this run and retried on later runs.
  */
-export async function normalizeOldPictures(budgetMs = 10_000, max = 30) {
+export async function normalizeOldPictures(s: Scoped, budgetMs = 10_000, max = 30) {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return { tried: 0, done: 0, left: null as number | null, skipped: "no-blob" as const };
   const t0 = Date.now();
-  const rows = await db
-    .select({ id: schema.items.id, url: schema.items.imageUrl })
-    .from(schema.items)
-    .where(and(isNotNull(schema.items.imageUrl), or(isNull(schema.items.imageSource), ne(schema.items.imageSource, "icon"))));
+  const rows = await s.pick({ id: schema.items.id, url: schema.items.imageUrl }, schema.items, and(isNotNull(schema.items.imageUrl), or(isNull(schema.items.imageSource), ne(schema.items.imageSource, "icon"))));
   const todo = rows.filter((r) => !pictureSettled(r.url));
   let tried = 0;
   let done = 0;
@@ -25,7 +23,7 @@ export async function normalizeOldPictures(budgetMs = 10_000, max = 30) {
     tried++;
     const url = await storeThumbnail(r.url, r.id).catch(() => null);
     if (!url || !pictureStyleOf(url)) continue;
-    await db.update(schema.items).set({ imageUrl: url }).where(eq(schema.items.id, r.id));
+    await s.update(schema.items, { imageUrl: url }, eq(schema.items.id, r.id));
     done++;
   }
   return { tried, done, left: todo.length - done };

@@ -1,20 +1,19 @@
 "use server";
 
-import { desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { after } from "next/server";
 import { z } from "zod";
-import { db, schema } from "@/db";
-import { assertOwner } from "@/lib/auth";
+import { schema } from "@/db";
+import { isAdmin, requireCtx } from "@/lib/ctx";
+import { insertReport, listReportsFor, setReportIssue, setReportStatusAdmin } from "@/lib/db-scoped/reports";
 import { clientDiagSchema } from "@/lib/diag-schema";
 import { serverDiag } from "@/lib/help/server";
 import { REPORT_STATUSES, REPORT_TYPES, reportBody, reportMarkdown, reportTitle, type ReportDiag, type ReportRow } from "@/lib/reports";
-import { escapeHtml, publicOrigin, sendTelegram } from "@/lib/telegram";
 
-// Problem reports (Round 8 D3): owner-only (guests can't use the assistant or report). Stored in `reports`, one
-// Telegram message per new report when Telegram is linked, and a GitHub issue when GITHUB_ISSUES_TOKEN is set.
+// Problem reports (Round 8 D3): any signed-in user; stored in `reports` with the sender (R15), and a GitHub issue
+// when GITHUB_ISSUES_TOKEN is set. No Telegram (D2). Users list their own reports; the admin lists all.
 
-const input = z.object({
+const input = z.strictObject({
   type: z.enum(REPORT_TYPES),
   // Round 9 D1: the form has one text box; the title comes from it unless the assistant drafted one.
   title: z.string().trim().max(120).optional(),
@@ -32,7 +31,7 @@ export type ReportView = ReportRow & { screenshot: string | null };
 const view = (r: typeof schema.reports.$inferSelect): ReportView => ({ ...r, githubIssue: r.githubIssue ?? null });
 
 export async function createReport(raw: z.input<typeof input>): Promise<ReportView> {
-  await assertOwner();
+  const ctx = await requireCtx("view");
   const parsed = input.parse(raw);
   const f = { ...parsed, title: parsed.title || reportTitle(parsed.happened) };
   const server = await serverDiag();
@@ -43,34 +42,27 @@ export async function createReport(raw: z.input<typeof input>): Promise<ReportVi
     screenshot: !!f.screenshot,
   };
   const now = Date.now();
-  const [row] = await db
-    .insert(schema.reports)
-    .values({ id: `r_${nanoid(10)}`, type: f.type, title: f.title, body: reportBody(f), diagnostics, screenshot: f.screenshot ?? null, status: "open", createdAt: now, updatedAt: now })
-    .returning();
+  const row = await insertReport(ctx.user.id, { id: `r_${nanoid(10)}`, type: f.type, title: f.title, body: reportBody(f), diagnostics, screenshot: f.screenshot ?? null, status: "open", createdAt: now, updatedAt: now });
   const report = view(row);
   // Notifications don't hold up the answer (and never fail the report).
   after(async () => {
     const md = reportMarkdown(report);
     const issue = await openGithubIssue(report, md).catch(() => null);
-    if (issue) await db.update(schema.reports).set({ githubIssue: issue }).where(eq(schema.reports.id, report.id));
-    const origin = publicOrigin("");
-    const label = { bug: "🐞 Bug", complaint: "😕 Complaint", idea: "💡 Idea" }[report.type];
-    await sendTelegram(
-      `<b>${label}: ${escapeHtml(report.title)}</b>\n${escapeHtml(report.body.replace(/\*\*/g, "").slice(0, 600))}${issue ? `\nGitHub #${issue}` : ""}${origin ? `\n${origin}/?panel=reports` : ""}`,
-    ).catch(() => false);
+    if (issue) await setReportIssue(report.id, issue);
   });
   return report;
 }
 
 export async function listReports(): Promise<ReportView[]> {
-  await assertOwner();
-  return (await db.select().from(schema.reports).orderBy(desc(schema.reports.createdAt)).limit(200)).map(view);
+  const ctx = await requireCtx("view");
+  return (await listReportsFor(ctx.user.id, isAdmin(ctx))).map(view);
 }
 
 export async function setReportStatus(id: string, status: (typeof REPORT_STATUSES)[number]): Promise<ReportView | null> {
-  await assertOwner();
+  const ctx = await requireCtx("view");
+  if (!isAdmin(ctx)) throw new Error("forbidden");
   const s = z.enum(REPORT_STATUSES).parse(status);
-  const [row] = await db.update(schema.reports).set({ status: s, updatedAt: Date.now() }).where(eq(schema.reports.id, z.string().min(1).max(40).parse(id))).returning();
+  const row = await setReportStatusAdmin(z.string().min(1).max(40).parse(id), s);
   return row ? view(row) : null;
 }
 
