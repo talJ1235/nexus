@@ -103,3 +103,11 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
 - 2026-10-04 (chat, account B): documented what making the repo private changes (Vercel, chat clone, Actions minutes, CodeQL/secret scanning → gitleaks + Semgrep). Security plan `docs/SECURITY.md` adds CI tools (Semgrep CE, OWASP ZAP baseline) and Cloudflare Turnstile keys for R15.
 - 2026-10-04 (Claude Code, Round 14): `SEED_PROFILE=sparse bash scripts/serve-fresh.sh` (:3102, sparse seed) + `SMOKE_SPARSE`; `SMOKE_DEBUG=1` keeps the full Playwright error; `node scripts/parity.mjs [only]` renders mockup-vs-app parity PNGs into `docs/design/parity-r14/`; `npm run test:ics` (dev dependency `ical.js`); `*-smoke.db/.log` gitignored. Settings `.claude/settings.local.json` allows the round14 push/merge commands and `git merge --no-edit origin/main`.
 - 2026-10-05 (chat, account B · tal.jacoby10): R15 design canvas "Nexus R15 — Accounts & Spaces" created as a claude.ai Design artifact on this account; its boards are copied to `docs/design/r15/` once Tal approves (`Main` → `SignIn-desktop.dc.html`). R15 adds env vars `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_EMAIL`, optional `TURNSTILE_*`, local-only `AUTH_FULL_LOCAL` (setup steps: `docs/ROUND15.md` "Before you run"); the builder records the final list here when it ships.
+- 2026-10-05 (chat, account B): the planning chat can reach Tal's PC through the Claude desktop app (linked computer,
+  folder `OneDrive\שולחן העבודה\Project Nexus\nexus` granted per session). Used it to edit `.env.local` in place (secrets
+  generated there, never shown in chat; backup `.env.local.bak-r15`) and `.claude/settings.local.json` (round15 pushes).
+  Driving the in-app browser on Tal's PC for Google Cloud / Vercel was **refused by the permission guard** — account
+  consoles stay manual for Tal. Local `.env.local` uses a **file** DB; prod access for the R15 snapshot comes from two
+  extra names `PROD_TURSO_DATABASE_URL` + `PROD_TURSO_READ_TOKEN` (read-only token). R15 mockups written into Tal's checkout
+  `docs/design/r15/` (+ `nx.css`) — the builder commits them; the sandbox can't `git push` (proxy 403) and the connector
+  would need every file pasted, so big file sets go to the PC instead.
