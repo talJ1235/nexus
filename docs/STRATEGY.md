@@ -2,10 +2,20 @@
 
 Source: Tal, planning chat 2026-10-05 (account B). Tal: "the system is cool, but I don't know enough about the target
 audience, how they use it and what they need — no point building something cool that answers no real need."
-Status: **research phase started**. Everything in §2 is a *hypothesis* until §3 validates or kills it.
-Feature rounds after R14 wait for this file's §5 (output) unless Tal decides otherwise.
+Status: **hypotheses only; research happens through the MVP** (Tal 2026-10-05, see §0). Everything in §2 is a
+*hypothesis* until real use validates or kills it.
 
-## 1. Order of work
+## 0. Tal's answers (2026-10-05)
+- Goal: a project for family and friends, **with potential to become a business** later.
+- Primary audience: **households that shop together** (H1), a little of makers/projects (H2).
+- No formal interviews before an MVP — Tal prefers to build the core (supermarket mode and what goes with it) and let
+  real use teach. Development continues until the MVP is done → first version to family and friends (closed circle).
+- Consequence (planner): the MVP itself is the research instrument. It must ship with: the onboarding questions
+  (`MULTIUSER.md` §1), in-app feedback, and usage metrics in the admin panel (weekly active households, shared lists,
+  supermarket-mode trips, week-4 retention). Short survey to the circle after 2–3 weeks of use.
+- Planner keeps doing desk research (competitors, app-store review mining) — no cost to Tal; feeds supermarket mode.
+
+## 1. Order of work (original proposal — steps 3–5 postponed until after the MVP)
 | Step | What | Who | Output |
 |---|---|---|---|
 | 1 | Hypothesis canvas (Lean Canvas) — §2 | Tal + planner | the riskiest assumptions, ranked |
