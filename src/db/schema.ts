@@ -1,15 +1,14 @@
 import { sql } from "drizzle-orm";
 import type { Candidate } from "@/lib/picture-rank";
 import type { LineInfo } from "@/lib/product-lines";
-import { integer, real, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text, index, primaryKey } from "drizzle-orm/sqlite-core";
 
-export const OWNER = "owner";
 
 export const collections = sqliteTable(
   "collections",
   {
     id: text("id").primaryKey(),
-    ownerId: text("owner_id").notNull().default(OWNER),
+    spaceId: text("space_id").notNull(),
     kind: text("kind", { enum: ["project", "list"] }).notNull().default("list"),
     name: text("name").notNull(),
     description: text("description"),
@@ -21,14 +20,14 @@ export const collections = sqliteTable(
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
-  (t) => [index("collections_share_idx").on(t.shareToken)],
+  (t) => [index("collections_share_idx").on(t.shareToken), index("collections_space_idx").on(t.spaceId, t.createdAt)],
 );
 
 export const items = sqliteTable(
   "items",
   {
     id: text("id").primaryKey(),
-    ownerId: text("owner_id").notNull().default(OWNER),
+    spaceId: text("space_id").notNull(),
     collectionId: text("collection_id"),
     title: text("title").notNull(),
     brand: text("brand"),
@@ -71,16 +70,25 @@ export const items = sqliteTable(
     // Who added it when it came from a shared guest (null = the owner).
     addedByMemberId: text("added_by_member_id"),
     addedByName: text("added_by_name"),
+    // R15: who added it (shown as a small avatar in shared spaces).
+    addedByUserId: text("added_by_user_id"),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
     updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
-  (t) => [index("items_collection_idx").on(t.collectionId), index("items_status_idx").on(t.status), index("items_alt_idx").on(t.altGroupId)],
+  (t) => [
+    index("items_collection_idx").on(t.collectionId),
+    index("items_status_idx").on(t.status),
+    index("items_alt_idx").on(t.altGroupId),
+    index("items_space_status_idx").on(t.spaceId, t.status),
+    index("items_space_created_idx").on(t.spaceId, t.createdAt),
+  ],
 );
 
 export const sources = sqliteTable(
   "sources",
   {
     id: text("id").primaryKey(),
+    spaceId: text("space_id").notNull(),
     itemId: text("item_id").notNull(),
     url: text("url").notNull(),
     normalizedUrl: text("normalized_url").notNull(),
@@ -99,12 +107,13 @@ export const sources = sqliteTable(
     checkFails: integer("check_fails").notNull().default(0),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
-  (t) => [index("sources_item_idx").on(t.itemId), index("sources_norm_idx").on(t.normalizedUrl)],
+  (t) => [index("sources_item_idx").on(t.itemId), index("sources_norm_idx").on(t.normalizedUrl), index("sources_space_idx").on(t.spaceId)],
 );
 
 /** A set of items that are options for the same need; one can be picked as the winner. */
 export const altGroups = sqliteTable("alt_groups", {
   id: text("id").primaryKey(),
+  spaceId: text("space_id").notNull(),
   name: text("name").notNull(),
   chosenItemId: text("chosen_item_id"),
   createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
@@ -115,13 +124,14 @@ export const pricePoints = sqliteTable(
   "price_points",
   {
     id: text("id").primaryKey(),
+    spaceId: text("space_id").notNull(),
     sourceId: text("source_id").notNull(),
     itemId: text("item_id").notNull(),
     price: real("price").notNull(),
     currency: text("currency").notNull(),
     recordedAt: integer("recorded_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
-  (t) => [index("price_points_source_idx").on(t.sourceId), index("price_points_item_idx").on(t.itemId)],
+  (t) => [index("price_points_source_idx").on(t.sourceId), index("price_points_item_idx").on(t.itemId), index("price_points_space_idx").on(t.spaceId)],
 );
 
 /** Receipts / invoices attached to an item (files live in Vercel Blob). */
@@ -129,6 +139,7 @@ export const attachments = sqliteTable(
   "attachments",
   {
     id: text("id").primaryKey(),
+    spaceId: text("space_id").notNull(),
     itemId: text("item_id").notNull(),
     url: text("url").notNull(),
     name: text("name").notNull(),
@@ -136,7 +147,7 @@ export const attachments = sqliteTable(
     size: integer("size"),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
-  (t) => [index("attachments_item_idx").on(t.itemId)],
+  (t) => [index("attachments_item_idx").on(t.itemId), index("attachments_space_idx").on(t.spaceId)],
 );
 
 /** Something worth telling the user about a watched item. */
@@ -144,6 +155,7 @@ export const alerts = sqliteTable(
   "alerts",
   {
     id: text("id").primaryKey(),
+    spaceId: text("space_id").notNull(),
     itemId: text("item_id").notNull(),
     sourceId: text("source_id"),
     kind: text("kind", { enum: ["drop", "target", "back_in_stock", "out_of_stock"] }).notNull(),
@@ -154,7 +166,7 @@ export const alerts = sqliteTable(
     readAt: integer("read_at"),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
-  (t) => [index("alerts_item_idx").on(t.itemId), index("alerts_created_idx").on(t.createdAt)],
+  (t) => [index("alerts_item_idx").on(t.itemId), index("alerts_created_idx").on(t.createdAt), index("alerts_space_idx").on(t.spaceId, t.createdAt)],
 );
 
 /** A person the owner shared something with (one per device/browser that accepted an invite). */
@@ -211,13 +223,18 @@ export type Grant = typeof grants.$inferSelect;
 export type Invite = typeof invites.$inferSelect;
 
 /** Per-store order settings (free-shipping threshold, flat shipping fee), keyed by the sources' storeKey. */
-export const storeSettings = sqliteTable("store_settings", {
-  storeKey: text("store_key").primaryKey(),
-  freeShippingMin: real("free_shipping_min"),
-  currency: text("currency").notNull().default("ILS"),
-  shippingFee: real("shipping_fee"),
-  updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
-});
+export const storeSettings = sqliteTable(
+  "store_settings",
+  {
+    spaceId: text("space_id").notNull(),
+    storeKey: text("store_key").notNull(),
+    freeShippingMin: real("free_shipping_min"),
+    currency: text("currency").notNull().default("ILS"),
+    shippingFee: real("shipping_fee"),
+    updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => [primaryKey({ columns: [t.spaceId, t.storeKey] })],
+);
 export type StoreSetting = typeof storeSettings.$inferSelect;
 
 /**
@@ -226,6 +243,7 @@ export type StoreSetting = typeof storeSettings.$inferSelect;
  */
 export const receipts = sqliteTable("receipts", {
   id: text("id").primaryKey(),
+  spaceId: text("space_id").notNull(),
   url: text("url"),
   name: text("name").notNull(),
   contentType: text("content_type"),
@@ -243,6 +261,8 @@ export type Receipt = typeof receipts.$inferSelect;
 /** Problems, complaints and ideas sent from the app (Round 8 D3), with what the app could tell about itself. */
 export const reports = sqliteTable("reports", {
   id: text("id").primaryKey(),
+  // R15: who sent it (the admin sees every report; space content is never attached).
+  userId: text("user_id"),
   type: text("type", { enum: ["bug", "complaint", "idea"] }).notNull(),
   title: text("title").notNull(),
   // Markdown: what happened, steps, expected, actual (lib/reports.ts reportBody).
@@ -260,6 +280,9 @@ export type Report = typeof reports.$inferSelect;
 /** Saved assistant conversations (Round 9 C2). `deletedAt` = in the bin (undo), purged later. */
 export const conversations = sqliteTable("conversations", {
   id: text("id").primaryKey(),
+  // R15: chats are personal — per user within a space.
+  spaceId: text("space_id").notNull(),
+  userId: text("user_id").notNull(),
   title: text("title").notNull().default(""),
   // Modes used: "chat", "plan".
   modes: text("modes", { mode: "json" }).$type<string[]>(),
@@ -273,6 +296,7 @@ export type Conversation = typeof conversations.$inferSelect;
 
 export const conversationMessages = sqliteTable("conversation_messages", {
   id: text("id").primaryKey(),
+  spaceId: text("space_id").notNull(),
   conversationId: text("conversation_id").notNull(),
   role: text("role", { enum: ["user", "assistant"] }).notNull(),
   text: text("text").notNull(),
@@ -285,9 +309,14 @@ export type ConversationMessage = typeof conversationMessages.$inferSelect;
 /** Things Nexus learned about the owner's shopping (Round 9 C3): confirmed in chat or typed in Settings. */
 export const memories = sqliteTable("memories", {
   id: text("id").primaryKey(),
+  // R15: memory is per user (across their spaces).
+  userId: text("user_id").notNull(),
   text: text("text").notNull(),
   source: text("source", { enum: ["chat", "manual"] }).notNull().default("chat"),
   createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
   updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
 });
 export type Memory = typeof memories.$inferSelect;
+
+// R15: accounts, sessions, spaces.
+export * from "./auth-schema";

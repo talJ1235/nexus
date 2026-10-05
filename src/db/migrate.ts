@@ -2,12 +2,17 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { LEGACY_CATEGORIES } from "../lib/categories";
+import { migrateR15 } from "./migrate-r15";
 
 async function main() {
   const url = process.env.TURSO_DATABASE_URL ?? "file:local.db";
   if (process.env.VERCEL && !process.env.TURSO_DATABASE_URL) {
     console.warn("[migrate] TURSO_DATABASE_URL not set on Vercel — skipping migrations.");
     return;
+  }
+  // R15 local guard: from a PC only file DBs are migrated (prod is migrated by the Vercel build only).
+  if (!url.startsWith("file:") && process.env.VERCEL !== "1") {
+    throw new Error("refusing to migrate a non-file database outside the Vercel build (R15 local guard)");
   }
   const client = createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN });
   await migrate(drizzle(client), { migrationsFolder: "./drizzle" });
@@ -90,6 +95,8 @@ async function main() {
     sql: `UPDATE items SET category = CASE category ${legacy.map(() => "WHEN ? THEN ?").join(" ")} END WHERE category IN (${legacy.map(() => "?").join(",")})`,
     args: [...legacy.flat(), ...legacy.map(([k]) => k)],
   });
+  // Round 15: accounts, spaces, space_id everywhere (refuses a remote DB outside the Vercel build).
+  await migrateR15(client, url, (m) => console.log(`[migrate-r15] ${m}`));
   console.log("[migrate] done:", url.replace(/\/\/.*@/, "//***@").split("?")[0]);
   client.close();
 }
