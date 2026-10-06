@@ -61,3 +61,6 @@ test-data/*
 
 # R15 E1 test/bench DBs
 query-plans-test.db*
+# R16: change feed + live sync test DBs
+/feed-test.db*
+/live-test.db*
