@@ -66,15 +66,9 @@ async function main() {
 }
 
 main()
-  .then(() => {
-    // Windows keeps the file locked while the client is open: removing it then killed the process (exit 127). The next
-    // run deletes it before migrating anyway.
-    for (const f of [DB, `${DB}-journal`])
-      try {
-        if (existsSync(f)) rmSync(f);
-      } catch {}
-    process.exit(0);
-  })
+  // The test DB stays (gitignored; the next run deletes it before migrating): closing / deleting it under the native
+  // SQLite client at exit killed the process on Windows (exit 127 right after "OK").
+  .then(() => process.exit(0))
   .catch((e) => {
     console.error(e?.message ?? e);
     process.exit(1);
