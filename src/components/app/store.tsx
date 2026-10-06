@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 import { installClientErrorCapture } from "@/lib/client-errors";
 import { recordNav } from "@/lib/client-diag";
@@ -140,8 +140,7 @@ type Store = {
   setHistoryMonth: (m: string | null) => void;
   historyStore: string | null;
   setHistoryStore: (k: string | null) => void;
-  /** Phone: the "+" menu and the paste field above the dock. */
-  plusOpen: boolean;
+  /** Phone: the "+" menu (read it with usePlusOpen — R16 A11) and the paste field above the dock. */
   setPlusOpen: (o: boolean) => void;
   pasteOpen: boolean;
   setPasteOpen: (o: boolean) => void;
@@ -226,6 +225,21 @@ type Store = {
 };
 
 const Ctx = createContext<Store | null>(null);
+
+// R16 A11: the "+" menu's open state lives outside the store, so opening/closing it re-renders only the dock button
+// and the sheet (it used to re-render the whole app first: a 130–145 ms long task at 6× CPU, the close "stutter").
+let plusOpenNow = false;
+const plusListeners = new Set<() => void>();
+export function setPlusOpen(o: boolean) {
+  if (o === plusOpenNow) return;
+  plusOpenNow = o;
+  for (const l of plusListeners) l();
+}
+const subscribePlus = (l: () => void) => {
+  plusListeners.add(l);
+  return () => plusListeners.delete(l);
+};
+export const usePlusOpen = () => useSyncExternalStore(subscribePlus, () => plusOpenNow, () => false);
 /** The same store, refreshed only when item data changes (not on UI toggles): cards and rows read this one, so opening a
  *  menu, a sheet or a panel doesn't re-render every card. Only the data fields and stable callbacks are fresh here. */
 const DataCtx = createContext<Store | null>(null);
@@ -351,7 +365,6 @@ export function StoreProvider({
   const [historyQuery, setHistoryQuery] = useState("");
   const [historyMonth, setHistoryMonth] = useState<string | null>(null);
   const [historyStore, setHistoryStore] = useState<string | null>(null);
-  const [plusOpen, setPlusOpen] = useState(false);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [scanner, setScannerState] = useState<"barcode" | "receipt" | null>(null);
   // Opening a camera screen starts the camera in the tap itself and loads its decoder in parallel (Round 10 B1).
@@ -707,7 +720,6 @@ export function StoreProvider({
       setHistoryMonth,
       historyStore,
       setHistoryStore,
-      plusOpen,
       setPlusOpen,
       pasteOpen,
       setPasteOpen,
@@ -770,7 +782,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, initial.space, initial.spaces, initial.people, initial.me, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, plusOpen, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, initial.space, initial.spaces, initial.people, initial.me, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

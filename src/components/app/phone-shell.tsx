@@ -10,7 +10,8 @@ import { useBackClose } from "@/components/ui/sheet-drag";
 import { prewarmScanners } from "@/lib/barcode-reader";
 import { useUnreadAlerts } from "./alerts-panel";
 import { useReadOnly } from "./offline-banner";
-import { useStore, type View } from "./store";
+import { usePlusOpen, useStore, type View } from "./store";
+import { useAddActions } from "./add-actions";
 import { AskButton } from "./top-bar";
 import { PhoneSearchResults, rememberSearch } from "./phone-search";
 import { SpaceTile, useMeName } from "./spaces/space-ui";
@@ -142,6 +143,7 @@ export function Dock() {
 function DockBar() {
   const s = useStore();
   const { t } = useI18n();
+  const plusOpen = usePlusOpen();
   const active = dockOf(s.view);
   const urgent = s.items.filter((i) => i.status === "to_buy" && i.priority === "urgent").length;
   const go = (id: DockTarget) => s.setView(id === "shopping" ? { type: lastShopTab() } : { type: id });
@@ -187,14 +189,14 @@ function DockBar() {
       ) : (
       <button
         type="button"
-        onClick={() => s.setPlusOpen(!s.plusOpen)}
-        aria-label={s.plusOpen ? t.phone.closeMenu : t.phone.add}
-        aria-expanded={s.plusOpen}
+        onClick={() => s.setPlusOpen(!plusOpen)}
+        aria-label={plusOpen ? t.phone.closeMenu : t.phone.add}
+        aria-expanded={plusOpen}
         data-plus
         data-dock-target="plus"
         className="grid size-[52px] place-items-center justify-self-center rounded-full bg-brand text-on-brand shadow-[0_8px_20px_color-mix(in_srgb,var(--brand)_40%,transparent)] active:scale-95"
       >
-        <Plus className={cn("size-6 transition-transform duration-[450ms] ease-[var(--ease-spring)]", s.plusOpen && "rotate-[135deg]")} strokeWidth={2.4} />
+        <Plus className={cn("size-6 transition-transform duration-[450ms] ease-[var(--ease-spring)]", plusOpen && "rotate-[135deg]")} strokeWidth={2.4} />
       </button>
       )}
       {DOCK.slice(2).map(item)}
@@ -217,7 +219,7 @@ function PlusMenuSheet() {
   const s = useStore();
   const { t } = useI18n();
   const ro = useReadOnly();
-  const open = s.plusOpen;
+  const open = usePlusOpen();
   // Back gesture (the shared surface stack, like every sheet) / Esc closes.
   useBackClose(open, () => s.setPlusOpen(false), "(max-width: 1023px)");
   useEffect(() => {
@@ -238,19 +240,18 @@ function PlusMenuSheet() {
     setTimeout(fn, 60);
   };
   // Each action has its own colour (tokens --act-*) and illustration, so they're told apart without reading.
-  const actions = [
-    { key: "barcode", art: <BarcodeArt />, tone: "barcode", title: t.phone.barcode, hint: t.phone.barcodeHint, run: () => s.setScanner("barcode"), disabled: false },
-    { key: "receipt", art: <ReceiptArt />, tone: "receipt", title: t.phone.receipt, hint: t.phone.receiptHint, run: () => s.setScanner("receipt"), disabled: ro.ro },
-    { key: "paste", art: <LinkArt />, tone: "link", title: t.phone.paste, hint: t.phone.pasteHint, run: () => s.setPasteOpen(true), disabled: ro.ro },
-    { key: "plan", art: <PlanArt />, tone: "plan", title: t.phone.plan, hint: t.phone.planHint, run: () => s.setPanel("planner"), disabled: ro.ro || !s.aiEnabled },
-  ];
+  // The list is shared with the desktop Add menu and the empty Home (R16 A3); the rest sit in a compact row.
+  const all = useAddActions();
+  const actions = all.filter((a) => a.primary);
+  const more = all.filter((a) => !a.primary);
   return (
     <div className="lg:hidden" data-plus-menu={open ? "open" : "closed"}>
       <div
         aria-hidden
         onClick={() => s.setPlusOpen(false)}
         className={cn(
-          "fixed inset-0 z-[35] bg-[color-mix(in_srgb,var(--bg)_55%,transparent)] backdrop-blur-[10px] transition-opacity duration-300",
+          "fixed inset-0 z-[35] bg-[color-mix(in_srgb,var(--bg)_55%,transparent)] backdrop-blur-[10px] transition-opacity",
+          open ? "duration-300" : "duration-[240ms] ease-[var(--ease-out)]",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       />
@@ -271,8 +272,9 @@ function PlusMenuSheet() {
             // Bottom row rises first, then the top row (a spring, staggered toward the +).
             style={{ transitionDelay: open ? `${(i < 2 ? 2 : 0) * 45 + (i % 2) * 35}ms` : "0ms", backgroundColor: "var(--surface)", backgroundImage: `var(--act-${a.tone})` }}
             className={cn(
-              "relative flex min-h-[124px] flex-col items-start justify-between overflow-hidden rounded-[24px] border border-line p-3.5 text-start shadow-[0_14px_32px_color-mix(in_srgb,var(--ink)_16%,transparent)] transition-[opacity,transform] duration-[250ms,450ms] ease-[ease,var(--ease-spring)] active:scale-[0.97] disabled:opacity-50",
-              open ? "translate-y-0 scale-100 opacity-100" : "translate-y-6 scale-[0.92] opacity-0",
+              "relative flex min-h-[124px] flex-col items-start justify-between overflow-hidden rounded-[24px] border border-line p-3.5 text-start shadow-[0_14px_32px_color-mix(in_srgb,var(--ink)_16%,transparent)] transition-[opacity,transform] active:scale-[0.97] disabled:opacity-50",
+              // Open: a spring; close: the same transform/opacity pair on --ease-out, ≤ 280 ms (R16 A11).
+              open ? "translate-y-0 scale-100 opacity-100 duration-[250ms,450ms] ease-[ease,var(--ease-spring)]" : "translate-y-6 scale-[0.92] opacity-0 duration-[180ms,260ms] ease-[var(--ease-out)]",
             )}
           >
             <span className="block h-11 w-14" style={{ color: `var(--act-${a.tone}-ink)` }} aria-hidden>
@@ -286,6 +288,30 @@ function PlusMenuSheet() {
             </span>
           </button>
         ))}
+        {/* R16 A3: the rest of the shared add list (import, new list / project) — one compact row under the cards. */}
+        <div
+          className={cn(
+            "col-span-2 flex gap-2 transition-[opacity,transform]",
+            open ? "translate-y-0 opacity-100 duration-[250ms,450ms] ease-[ease,var(--ease-spring)]" : "translate-y-4 opacity-0 duration-[180ms,260ms] ease-[var(--ease-out)]",
+          )}
+          style={{ transitionDelay: open ? "150ms" : "0ms" }}
+        >
+          {more.map((a) => (
+            <button
+              key={a.key}
+              type="button"
+              role="menuitem"
+              tabIndex={open ? 0 : -1}
+              disabled={a.disabled}
+              onClick={() => choose(a.run)}
+              data-plus-action={a.key}
+              className="flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-2 text-[12.5px] font-bold text-ink shadow-card active:scale-[0.97] disabled:opacity-50"
+            >
+              <a.icon className="size-4 shrink-0 text-muted" />
+              <span className="truncate">{a.short ?? a.title}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

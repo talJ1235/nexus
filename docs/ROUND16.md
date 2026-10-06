@@ -75,7 +75,7 @@ Expected: every open starts clean at "pick"; picking any file (same or new) read
 listed under their own small heading, never auto-opened. Acceptance: smoke opens → uploads A → closes → opens → uploads
 B → B is read; same with A twice.
 
-### A3. [ ] Desktop quick actions disappear once the space has items
+### A3. [x] Desktop quick actions disappear once the space has items
 Tal: scan receipt / scan barcode / … exist on desktop only in the empty state (`HomeEmpty`, `home-view.tsx`); the phone
 has them always in "+". Expected: on desktop the same set as the phone "+" (paste link, scan barcode, photo, scan
 receipt, import, new list/project) is always one click away: an "Add" split button next to the add bar (and the existing
@@ -133,7 +133,7 @@ its R14 size (check `git log -p` on the header for the old value); the space swi
 tile + chevron, name only if it fits at 390 — never squeezes the logo). Both ≥ 40 px touch targets. Acceptance: 360 and
 390 screenshots, Hebrew + English, no overflow (existing overflow-at-360 smoke).
 
-### A11. [ ] "+" sheet stutters when closing
+### A11. [x] "+" sheet stutters when closing
 Measure first (trace on 390, 6× CPU throttle): the open is smooth, the close drops frames. Likely: content unmounts or
 layout-affecting properties animate on close, or the backdrop blur animates. Expected: close uses the same
 transform/opacity-only curve as open (`--ease-out`, ≤ 280 ms), content stays mounted until the animation ends.
@@ -328,3 +328,27 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
 - Open reports at start: 1 (`r_rWtP3XmuRl`, price drop / AI → A13).
 - **Migration rehearsal source:** Tal's session prompt says prod is already on the R15 schema, so the R16 rehearsal runs on a
   copy of `snapshots/prod-2026-10-06-post.db` (not `prod-2026-10-06.db`, which is the pre-R15 snapshot).
+- **A1:** the prices wiped before R16 are gone (the old code stored `NULL`); nothing to backfill. "Last paid" shows on
+  cards, rows, the sheet's price tag and the table as `Last paid ~₪x` (muted); To-buy totals that include such lines get
+  `~` and Home says "~n estimated from last paid".
+- **A2 cause:** after Apply the dialog stayed in its "busy" phase and the open effect kept a busy phase, so the next opening
+  showed the old state and a read still running from the previous opening replaced the new one. Fixed with a session per
+  opening (late results dropped; the receipt waits under "Not applied yet") + the file input cleared after each pick.
+- **A3:** the shared list (`add-actions.tsx`) = barcode, receipt, paste link (`/`), plan with Nexus, import, new list, new
+  project; desktop gets an Add split button (chevron = the menu), the phone "+" gets the last three as a compact row under
+  the four cards, the empty Home uses the same list. The brief's "photo" has no entry of its own: identify-by-photo lives
+  inside the barcode result (no code → take a photo) — it stays there.
+- **A11 frame timings** (`node scripts/perf-frames.mjs plus`, 390×844 phone emulation, rAF deltas during a 450 ms window,
+  5 runs; LoAF showed a 130–145 ms click handler at 6×: toggling `plusOpen` in the app-wide store re-rendered the whole app):
+
+  | | open, worst frame / frames > 32 ms | close, worst frame / frames > 32 ms |
+  |---|---|---|
+  | before, CPU ×6 | 317 ms / 16 | 267 ms / 16 |
+  | before, CPU ×4 | 300 ms / 28 | 367 ms / 18 |
+  | after, CPU ×6 | 200 ms / 36 | 50 ms / 22 |
+  | after, CPU ×4 | 117 ms / 7 | 33 ms / 1 |
+
+  Fix: the open state moved to a tiny external store (`usePlusOpen`), close runs the same transform/opacity pair on
+  `--ease-out` in ≤ 260 ms (no spring), content stays mounted. At 4× over 10 runs the close's worst frame is 16.8 ms in 7
+  runs and 33.3 ms (one missed vsync, the click frame: 6–12 ms of script) in 3 — just over the brief's 32 ms. Open still
+  has one long first frame (the sheet renders 7 actions + prewarms the scanners); it was "smooth" per Tal and not in scope.
