@@ -362,6 +362,33 @@ export const spaceRev = sqliteTable("space_rev", {
   resetRev: integer("reset_rev").notNull().default(0),
 });
 
+// ---------- R16 C2: automatic error log ----------
+
+/**
+ * One row per error fingerprint (kind + code + where + normalised message). No user ids: `users` is a distinct count
+ * kept through error_user (HMAC of user + fingerprint, unlinkable across fingerprints). `sample` is redacted.
+ */
+export const errorEvent = sqliteTable(
+  "error_event",
+  {
+    fingerprint: text("fingerprint").primaryKey(),
+    kind: text("kind").notNull(), // server | client | extract | ai | cron | csp
+    code: text("code").notNull(),
+    where: text("where_at").notNull(),
+    message: text("message").notNull(),
+    sample: text("sample"),
+    release: text("release"),
+    count: integer("count").notNull().default(1),
+    users: integer("users").notNull().default(0),
+    status: text("status", { enum: ["new", "known", "fixed"] }).notNull().default("new"),
+    firstSeen: integer("first_seen").notNull(),
+    lastSeen: integer("last_seen").notNull(),
+  },
+  (t) => [index("error_event_last_idx").on(t.lastSeen), index("error_event_count_idx").on(t.count)],
+);
+export const errorUser = sqliteTable("error_user", { fingerprint: text("fingerprint").notNull(), userHash: text("user_hash").notNull() }, (t) => [primaryKey({ columns: [t.fingerprint, t.userHash] })]);
+export type ErrorEvent = typeof errorEvent.$inferSelect;
+
 /** A deleted row of a synced table (kept 30 days): clients remove it when they see a rev newer than theirs. */
 export const tombstone = sqliteTable(
   "tombstone",

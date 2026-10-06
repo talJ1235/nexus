@@ -26,6 +26,14 @@ export async function migrateR16(client: Client, log: (s: string) => void = cons
     PRIMARY KEY (space_id, tbl, row_id))`);
   await client.execute("CREATE INDEX IF NOT EXISTS tombstone_space_rev_idx ON tombstone (space_id, rev)");
   await client.execute("CREATE INDEX IF NOT EXISTS tombstone_at_idx ON tombstone (at)");
+  // C2: automatic error log (one row per fingerprint; distinct users via hashes only).
+  await client.execute(`CREATE TABLE IF NOT EXISTS error_event (
+    fingerprint text PRIMARY KEY NOT NULL, kind text NOT NULL, code text NOT NULL, where_at text NOT NULL, message text NOT NULL,
+    sample text, release text, count integer DEFAULT 1 NOT NULL, users integer DEFAULT 0 NOT NULL, status text DEFAULT 'new' NOT NULL,
+    first_seen integer NOT NULL, last_seen integer NOT NULL)`);
+  await client.execute("CREATE INDEX IF NOT EXISTS error_event_last_idx ON error_event (last_seen)");
+  await client.execute("CREATE INDEX IF NOT EXISTS error_event_count_idx ON error_event (count)");
+  await client.execute("CREATE TABLE IF NOT EXISTS error_user (fingerprint text NOT NULL, user_hash text NOT NULL, PRIMARY KEY (fingerprint, user_hash))");
   for (const t of SYNCED_TABLES) {
     await addColumn(client, t, "rev", "integer DEFAULT 0 NOT NULL", log);
     await addColumn(client, t, "rev_by", "text", log);

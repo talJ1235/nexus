@@ -7,7 +7,7 @@ import { getSessionUser } from "@/lib/auth/session";
 //   /login, /join/* (sign-in and invite screens) · /api/auth/* (Better Auth, allow-listed in lib/auth/server.ts)
 //   /api/auth-flow/* (invite code + waitlist before sign-in) · /api/login (admin password fallback) · /s/* (public read-only list token) · /api/cal/* (calendar feed token)
 //   /api/cron/* (CRON_SECRET) · /api/reports/export (REPORTS_TOKEN) · /privacy, /terms (static)
-//   /g, /i/*, /api/invite/*, /api/ext/*, /api/telegram (retired: notice pages / 410) · /api/csp-report (counts only)
+//   /g, /i/*, /api/invite/*, /api/ext/*, /api/telegram (retired: notice pages / 410) · /api/csp-report (counts only) · /api/errors (R16 C2: error reports, rate-limited; /export needs REPORTS_TOKEN)
 const PUBLIC_PREFIXES = [
   "/login",
   "/join/",
@@ -26,6 +26,8 @@ const PUBLIC_PREFIXES = [
   "/api/ext/",
   "/api/telegram",
   "/api/csp-report",
+  // R16 C2: browser error reports, also from the sign-in pages (own limits: lib/errors/intake); /export is REPORTS_TOKEN.
+  "/api/errors",
   "/manifest.webmanifest",
   "/sw.js",
 ];

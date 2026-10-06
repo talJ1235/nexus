@@ -64,3 +64,4 @@ query-plans-test.db*
 # R16: change feed + live sync test DBs
 /feed-test.db*
 /live-test.db*
+/errors-test.db*

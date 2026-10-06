@@ -7,6 +7,8 @@ import { joins, type Scoped } from "@/lib/db-scoped";
 import { categorize, extractWithAi, extractWithUrlContext } from "@/lib/ai";
 import { getItem, recordPrice } from "@/lib/data";
 import { extractFromUrl, hintsFromUrl, type Extracted } from "@/lib/extract";
+import { reportError } from "@/lib/errors/record";
+import { domainOf } from "@/lib/errors/shape";
 import { storeThumbnail } from "@/lib/images";
 import { parsePrice } from "@/lib/money";
 import { titleSimilarity } from "@/lib/similarity";
@@ -125,6 +127,12 @@ export async function buildDraft(s: Scoped, ex: Extracted, hintCollectionId: str
   }
 
   const quality: ItemDraft["quality"] = title && price != null && image ? "full" : title || price != null ? "partial" : "failed";
+  // R16 C2: a link that didn't fully read → the error log (failure stage + the store's domain only, never the link).
+  if (quality !== "full") {
+    const stage = ex.blocked ? "blocked" : !title && price == null ? "parse" : price == null ? "no_price" : !title ? "no_title" : "no_picture";
+    const domain = domainOf(ex.url);
+    reportError({ kind: "extract", code: stage, where: `extract:${domain}`, message: `${stage} ${domain}`, sample: `${stage} · ${domain} · ${method}` }, s.scope.userId);
+  }
 
   return {
     title: cleanTitle || `${ex.store.name} item`,
@@ -166,7 +174,15 @@ export async function previewUrlCore(s: Scoped, url: string, hintCollectionId: s
     };
   }
   const started = Date.now();
-  const ex = await extractFromUrl(clean);
+  let ex: Extracted;
+  try {
+    ex = await extractFromUrl(clean);
+  } catch (e) {
+    // R16 C2: the fetch itself failed (blocked host, network, timeout) → logged with the domain only.
+    const code = String((e as Error)?.message || "fetch").slice(0, 40);
+    reportError({ kind: "extract", code: code === "blocked_host" ? "blocked_host" : "fetch", where: `extract:${domainOf(clean)}`, message: `fetch ${code}`, sample: `fetch · ${domainOf(clean)} · ${code}` }, s.scope.userId);
+    throw e;
+  }
   const draft = await buildDraft(s, ex, hintCollectionId, clean, started);
   const duplicate = await findDuplicate(s, draft.source.normalizedUrl, draft.source.rawTitle ? draft.title : null);
   return { draft, duplicate };

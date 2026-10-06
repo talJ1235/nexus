@@ -50,7 +50,8 @@
     "test:status": "tsx scripts/test-status.ts",
     "test:assistant-context": "tsx --conditions=react-server scripts/test-assistant-context.ts",
     "test:feed": "tsx --conditions=react-server scripts/test-feed.ts",
-    "test:live": "node scripts/test-live.mjs"
+    "test:live": "node scripts/test-live.mjs",
+    "test:errors": "tsx --conditions=react-server scripts/test-errors.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",

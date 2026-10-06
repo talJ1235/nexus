@@ -20,6 +20,12 @@ export async function LegalStub({ kind }: { kind: "privacy" | "terms" }) {
         <p className="t-body" style={{ marginTop: 12 }}>
           {t.soonBody}
         </p>
+        {/* R16 C2: the one part that's already true and needs saying. */}
+        {kind === "privacy" && (
+          <p className="t-body" style={{ marginTop: 12 }} data-privacy-errors>
+            {t.errorLog}
+          </p>
+        )}
         <a className="link" href="/login" style={{ marginTop: 24 }}>
           {t.back}
         </a>

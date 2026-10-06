@@ -32,6 +32,8 @@ const ROUTE_ALLOW: Record<string, string> = {
   "src/app/api/ext/stale/route.ts": "retired: 410",
   "src/app/api/telegram/route.ts": "retired: 410",
   "src/app/api/invite/accept/route.ts": "retired: 410",
+  "src/app/api/errors/export/route.ts": "REPORTS_TOKEN",
+  "src/app/api/errors/route.ts": "R16 C2: browser error reports, also from the sign-in pages (same origin, 8 KB, 10 events, 30/h per user, 10/h per IP)",
 };
 /** Server actions that run before sign-in. */
 const ACTION_ALLOW: Record<string, string> = {};

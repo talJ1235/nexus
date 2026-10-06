@@ -41,10 +41,42 @@ export function recordClientError(kind: ClientError["kind"], message: unknown, w
   if (!text) return;
   b.push({ at: Date.now(), kind, message: text, ...(where ? { where: where.slice(0, 120) } : {}) });
   if (b.length > MAX) b.splice(0, b.length - MAX);
+  queueReport(kind, text, where);
   try {
     sessionStorage.setItem(KEY, JSON.stringify(b));
   } catch {
     // private mode / full: memory only
+  }
+}
+
+// ---- R16 C2: the automatic error log — new errors go to /api/errors (deduped per page load, ≤ 10 per request),
+// sent when the browser is idle or the tab is hidden. The server redacts and rate-limits; this side just stays small.
+const sentKeys = new Set<string>();
+const outbox: { kind: "client"; code: string; where: string; message: string }[] = [];
+let flushTimer: number | undefined;
+const keyOf = (code: string, where: string, message: string) => `${code}|${where}|${message.toLowerCase().replace(/\d+/g, "#").slice(0, 120)}`;
+
+function queueReport(code: ClientError["kind"], message: string, where?: string) {
+  const at = (where || window.location.pathname).slice(0, 120);
+  const k = keyOf(code, at, message);
+  if (sentKeys.has(k) || sentKeys.size >= 50) return;
+  sentKeys.add(k);
+  outbox.push({ kind: "client", code, where: at, message: message.slice(0, 300) });
+  if (flushTimer != null) return;
+  const idle = window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 2000));
+  flushTimer = idle(() => flushReports(false), { timeout: 5000 }) as unknown as number;
+}
+
+export function flushReports(leaving: boolean) {
+  flushTimer = undefined;
+  while (outbox.length) {
+    const body = JSON.stringify({ events: outbox.splice(0, 10) });
+    try {
+      if (leaving && navigator.sendBeacon) navigator.sendBeacon("/api/errors", new Blob([body], { type: "application/json" }));
+      else void fetch("/api/errors", { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {});
+    } catch {
+      // never let the error reporter throw
+    }
   }
 }
 
@@ -55,6 +87,7 @@ let installed = false;
 export function installClientErrorCapture() {
   if (installed || typeof window === "undefined") return;
   installed = true;
+  document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && outbox.length && flushReports(true));
   window.addEventListener("error", (e) => {
     const file = e.filename ? e.filename.split("/").pop()?.split("?")[0] : "";
     recordClientError("error", e.error ?? e.message, file ? `${file}:${e.lineno}:${e.colno}` : undefined);

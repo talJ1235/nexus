@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth/client";
+import { installClientErrorCapture } from "@/lib/client-errors";
 import { useI18n } from "@/components/providers";
 import { GoogleMark, PasskeyIcon } from "./brand-art";
 
@@ -10,6 +11,8 @@ export type LoginError = "cancelled" | "noAccess" | "unverified" | "generic" | "
 /** Google, passkey, the invite code (kept through the Google redirect in a signed cookie) and "Lost access?". */
 export function LoginForm(props: { full: boolean; next: string; error: LoginError | null; returning: { name: string; email: string } | null; app: string; testIdp?: boolean }) {
   const { t, f } = useI18n();
+  // R16 C2: sign-in failures reach the error log too (anonymous: 10 events/hour per IP).
+  useEffect(() => installClientErrorCapture(), []);
   const a = t.auth;
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<LoginError | null>(props.error);

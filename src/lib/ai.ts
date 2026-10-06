@@ -1,4 +1,5 @@
 import "server-only";
+import { reportError } from "@/lib/errors/record";
 import { GoogleGenAI, MediaResolution, ThinkingLevel } from "@google/genai";
 import { kvGet, kvSet } from "./kv";
 
@@ -87,6 +88,12 @@ function cool(r: Route, ms: number) {
 }
 
 type Failure = { kind: "retry" | "skip" | "fatal"; coolMs: number };
+
+/** R16 C2: an AI provider failure → the error log (provider, model, failure class + HTTP code; no prompt, no answer). */
+function logAiFailure(r: { provider: string; model: string }, msg: string, f: Failure, stream = false) {
+  const http = /\b([45]\d\d)\b/.exec(msg)?.[1] ?? "x";
+  reportError({ kind: "ai", code: `${f.kind}:${http}`, where: `ai:${r.provider}/${r.model}${stream ? ":stream" : ""}`, message: msg.slice(0, 160), sample: msg.slice(0, 300) });
+}
 
 /** Classify an upstream error: retry the same route once, skip to the next route (cooling it), or give up. */
 export function classify(msg: string): Failure {
@@ -221,6 +228,7 @@ async function generate(prompt: string, schema: object | null, opts: GenOpts = {
           const msg = String((e as Error)?.message ?? e);
           lastAiErrors[key(r)] = `${new Date().toISOString()} ${msg.slice(0, 300)}`;
           const f = classify(msg);
+          logAiFailure(r, msg, f);
           if (f.kind === "fatal") {
             console.warn("[ai] generate failed:", key(r), msg.slice(0, 200));
             break;
@@ -363,6 +371,7 @@ export async function* generateTextStream(prompt: string, opts: Omit<GenOpts, "t
         const msg = String((e as Error)?.message ?? e);
         lastAiErrors[key(r)] = `${new Date().toISOString()} stream ${msg.slice(0, 300)}`;
         const f = classify(msg);
+        logAiFailure(r, msg, f, true);
         if (f.coolMs) cool(r, f.coolMs);
         if (health.working[tier] === key(r)) {
           delete health.working[tier];

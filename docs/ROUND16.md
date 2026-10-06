@@ -225,7 +225,7 @@ people can't silently overwrite each other.
 - Acceptance: smoke forces an extract failure (mock) → toast → Report → Send → report row has the failure code and the
   link domain + path.
 
-### C2. [ ] Automatic error log (no user action), abuse-proof
+### C2. [x] Automatic error log (no user action), abuse-proof
 - Table `error_event` grouped by **fingerprint** = hash(kind + code + route/action + normalised message): `count`,
   `users` (distinct count via hashed user ids, no ids stored), `first_seen`, `last_seen`, `release` (git sha),
   `sample` (≤ 500 chars, redacted: no query strings, no emails, no item/space/list names, no numbers longer than 6
@@ -437,3 +437,19 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   B forging A's / S's space gets a token for its own space only, 30/min limit, fake stream 404 in production,
   `changesSince` as B never shows A's rows), CSP `connect-src` lists Ably's exact hosts (https + wss: main.realtime.ably.net,
   main.[a-e].fallback.ably-realtime.com, internet-up.ably-realtime.com), `test:headers` green.
+- **C2:** table `error_event` (one row per fingerprint = kind + code + where + normalised message; count, distinct users,
+  first/last seen, release, redacted sample, status) + `error_user` (HMAC of user + fingerprint — counts people, never
+  names them; unlinkable across errors). Sources: (1) `src/instrumentation.ts` `onRequestError` = every server action,
+  route and render error (access / validation / limit / redirect errors skipped; Next already sends the client a generic
+  error) — "where" is the action id or route path, "who" the hashed session; (2) link extraction: stage (blocked,
+  blocked_host, fetch, parse, no_price, no_title, no_picture) + **domain only**; (3) AI: provider/model + failure class +
+  HTTP code; (4) cron steps (each `.catch` now records); (5) client: `client-errors.ts` queues new errors (deduped per
+  page load) and sends ≤ 10 per request on idle / via `sendBeacon` when hidden; sign-in pages too. Limits
+  (`lib/errors/intake.ts`): same origin, ≤ 8 KB, ≤ 10 events, zod strict, 30 events/h per user, 10/h per IP signed out,
+  1 000 rows then only `errors:overflow` counts, samples dropped after 30 days (daily cron), every write ≤ 1.5 s and never
+  throws. `/api/csp-report` goes through the same size cap + quota and also logs (kind csp; no Origin check — browsers
+  don't send it reliably on CSP reports). `/api/errors` is public in the proxy (sign-in pages) and on the authz
+  allow-list. Viewer `/admin/errors` (admin only: filters, last seen / most frequent, mark known / fixed / reopen, GitHub
+  issue when `GITHUB_ISSUES_TOKEN`); `node scripts/errors.mjs` (REPORTS_TOKEN, like reports.mjs) — in CLAUDE.md.
+  `/privacy` is still the stub, now with one paragraph on the error log (the full text is R17 with Tal's approval).
+  `test:errors` (unit + the built app): all acceptance cases pass.
