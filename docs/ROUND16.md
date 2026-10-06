@@ -157,7 +157,7 @@ reason. Close the report with a status.
 Goal: a change by one member appears for every other member of that space **within ~1 s**, without refresh, and two
 people can't silently overwrite each other.
 
-### B1. [ ] Change feed per space
+### B1. [x] Change feed per space
 - Per-space monotonic revision: table `space_rev(space_id pk, rev)`; every write through the scoped layer
   (`src/lib/db-scoped/index.ts` `insert/update/delete`) bumps it **in the same transaction** and stamps the new `rev` on
   every row it writes in the synced tables (items, sources, price_points, collections, alt_groups, attachments,
@@ -170,7 +170,7 @@ people can't silently overwrite each other.
   half-typed input). The sheet that is open on an item that changed shows the new values; an item deleted under an open
   sheet closes it with a short "Removed by Noa" note.
 
-### B2. [ ] Transport: Ably with a polling fallback
+### B2. [x] Transport: Ably with a polling fallback
 - Server: after a write action commits, publish **one** message per action to channel `space:<spaceId>` via Ably REST
   (`{ rev, by: <member id> }` — **no item content, no names**). Fire-and-forget with a 1.5 s timeout; a failed publish
   never fails the action.
@@ -391,3 +391,20 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   *fixed* in Settings → Reports. Suggested reply: "The assistant only saw the first and lowest price, so a drop that was
   still above the lowest price looked like no drop, and it didn't see the price-drop alert. It now sees the last price change
   and the alert."
+- **B1 synced tables:** items, sources, price_points, attachments (children stamp their item — the client syncs items
+  whole, so a child change re-sends the item with its links/points/files), collections, alt_groups, store_settings,
+  alerts, space_pref (`pref:*` keys only: budget per month, import limit — AI caches stay out). **Not synced: receipts** —
+  the store doesn't hold them (the receipt dialog lists them on open). New tables `space_rev` (rev, floor, reset_rev) and
+  `tombstone` (30 days, purged by the daily cron, which raises `floor`); `rev`/`rev_by` + `(space_id, rev)` index on each
+  synced table (all additive). A list moved to another space marks both spaces "reset" (clients reload their data in
+  place). `test:feed` (unit, file DB) and 9 more queries in `test:query-plans` (all indexed).
+- **B2:** server publishes with Ably **REST over fetch** and signs TokenRequests with Node crypto (no SDK on the server);
+  the browser uses `ably` for subscribe + presence. Fake transport = an SSE route + in-process bus, refused unless
+  `REALTIME_FAKE=1` and `NODE_ENV !== "production"` (same rule as `AUTH_TEST_IDP`). Own messages: the pull waits 2 s
+  (keeps an in-flight edit from flickering). Dev-only `window.__nexusTest` bridge (not in the production bundle — checked)
+  lets `test:live` call the real actions as each user and read each tab's store.
+- **B2 numbers:** `test:live` (dev server, 2 contexts + viewer): fake transport p50 275 ms / max 316 ms; polling p50 9.9 s /
+  max 10.0 s. **Real Ably key on localhost** (`LIVE_ABLY=1 npm run test:live`, 20 edits, action start → B's store):
+  p50 **501 ms**, p95 **660 ms**.
+- **New dependency:** `ably@2.29.0` (exact) — the browser's realtime client (subscribe + presence with token auth); the
+  server side needs no SDK.

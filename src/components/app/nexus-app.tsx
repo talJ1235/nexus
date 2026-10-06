@@ -51,6 +51,8 @@ import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
 import { SIDEBAR_MAX, SIDEBAR_MIN, SidebarEdge } from "./sidebar-edge";
 import { StoreProvider, useOpenItemId, useStore, type PendingAdd, type UiInit } from "./store";
+import { LiveSync } from "./live-sync";
+import { TestBridge } from "./test-bridge";
 import { ContentSkeleton, ProjectHeaderSkeleton, Skel } from "./skeletons";
 import { COLLECTION_COLORS, useTable, useViewItems } from "./view-items";
 import { FALLBACK_RATES, type Currency } from "@/lib/money";
@@ -196,6 +198,11 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <PanelBoundary label="Spaces">
         <SpacesLayer />
       </PanelBoundary>
+      {/* R16 B2: live updates of the current space (Ably / fake / polling). */}
+      <PanelBoundary label="Live">
+        <LiveSync />
+      </PanelBoundary>
+      {process.env.NODE_ENV !== "production" && <TestBridge />}
       <PanelBoundary label="Import">
         <ImportDialog />
       </PanelBoundary>

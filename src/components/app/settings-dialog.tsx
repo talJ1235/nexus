@@ -19,6 +19,7 @@ import { homeDiag, setAiSuggestions, type HomeDiag } from "@/app/home-actions";
 import { rememberThisDevice } from "@/app/security-actions";
 import { ReportsSubpage } from "./reports-sheet";
 import { useStore } from "./store";
+import { liveActivityOn, setLiveActivity } from "./live-sync";
 import { openSpaces, SpaceTile } from "./spaces/space-ui";
 import { usePalette } from "@/components/use-palette";
 import { PALETTES, type Palette } from "@/lib/palette";
@@ -279,6 +280,7 @@ export function SettingsDialog() {
                 options={PALETTES.map((p) => ({ value: p, label: <><PaletteSwatch palette={p} />{t.settings[p]}</> }))}
               />
             </Row>
+            <LiveActivityRow />
             <Row title={t.settings.language}>
               <Segmented
                 label={t.settings.language}
@@ -479,5 +481,28 @@ function DataSection() {
         </div>
       </Row>
     </section>
+  );
+}
+
+/** R16 B4: activity toasts for other members' changes (per device). */
+function LiveActivityRow() {
+  const { t } = useI18n();
+  // The dialog renders on the client only after it opens, so reading the device setting at first render is safe.
+  const [on, setOn] = useState(() => (typeof window === "undefined" ? true : liveActivityOn()));
+  return (
+    <Row title={t.live.activity} hint={t.live.activityHint}>
+      <Segmented<"on" | "off">
+        label={t.live.activity}
+        value={on ? "on" : "off"}
+        onChange={(v) => {
+          setLiveActivity(v === "on");
+          setOn(v === "on");
+        }}
+        options={[
+          { value: "on", label: t.alerts.on },
+          { value: "off", label: t.alerts.off },
+        ]}
+      />
+    </Row>
   );
 }

@@ -33,6 +33,11 @@ const PUBLIC_PREFIXES = [
 // R15 B4: an enforced CSP with a fresh nonce per request (SECURITY.md §5). Next.js puts the nonce on its own scripts
 // (it reads the policy from the request); our three inline scripts read it from x-nonce. Styles may be inline
 // (React/motion style attributes); scripts never. WASM (barcode/receipt detectors) needs 'wasm-unsafe-eval'.
+// R16 B5: Ably's realtime endpoints (ably-js 2.x defaults: main.realtime.ably.net + its five fallbacks, the
+// connectivity check) — exact hosts, https + wss, connect-src only.
+const ABLY_HOSTS = ["main.realtime.ably.net", ..."abcde".split("").map((x) => `main.${x}.fallback.ably-realtime.com`), "internet-up.ably-realtime.com"];
+const ABLY_CONNECT = ABLY_HOSTS.flatMap((h) => [`https://${h}`, `wss://${h}`]).join(" ");
+
 function csp(nonce: string) {
   const dev = process.env.NODE_ENV === "development";
   const turnstile = process.env.TURNSTILE_SITE_KEY ? " https://challenges.cloudflare.com" : "";
@@ -42,7 +47,7 @@ function csp(nonce: string) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.blob.vercel-storage.com https://blob.vercel-storage.com https://vercel.com",
+    `connect-src 'self' https://*.blob.vercel-storage.com https://blob.vercel-storage.com https://vercel.com ${ABLY_CONNECT}`,
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
     `frame-src 'self'${turnstile}`,

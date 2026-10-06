@@ -48,13 +48,16 @@
     "test:query-plans": "tsx --conditions=react-server scripts/test-query-plans.ts",
     "bench:r15": "node --env-file=.env.local scripts/bench-r15.mjs",
     "test:status": "tsx scripts/test-status.ts",
-    "test:assistant-context": "tsx --conditions=react-server scripts/test-assistant-context.ts"
+    "test:assistant-context": "tsx --conditions=react-server scripts/test-assistant-context.ts",
+    "test:feed": "tsx --conditions=react-server scripts/test-feed.ts",
+    "test:live": "node scripts/test-live.mjs"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",
     "@google/genai": "^2.24.0",
     "@libsql/client": "^0.18.0",
     "@vercel/blob": "^2.8.0",
+    "ably": "2.29.0",
     "better-auth": "1.7.7",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
