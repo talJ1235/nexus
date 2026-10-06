@@ -53,3 +53,15 @@ Companion to `docs/ROUND16.md` (the brief) and `docs/R16-NOTES.md` (Tal's raw no
 - Why a per-space `rev` and not timestamps: clocks differ between serverless instances; one counter bumped in the same
   transaction gives an exact "what changed since" and doubles as the optimistic-concurrency check (B3).
 
+## Run status and resume (2026-10-06, account B)
+- Tal added `ABLY_API_KEY` (Vercel Production + `.env.local`) and started **Session 1** in Claude Code on his PC.
+- Rehearsal file: prod is already on the R15 schema → the R16 migration is rehearsed on a copy of
+  `snapshots/prod-2026-10-06-post.db` (post-R15), **not** `prod-2026-10-06.db` (pre-R15). Both exist on Tal's PC
+  (checked 2026-10-06); the Session 1 prompt carried this note.
+- **If usage runs out mid-session:** nothing breaks — every item is a commit on `round16`, the branch is pushed per part,
+  `main` is untouched until the end. Resume (same account after reset, or Claude Code `/logout` → `/login` with the
+  other account, same folder):
+  `Round 16, session 1 — continue. First check git status: finish or discard the half-done item, then continue from the
+  first unticked item in docs/ROUND16.md. Same rules as the brief; rehearse on snapshots/prod-2026-10-06-post.db.`
+- Next planner (other account): when Session 1 ends → pull, read ROUND16 "## Open", review; in parallel make the R16
+  mockups (board list in `docs/PLANNER.md` "Current state & handoff").
