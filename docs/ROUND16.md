@@ -44,7 +44,7 @@ Free tier (checked 2026-10-06): 6 M messages/month, **200 concurrent connections
 closed circle; Part B keeps connections low (only visible tabs).
 
 ## Part 0 — start
-### 0.1 [ ] Read and record
+### 0.1 [x] Read and record
 - Read open reports, `docs/R16-NOTES.md`, R15 "## Open". Record in Open the R15 Part G results that weren't reported (prod
   smoke run on GitHub after the merge, sign-in checks) — from the Actions history.
 - Tal's failing link (notes item 10) is unknown → after C2 ships, the extract failure log will show it; ask for the URL
@@ -462,3 +462,23 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   (read + rows), saves that fail (incl. "Apply mine"). The report row stores `diagnostics.failure = { code, what, link }`
   and the markdown/GitHub issue shows it. Smoke: a link that can't be read → toast → Report → Send → the row has
   `link:*` and `nexus-smoke-….invalid/products/drill-18v` (no `?ref=…`).
+
+### Session 1 close (2026-10-07)
+- **Re-checked before the merge** (round16 `99e3fa5` + the rehearsal script): `npm run -s check` OK; `test:status`, `feed`,
+  `errors`, `auth`, `otp`, `authz-coverage` (178), `scope`, `roles`, `ssrf`, `query-plans` (26), `assistant-context`,
+  `gestures`, `help`, `home`, `reports`, `budget` all OK; `test:tenancy` 46/46; `test:live` OK (fake p50 103 ms, polling
+  p50 9.1 s); `test:auth-flow` OK; `test:headers` OK (CI-style closed mode). Smoke on `scripts/serve-r16.sh`: desktop 79/80,
+  phone 88/93. The leftovers: "partial move splits the item" (desktop + phone) passes alone 2/2 — the smoke DB has grown to
+  362 items / dozens of duplicate projects over many runs and the step falls back to a qty-1 card; "camera opens fast" and
+  the boot-screen frame trace are the two known machine-load timing checks (R14 Open: they fail on `main` too); the phone
+  sheets / boot-screen pull steps pass alone. Worth doing in R17: a reseeded smoke DB + the looser camera budget (R14 note).
+- **Migration rehearsal:** `node --env-file=.env.local scripts/r16-rehearsal.mjs --base origin/main` on a copy of
+  `snapshots/prod-2026-10-06-post.db` (main's migration first = what prod runs today, then R16's, twice): new tables
+  error_event, error_user, space_rev, tombstone; 20 new columns, all nullable/defaulted; nothing dropped; row counts equal
+  in all 35 tables; integrity ok; second run a no-op (whole-DB hash); To buy 8 / On the way 1 / History 10 unchanged;
+  657 ms. Without `--base` the auth tables differ (user 0→1, space 1→2, kv→space_pref) — that is R15's first-run bootstrap
+  (the post snapshot was taken before any account existed), not R16; prod ran it already.
+- Local note: `scripts/check.sh` builds without `db:migrate`, so `local.db` needs `npx tsx --env-file=.env.local
+  src/db/migrate.ts` after a schema change (prod's `npm run build` migrates first). One desktop smoke ran against `local.db`
+  itself by mistake (extra demo rows there; prod untouched).
+- **Session 2 (D, E, F) not started** — Tal 2026-10-07: there are no mockups, don't build it yet.
