@@ -542,5 +542,6 @@ price comparison (R18); own domain + passkeys/email recovery live on prod (when 
   - V14 Data protection — partly: per-space isolation, no PII in logs/URLs; not yet: delete account / full export (R16).
   - V15 Secure coding & dependencies — done: CI audit gate (prod, high), pinned versions for new deps; not yet: Semgrep.
   - V16 Logging — done: security events (90 days) incl. role changes and invites used; not yet: admin view (R16).
+- **CI:** `guards.yml` green on `120a3b5` (run 37436648752: all steps incl. gitleaks, build, tenancy, headers).
 - **ready to release** — Part G with Tal: Vercel env vars + Google client confirmed, fresh backup, then the steps in
   Part G (fresh snapshot + rehearsal, `git merge --ff-only round15`, sign-in checks, rollback path tested in 0.1).
