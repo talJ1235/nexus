@@ -1791,6 +1791,39 @@ try {
       ok(receipt && barcode && ["barcode", "receipt", "paste", "plan", "import", "list", "project"].every((k) => keys.includes(k)), "add menu: the shared add list on desktop (receipt + barcode) and in the phone +", JSON.stringify({ keys, receipt, barcode }));
     });
 
+    // R16 A5: the selection bar has one menu/popover open at a time — another trigger swaps it in one click, Esc closes.
+    await step("selection bar: one menu at a time, one click to swap, Esc closes", async () => {
+      await page.goto(`${BASE}/?v=to_buy`);
+      await page.waitForSelector(READY, { timeout: 15000 });
+      const cards = page.locator("[data-item-card], [data-item-row]").filter({ visible: true });
+      if ((await cards.count()) < 2) return ok(true, "selection bar (fewer than two items, skipped)");
+      // Ctrl+click selects (phones long-press; the bar is the same).
+      await cards.nth(0).click({ modifiers: ["Control"] });
+      await cards.nth(1).click({ modifiers: ["Control"] });
+      await page.locator("[data-selection-bar]").waitFor({ timeout: 5000 });
+      // Every bar menu/popover is one popper (a menu's [role=menu] sits inside its wrapper): count the poppers.
+      const open = () => page.evaluate(() => document.querySelectorAll("[data-radix-popper-content-wrapper]").length);
+      const keys = ["move", "priority", "compare"];
+      const present = [];
+      for (const k of keys) if (await page.locator(`[data-select-menu=${k}]`).count()) present.push(k);
+      const counts = [];
+      for (const a of present)
+        for (const b of present) {
+          if (a === b) continue;
+          await page.locator(`[data-select-menu=${a}]`).click();
+          await page.waitForTimeout(250);
+          await page.locator(`[data-select-menu=${b}]`).click();
+          await page.waitForTimeout(250);
+          const bOpen = await page.locator(`[data-select-menu=${b}]`).getAttribute("data-state");
+          counts.push([a, b, await open(), bOpen]);
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(200);
+        }
+      const afterEsc = await open();
+      await page.keyboard.press("Escape");
+      ok(present.length >= 2 && counts.every(([, , n, st]) => n === 1 && st === "open") && afterEsc === 0, "selection bar: one menu at a time, one click to swap, Esc closes", JSON.stringify({ counts, afterEsc }));
+    });
+
     await step("assistant panel opens", async () => {
       await page.goto(`${BASE}/?v=to_buy`);
       await page.waitForSelector(READY, { timeout: 15000 });
@@ -2605,6 +2638,54 @@ try {
             "receipt prices survive To buy and back (bulk)",
             JSON.stringify({ made: made.map((i) => [i.status, i.purchasedPrice]), inToBuy: inToBuy.map((i) => [i.status, i.lastPaidPrice]), visible, back: back.map((i) => [i.status, i.purchasedPrice]) }),
           );
+        });
+
+        // R16 A4 (mock AI): on a brand-new shared space (no lists yet) Move to offers status + "New list…" — never a lone
+        // "Remove" — and New list "Test" creates the list and moves both items in one step. Back to the personal space after.
+        await step("move to: empty shared space → New list moves both items", async () => {
+          if (MOBILE) return ok(true, "move to: empty shared space → New list moves both items (desktop only)");
+          const backup = async () => (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data;
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY);
+          const home = await page.locator("[data-space-switcher]").first().getAttribute("data-space-id");
+          await page.locator("[data-space-switcher]").first().click();
+          await page.locator("[data-space-create]").first().click();
+          const tag = `MV${Date.now().toString(36)}`;
+          await page.locator("#space-name").fill(`Smoke ${tag}`);
+          await page.locator("[data-create-submit]").click();
+          await page.locator("[data-create-skip]").click({ timeout: 15000 });
+          await page.waitForFunction((h) => document.querySelector("[data-space-switcher]")?.getAttribute("data-space-id") !== h, home, { timeout: 20000 });
+          await page.waitForSelector(READY);
+          // Two items from a pasted receipt (they land in History).
+          await page.locator("[data-receipt-open=add]").click();
+          await page.locator("#receipt-text").fill(["Store: Smoke grocer", `1 x Tea ${tag} @ 9`, `1 x Honey ${tag} @ 21`].join("\n"));
+          await page.getByRole("button", { name: /^(Read|קריאה)$/ }).click();
+          await page.locator("[data-receipt-review]").waitFor({ timeout: 30000 });
+          await page.locator("[data-receipt-apply]").click();
+          await page.locator("[data-sonner-toast]").filter({ hasText: /from the receipt|מהקבלה/ }).first().waitFor({ timeout: 15000 });
+          const made = (await backup()).items.filter((i) => i.title.includes(tag));
+          await page.goto(`${BASE}/?v=history`);
+          await page.waitForSelector(READY);
+          for (const i of made) await page.locator(`[data-item-card="${i.id}"], [data-item-row="${i.id}"]`).first().click({ modifiers: ["Control"] });
+          await page.locator("[data-select-menu=move]").click();
+          const menu = page.locator("[data-move-menu]");
+          await menu.waitFor({ timeout: 5000 });
+          const empty = await menu.locator("[data-move-empty]").count();
+          const lonelyRemove = await menu.locator("[data-select-unassign]").count();
+          const statuses = await menu.locator("[data-move-status]").count();
+          await shot(page, "move-empty");
+          await menu.locator("[data-move-new]").click();
+          await menu.locator("[data-move-new-name]").fill("Test");
+          await menu.locator("[data-move-create]").click();
+          await page.waitForTimeout(1500);
+          const data = await backup();
+          const list = data.collections.find((c) => c.name === "Test");
+          const moved = data.items.filter((i) => i.title.includes(tag)).every((i) => list && i.collectionId === list.id);
+          // Back to the personal space for the rest of the run.
+          await page.locator("[data-space-switcher]").first().click();
+          await page.locator(`[data-space-item="${home}"]`).first().click();
+          await page.waitForFunction((h) => document.querySelector("[data-space-switcher]")?.getAttribute("data-space-id") === h, home, { timeout: 20000 });
+          ok(made.length === 2 && empty === 1 && lonelyRemove === 0 && statuses === 3 && !!list && moved, "move to: empty shared space → New list moves both items", JSON.stringify({ made: made.length, empty, lonelyRemove, statuses, list: !!list, moved }));
         });
 
         // Round 10 D5 (mock AI): a receipt of 5 new grocery lines → every card gets a picture (shimmer until then) →

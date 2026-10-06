@@ -169,11 +169,12 @@ export const SheetClose = D.Close;
 
 export const Menu = M.Root;
 export const MenuTrigger = M.Trigger;
-export function MenuContent({ children, align = "end", className }: { children: React.ReactNode; align?: "start" | "end" | "center"; className?: string }) {
+export function MenuContent({ children, align = "end", className, onCloseAutoFocus }: { children: React.ReactNode; align?: "start" | "end" | "center"; className?: string; onCloseAutoFocus?: (e: Event) => void }) {
   return (
     <M.Portal>
       <M.Content
         align={align}
+        onCloseAutoFocus={onCloseAutoFocus}
         sideOffset={6}
         className={cn("z-50 min-w-[200px] animate-pop-in rounded-xl border border-line bg-raised p-1 shadow-pop", className)}
       >
@@ -218,10 +219,10 @@ export function MenuRadioItem({ className, children, ...props }: M.DropdownMenuR
 
 export const Pop = P.Root;
 export const PopTrigger = P.Trigger;
-export function PopContent({ children, className, align = "start" }: { children: React.ReactNode; className?: string; align?: "start" | "end" | "center" }) {
+export function PopContent({ children, className, align = "start", onCloseAutoFocus }: { children: React.ReactNode; className?: string; align?: "start" | "end" | "center"; onCloseAutoFocus?: (e: Event) => void }) {
   return (
     <P.Portal>
-      <P.Content align={align} sideOffset={6} className={cn("z-50 animate-pop-in rounded-xl border border-line bg-raised p-3 shadow-pop outline-none", className)}>
+      <P.Content align={align} sideOffset={6} onCloseAutoFocus={onCloseAutoFocus} className={cn("z-50 animate-pop-in rounded-xl border border-line bg-raised p-3 shadow-pop outline-none", className)}>
         {children}
       </P.Content>
     </P.Portal>

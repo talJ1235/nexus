@@ -82,7 +82,7 @@ receipt, import, new list/project) is always one click away: an "Add" split butt
 keyboard shortcuts listed in its menu). One source of truth for the action list (shared with the phone sheet).
 Acceptance: smoke on a seeded space (desktop 1366) opens the menu and starts receipt + barcode.
 
-### A4. [ ] Selection bar "Move to" shows only "Remove from project"
+### A4. [x] Selection bar "Move to" shows only "Remove from project"
 Cause (found): the menu (`selection-bar.tsx`) lists only the current space's lists/projects; a new shared space has none,
 and "Remove from project" shows even when no selected item is in one. Expected menu:
 - **Status**: To buy · On the way · Received (moves status menu here; keep the separate status button only if the
@@ -93,7 +93,7 @@ and "Remove from project" shows even when no selected item is in one. Expected m
 - Empty space: a one-line hint + "New list…" (never a lone "Remove" item).
 Acceptance: smoke on an empty shared space: select 2 → Move to → New list "Test" → both items in it.
 
-### A5. [ ] Two selection-bar menus open at once
+### A5. [x] Two selection-bar menus open at once
 Tal: "Move to" open, click "Priority" → a second menu opens on top. Expected: exactly one menu/popover open at a time
 across the selection bar (Move to, Priority, Status, Compare); clicking another trigger closes the first and opens the
 second in one click; Esc closes. Implement with one controlled `openMenu` state in the bar (don't rely on Radix
