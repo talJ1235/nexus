@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, Link2, ListPlus, Plus, ReceiptText, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, Link2, ListPlus, Plus, ReceiptText, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
 import { addSource, createItem, previewFromClient, previewUrl, updateItem } from "@/app/actions";
 import type { ClientPayload } from "@/lib/service";
 import { useI18n } from "@/components/providers";
-import { Button, Textarea } from "@/components/ui/button";
-import { Modal } from "@/components/ui/overlays";
+import { Button, Kbd, Textarea } from "@/components/ui/button";
 import type { ItemWithSources, PreviewResult } from "@/lib/types";
 import { cn, extractUrls, isHttpUrl } from "@/lib/utils";
 import { hostOf, normalizeUrl } from "@/lib/stores";
@@ -16,6 +15,8 @@ import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 import { useReadOnly } from "./offline-banner";
 import { buyFilter } from "@/lib/views";
+import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Modal } from "@/components/ui/overlays";
+import { useAddActions } from "./add-actions";
 
 export type Incoming = { url?: string; payload?: ClientPayload } | null;
 
@@ -332,14 +333,18 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
               <ReceiptText className="size-[17px]" />
               <span className="max-sm:hidden">{t.scan.button}</span>
             </button>
-            <button
-              type="submit"
-              className="inline-flex h-12 shrink-0 items-center gap-[7px] rounded-full bg-brand px-[18px] text-[14px] font-bold text-on-brand transition hover:bg-brand-hover active:scale-[0.97] disabled:opacity-60"
-              disabled={ro.ro || (!isHttpUrl(value.trim()) && !extractUrls(value).length)}
-            >
-              {working ? <Spinner /> : <Plus className="size-[17px]" strokeWidth={2.4} />}
-              <span className="max-sm:hidden">{t.add.add}</span>
-            </button>
+            {/* R16 A3: a split button on desktop — Add (the link) + every other way to add, always one click away. */}
+            <span className="inline-flex shrink-0 items-stretch">
+              <button
+                type="submit"
+                className="inline-flex h-12 shrink-0 items-center gap-[7px] rounded-full bg-brand px-[18px] text-[14px] font-bold text-on-brand transition hover:bg-brand-hover active:scale-[0.97] disabled:opacity-60 lg:rounded-e-none lg:pe-3.5"
+                disabled={ro.ro || (!isHttpUrl(value.trim()) && !extractUrls(value).length)}
+              >
+                {working ? <Spinner /> : <Plus className="size-[17px]" strokeWidth={2.4} />}
+                <span className="max-sm:hidden">{t.add.add}</span>
+              </button>
+              <AddMenu disabled={ro.ro} />
+            </span>
           </form>
         </div>
       </div>
@@ -417,5 +422,39 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
         )}
       </Modal>
     </>
+  );
+}
+
+/** Desktop: the chevron half of the Add split button — the shared add list (R16 A3) with its shortcuts. */
+function AddMenu({ disabled }: { disabled: boolean }) {
+  const { t } = useI18n();
+  const actions = useAddActions();
+  const row = (a: (typeof actions)[number]) => (
+    <MenuItem key={a.key} disabled={a.disabled} onSelect={() => setTimeout(a.run, 0)} data-add-action={a.key}>
+      <a.icon />
+      <span className="flex-1">{a.title}</span>
+      {a.kbd && <Kbd>{a.kbd}</Kbd>}
+    </MenuItem>
+  );
+  return (
+    <Menu>
+      <MenuTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className="hidden h-12 w-10 shrink-0 place-items-center rounded-e-full border-s border-[color-mix(in_srgb,var(--on-brand)_22%,transparent)] bg-brand text-on-brand transition hover:bg-brand-hover disabled:opacity-60 lg:grid"
+          aria-label={t.phone.moreAdd}
+          title={t.phone.moreAdd}
+          data-add-menu
+        >
+          <ChevronDown className="size-4" strokeWidth={2.4} />
+        </button>
+      </MenuTrigger>
+      <MenuContent align="end" className="min-w-[240px]">
+        {actions.filter((a) => a.primary).map(row)}
+        <MenuSeparator />
+        {actions.filter((a) => !a.primary).map(row)}
+      </MenuContent>
+    </Menu>
   );
 }

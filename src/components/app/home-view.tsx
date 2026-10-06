@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { DeliveryTrack } from "./delivery-track";
 import { ProductImage, useStatusFlow } from "./item-card";
 import { useReadOnly } from "./offline-banner";
-import { BarcodeArt, LinkArt, PlanArt, ReceiptArt } from "./phone-shell";
+import { useAddActions } from "./add-actions";
 import { useMeName } from "./spaces/space-ui";
 import { DEFAULT_HOME_LAYOUT, HOME_SECTIONS, useStore, type HomeLayout, type HomeSection } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
@@ -1546,14 +1546,9 @@ function HomeEmpty({ model }: { model: HomeModel }) {
   const s = useStore();
   const { t, f } = useI18n();
   const fm = useFmt();
-  const ro = useReadOnly();
-  const phone = typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches;
-  const actions = [
-    { key: "paste", art: <LinkArt />, tone: "link", title: t.phone.paste, hint: t.phone.pasteHint, run: () => (phone ? s.setPasteOpen(true) : s.focusAdd()), disabled: ro.ro },
-    { key: "barcode", art: <BarcodeArt />, tone: "barcode", title: t.phone.barcode, hint: t.phone.barcodeHint, run: () => s.setScanner("barcode"), disabled: false },
-    { key: "receipt", art: <ReceiptArt />, tone: "receipt", title: t.phone.receipt, hint: t.phone.receiptHint, run: () => (phone ? s.setScanner("receipt") : s.openReceipt()), disabled: ro.ro },
-    ...(s.aiEnabled ? [{ key: "plan", art: <PlanArt />, tone: "plan", title: t.phone.plan, hint: t.phone.planHint, run: () => s.setPanel("planner"), disabled: ro.ro }] : []),
-  ];
+  // The shared add list (R16 A3), big cards only: paste first here (it's the first thing to try on an empty space).
+  const all = useAddActions().filter((a) => a.primary && (a.key !== "plan" || s.aiEnabled));
+  const actions = [...all.filter((a) => a.key === "paste"), ...all.filter((a) => a.key !== "paste")];
   return (
     <div className="flex flex-col gap-4 pb-6 lg:pt-2" data-home data-home-empty>
       <div className="px-1">

@@ -711,6 +711,8 @@ export const en = {
     pasteHint: "From any store",
     plan: "Plan with Nexus",
     planHint: "Describe a project, get a parts list",
+    importShort: "Import",
+    moreAdd: "More ways to add",
     toFreeShipping: "To free shipping",
   },
   projects: {

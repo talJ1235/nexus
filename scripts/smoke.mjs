@@ -1763,6 +1763,34 @@ try {
       });
     }
 
+    // R16 A3: desktop keeps every way to add one click away on a space with items (Add split button → menu);
+    // phone: the "+" sheet shows the same list (cards + the compact row).
+    await step("add menu: the shared add list on desktop (receipt + barcode) and in the phone +", async () => {
+      await page.goto(`${BASE}/?v=to_buy`);
+      await page.waitForSelector(READY, { timeout: 15000 });
+      if (MOBILE) {
+        await page.click("[data-plus]");
+        await page.waitForTimeout(500);
+        const keys = await page.locator("[data-plus-action]:visible").evaluateAll((els) => els.map((e) => e.getAttribute("data-plus-action")));
+        await page.mouse.click(195, 120);
+        return ok(["barcode", "receipt", "paste", "plan", "import", "list", "project"].every((k) => keys.includes(k)), "add menu: the shared add list on desktop (receipt + barcode) and in the phone +", JSON.stringify(keys));
+      }
+      const menu = page.locator("[data-add-menu]");
+      await menu.click();
+      const keys = await page.locator("[data-add-action]").evaluateAll((els) => els.map((e) => e.getAttribute("data-add-action")));
+      await shot(page, "add-menu");
+      await page.locator("[data-add-action=receipt]").click();
+      const receipt = await page.locator("[data-receipt-dialog]").waitFor({ timeout: 8000 }).then(() => true, () => false);
+      await page.keyboard.press("Escape");
+      await page.locator("[data-receipt-dialog]").waitFor({ state: "detached", timeout: 8000 });
+      await menu.click();
+      await page.locator("[data-add-action=barcode]").click();
+      const barcode = await page.locator("[data-barcode-scanner]").waitFor({ timeout: 8000 }).then(() => true, () => false);
+      await page.keyboard.press("Escape");
+      await page.locator("[data-barcode-scanner]").waitFor({ state: "detached", timeout: 8000 }).catch(() => {});
+      ok(receipt && barcode && ["barcode", "receipt", "paste", "plan", "import", "list", "project"].every((k) => keys.includes(k)), "add menu: the shared add list on desktop (receipt + barcode) and in the phone +", JSON.stringify({ keys, receipt, barcode }));
+    });
+
     await step("assistant panel opens", async () => {
       await page.goto(`${BASE}/?v=to_buy`);
       await page.waitForSelector(READY, { timeout: 15000 });

@@ -713,6 +713,8 @@ export const he: Dict = {
     pasteHint: "מכל חנות",
     plan: "תכנון עם Nexus",
     planHint: "תאר פרויקט, קבל רשימת חלקים",
+    importShort: "ייבוא",
+    moreAdd: "עוד דרכים להוסיף",
     toFreeShipping: "למשלוח חינם",
   },
   projects: {
