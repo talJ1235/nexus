@@ -482,3 +482,7 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   src/db/migrate.ts` after a schema change (prod's `npm run build` migrates first). One desktop smoke ran against `local.db`
   itself by mistake (extra demo rows there; prod untouched).
 - **Session 2 (D, E, F) not started** — Tal 2026-10-07: there are no mockups, don't build it yet.
+- **Released (2026-10-07):** `main` fast-forwarded to `f203591` (Session 1). `guards` green on `main` (run 37538206919).
+  Prod smoke after the deploy (run 37538431911): 50 PASS, 5 FAIL — the same five demo-data steps as the R15/R14 prod runs
+  (Needs-you count, month view, calendar arrival, demo-id layouts, demo project summary; see 0.1), so the R16 migration
+  ran on prod and nothing new broke. **Tal:** mark report `r_rWtP3XmuRl` fixed in Settings → Reports (A13 reply above).
