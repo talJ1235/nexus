@@ -26,6 +26,14 @@ const OUTLINE = CUBE(4, 0);
 
 const MODE_SCRIPT = `(function(){var d=document.documentElement,m="full";try{var p=matchMedia("(max-width: 768px), (display-mode: standalone)").matches;if(p){var n=performance.getEntriesByType("navigation")[0],t=n&&n.type,s=sessionStorage;if(t==="reload"||t==="back_forward"||s.getItem("nexus.opened"))m="small";s.setItem("nexus.opened","1")}else if(location.pathname!=="/"){m="none"}else{var a=new Date(),k=a.getFullYear()+"-"+(a.getMonth()+1)+"-"+a.getDate();if(localStorage.getItem("nexus.bootDay")===k)m="small";else localStorage.setItem("nexus.bootDay",k)}}catch(e){m="small"}d.setAttribute("data-boot",m)})()`;
 
+/**
+ * R16 A8 — self-heal for a phone page laid out at desktop width. Seen once on Tal's phone right after Google sign-in
+ * (a refresh fixed it; not reproducible in emulation through the same redirect chain — the viewport meta is in <head>).
+ * A touch screen whose short side is < 600 px but whose layout viewport is ≥ 1024 px wide got the page without its
+ * device-width viewport: reload once per tab session (never loops; tablets and real desktops never match).
+ */
+const VIEWPORT_GUARD = `(function(){function c(){try{var s=sessionStorage,w=Math.min(screen.width,screen.height);if(w&&w<600&&innerWidth>=1024&&matchMedia("(pointer: coarse)").matches&&!s.getItem("nexus.vpfix")){s.setItem("nexus.vpfix","1");location.reload()}}catch(e){}}c();addEventListener("pageshow",c)})()`;
+
 /** Eight cubes gather from around the centre (offset, size). */
 const GATHER: [number, number, number][] = [
   [139, 56, 30], [74, 175, 22], [-56, 139, 26], [-175, 74, 18], [-139, -56, 28], [-74, -175, 20], [56, -139, 24], [175, -74, 16],
@@ -47,7 +55,7 @@ const AMBIENT: [string, string, number, number, number, number, number, number][
 export function BootScreen({ nonce }: { nonce?: string }) {
   return (
     <>
-      <script nonce={nonce} dangerouslySetInnerHTML={{ __html: MODE_SCRIPT }} />
+      <script nonce={nonce} dangerouslySetInnerHTML={{ __html: VIEWPORT_GUARD + ";" + MODE_SCRIPT }} />
       <div id="boot" aria-hidden="true">
         <div className="boot-bg">
           <div className="boot-bloom" />

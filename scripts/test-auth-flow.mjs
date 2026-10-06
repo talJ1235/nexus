@@ -88,6 +88,32 @@ try {
   ok(admins.length === 1 && admins[0].role === "admin", "A1 admin signs in, linked to the migrated user (role admin)", JSON.stringify(admins));
   ok((await q("SELECT count(*) n FROM account WHERE provider_id = 'test-idp'"))[0].n === 1, "A1 the IdP account is linked");
 
+  // ---- R16 A8: on a phone the first screen after the IdP callback is the phone layout (no desktop sidebar, the dock),
+  // with no reload.
+  {
+    const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    const pp = await signIn(phone, ADMIN);
+    await pp.waitForURL((u) => u.pathname === "/" || u.pathname === "/welcome" || u.pathname === "/passkey", { timeout: 120_000 });
+    if (new URL(pp.url()).pathname === "/passkey") await pp.click("[data-auth=not-now]").catch(() => {});
+    await pp.waitForSelector("[data-app-shell]", { timeout: 120_000 }).catch(() => {});
+    const loads = await pp.evaluate(() => performance.getEntriesByType("navigation").map((n) => n.type));
+    // The first screenshot after the callback: what the phone shows before anything else happens.
+    const first = await pp.evaluate(() => {
+      const vis = (el) => !!el && el.getBoundingClientRect().width > 0 && getComputedStyle(el).display !== "none" && getComputedStyle(el).visibility !== "hidden";
+      return {
+        path: location.pathname,
+        innerWidth: window.innerWidth,
+        viewportMeta: document.querySelector('meta[name="viewport"]')?.getAttribute("content") ?? null,
+        sidebar: vis(document.querySelector("[data-sidebar-logo]")),
+      };
+    });
+    await pp.waitForSelector("[data-dock]", { timeout: 30_000 }).catch(() => {});
+    const dock = await pp.locator("[data-dock]").isVisible().catch(() => false);
+    if (process.env.SMOKE_OUT) await pp.screenshot({ path: `${process.env.SMOKE_OUT}/a8-after-signin-m.png` });
+    ok(first.innerWidth === 390 && !!first.viewportMeta && !first.sidebar && dock && !loads.includes("reload"), "A8 phone: first screen after sign-in is the phone layout (dock, no sidebar, no reload)", JSON.stringify({ ...first, dock, loads }));
+    await phone.close();
+  }
+
   // ---- A3: admin creates codes.
   await pa.goto(`${BASE}/settings/invites`, { timeout: 120_000 });
   lastPage = pa;

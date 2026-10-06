@@ -1922,6 +1922,26 @@ try {
       );
     });
 
+    // R16 A8: a phone screen laid out at desktop width (no device-width viewport applied) reloads once and never loops;
+    // a normal phone and a desktop never reload.
+    await step("viewport guard: a phone at desktop width reloads once, never loops", async () => {
+      const run = async (opts) => {
+        const c = await browser.newContext(opts);
+        const p = await c.newPage();
+        let docs = 0;
+        p.on("framenavigated", (f) => f === p.mainFrame() && docs++);
+        await p.goto(`${BASE}/login`);
+        await p.waitForTimeout(1500);
+        const r = await p.evaluate(() => ({ flag: sessionStorage.getItem("nexus.vpfix"), nav: performance.getEntriesByType("navigation")[0]?.type }));
+        await c.close();
+        return { docs, ...r };
+      };
+      const wide = await run({ viewport: { width: 1100, height: 844 }, screen: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      const phone = await run({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+      const desk = await run({ viewport: { width: 1366, height: 860 } });
+      ok(wide.flag === "1" && wide.nav === "reload" && wide.docs === phone.docs + 1 && !phone.flag && phone.nav === "navigate" && !desk.flag && desk.nav === "navigate", "viewport guard: a phone at desktop width reloads once, never loops", JSON.stringify({ wide, phone, desk }));
+    });
+
     await step("assistant panel opens", async () => {
       await page.goto(`${BASE}/?v=to_buy`);
       await page.waitForSelector(READY, { timeout: 15000 });

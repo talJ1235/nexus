@@ -112,7 +112,7 @@ works (axis lock after ~8 px); desktop — drag with the mouse (grab cursor), pl
 ←/→ when focused; RTL flips direction. Reduced motion: no inertia, instant snap. Acceptance: smoke swipes with touch
 events on 390 and drags on 1366 → the index changes; frame timing during the swipe ≥ 55 fps on the bench PC.
 
-### A8. [ ] Phone: first render after sign-in is the desktop layout
+### A8. [x] Phone: first render after sign-in is the desktop layout
 Tal: after Google sign-in on the phone the app showed desktop size; a refresh fixed it. Reproduce with the test IdP
 (`AUTH_TEST_IDP=1`, dev server) in Playwright mobile emulation (390×844, `isMobile`, `hasTouch`) through the full redirect
 chain (`/login` → IdP → callback → `/` or `/welcome`). Find the cause (candidates: a page in the chain without the
@@ -358,3 +358,12 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   (`pagerRelease`: 25 % of the width or a fling ≥ 0.5 px/ms, no wrap past either end) and the rubber band are unit-tested
   in `test:gestures`; keyboard ←/→ and the dots/arrows keep wrapping as before. A mouse drag that starts on a button stays
   a click; a finished drag swallows the click under it.
+- **A8 — not reproduced; guarded.** Through the test IdP on a dev server in Playwright phone emulation (390×844,
+  `isMobile`, `hasTouch`, `/login` → IdP → callback → `/`), the first screen is the phone layout (dock visible, no
+  sidebar, no reload) — new step in `test:auth-flow`. Every page of the chain has `width=device-width` in `<head>` (byte
+  ~200 of the HTML), and the app's layout is CSS-breakpoint driven before hydration + `matchMedia` after, so a stuck
+  desktop layout means Chrome laid the page out at desktop width (980 px, no device-width viewport) — most likely the
+  page coming back from Google inside the installed app's Custom Tab. Fix = a self-heal in the first inline script: a touch
+  screen with a short side < 600 px and a layout viewport ≥ 1024 px reloads **once per tab session** (smoke: such a phone
+  reloads once and stops; a normal phone and a desktop never reload). **Tal:** was it the installed app (home-screen icon)
+  or Chrome? If it happens again, a screenshot of the URL bar helps.
