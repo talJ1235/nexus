@@ -207,7 +207,7 @@ people can't silently overwrite each other.
 - Polling fallback: no presence (dots hidden), toasts still work from the change feed (`by` + table + op).
 - Build on the existing `Avatar online` prop and LiveList board; mockups for anything new come with Session 2.
 
-### B5. [ ] Budget and guards
+### B5. [x] Budget and guards
 - Ably budget: 200 concurrent connections, 6 M messages/month. Log publishes per day (count only) and show in Open the
   estimate for 20 households. Never publish per row — per action.
 - Security: token route rate-limited (30/min/user), capability limited to one channel, no content on the wire,
@@ -425,3 +425,15 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   mode: no presence (dots hidden), toasts still work. The sheet open on an item someone deleted closes with "Removed by
   Noa". `test:live` checks presence (fake), no presence (polling) and the toast. No new screen beyond these — the LiveList
   board's other pieces wait for the Session 2 mockups.
+- **B5 — Ably budget (estimate, 20 households of 2):** one publish per write *action* (never per row), counted per day in
+  kv `realtime:pub:<date>`. A busy household ≈ 60 write actions/day + the cron's price writes (one publish per space per
+  run) ≈ 65 publishes → Ably bills each publish once in + once per subscribed connection (≈ 2 visible tabs) ≈ 195
+  messages, plus presence enter/leave ≈ 20 connects × 2 people × 2 recipients ≈ 80 → ≈ 300 messages/day/household →
+  20 households ≈ 6 000/day ≈ **180 k/month (3 % of the free 6 M)**. Connections: only visible tabs, dropped 2 min after
+  hiding → peak ≈ 2 per household ≈ **40 of the 200** concurrent. Read the real number with
+  `SELECT key, value FROM kv WHERE key LIKE 'realtime:pub:%'` after a week.
+- **B5 guards:** token route 30/min/user (429 after), capability = one channel (`space:<current>`: subscribe + presence),
+  messages carry `{ rev, by }` only, `test:authz-coverage` covers the new actions/routes (173), `test:tenancy` 46/46 (new:
+  B forging A's / S's space gets a token for its own space only, 30/min limit, fake stream 404 in production,
+  `changesSince` as B never shows A's rows), CSP `connect-src` lists Ably's exact hosts (https + wss: main.realtime.ably.net,
+  main.[a-e].fallback.ably-realtime.com, internet-up.ably-realtime.com), `test:headers` green.

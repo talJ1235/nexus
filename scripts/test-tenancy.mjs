@@ -236,6 +236,29 @@ ok(afterA === beforeA, `B called ${actions.length} actions + ${routes.length} ro
 ok((await hashUser(U.A)) === beforeAUser, "A's personal rows (memory, prefs, reports, memberships, sessions) unchanged");
 ok(leaks.length === 0, "no response to B contained A's or S's content", leaks.slice(0, 5).join(" | "));
 
+// R16 B5: live sync — B can't get a realtime token or the change feed for A's spaces (forged cookie → B's own space),
+// and the test-only fake stream is off in production.
+{
+  const tok = async (space) => {
+    const r = await fetch(`${BASE}/api/realtime/token`, { headers: { Cookie: `${cookieOf.B}; nexus_space=${space}` } });
+    return { status: r.status, body: await r.text() };
+  };
+  const t1 = await tok(SP.A);
+  const t2 = await tok(SP.S);
+  ok(t1.status === 200 && !t1.body.includes(SP.A) && !t2.body.includes(SP.S) && (t1.body.includes("poll") || t1.body.includes(`space:${SP.B}`)), "B5: B's realtime token (forging A's / S's space) is only ever for B's own space", t1.body.slice(0, 160));
+  // 30 tokens per minute per user, then 429 (V asks 31 times).
+  let last = 0;
+  for (let k = 0; k < 31; k++) last = (await fetch(`${BASE}/api/realtime/token`, { headers: { Cookie: cookieOf.V } })).status;
+  ok(last === 429, "B5: the token route is limited to 30 per minute per user", String(last));
+  const fake = await fetch(`${BASE}/api/realtime/fake`, { headers: { Cookie: cookieOf.B } });
+  ok(fake.status === 404, "B5: the fake realtime stream is 404 in production", String(fake.status));
+  const feed = actions.find((a) => a.name === "data-actions.ts#changesSince");
+  if (feed) {
+    const out = await callAction("B", feed, [0], SP.A);
+    ok(out.status === 200 && !marksIn(out.text, MARK.A) && !marksIn(out.text, MARK.S), "B5: B's changesSince(0) with A's space forged has none of A's / S's rows");
+  } else ok(false, "B5: changesSince is in the action manifest");
+}
+
 // ---------- 2. V (viewer in S) tries every write in S ----------
 const beforeS = await hashSpaces([SP.S]);
 const vWrites = [];
