@@ -1266,6 +1266,7 @@ export const en = {
     toggleHint: "Price drops, urgent items, orders on the way, free shipping and the month's budget — skipped when there's nothing to say.",
   },
   alerts: {
+    inApp: "Price alerts show here in the app. Telegram messages have ended; phone notifications are coming soon.",
     tgAddHint: "Tip: send any product link to @{bot} to add it from anywhere. Add #list-name to file it.",
     title: "Price alerts",
     checkNow: "Check now",
@@ -1393,6 +1394,7 @@ export const en = {
     },
   },
   share: {
+    spaceHint: "People join the whole space, with an account. The public link below shows only this list.",
     title: "Share",
     people: "People with access",
     noPeople: "Nobody yet. Create an invite link and send it to someone.",
@@ -1533,6 +1535,13 @@ export const en = {
     addedBy: "Added by {name}",
     failed: "That didn't work — try again",
     colors: { green: "Green", blue: "Blue", violet: "Violet", amber: "Amber", rose: "Rose", slate: "Slate" },
+  },
+  // R15 D1: retired guest links (/g, /i/<token>).
+  guest: {
+    title: "This link no longer works",
+    body: "Nexus now uses accounts. Ask {name} for a new invite.",
+    bodyAnon: "Nexus now uses accounts. Ask for a new invite.",
+    login: "Log in",
   },
   offline: {
     banner: "Offline — showing data from {time}",

@@ -94,7 +94,7 @@ export function useCommands(): AppCommand[] {
         setAiSuggestions(!aiOn).catch(() => s.setHomePrefs(before));
       },
     },
-    { id: "alerts", group: "settings", label: t.alerts.title, keywords: "alerts price telegram notifications התראות", icon: <Bell />, run: () => s.setPanel("alerts") },
+    { id: "alerts", group: "settings", label: t.alerts.title, keywords: "alerts price notifications התראות", icon: <Bell />, run: () => s.setPanel("alerts") },
     {
       id: "export",
       group: "settings",
@@ -119,7 +119,6 @@ export function useCommands(): AppCommand[] {
         a.click();
       },
     },
-    { id: "extension", group: "settings", label: t.settings.extension, keywords: "extension clipper chrome תוסף", icon: <Puzzle />, run: () => s.setExtOpen(true) },
     { id: "report", group: "settings", label: t.report.menu, keywords: "report problem bug complaint idea feedback דיווח תקלה", icon: <MessageSquareWarning />, run: () => s.openReport(), testId: "report" },
     { id: "reports", group: "settings", label: t.report.reports, keywords: "reports bugs issues דיווחים", icon: <Inbox />, run: () => s.setReportsOpen(true), testId: "reports" },
     { id: "logout", group: "settings", label: t.nav.signOut, keywords: "logout sign out יציאה", icon: <LogOut />, run: () => postForm("/api/logout") },

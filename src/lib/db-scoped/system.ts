@@ -44,3 +44,22 @@ export async function spaceIdsOfUser(userId: string) {
     .where(and(eq(schema.member.userId, userId), isNull(schema.space.deletedAt)));
   return rows.map((r) => r.id);
 }
+
+/** R15 D1: who shared an old guest link (/i/<token>) — the owner of that list's space; else the admin (the only owner
+ *  before accounts). A name only, for the "ask <name> for a new invite" notice. */
+export async function legacyShareOwnerName(tokenHash: string | null, adminEmail: string | null) {
+  if (tokenHash) {
+    const [r] = await db
+      .select({ name: schema.user.name })
+      .from(schema.invites)
+      .innerJoin(schema.collections, eq(schema.collections.id, schema.invites.collectionId))
+      .innerJoin(schema.space, eq(schema.space.id, schema.collections.spaceId))
+      .innerJoin(schema.user, eq(schema.user.id, schema.space.createdBy))
+      .where(eq(schema.invites.tokenHash, tokenHash))
+      .limit(1);
+    if (r?.name) return r.name.split(/\s+/)[0];
+  }
+  if (!adminEmail) return null;
+  const [a] = await db.select({ name: schema.user.name }).from(schema.user).where(eq(schema.user.email, adminEmail.toLowerCase())).limit(1);
+  return a?.name ? a.name.split(/\s+/)[0] : null;
+}

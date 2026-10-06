@@ -11,6 +11,9 @@ type PendingSearch = { resolve: (d: SearchHit[]) => void; timer: ReturnType<type
 let knownVersion: string | null = null;
 export const extensionVersion = () => knownVersion;
 
+/** R15 D2: the extension is retired for everyone — the app ignores it (code kept for a later return). */
+export const EXTENSION_RETIRED = true;
+
 /** Talks to the Nexus Clipper extension (via its content script) when it's installed. */
 export function useExtension() {
   const [version, setVersion] = useState<string | null>(null);
@@ -21,7 +24,7 @@ export function useExtension() {
     const onMsg = (e: MessageEvent) => {
       if (e.source !== window || e.origin !== window.location.origin) return;
       const d = e.data;
-      if (!d || d.source !== "nexus-ext") return;
+      if (!d || d.source !== "nexus-ext" || EXTENSION_RETIRED) return;
       if (d.type === "hello") {
         knownVersion = String(d.version ?? "1");
         setVersion(knownVersion);

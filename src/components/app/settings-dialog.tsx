@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, FileSpreadsheet, KeyRound, LogOut, Monitor, Moon, Puzzle, ShieldCheck, Sun, Upload, MessageSquareWarning, Users } from "lucide-react";
+import { Download, FileSpreadsheet, KeyRound, LogOut, Monitor, Moon, ShieldCheck, Sun, Upload, MessageSquareWarning, Users } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
 import { useTheme } from "next-themes";
@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/overlays";
 import { CURRENCIES, type Currency } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { BookmarkletDialog } from "./bookmarklet";
 import { BudgetEditor } from "./budget-card";
 import { saveImportLimit } from "@/app/money-actions";
 import { pictureSearchStatus } from "@/app/picture-actions";
@@ -21,7 +20,6 @@ import { rememberThisDevice } from "@/app/security-actions";
 import { ReportsSubpage } from "./reports-sheet";
 import { useStore } from "./store";
 import { openSpaces, SpaceTile } from "./spaces/space-ui";
-import { useExtension } from "./use-extension";
 import { usePalette } from "@/components/use-palette";
 import { PALETTES, type Palette } from "@/lib/palette";
 
@@ -146,7 +144,6 @@ export function SettingsDialog() {
   const { t, f, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
   const [palette, setPalette] = usePalette();
-  const ext = useExtension();
   // Sub-pages slide in inside the same modal (Round 11 B1): back arrow / Esc → report list → Settings.
   const [sub, setSub] = useState<null | "reports">(null);
   const [reportId, setReportId] = useState<string | null>(null);
@@ -303,15 +300,6 @@ export function SettingsDialog() {
 
           <section className="space-y-4 border-t border-line pt-5">
             <h3 className="text-xs font-medium text-faint">{t.settings.account}</h3>
-            <Row title={t.settings.extension} hint={ext.available ? `${t.ext.connected} · v${ext.version}` : t.ext.notInstalled}>
-              <div className="flex items-center justify-end gap-2">
-                <span className={cn("size-2 rounded-full", ext.available ? "bg-ok" : "bg-faint")} aria-hidden />
-                <Button size="sm" variant={ext.available ? "outline" : "accent"} onClick={() => s.setExtOpen(true)} data-settings-ext>
-                  <Puzzle />
-                  {ext.available ? t.settings.manage : t.settings.setUp}
-                </Button>
-              </div>
-            </Row>
             <Row title={t.security.title} hint={t.security.hint}>
               <div className="flex items-center justify-end gap-2">
                 <Button size="sm" variant="outline" onClick={() => window.location.assign("/settings/security")} data-settings-security>
@@ -352,7 +340,6 @@ export function SettingsDialog() {
         </div>
         )}
       </Modal>
-      <BookmarkletDialog open={s.extOpen} onOpenChange={s.setExtOpen} />
     </>
   );
 }

@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import { useStore, type View } from "./store";
 import { COLLECTION_COLORS, itemsForView } from "./view-items";
 import { NavRowsSkeleton, Skel } from "./skeletons";
-import { useExtension } from "./use-extension";
 import { DRAG_TYPE, useMoveItems } from "./buy-filters";
 import { SpaceSwitcher } from "./spaces/switcher";
 import { useMeName } from "./spaces/space-ui";
@@ -120,7 +119,6 @@ function SectionHeader({ label, onAdd, addLabel, carry, collapsed, onLabel }: { 
 export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: boolean; onToggle?: () => void; floating?: boolean }) {
   const s = useStore();
   const { t } = useI18n();
-  const ext = useExtension();
 
   const counts = useMemo(
     () => ({
@@ -259,10 +257,7 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
           <>
             <div className="min-w-0 flex-1 leading-tight">
               <b className="block truncate text-[13px] font-semibold">{meName}</b>
-              <span className="flex items-center gap-1.5 truncate text-[11.5px] text-muted">
-                <span className={cn("size-1.5 shrink-0 rounded-full", ext.available ? "bg-ok" : "bg-faint")} aria-hidden />
-                {ext.available ? t.ext.connected : t.ext.notInstalled}
-              </span>
+              <span className="block truncate text-[11.5px] text-muted">{s.me?.email}</span>
             </div>
             <button
               type="button"

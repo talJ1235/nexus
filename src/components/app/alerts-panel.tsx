@@ -96,6 +96,8 @@ function AlertRow({ a, onOpen }: { a: Alert; onOpen: (id: string) => void }) {
   );
 }
 
+// Retired in R15 D2 (Telegram off for everyone); kept for a later return.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function TelegramSetup({ st, reload }: { st: AlertsState; reload: () => Promise<void> }) {
   const { t, f } = useI18n();
   const [token, setToken] = useState("");
@@ -330,30 +332,12 @@ export function AlertsPanel() {
                   />
                 </div>
                 <p className="text-xs text-muted">{t.alerts.targetHint}</p>
-                <div className="flex flex-wrap items-center justify-between gap-3" data-weekly-pref={st.prefs.weekly ? "on" : "off"}>
-                  <span className="text-sm">{t.weekly.toggle}</span>
-                  <Segmented
-                    size="sm"
-                    label={t.weekly.toggle}
-                    value={st.prefs.weekly ? "on" : "off"}
-                    onChange={async (v) => setSt({ ...st, prefs: await saveAlertPrefs({ weekly: v === "on" }) })}
-                    options={[
-                      { value: "on", label: t.alerts.on },
-                      { value: "off", label: t.alerts.off },
-                    ]}
-                  />
-                </div>
-                <p className="text-xs text-muted">{t.weekly.toggleHint}</p>
               </section>
 
-              <section className="space-y-3 border-t border-line p-4">
-                <h3 className="text-xs font-medium text-faint">Telegram</h3>
-                <TelegramSetup st={st} reload={reload} />
-              </section>
-
-              {!ext.available && (
-                <p className="border-t border-line p-4 text-xs text-muted">{t.alerts.extHint}</p>
-              )}
+              {/* R15 D2: Telegram is retired — alerts live here; push + inbox arrive in R16. */}
+              <p className="border-t border-line p-4 text-xs text-muted" data-alerts-inapp>
+                {t.alerts.inApp}
+              </p>
             </>
           )}
         </div>

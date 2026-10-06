@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bell, ChevronRight, Download, FileSpreadsheet, History, Inbox, LogOut, MessageSquareWarning, Monitor, Moon, Puzzle, Send, Settings, Sun, X } from "lucide-react";
+import { Bell, ChevronRight, Download, FileSpreadsheet, History, Inbox, LogOut, MessageSquareWarning, Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import { useTheme } from "next-themes";
-import { getAlertsState } from "@/app/alert-actions";
 import { useI18n } from "@/components/providers";
 import { usePalette } from "@/components/use-palette";
 import { Sheet, SheetClose } from "@/components/ui/overlays";
@@ -11,7 +9,6 @@ import { download, exportUrl } from "@/lib/export-url";
 import { cn } from "@/lib/utils";
 import { PaletteSwatch, Segmented } from "./settings-dialog";
 import { useStore } from "./store";
-import { useExtension } from "./use-extension";
 import { useUnreadAlerts } from "./alerts-panel";
 import { useMeName } from "./spaces/space-ui";
 import { SpaceRows } from "./spaces/switcher";
@@ -23,22 +20,10 @@ export function MeSheet() {
   const { t, locale } = useI18n();
   const { theme, setTheme } = useTheme();
   const [palette, setPalette] = usePalette();
-  const ext = useExtension();
-  const [telegram, setTelegram] = useState<boolean | null>(null);
   const open = s.meOpen;
   const unread = useUnreadAlerts();
   const meName = useMeName();
 
-  useEffect(() => {
-    if (!open) return;
-    let gone = false;
-    getAlertsState()
-      .then((st) => !gone && setTelegram(st.telegram.connected))
-      .catch(() => {});
-    return () => {
-      gone = true;
-    };
-  }, [open]);
 
   // Close the sheet first, then open the next thing (one overlay at a time on a phone).
   const go = (fn: () => void) => () => {
@@ -46,13 +31,6 @@ export function MeSheet() {
     setTimeout(fn, 120);
   };
   const row = "flex min-h-[52px] w-full items-center gap-3.5 rounded-[16px] px-3 text-start text-[15px] font-semibold transition active:bg-surface-2 hover:bg-surface-2 [&>svg:first-child]:size-5 [&>svg:first-child]:shrink-0 [&>svg:first-child]:text-muted";
-  const status = (on: boolean | null, yes: string, no: string) =>
-    on == null ? null : (
-      <span className="flex items-center gap-1.5 text-[13px] font-medium text-muted">
-        <span className={cn("size-1.5 rounded-full", on ? "bg-ok" : "bg-faint")} aria-hidden />
-        {on ? yes : no}
-      </span>
-    );
 
   return (
     <Sheet open={open} onOpenChange={s.setMeOpen} title={t.me.open} side="start">
@@ -104,18 +82,10 @@ export function MeSheet() {
           <button type="button" className={row} onClick={go(() => s.setView({ type: "history" }))} data-me-history>
             <History /> <span className="flex-1">{t.insights.history}</span> <ChevronRight className="size-4 text-faint rtl:-scale-x-100" />
           </button>
-          <button type="button" className={row} onClick={go(() => s.setExtOpen(true))}>
-            <Puzzle /> <span className="flex-1">{t.settings.extension}</span>
-            {status(ext.available, t.ext.connected, t.ext.notInstalled)}
-          </button>
           {/* R14 B2: the phone top bar has no bell (home-v4) — alerts live here, the avatar shows the unread dot. */}
           <button type="button" className={row} onClick={go(() => s.setPanel("alerts"))} data-me-alerts>
             <Bell /> <span className="flex-1">{t.alerts.title}</span>
             {unread > 0 && <span className="tabular grid h-5 min-w-5 place-items-center rounded-full bg-spark px-1.5 text-[11px] font-bold text-white">{unread}</span>}
-          </button>
-          <button type="button" className={row} onClick={go(() => s.setPanel("alerts"))}>
-            <Send /> <span className="flex-1">{t.me.telegram}</span>
-            {status(telegram, t.me.telegramOn, t.me.telegramOff)}
           </button>
           <button type="button" className={row} onClick={go(() => s.setReportsOpen(true))} data-me-reports>
             <Inbox /> <span className="flex-1">{t.report.reports}</span> <ChevronRight className="size-4 text-faint rtl:-scale-x-100" />

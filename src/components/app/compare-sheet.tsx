@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, Plus, Puzzle, RefreshCw, Scale } from "lucide-react";
+import { ExternalLink, Plus, RefreshCw, Scale } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { addSourceFromUrl } from "@/app/actions";
 import { compareStart, compareVerify, type CompareResponse } from "@/app/compare-actions";
@@ -111,13 +111,7 @@ export function CompareSheet() {
                 <div className="mb-2 flex items-center gap-2 font-bold">
                   <Scale className="size-4" /> {t.compare.setupTitle}
                 </div>
-                <ol className="list-decimal space-y-1.5 ps-5 text-muted">
-                  <li>{t.compare.setupExt}</li>
-                  <li>{t.compare.setupKey}</li>
-                </ol>
-                <Button variant="outline" className="mt-3" onClick={() => s.setExtOpen(true)}>
-                  <Puzzle /> {t.settings.extension}
-                </Button>
+                <p className="text-muted">{t.compare.setupKey}</p>
               </div>
             )}
             {state.step === "ok" && (

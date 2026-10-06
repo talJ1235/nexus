@@ -10,7 +10,7 @@ import { googleTemplateUrl } from "@/lib/ics";
 import { buyAgain, dismissHome, homeLook, phraseSuggestions, undismissHome, type Phrased } from "@/app/home-actions";
 import type { HomeAi } from "@/lib/home-ai";
 import { useMedia } from "@/components/ui/use-media";
-import { useExtension } from "./use-extension";
+import { EXTENSION_RETIRED, useExtension } from "./use-extension";
 import { Sheet } from "@/components/ui/overlays";
 import { activeSource } from "@/lib/calc";
 import { dayKeyIn, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, monthGrid, shiftMonth, type HomeModel, type Insight, type NeedRow, type Suggestion, type WeekEvent } from "@/lib/home";
@@ -113,7 +113,8 @@ export function HomeView() {
   const ruleSugs = useMemo(() => homeSuggestions(model), [model]);
   const ext = useExtension();
   const desktop = useMedia("(min-width: 1024px)");
-  const extOk = desktop ? ext.available : null;
+  // R15 D2: the extension is retired — never suggest it.
+  const extOk = EXTENSION_RETIRED ? null : desktop ? ext.available : null;
   const fbCounts = useMemo(() => [fallbackSuggestions(model, { extension: extOk, receipts: null }).length, fallbackInsights(model).length] as const, [model, extOk]);
   const look = useHomeLook(model.empty ? -1 : ruleSugs.length, model.noticed.length, fbCounts[0], fbCounts[1]);
   // R14 A2: exact rules first, then the AI's look, then the broad fallbacks (≤ 4 suggestions, ≤ 3 insights).

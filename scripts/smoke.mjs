@@ -1579,13 +1579,7 @@ try {
       await page.locator("[data-modal-back]").click();
       await settle();
       r.arrowBack = await page.locator("[data-settings-reports]").isVisible();
-      // Settings → extension: a new modal fully on top; an outside click closes it alone, then Settings.
-      await page.locator("[data-settings-ext]").click();
-      await settle();
-      r.extTop = (await dialogs()) === 2 && (await onTop("[role=dialog]"));
-      await page.mouse.click(4, 4);
-      await settle();
-      r.extAlone = (await dialogs()) === 1 && (await page.locator("[data-settings-reports]").isVisible());
+      // (R15 D2: the extension row is gone from Settings.)
       await page.keyboard.press("Escape");
       await settle();
       r.settingsClosed = (await dialogs()) === 0;
@@ -1805,13 +1799,13 @@ try {
       await page.keyboard.press("Escape");
     });
 
-    await step("alerts panel: weekly summary toggle", async () => {
+    await step("alerts panel: in-app only (Telegram + weekly digest retired, R15 D2)", async () => {
       await page.goto(`${BASE}/?panel=alerts`);
-      const pref = page.locator("[data-weekly-pref]");
-      await pref.waitFor({ timeout: 15000 });
-      await pref.scrollIntoViewIfNeeded();
-      await shot(page, "alerts-weekly");
-      ok(["on", "off"].includes(await pref.getAttribute("data-weekly-pref")), "alerts panel: weekly summary toggle");
+      const note = page.locator("[data-alerts-inapp]");
+      await note.waitFor({ timeout: 15000 });
+      await note.scrollIntoViewIfNeeded();
+      await shot(page, "alerts-inapp");
+      ok((await page.locator("[data-weekly-pref]").count()) === 0 && (await page.getByText("Telegram", { exact: true }).count()) === 0, "alerts panel: no Telegram or weekly digest controls");
       await page.keyboard.press("Escape");
     });
 
