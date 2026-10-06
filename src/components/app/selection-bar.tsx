@@ -11,10 +11,12 @@ import { activeSource } from "@/lib/calc";
 import { cn } from "@/lib/utils";
 import { optimisticStatus, type Status } from "./item-card";
 import { useStore } from "./store";
+import { basesFor, useBulkConflicts } from "./conflicts";
 import { COLLECTION_COLORS, useViewItems } from "./view-items";
 
 export function SelectionBar() {
   const s = useStore();
+  const bulkDone = useBulkConflicts();
   const { t, f } = useI18n();
   const visible = useViewItems();
   const [altName, setAltName] = useState("");
@@ -50,7 +52,8 @@ export function SelectionBar() {
   const setPatch = (patch: { collectionId?: string | null; priority?: "urgent" | "normal" | "someday" }, newName?: string) =>
     run(async () => {
       s.upsertItems(chosen.map((i) => ({ ...i, ...patch })));
-      const req = bulkUpdate(ids, patch);
+      // R16 B3: against what each item showed; ones changed by someone else meanwhile are reported, not overwritten.
+      const req = bulkUpdate(ids, patch, basesFor(chosen, patch));
       let id: string | number | undefined;
       if (patch.collectionId !== undefined) {
         const name = patch.collectionId ? (newName ?? s.collections.find((c) => c.id === patch.collectionId)?.name ?? "") : t.home.noProject;
@@ -72,7 +75,7 @@ export function SelectionBar() {
       }
       s.clearSelection();
       try {
-        s.upsertItems(await req);
+        bulkDone(await req, (fresh) => bulkUpdate(fresh.map((i) => i.id), patch, basesFor(fresh, patch)));
       } catch (e) {
         s.upsertItems(chosen);
         if (id != null) toast.dismiss(id);
@@ -88,8 +91,10 @@ export function SelectionBar() {
         return { item: i, paid };
       });
       s.upsertItems(entries.map((e) => optimisticStatus(e.item, status, e.paid)));
-      s.upsertItems(await bulkSetStatus(entries.map((e) => ({ id: e.item.id, paid: e.paid })), status));
+      const send = (list: { item: (typeof entries)[number]["item"]; paid: (typeof entries)[number]["paid"] }[]) =>
+        bulkSetStatus(list.map((e) => ({ id: e.item.id, paid: e.paid })), status, basesFor(list.map((e) => e.item), { status: 0 }));
       s.clearSelection();
+      bulkDone(await send(entries), (fresh) => send(fresh.map((item) => ({ item, paid: entries.find((e) => e.item.id === item.id)?.paid ?? null }))));
     });
 
   const remove = () =>

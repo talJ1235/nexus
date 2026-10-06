@@ -14,6 +14,7 @@ import { SheetHandle } from "@/components/ui/overlays";
 import { useBackClose, useSheetDrag } from "@/components/ui/sheet-drag";
 import { useReadOnly } from "./offline-banner";
 import { useDataStore, useStore } from "./store";
+import { basesFor, useBulkConflicts } from "./conflicts";
 import { COLLECTION_COLORS } from "./view-items";
 
 /**
@@ -46,6 +47,7 @@ export function useActionLabels() {
 
 export function useItemActions() {
   const s = useDataStore();
+  const bulkDone = useBulkConflicts();
   const { t, f } = useI18n();
   const flow = useStatusFlow();
   const warnImport = useImportWarning();
@@ -62,8 +64,10 @@ export function useItemActions() {
     if (status === "ordered") warnImport(list);
     s.upsertItems(entries.map((e) => optimisticStatus(e.item, status, e.paid)));
     s.clearSelection();
+    // R16 B3: against the status each item showed (a conflict is reported once, not overwritten).
+    const send = (list: typeof entries) => bulkSetStatus(list.map((e) => ({ id: e.item.id, paid: e.paid })), status, basesFor(list.map((e) => e.item), { status: 0 }));
     try {
-      s.upsertItems(await bulkSetStatus(entries.map((e) => ({ id: e.item.id, paid: e.paid })), status));
+      bulkDone(await send(entries), (fresh) => send(fresh.map((item) => ({ item, paid: entries.find((e) => e.item.id === item.id)?.paid ?? null }))));
       toast.success(status === "ordered" ? t.flow.markedOrdered : status === "purchased" ? t.flow.markedReceived : t.quick.backToBuy, {
         description: f(t.collection.itemsCount, { n: list.length }),
         action: {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { bulkDelete, bulkSetStatus, bulkUpdate, createCollection, createItem, setStatus, updateItem } from "@/app/actions";
+import { addSource, bulkDelete, bulkSetStatus, bulkUpdate, createCollection, createItem, setStatus, updateItem, updateSource } from "@/app/actions";
 import { useStore } from "./store";
 
 /**
@@ -18,7 +18,7 @@ export function TestBridge() {
       rev: () => s.getRev(),
       present: () => [...s.present.entries()],
       openItem: (id: string | null) => s.openItem(id),
-      act: { bulkDelete, bulkSetStatus, bulkUpdate, createCollection, createItem, setStatus, updateItem },
+      act: { addSource, bulkDelete, bulkSetStatus, bulkUpdate, createCollection, createItem, setStatus, updateItem, updateSource },
     };
   });
   return null;

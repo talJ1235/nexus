@@ -7,7 +7,9 @@ import { schema } from "@/db";
 import { requireCtx } from "@/lib/ctx";
 import { scoped } from "@/lib/db-scoped";
 import { spacePrefSet } from "@/lib/db-scoped/prefs";
-import { BUDGET_KV_PREFIX, monthKeyIn, type BudgetHistory } from "@/lib/budget";
+import { BUDGET_KV_PREFIX, capFor, monthKeyIn, type BudgetHistory } from "@/lib/budget";
+import type { Conflict } from "@/lib/conflict";
+import { spacePrefBy } from "@/lib/db-scoped/prefs";
 import { loadBudgetHistory } from "@/lib/data";
 import type { StoreSetting } from "@/lib/types";
 
@@ -37,10 +39,22 @@ export async function saveImportLimit(usd: number): Promise<number> {
   return v;
 }
 
-export async function saveMonthlyBudget(cap: number | null, currency: string): Promise<BudgetHistory> {
+export async function saveMonthlyBudget(cap: number | null, currency: string): Promise<BudgetHistory>;
+export async function saveMonthlyBudget(cap: number | null, currency: string, baseCap: number | null): Promise<BudgetHistory | Conflict<BudgetHistory>>;
+/** R16 B3: `baseCap` = this month's cap the client saw; someone else changed it since → { conflict } (nothing saved). */
+export async function saveMonthlyBudget(cap: number | null, currency: string, baseCap?: number | null): Promise<BudgetHistory | Conflict<BudgetHistory>> {
   const s = scoped(await requireCtx("edit"));
   const c = z.number().positive().max(10_000_000).nullable().parse(cap);
   const cur = z.string().min(3).max(3).parse(currency).toUpperCase();
-  await spacePrefSet(s, `${BUDGET_KV_PREFIX}${monthKeyIn(Date.now(), "Asia/Jerusalem")}`, JSON.stringify({ cap: c, currency: cur }));
+  const month = monthKeyIn(Date.now(), "Asia/Jerusalem");
+  if (baseCap !== undefined) {
+    const base = z.number().nonnegative().nullable().parse(baseCap);
+    const now = await loadBudgetHistory(s);
+    const seen = now[month]?.cap ?? capFor(month, now)?.cap ?? null;
+    if (seen !== base) {
+      return { conflict: true, row: now, by: await spacePrefBy(s, `${BUDGET_KV_PREFIX}${month}`) };
+    }
+  }
+  await spacePrefSet(s, `${BUDGET_KV_PREFIX}${month}`, JSON.stringify({ cap: c, currency: cur }));
   return loadBudgetHistory(s);
 }

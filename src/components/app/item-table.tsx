@@ -1,7 +1,6 @@
 "use client";
 
 import { ExternalLink, PackageCheck, Split, Truck, Undo2 } from "lucide-react";
-import { updateItem } from "@/app/actions";
 import { useI18n } from "@/components/providers";
 import { StoreMark } from "@/components/ui/store-mark";
 import { activeSource, lastPaidEstimate, lineTotal, unitPrice } from "@/lib/calc";
@@ -14,9 +13,10 @@ import { AddedBy } from "./spaces/space-ui";
 import { PendingRow } from "./pending";
 import { COLLECTION_COLORS } from "./view-items";
 import { ItemContextMenu } from "./quick-actions";
+import { useSaveItem } from "./conflicts";
 
 function QtyCell({ item }: { item: ItemWithSources }) {
-  const s = useStore();
+  const saveItem = useSaveItem();
   return (
     <input
       type="number"
@@ -27,8 +27,7 @@ function QtyCell({ item }: { item: ItemWithSources }) {
       onBlur={async (e) => {
         const q = Math.max(1, Math.floor(Number(e.target.value) || 1));
         if (q === item.quantity) return;
-        s.upsertItem({ ...item, quantity: q });
-        s.upsertItem(await updateItem(item.id, { quantity: q }));
+        await saveItem(item, { quantity: q });
       }}
       onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
       className="tabular h-8 w-14 rounded-md border border-transparent bg-transparent px-1.5 text-center text-sm outline-none hover:border-line focus:border-accent focus:bg-bg"

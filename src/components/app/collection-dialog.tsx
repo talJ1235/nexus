@@ -10,11 +10,15 @@ import { Modal } from "@/components/ui/overlays";
 import { CURRENCIES } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { useStore } from "./store";
+import { baseFor, useConflictToast } from "./conflicts";
+import { isConflict } from "@/lib/conflict";
+import type { Collection } from "@/lib/types";
 import { openSpaces } from "./spaces/space-ui";
 import { COLLECTION_COLORS, COLOR_KEYS } from "./view-items";
 
 export function CollectionDialog() {
   const s = useStore();
+  const conflict = useConflictToast();
   const { t, f } = useI18n();
   const ed = s.editor;
   const existing = ed?.mode === "edit" ? ed.collection : null;
@@ -65,7 +69,12 @@ export function CollectionDialog() {
     };
     try {
       if (existing) {
-        s.upsertCollection(await updateCollection(existing.id, payload));
+        // R16 B3: against the list as this dialog opened it.
+        const res = await updateCollection(existing.id, payload, baseFor(existing, payload));
+        if (isConflict<Collection>(res)) {
+          s.upsertCollection(res.row);
+          conflict.one(res.by, { applyMine: () => void updateCollection(existing.id, payload).then(s.upsertCollection, () => toast.error(t.errors.generic)) });
+        } else s.upsertCollection(res);
       } else {
         const c = await createCollection(payload);
         s.upsertCollection(c);

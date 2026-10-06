@@ -188,7 +188,7 @@ people can't silently overwrite each other.
   updates but still can't write.
 - One manual check with the real key on localhost (if Tal added it): record latency A→B (p50/p95 over 20 edits) in Open.
 
-### B3. [ ] Conflicts: "already changed by Noa"
+### B3. [x] Conflicts: "already changed by Noa"
 - Edit actions on existing rows take the `rev` the client saw (`baseRev`) and update with `WHERE id = ? AND rev = ?`.
   0 rows → `{ conflict: true, row, by }` (fresh row + who changed it). Covers: item edit, status (single + bulk), move,
   priority, collection edit, alt groups, budget. Adds and deletes don't conflict (delete of an already-deleted row = no-op).
@@ -408,3 +408,12 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   p50 **501 ms**, p95 **660 ms**.
 - **New dependency:** `ably@2.29.0` (exact) — the browser's realtime client (subscribe + presence with token auth); the
   server side needs no SDK.
+- **B3:** edits send `base = { rev, values: the old values of the fields they change }`; the server applies when the row
+  is unchanged, when those fields still hold the old values (someone changed other fields → silent merge), or when the
+  last write was the same person (fast taps / a second tab never conflict with yourself); otherwise `{ conflict, row, by }`
+  and nothing is written. The update is conditioned on the rev it checked (`rev = ?`, re-checked once on a race). Covers
+  item edits (sheet fields, quantity on card + table row), the store link's price/shipping, status (single + bulk), move,
+  priority, list/project edit, alt-group pick + rename, monthly budget (compared on the cap). Calls without a base (older
+  paths: shopping mode, receipt apply, undo, assistant) keep last-write-wins. Client: rollback to the fresh row + toast
+  "Noa changed this a moment ago" with **Show** / **Apply mine**; bulk → one toast for the skipped items. `test:live`
+  covers both acceptance cases + Apply mine. `test:authz-coverage` now skips TypeScript overload signatures.

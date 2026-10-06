@@ -127,6 +127,38 @@ async function until(p, iid, pred, limit) {
   }
 }
 
+/**
+ * B3: both start from the same revision. Same field (the store link's price) → the second write gets { conflict, by A }
+ * and A's price stays; different fields (A: price, B: list) → both applied, no conflict.
+ */
+async function conflicts(A, B) {
+  const it = await act(A.p, "createItem", { title: "Drill", brand: null, imageUrl: null, category: null, tags: [], collectionId: null, source: { url: "https://shop.example/drill", normalizedUrl: "shop.example/drill", store: "Shop", storeKey: "shop.example", price: 50, currency: "ILS", shipping: null, availability: null, rawTitle: "Drill", extractMethod: "manual", gtin: null } });
+  await until(B.p, it.id, "(i) => i?.sources?.length === 1", 5000);
+  // What each side "saw" before editing (the same revision).
+  const seenA = await itemOf(A.p, it.id) ?? it;
+  const seenB = await itemOf(B.p, it.id);
+  const srcA = seenA.sources[0];
+  const srcB = seenB.sources[0];
+  const a = await act(A.p, "updateSource", srcA.id, { price: 60 }, { rev: srcA.rev, values: { price: srcA.price } });
+  const b = await act(B.p, "updateSource", srcB.id, { price: 70 }, { rev: srcB.rev, values: { price: srcB.price } });
+  const row = (await db.execute({ sql: "SELECT price FROM sources WHERE id = ?", args: [srcA.id] })).rows[0];
+  ok(!a.conflict && b.conflict === true && b.by === U.A && b.row.sources[0].price === 60 && row.price === 60, "B3 same price from the same revision → the second gets the conflict (by A), A's price kept", JSON.stringify({ a: !!a.conflict, b: [b.conflict, b.by === U.A, b.row?.sources?.[0]?.price], db: row.price }));
+  // "Apply mine" = send again from the fresh row → B's price wins, nothing lost on the way.
+  const fresh = b.row.sources[0];
+  const b2 = await act(B.p, "updateSource", fresh.id, { price: 70 }, { rev: fresh.rev, values: { price: fresh.price } });
+  ok(!b2.conflict && (await db.execute({ sql: "SELECT price FROM sources WHERE id = ?", args: [srcA.id] })).rows[0].price === 70, "B3 Apply mine re-sends from the fresh row");
+  // Different fields from the same revision: A changes the price, B moves the item to a list → both kept.
+  await until(B.p, it.id, "(i) => i?.sources?.[0]?.price === 70", 5000);
+  const itA = await itemOf(A.p, it.id);
+  const itB = await itemOf(B.p, it.id);
+  const s2 = itA.sources[0];
+  const pa = await act(A.p, "updateSource", s2.id, { price: 80 }, { rev: s2.rev, values: { price: s2.price } });
+  const mb = await act(B.p, "bulkUpdate", [it.id], { collectionId: LIST }, { [it.id]: { rev: itB.rev, values: { collectionId: itB.collectionId } } });
+  const end = (await db.execute({ sql: "SELECT i.collection_id c, s.price p FROM items i JOIN sources s ON s.item_id = i.id WHERE i.id = ?", args: [it.id] })).rows[0];
+  ok(!pa.conflict && mb.conflicts.length === 0 && end.c === LIST && end.p === 80, "B3 A changes the price while B moves it to a list → both kept, no conflict", JSON.stringify({ pa: !!pa.conflict, mb: mb.conflicts.length, end }));
+  await act(A.p, "bulkDelete", [it.id]);
+}
+
 async function scenario(label, limit) {
   const A = await open("A");
   const B = await open("B");
@@ -154,6 +186,7 @@ async function scenario(label, limit) {
   // The viewer gets updates but still can't write.
   const vWrite = await act(V.p, "createItem", { title: "viewer try", brand: null, imageUrl: null, category: null, tags: [], collectionId: null, source: null }).then(() => "wrote", () => "refused");
   ok(vWrite === "refused" && (await db.execute({ sql: "SELECT count(*) n FROM items WHERE title = 'viewer try'", args: [] })).rows[0].n === 0, `${label}: the viewer still can't write`, vWrite);
+  if (label === "fake transport") await conflicts(A, B);
   for (const x of [A, B, V]) await x.c.close();
   return lat.filter((x) => x >= 0);
 }

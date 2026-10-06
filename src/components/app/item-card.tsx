@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Flag, FolderInput, Inbox, Minus, Package, Plus, Split, Trash2, Truck } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { setStatus, updateItem } from "@/app/actions";
+import { setStatus } from "@/app/actions";
 import { useI18n } from "@/components/providers";
 import { activeSource, cheapestSource, lastPaidEstimate, lineTotal, lowestSeen, unitPrice } from "@/lib/calc";
 import { convert, formatMoney } from "@/lib/money";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { normalizeCategory } from "@/lib/categories";
 import { importCheck, isForeignStore } from "@/lib/import-vat";
 import { statusPatch } from "@/lib/status";
+import { useGuardedStatus, useSaveItem } from "./conflicts";
 import { useDataStore } from "./store";
 import { AddedBy } from "./spaces/space-ui";
 import { useReadOnly } from "./offline-banner";
@@ -159,12 +160,14 @@ export function useStatusFlow() {
   const s = useDataStore();
   const { t } = useI18n();
   const warnImport = useImportWarning();
+  const guarded = useGuardedStatus();
   const setTo = async (item: ItemWithSources, status: Status) => {
     const paid = status !== "to_buy" && item.status === "to_buy" ? paidFor(item, s.rates) : null;
     if (status === "ordered") warnImport([item]);
     s.upsertItem(optimisticStatus(item, status, paid));
     // The toast shows at once (the change is already on screen); Undo waits for the save before reverting it.
-    const req = setStatus(item.id, status, paid);
+    // R16 B3: against the status the user saw (null = someone else changed it; already rolled back + asked).
+    const req = guarded(item, status, paid);
     let undone = false;
     const id =
       status !== "to_buy"
@@ -183,7 +186,8 @@ export function useStatusFlow() {
         : undefined;
     try {
       const saved = await req;
-      if (!undone) s.upsertItem(saved);
+      if (!saved) toast.dismiss(id);
+      else if (!undone) s.upsertItem(saved);
     } catch {
       s.upsertItem(item);
       toast.error(t.errors.generic, { id });
@@ -740,18 +744,12 @@ export function CardPrice({ item, className }: { item: ItemWithSources; classNam
 
 /** − qty + on the card; saves right away (optimistic), reverts on error. */
 export function QtyStepper({ item, className }: { item: ItemWithSources; className?: string }) {
-  const s = useDataStore();
   const { t } = useI18n();
+  const saveItem = useSaveItem();
   const ro = useReadOnly();
   const set = async (q: number) => {
     if (q < 1 || q > 999) return;
-    s.upsertItem({ ...item, quantity: q });
-    try {
-      s.upsertItem(await updateItem(item.id, { quantity: q }));
-    } catch {
-      s.upsertItem(item);
-      toast.error(t.errors.generic);
-    }
+    await saveItem(item, { quantity: q });
   };
   const btn = "grid size-7 place-items-center rounded-full text-ink transition hover:bg-surface active:scale-90 disabled:opacity-40";
   return (

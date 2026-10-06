@@ -13,9 +13,10 @@ import { addSourceCore, createItemCore, draftSchema, previewFromClientCore, prev
 import { extractFromUrl, hintsFromUrl } from "@/lib/extract";
 import { storeThumbnail } from "@/lib/images";
 import { storeFromUrl } from "@/lib/stores";
-import type { AltGroup, Collection, ItemWithSources, PreviewResult, SourceDraft } from "@/lib/types";
+import type { AltGroup, Collection, Item, ItemWithSources, PreviewResult, SourceDraft } from "@/lib/types";
 import { isHttpUrl } from "@/lib/utils";
 import { statusPatch, type Paid, type Status } from "@/lib/status";
+import { BaseZ, guardedUpdate, type Base, type Conflict } from "@/lib/conflict";
 
 // R15 B3: every action resolves the ctx first (requireCtx), then works only inside the current space (scoped).
 const edit = async () => scoped(await requireCtx("edit"));
@@ -118,8 +119,11 @@ const itemPatch = z
   .partial()
   .strict();
 
-export async function updateItem(id: string, patch: z.input<typeof itemPatch>): Promise<ItemWithSources> {
+export async function updateItem(id: string, patch: z.input<typeof itemPatch>): Promise<ItemWithSources>;
+export async function updateItem(id: string, patch: z.input<typeof itemPatch>, base: Base): Promise<ItemWithSources | Conflict<ItemWithSources>>;
+export async function updateItem(id: string, patch: z.input<typeof itemPatch>, base?: Base): Promise<ItemWithSources | Conflict<ItemWithSources>> {
   const s = await edit();
+  const b = base === undefined ? undefined : BaseZ.parse(base);
   await s.mustGet(schema.items, Id.parse(id));
   const p = itemPatch.parse(patch);
   if (p.collectionId !== undefined) await s.ref(schema.collections, p.collectionId);
@@ -132,7 +136,8 @@ export async function updateItem(id: string, patch: z.input<typeof itemPatch>): 
   if (p.imageUrl && /^https?:/.test(p.imageUrl) && !p.imageUrl.includes(".blob.vercel-storage.com")) {
     p.imageUrl = await storeThumbnail(p.imageUrl, id);
   }
-  await s.update(schema.items, { ...p, updatedAt: now() }, eq(schema.items.id, id));
+  const c = await guardedUpdate(s, schema.items, id, { ...p, updatedAt: now() }, b);
+  if (c) return { conflict: true, row: await mustItem(s, id), by: c.by };
   return mustItem(s, id);
 }
 
@@ -140,11 +145,15 @@ const StatusZ = z.enum(["to_buy", "ordered", "purchased"]);
 const PaidZ = z.object({ price: z.number().nonnegative(), currency: z.string().min(3).max(3) }).strict().nullable();
 
 /** Move an item along to_buy → ordered → purchased (received). `paid` = unit price actually paid. */
-export async function setStatus(id: string, status: Status, paid?: Paid): Promise<ItemWithSources> {
+export async function setStatus(id: string, status: Status, paid?: Paid): Promise<ItemWithSources>;
+export async function setStatus(id: string, status: Status, paid: Paid | undefined, base: Base): Promise<ItemWithSources | Conflict<ItemWithSources>>;
+export async function setStatus(id: string, status: Status, paid?: Paid, base?: Base): Promise<ItemWithSources | Conflict<ItemWithSources>> {
   const s = await edit();
   StatusZ.parse(status);
-  const cur = await s.mustGet(schema.items, Id.parse(id));
-  await s.update(schema.items, statusPatch(status, PaidZ.parse(paid ?? null), cur), eq(schema.items.id, id));
+  const pd = PaidZ.parse(paid ?? null);
+  const b = base === undefined ? undefined : BaseZ.parse(base);
+  const c = await guardedUpdate(s, schema.items, Id.parse(id), (cur) => statusPatch(status, pd, cur), b);
+  if (c) return { conflict: true, row: await mustItem(s, id), by: c.by };
   return mustItem(s, id);
 }
 
@@ -158,22 +167,48 @@ const bulkPatch = z
   .partial()
   .strict();
 
-export async function bulkUpdate(ids: string[], patch: z.input<typeof bulkPatch>): Promise<ItemWithSources[]> {
+export type BulkResult = { items: ItemWithSources[]; conflicts: Conflict<ItemWithSources>[] };
+const Bases = z.record(Id, BaseZ);
+
+/** Without `bases`: as before. With them (R16 B3): rows changed by someone else since are skipped and reported. */
+export async function bulkUpdate(ids: string[], patch: z.input<typeof bulkPatch>): Promise<ItemWithSources[]>;
+export async function bulkUpdate(ids: string[], patch: z.input<typeof bulkPatch>, bases: Record<string, Base>): Promise<BulkResult>;
+export async function bulkUpdate(ids: string[], patch: z.input<typeof bulkPatch>, bases?: Record<string, Base>): Promise<ItemWithSources[] | BulkResult> {
   const s = await edit();
   Ids.parse(ids);
   const p = bulkPatch.parse(patch);
-  if (!ids.length) return [];
+  if (!ids.length) return bases ? { items: [], conflicts: [] } : [];
   if (p.collectionId !== undefined) await s.ref(schema.collections, p.collectionId);
-  await s.update(schema.items, { ...p, updatedAt: now() }, inArray(schema.items.id, ids));
-  return loadItems(s, ids);
+  if (!bases) {
+    await s.update(schema.items, { ...p, updatedAt: now() }, inArray(schema.items.id, ids));
+    return loadItems(s, ids);
+  }
+  return guardedEach(s, ids, Bases.parse(bases), () => ({ ...p, updatedAt: now() }));
+}
+
+/** Apply a patch item by item against each one's base; collect the conflicts. */
+async function guardedEach(s: Scoped, ids: string[], bases: Record<string, Base>, patch: (cur: Item) => Record<string, unknown>): Promise<BulkResult> {
+  const clashed = new Map<string, string | null>();
+  for (const id of ids) {
+    const c = await guardedUpdate(s, schema.items, id, patch, bases[id]).catch(() => null);
+    if (c) clashed.set(id, c.by);
+  }
+  const all = await loadItems(s, ids);
+  return { items: all.filter((i) => !clashed.has(i.id)), conflicts: all.filter((i) => clashed.has(i.id)).map((row) => ({ conflict: true as const, row, by: clashed.get(row.id) ?? null })) };
 }
 
 /** Bulk status change; each item's paid price comes from its active store (computed on the client). */
-export async function bulkSetStatus(entries: { id: string; paid: Paid }[], status: Status): Promise<ItemWithSources[]> {
+export async function bulkSetStatus(entries: { id: string; paid: Paid }[], status: Status): Promise<ItemWithSources[]>;
+export async function bulkSetStatus(entries: { id: string; paid: Paid }[], status: Status, bases: Record<string, Base>): Promise<BulkResult>;
+export async function bulkSetStatus(entries: { id: string; paid: Paid }[], status: Status, bases?: Record<string, Base>): Promise<ItemWithSources[] | BulkResult> {
   const s = await edit();
   StatusZ.parse(status);
   const list = z.array(z.object({ id: Id, paid: PaidZ }).strict()).max(500).parse(entries);
   const ids = list.map((e) => e.id);
+  if (bases) {
+    const paidOf = new Map(list.map((e) => [e.id, e.paid]));
+    return guardedEach(s, ids, Bases.parse(bases), (cur) => statusPatch(status, paidOf.get(cur.id) ?? null, cur));
+  }
   const current = await s.select(schema.items, inArray(schema.items.id, ids));
   for (const e of list) {
     const cur = current.find((c) => c.id === e.id);
@@ -242,7 +277,9 @@ export async function createAltGroup(itemIds: string[], name: string): Promise<A
   return { ...(await altState(s)), groupId: id };
 }
 
-export async function updateAltGroup(id: string, patch: { name?: string; chosenItemId?: string | null }): Promise<AltGroup> {
+export async function updateAltGroup(id: string, patch: { name?: string; chosenItemId?: string | null }): Promise<AltGroup>;
+export async function updateAltGroup(id: string, patch: { name?: string; chosenItemId?: string | null }, base: Base): Promise<AltGroup | Conflict<AltGroup>>;
+export async function updateAltGroup(id: string, patch: { name?: string; chosenItemId?: string | null }, base?: Base): Promise<AltGroup | Conflict<AltGroup>> {
   const s = await edit();
   await s.mustGet(schema.altGroups, Id.parse(id));
   const p = z.object({ name: z.string().min(1).max(80).optional(), chosenItemId: NullableId.optional() }).strict().parse(patch);
@@ -250,7 +287,8 @@ export async function updateAltGroup(id: string, patch: { name?: string; chosenI
     const it = await s.mustGet(schema.items, p.chosenItemId);
     if (it.altGroupId !== id) throw new Error("not_found");
   }
-  await s.update(schema.altGroups, p, eq(schema.altGroups.id, id));
+  const c = await guardedUpdate(s, schema.altGroups, id, p, base === undefined ? undefined : BaseZ.parse(base));
+  if (c) return { conflict: true, row: (await s.byId(schema.altGroups, id))!, by: c.by };
   return (await s.byId(schema.altGroups, id))!;
 }
 
@@ -406,11 +444,14 @@ const sourcePatch = z
   .partial()
   .strict();
 
-export async function updateSource(id: string, patch: z.input<typeof sourcePatch>): Promise<ItemWithSources> {
+export async function updateSource(id: string, patch: z.input<typeof sourcePatch>): Promise<ItemWithSources>;
+export async function updateSource(id: string, patch: z.input<typeof sourcePatch>, base: Base): Promise<ItemWithSources | Conflict<ItemWithSources>>;
+export async function updateSource(id: string, patch: z.input<typeof sourcePatch>, base?: Base): Promise<ItemWithSources | Conflict<ItemWithSources>> {
   const s = await edit();
-  await s.mustGet(schema.sources, Id.parse(id));
+  const src = await s.mustGet(schema.sources, Id.parse(id));
   const p = sourcePatch.parse(patch);
-  await s.update(schema.sources, p, eq(schema.sources.id, id));
+  const c = await guardedUpdate(s, schema.sources, id, p, base === undefined ? undefined : BaseZ.parse(base));
+  if (c) return { conflict: true, row: await mustItem(s, src.itemId), by: c.by };
   const row = (await s.byId(schema.sources, id))!;
   if (p.price !== undefined || p.currency !== undefined) await recordPrice(s, row.id, row.itemId, row.price, row.currency);
   return mustItem(s, row.itemId);
@@ -450,11 +491,14 @@ export async function createCollection(input: z.input<typeof collectionInput>): 
   return (await s.byId(schema.collections, id))!;
 }
 
-export async function updateCollection(id: string, patch: Partial<z.input<typeof collectionInput>> & { archived?: boolean }): Promise<Collection> {
+export async function updateCollection(id: string, patch: Partial<z.input<typeof collectionInput>> & { archived?: boolean }): Promise<Collection>;
+export async function updateCollection(id: string, patch: Partial<z.input<typeof collectionInput>> & { archived?: boolean }, base: Base): Promise<Collection | Conflict<Collection>>;
+export async function updateCollection(id: string, patch: Partial<z.input<typeof collectionInput>> & { archived?: boolean }, base?: Base): Promise<Collection | Conflict<Collection>> {
   const s = await edit();
   await s.mustGet(schema.collections, Id.parse(id));
   const p = collectionInput.partial().extend({ archived: z.boolean().optional() }).strict().parse(patch);
-  await s.update(schema.collections, p, eq(schema.collections.id, id));
+  const c = await guardedUpdate(s, schema.collections, id, p, base === undefined ? undefined : BaseZ.parse(base));
+  if (c) return { conflict: true, row: (await s.byId(schema.collections, id))!, by: c.by };
   return (await s.byId(schema.collections, id))!;
 }
 

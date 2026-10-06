@@ -14,6 +14,7 @@ import { convert, formatMoney } from "@/lib/money";
 import type { ItemWithSources, Source } from "@/lib/types";
 import { cn, isHttpUrl } from "@/lib/utils";
 import { PriceTag, morphClose } from "./item-card";
+import { useSaveItem, useSaveSource } from "./conflicts";
 import { AltLink, FindIt, Group, LowestBadge, PriceHistory, PriceWatch, ReceiptsSection, Row, ShippingSection, StatusControl } from "./item-sheet-parts";
 import { StoreMark } from "@/components/ui/store-mark";
 import { SheetPicture } from "./sheet-picture";
@@ -57,14 +58,8 @@ function SourceRow({ item, source }: { item: ItemWithSources; source: Source }) 
   const isChosen = item.chosenSourceId === source.id;
   const total = sourceTotal(source);
 
-  const patch = async (p: Parameters<typeof updateSource>[1]) => {
-    s.upsertItem({ ...item, sources: item.sources.map((x) => (x.id === source.id ? { ...x, ...p } : x)) });
-    try {
-      s.upsertItem(await updateSource(source.id, p));
-    } catch {
-      toast.error(t.errors.generic);
-    }
-  };
+  const saveSource = useSaveSource();
+  const patch = (p: Parameters<typeof updateSource>[1]) => saveSource(item, source, p);
 
   return (
     <li className={cn("rounded-xl border p-3 transition", active?.id === source.id ? "border-accent/60 bg-accent-soft/40" : "border-line bg-bg/40")}>
@@ -359,15 +354,10 @@ export function ItemSheet() {
     setNewLink("");
   }, [openItemId]);
 
+  // R16 B3: saves carry the base they started from (conflict → roll back + "Noa changed this…").
+  const saveItem = useSaveItem();
   const save = async (patch: Parameters<typeof updateItem>[1]) => {
-    if (!item) return;
-    s.upsertItem({ ...item, ...patch } as ItemWithSources);
-    try {
-      s.upsertItem(await updateItem(item.id, patch));
-    } catch {
-      s.upsertItem(item);
-      toast.error(t.errors.generic);
-    }
+    if (item) await saveItem(item, patch);
   };
 
   const remove = async () => {

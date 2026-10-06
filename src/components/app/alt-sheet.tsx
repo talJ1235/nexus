@@ -11,10 +11,14 @@ import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { PriceTag, ProductImage } from "./item-card";
 import { useStore } from "./store";
+import { baseFor, useConflictToast } from "./conflicts";
+import { isConflict } from "@/lib/conflict";
+import type { AltGroup } from "@/lib/types";
 
 /** Side-by-side comparison of a group of alternatives; pick the winner. */
 export function AltSheet() {
   const s = useStore();
+  const conflict = useConflictToast();
   const { t, locale } = useI18n();
   const group = s.altOpenId ? s.altGroups.find((g) => g.id === s.altOpenId) ?? null : null;
   const members = group ? s.items.filter((i) => i.altGroupId === group.id) : [];
@@ -25,8 +29,15 @@ export function AltSheet() {
   const pick = async (itemId: string | null) => {
     if (!group) return;
     s.upsertAltGroup({ ...group, chosenItemId: itemId });
+    // R16 B3: against the pick the user saw.
+    const send = async (from: AltGroup): Promise<void> => {
+      const res = await updateAltGroup(group.id, { chosenItemId: itemId }, baseFor(from, { chosenItemId: 0 }));
+      if (!isConflict<AltGroup>(res)) return s.upsertAltGroup(res);
+      s.upsertAltGroup(res.row);
+      conflict.one(res.by, { applyMine: () => void send(res.row).catch(() => toast.error(t.errors.generic)) });
+    };
     try {
-      s.upsertAltGroup(await updateAltGroup(group.id, { chosenItemId: itemId }));
+      await send(group);
     } catch {
       s.upsertAltGroup(group);
       toast.error(t.errors.generic);
@@ -35,7 +46,10 @@ export function AltSheet() {
 
   const rename = async (name: string) => {
     if (!group || !name.trim() || name.trim() === group.name) return;
-    s.upsertAltGroup(await updateAltGroup(group.id, { name: name.trim() }));
+    const res = await updateAltGroup(group.id, { name: name.trim() }, baseFor(group, { name: 0 }));
+    if (!isConflict<AltGroup>(res)) return s.upsertAltGroup(res);
+    s.upsertAltGroup(res.row);
+    conflict.one(res.by, { applyMine: () => void updateAltGroup(group.id, { name: name.trim() }).then(s.upsertAltGroup, () => toast.error(t.errors.generic)) });
   };
 
   const leave = async (itemId: string) => {

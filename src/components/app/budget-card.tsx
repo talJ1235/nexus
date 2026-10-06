@@ -14,12 +14,15 @@ import { capFor, monthForecast, monthKey } from "@/lib/budget";
 import { CURRENCIES, formatMoney, formatMoneyCompact } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { useStore } from "./store";
+import { useConflictToast } from "./conflicts";
+import { isConflict } from "@/lib/conflict";
 
 const NORMAL_KEY = "nexus.budget.normal";
 
 /** Amount + currency + Save. Used in Settings and in the Spending view's popover. */
 export function BudgetEditor({ onSaved, autoFocus }: { onSaved?: () => void; autoFocus?: boolean }) {
   const s = useStore();
+  const conflict = useConflictToast();
   const { t } = useI18n();
   const cur = capFor(monthKey(new Date()), s.budget);
   const [amount, setAmount] = useState(cur?.cap != null ? String(cur.cap) : "");
@@ -30,7 +33,14 @@ export function BudgetEditor({ onSaved, autoFocus }: { onSaved?: () => void; aut
     if (v != null && !(v > 0)) return;
     setBusy(true);
     try {
-      s.setBudget(await saveMonthlyBudget(v, currency));
+      // R16 B3: against the cap this screen showed.
+      const res = await saveMonthlyBudget(v, currency, cur?.cap ?? null);
+      if (isConflict<typeof s.budget>(res)) {
+        s.setBudget(res.row);
+        conflict.one(res.by, { applyMine: () => void saveMonthlyBudget(v, currency).then(s.setBudget, () => toast.error(t.errors.generic)) });
+        return;
+      }
+      s.setBudget(res);
       toast.success(t.budget.saved);
       onSaved?.();
     } catch {

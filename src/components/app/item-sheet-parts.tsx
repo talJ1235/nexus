@@ -16,6 +16,7 @@ import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useStatusFlow, type Status } from "./item-card";
 import { useStore } from "./store";
+import { useSaveItem } from "./conflicts";
 import { storeSearches } from "@/lib/search-links";
 
 /** A titled card inside the item sheet. */
@@ -101,15 +102,8 @@ export function trackingUrl(num: string) {
 export function ShippingSection({ item }: { item: ItemWithSources }) {
   const s = useStore();
   const { t, f } = useI18n();
-  const save = async (patch: Parameters<typeof updateItem>[1]) => {
-    s.upsertItem({ ...item, ...patch } as ItemWithSources);
-    try {
-      s.upsertItem(await updateItem(item.id, patch));
-    } catch {
-      s.upsertItem(item);
-      toast.error(t.errors.generic);
-    }
-  };
+  const saveItem = useSaveItem();
+  const save = (patch: Parameters<typeof updateItem>[1]) => saveItem(item, patch);
   const etaValue = item.eta ? new Date(item.eta).toISOString().slice(0, 10) : "";
   return (
     <section className="rounded-2xl border border-info/30 bg-info/5 p-4">

@@ -87,7 +87,8 @@ for (const file of walk(APP)) {
   const exported: { name: string; body: string }[] = [];
   sf.forEachChild((n) => {
     const isExp = (m?: ts.NodeArray<ts.ModifierLike>) => !!m?.some((x) => x.kind === ts.SyntaxKind.ExportKeyword);
-    if (ts.isFunctionDeclaration(n) && n.name && isExp(n.modifiers)) exported.push({ name: n.name.text, body: n.body?.getText(sf) ?? "" });
+    // Overload signatures (no body) are types only — the implementation that follows is the export that runs.
+    if (ts.isFunctionDeclaration(n) && n.name && isExp(n.modifiers) && n.body) exported.push({ name: n.name.text, body: n.body.getText(sf) });
     if (ts.isVariableStatement(n) && isExp(n.modifiers))
       for (const d of n.declarationList.declarations) if (ts.isIdentifier(d.name)) exported.push({ name: d.name.text, body: d.initializer?.getText(sf) ?? "" });
     // export const { GET, POST } = toNextJsHandler(auth)

@@ -69,3 +69,9 @@ export async function userByPref(key: string, value: string) {
   const [r] = await db.select({ userId: schema.userPref.userId }).from(schema.userPref).where(and(eq(schema.userPref.key, key), eq(schema.userPref.value, value))).limit(1);
   return r?.userId ?? null;
 }
+
+/** R16 B3: who last wrote a synced space pref (for "already changed by …"). */
+export async function spacePrefBy(s: Scoped, key: string) {
+  const [r] = await db.select({ by: schema.spacePref.revBy }).from(schema.spacePref).where(and(eq(schema.spacePref.spaceId, s.spaceId), eq(schema.spacePref.key, key))).limit(1);
+  return r?.by ?? null;
+}
