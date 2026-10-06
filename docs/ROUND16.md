@@ -314,3 +314,17 @@ usage without content, AI usage, all reports, the C2 error log), AI quota + PII 
 supermarket mode v2 → R19 price comparison → closed circle on the PWA → Android wrapper.
 
 ## Open
+
+### Session 1 (2026-10-06)
+- **0.1 — R15 Part G results (from the Actions history):** `guards` green on `main` after the merge (`0091467`, run
+  37440 on 08:59 UTC) and on every docs push since. The **prod smoke after the R15 deploy** (`smoke` run 37440189405,
+  `0091467`, 09:02 UTC) signed in through the admin fallback (`PASS owner login`, `PASS anonymous is redirected to /login`,
+  anonymous blocked from backup/export/cron) and passed 41 steps incl. AI health, offline snapshot, "no page/console
+  errors"; **5 FAIL**, all data-shaped (the smoke expects the demo seed, prod has Tal's real space): Needs-you tile count,
+  month view (no arrival next month), calendar feed (`arrival:false`), layouts on demo list ids (`c:demo-c-railcam`,
+  `s:raspberrypi`), "to buy: no summary card" on a demo project. The same steps failed on R13/R14 prod runs → not R15
+  regressions; the prod smoke needs a "real data" mode (skip demo-id steps) — left for F1/R17. Google sign-in on PC + phone
+  and creating "Jacoby Home" were done by Tal by hand (notes); no other Part G check left a trace in Actions.
+- Open reports at start: 1 (`r_rWtP3XmuRl`, price drop / AI → A13).
+- **Migration rehearsal source:** Tal's session prompt says prod is already on the R15 schema, so the R16 rehearsal runs on a
+  copy of `snapshots/prod-2026-10-06-post.db` (not `prod-2026-10-06.db`, which is the pre-R15 snapshot).
