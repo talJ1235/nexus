@@ -199,7 +199,7 @@ people can't silently overwrite each other.
 - Acceptance in `test:live`: A and B edit the same item's price from the same `rev` → second gets the conflict, nothing
   lost; A changes price while B changes list → both kept, no toast.
 
-### B4. [ ] Presence and "who did what" (from the R15 `LiveList-phone` board)
+### B4. [x] Presence and "who did what" (from the R15 `LiveList-phone` board)
 - Ably presence on the space channel: green dot on avatars of members online now (switcher facepile, people list, space
   header); "Noa is shopping" chip when a member is in shopping mode (presence data = `{ mode: "shopping" | "app" }` only).
 - Activity toasts for other members' changes, batched: at most one per 10 s per member ("Noa added 3 items",
@@ -417,3 +417,11 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   paths: shopping mode, receipt apply, undo, assistant) keep last-write-wins. Client: rollback to the fresh row + toast
   "Noa changed this a moment ago" with **Show** / **Apply mine**; bulk → one toast for the skipped items. `test:live`
   covers both acceptance cases + Apply mine. `test:authz-coverage` now skips TypeScript overload signatures.
+- **B4:** presence = Ably presence on the space channel (the fake stream has it too), data `{ mode: "app" | "shopping" }`
+  only (shopping = shopping mode open). Green dots: the switcher's facepile (desktop) and the phone space rows (online
+  people first), Space settings → People. "Noa is shopping" replaces the switcher's sub-line while someone shops. Activity
+  toasts from the change feed: one per person per 10 s ("Noa added 3 items · checked off 2"), deferred while typing or
+  hidden, not for the cron ("system") or yourself; off in Settings → Display → "Show live activity" (per device). Polling
+  mode: no presence (dots hidden), toasts still work. The sheet open on an item someone deleted closes with "Removed by
+  Noa". `test:live` checks presence (fake), no presence (polling) and the toast. No new screen beyond these — the LiveList
+  board's other pieces wait for the Session 2 mockups.

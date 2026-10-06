@@ -6,7 +6,7 @@ import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } fr
 import { cn } from "@/lib/utils";
 import type { SpaceCard } from "@/lib/types";
 import { useStore } from "../store";
-import { Facepile, openSpaces, SpaceTile, useSwitchSpace } from "./space-ui";
+import { Facepile, openSpaces, ShoppingNow, SpaceTile, usePresence, useSwitchSpace } from "./space-ui";
 
 const isMac = () => typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 
@@ -25,6 +25,7 @@ export function SpaceSwitcher({ collapsed }: { collapsed?: boolean }) {
   const { t, f } = useI18n();
   const sub = useSpaceSub();
   const go = useSwitchSpace();
+  const presence = usePresence();
   const cur = s.spaces.find((x) => x.id === s.space?.id);
   if (!s.space || !cur) return null;
   const mod = isMac() ? "⌘" : "Ctrl+";
@@ -48,9 +49,9 @@ export function SpaceSwitcher({ collapsed }: { collapsed?: boolean }) {
             <>
               <span className="min-w-0 flex-1 leading-tight">
                 <b className="block truncate text-[14px] font-semibold">{cur.name}</b>
-                <span className="block truncate text-[11.5px] text-muted">{sub(cur, true)}</span>
+                {presence.shopping.length ? <ShoppingNow className="mt-0.5 max-w-full" /> : <span className="block truncate text-[11.5px] text-muted">{sub(cur, true)}</span>}
               </span>
-              {cur.kind === "shared" && cur.faces.length > 1 && <Facepile people={cur.faces} size={20} />}
+              {cur.kind === "shared" && cur.faces.length > 1 && <Facepile people={cur.faces} size={20} online={presence.online} />}
               <ChevronsUpDown className="size-4 shrink-0 text-muted" />
             </>
           )}
@@ -105,6 +106,7 @@ export function SpaceRows({ close }: { close: (fn: () => void) => () => void }) 
   const { t, f } = useI18n();
   const sub = useSpaceSub();
   const go = useSwitchSpace();
+  const presence = usePresence();
   const cur = s.spaces.find((x) => x.id === s.space?.id);
   if (!cur) return null;
   const row = "flex min-h-[56px] w-full items-center gap-3 rounded-[16px] px-3 text-start text-[15px] transition active:bg-surface-2 hover:bg-surface-2";
@@ -123,9 +125,9 @@ export function SpaceRows({ close }: { close: (fn: () => void) => () => void }) 
           <SpaceTile name={sp.name} color={sp.color} size={32} />
           <span className="min-w-0 flex-1 leading-tight">
             <span className={cn("block truncate", sp.id === cur.id ? "font-bold" : "font-semibold")}>{sp.name}</span>
-            <span className="block truncate text-[12.5px] text-muted">{sub(sp, true)}</span>
+            {sp.id === cur.id && presence.shopping.length ? <ShoppingNow className="mt-0.5 max-w-full" /> : <span className="block truncate text-[12.5px] text-muted">{sub(sp, true)}</span>}
           </span>
-          {sp.kind === "shared" && sp.faces.length > 1 && <Facepile people={sp.faces} size={20} />}
+          {sp.kind === "shared" && sp.faces.length > 1 && <Facepile people={sp.faces} size={20} online={sp.id === cur.id ? presence.online : undefined} />}
           {sp.id === cur.id && <Check className="size-5 shrink-0" />}
         </button>
       ))}

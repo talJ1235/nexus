@@ -21,7 +21,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { Segmented } from "../settings-dialog";
 import { useStore } from "../store";
-import { Avatar, openSpaces, reloadInto, SpaceTile, TILE, tileColor } from "./space-ui";
+import { Avatar, openSpaces, reloadInto, SpaceTile, TILE, tileColor, usePresence } from "./space-ui";
 
 type Person = SpacePeople["people"][number];
 type Confirm =
@@ -36,6 +36,7 @@ type Confirm =
  *  transfer / delete (Dialogs-desktop: step-up, typed delete, leave). */
 export function SpaceSettingsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const s = useStore();
+  const presence = usePresence();
   const { t, f, locale } = useI18n();
   const [data, setData] = useState<SpacePeople | null>(null);
   // "Now" for ages and expiry, taken when the data arrives (render stays pure).
@@ -104,7 +105,7 @@ export function SpaceSettingsDialog({ open, onOpenChange }: { open: boolean; onO
               <div className="divide-y divide-line rounded-2xl border border-line">
                 {(data?.people ?? []).map((p) => (
                   <div key={p.id} className="flex min-h-14 items-center gap-3 px-3 py-2" data-person={p.id}>
-                    <Avatar person={{ id: p.id, name: p.name || p.email }} size={32} />
+                    <Avatar person={{ id: p.id, name: p.name || p.email }} size={32} online={presence.online.has(p.id)} />
                     <div className="min-w-0 flex-1 leading-tight">
                       <b className="block truncate text-sm">
                         {p.name || p.email} {p.id === data?.me && <span className="text-xs font-normal text-faint">{t.spaces.you}</span>}

@@ -169,6 +169,14 @@ async function scenario(label, limit) {
   await act(A.p, "bulkDelete", [warm.id]);
   await until(B.p, warm.id, "(i) => !i", 60_000);
 
+  // B4 (fake transport has presence; polling has none): A sees B and V online.
+  if (label === "fake transport") {
+    const seen = await A.p
+      .waitForFunction((ids) => ids.every((x) => window.__nexusTest.present().some(([id]) => id === x)), [U.B, U.V], { timeout: 5000 })
+      .then(() => true, () => false);
+    ok(seen, "B4 presence: A sees B and V online in the space");
+  } else ok((await A.p.evaluate(() => window.__nexusTest.present().length)) === 0, "B4 polling: no presence (dots hidden)");
+
   const lat = [];
   const step = async (name, run, pred) => {
     await run();
@@ -179,6 +187,10 @@ async function scenario(label, limit) {
   };
   let iid = null;
   await step("add", async () => (iid = (await act(A.p, "createItem", { title: "Oat milk", brand: null, imageUrl: null, category: null, tags: [], collectionId: null, source: null })).id), "(i) => i?.title === 'Oat milk'");
+  // B4: B gets one batched activity toast for A's add ("Noa added an item").
+  // (≤ 1 toast per person per 10 s: the warm-up already showed one, so this one may wait for the gap.)
+  const toastSeen = await B.p.getByText(/Noa added an item/).first().waitFor({ timeout: 12_000 }).then(() => true, () => false);
+  ok(toastSeen, `${label}: B gets "Noa added an item"`);
   await step("edit (qty 4)", () => act(A.p, "updateItem", iid, { quantity: 4 }), "(i) => i?.quantity === 4");
   await step("move to a list", () => act(A.p, "bulkUpdate", [iid], { collectionId: LIST }), `(i) => i?.collectionId === ${JSON.stringify(LIST)}`);
   await step("status → Received", () => act(A.p, "setStatus", iid, "purchased", null), "(i) => i?.status === 'purchased'");

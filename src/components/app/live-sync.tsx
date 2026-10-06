@@ -100,7 +100,7 @@ export function LiveSync() {
         pending.delete(by);
         if (!parts.length) continue;
         lastToast.set(by, Date.now());
-        toast(`${nameOf(by)} ${parts.join(" · ")}`, { duration: 3200, id: `live-${by}` });
+        toast(`${nameOf(by)} ${parts.join(" · ")}`, { duration: 3200 });
       }
     };
     const note = (sum: ChangeSummary) => {

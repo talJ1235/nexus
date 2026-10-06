@@ -47,12 +47,40 @@ export function Avatar({ person, size = 24, online, className, title }: { person
   );
 }
 
-export function Facepile({ people, size = 22, max = 3 }: { people: Person[]; size?: number; max?: number }) {
+/** R16 B4: `online` = people present in this space now (green dot; they come first). */
+export function Facepile({ people, size = 22, max = 3, online }: { people: Person[]; size?: number; max?: number; online?: Set<string> }) {
+  const list = online?.size ? [...people.filter((p) => online.has(p.id)), ...people.filter((p) => !online.has(p.id))] : people;
   return (
-    <span className="flex" aria-hidden>
-      {people.slice(0, max).map((p, i) => (
-        <Avatar key={p.id} person={p} size={size} className={cn("ring-2 ring-raised", i > 0 && "-ms-1.5")} />
+    <span className="flex" aria-hidden data-facepile>
+      {list.slice(0, max).map((p, i) => (
+        <Avatar key={p.id} person={p} size={size} online={online?.has(p.id)} className={cn("ring-2 ring-raised", i > 0 && "-ms-1.5")} />
       ))}
+    </span>
+  );
+}
+
+/**
+ * R16 B4: who else is in the current space right now (Ably presence; empty while polling) and who of them is in
+ * shopping mode — never yourself.
+ */
+export function usePresence() {
+  const s = useStore();
+  const me = s.me?.id;
+  const online = new Set([...s.present.keys()].filter((id) => id !== me));
+  const shopping = [...s.present.entries()].filter(([id, m]) => id !== me && m === "shopping").map(([id]) => s.people.find((p) => p.id === id)).filter((p): p is Person => !!p);
+  return { online, shopping };
+}
+
+/** "Noa is shopping" — a small live chip (nothing when nobody is). */
+export function ShoppingNow({ className }: { className?: string }) {
+  const { shopping } = usePresence();
+  const { f, t } = useI18n();
+  if (!shopping.length) return null;
+  const first = shopping[0].name.split(/\s+/)[0];
+  return (
+    <span className={cn("inline-flex min-w-0 items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,#22c55e_14%,transparent)] px-2 py-0.5 text-[11.5px] font-semibold text-[#15803d] dark:text-[#4ade80]", className)} data-shopping-now>
+      <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-[#22c55e] motion-reduce:animate-none" aria-hidden />
+      <span className="truncate">{f(t.live.shopping, { name: shopping.length > 1 ? `${first} +${shopping.length - 1}` : first })}</span>
     </span>
   );
 }
