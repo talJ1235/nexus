@@ -6,6 +6,51 @@ writes the round briefs. Everything durable lives in this repo, not in chat hist
 Setup of this chat (network, GitHub connector, rebuilding it on a new account): `docs/ENVIRONMENT.md` — any change
 to setup, tooling or workflow is recorded there in the same session.
 
+## Current state & handoff (updated 2026-10-06, account B → read this first on any account)
+- **Prod:** R15 (accounts + spaces) released and in use; Tal has a shared space "Jacoby Home".
+- **In progress:** Round 16 — brief `docs/ROUND16.md` (planner notes: `docs/R16-PLANNING.md`) written and on `main` (commit `f8b9b2057`, docs `29ae6db`).
+  - **Session 1 (Parts 0, A, B, C)** can run now in Claude Code on Tal's PC — prompt below.
+  - **Session 2 (Parts D, E, F)** waits for the R16 mockups (not made yet — next planner task).
+- **Tal to do (optional, ~5 min):** Ably account + key → `ABLY_API_KEY` in Vercel (Production) and `.env.local` (steps in
+  `docs/ROUND16.md` "Before you run"). Without it live sync polls every 10 s.
+- **Claude Code prompt for Session 1:**
+  ```
+  Round 16, session 1 (docs/ROUND16.md) — Parts 0, A, B, C, unattended, on branch round16. Same "How to run" rules as
+  the brief says. Step 0, now while I'm here: make sure .claude/settings.local.json allows "Bash(git push origin round16)",
+  "Bash(git push -u origin round16)", "Bash(git merge --ff-only round16)", "Bash(git merge --no-edit origin/main)" in
+  addition to what earlier rounds used. Then go through Parts 0, A, B, C without stopping; merge to main only if
+  everything is green and the migration rehearsal on the prod snapshot copy passes.
+  ```
+- **Next planner task — R16 mockups** (Tal chose "in parallel": Session 1 runs while mockups are made):
+  - New claude.ai Design canvas **"Nexus R16 — Settings, Spaces & Home"** on the current account (canvases are per
+    account; reuse the R15 look: copy `docs/design/r15/nx.css` and the boards' structure, design language in
+    `docs/ROUND15.md` "Design language": minimal text, visuals first, light warm brand panel, no black hero).
+  - Boards (desktop 1366 and phone 390, light + dark, Graphite + Plum, states as tweaks):
+    1. `Settings-desktop` — large two-pane, side nav (You: Account & security · Display · Assistant & AI · Calendar ·
+       Memory · Data — Space: General · People & invites · Budget · Danger zone), no scrolling at 1366×768.
+    2. `Settings-phone` — section list → section page (push, back).
+    3. `SpaceSettings-desktop` / `SpaceSettings-phone` — cover band in space colour/photo, sections General, People,
+       Invites, Danger zone; no scroll on desktop.
+    4. `SpaceIdentity` — tile = icon (10–24) × 6 gradients, or photo with crop/zoom/rotate like a WhatsApp group picture;
+       create + edit; live preview at switcher/sidebar sizes.
+    5. `SpaceSwitch` — motion storyboard: tile flies from switcher to centre, colour wash, "You're now in <space>" +
+       facepile, ~800 ms, lands on Home; reduced-motion version.
+    6. `HomeCustomize` — edit mode with presets (Household, Maker, Deal watcher, Minimal), S/M/L widget sizes on a
+       12-col grid (phone full/half), drag handles, Reset.
+    7. `HomeWidgets` — new indicators: price drops this week, money saved by tracking, spending vs last month, next
+       delivery, budget by category, most bought, shared-space activity today.
+    8. Optional: `Presence` — green dots, "Noa is shopping" chip, activity toast, conflict toast ("Noa changed this a
+       moment ago · Show · Apply mine"), one-tap Report on an error toast.
+  - After Tal approves: copy boards to `docs/design/r16/` — via Tal's PC (linked computer, write files only, never run
+    git there; the builder commits them as `R16.0`) or with the GitHub connector if few files. Then give Tal the
+    Session 2 prompt ("Round 16, session 2 … Parts D, E, F; boards are in docs/design/r16/").
+- **Renumbering:** `MULTIUSER.md`/`STRATEGY.md` still say "R16 product layer" — read it as **R17**.
+- **After R16:** R17 product layer (push + inbox, onboarding, admin/usage without content, AI quota, privacy/delete/export,
+  QR desktop login, remove password fallback + guest tables) — needs its own mockups first (MULTIUSER §6 list).
+- **Chat-tool facts (account B, 2026-10-06):** the sandbox clones the public repo fine; `git push` from the sandbox is
+  refused by the proxy → push docs with the GitHub connector (`push_files`, full file content; verify by comparing
+  `md5sum` with `raw.githubusercontent.com/<sha>/…`). The connector can drop mid-chat; it reconnects on its own.
+
 ## Roles
 - **Tal** — owner. Decides what and why; tests on his phone/PC; runs Claude Code on his PC.
 - **Planner (you)** — turns Tal's notes into a precise brief, does research, design exploration (design canvas) and
@@ -152,6 +197,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-06 · B · Tal's usage nearly out → wrote the "Current state & handoff" section above (next steps, Session 1 prompt, mockup board list), new `docs/R16-PLANNING.md` (questions + answers, causes found, notes → items table, realtime research, renumbering note for `MULTIUSER.md`/`STRATEGY.md`). Continue on the other account from "Current state & handoff".
 - 2026-10-06 · B · R16 planned from `docs/R16-NOTES.md`. Causes found in code: receipt prices wiped by `statusPatch()` on → To buy (receipt items have no source); "Move to" lists only the space's lists (new space has none); space switch = full page reload (`useSwitchSpace` → `location.replace`) → sidebar jump. Tal chose: notes now, product layer → R17; mockups in parallel (two sessions); Ably for live sync. Wrote `docs/ROUND16.md` (Parts 0, A–F). Next: R16 mockups canvas (settings, space settings, identity + photo crop, switch moment, Home customise/widgets).
 - 2026-10-06 · B · R15 released (merged `0091467`; Tal signs in with Google on PC + phone, made shared space "Jacoby Home"). First prod login "button does nothing" = Tal's stale tab/browser — the same page in the desktop app's browser on his PC redirected to Google fine; still frame = Tal's Windows has animations off (`prefers-reduced-motion`). Tal's long test notes (sync, receipt bugs, menus, settings redesign, space identity + photo, home presets, swipe suggestions, error auto-reporting, admin/usage) captured in `docs/R16-NOTES.md` for the next planning chat.
 - 2026-10-06 · B · Reviewed R15 Session 2 (C–F ticked, 24 commits on `round15`, "ready to release"). Re-ran here: typecheck + lint, `test:auth`/`otp`/`authz-coverage` (168)/`scope`/`roles`/`ssrf` (trailing-dot fix in)/`query-plans`/`help`, build, `test:tenancy` 42/42 — all green; restore test on the prod snapshot equal. Recommended Tal accept the deviations (letter tiles, grouped settings + separate space dialog, link-only invites until Resend, no session rotation on role change since membership is read per request, receipts stay on move). Next: Part G release session with Tal present.
