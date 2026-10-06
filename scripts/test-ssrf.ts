@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import type { LookupAddress } from "node:dns";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { __setResolverForTests, __setTestAllow, BlockedUrlError, isBlockedIp, safeFetch } from "../src/lib/safe-fetch";
+import { __setResolverForTests, __setTestAllow, BlockedUrlError, checkUrl, isBlockedIp, safeFetch } from "../src/lib/safe-fetch";
 
 const refused = async (url: string) => {
   try {
@@ -48,6 +48,9 @@ async function main() {
     "http://user:pass@example.com/",
   ];
   for (const u of literal) assert.ok(await refused(u), `refused: ${u}`);
+  // Name-level block must not depend on DNS: trailing-dot (FQDN) spellings are refused by checkUrl() itself.
+  const dotted = ["http://LOCALHOST./", "http://localhost../", "http://foo.localhost./", "http://metadata.google.internal./", "http://printer.local./"];
+  for (const u of dotted) assert.throws(() => checkUrl(u), (e: unknown) => e instanceof BlockedUrlError && e.reason === "host", `checkUrl host block: ${u}`);
   for (const ip of ["8.8.8.8", "1.1.1.1", "2606:4700:4700::1111"]) assert.equal(isBlockedIp(ip), false, `public ${ip} allowed`);
 
   // DNS: a name resolving to a private address (stub resolver) is refused at connect time.
@@ -79,7 +82,7 @@ async function main() {
   server.close();
   __setTestAllow(null);
   __setResolverForTests(null);
-  console.log(`OK ssrf: ${literal.length} literal URLs, 3 private DNS names, ${targets.length} redirect targets refused; public addresses allowed`);
+  console.log(`OK ssrf: ${literal.length} literal URLs, ${dotted.length} trailing-dot names, 3 private DNS names, ${targets.length} redirect targets refused; public addresses allowed`);
 }
 
 main().then(

@@ -100,7 +100,8 @@ export function checkUrl(raw: string): URL {
   if (u.protocol !== "http:" && u.protocol !== "https:") throw new BlockedUrlError("scheme");
   if (u.username || u.password) throw new BlockedUrlError("credentials");
   if (u.port && !((u.protocol === "http:" && u.port === "80") || (u.protocol === "https:" && u.port === "443")) && !testAllow?.ports.has(u.port)) throw new BlockedUrlError("port");
-  const host = u.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  // A trailing root dot ("localhost.", "metadata.google.internal.") names the same host — strip it before the name checks.
+  const host = u.hostname.replace(/^\[|\]$/g, "").toLowerCase().replace(/\.+$/, "");
   if (testAllow?.addresses.has(host)) return u;
   if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host.endsWith(".local") || host === "metadata.google.internal") throw new BlockedUrlError("host");
   if (isIP(host) && isBlockedIp(host)) throw new BlockedUrlError("address");
