@@ -67,7 +67,12 @@ async function main() {
 
 main()
   .then(() => {
-    for (const f of [DB, `${DB}-journal`]) if (existsSync(f)) rmSync(f);
+    // Windows keeps the file locked while the client is open: removing it then killed the process (exit 127). The next
+    // run deletes it before migrating anyway.
+    for (const f of [DB, `${DB}-journal`])
+      try {
+        if (existsSync(f)) rmSync(f);
+      } catch {}
     process.exit(0);
   })
   .catch((e) => {

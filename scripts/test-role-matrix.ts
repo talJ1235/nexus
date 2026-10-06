@@ -64,6 +64,10 @@ const VIEW_OK = new Set([
   "space-actions.ts#switchSpace", "space-actions.ts#createSpace", "space-actions.ts#getSpacePeople", "space-actions.ts#leaveCurrentSpace",
   "space-actions.ts#restoreDeletedSpace", "space-actions.ts#joinSpace", "space-actions.ts#moveCollectionBack",
   "actions.ts#view",
+  // R16: reads of the current space — the change feed, its revision, the whole data set after a switch / reset.
+  "data-actions.ts#changesSince", "data-actions.ts#spaceRev", "data-actions.ts#loadAppData",
+  // R16 C2: the error log — every action checks isAdmin() right after (admin()), viewers of a space get not_found.
+  "error-actions.ts#admin",
 ]);
 const dir = join(__dirname, "..", "src", "app");
 const viewUses: string[] = [];
