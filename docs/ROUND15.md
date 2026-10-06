@@ -279,7 +279,7 @@ new-sign-in banner).
 
 ## Part C — Spaces (Session 2)
 
-### C1. [ ] Space switcher — desktop and phone
+### C1. [x] Space switcher — desktop and phone
 Mockups `Switcher-desktop` (menu with search, `Ctrl+1…9` shortcuts, facepiles, unread dot), `Switcher-phone`
 (2-column space cards + New space), `CreateSpace-desktop` / `CreateSpace-phone` (name, kind, icon, colour with live
 preview → invite step), `LiveList-phone` (shared list with "added by", grouped, viewer state).
@@ -294,7 +294,7 @@ preview → invite step), `LiveList-phone` (shared list with "added by", grouped
 - **Acceptance:** parity PNGs; smoke switches spaces and asserts the item lists change; viewer sees no write
   controls (and the server refuses anyway — B3).
 
-### C2. [ ] Invite links and joining
+### C2. [x] Invite links and joining
 Mockups `Invite-desktop`, `Invite-phone`, `Join-phone`.
 - `space_invite`: 32-byte token stored hashed, role **member or viewer** (owners are made by transfer, not invite),
   expiry 7 days, max uses (default 5), revocable. Link `/join/<token>`, share sheet with Copy, native Share, and a QR
@@ -305,7 +305,7 @@ Mockups `Invite-desktop`, `Invite-phone`, `Join-phone`.
 - **Acceptance:** smoke: A invites as viewer, B joins, B sees A's shared items read-only; revoke → link dead; over
   max uses → refused.
 
-### C3. [ ] Space settings
+### C3. [x] Space settings
 Mockups `SpaceSettings-desktop` (cover band, people with presence + role menu, pending invite row, roles
 matrix; phone: the same sections as a full-screen sheet) and `Dialogs-desktop` (step-up, delete, leave).
 - Name, currency, colour (5 swatches). People: role change (owner only), remove (owner only, step-up), "(you)".
@@ -316,7 +316,7 @@ matrix; phone: the same sections as a full-screen sheet) and `Dialogs-desktop` (
 - Settings dialog gets the grouping from the mockup: "<space>" → Space & people; "You" → Account, Security,
   Appearance, Calendar, Assistant (existing sections move under these, nothing removed).
 
-### C4. [ ] Move a list/project to another space; "added by"
+### C4. [x] Move a list/project to another space; "added by"
 - On a list/project: "Move to space…" (spaces where you are member/owner); moves the collection and its items,
   sources, price points, attachments, alerts and receipts in one transaction; undo toast.
 - In shared spaces, item rows/cards show a small "added by" avatar (initial + colour); tooltip with the name. Not
@@ -326,12 +326,12 @@ matrix; phone: the same sections as a full-screen sheet) and `Dialogs-desktop` (
 
 ## Part D — Retire (Session 2)
 
-### D1. [ ] Old guest system → notice page
+### D1. [x] Old guest system → notice page
 `/g`, `/g/*`, `/i/<token>` show the `GuestNotice-phone` screen ("Nexus now uses accounts — ask <owner> for a new
 invite"), with buttons to `/join` help and `/login`. Guest server actions return an error. Tables stay read-only
 until R16. The share dialog loses the guest-invite part and keeps public read-only links.
 
-### D2. [ ] Telegram and the extension off — for everyone
+### D2. [x] Telegram and the extension off — for everyone
 UI hidden (settings, alerts panel, commands, Me sheet, help), `/api/telegram` and `/api/ext/*` answer **410 Gone**,
 cron no longer sends Telegram digests/weekly summaries, the extension zip link removed from help. Code stays in the
 repo. Help text explains that price alerts show in the app (push + inbox arrive in R16). Home "Add items from any
@@ -341,7 +341,7 @@ store with the extension" fallback suggestion removed.
 
 ## Part E — Performance (Session 2)
 
-### E1. [ ] Space-scoped loading stays fast
+### E1. [x] Space-scoped loading stays fast
 Bench (existing bench style) on the snapshot copy + the synthetic 2 000-item space: Home and Shopping first load and
 the cron run, before (`main`) and after (`round15`). **Acceptance:** after ≤ before + 10 % on Tal's space; the
 2 000-item space's Home server time reported. Every new query uses an index (`EXPLAIN QUERY PLAN` check in a test for
@@ -351,12 +351,12 @@ the main list queries).
 
 ## Part F — Guards, CI, docs (Session 2)
 
-### F1. [ ] CI on every push
+### F1. [x] CI on every push
 New `.github/workflows/guards.yml` (push to any branch + PRs): `npm ci`, typecheck, lint, the unit tests,
 `test:authz-coverage`, `test:scope`, `test:ssrf`, `test:headers`, `test:tenancy` (on a file DB, mock IdP), `npm audit
 --audit-level=high`, gitleaks. Actions pinned by commit SHA. Update `smoke.yml` to sign in via the admin fallback.
 
-### F2. [ ] Docs
+### F2. [x] Docs
 `SPEC.md` Round 15 section; `nexus-help.md` (sign-in, spaces, roles, invites, devices, Telegram/extension retired;
 `test:help` green); `CLAUDE.md` map (`requireCtx`, data layer, auth files; the "every action must call
 `assertAuth`/`assertOwner`/`requireGuest`" line becomes `requireCtx`); `docs/ENVIRONMENT.md` (new env vars, scripts,
@@ -451,3 +451,96 @@ price comparison (R18); own domain + passkeys/email recovery live on prod (when 
 - Parity PNGs: `docs/design/parity-r15/` (16). Kept on purpose: "Not you?" under the returning chip and "Lost access?"
   (brief), the language switch on phone, the real Google "G" mark, Security / Invite codes as pages instead of the Settings
   modal (C3), activity rows from real data.
+
+### Session 2 (2026-10-06)
+- **Planner fixes first:** `checkUrl()` strips a trailing root dot before the name checks (`LOCALHOST.`, `localhost..`,
+  `metadata.google.internal.`, `printer.local.` now refused by name, no DNS needed; 5 cases added to `test:ssrf`, which
+  fails without the fix) — `e769767`. `db-restore-test.mjs` passes `ADMIN_EMAIL` (from the environment or `.env.local`,
+  that one name only; `PROD_TURSO_*` never reach the child) — `77d475b`. Run on `snapshots/prod-2026-10-06.db` (local copy,
+  not prod): backup → empty DB, every table equal, integrity ok — collections 2 · items 19 · sources 14 · price_points 17 ·
+  attachments 6 · alt_groups 0 · alerts 1 · store_settings 1 · receipts 6 · conversations 9 · conversation_messages 22 ·
+  memories 0 · space_pref 1.
+- **Done: C1–C4, D1, D2, E1, F1, F2** (ticked above). Commits: `b02d670` (C1–C4), `a412185` (parity), `3a864c5` (D1+D2),
+  `4f44d07` (E1), `aefd430` + `8683868` (F1), `486234c` (F2); fixes `9ddfcda` (seed/serve-fresh). Branch pushed; not merged.
+- **Tests:** `test:tenancy` 42/42 (the every-action sweeps for B and viewer V, plus new space checks: switch only into
+  your spaces, viewer invite → join → read-only, token stored hashed, `/join` preview shows no items, revoke kills a link,
+  5 uses then refused, member can't change roles, step-up on remove with an old sign-in, last owner can't leave, move a
+  list with all 6 child rows + undo, typed delete + restore, and Playwright: switch from the menu keeps the view + "Now
+  in…", viewer has no add bar / "+" / New project, signed-in join, dead link screen). `test:authz-coverage` 168 exports,
+  `test:scope`, `test:roles` (viewer read-list now names each space action), `test:ssrf`, `test:headers`,
+  `test:query-plans`, `test:help`, all unit tests, `npm run -s check`. The invite QR (with the tile cut out) decodes with
+  zxing (no inversion) — checked in Node.
+- **E1 numbers** (`npm run bench:r15`, 15 runs after 3 warm-ups, full server response, same PC; before = `main` on a copy
+  of `prod-2026-10-06.db`, after = this branch on a copy of `rehearsal.db`):
+
+  | | before (main) | after, Tal's space | after, 2 000-item space |
+  |---|---|---|---|
+  | Home | 30 ms (p90 33) | 30 ms (p90 36) | 248 ms (p90 277) |
+  | Shopping | 26 ms (p90 35) | 25 ms (p90 34) | 170 ms (p90 192) |
+
+  → after ≤ before + 10 % on Tal's space (0 % / −4 %). Cron: the watched-links query (network fetches excluded) was 422 ms
+  for 670 links next to the 2 000-item space — SQLite matched sources by the space index (a whole space per item); fixed
+  (`+space_id` keeps it on `sources_item_idx`) → 9 ms; before (main, 8 links) 0.3 ms. `test:query-plans` checks 17
+  space-scoped list queries + this join (no bare table scan).
+- **Decisions / deviations (please confirm):**
+  - Space identity follows the boards: a **letter tile** in 6 colours (the brief's "icon + 10 icons" isn't on any board);
+    the `icon` column stays unused. Personal spaces from the migration say `plum` → shown violet.
+  - Settings: the existing single-column dialog is **grouped** (current space: Space & people, budget cap, import limit,
+    backup/restore for owners · then You: display, assistant, calendar, memory, account) instead of the board's two-pane
+    modal; **Space settings is its own dialog** (cover band, general, people + role menu, invite links, leave / delete).
+    The delete confirmation stacks on top of it (parity `spaces-settings.png`).
+  - Invites are **links only**: the boards' email chips / "Pending · Resend" rows need Resend + the domain (R16 with the
+    inbox). Old links can't be copied again (only the hash is stored) — the list offers Revoke; "Reset link" in the
+    invite dialog revokes that dialog's link and makes a new one; switching Member/Viewer makes a new link.
+  - Members may create links and revoke their own; owners revoke any. Owners are made by transfer only.
+  - **Role change doesn't rotate sessions** (SECURITY §3 says it should): memberships are read from the DB on every
+    request, so a role change or removal applies to the person's next request; a `role_changed` security event is logged
+    for them. Rotating would sign them out everywhere (all spaces) — say if you want that anyway.
+  - Deleting a space reloads into your personal space (no Undo toast); restore = Space settings → "Restore" (any space's
+    settings, owners, 7 days). The cron purges after 7 days: rows, then only the blob files those rows point to, then the
+    space (files of lists moved away earlier stay safe).
+  - Move to space: lives in the list/project edit dialog. The `receipts` inbox isn't tied to a list, so receipts stay;
+    item attachments move (their blob path keeps the old space prefix — harmless, URLs are unguessable).
+  - Viewer: add bar and "+" hidden, New project/list hidden, other write controls disabled with "View only", a "You can
+    view this space" line. Not built: "Request access" (LiveList board) and live presence (green dots, "added 3 items"
+    toasts) — R16 live layer; `Avatar` already takes `online`.
+  - D1 notice: as the board, one "Log in" button (there is no `/join` help page to link). The name is the old link's list
+    owner (or the admin's first name).
+  - D2: the app ignores the extension (`EXTENSION_RETIRED` in `use-extension.ts`); `public/nexus-extension.zip` is still
+    served — delete it in R16 if the extension isn't coming back. Telegram kv keys untouched.
+  - CI audit gate is `npm audit --omit=dev --audit-level=high`: the remaining highs are dev-only (`braces` via
+    eslint-config-next). `source-map-js` 1.2.1 → 1.2.2 via `npm audit fix` (lockfile only). **No new dependencies.**
+    Semgrep / ZAP from SECURITY.md §11 aren't in CI yet (R16).
+  - Fixed on the way: `seed-local.mjs` / `serve-fresh.sh` (sparse profile was broken since R15: no `space_id`),
+    `test:ship` (a stray `spaceId` in an expected value), `busy_timeout` on local file DBs (CI hit SQLITE_BUSY).
+- **Parity:** 4 composites added to `docs/design/parity-r15/` (20 files): `spaces-switcher`, `spaces-create-invite`,
+  `spaces-join`, `spaces-settings`. Kept on purpose besides the above: the switcher menu shows role + facepile per space
+  and "Invite to <space>"; the phone switcher lives at the top of the Me sheet (account row, spaces, actions, then the rest).
+- **Still open from reports:** 1 open app report — "price drop and the AI didn't recognize it" (assistant's context). Not
+  in this round's scope; for R16 triage.
+- **Local state:** `local.db` untouched this session (UI checks ran on `sparse-smoke.db` and throwaway DBs). Servers
+  left running: :3100 (`local.db`, this branch) and :3102 (sparse). A `main` worktree for the bench sits at
+  `../nexus-main-bench` (remove: `git worktree remove --force ../nexus-main-bench`).
+- **Security checklist (ASVS 5.0 areas):**
+  - V1 Encoding & sanitization — done: React escaping, no `dangerouslySetInnerHTML` except the two nonce'd scripts.
+  - V2 Validation — done for every touched action/route (zod, strict objects); older actions validated in Session 1.
+  - V3 Web frontend — done: enforced nonce CSP, HSTS, nosniff, COOP, frame-ancestors none (`test:headers`).
+  - V4 API — done: every action/route gated (`test:authz-coverage`), 404 for foreign ids, rate limits on join/invite/
+    create.
+  - V5 Files — done: blob uploads need edit role + space prefix + type/size allow-list; not yet: private Blob store
+    (public, unguessable URLs — Session 1 note).
+  - V6 Authentication — done: Google (verified email), invite-only sign-up, admin fallback guarded, passkeys + recovery
+    (localhost until the domain), step-up; not yet: passkeys/email live in prod (domain + Resend).
+  - V7 Sessions — done: DB sessions, HMAC cookie, revocation, idle/absolute limits, rotation on sign-in; deviation:
+    no rotation on role change (above); token stored unhashed (Session 1 decision).
+  - V8 Authorization — done: `requireCtx` + scoped data layer, role matrix, tenancy sweep, viewer UI + server.
+  - V9 Self-contained tokens — n/a (no JWTs); invite tokens/codes are random + hashed.
+  - V10 OAuth/OIDC — done via Better Auth (PKCE, state); Google client in Testing mode.
+  - V11 Cryptography — done: Node crypto only (SHA-256, HMAC, AES-GCM for re-copyable codes), CSPRNG tokens.
+  - V12 Secure communication — done: HTTPS on Vercel + HSTS; SSRF guard on all server fetching.
+  - V13 Configuration — done: secrets only in env, gitleaks in CI, actions pinned by SHA, test IdP refused in prod.
+  - V14 Data protection — partly: per-space isolation, no PII in logs/URLs; not yet: delete account / full export (R16).
+  - V15 Secure coding & dependencies — done: CI audit gate (prod, high), pinned versions for new deps; not yet: Semgrep.
+  - V16 Logging — done: security events (90 days) incl. role changes and invites used; not yet: admin view (R16).
+- **ready to release** — Part G with Tal: Vercel env vars + Google client confirmed, fresh backup, then the steps in
+  Part G (fresh snapshot + rehearsal, `git merge --ff-only round15`, sign-in checks, rollback path tested in 0.1).

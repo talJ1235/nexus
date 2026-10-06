@@ -46,8 +46,22 @@ const ok = (cond, msg, detail = "") => {
 for (const f of [DB, `${DB}-journal`]) if (existsSync(f)) rmSync(f);
 execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", "src/db/migrate.ts"], { env: ENV, stdio: "ignore" });
 const db = createClient({ url: `file:${DB}` });
-// The server writes to the same file: wait for its locks instead of failing with SQLITE_BUSY (fast CI runners hit it).
-await db.execute("PRAGMA busy_timeout = 10000");
+// The server writes to the same file. WAL lets this script read while the server writes; writes that still meet a
+// lock are retried (fast CI runners hit SQLITE_BUSY otherwise).
+await db.execute("PRAGMA journal_mode = WAL");
+{
+  const exec = db.execute.bind(db);
+  db.execute = async (q) => {
+    for (let i = 0; ; i++) {
+      try {
+        return await exec(q);
+      } catch (e) {
+        if (!/SQLITE_BUSY|database is locked/.test(String(e?.message ?? e)) || i >= 100) throw e;
+        await new Promise((r) => setTimeout(r, 50));
+      }
+    }
+  };
+}
 const now = Date.now();
 const U = { A: "uA_" + id(), B: "uB_" + id(), V: "uV_" + id() };
 const SP = { A: "sA_" + id(), B: "sB_" + id(), V: "sV_" + id(), S: "sS_" + id() };
