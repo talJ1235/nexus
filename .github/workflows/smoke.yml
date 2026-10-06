@@ -1,6 +1,8 @@
 # Free production smoke test: runs on GitHub's servers after every successful Vercel production deploy
 # (and on demand). Read-only. GitHub emails the repo owner when it fails; screenshots are attached to the run.
 # Setup once: repo Settings → Secrets and variables → Actions → New secret NEXUS_PASSWORD (the site password).
+# R15: the smoke signs in through the admin fallback (/login?admin=1, the prod APP_PASSWORD ≥ 20 chars) — the same
+# secret, updated on release day together with Vercel's APP_PASSWORD (ROUND15 Part G step 1).
 name: smoke
 on:
   deployment_status:
@@ -12,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 22, cache: npm }
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium
@@ -24,5 +26,5 @@ jobs:
           SMOKE_AI: "1"
           SMOKE_OUT: smoke-shots
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with: { name: smoke-shots, path: smoke-shots, if-no-files-found: ignore, retention-days: 7 }

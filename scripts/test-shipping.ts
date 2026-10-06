@@ -16,7 +16,7 @@ const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 0.01, `${a} â
 const saved: StoreSetting[] = [{ spaceId: "s", storeKey: "amazon", freeShippingMin: 200, shippingFee: 30, currency: "ILS", updatedAt: 0 }];
 assert.equal(shippingRule("amazon", saved)?.freeShippingMin, 200);
 assert.equal(shippingRule("amazon", saved)?.saved, true);
-assert.deepEqual(shippingRule("amazon", []), { spaceId: "s", freeShippingMin: 49, shippingFee: null, currency: "USD", saved: false });
+assert.deepEqual(shippingRule("amazon", []), { freeShippingMin: 49, shippingFee: null, currency: "USD", saved: false });
 assert.equal(shippingRule("ksp", []), null);
 
 // Gap: under the threshold â†’ fee charged, remaining; converted from the rule's currency.

@@ -1,0 +1,12 @@
+# R15 F1: gitleaks (guards.yml) — default rules, plus the test-only fixtures that look like secrets but are not.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "test-only values: throwaway secrets for local/CI servers on file databases"
+paths = [
+  '''scripts/test-[^/]*''',
+  '''scripts/bench-r15\.mjs''',
+  '''\.github/workflows/guards\.yml''',
+  '''\.env\.example''',
+]

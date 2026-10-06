@@ -1,0 +1,61 @@
+# R15 F1 — guards on every push (any branch) and every PR: types, lint, unit tests, the authz / scope / SSRF /
+# query-plan guards, the production dependency audit, secret scanning, then a build and the two server checks
+# (tenancy with two users + a viewer, security headers + no CSP violations). Everything runs on throwaway file
+# databases on the runner — no secrets, no remote DB, no AI keys. Actions are pinned by commit SHA.
+name: guards
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency: { group: "guards-${{ github.ref }}", cancel-in-progress: true }
+env:
+  TURSO_DATABASE_URL: file:ci-unit.db
+  TURSO_AUTH_TOKEN: ""
+  NEXT_TELEMETRY_DISABLED: "1"
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: typecheck
+        run: npx tsc --noEmit --pretty false
+      - name: lint
+        run: npx eslint --quiet .
+      - name: unit tests
+        run: |
+          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles; do
+            echo "::group::test:$t"; npm run -s test:$t; echo "::endgroup::"
+          done
+      - name: authz coverage · data scope · SSRF · query plans
+        run: npm run -s test:authz-coverage && npm run -s test:scope && npm run -s test:ssrf && npm run -s test:query-plans
+      - name: dependency audit (production, high+)
+        run: npm audit --omit=dev --audit-level=high
+      - name: secret scan
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+      - name: build
+        run: node scripts/copy-scanic-ml.mjs && npx next build
+      - run: npx playwright install --with-deps chromium
+      - name: tenancy (users A, B, viewer V on a fresh server; seeded sessions stand in for the IdP)
+        run: node scripts/test-tenancy.mjs
+      - name: security headers + no CSP violations (closed mode, admin fallback)
+        env:
+          CI_DB: file:ci-headers.db
+          ADMIN_EMAIL: ci-admin@example.com
+          APP_PASSWORD: ci-admin-password-0123456789ab
+          BETTER_AUTH_SECRET: ci-secret-0123456789abcdef0123456789abcdef
+          BETTER_AUTH_URL: http://localhost:3100
+          AUTH_FULL_LOCAL: "0"
+        run: |
+          TURSO_DATABASE_URL=$CI_DB npx tsx src/db/migrate.ts
+          TURSO_DATABASE_URL=$CI_DB nohup npx next start -p 3100 > headers-server.log 2>&1 &
+          for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:3100/login && break; sleep 1; done
+          BASE=http://localhost:3100 NEXUS_PASSWORD=$APP_PASSWORD node scripts/test-headers.mjs
+      - if: failure()
+        run: tail -40 headers-server.log 2>/dev/null || true
