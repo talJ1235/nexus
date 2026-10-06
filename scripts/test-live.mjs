@@ -187,10 +187,12 @@ async function scenario(label, limit) {
   };
   let iid = null;
   await step("add", async () => (iid = (await act(A.p, "createItem", { title: "Oat milk", brand: null, imageUrl: null, category: null, tags: [], collectionId: null, source: null })).id), "(i) => i?.title === 'Oat milk'");
-  // B4: B gets one batched activity toast for A's add ("Noa added an item").
+  // B4: B gets a batched activity toast for A's add ("Noa added …" — on a warm server the warm-up add + delete and this
+  // add arrive within one batch: "Noa added 2 items · removed an item").
   // (≤ 1 toast per person per 10 s: the warm-up already showed one, so this one may wait for the gap.)
-  const toastSeen = await B.p.getByText(/Noa added an item/).first().waitFor({ timeout: 12_000 }).then(() => true, () => false);
-  ok(toastSeen, `${label}: B gets "Noa added an item"`);
+  const toastSeen = await B.p.getByText(/Noa added/).first().waitFor({ timeout: 12_000 }).then(() => true, () => false);
+  const toastsB = toastSeen ? "" : JSON.stringify(await B.p.locator("[data-sonner-toast]").allInnerTexts());
+  ok(toastSeen, `${label}: B gets "Noa added …" (batched)`, toastsB);
   await step("edit (qty 4)", () => act(A.p, "updateItem", iid, { quantity: 4 }), "(i) => i?.quantity === 4");
   await step("move to a list", () => act(A.p, "bulkUpdate", [iid], { collectionId: LIST }), `(i) => i?.collectionId === ${JSON.stringify(LIST)}`);
   await step("status → Received", () => act(A.p, "setStatus", iid, "purchased", null), "(i) => i?.status === 'purchased'");

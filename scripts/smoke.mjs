@@ -780,7 +780,7 @@ try {
         ok(r.labels.length === 4 && r.labels.every(Boolean) && r.font === "10.5px" && r.activeInk && r.logo === "Nexus" && r.search === 36 && (r.ask === 36 || r.ask === 0) && r.avatar === 32 && !r.bell, "phone shell: dock labels, active ink, v4 top bar (36 px, avatar, no bell)", JSON.stringify(r));
       });
 
-      await step("phone: dock + '+' menu opens four actions and closes on the scrim", async () => {
+      await step("phone: dock + '+' menu opens the add list (4 cards + 3 compact) and closes on the scrim", async () => {
         await page.waitForSelector("[data-dock]", { timeout: 10000 });
         await page.click("[data-plus]");
         await page.waitForSelector("[data-plus-menu=open]", { state: "attached" });
@@ -789,7 +789,8 @@ try {
         await shot(page, "plus-menu");
         await page.mouse.click(195, 120);
         await page.waitForSelector("[data-plus-menu=closed]", { state: "attached", timeout: 3000 });
-        ok(n === 4, "phone: dock + '+' menu opens four actions and closes on the scrim", `actions=${n}`);
+        // R16 A3: the shared add list — barcode, receipt, paste, plan as cards + import, new list, new project in a row.
+        ok(n === 7, "phone: dock + '+' menu opens the add list (4 cards + 3 compact) and closes on the scrim", `actions=${n}`);
       });
 
       // Round 12 #2: a slow (~15 px per frame) swipe locks open on either side by distance, like a fast one; a short one
