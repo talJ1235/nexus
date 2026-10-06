@@ -58,3 +58,6 @@ test-data/*
 /tenancy-test.db*
 /auth-flow-test.db*
 /.next-dev*/
+
+# R15 E1 test/bench DBs
+query-plans-test.db*

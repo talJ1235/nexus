@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, isNull, lt, ne, or } from "drizzle-orm";
+import { and, asc, eq, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 // System-level reads that legitimately span spaces — only for the cron fan-out and public share/calendar tokens.
@@ -7,10 +7,17 @@ import { db, schema } from "@/db";
 
 /** Every watched link of every live space (to-buy, watch on, not blocked 3+ times), oldest check first. */
 export async function systemWatchedSources() {
+  return systemWatchedSourcesQuery();
+}
+
+/** The query itself (test:query-plans checks it uses sources_item_idx). */
+export function systemWatchedSourcesQuery() {
   return db
     .select({ source: schema.sources, spaceId: schema.sources.spaceId, ownerId: schema.space.createdBy })
     .from(schema.sources)
-    .innerJoin(schema.items, and(eq(schema.items.id, schema.sources.itemId), eq(schema.items.spaceId, schema.sources.spaceId)))
+    // `+space_id` keeps SQLite on sources_item_idx: matching by the space index instead walks a whole space per item
+    // (R15 E1 bench: 422 ms → 10 ms for 670 links next to a 2 000-item space).
+    .innerJoin(schema.items, and(eq(schema.items.id, schema.sources.itemId), sql`${schema.items.spaceId} = +${schema.sources.spaceId}`))
     .innerJoin(schema.space, eq(schema.space.id, schema.sources.spaceId))
     .where(
       and(
