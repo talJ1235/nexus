@@ -392,14 +392,14 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
         <div className="pointer-events-none absolute inset-x-[9px] top-[9px] flex items-start justify-between gap-2 prow:hidden pcard:hidden">
           <span className="relative min-w-0">
             {category && (
-              <span className={cn("nx-tag transition-opacity max-sm:hidden", (selecting || isSelected) ? "opacity-0" : "sm:group-hover:opacity-0")} data-tone="muted" data-tag="category">
+              <span className={cn("nx-tag transition-opacity max-sm:hidden", (selecting || isSelected) ? "opacity-0" : "sm:group-hover:opacity-0 sm:group-focus-within:opacity-0")} data-tone="muted" data-tag="category">
                 <span>{t.categories[category]}</span>
               </span>
             )}
             <SelectBox
               checked={isSelected}
               onToggle={(e) => s.toggleSelect(item.id, e.shiftKey ? { range: order } : undefined)}
-              className={cn("pointer-events-auto absolute start-0 top-0 z-[2]", !selecting && !isSelected && "opacity-0 group-hover:opacity-100 max-sm:hidden")}
+              className={cn("pointer-events-auto absolute start-0 top-0 z-[2] duration-[120ms] motion-reduce:transition-none", !selecting && !isSelected && "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 max-sm:hidden")}
             />
           </span>
           <span className={cn("flex shrink-0 gap-1 transition-opacity", !selecting && "sm:group-hover:opacity-0 sm:group-focus-within:opacity-0")}>

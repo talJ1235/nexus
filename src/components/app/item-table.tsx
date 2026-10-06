@@ -43,6 +43,8 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
   const flow = useStatusFlow();
   const order = items.map((i) => i.id);
   const allSelected = items.length > 0 && items.every((i) => s.selected.has(i.id));
+  // R16 A6: checkboxes stay out of sight until a row is hovered / focused, or anything is selected (then all show).
+  const selecting = s.selected.size > 0;
   const pr = { urgent: t.item.urgent, normal: t.item.normal, someday: t.item.someday };
 
   return (
@@ -51,13 +53,16 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
         <thead>
           <tr className="border-b border-line text-start text-xs font-semibold text-muted">
             <th className="w-10 py-2.5 pe-3 ps-4">
-              <input
-                type="checkbox"
-                aria-label={t.select.selectAll}
-                checked={allSelected}
-                onChange={() => (allSelected ? s.clearSelection() : s.setSelected(order))}
-                className="size-4 accent-[var(--accent)]"
-              />
+              {selecting && (
+                <input
+                  type="checkbox"
+                  aria-label={t.select.selectAll}
+                  checked={allSelected}
+                  onChange={() => (allSelected ? s.clearSelection() : s.setSelected(order))}
+                  className="size-4 accent-[var(--accent)]"
+                  data-select-all
+                />
+              )}
             </th>
             <th className="w-12 py-2.5" />
             <th className="py-2.5 ps-2 text-start font-medium">{t.table.item}</th>
@@ -96,7 +101,7 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
                   e.dataTransfer.effectAllowed = "move";
                 }}
                 onClick={(e) => (s.selected.size || e.metaKey || e.ctrlKey ? s.toggleSelect(i.id, e.shiftKey ? { range: order } : undefined) : s.openItem(i.id))}
-                className={cn("cursor-pointer border-b border-line outline-none transition last:border-0 focus-visible:bg-sunken", s.fresh.has(i.id) && "fill-in", checked ? "bg-accent-soft/50" : "hover:bg-sunken/60", purchased && "text-muted")}
+                className={cn("group/row cursor-pointer border-b border-line outline-none transition last:border-0 focus-visible:bg-sunken", s.fresh.has(i.id) && "fill-in", checked ? "bg-accent-soft/50" : "hover:bg-sunken/60", purchased && "text-muted")}
               >
                 <td className="py-2 pe-3 ps-4" onClick={(e) => e.stopPropagation()} data-row-check>
                   <input
@@ -105,7 +110,10 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
                     checked={checked}
                     onChange={() => undefined}
                     onClick={(e) => s.toggleSelect(i.id, e.shiftKey ? { range: order } : undefined)}
-                    className="size-4 accent-[var(--accent)]"
+                    className={cn(
+                      "size-4 accent-[var(--accent)] transition-opacity duration-[120ms] motion-reduce:transition-none",
+                      !selecting && "opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 focus-visible:opacity-100",
+                    )}
                   />
                 </td>
                 <td className="py-1.5">

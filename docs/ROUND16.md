@@ -99,7 +99,7 @@ across the selection bar (Move to, Priority, Status, Compare); clicking another 
 second in one click; Esc closes. Implement with one controlled `openMenu` state in the bar (don't rely on Radix
 modality). Acceptance: smoke opens each pair in turn and asserts one `[role=menu]`/popover in the DOM.
 
-### A6. [ ] List view always shows the selection checkbox
+### A6. [x] List view always shows the selection checkbox
 Tal: looks unprofessional. Expected (desktop list/table, `item-table.tsx`, and grid cards): the checkbox is hidden and
 the picture shows; on row hover or keyboard focus the checkbox fades in over/next to the picture (120 ms); while any item
 is selected every row shows its checkbox. Phone unchanged (long-press to select). Header "select all" appears only in

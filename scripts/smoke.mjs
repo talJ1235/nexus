@@ -1824,6 +1824,58 @@ try {
       ok(present.length >= 2 && counts.every(([, , n, st]) => n === 1 && st === "open") && afterEsc === 0, "selection bar: one menu at a time, one click to swap, Esc closes", JSON.stringify({ counts, afterEsc }));
     });
 
+    // R16 A6: list (table) and grid checkboxes are hidden at idle, fade in on hover / keyboard focus, and every row shows
+    // one while anything is selected; "select all" in the header only in selection mode. Desktop only (phones long-press).
+    await step("checkboxes: hidden at idle, shown on hover / focus / while selecting", async () => {
+      if (MOBILE) return ok(true, "checkboxes: hidden at idle, shown on hover / focus / while selecting (desktop only)");
+      const r = {};
+      await ctx.addCookies([{ name: "nexus_layout", value: "table", url: BASE }]);
+      await page.goto(`${BASE}/?v=to_buy`);
+      await page.waitForSelector("[data-item-row]", { timeout: 15000 });
+      const rows = page.locator("[data-item-row]");
+      const op = (k) => rows.nth(k).locator("[data-row-check] input").evaluate((e) => getComputedStyle(e).opacity);
+      await page.mouse.move(5, 5);
+      await page.waitForTimeout(200);
+      r.idle = await op(0);
+      r.headerIdle = await page.locator("[data-select-all]").count();
+      await shot(page, "checkbox-idle");
+      await rows.nth(0).hover();
+      await page.waitForTimeout(250);
+      r.hover = await op(0);
+      r.otherOnHover = await op(1);
+      await shot(page, "checkbox-hover");
+      await page.mouse.move(5, 5);
+      await rows.nth(1).focus();
+      await page.keyboard.press("Tab").catch(() => {});
+      await rows.nth(1).focus();
+      await page.waitForTimeout(250);
+      r.focus = await op(1);
+      await rows.nth(0).locator("[data-row-check] input").click({ force: true });
+      await page.mouse.move(5, 5);
+      await page.waitForTimeout(250);
+      r.selecting = [await op(1), await op(2)];
+      r.headerSelecting = await page.locator("[data-select-all]").count();
+      await shot(page, "checkbox-selecting");
+      await page.keyboard.press("Escape");
+      // Grid cards: same rule.
+      await ctx.addCookies([{ name: "nexus_layout", value: "cards", url: BASE }]);
+      await page.goto(`${BASE}/?v=to_buy`);
+      await page.waitForSelector(READY);
+      const card = page.locator("[data-item-card]").first();
+      const cop = () => card.locator("[role=checkbox]").first().evaluate((e) => getComputedStyle(e).opacity);
+      await page.mouse.move(5, 5);
+      await page.waitForTimeout(200);
+      r.cardIdle = await cop();
+      await card.hover();
+      await page.waitForTimeout(250);
+      r.cardHover = await cop();
+      ok(
+        r.idle === "0" && r.headerIdle === 0 && r.hover === "1" && r.otherOnHover === "0" && r.focus === "1" && r.selecting.every((x) => x === "1") && r.headerSelecting === 1 && r.cardIdle === "0" && r.cardHover === "1",
+        "checkboxes: hidden at idle, shown on hover / focus / while selecting",
+        JSON.stringify(r),
+      );
+    });
+
     await step("assistant panel opens", async () => {
       await page.goto(`${BASE}/?v=to_buy`);
       await page.waitForSelector(READY, { timeout: 15000 });
