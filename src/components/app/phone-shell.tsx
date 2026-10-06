@@ -71,14 +71,16 @@ export function PhoneTopBar() {
         <>
           <button type="button" onClick={() => s.setView({ type: "home" })} className="flex h-10 shrink-0 items-center gap-2 rounded-lg" aria-label={t.dash.title} data-topbar-logo data-carry="view:home">
             <LogoMark className="size-5" />
-            {!s.space && <span className="text-[16px] font-extrabold tracking-[-0.01em]">Nexus</span>}
+            {/* R16 A10: the wordmark is always there at its R14 size — it's the "go Home" button. */}
+            <span className="text-[16px] font-extrabold tracking-[-0.01em]">Nexus</span>
           </button>
-          {/* R15 C1 (Switcher-phone): the current space next to the logo; tap → the spaces sheet (Me). */}
+          {/* R15 C1 (Switcher-phone): the current space next to the logo; tap → the spaces sheet (Me). R16 A10: a compact
+              chip (tile + chevron; the name only when there's room) that never squeezes the logo. */}
           {s.space ? (
-            <button type="button" onClick={() => s.setMeOpen(true)} className="me-auto flex h-10 min-w-0 items-center gap-1.5 rounded-lg ps-0.5" aria-label={`${t.spaces.switch}: ${s.space.name}`} data-phone-space>
-              <SpaceTile name={s.space.name} color={s.space.color} size={22} />
-              <b className="truncate text-[16px] font-extrabold tracking-[-0.01em]">{s.space.name}</b>
-              <ChevronDown className="size-4 shrink-0 text-muted" />
+            <button type="button" onClick={() => s.setMeOpen(true)} className="me-auto ms-1 flex h-10 min-w-10 items-center gap-1 overflow-hidden rounded-full border border-line bg-surface pe-1.5 ps-[5px]" aria-label={`${t.spaces.switch}: ${s.space.name}`} data-phone-space>
+              <SpaceTile name={s.space.name} color={s.space.color} size={26} />
+              <b className="min-w-0 max-w-[96px] truncate text-[13px] font-bold max-[379px]:hidden" data-phone-space-name>{s.space.name}</b>
+              <ChevronDown className="size-3.5 shrink-0 text-muted" />
             </button>
           ) : (
             <span className="me-auto" />

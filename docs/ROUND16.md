@@ -127,7 +127,7 @@ pinned at the bottom with the safe area; the cube field scales to the panel (con
 360×740, 390×844, 1280×720, 1366×768, 1920×1080. Reduced motion keeps the still frame (by design — Tal's Windows has
 animations off). Acceptance: parity PNGs at those sizes vs `docs/design/r15/SignIn-*.dc.html`.
 
-### A10. [ ] Phone top bar: logo back to full size
+### A10. [x] Phone top bar: logo back to full size
 Tal: the wordmark shrank next to the new space switcher; it's the "go Home" button. Expected: the logo + wordmark at
 its R14 size (check `git log -p` on the header for the old value); the space switcher becomes a compact chip (space
 tile + chevron, name only if it fits at 390 — never squeezes the logo). Both ≥ 40 px touch targets. Acceptance: 360 and
@@ -374,3 +374,6 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   wordmark). Smoke checks the field inside its panel at 360×740, 390×844, 1280×720, 1366×768, 1920×1080 and the phone form
   centred; composite `docs/design/parity-r16/signin-sizes.png` (light, reduced motion = Tal's still frame). The re-auth
   screen is the same `/login` page (returning-account chip), so it gets the same layout.
+- **A10:** R14 (`1e2b9cc`) had the Box mark + "Nexus" at 16 px / 800; R15 dropped the wordmark whenever a space exists. The
+  wordmark is back (always), and the space switcher is a 40 px pill chip (26 px tile + chevron; the name, ≤ 96 px, only from
+  380 px up). Smoke at 360/390 × en/he: no overlap, no overflow, both ≥ 40 px.

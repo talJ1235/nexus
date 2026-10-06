@@ -1969,6 +1969,34 @@ try {
       ok(!bad.length, "sign-in: cube field fits its panel, phone form centred", bad.join(" | "));
     });
 
+    // R16 A10: the phone top bar keeps the logo + "Nexus" wordmark at full size next to the space chip (360 + 390, en + he):
+    // nothing overlaps or overflows, both are ≥ 40 px tap targets.
+    await step("phone top bar: full-size logo + compact space chip (360/390, en/he)", async () => {
+      const state = await ctx.storageState();
+      const bad = [];
+      for (const w of [360, 390])
+        for (const lang of ["en", "he"]) {
+          const c = await browser.newContext({ storageState: state, viewport: { width: w, height: 800 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+          await c.addCookies([{ name: "nexus_locale", value: lang, url: BASE }]);
+          const p = await c.newPage();
+          await p.goto(`${BASE}/`);
+          await p.waitForSelector("[data-topbar-logo]", { timeout: 20000 });
+          await p.waitForSelector("#boot", { state: "hidden", timeout: 10000 }).catch(() => {});
+          const m = await p.evaluate(() => {
+            const r = (s) => document.querySelector(s)?.getBoundingClientRect();
+            const logo = r("[data-topbar-logo]");
+            const chip = r("[data-phone-space]");
+            const word = [...document.querySelectorAll("[data-topbar-logo] span")].find((e) => /Nexus/.test(e.textContent))?.getBoundingClientRect();
+            const overlap = chip && logo && !(chip.left >= logo.right - 0.5 || chip.right <= logo.left + 0.5);
+            return { logoW: logo?.width, logoH: logo?.height, word: word ? Math.round(word.width) : 0, chipH: chip?.height, chipW: chip?.width, overlap, scroll: document.documentElement.scrollWidth - innerWidth };
+          });
+          if (!(m.word >= 40 && m.logoH >= 40 && (!m.chipH || (m.chipH >= 40 && m.chipW >= 40)) && !m.overlap && m.scroll <= 0)) bad.push(`${w}/${lang} ${JSON.stringify(m)}`);
+          await p.screenshot({ path: OUT ? `${OUT}/topbar-${w}-${lang}.png` : join(tmpdir(), "nx-topbar.png"), clip: { x: 0, y: 0, width: w, height: 72 } });
+          await c.close();
+        }
+      ok(!bad.length, "phone top bar: full-size logo + compact space chip (360/390, en/he)", bad.join(" | "));
+    });
+
     await step("assistant panel opens", async () => {
       await page.goto(`${BASE}/?v=to_buy`);
       await page.waitForSelector(READY, { timeout: 15000 });
