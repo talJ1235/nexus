@@ -1942,6 +1942,33 @@ try {
       ok(wide.flag === "1" && wide.nav === "reload" && wide.docs === phone.docs + 1 && !phone.flag && phone.nav === "navigate" && !desk.flag && desk.nav === "navigate", "viewport guard: a phone at desktop width reloads once, never loops", JSON.stringify({ wide, phone, desk }));
     });
 
+    // R16 A9: sign-in — the cube field sits inside its panel at every size (never cropped), and on phones the form block is
+    // centred in the space under the brand band with the legal line at the bottom.
+    await step("sign-in: cube field fits its panel, phone form centred", async () => {
+      const bad = [];
+      for (const [w, h] of [[360, 740], [390, 844], [1280, 720], [1366, 768], [1920, 1080]]) {
+        const phone = w < 900;
+        const c = await browser.newContext({ viewport: { width: w, height: h }, ...(phone ? { isMobile: true, hasTouch: true } : {}), reducedMotion: "reduce" });
+        const p = await c.newPage();
+        await p.goto(`${BASE}/login`);
+        const m = await p.evaluate(() => {
+          const vis = [...document.querySelectorAll("[data-auth-stage]")].find((e) => e.getBoundingClientRect().width > 0);
+          const art = document.querySelector(".art").getBoundingClientRect();
+          const st = vis?.getBoundingClientRect();
+          const g = document.querySelector("[data-auth=google]").getBoundingClientRect();
+          const legal = [...document.querySelectorAll("a[href='/terms']")].pop()?.getBoundingClientRect();
+          return { art: [art.left, art.top, art.right, art.bottom], st: st && [st.left, st.top, st.right, st.bottom], g: [g.top, g.bottom], legal: legal && legal.top, vh: innerHeight };
+        });
+        const inside = m.st && m.st[0] >= m.art[0] - 1 && m.st[1] >= m.art[1] - 1 && m.st[2] <= m.art[2] + 1 && m.st[3] <= m.art[3] + 1 && m.st[2] - m.st[0] > 200;
+        // Phone: the Google button's centre is in the middle third of the space between the band and the legal line.
+        const mid = (m.g[0] + m.g[1]) / 2;
+        const centred = !phone || (mid > m.art[3] + (m.legal - m.art[3]) / 3 && mid < m.art[3] + ((m.legal - m.art[3]) * 2) / 3);
+        if (!inside || !centred) bad.push(`${w}x${h} ${JSON.stringify(m)}`);
+        await c.close();
+      }
+      ok(!bad.length, "sign-in: cube field fits its panel, phone form centred", bad.join(" | "));
+    });
+
     await step("assistant panel opens", async () => {
       await page.goto(`${BASE}/?v=to_buy`);
       await page.waitForSelector(READY, { timeout: 15000 });

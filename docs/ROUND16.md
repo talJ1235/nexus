@@ -120,7 +120,7 @@ viewport meta / with a different `viewport` export, a server-rendered layout gue
 standalone window after a Custom Tab return). Expected: phone layout on the first paint, no reload. Acceptance: new smoke
 step asserts the phone dock is visible and no `lg` sidebar exists on the first screenshot after the callback.
 
-### A9. [ ] Sign-in screens: centre the content; brand panel cubes fit
+### A9. [x] Sign-in screens: centre the content; brand panel cubes fit
 Tal: big gap between the Google button and the bottom links (also on "sign in again"); cubes too big and cropped on
 PC and phone. Expected: on phone the form block is vertically centred in the space below the brand band, footer links
 pinned at the bottom with the safe area; the cube field scales to the panel (contain, never cropped mid-cube) at
@@ -367,3 +367,10 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   screen with a short side < 600 px and a layout viewport ≥ 1024 px reloads **once per tab session** (smoke: such a phone
   reloads once and stops; a normal phone and a desktop never reload). **Tal:** was it the installed app (home-screen icon)
   or Chrome? If it happens again, a screenshot of the URL bar helps.
+- **A9:** phone — the form block is centred in the space under the brand band (it was top-aligned: `align-items:flex-start`
+  below 900 px), legal line pinned at the bottom with the safe area. Cubes — the field was a fixed 816×876 px stage
+  (390×430 on phones) centred in the panel, so any narrower panel cut it mid-cube; now every cube is placed in % of the
+  field's own bounding box and the stage *contains* itself (aspect-ratio + `cqw/cqh` of an absolutely-inset room above the
+  wordmark). Smoke checks the field inside its panel at 360×740, 390×844, 1280×720, 1366×768, 1920×1080 and the phone form
+  centred; composite `docs/design/parity-r16/signin-sizes.png` (light, reduced motion = Tal's still frame). The re-auth
+  screen is the same `/login` page (returning-account chip), so it gets the same layout.

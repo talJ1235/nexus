@@ -162,6 +162,12 @@ background:var(--bg);color:var(--ink);font-family:inherit;font-size:14px;line-he
 [data-palette=plum] .nx .art{background:radial-gradient(55% 45% at 28% 30%,#e3d4ff 0%,transparent 62%),radial-gradient(50% 45% at 78% 72%,#d8c6ff 0%,transparent 62%),radial-gradient(42% 38% at 75% 18%,#ffd9c4 0%,transparent 60%),linear-gradient(160deg,#faf6ff,#efe6ff 55%,#e6dafb)}
 .dark[data-palette=plum] .nx .art{background:radial-gradient(55% 45% at 30% 30%,rgba(167,139,250,.24),transparent 62%),radial-gradient(50% 45% at 78% 72%,rgba(251,122,60,.12),transparent 62%),linear-gradient(160deg,#160f26,#0c0815)}
 .nx .art .stage{position:absolute;inset:0;-webkit-mask-image:radial-gradient(70% 65% at 50% 48%,#000 55%,transparent 100%);mask-image:radial-gradient(70% 65% at 50% 48%,#000 55%,transparent 100%)}
+/* R16 A9: the field contains itself in the panel (every cube length is % of the stage): never cropped mid-cube.
+   --fw / --fh = the room it may take, --fy = its centre; the wordmark keeps its own room at the bottom. */
+.nx .art .stage-room{position:absolute;inset:28px 28px 112px;container-type:size;pointer-events:none}
+.nx .art .stage-room.auth-phone{inset:6px 0 70px}
+.nx .art .stage{inset:auto;left:50%;top:50%;translate:-50% -50%;aspect-ratio:var(--ratio);width:min(100cqw,calc(100cqh * var(--ratio)));
+  -webkit-mask-image:radial-gradient(75% 70% at 50% 50%,#000 60%,transparent 100%);mask-image:radial-gradient(75% 70% at 50% 50%,#000 60%,transparent 100%)}
 .nx .art .cube{position:absolute;animation:nx-bob 6s ease-in-out infinite;will-change:transform}
 .nx .art .cube i{position:absolute;inset:0}
 .nx .art .cube i.gl{background:rgba(255,255,255,.7);opacity:0;animation:nx-shine 6s ease-in-out infinite}
@@ -218,4 +224,4 @@ background:var(--bg);color:var(--ink);font-family:inherit;font-size:14px;line-he
 .nx .auth-head{display:flex;flex-direction:column;gap:18px}
 @media (max-width:899px){.nx .auth-col>.auth-head{display:none}}
 .nx .auth-center{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 0}
-@media (max-width:899px){.nx .auth-center{align-items:flex-start;padding:0 0 24px}}
+@media (max-width:899px){.nx .auth-center{align-items:center;padding:12px 0 24px}}

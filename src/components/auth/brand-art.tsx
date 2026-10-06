@@ -43,8 +43,30 @@ function field(W: number, H: number, N: number, s: number, cx: number, cy: numbe
   return out;
 }
 
-const DESK = field(816, 876, 21, 30, 0.5, 0.45);
-const PHONE = field(390, 430, 15, 20, 0.5, 0.42);
+/**
+ * R16 A9: the field is drawn in its own box (its bounding box + a small pad) with every length in % of that box, so the
+ * stage can be any size: CSS sizes it to *contain* in the panel (container query units) — never cropped mid-cube.
+ */
+type Fit = { ratio: number; cubes: { left: string; top: string; width: string; height: string; dl: number; ct: string; cl: string; cr: string; band: number }[] };
+function fit(cubes: Cube[], pad = 6): Fit {
+  const x0 = Math.min(...cubes.map((c) => c.x)) - pad;
+  const y0 = Math.min(...cubes.map((c) => c.y)) - pad;
+  const W = Math.max(...cubes.map((c) => c.x + c.w)) + pad - x0;
+  const H = Math.max(...cubes.map((c) => c.y + c.h)) + pad - y0;
+  const pc = (v: number, of: number) => `${Math.round((v / of) * 100000) / 1000}%`;
+  // polygon(x y, …) in px inside a cube box (w × h) → the same points in % of that box.
+  const rel = (poly: string, w: number, h: number) => {
+    const pts = poly.slice("polygon(".length, -1).split(",").map((pt) => pt.trim().split(/\s+/).map(parseFloat));
+    return `polygon(${pts.map(([a, b]) => `${pc(a, w)} ${pc(b, h)}`).join(",")})`;
+  };
+  return {
+    ratio: W / H,
+    cubes: cubes.map((c) => ({ left: pc(c.x - x0, W), top: pc(c.y - y0, H), width: pc(c.w, W), height: pc(c.h, H), dl: c.dl, band: c.band, ct: rel(c.ct, c.w, c.h), cl: rel(c.cl, c.w, c.h), cr: rel(c.cr, c.w, c.h) })),
+  };
+}
+
+const DESK = fit(field(816, 876, 21, 30, 0.5, 0.45));
+const PHONE = fit(field(390, 430, 15, 20, 0.5, 0.42));
 
 export function BoxMark({ size = 36 }: { size?: number }) {
   return (
@@ -56,11 +78,13 @@ export function BoxMark({ size = 36 }: { size?: number }) {
   );
 }
 
-function Stage({ cubes, className, style }: { cubes: Cube[]; className: string; style: React.CSSProperties }) {
+function Stage({ f, className }: { f: Fit; className: string }) {
   return (
-    <div className={`stage ${className}`} style={style}>
-      {cubes.map((c, k) => (
-        <div key={k} className="cube" style={{ left: c.x, top: c.y, width: c.w, height: c.h, animationDelay: `${c.dl}s` }}>
+    // The room (absolute, sized by its insets) is the size container; the stage contains itself in it.
+    <div className={`stage-room ${className}`}>
+    <div className="stage" style={{ "--ratio": f.ratio } as React.CSSProperties} data-auth-stage>
+      {f.cubes.map((c, k) => (
+        <div key={k} className="cube" style={{ left: c.left, top: c.top, width: c.width, height: c.height, animationDelay: `${c.dl}s` }}>
           <i style={{ clipPath: c.cl, background: `var(--cb${c.band}l)` }} />
           <i style={{ clipPath: c.cr, background: `var(--cb${c.band}r)` }} />
           <i style={{ clipPath: c.ct, background: `var(--cb${c.band}t)` }} />
@@ -68,15 +92,16 @@ function Stage({ cubes, className, style }: { cubes: Cube[]; className: string; 
         </div>
       ))}
     </div>
+    </div>
   );
 }
 
-/** Desktop: the left panel (field centred on an 816 × 876 stage); phone: the top band (390 × 430). */
+/** Desktop: the left panel (the field contained above the wordmark); phone: the top band (the field above the name). */
 export function BrandArt() {
   return (
     <section className="art" dir="ltr" aria-hidden="true">
-      <Stage cubes={DESK} className="auth-desk" style={{ inset: "auto", left: "50%", top: "50%", width: 816, height: 876, transform: "translate(-50%,-50%)" }} />
-      <Stage cubes={PHONE} className="auth-phone" style={{ inset: "auto", left: "50%", top: 0, width: 390, height: 430, transform: "translateX(-50%)" }} />
+      <Stage f={DESK} className="auth-desk" />
+      <Stage f={PHONE} className="auth-phone" />
       <div className="mark auth-desk" style={{ left: 40, bottom: 36, fontSize: 30 }}>
         <BoxMark size={40} />
         {APP_NAME}
