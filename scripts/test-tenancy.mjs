@@ -46,6 +46,8 @@ const ok = (cond, msg, detail = "") => {
 for (const f of [DB, `${DB}-journal`]) if (existsSync(f)) rmSync(f);
 execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", "src/db/migrate.ts"], { env: ENV, stdio: "ignore" });
 const db = createClient({ url: `file:${DB}` });
+// The server writes to the same file: wait for its locks instead of failing with SQLITE_BUSY (fast CI runners hit it).
+await db.execute("PRAGMA busy_timeout = 10000");
 const now = Date.now();
 const U = { A: "uA_" + id(), B: "uB_" + id(), V: "uV_" + id() };
 const SP = { A: "sA_" + id(), B: "sB_" + id(), V: "sV_" + id(), S: "sS_" + id() };
