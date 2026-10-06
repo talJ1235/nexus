@@ -186,6 +186,7 @@ export function HomeSummary() {
       <div className="rise-in col-span-2 flex flex-col gap-2 rounded-[26px] bg-[image:var(--hero)] p-4 text-on-hero sm:gap-2.5 sm:p-5 lg:col-span-1 lg:min-h-[180px] lg:gap-1.5 lg:rounded-[30px] lg:px-6 lg:py-[18px]" data-totals>
         <span className="flex items-center gap-2 text-[13px] opacity-85">
           {n === 1 ? t.home.leftToBuyOne : f(t.home.leftToBuy, { n })}
+          {sum.totals.estimated > 0 && <span className="text-xs opacity-80" data-estimated>· {f(t.home.estimated, { n: sum.totals.estimated })}</span>}
           {sum.saved >= 1 && <em className="ms-auto rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-bold not-italic">{f(t.home.saved, { amount: m(Math.round(sum.saved)) })}</em>}
         </span>
         <BigMoney value={sum.totals.total} className="text-[34px] font-black leading-[0.95] tracking-[-0.03em] sm:text-[44px] lg:text-[48px]" />

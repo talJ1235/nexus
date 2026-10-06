@@ -4,7 +4,7 @@ import { ExternalLink, PackageCheck, Split, Truck, Undo2 } from "lucide-react";
 import { updateItem } from "@/app/actions";
 import { useI18n } from "@/components/providers";
 import { StoreMark } from "@/components/ui/store-mark";
-import { activeSource, lineTotal, unitPrice } from "@/lib/calc";
+import { activeSource, lastPaidEstimate, lineTotal, unitPrice } from "@/lib/calc";
 import { formatMoney } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -134,7 +134,7 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
                     {i.sources.length > 1 && <span dir="ltr" className="inline-block text-xs text-faint">+{i.sources.length - 1}</span>}
                   </span>
                 </td>
-                <td className="tabular py-2 pe-2 text-end">{unit == null ? <span className="text-faint">—</span> : formatMoney(unit, s.currency, locale)}</td>
+                <td className="tabular py-2 pe-2 text-end">{unit == null ? <span className="text-faint">—</span> : lastPaidEstimate(i, s.rates) ? <span className="text-muted" data-last-paid title={t.item.lastPaid}>~{formatMoney(unit, s.currency, locale)}</span> : formatMoney(unit, s.currency, locale)}</td>
                 <td className="py-1 text-center">
                   <QtyCell item={i} />
                 </td>

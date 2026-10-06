@@ -760,6 +760,7 @@ export const he: Dict = {
   home: {
     leftToBuy: "נשאר לקנות · {n} פריטים",
     leftToBuyOne: "נשאר לקנות · פריט אחד",
+    estimated: "~{n} לפי המחיר ששולם לאחרונה",
     onTheWay: "בדרך · {n} פריטים",
     spent: "הוצאה · {n} פריטים",
     saved: "חסכת {amount}",
@@ -1076,6 +1077,7 @@ export const he: Dict = {
     total: "סה״כ",
     each: "ליחידה",
     noPrice: "אין מחיר",
+    lastPaid: "שולם לאחרונה",
     openStore: "פתח בחנות",
     markPurchased: "סמן כנקנה",
     markToBuy: "החזר ל״לקנות״",

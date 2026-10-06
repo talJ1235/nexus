@@ -52,7 +52,7 @@ closed circle; Part B keeps connections low (only visible tabs).
 
 ## Part A — bugs and small UX (Session 1)
 
-### A1. [ ] Receipt items lose their price when moved out of History
+### A1. [x] Receipt items lose their price when moved out of History
 Tal: scanned a receipt → items in History with prices → moved to To buy → prices gone.
 Cause (found): `statusPatch()` in `src/app/actions.ts` sets `purchasedPrice/purchasedCurrency = null` for `to_buy`.
 Items created by a receipt (`applyReceipt`, `receipt-actions.ts`) have **no source**, so the paid price was their only
@@ -66,7 +66,7 @@ price. Expected: no status change ever loses a price the user had.
 - Acceptance: unit test on `statusPatch` for all 9 transitions × with/without source; smoke: apply a fixture receipt →
   move 2 items to To buy → prices still visible → back to Received → paid price = original.
 
-### A2. [ ] Re-opening "Scan receipt" shows the previous receipt and won't take a new one
+### A2. [x] Re-opening "Scan receipt" shows the previous receipt and won't take a new one
 Tal (PC): open the scanner again → previous receipt appears (re-shuffled), a new file isn't accepted until a refresh.
 Not reproduced yet — reproduce first (PC upload path and phone camera path). Candidates seen in
 `receipt-dialog.tsx`: the hidden file `<input>` never clears `value` (choosing again doesn't fire `onChange`); the open

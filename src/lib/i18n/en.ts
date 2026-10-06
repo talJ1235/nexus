@@ -758,6 +758,7 @@ export const en = {
   home: {
     leftToBuy: "Left to buy · {n} items",
     leftToBuyOne: "Left to buy · 1 item",
+    estimated: "~{n} estimated from last paid",
     onTheWay: "On the way · {n} items",
     spent: "Spent · {n} items",
     saved: "{amount} saved",
@@ -1074,6 +1075,7 @@ export const en = {
     total: "Total",
     each: "each",
     noPrice: "No price",
+    lastPaid: "Last paid",
     openStore: "Open in store",
     markPurchased: "Mark as purchased",
     markToBuy: "Move back to To buy",

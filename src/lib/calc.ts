@@ -34,7 +34,16 @@ export function unitPrice(item: ItemWithSources, rates: Rates, currency: string)
   }
   const s = activeSource(item, rates);
   const t = s ? sourceTotal(s) : null;
-  return t == null || !s ? null : convert(t, s.currency, currency, rates);
+  if (t != null && s) return convert(t, s.currency, currency, rates);
+  if (item.status === "to_buy" && item.lastPaidPrice != null) return convert(item.lastPaidPrice, item.lastPaidCurrency ?? currency, currency, rates);
+  return null;
+}
+
+/** R16 A1: a To-buy item with no live store price but a price paid before → that price is its estimate ("Last paid"). */
+export function lastPaidEstimate(item: ItemWithSources, rates: Rates): boolean {
+  if (item.status !== "to_buy" || item.lastPaidPrice == null) return false;
+  const s = activeSource(item, rates);
+  return !s || sourceTotal(s) == null;
 }
 
 export function lineTotal(item: ItemWithSources, rates: Rates, currency: string) {
@@ -42,15 +51,20 @@ export function lineTotal(item: ItemWithSources, rates: Rates, currency: string)
   return u == null ? null : u * item.quantity;
 }
 
+/** `estimated` = lines priced from "last paid" (totals show "~" then). */
 export function sumTotals(items: ItemWithSources[], rates: Rates, currency: string) {
   let total = 0;
   let missing = 0;
+  let estimated = 0;
   for (const i of items) {
     const l = lineTotal(i, rates, currency);
     if (l == null) missing++;
-    else total += l;
+    else {
+      total += l;
+      if (lastPaidEstimate(i, rates)) estimated++;
+    }
   }
-  return { total, missing };
+  return { total, missing, estimated };
 }
 
 /**

@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { LEGACY_CATEGORIES } from "../lib/categories";
 import { migrateR15 } from "./migrate-r15";
+import { migrateR16 } from "./migrate-r16";
 
 async function main() {
   const url = process.env.TURSO_DATABASE_URL ?? "file:local.db";
@@ -97,6 +98,8 @@ async function main() {
   });
   // Round 15: accounts, spaces, space_id everywhere (refuses a remote DB outside the Vercel build).
   await migrateR15(client, url, (m) => console.log(`[migrate-r15] ${m}`));
+  // Round 16: additive only (last paid price, change feed, error log).
+  await migrateR16(client, (m) => console.log(`[migrate-r16] ${m}`));
   console.log("[migrate] done:", url.replace(/\/\/.*@/, "//***@").split("?")[0]);
   client.close();
 }

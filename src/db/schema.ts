@@ -47,6 +47,9 @@ export const items = sqliteTable(
     // Unit price actually paid (captured when ordered/purchased).
     purchasedPrice: real("purchased_price"),
     purchasedCurrency: text("purchased_currency"),
+    // R16 A1: the paid price kept when the item goes back to To buy (shown as "Last paid", pre-fills the next purchase).
+    lastPaidPrice: real("last_paid_price"),
+    lastPaidCurrency: text("last_paid_currency"),
     trackingNumber: text("tracking_number"),
     carrier: text("carrier"),
     eta: integer("eta"),

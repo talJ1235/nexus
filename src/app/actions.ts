@@ -15,6 +15,7 @@ import { storeThumbnail } from "@/lib/images";
 import { storeFromUrl } from "@/lib/stores";
 import type { AltGroup, Collection, ItemWithSources, PreviewResult, SourceDraft } from "@/lib/types";
 import { isHttpUrl } from "@/lib/utils";
+import { statusPatch, type Paid, type Status } from "@/lib/status";
 
 // R15 B3: every action resolves the ctx first (requireCtx), then works only inside the current space (scoped).
 const edit = async () => scoped(await requireCtx("edit"));
@@ -135,18 +136,8 @@ export async function updateItem(id: string, patch: z.input<typeof itemPatch>): 
   return mustItem(s, id);
 }
 
-type Status = "to_buy" | "ordered" | "purchased";
-type Paid = { price: number; currency: string } | null;
 const StatusZ = z.enum(["to_buy", "ordered", "purchased"]);
 const PaidZ = z.object({ price: z.number().nonnegative(), currency: z.string().min(3).max(3) }).strict().nullable();
-
-function statusPatch(status: Status, paid: Paid, current?: { orderedAt: number | null; purchasedPrice: number | null; purchasedCurrency: string | null }) {
-  const t = now();
-  if (status === "to_buy") return { status, orderedAt: null, purchasedAt: null, purchasedPrice: null, purchasedCurrency: null, updatedAt: t };
-  const price = paid ? { purchasedPrice: paid.price, purchasedCurrency: paid.currency } : current?.purchasedPrice != null ? {} : { purchasedPrice: null, purchasedCurrency: null };
-  if (status === "ordered") return { status, orderedAt: t, purchasedAt: null, ...price, updatedAt: t };
-  return { status, orderedAt: current?.orderedAt ?? null, purchasedAt: t, ...price, updatedAt: t };
-}
 
 /** Move an item along to_buy → ordered → purchased (received). `paid` = unit price actually paid. */
 export async function setStatus(id: string, status: Status, paid?: Paid): Promise<ItemWithSources> {

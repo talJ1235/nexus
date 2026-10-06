@@ -367,7 +367,7 @@ function ViewHeader() {
                 {totals.total > 0 && (
                   <>
                     <span className="mx-2 text-faint">/</span>
-                    {spentView ? t.collection.spent : t.view.itemsTotal} <b className="font-semibold text-fg">{formatMoney(totals.total, s.currency, locale)}</b>
+                    {spentView ? t.collection.spent : t.view.itemsTotal} <b className="font-semibold text-fg">{totals.estimated ? "~" : ""}{formatMoney(totals.total, s.currency, locale)}</b>
                   </>
                 )}
               </p>

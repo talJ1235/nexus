@@ -5,12 +5,13 @@ import { Check, Flag, FolderInput, Inbox, Minus, Package, Plus, Split, Trash2, T
 import { toast } from "@/lib/toast";
 import { setStatus, updateItem } from "@/app/actions";
 import { useI18n } from "@/components/providers";
-import { activeSource, cheapestSource, lineTotal, lowestSeen, unitPrice } from "@/lib/calc";
+import { activeSource, cheapestSource, lastPaidEstimate, lineTotal, lowestSeen, unitPrice } from "@/lib/calc";
 import { convert, formatMoney } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { normalizeCategory } from "@/lib/categories";
 import { importCheck, isForeignStore } from "@/lib/import-vat";
+import { statusPatch } from "@/lib/status";
 import { useDataStore } from "./store";
 import { AddedBy } from "./spaces/space-ui";
 import { useReadOnly } from "./offline-banner";
@@ -149,10 +150,8 @@ function paidFor(item: ItemWithSources, rates: Parameters<typeof activeSource>[1
 }
 
 export function optimisticStatus(item: ItemWithSources, status: Status, paid: ReturnType<typeof paidFor>): ItemWithSources {
-  const t = Date.now();
-  if (status === "to_buy") return { ...item, status, orderedAt: null, purchasedAt: null, purchasedPrice: null, purchasedCurrency: null };
-  const price = paid ? { purchasedPrice: paid.price, purchasedCurrency: paid.currency } : {};
-  return status === "ordered" ? { ...item, status, orderedAt: t, purchasedAt: null, ...price } : { ...item, status, purchasedAt: t, ...price };
+  // Same rules as the server (R16 A1: a paid price is kept as "last paid", never lost).
+  return { ...item, ...statusPatch(status, paid, item) };
 }
 
 /** Moves an item along To buy → Ordered → Received, with undo. */
@@ -219,6 +218,12 @@ export function PriceTag({ item, size = "md" }: { item: ItemWithSources; size?: 
   const { t, locale } = useI18n();
   const unit = unitPrice(item, s.rates, s.currency);
   if (unit == null) return <span className={cn("price-tag muted", size === "lg" ? "text-base" : "text-[13px]")}>{t.item.noPrice}</span>;
+  if (lastPaidEstimate(item, s.rates))
+    return (
+      <span className={cn("price-tag muted", size === "lg" ? "text-lg" : "text-[14px]")} data-last-paid title={t.item.lastPaid}>
+        <span className="me-1 text-[11px] font-medium">{t.item.lastPaid}</span>~{formatMoney(unit, s.currency, locale)}
+      </span>
+    );
   return <span className={cn("price-tag", size === "lg" ? "text-lg" : "text-[14px]")}>{formatMoney(unit, s.currency, locale)}</span>;
 }
 
@@ -723,6 +728,13 @@ export function CardPrice({ item, className }: { item: ItemWithSources; classNam
   const unit = unitPrice(item, s.rates, s.currency);
   // No price: always small and muted (the size override is for real prices).
   if (unit == null) return <span className="text-[13px] font-medium text-muted">{t.item.noPrice}</span>;
+  if (lastPaidEstimate(item, s.rates))
+    return (
+      <span className="inline-flex min-w-0 items-baseline gap-1 text-muted" data-last-paid>
+        <span className="truncate text-[11px] font-medium">{t.item.lastPaid}</span>
+        <span className={cn("tabular text-[19px] font-black tracking-[-0.02em]", className)}>~{formatMoney(unit, s.currency, locale)}</span>
+      </span>
+    );
   return <span className={cn("tabular text-[19px] font-black tracking-[-0.02em] text-ink", className)}>{formatMoney(unit, s.currency, locale)}</span>;
 }
 

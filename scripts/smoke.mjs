@@ -2471,6 +2471,114 @@ try {
           );
         });
 
+        // R16 A2 (mock AI): every opening of "Scan receipt" starts clean; a new (or the same) file is always taken.
+        // Files: locally there is no Blob store, so a picked file ends in "Upload failed" — that toast proves it was read.
+        await step("receipt dialog: reopen starts clean, A then B is read, same file twice is taken", async () => {
+          if (MOBILE) return ok(true, "receipt dialog: reopen starts clean, A then B is read, same file twice is taken (desktop only)");
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY);
+          const dlg = page.locator("[data-receipt-dialog]");
+          const open = async () => {
+            await page.locator("[data-receipt-open=add]").click();
+            await dlg.waitFor({ timeout: 8000 });
+            return dlg.getAttribute("data-receipt-dialog");
+          };
+          const close = async () => {
+            await page.keyboard.press("Escape");
+            await dlg.waitFor({ state: "detached", timeout: 8000 });
+          };
+          const tag = `RD${Date.now().toString(36)}`;
+          const readText = async (name) => {
+            await page.locator("#receipt-text").fill(["Store: Smoke grocer", `1 x ${name} ${tag} @ 3`, "1 x Filler line @ 1"].join("\n"));
+            await page.getByRole("button", { name: /^(Read|קריאה)$/ }).click();
+            await page.locator("[data-receipt-review]").waitFor({ timeout: 30000 });
+            return page.locator("[data-receipt-review]").innerText();
+          };
+          const phases = [await open()];
+          const a = await readText("Apples");
+          await close();
+          phases.push(await open());
+          const b = await readText("Bananas");
+          await close();
+          // Files (A, B, then B again): each pick must fire.
+          const uploads = page.locator("[data-sonner-toast]").filter({ hasText: /Upload failed|ההעלאה נכשלה/ });
+          const fails = [];
+          for (const f of ["00-white.jpg", "01-wood.jpg", "01-wood.jpg"]) {
+            phases.push(await open());
+            const before = await uploads.count();
+            await page.locator("[data-receipt-file]").setInputFiles(`test-data/receipt-synth/${f}`);
+            await page.waitForFunction((n) => [...document.querySelectorAll("[data-sonner-toast]")].filter((t) => /Upload failed|ההעלאה נכשלה/.test(t.textContent || "")).length > n || document.querySelector("[data-receipt-review]"), before, { timeout: 30000 }).catch(() => {});
+            fails.push((await uploads.count()) > before || (await page.locator("[data-receipt-review]").count()) > 0);
+            await close();
+          }
+          // Clean up the two text receipts left "not applied".
+          await open();
+          for (let k = 0; k < 2; k++) {
+            const row = page.locator("[data-receipt-dialog] li").filter({ hasText: /email.txt|Smoke grocer|Pasted/i }).first();
+            if (!(await row.count())) break;
+            await row.getByRole("button", { name: /^(Discard|מחיקה)$/ }).click().catch(() => {});
+            await page.waitForTimeout(400);
+          }
+          await close();
+          ok(
+            phases.every((p) => p === "pick") && a.includes("Apples") && !b.includes("Apples") && b.includes("Bananas") && fails.every(Boolean),
+            "receipt dialog: reopen starts clean, A then B is read, same file twice is taken",
+            JSON.stringify({ phases, a: a.includes("Apples"), b: [b.includes("Bananas"), b.includes("Apples")], fails }),
+          );
+        });
+
+        // R16 A1 (mock AI): receipt items (no store link) keep their paid price through To buy and back (bulk path).
+        await step("receipt prices survive To buy and back (bulk)", async () => {
+          if (MOBILE) return ok(true, "receipt prices survive To buy and back (bulk) (desktop only)");
+          const backup = async () => (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items;
+          const tag = `LP${Date.now().toString(36)}`;
+          const text = ["Store: Smoke grocer", `Order: SMOKE-${tag}`, `1 x Oat milk ${tag} @ 12.9`, `1 x Rye bread ${tag} @ 17.5`].join("\n");
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector(READY);
+          await page.locator("[data-receipt-open=add]").click();
+          const dlg = page.getByRole("dialog");
+          await dlg.locator("#receipt-text").fill(text);
+          await dlg.getByRole("button", { name: /^(Read|קריאה)$/ }).click();
+          await dlg.locator("[data-receipt-review]").waitFor({ timeout: 30000 });
+          await dlg.locator("[data-receipt-apply]").click();
+          await page.locator("[data-sonner-toast]").filter({ hasText: /from the receipt|מהקבלה/ }).first().waitFor({ timeout: 15000 });
+          const mine = async () => (await backup()).filter((i) => i.title.includes(tag));
+          const made = await mine();
+          const paid = Object.fromEntries(made.map((i) => [i.id, i.purchasedPrice]));
+          // Select both in History, right-click → To buy (one bulk call).
+          const move = async (view, to) => {
+            await page.goto(`${BASE}/?v=${view}`);
+            await page.waitForSelector(READY);
+            for (const i of made) await page.locator(`[data-item-card="${i.id}"], [data-item-row="${i.id}"]`).first().click({ modifiers: ["Control"] });
+            await page.locator(`[data-item-card="${made[0].id}"], [data-item-row="${made[0].id}"]`).first().click({ button: "right" });
+            await page.locator(`[role=menuitem][data-item-action=${to}]`).click();
+            await page.waitForTimeout(1200);
+          };
+          await move("history", "to_buy");
+          const inToBuy = await mine();
+          await page.goto(`${BASE}/?v=to_buy`);
+          await page.waitForSelector(READY);
+          // Items showing a "Last paid" price (a card may render the price twice, for its wide and narrow layouts).
+          let visible = 0;
+          for (const i of made) visible += (await page.locator(`[data-item-card="${i.id}"] [data-last-paid], [data-item-row="${i.id}"] [data-last-paid]`).count()) > 0 ? 1 : 0;
+          await shot(page, "last-paid");
+          await move("to_buy", "purchased");
+          const back = await mine();
+          // Clean up.
+          for (const i of made) {
+            await page.goto(`${BASE}/?v=history&item=${i.id}`);
+            await page.getByRole("button", { name: /^(Delete item|מחק פריט)$/ }).click({ timeout: 15000 });
+            await page.waitForTimeout(400);
+          }
+          ok(
+            made.length === 2 && made.every((i) => i.purchasedPrice > 0) &&
+              inToBuy.every((i) => i.status === "to_buy" && i.lastPaidPrice === paid[i.id]) && visible === 2 &&
+              back.every((i) => i.status === "purchased" && i.purchasedPrice === paid[i.id]),
+            "receipt prices survive To buy and back (bulk)",
+            JSON.stringify({ made: made.map((i) => [i.status, i.purchasedPrice]), inToBuy: inToBuy.map((i) => [i.status, i.lastPaidPrice]), visible, back: back.map((i) => [i.status, i.purchasedPrice]) }),
+          );
+        });
+
         // Round 10 D5 (mock AI): a receipt of 5 new grocery lines → every card gets a picture (shimmer until then) →
         // change one in the picker → approve all → Confirm: the items carry the pictures, alternatives, approved.
         // Then the item sheet's "Change picture" swaps one. The test items are deleted afterwards.
