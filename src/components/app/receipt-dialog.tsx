@@ -26,11 +26,17 @@ export function ReceiptDialog() {
   const s = useStore();
   const { t, f, locale } = useI18n();
   const open = s.panel === "receipt";
-  const [phase, setPhase] = useState<Phase>({ step: "pick" });
+  const [phase, setPhaseRaw] = useState<Phase>({ step: "pick" });
   const [text, setText] = useState("");
   const [saved, setSaved] = useState<ReceiptView[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const seedAt = useRef(0);
+  // R16 A2: every opening is a new session; results of work started in an earlier one (a read still running when the
+  // dialog was closed) are dropped instead of replacing what this opening shows.
+  const session = useRef(0);
+  const setPhase = useCallback((p: Phase, from = session.current) => {
+    if (from === session.current) setPhaseRaw(p);
+  }, []);
 
   const refreshSaved = useCallback(() => {
     listReceipts().then(setSaved, () => setSaved([]));
@@ -39,10 +45,11 @@ export function ReceiptDialog() {
   const hintCollection = s.view.type === "collection" ? s.view.id : null;
   const read = useCallback(
     async (id: string) => {
+      const from = session.current;
       setPhase({ step: "busy", label: t.scan.reading });
       const res = await readReceipt(id).catch(() => ({ error: "failed" as const }));
       if ("error" in res) {
-        setPhase({ step: "failed", message: res.error === "no_ai" ? t.scan.noAi : t.scan.failed, receiptId: id });
+        setPhase({ step: "failed", message: res.error === "no_ai" ? t.scan.noAi : t.scan.failed, receiptId: id }, from);
         return;
       }
       setPhase({
@@ -53,14 +60,15 @@ export function ReceiptDialog() {
           const m = res.matches[i];
           return { ...l, mode: m.allocations.length ? "match" : "new", allocations: m.allocations.map(({ itemId, qty }) => ({ itemId, qty })), ranked: m.ranked.map((r) => r.itemId), collectionId: hintCollection } satisfies LineState;
         }),
-      });
+      }, from);
     },
-    [t, hintCollection],
+    [t, hintCollection, setPhase],
   );
 
   /** Upload ready parts (JPEG tiles / a PDF) as ONE receipt — first file + the rest as parts, in order — then read it. */
   const uploadParts = useCallback(
     async (blobs: Blob[], name: string) => {
+      const from = session.current;
       setPhase({ step: "busy", label: t.scan.uploading });
       let id: string;
       try {
@@ -74,12 +82,13 @@ export function ReceiptDialog() {
         id = (await createReceipt({ file: { url: urls[0], name, contentType: blobs[0].type || null, size: blobs[0].size }, parts: urls.slice(1) })).id;
       } catch {
         toast.error(t.scan.uploadFailed);
-        setPhase({ step: "pick" });
+        setPhase({ step: "pick" }, from);
         return;
       }
-      await read(id);
+      // Closed (or reopened) while uploading: the receipt waits under "Not applied yet" instead of opening by itself.
+      if (from === session.current) await read(id);
     },
-    [read, t],
+    [read, t, setPhase, s.spaceId],
   );
 
   const fromFile = useCallback(
@@ -89,37 +98,42 @@ export function ReceiptDialog() {
         return;
       }
       // Photos: straighten, crop, clean up and split very tall ones in the browser (smaller, sharper uploads).
+      const from = session.current;
       let blobs: Blob[] = [file];
       if (file.type.startsWith("image/")) {
         setPhase({ step: "busy", label: t.scan.preparing });
         blobs = await prepareReceiptPart(file, { autoCrop: true }).catch(() => [file]);
       }
-      await uploadParts(blobs, file.name);
+      if (from === session.current) await uploadParts(blobs, file.name);
     },
-    [uploadParts, t],
+    [uploadParts, t, setPhase],
   );
 
   const fromText = async () => {
+    const from = session.current;
     setPhase({ step: "busy", label: t.scan.reading });
     try {
       const r = await createReceipt({ text: text.trim() });
       setText("");
-      await read(r.id);
+      if (from === session.current) await read(r.id);
     } catch {
-      setPhase({ step: "failed", message: t.scan.failed, receiptId: null });
+      setPhase({ step: "failed", message: t.scan.failed, receiptId: null }, from);
     }
   };
 
   // Opened: list receipts waiting to be applied; a file dropped on the app is read right away.
   useEffect(() => {
     if (!open) return;
+    // Every opening starts clean at "pick" (R16 A2: a busy/review state from the last receipt never carries over).
+    session.current++;
     /* eslint-disable react-hooks/set-state-in-effect -- reset per opening */
+    setPhaseRaw({ step: "pick" });
     const seed = s.receiptSeed;
     if (seed && seed.at !== seedAt.current) {
       seedAt.current = seed.at;
       if (seed.parts?.length) void uploadParts(seed.parts, "receipt.jpg");
       else if (seed.file) void fromFile(seed.file);
-    } else if (phase.step !== "busy") setPhase({ step: "pick" });
+    }
     /* eslint-enable react-hooks/set-state-in-effect */
     refreshSaved();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -156,15 +170,17 @@ export function ReceiptDialog() {
             : { mode: "ignore" as const },
       ),
     };
+    const from = session.current;
     setPhase({ step: "busy", label: t.scan.reading });
     const res = await applyReceipt(input).catch(() => ({ error: "invalid" as const }));
     if ("error" in res) {
       toast.error(t.errors.generic);
-      setPhase(p);
+      setPhase(p, from);
       return;
     }
     s.upsertItems(res.items);
     s.fillImages(res.items.filter((i) => !i.imageUrl).map((i) => i.id));
+    setPhase({ step: "pick" }, from);
     close();
     toast.success(f(t.scan.applied, { n: res.items.length }), {
       action: {
@@ -184,7 +200,19 @@ export function ReceiptDialog() {
       <div data-receipt-dialog={phase.step}>
         {phase.step === "pick" && (
           <div className="flex flex-col gap-3">
-            <input ref={fileRef} type="file" accept="image/*,application/pdf" hidden onChange={(e) => e.target.files?.[0] && void fromFile(e.target.files[0])} />
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*,application/pdf"
+              hidden
+              data-receipt-file
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                // Cleared at once: choosing the same file again must fire onChange too (R16 A2).
+                e.target.value = "";
+                if (file) void fromFile(file);
+              }}
+            />
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
