@@ -12,6 +12,17 @@ if (!url.startsWith("file:")) {
   process.exit(1);
 }
 const db = createClient({ url });
+// R15: rows live in a space — the admin's personal space (ADMIN_EMAIL), else SEED_SPACE, else the first personal space.
+const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+const pick = async (sql, args = []) => (await db.execute({ sql, args })).rows[0]?.id ?? null;
+const SPACE =
+  process.env.SEED_SPACE ||
+  (adminEmail && (await pick(`SELECT s.id FROM space s JOIN "user" u ON u.id = s.created_by WHERE s.kind = 'personal' AND lower(u.email) = ? ORDER BY s.created_at LIMIT 1`, [adminEmail]))) ||
+  (await pick("SELECT id FROM space WHERE kind = 'personal' AND deleted_at IS NULL ORDER BY created_at LIMIT 1"));
+if (!SPACE) {
+  console.log("FAIL seed-local: no space yet — run the migration with ADMIN_EMAIL set (it creates the admin's personal space)");
+  process.exit(1);
+}
 
 // Simple flat product illustrations (the sandbox can't reach store CDNs).
 const art = (body) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${body}</svg>`)}`;
@@ -111,35 +122,35 @@ await db.execute("DELETE FROM items WHERE id LIKE 'demo-%'");
 await db.execute("DELETE FROM collections WHERE id LIKE 'demo-%'");
 for (const [i, c] of collections.entries())
   await db.execute({
-    sql: "INSERT INTO collections (id, kind, name, color, budget, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
-    args: [c.id, c.kind, c.name, c.color, c.budget, i],
+    sql: "INSERT INTO collections (id, space_id, kind, name, color, budget, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    args: [c.id, SPACE, c.kind, c.name, c.color, c.budget, i],
   });
 for (const [n, [id, title, img, col, prio, qty, status, src, tags, ago, etaDays]] of items.entries()) {
   const t = now - (ago ?? n) * day;
   await db.execute({
-    sql: `INSERT INTO items (id, collection_id, title, image_url, category, tags, status, priority, quantity, ordered_at, purchased_at, purchased_price, purchased_currency, eta, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [id, col, title, IMG[img], CAT[img], JSON.stringify(tags), status, prio, qty, status !== "to_buy" ? t : null, status === "purchased" ? t : null, status !== "to_buy" ? src[2] + (src[4] ?? 0) : null, status !== "to_buy" ? src[3] : null, etaDays != null ? now + etaDays * day : null, t, t],
+    sql: `INSERT INTO items (id, space_id, collection_id, title, image_url, category, tags, status, priority, quantity, ordered_at, purchased_at, purchased_price, purchased_currency, eta, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [id, SPACE, col, title, IMG[img], CAT[img], JSON.stringify(tags), status, prio, qty, status !== "to_buy" ? t : null, status === "purchased" ? t : null, status !== "to_buy" ? src[2] + (src[4] ?? 0) : null, status !== "to_buy" ? src[3] : null, etaDays != null ? now + etaDays * day : null, t, t],
   });
   const [store, key, price, currency, shipping, url] = src;
   await db.execute({
-    sql: "INSERT INTO sources (id, item_id, url, normalized_url, store, store_key, price, currency, shipping, raw_title, fetched_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    args: [`${id}-s`, id, url, url, store, key, price, currency, shipping, title, t, t],
+    sql: "INSERT INTO sources (id, space_id, item_id, url, normalized_url, store, store_key, price, currency, shipping, raw_title, fetched_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    args: [`${id}-s`, SPACE, id, url, url, store, key, price, currency, shipping, title, t, t],
   });
   for (const [k, f] of (SPARSE ? [] : (PTS[id] ?? [[20, 1.12], [10, 1.05], [0, 1]])).entries())
     await db.execute({
-      sql: "INSERT INTO price_points (id, source_id, item_id, price, currency, recorded_at) VALUES (?, ?, ?, ?, ?, ?)",
-      args: [`${id}-p${k}`, `${id}-s`, id, Math.round(price * f[1] * 100) / 100, currency, t - f[0] * day],
+      sql: "INSERT INTO price_points (id, space_id, source_id, item_id, price, currency, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      args: [`${id}-p${k}`, SPACE, `${id}-s`, id, Math.round(price * f[1] * 100) / 100, currency, t - f[0] * day],
     });
 }
 if (SPARSE) {
-  await db.execute("DELETE FROM kv WHERE key LIKE 'pref:budget:%'");
+  await db.execute({ sql: "DELETE FROM space_pref WHERE space_id = ? AND key LIKE 'pref:budget:%'", args: [SPACE] });
   console.log(`OK seeded ${items.length} demo items (sparse)`);
   process.exit(0);
 }
 // An unread price drop on the fan; the Raspberry Pi store's free-shipping rule (fee known); a monthly cap.
-await db.execute({ sql: "INSERT INTO alerts (id, item_id, source_id, kind, old_price, new_price, currency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", args: ["demo-a1", "demo-2", "demo-2-s", "drop", 379, 349, "ILS", now - 3600_000] });
-await db.execute({ sql: "INSERT OR REPLACE INTO store_settings (store_key, free_shipping_min, currency, shipping_fee, updated_at) VALUES (?, ?, ?, ?, ?)", args: ["raspberrypi", 100, "USD", 9, now] });
+await db.execute({ sql: "INSERT INTO alerts (id, space_id, item_id, source_id, kind, old_price, new_price, currency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", args: ["demo-a1", SPACE, "demo-2", "demo-2-s", "drop", 379, 349, "ILS", now - 3600_000] });
+await db.execute({ sql: "INSERT OR REPLACE INTO store_settings (space_id, store_key, free_shipping_min, currency, shipping_fee, updated_at) VALUES (?, ?, ?, ?, ?, ?)", args: [SPACE, "raspberrypi", 100, "USD", 9, now] });
 const month = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit" }).format(new Date(now)).slice(0, 7);
-await db.execute({ sql: "INSERT OR REPLACE INTO kv (key, value, updated_at) VALUES (?, ?, ?)", args: [`pref:budget:${month}`, JSON.stringify({ cap: 9000, currency: "ILS" }), now] });
+await db.execute({ sql: "INSERT OR REPLACE INTO space_pref (space_id, key, value, updated_at) VALUES (?, ?, ?, ?)", args: [SPACE, `pref:budget:${month}`, JSON.stringify({ cap: 9000, currency: "ILS" }), now] });
 console.log(`OK seeded ${items.length} demo items`);

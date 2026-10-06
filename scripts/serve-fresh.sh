@@ -14,6 +14,8 @@ if [ -n "$WIN" ]; then
   for pid in $(netstat -ano | awk -v p=":$PORT" '$2 ~ p"$" && $4 == "LISTENING" {print $5}' | sort -u); do taskkill //F //T //PID "$pid" > /dev/null 2>&1; done
 fi
 rm -f "$DB"
+# R15: the migration makes the admin's personal space from ADMIN_EMAIL (the seed fills that space).
+[ -z "${ADMIN_EMAIL:-}" ] && [ -f .env.local ] && export ADMIN_EMAIL=$(node -e "process.stdout.write(require('util').parseEnv(require('fs').readFileSync('.env.local','utf8')).ADMIN_EMAIL||'')")
 TURSO_DATABASE_URL="file:$DB" npx tsx src/db/migrate.ts > /dev/null || { echo "FAIL migrate"; exit 1; }
 if [ -n "${SEED_PROFILE:-}" ]; then TURSO_DATABASE_URL="file:$DB" node scripts/seed-local.mjs || exit 1; fi
 if [ -n "$WIN" ]; then
