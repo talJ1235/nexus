@@ -13,6 +13,8 @@ import { PaletteSwatch, Segmented } from "./settings-dialog";
 import { useStore } from "./store";
 import { useExtension } from "./use-extension";
 import { useUnreadAlerts } from "./alerts-panel";
+import { useMeName } from "./spaces/space-ui";
+import { SpaceRows } from "./spaces/switcher";
 
 /** Phone "Me" sheet (Round 9 A1), from the avatar in the phone top bar: everything that lives in the sidebar's owner
  * card and Settings on desktop, within thumb reach. Rows are ≥ 52 px. */
@@ -25,6 +27,7 @@ export function MeSheet() {
   const [telegram, setTelegram] = useState<boolean | null>(null);
   const open = s.meOpen;
   const unread = useUnreadAlerts();
+  const meName = useMeName();
 
   useEffect(() => {
     if (!open) return;
@@ -54,10 +57,10 @@ export function MeSheet() {
   return (
     <Sheet open={open} onOpenChange={s.setMeOpen} title={t.me.open} side="start">
       <div className="flex items-center gap-3 border-b border-line px-4 pb-4 pt-2 sm:pt-4" data-sheet-grip data-me>
-        <span className="grid size-14 shrink-0 place-items-center rounded-full bg-ink text-[22px] font-extrabold text-bg">{t.shell.owner.slice(0, 1).toUpperCase()}</span>
+        <span className="grid size-14 shrink-0 place-items-center rounded-full bg-ink text-[22px] font-extrabold text-bg">{meName.slice(0, 1).toUpperCase()}</span>
         <div className="min-w-0 flex-1">
-          <b className="block truncate text-[18px] font-extrabold">{t.shell.owner}</b>
-          {status(ext.available, `${t.ext.connected}${ext.version ? ` · v${ext.version}` : ""}`, t.ext.notInstalled)}
+          <b className="block truncate text-[18px] font-extrabold">{s.me?.name || meName}</b>
+          {s.me && <span className="block truncate text-[13px] text-muted">{s.me.email}</span>}
         </div>
         <SheetClose className="grid size-11 place-items-center rounded-full text-muted hover:bg-surface-2" aria-label={t.phone.closeMenu}>
           <X className="size-5" />
@@ -65,6 +68,8 @@ export function MeSheet() {
       </div>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 pb-[max(24px,env(safe-area-inset-bottom))]">
+        <SpaceRows close={go} />
+
         <section className="space-y-3 rounded-[22px] bg-surface-2 p-4">
           <h3 className="text-[12.5px] font-bold uppercase tracking-wide text-muted">{t.me.look}</h3>
           <Segmented

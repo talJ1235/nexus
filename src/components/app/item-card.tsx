@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { normalizeCategory } from "@/lib/categories";
 import { importCheck, isForeignStore } from "@/lib/import-vat";
 import { useDataStore } from "./store";
+import { AddedBy } from "./spaces/space-ui";
 import { useReadOnly } from "./offline-banner";
 import { useMedia } from "@/components/ui/use-media";
 import { COLLECTION_COLORS } from "./view-items";
@@ -418,6 +419,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
         </h3>
         {/* Phones show the store here (rows are grouped by project; cards carry a project pill). */}
         <div className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted pcard:text-[11.5px]">
+          <AddedBy userId={item.addedByUserId} />
           {collection && (
             <>
               <i className={cn("size-2 shrink-0 max-sm:hidden", collection.kind === "project" ? "rounded-[3px]" : "rounded-full")} style={{ background: COLLECTION_COLORS[collection.color] }} />

@@ -379,7 +379,7 @@ export function ItemShortcuts() {
   const acts = useItemActions();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || s.offlineAt != null) return;
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || s.readOnly) return;
       const el = e.target as HTMLElement | null;
       if (el?.closest("input, textarea, select, [contenteditable=true], [role=dialog], [role=menu]")) return;
       if (document.querySelector("[role=dialog]")) return;

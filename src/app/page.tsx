@@ -13,6 +13,7 @@ import { currentCtx, meInfo, spaceInfo, type Ctx } from "@/lib/ctx";
 import { getAppData } from "@/lib/data";
 import { scoped } from "@/lib/db-scoped";
 import { needsRecoveryPasskey } from "@/lib/auth/security";
+import { spaceShell } from "@/lib/spaces";
 import { getCurrencyPref, getUiPrefs } from "@/lib/server-prefs";
 
 /**
@@ -59,5 +60,6 @@ async function LoadedApp({ boot, ctx }: { boot: AppBoot; ctx: Ctx }) {
   // Local load traces only (scripts/smoke.mjs): simulate a slow database. Unset in production.
   const delay = Number(process.env.NEXUS_TRACE_DELAY_MS) || 0;
   if (delay) await new Promise((r) => setTimeout(r, delay));
-  return <NexusApp boot={boot} initial={await getAppData(scoped(ctx), ctx.user.id, spaceInfo(ctx), meInfo(ctx))} />;
+  const [data, shell] = await Promise.all([getAppData(scoped(ctx), ctx.user.id, spaceInfo(ctx), meInfo(ctx)), spaceShell(ctx.memberships, ctx.space)]);
+  return <NexusApp boot={boot} initial={{ ...data, ...shell }} />;
 }

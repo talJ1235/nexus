@@ -10,6 +10,7 @@ import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { dragIds, ProductImage, useStatusFlow } from "./item-card";
 import { useStore, type PendingAdd } from "./store";
+import { AddedBy } from "./spaces/space-ui";
 import { PendingRow } from "./pending";
 import { COLLECTION_COLORS } from "./view-items";
 import { ItemContextMenu } from "./quick-actions";
@@ -115,6 +116,7 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
                     {i.title}
                   </div>
                   <div className="flex items-center gap-2 truncate text-xs text-faint">
+                    <AddedBy userId={i.addedByUserId} />
                     {i.status === "ordered" && <span className="font-medium text-info">{t.flow.ordered}</span>}
                     {group && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); s.openAlt(group.id); }} className="inline-flex items-center gap-1 font-medium text-accent-ink hover:underline">

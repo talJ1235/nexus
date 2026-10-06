@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, FileSpreadsheet, KeyRound, LogOut, Monitor, Moon, Puzzle, ShieldCheck, Sun, Upload, MessageSquareWarning } from "lucide-react";
+import { Download, FileSpreadsheet, KeyRound, LogOut, Monitor, Moon, Puzzle, ShieldCheck, Sun, Upload, MessageSquareWarning, Users } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
 import { useTheme } from "next-themes";
@@ -20,6 +20,7 @@ import { homeDiag, setAiSuggestions, type HomeDiag } from "@/app/home-actions";
 import { rememberThisDevice } from "@/app/security-actions";
 import { ReportsSubpage } from "./reports-sheet";
 import { useStore } from "./store";
+import { openSpaces, SpaceTile } from "./spaces/space-ui";
 import { useExtension } from "./use-extension";
 import { usePalette } from "@/components/use-palette";
 import { PALETTES, type Palette } from "@/lib/palette";
@@ -213,8 +214,46 @@ export function SettingsDialog() {
           </div>
         ) : (
         <div key="main" className={cn("space-y-6", dir === "back" && "subpage-back")}>
-          <section className="space-y-4">
-            <h3 className="text-xs font-medium text-faint">{t.settings.display}</h3>
+          {/* R15 C3: grouped as in the mockup — the current space first, then "You". Nothing removed. */}
+          {s.space && (
+            <section className="space-y-4" data-settings-space>
+              <h3 className="flex items-center gap-2 text-xs font-medium text-faint">
+                <SpaceTile name={s.space.name} color={s.space.color} size={18} />
+                {s.space.name}
+              </h3>
+              <Row title={t.spaces.spacePeople} hint={t.spaces.peopleHint}>
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      s.setSettingsOpen(false);
+                      setTimeout(() => openSpaces({ kind: "settings" }), 120);
+                    }}
+                    data-settings-space-people
+                  >
+                    <Users />
+                    {t.security.open}
+                  </Button>
+                </div>
+              </Row>
+              {!s.readOnly && (
+                <>
+                  <Row title={t.budget.cap} hint={t.budget.capHint}>
+                    <BudgetEditor />
+                  </Row>
+                  <Row title={t.importVat.title} hint={t.importVat.hint}>
+                    <ImportLimitField />
+                  </Row>
+                </>
+              )}
+            </section>
+          )}
+
+          {s.space?.role === "owner" && <DataSection />}
+
+          <section className="space-y-4 border-t border-line pt-5">
+            <h3 className="text-xs font-medium text-faint">{t.spaces.youGroup} · {t.settings.display}</h3>
             <Row title={t.settings.currency} hint={rates}>
               <Segmented<Currency>
                 label={t.settings.currency}
@@ -222,12 +261,6 @@ export function SettingsDialog() {
                 onChange={s.setCurrency}
                 options={CURRENCIES.map((c) => ({ value: c, label: c === "ILS" ? "₪ ILS" : c === "USD" ? "$ USD" : "€ EUR" }))}
               />
-            </Row>
-            <Row title={t.budget.cap} hint={t.budget.capHint}>
-              <BudgetEditor />
-            </Row>
-            <Row title={t.importVat.title} hint={t.importVat.hint}>
-              <ImportLimitField />
             </Row>
             <Row title={t.settings.theme}>
               <Segmented
@@ -261,8 +294,6 @@ export function SettingsDialog() {
               />
             </Row>
           </section>
-
-          <DataSection />
 
           <AssistantSection />
 

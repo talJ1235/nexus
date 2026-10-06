@@ -6,7 +6,7 @@ import { installClientErrorCapture } from "@/lib/client-errors";
 import { recordNav } from "@/lib/client-diag";
 import type { ReportFields } from "@/lib/reports";
 import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
-import type { Alert, AltGroup, AppData, Collection, ItemWithSources, StoreSetting } from "@/lib/types";
+import type { Alert, AltGroup, AppData, Collection, ItemWithSources, Person, SpaceCard, SpaceInfo, StoreSetting } from "@/lib/types";
 import { DEFAULT_HOME_PREFS, type HomePrefs } from "@/lib/home";
 import { DEFAULT_SHOP_SORT, readShopSort, saveShopSort, type ShopSort } from "@/lib/shop-sort";
 import { paramToView, type View } from "@/lib/views";
@@ -154,6 +154,13 @@ type Store = {
   spaceId: string;
   /** R15: the signed-in user is the admin (Settings → Invite codes). */
   admin: boolean;
+  /** R15 C1: the current space (null in an old offline snapshot), every space the user is in, a shared space's people. */
+  space: SpaceInfo | null;
+  spaces: SpaceCard[];
+  people: Person[];
+  me: { id: string; name: string; email: string } | null;
+  /** No write controls: the offline snapshot, or the viewer role in this space (the server refuses anyway). */
+  readOnly: boolean;
   setImportLimitUsd: (v: number) => void;
   /** Compare-stores sheet (G1) for this item. */
   compareItemId: string | null;
@@ -715,6 +722,11 @@ export function StoreProvider({
       importLimitUsd,
       spaceId: initial.space?.id ?? "",
       admin: !!initial.me?.admin,
+      space: initial.space ?? null,
+      spaces: initial.spaces ?? [],
+      people: initial.people ?? [],
+      me: initial.me ? { id: initial.me.id ?? "", name: initial.me.name, email: initial.me.email } : null,
+      readOnly: offlineAt != null || initial.space?.role === "viewer",
       setImportLimitUsd,
       sidebarCollapsed,
       setSidebarCollapsed,
@@ -758,7 +770,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, plusOpen, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, initial.space, initial.spaces, initial.people, initial.me, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, plusOpen, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

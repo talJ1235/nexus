@@ -31,7 +31,7 @@ export function SelectionBar() {
   }, [selecting]);
   const chosen = s.items.filter((i) => s.selected.has(i.id));
   const n = ids.length;
-  if (!n || s.offlineAt != null) return null;
+  if (!n || s.readOnly) return null;
 
   const run = async (fn: () => Promise<void>) => {
     try {

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { ChartColumn, Folder, House, Plus, Search, ShoppingBag, X } from "lucide-react";
+import { ChartColumn, ChevronDown, Folder, House, Plus, Search, ShoppingBag, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import { useReadOnly } from "./offline-banner";
 import { useStore, type View } from "./store";
 import { AskButton } from "./top-bar";
 import { PhoneSearchResults, rememberSearch } from "./phone-search";
+import { SpaceTile, useMeName } from "./spaces/space-ui";
 
 /** Phone / tablet (<1024 px) top bar = home-v4 (R14 B2): Box + "Nexus", then the search circle, the Ask circle and the
  *  avatar (Me; a dot when price alerts are unread), 36 px controls with ≥ 40 px tap areas. Search expands in place. */
@@ -33,6 +34,7 @@ export function PhoneTopBar() {
   };
   useBackClose(open, close, "(max-width: 1023px)");
   const unread = useUnreadAlerts();
+  const meName = useMeName();
   // 36 px circles; the ::after grows each tap area to 40 px without moving anything.
   const circle = "relative grid size-9 shrink-0 place-items-center rounded-full active:scale-95 after:absolute after:-inset-0.5 after:content-['']";
 
@@ -66,10 +68,20 @@ export function PhoneTopBar() {
         </label>
       ) : (
         <>
-          <button type="button" onClick={() => s.setView({ type: "home" })} className="me-auto flex h-10 items-center gap-2 rounded-lg" aria-label={t.dash.title} data-topbar-logo data-carry="view:home">
+          <button type="button" onClick={() => s.setView({ type: "home" })} className="flex h-10 shrink-0 items-center gap-2 rounded-lg" aria-label={t.dash.title} data-topbar-logo data-carry="view:home">
             <LogoMark className="size-5" />
-            <span className="text-[16px] font-extrabold tracking-[-0.01em]">Nexus</span>
+            {!s.space && <span className="text-[16px] font-extrabold tracking-[-0.01em]">Nexus</span>}
           </button>
+          {/* R15 C1 (Switcher-phone): the current space next to the logo; tap → the spaces sheet (Me). */}
+          {s.space ? (
+            <button type="button" onClick={() => s.setMeOpen(true)} className="me-auto flex h-10 min-w-0 items-center gap-1.5 rounded-lg ps-0.5" aria-label={`${t.spaces.switch}: ${s.space.name}`} data-phone-space>
+              <SpaceTile name={s.space.name} color={s.space.color} size={22} />
+              <b className="truncate text-[16px] font-extrabold tracking-[-0.01em]">{s.space.name}</b>
+              <ChevronDown className="size-4 shrink-0 text-muted" />
+            </button>
+          ) : (
+            <span className="me-auto" />
+          )}
           <button type="button" onClick={() => setSearching(true)} className={cn(circle, "border border-line bg-surface text-ink")} aria-label={t.phone.search} data-phone-search>
             <Search className="size-4" strokeWidth={1.9} />
           </button>
@@ -85,7 +97,7 @@ export function PhoneTopBar() {
           aria-label={unread ? `${t.me.open} · ${t.alerts.title} (${unread})` : t.me.open}
           data-me-open
         >
-          {t.shell.owner.slice(0, 1).toUpperCase()}
+          {meName.slice(0, 1).toUpperCase()}
           {unread > 0 && <span className="absolute -end-px -top-px size-2.5 rounded-full bg-spark ring-2 ring-bg" data-unread={unread} />}
         </button>
       )}
@@ -169,6 +181,10 @@ function DockBar() {
       data-dock
     >
       {DOCK.slice(0, 2).map(item)}
+      {/* R15 C1: viewers get no "+" (nothing they could add). */}
+      {s.space?.role === "viewer" ? (
+        <span aria-hidden />
+      ) : (
       <button
         type="button"
         onClick={() => s.setPlusOpen(!s.plusOpen)}
@@ -180,6 +196,7 @@ function DockBar() {
       >
         <Plus className={cn("size-6 transition-transform duration-[450ms] ease-[var(--ease-spring)]", s.plusOpen && "rotate-[135deg]")} strokeWidth={2.4} />
       </button>
+      )}
       {DOCK.slice(2).map(item)}
     </nav>
   );

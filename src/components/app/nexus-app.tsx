@@ -21,6 +21,7 @@ import { ItemActionSheet, ItemShortcuts } from "./quick-actions";
 import { HistoryHint, HistoryTools, InsightsSwitch, monthLabel } from "./insights";
 import { historyMonthOf } from "./view-items";
 import { MeSheet } from "./me-sheet";
+import { SpacesLayer } from "./spaces/layer";
 import { ImportDialog } from "./import-dialog";
 import { AlertsPanel } from "./alerts-panel";
 import { TopBar } from "./top-bar";
@@ -164,7 +165,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
         </div>
       </div>
 
-      <AddBar incoming={incoming} collapsed={collapsed} />
+      {s.space?.role !== "viewer" && <AddBar incoming={incoming} collapsed={collapsed} />}
       {size !== "desktop" && (
         <>
           <Dock />
@@ -192,6 +193,9 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <ReportDialog />
       <ReportsSheet />
       <MeSheet />
+      <PanelBoundary label="Spaces">
+        <SpacesLayer />
+      </PanelBoundary>
       <PanelBoundary label="Import">
         <ImportDialog />
       </PanelBoundary>
@@ -237,7 +241,7 @@ function ReceiptDrop() {
     const drop = (e: DragEvent) => {
       depth = 0;
       setOver(false);
-      if (!hasFiles(e) || e.defaultPrevented || openItemId || s.offlineAt != null) return;
+      if (!hasFiles(e) || e.defaultPrevented || openItemId || s.readOnly) return;
       e.preventDefault();
       const file = [...(e.dataTransfer?.files ?? [])].find((x) => /^(image\/|application\/pdf$)/.test(x.type));
       if (file) s.openReceipt(file);
@@ -253,7 +257,7 @@ function ReceiptDrop() {
       window.removeEventListener("drop", drop);
     };
   }, [s]);
-  if (!over || s.panel || openItemId || s.offlineAt != null) return null;
+  if (!over || s.panel || openItemId || s.readOnly) return null;
   return (
     <div className="pointer-events-none fixed inset-3 z-40 grid place-items-center rounded-2xl border-2 border-dashed border-accent bg-bg/70 backdrop-blur-[2px]">
       <div className="flex items-center gap-2 text-base font-medium text-accent-ink">

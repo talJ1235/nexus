@@ -12,6 +12,8 @@ import { COLLECTION_COLORS, itemsForView } from "./view-items";
 import { NavRowsSkeleton, Skel } from "./skeletons";
 import { useExtension } from "./use-extension";
 import { DRAG_TYPE, useMoveItems } from "./buy-filters";
+import { SpaceSwitcher } from "./spaces/switcher";
+import { useMeName } from "./spaces/space-ui";
 
 function sameView(a: View, b: View) {
   if (a.type !== b.type) return false;
@@ -137,6 +139,7 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
   const projects = s.collections.filter((c) => c.kind === "project" && !c.archived);
   const lists = s.collections.filter((c) => c.kind === "list" && !c.archived);
   const c = !!collapsed;
+  const meName = useMeName();
 
   return (
     <nav
@@ -168,6 +171,9 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
       </div>
 
       <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-[18px] overflow-y-auto overflow-x-hidden px-1">
+        <div className="-mb-2.5 -mt-2">
+          <SpaceSwitcher collapsed={c} />
+        </div>
         <div className="flex flex-col gap-px">
           <NavItem collapsed={c} active={active({ type: "home" })} onClick={() => s.setView({ type: "home" })} carry="view:home" icon={<House />} label={t.dash.title} />
           <NavItem collapsed={c} active={active({ type: "to_buy" })} onClick={() => s.setView({ type: "to_buy" })} carry="view:to_buy" icon={<ShoppingCart />} label={t.nav.toBuy} count={n(counts.to_buy)} />
@@ -178,7 +184,7 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
         </div>
 
         <div className="flex flex-col gap-px">
-          <SectionHeader collapsed={c} label={t.nav.projects} onLabel={() => s.setView({ type: "projects" })} carry="editor:project" onAdd={() => s.setEditor({ mode: "create", kind: "project" })} addLabel={t.nav.newProject} />
+          <SectionHeader collapsed={c} label={t.nav.projects} onLabel={() => s.setView({ type: "projects" })} carry="editor:project" onAdd={s.readOnly ? undefined : () => s.setEditor({ mode: "create", kind: "project" })} addLabel={t.nav.newProject} />
           {s.loading && !c && <NavRowsSkeleton rows={[58, 42]} />}
           <div className={cn("flex flex-col gap-px", fade)}>
             {projects.map((p) => {
@@ -201,7 +207,7 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
                 />
               );
             })}
-            {!c && !s.loading && (
+            {!c && !s.loading && !s.readOnly && (
               <button
                 type="button"
                 onClick={() => s.setEditor({ mode: "create", kind: "project" })}
@@ -216,7 +222,7 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
 
         {(lists.length > 0 || s.loading) && (
           <div className="flex flex-col gap-px">
-            <SectionHeader collapsed={c} label={t.nav.lists} carry="editor:list" onAdd={() => s.setEditor({ mode: "create", kind: "list" })} addLabel={t.nav.newList} />
+            <SectionHeader collapsed={c} label={t.nav.lists} carry="editor:list" onAdd={s.readOnly ? undefined : () => s.setEditor({ mode: "create", kind: "list" })} addLabel={t.nav.newList} />
             {s.loading && !c && <NavRowsSkeleton rows={[46, 62]} round />}
             <div className={cn("flex flex-col gap-px", fade)}>
               {lists.map((l) => (
@@ -247,12 +253,12 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
           tabIndex={c ? 0 : -1}
           className="grid size-7 shrink-0 place-items-center rounded-full bg-ink text-xs font-bold text-bg"
         >
-          {t.shell.owner.slice(0, 1).toUpperCase()}
+          {meName.slice(0, 1).toUpperCase()}
         </button>
         {!c && (
           <>
             <div className="min-w-0 flex-1 leading-tight">
-              <b className="block truncate text-[13px] font-semibold">{t.shell.owner}</b>
+              <b className="block truncate text-[13px] font-semibold">{meName}</b>
               <span className="flex items-center gap-1.5 truncate text-[11.5px] text-muted">
                 <span className={cn("size-1.5 shrink-0 rounded-full", ext.available ? "bg-ok" : "bg-faint")} aria-hidden />
                 {ext.available ? t.ext.connected : t.ext.notInstalled}

@@ -1,15 +1,30 @@
+import { del } from "@vercel/blob";
 import { type NextRequest } from "next/server";
 import { safeEqualStr } from "@/lib/auth/crypto";
 import { Scoped } from "@/lib/db-scoped";
+import { purgeSpaceData } from "@/lib/db-scoped/spaces";
 import { systemSpaces } from "@/lib/db-scoped/system";
 import { kvSet } from "@/lib/kv";
 import { normalizeOldPictures } from "@/lib/picture-backfill";
 import { backfillImages } from "@/lib/product-image";
 import { getProfile } from "@/lib/profile-server";
 import { repairIncomplete } from "@/lib/service";
+import { dropSpaceRows, spacesToPurge } from "@/lib/spaces";
 import { ownerPrefs, runCronChecks } from "@/lib/tracker";
 
 export const maxDuration = 60;
+
+/** R15 C3: spaces deleted more than 7 days ago — their rows, then their files, then the space itself. */
+async function purgeDeletedSpaces() {
+  let n = 0;
+  for (const { id } of await spacesToPurge()) {
+    const urls = await purgeSpaceData(id);
+    if (urls.length && process.env.BLOB_READ_WRITE_TOKEN) await del(urls).catch(() => {});
+    await dropSpaceRows(id);
+    n++;
+  }
+  return n;
+}
 
 // Daily price check (vercel.json → crons). Vercel sends `Authorization: Bearer $CRON_SECRET` (authz allow-list:
 // CRON_SECRET, no user). R15 B3: price checks fan out over every space with one fetch per normalized URL; the
@@ -44,7 +59,8 @@ export async function GET(req: NextRequest) {
       await getProfile({ user: { id: sp.ownerId }, space: { id: sp.id } }, currency, true).catch(() => null);
     }
   }
-  const summary = { at: Date.now(), spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures };
+  const purged = await purgeDeletedSpaces().catch(() => 0);
+  const summary = { at: Date.now(), spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, purged };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }

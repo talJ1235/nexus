@@ -23,8 +23,15 @@ export type AppData = {
   /** R15: the current space and the caller's role in it (uploads go under spaces/<id>/; viewers get no write controls). */
   space?: SpaceInfo;
   /** R15: who is signed in (admin = ADMIN_EMAIL's user: Settings → Invite codes). */
-  me?: { name: string; email: string; admin: boolean };
+  me?: { id?: string; name: string; email: string; admin: boolean };
+  /** R15 C1: every space the user is in (switcher), personal first. */
+  spaces?: SpaceCard[];
+  /** R15 C4: people of the current shared space ("added by" avatars); empty in a personal space. */
+  people?: Person[];
 };
+
+export type Person = { id: string; name: string };
+export type SpaceCard = { id: string; name: string; kind: "personal" | "shared"; color: string; role: "owner" | "member" | "viewer"; count: number; faces: Person[] };
 
 export type SpaceInfo = { id: string; name: string; kind: "personal" | "shared"; color: string; icon: string; currency: string; role: "owner" | "member" | "viewer" };
 

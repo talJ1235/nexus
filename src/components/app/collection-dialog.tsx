@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Copy, Link2, Trash2 } from "lucide-react";
+import { Copy, FolderInput, Link2, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { createCollection, deleteCollection, setSharing, updateCollection } from "@/app/actions";
 import { useI18n } from "@/components/providers";
@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/overlays";
 import { CURRENCIES } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { useStore } from "./store";
+import { openSpaces } from "./spaces/space-ui";
 import { COLLECTION_COLORS, COLOR_KEYS } from "./view-items";
 
 export function CollectionDialog() {
@@ -172,7 +173,7 @@ export function CollectionDialog() {
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-2 pt-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
           {live ? (
             <Button
               variant="ghost"
@@ -188,6 +189,22 @@ export function CollectionDialog() {
             >
               <Trash2 />
               {t.collection.delete}
+            </Button>
+          ) : (
+            <span />
+          )}
+          {live && s.spaces.some((sp) => sp.id !== s.space?.id && sp.role !== "viewer") ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                s.setEditor(null);
+                setTimeout(() => openSpaces({ kind: "move", collectionId: live.id }), 120);
+              }}
+              data-collection-move
+            >
+              <FolderInput />
+              {t.spaces.moveTo}
             </Button>
           ) : (
             <span />

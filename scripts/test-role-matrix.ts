@@ -58,7 +58,11 @@ const VIEW_OK = new Set([
   "receipt-actions.ts#listReceipts",
   "report-actions.ts#createReport", "report-actions.ts#listReports", "report-actions.ts#setReportStatus",
   "share-actions.ts#getSharing",
-  "security-actions.ts#*", "space-actions.ts#*", "invite-admin-actions.ts#*",
+  "security-actions.ts#*", "invite-admin-actions.ts#*",
+  // Spaces: switching, creating your own, reading people, leaving, restoring, joining by link; moving back checks
+  // the edit role in both spaces itself. Everything else in space-actions asks for "edit" or "owner".
+  "space-actions.ts#switchSpace", "space-actions.ts#createSpace", "space-actions.ts#getSpacePeople", "space-actions.ts#leaveCurrentSpace",
+  "space-actions.ts#restoreDeletedSpace", "space-actions.ts#joinSpace", "space-actions.ts#moveCollectionBack",
   "actions.ts#view",
 ]);
 const dir = join(__dirname, "..", "src", "app");

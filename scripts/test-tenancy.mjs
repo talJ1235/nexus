@@ -172,6 +172,8 @@ function variants(r) {
 }
 
 const marksIn = (text, mark) => text.includes(mark);
+// TENANCY_QUICK=1: skip the every-action sweeps (steps 1–2) while working on the later steps. Never in CI.
+const QUICK = process.env.TENANCY_QUICK === "1";
 
 // ---------- 0. controls: the calling scheme really reaches the actions ----------
 const byName = (n) => actions.find((a) => a.name === n);
@@ -186,7 +188,7 @@ const beforeA = await hashSpaces([SP.A, SP.S]);
 const beforeAUser = await hashUser(U.A);
 let calls = 0;
 const leaks = [];
-for (const a of actions) {
+for (const a of QUICK ? [] : actions) {
   for (const args of variants(ids.A)) {
     const r = await callAction("B", a, args, SP.A);
     calls++;
@@ -221,12 +223,15 @@ ok(leaks.length === 0, "no response to B contained A's or S's content", leaks.sl
 // ---------- 2. V (viewer in S) tries every write in S ----------
 const beforeS = await hashSpaces([SP.S]);
 const vWrites = [];
-for (const a of actions) {
+for (const a of QUICK ? [] : actions) {
+  if (a.name === "space-actions.ts#leaveCurrentSpace") continue; // allowed for viewers; step 4 tests it
   const h0 = await hashSpaces([SP.S]);
   for (const args of variants(ids.S)) await callAction("V", a, args, SP.S);
   if ((await hashSpaces([SP.S])) !== h0) vWrites.push(a.name);
 }
 ok((await hashSpaces([SP.S])) === beforeS, `viewer V called ${actions.length} actions with S's ids in S → S's rows unchanged`, vWrites.join(", "));
+const vMember = (await db.execute({ sql: "SELECT role FROM space_member WHERE space_id = ? AND user_id = ?", args: [SP.S, U.V] })).rows[0]?.role;
+ok(vMember === "viewer", "viewer V is still a viewer of S (no action let V change its own role)", String(vMember));
 
 // ---------- 3. pages ----------
 const page = async (who, space, rsc = false) => (await fetch(`${BASE}/?v=to_buy`, { headers: { Cookie: [cookieOf[who], space && `nexus_space=${space}`].filter(Boolean).join("; "), ...(rsc ? { RSC: "1" } : {}) } })).text();
@@ -241,6 +246,206 @@ ok(vS.includes(MARK.S) && !vS.includes(MARK.A), "viewer V sees S (read) and noth
 const shareTok = (await db.execute({ sql: "SELECT share_token FROM collections WHERE id = ?", args: [ids.A.col] })).rows[0].share_token;
 const pub = await (await fetch(`${BASE}/s/${shareTok}`)).text();
 ok(pub.includes(MARK.A) && !pub.includes(MARK.B) && !pub.includes(MARK.S), "public /s/<token> shows only that list");
+
+// ---------- 4. spaces (R15 C1–C4): switching, invite links, roles, step-up, leave, move, delete ----------
+const result = (text) => {
+  // RSC action response: row 0 is {a: <value or "$@<row>">, …}; an action that sets a cookie also streams the
+  // refreshed page tree in other rows, so follow row 0's reference instead of taking the last row.
+  const rows = new Map();
+  for (const l of text.split("\n")) {
+    const m = /^([0-9a-f]+):(.*)$/.exec(l);
+    if (m) rows.set(m[1], m[2]);
+  }
+  try {
+    const head = JSON.parse(rows.get("0") ?? "null");
+    const a = head?.a;
+    if (typeof a === "string" && a.startsWith("$@")) return JSON.parse(rows.get(a.slice(2)) ?? "null");
+    return a ?? null;
+  } catch {
+    return null;
+  }
+};
+const act = async (who, name, args, space) => result((await callAction(who, byName(name), args, space)).text);
+const roleOf = async (space, uid) => (await db.execute({ sql: "SELECT role FROM space_member WHERE space_id = ? AND user_id = ?", args: [space, uid] })).rows[0]?.role ?? null;
+// More people: D1..D6 (personal spaces + sessions).
+for (let i = 1; i <= 6; i++) {
+  const k = `D${i}`;
+  U[k] = `u${k}_` + id();
+  SP[k] = `s${k}_` + id();
+  await seedUser(k, `${k.toLowerCase()}@tenancy.test`);
+  const token = id() + id();
+  await db.execute({ sql: `INSERT INTO session (id, expires_at, token, created_at, updated_at, user_id) VALUES (?, ?, ?, ?, ?, ?)`, args: [id(), now + 30 * 86_400_000, token, Date.now(), Date.now(), U[k]] });
+  cookieOf[k] = `nexus_session_dev=${sign(token)}`;
+}
+{
+  const k = "E";
+  U[k] = "uE_" + id();
+  SP[k] = "sE_" + id();
+  await seedUser(k, "e@tenancy.test");
+  const token = id() + id();
+  await db.execute({ sql: `INSERT INTO session (id, expires_at, token, created_at, updated_at, user_id) VALUES (?, ?, ?, ?, ?, ?)`, args: [id(), now + 30 * 86_400_000, token, Date.now(), Date.now(), U[k]] });
+  cookieOf[k] = `nexus_session_dev=${sign(token)}`;
+}
+// Switching: only to your own spaces.
+const sw = await act("A", "space-actions.ts#switchSpace", [SP.S], SP.A);
+ok(sw?.id === SP.S, "A switches to S (a space A is in)", JSON.stringify(sw));
+const swB = await act("B", "space-actions.ts#switchSpace", [SP.S], SP.B);
+ok(!swB?.id, "B can't switch to S (not a member)");
+// Invite as viewer → B joins → B sees S read-only.
+const inv = await act("A", "space-actions.ts#createInviteLink", ["viewer"], SP.S);
+ok(typeof inv?.token === "string" && inv.token.length >= 40, "A (owner of S) creates a viewer invite link", JSON.stringify(inv)?.slice(0, 80));
+const stored = (await db.execute({ sql: "SELECT * FROM space_invite WHERE id = ?", args: [inv?.id ?? ""] })).rows[0];
+ok(stored && !JSON.stringify(stored).includes(inv?.token ?? "@"), "the invite token is stored hashed only");
+const joinPage = await (await fetch(`${BASE}/join/${inv?.token}`)).text();
+ok(joinPage.includes("Shared S") && !joinPage.includes(MARK.S), "/join/<token> previews the space (name, no items) while signed out");
+const jB = await act("E", "space-actions.ts#joinSpace", [inv?.token], SP.E);
+ok(jB?.ok === true && (await roleOf(SP.S, U.E)) === "viewer", "E joins S with the link → viewer", JSON.stringify(jB));
+const bS = await page("E", SP.S);
+ok(bS.includes(MARK.S) && !bS.includes(MARK.A), "E now sees S's items (and none of A's personal space)");
+const hS = await hashSpaces([SP.S]);
+await act("E", "actions.ts#updateItem", [ids.S.item, { title: "PWNED" }], SP.S);
+await act("E", "space-actions.ts#createInviteLink", ["member"], SP.S);
+ok((await hashSpaces([SP.S])) === hS, "E (viewer) can't write in S");
+const bLinks = (await db.execute({ sql: "SELECT count(*) AS n FROM space_invite WHERE space_id = ? AND created_by = ?", args: [SP.S, U.E] })).rows[0].n;
+ok(Number(bLinks) === 0, "E (viewer) can't make invite links");
+// Revoke → dead.
+const inv2 = await act("A", "space-actions.ts#createInviteLink", ["member"], SP.S);
+await act("A", "space-actions.ts#revokeInviteLink", [inv2?.id], SP.S);
+const jRev = await act("D1", "space-actions.ts#joinSpace", [inv2?.token], SP.D1);
+ok(jRev?.ok === false && (await roleOf(SP.S, U.D1)) === null, "a revoked link is dead", JSON.stringify(jRev));
+// Max uses (5): D1..D5 join, D6 is refused.
+const inv3 = await act("A", "space-actions.ts#createInviteLink", ["member"], SP.S);
+for (const k of ["D1", "D2", "D3", "D4", "D5"]) await act(k, "space-actions.ts#joinSpace", [inv3?.token], SP[k]);
+const j6 = await act("D6", "space-actions.ts#joinSpace", [inv3?.token], SP.D6);
+const joined5 = (await Promise.all(["D1", "D2", "D3", "D4", "D5"].map((k) => roleOf(SP.S, U[k])))).every((r) => r === "member");
+ok(joined5 && j6?.ok === false && (await roleOf(SP.S, U.D6)) === null, "5 people join with one link; the 6th is refused (max uses)", JSON.stringify(j6));
+// Roles: a member can't change roles; the owner can.
+await act("D1", "space-actions.ts#changeMemberRole", [U.D2, "viewer"], SP.S);
+ok((await roleOf(SP.S, U.D2)) === "member", "a member can't change someone's role");
+await act("A", "space-actions.ts#changeMemberRole", [U.D2, "viewer"], SP.S);
+ok((await roleOf(SP.S, U.D2)) === "viewer", "the owner makes D2 a viewer");
+// Step-up: removing a member with a sign-in older than 10 minutes asks to sign in again.
+const oldTok = id() + id();
+await db.execute({ sql: `INSERT INTO session (id, expires_at, token, created_at, updated_at, user_id) VALUES (?, ?, ?, ?, ?, ?)`, args: [id(), now + 30 * 86_400_000, oldTok, Date.now() - 3_600_000, Date.now(), U.A] });
+cookieOf.Aold = `nexus_session_dev=${sign(oldTok)}`;
+// Steps 1–3 take minutes; a fresh A session for the step-up actions below.
+const freshTok = id() + id();
+await db.execute({ sql: `INSERT INTO session (id, expires_at, token, created_at, updated_at, user_id) VALUES (?, ?, ?, ?, ?, ?)`, args: [id(), now + 30 * 86_400_000, freshTok, Date.now(), Date.now(), U.A] });
+cookieOf.Af = `nexus_session_dev=${sign(freshTok)}`;
+const rmOld = await act("Aold", "space-actions.ts#removeSpaceMember", [U.D3], SP.S);
+ok(rmOld?.stepUp === true && (await roleOf(SP.S, U.D3)) === "member", "removing a member with an old sign-in → step-up, nothing removed", JSON.stringify(rmOld));
+const rm = await act("Af", "space-actions.ts#removeSpaceMember", [U.D3], SP.S);
+ok(rm?.ok === true && (await roleOf(SP.S, U.D3)) === null, "the owner (fresh sign-in) removes D3");
+// Leave: the last owner can't; a member can.
+const leaveA = await act("A", "space-actions.ts#leaveCurrentSpace", [], SP.S);
+ok(leaveA?.ok === false && (await roleOf(SP.S, U.A)) === "owner", "the last owner can't leave (transfer first)");
+const leaveD4 = await act("D4", "space-actions.ts#leaveCurrentSpace", [], SP.S);
+ok(leaveD4?.ok === true && (await roleOf(SP.S, U.D4)) === null, "a member leaves S");
+// Move a list (with items, links, price points, attachments, alerts) from A's personal space to S, then back.
+const cnt = async (space) => {
+  const two = [ids.A.item, ids.A.item2];
+  let n = Number((await db.execute({ sql: "SELECT count(*) AS n FROM items WHERE collection_id = ? AND space_id = ?", args: [ids.A.col, space] })).rows[0].n);
+  for (const t of ["sources", "price_points", "attachments", "alerts"]) n += Number((await db.execute({ sql: `SELECT count(*) AS n FROM ${t} WHERE item_id IN (?, ?) AND space_id = ?`, args: [...two, space] })).rows[0].n);
+  return n;
+};
+const inA = await cnt(SP.A);
+const mv = await act("A", "space-actions.ts#moveCollectionToSpace", [ids.A.col, SP.S], SP.A);
+ok(mv?.ok === true && (await cnt(SP.S)) === inA && (await cnt(SP.A)) === 0, `A moves a list to S: all ${inA} rows (items, links, prices, files, alerts) move`, JSON.stringify(mv));
+const mvB = await act("E", "space-actions.ts#moveCollectionToSpace", [ids.A.col, SP.E], SP.S);
+ok(!mvB?.ok && (await cnt(SP.S)) === inA, "E (viewer in S) can't move it out");
+await act("A", "space-actions.ts#moveCollectionBack", [ids.A.col, SP.A, SP.S], SP.S);
+ok((await cnt(SP.A)) === inA, "undo moves it back");
+// Create + delete (typed name, soft) + restore.
+const cs = await act("A", "space-actions.ts#createSpace", [{ name: "Temp T", color: "rose", currency: "ILS" }], SP.A);
+ok(typeof cs?.id === "string" && (await roleOf(cs.id, U.A)) === "owner", "A creates a shared space (owner)", JSON.stringify(cs));
+const delWrong = await act("Af", "space-actions.ts#deleteCurrentSpace", ["Temp"], cs?.id);
+const delOk = await act("Af", "space-actions.ts#deleteCurrentSpace", ["Temp T"], cs?.id);
+const deletedAt = (await db.execute({ sql: "SELECT deleted_at FROM space WHERE id = ?", args: [cs?.id ?? ""] })).rows[0]?.deleted_at;
+ok(delWrong?.ok === false && delOk?.ok === true && !!deletedAt, "delete needs the exact name, then soft-deletes", JSON.stringify([delWrong, delOk]));
+const delPersonal = await act("A", "space-actions.ts#deleteCurrentSpace", ["PA"], SP.A);
+ok(delPersonal?.ok === false, "a personal space can't be deleted");
+const rs = await act("A", "space-actions.ts#restoreDeletedSpace", [cs?.id], SP.A);
+const after = (await db.execute({ sql: "SELECT deleted_at FROM space WHERE id = ?", args: [cs?.id ?? ""] })).rows[0]?.deleted_at;
+ok(rs?.ok === true && !after, "the owner restores it within 7 days");
+
+// ---------- 5. spaces in the browser (C1/C2): switch from the menu, viewer controls, join while signed in ----------
+if (process.env.TENANCY_UI !== "0") {
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch();
+  const ctxAs = async (who, space, viewport, phone = false) => {
+    const c = await browser.newContext({ viewport, ...(phone ? { isMobile: true, hasTouch: true } : {}) });
+    const [name, value] = cookieOf[who].split("=");
+    await c.addCookies([
+      { name, value, url: BASE },
+      ...(space ? [{ name: "nexus_space", value: space, url: BASE }] : []),
+      { name: "nexus_locale", value: "en", url: BASE },
+    ]);
+    await c.addInitScript(() => {
+      try {
+        sessionStorage.setItem("nexus.opened", "1");
+      } catch {}
+    });
+    return c;
+  };
+  const ready = (p) => p.waitForSelector("[data-app-shell][data-ready]", { timeout: 20000 });
+  try {
+    // A on desktop: personal → S from the switcher menu; the list changes and "Now in …" shows.
+    const ca = await ctxAs("Af", SP.A, { width: 1366, height: 860 });
+    const pa = await ca.newPage();
+    await pa.goto(`${BASE}/?v=to_buy`);
+    await ready(pa);
+    const before = await pa.content();
+    await pa.click("[data-space-switcher]");
+    await pa.click(`[data-space-item="${SP.S}"]`);
+    await pa.waitForSelector(`[data-space-switcher][data-space-id="${SP.S}"]`, { timeout: 20000 });
+    await ready(pa);
+    const toastSeen = await pa.getByText("Now in Shared S").waitFor({ timeout: 5000 }).then(() => true, () => false);
+    const after = await pa.content();
+    ok(before.includes(MARK.A) && !before.includes(MARK.S) && after.includes(MARK.S) && !after.includes(`${MARK.A} item`) && toastSeen, "UI: A switches personal → S from the menu; the items change; \"Now in Shared S\" shows");
+    const v1 = new URL(pa.url()).searchParams.get("v");
+    ok(v1 === "to_buy", "UI: switching keeps the current view", String(v1));
+    await ca.close();
+
+    // V (viewer of S): no add bar on desktop, no "+" on the phone, a view-only line, disabled card actions.
+    const cv = await ctxAs("V", SP.S, { width: 1366, height: 860 });
+    const pv = await cv.newPage();
+    await pv.goto(`${BASE}/?v=to_buy`);
+    await ready(pv);
+    const addBar = await pv.locator("[data-paste-capsule]").count();
+    const banner = await pv.locator("[data-viewer-banner]").count();
+    const newProject = await pv.getByRole("button", { name: "New project" }).count();
+    ok(addBar === 0 && banner > 0 && newProject === 0, "UI: viewer on desktop — no add bar, no New project, a view-only line", JSON.stringify({ addBar, banner, newProject }));
+    await cv.close();
+    const cvp = await ctxAs("V", SP.S, { width: 390, height: 844 }, true);
+    const pvp = await cvp.newPage();
+    await pvp.goto(`${BASE}/?v=to_buy`);
+    await ready(pvp);
+    const plus = await pvp.locator("[data-plus]").count();
+    const phoneSpace = await pvp.locator("[data-phone-space]").innerText();
+    ok(plus === 0 && phoneSpace.includes("Shared S"), "UI: viewer on a phone — no \"+\"; the top bar names the space", JSON.stringify({ plus, phoneSpace }));
+    await cvp.close();
+
+    // D6 (signed in, not a member) opens a fresh link → Accept → joined → the app opens in S.
+    const inv4 = await act("Af", "space-actions.ts#createInviteLink", ["member"], SP.S);
+    const cd = await ctxAs("D6", SP.D6, { width: 390, height: 844 }, true);
+    const pd = await cd.newPage();
+    await pd.goto(`${BASE}/join/${inv4?.token}`);
+    const shown = await pd.locator("[data-join-space]").innerText();
+    await pd.click("[data-join-accept]");
+    await pd.waitForSelector("[data-join-joined]", { timeout: 15000 });
+    await pd.click("[data-join-open]");
+    await ready(pd);
+    const inS = (await pd.locator("[data-phone-space]").innerText()).includes("Shared S");
+    ok(shown === "Shared S" && inS && (await roleOf(SP.S, U.D6)) === "member", "UI: signed-in join — preview → Accept → joined → opens S");
+    await pd.goto(`${BASE}/join/${"x".repeat(43)}`);
+    ok((await pd.locator("[data-join-dead]").count()) === 1, "UI: a dead link shows the calm \"doesn't work\" screen");
+    await cd.close();
+  } catch (e) {
+    ok(false, "UI checks ran", String(e?.message ?? e).slice(0, 300));
+  } finally {
+    await browser.close();
+  }
+}
 
 stop();
 db.close();

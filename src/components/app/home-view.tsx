@@ -20,6 +20,7 @@ import { DeliveryTrack } from "./delivery-track";
 import { ProductImage, useStatusFlow } from "./item-card";
 import { useReadOnly } from "./offline-banner";
 import { BarcodeArt, LinkArt, PlanArt, ReceiptArt } from "./phone-shell";
+import { useMeName } from "./spaces/space-ui";
 import { DEFAULT_HOME_LAYOUT, HOME_SECTIONS, useStore, type HomeLayout, type HomeSection } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
 
@@ -239,6 +240,7 @@ function greeting(now: number, tz: string, t: T) {
 
 function HomeHeader({ model, editing, onCustomize, onDone, onReset }: { model: HomeModel; editing: boolean; onCustomize: () => void; onDone: () => void; onReset: () => void }) {
   const s = useStore();
+  const meName = useMeName();
   const { t, f } = useI18n();
   const fm = useFmt();
   return (
@@ -249,7 +251,7 @@ function HomeHeader({ model, editing, onCustomize, onDone, onReset }: { model: H
             {fm.dateLong(model.today)}
           </div>
           <h1 className="mt-0.5 truncate text-[23px] font-extrabold leading-tight tracking-[-0.03em] lg:text-[30px]" suppressHydrationWarning>
-            {f(greeting(s.clock.now, s.clock.tz, t), { name: t.shell.owner })}
+            {f(greeting(s.clock.now, s.clock.tz, t), { name: meName })}
           </h1>
         </div>
         {editing ? (
@@ -1539,6 +1541,7 @@ function CustomizeList({ layout, has, onChange }: { layout: HomeLayout; has: Rec
 // ---------- A7: empty account ----------
 
 function HomeEmpty({ model }: { model: HomeModel }) {
+  const meName = useMeName();
   const s = useStore();
   const { t, f } = useI18n();
   const fm = useFmt();
@@ -1557,7 +1560,7 @@ function HomeEmpty({ model }: { model: HomeModel }) {
           {fm.dateLong(model.today)}
         </div>
         <h1 className="mt-0.5 text-[26px] font-extrabold tracking-[-0.03em] lg:text-[30px]" suppressHydrationWarning>
-          {f(greeting(s.clock.now, s.clock.tz, t), { name: t.shell.owner })}
+          {f(greeting(s.clock.now, s.clock.tz, t), { name: meName })}
         </h1>
         <p className="mt-2 text-[15px] font-semibold">{t.dash.emptyTitle}</p>
         <p className="mt-0.5 max-w-[52ch] text-[13.5px] text-muted">{t.dash.emptyHint}</p>
