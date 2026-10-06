@@ -8,6 +8,7 @@ import { toast } from "@/lib/toast";
 import type { Paid, Status } from "@/lib/status";
 import type { ItemWithSources, Source } from "@/lib/types";
 import { useDataStore, useStore } from "./store";
+import { useFailReport } from "./fail-toast";
 
 // R16 B3 — client side of "already changed by Noa". Edits send the base they started from (the row's rev + its old
 // values of the fields they change). On a conflict the optimistic change rolls back to the fresh row and a toast offers
@@ -42,7 +43,7 @@ export function useConflictToast() {
 export function useSaveItem() {
   const s = useDataStore();
   const open = useStore().openItem;
-  const { t } = useI18n();
+  const { fail } = useFailReport();
   const c = useConflictToast();
   return useCallback(
     async (item: ItemWithSources, patch: Parameters<typeof updateItem>[1]) => {
@@ -51,16 +52,16 @@ export function useSaveItem() {
         const res = await updateItem(item.id, patch, baseFor(from, patch));
         if (!isConflict<ItemWithSources>(res)) return s.upsertItem(res);
         s.upsertItem(res.row);
-        c.one(res.by, { show: () => open(item.id), applyMine: () => void send(res.row).catch(() => toast.error(t.errors.generic)) });
+        c.one(res.by, { show: () => open(item.id), applyMine: () => void send(res.row).catch(() => fail("sync", { code: "save" })) });
       };
       try {
         await send(item);
       } catch {
         s.upsertItem(item);
-        toast.error(t.errors.generic);
+        fail("sync", { code: "save" });
       }
     },
-    [s, open, t, c],
+    [s, open, c, fail],
   );
 }
 
@@ -68,7 +69,7 @@ export function useSaveItem() {
 export function useSaveSource() {
   const s = useDataStore();
   const open = useStore().openItem;
-  const { t } = useI18n();
+  const { fail } = useFailReport();
   const c = useConflictToast();
   return useCallback(
     async (item: ItemWithSources, source: Source, p: Parameters<typeof updateSource>[1]) => {
@@ -78,16 +79,16 @@ export function useSaveSource() {
         if (!isConflict<ItemWithSources>(res)) return s.upsertItem(res);
         s.upsertItem(res.row);
         const fresh = res.row.sources.find((x) => x.id === source.id) ?? from;
-        c.one(res.by, { show: () => open(item.id), applyMine: () => void send(fresh).catch(() => toast.error(t.errors.generic)) });
+        c.one(res.by, { show: () => open(item.id), applyMine: () => void send(fresh).catch(() => fail("sync", { code: "save" })) });
       };
       try {
         await send(source);
       } catch {
         s.upsertItem(item);
-        toast.error(t.errors.generic);
+        fail("sync", { code: "save" });
       }
     },
-    [s, open, t, c],
+    [s, open, c, fail],
   );
 }
 
@@ -95,7 +96,7 @@ export function useSaveSource() {
 export function useGuardedStatus() {
   const s = useDataStore();
   const open = useStore().openItem;
-  const { t } = useI18n();
+  const { fail } = useFailReport();
   const c = useConflictToast();
   return useCallback(
     async (item: ItemWithSources, status: Status, paid: Paid | null): Promise<ItemWithSources | null> => {
@@ -108,14 +109,14 @@ export function useGuardedStatus() {
           applyMine: () =>
             void send(res.row).then(
               (x) => x && s.upsertItem(x),
-              () => toast.error(t.errors.generic),
+              () => fail("sync", { code: "save" }),
             ),
         });
         return null;
       };
       return send(item);
     },
-    [s, open, t, c],
+    [s, open, c, fail],
   );
 }
 
@@ -125,7 +126,7 @@ export function useGuardedStatus() {
  */
 export function useBulkConflicts() {
   const s = useDataStore();
-  const { t } = useI18n();
+  const { fail } = useFailReport();
   const c = useConflictToast();
   return useCallback(
     (res: BulkResult, resend: (fresh: ItemWithSources[]) => Promise<BulkResult>) => {
@@ -133,10 +134,10 @@ export function useBulkConflicts() {
         s.upsertItems([...r.items, ...r.conflicts.map((x) => x.row)]);
         if (!r.conflicts.length) return;
         const fresh = r.conflicts.map((x) => x.row);
-        c.many(r.conflicts.length, () => void resend(fresh).then(go, () => toast.error(t.errors.generic)));
+        c.many(r.conflicts.length, () => void resend(fresh).then(go, () => fail("sync", { code: "save" })));
       };
       go(res);
     },
-    [s, t, c],
+    [s, c, fail],
   );
 }

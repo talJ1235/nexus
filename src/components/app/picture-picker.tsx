@@ -1,5 +1,6 @@
 "use client";
 
+import { useFailReport } from "./fail-toast";
 import { useEffect, useRef, useState } from "react";
 import { Camera, Check, ImageOff, Search, Smile, Upload } from "lucide-react";
 import { pictureIcons, searchPictures } from "@/app/picture-actions";
@@ -38,6 +39,7 @@ export function PicturePicker({
   onPick: (c: PictureChoice) => void | Promise<void>;
 }) {
   const { t } = useI18n();
+  const { fail } = useFailReport();
   const [q, setQ] = useState("");
   const [found, setFound] = useState<Candidate[] | null>(null);
   const [busy, setBusy] = useState<"search" | "icon" | null>(null);
@@ -65,8 +67,8 @@ export function PicturePicker({
     setBusy(kind);
     try {
       setFound(kind === "search" ? await searchPictures({ query: q.trim() }) : await pictureIcons({ keyword }));
-    } catch {
-      toast.error(t.errors.generic);
+    } catch (e) {
+      fail("picture", { code: `${kind}:${String((e as Error)?.message || "error").slice(0, 30)}` });
     } finally {
       setBusy(null);
     }

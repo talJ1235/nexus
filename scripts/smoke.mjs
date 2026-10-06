@@ -2858,6 +2858,39 @@ try {
           );
         });
 
+        // R16 C1: a link that can't be read → its toast has "Report" → the dialog is pre-filled (what failed, the link
+        // ticked) → Send → the stored report has the failure code and the link as domain + path only (no query string).
+        // Reads the report row from the smoke DB file (SMOKE_DB, default r16-smoke.db) — localhost write mode only.
+        await step("report from a failure toast: one tap, failure code + link domain/path", async () => {
+          if (MOBILE) return ok(true, "report from a failure toast: one tap, failure code + link domain/path (desktop only)");
+          const tag = Date.now().toString(36);
+          const link = `https://nexus-smoke-${tag}.invalid/products/drill-18v?ref=newsletter&uid=123456789`;
+          await page.goto(`${BASE}/?v=to_buy`);
+          await page.waitForSelector(READY);
+          await page.locator("#add-input").fill(link);
+          await page.locator("#add-input").press("Enter");
+          const toastEl = page.locator("[data-sonner-toast]").filter({ has: page.getByRole("button", { name: /^(Report|דיווח)$/ }) }).first();
+          await toastEl.waitFor({ timeout: 60000 });
+          await toastEl.getByRole("button", { name: /^(Report|דיווח)$/ }).click();
+          const form = page.locator("[data-report-form]");
+          await form.waitFor({ timeout: 8000 });
+          const failure = await form.locator("[data-report-failure]").innerText();
+          const linkTicked = await form.locator("[data-report-with-link]").isChecked();
+          await shot(page, "report-failure");
+          await form.locator("[data-report-send]").click();
+          await page.locator("[data-sonner-toast]").filter({ hasText: /sent|נשלח/i }).first().waitFor({ timeout: 15000 });
+          const { createClient } = await import("@libsql/client");
+          const db = createClient({ url: `file:${process.env.SMOKE_DB || "r16-smoke.db"}` });
+          const row = (await db.execute("SELECT diagnostics FROM reports ORDER BY created_at DESC LIMIT 1")).rows[0];
+          db.close();
+          const d = JSON.parse(String(row?.diagnostics ?? "{}"));
+          ok(
+            linkTicked && /drill-18v/.test(failure) && /^link:/.test(d.failure?.code ?? "") && d.failure?.link === `nexus-smoke-${tag}.invalid/products/drill-18v` && !JSON.stringify(d).includes("newsletter") && !JSON.stringify(d).includes("123456789"),
+            "report from a failure toast: one tap, failure code + link domain/path",
+            JSON.stringify({ linkTicked, failure: failure.slice(0, 80), stored: d.failure }),
+          );
+        });
+
         // R16 A4 (mock AI): on a brand-new shared space (no lists yet) Move to offers status + "New list…" — never a lone
         // "Remove" — and New list "Test" creates the list and moves both items in one step. Back to the personal space after.
         await step("move to: empty shared space → New list moves both items", async () => {

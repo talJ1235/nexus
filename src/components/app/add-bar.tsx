@@ -12,6 +12,7 @@ import type { ItemWithSources, PreviewResult } from "@/lib/types";
 import { cn, extractUrls, isHttpUrl } from "@/lib/utils";
 import { hostOf, normalizeUrl } from "@/lib/stores";
 import { useStore } from "./store";
+import { useFailReport } from "./fail-toast";
 import { useExtension } from "./use-extension";
 import { useReadOnly } from "./offline-banner";
 import { buyFilter } from "@/lib/views";
@@ -27,6 +28,7 @@ export const SHOWS_PENDING = ["to_buy", "collection", "store"];
 
 export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed?: boolean }) {
   const s = useStore();
+  const { fail, reportAction } = useFailReport();
   const { t, f } = useI18n();
   const [value, setValue] = useState("");
   const [bulk, setBulk] = useState(false);
@@ -131,8 +133,10 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
         const partial = preview.draft.quality !== "full";
         const v = viewRef.current;
         const visible = v.type === "to_buy" ? buyFilter(item, v.f) : v.type === "collection" && v.id === item.collectionId;
-        if (preview.draft.quality === "failed") toast.warning(t.add.failed, { action: { label: t.item.edit, onClick: () => s.openItem(item.id) } });
-        else if (partial && interactive) toast(t.add.partial, { description: item.title, action: { label: t.item.edit, onClick: () => s.openItem(item.id) } });
+        // R16 C1: a link that didn't fully read can be reported (the link goes along unless unticked).
+        const rep = reportAction("link", { code: preview.draft.quality === "failed" ? "failed" : "partial", link: preview.draft.source.url });
+        if (preview.draft.quality === "failed") toast.warning(t.add.failed, { action: { label: t.item.edit, onClick: () => s.openItem(item.id) }, cancel: rep });
+        else if (partial && interactive) toast(t.add.partial, { description: item.title, action: { label: t.item.edit, onClick: () => s.openItem(item.id) }, cancel: rep });
         else if (!visible) toast.success(t.add.added, { description: item.title, action: { label: t.dup.open, onClick: () => s.openItem(item.id) } });
       } catch (e) {
         s.patchPending(id, {
@@ -143,10 +147,11 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
           },
         });
         if (String((e as Error)?.message) === "invalid_url") toast.error(t.add.invalidUrl);
+        else fail("link", { code: String((e as Error)?.message || "error").slice(0, 40), link: input.url ?? null });
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hintCollection, s.upsertItem, s.openItem, s.addPending, s.patchPending, s.dropPending, s.markFresh, bump, t, ext.available, ext.resolve],
+    [hintCollection, s.upsertItem, s.openItem, s.addPending, s.patchPending, s.dropPending, s.markFresh, bump, t, ext.available, ext.resolve, fail, reportAction],
   );
 
   useEffect(() => {

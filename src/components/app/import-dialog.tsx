@@ -1,4 +1,5 @@
 "use client";
+import { useFailReport } from "./fail-toast";
 
 import { useMemo, useRef, useState } from "react";
 import { Check, FileSpreadsheet, Upload, Wand2 } from "lucide-react";
@@ -56,6 +57,7 @@ type Phase = { step: "pick" } | { step: "map"; parsed: Parsed; fileName: string 
 export function ImportDialog() {
   const s = useStore();
   const { t, f } = useI18n();
+  const { fail } = useFailReport();
   const ext = useExtension();
   const [phase, setPhase] = useState<Phase>({ step: "pick" });
   const [map, setMap] = useState<Partial<Record<Field, number>>>({});
@@ -90,7 +92,7 @@ export function ImportDialog() {
       setPhase({ step: "map", parsed: json, fileName: file.name });
     } catch (e) {
       const code = String((e as Error).message);
-      toast.error(code === "unsupported" ? t.io.unsupported : code === "too_large" ? t.io.tooLarge : t.io.unreadable);
+      fail("import", { code: `read:${code.slice(0, 30)}`, message: code === "unsupported" ? t.io.unsupported : code === "too_large" ? t.io.tooLarge : t.io.unreadable });
     } finally {
       setBusy(false);
     }
@@ -116,8 +118,8 @@ export function ImportDialog() {
       res.collections.forEach(s.upsertCollection);
       s.upsertItems(res.items);
       setPhase({ step: "done", created: res.items.map((i) => i.id), skipped: res.skipped });
-    } catch {
-      toast.error(t.errors.generic);
+    } catch (e) {
+      fail("import", { code: `rows:${String((e as Error)?.message || "error").slice(0, 30)}` });
     } finally {
       setBusy(false);
     }

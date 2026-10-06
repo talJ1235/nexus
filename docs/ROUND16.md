@@ -216,7 +216,7 @@ people can't silently overwrite each other.
   `test:headers` green.
 
 ## Part C — error reporting (Session 1) — Tal: "strong security"
-### C1. [ ] Report a failure in one tap
+### C1. [x] Report a failure in one tap
 - Every error toast for a failed user action (add from link, picture search, receipt read, barcode lookup, AI answer,
   import, sync conflict that failed) gets a **Report** action → the existing report dialog opens pre-filled (type bug,
   title = what failed, diagnostics attached automatically) — one tap on **Send**.
@@ -453,3 +453,12 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   issue when `GITHUB_ISSUES_TOKEN`); `node scripts/errors.mjs` (REPORTS_TOKEN, like reports.mjs) — in CLAUDE.md.
   `/privacy` is still the stub, now with one paragraph on the error log (the full text is R17 with Tal's approval).
   `test:errors` (unit + the built app): all acceptance cases pass.
+- **C1:** `useFailReport()` (`fail-toast.tsx`): error toasts of failed actions get **Report** → the report dialog opens
+  as a bug, prefilled with what failed; a "What failed" box lists the user content with its own checkbox — the link (on
+  by default, sent as **domain + path**, the server strips the query again) and a picture (off by default); everything
+  else stays under "Included automatically". Wired: add from link (read failed / partial → Report next to Edit; request
+  failed → error toast), picture search, receipt read (the failed state gets a Report button — it's not a toast), barcode
+  lookup + identify-by-photo (the photo is the opt-in picture), the assistant's error bubble (inline "Report"), import
+  (read + rows), saves that fail (incl. "Apply mine"). The report row stores `diagnostics.failure = { code, what, link }`
+  and the markdown/GitHub issue shows it. Smoke: a link that can't be read → toast → Report → Send → the row has
+  `link:*` and `nexus-smoke-….invalid/products/drill-18v` (no `?ref=…`).

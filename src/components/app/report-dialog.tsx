@@ -16,6 +16,16 @@ import { useStore } from "./store";
 import { extensionVersion } from "./use-extension";
 import { photoToDataUrl } from "./use-camera";
 
+/** What's sent of a failed link: domain + path (no query string — the server strips it too). */
+const linkPreview = (link: string) => {
+  try {
+    const u = new URL(link);
+    return `${u.hostname.replace(/^www\./, "")}${u.pathname}`;
+  } catch {
+    return link.slice(0, 80);
+  }
+};
+
 /**
  * "Report a problem" (Round 9 D1: one simple form). The type switch, one text box, "What did you expect?" for bugs
  * only, an optional screenshot. An assistant draft fills the same form. What's attached is listed (collapsed).
@@ -29,6 +39,10 @@ export function ReportDialog() {
   const [expected, setExpected] = useState("");
   const [shot, setShot] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // R16 C1: user content from a failure is opt-in per piece — the link on (it's what we need), the picture off.
+  const [withLink, setWithLink] = useState(true);
+  const [withImage, setWithImage] = useState(false);
+  const failure = draft?.failure ?? null;
   const fileRef = useRef<HTMLInputElement>(null);
   const assistant = draft?.assistant ?? (draft ? getLastExchange() : null);
   const viewCount = useMemo(() => itemsForView(s.items, s.view).length, [s.items, s.view]);
@@ -44,6 +58,8 @@ export function ReportDialog() {
     setText(body);
     setExpected(draft.expected ?? "");
     setShot(null);
+    setWithLink(true);
+    setWithImage(false);
     setDiag(collectDiag(s.view.type, locale, extensionVersion(), viewCount));
     /* eslint-enable react-hooks/set-state-in-effect */
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -60,7 +76,8 @@ export function ReportDialog() {
         expected: type === "bug" ? expected.trim() : "",
         diag: collectDiag(s.view.type, locale, extensionVersion(), viewCount),
         assistant,
-        screenshot: shot,
+        screenshot: shot ?? (failure?.image && withImage ? failure.image : null),
+        failure: failure ? { code: failure.code, what: failure.what, link: withLink ? (failure.link ?? null) : null } : null,
       });
       s.closeReport();
       toast.success(t.report.sent, { action: { label: t.report.view, onClick: () => s.setReportsOpen(true) } });
@@ -145,6 +162,27 @@ export function ReportDialog() {
             }}
           />
         </div>
+        {failure && (
+          <div className="space-y-2 rounded-[14px] border border-line px-3.5 py-3 text-[13px]" data-report-failure>
+            <div className="font-semibold">
+              {t.report.failed} <span className="font-normal text-muted">· {failure.what}</span>
+            </div>
+            {failure.link && (
+              <label className="flex min-h-10 items-center gap-2.5">
+                <input type="checkbox" checked={withLink} onChange={(e) => setWithLink(e.target.checked)} className="size-4 accent-[var(--accent)]" data-report-with-link />
+                <span className="min-w-0">
+                  {t.report.withLink} <span className="block truncate text-[12px] text-muted" dir="ltr">{linkPreview(failure.link)}</span>
+                </span>
+              </label>
+            )}
+            {failure.image && (
+              <label className="flex min-h-10 items-center gap-2.5">
+                <input type="checkbox" checked={withImage} onChange={(e) => setWithImage(e.target.checked)} className="size-4 accent-[var(--accent)]" data-report-with-image />
+                {t.report.withImage}
+              </label>
+            )}
+          </div>
+        )}
         <details className="rounded-[14px] bg-surface-2 px-3.5 py-2.5 text-[12.5px] text-muted" data-report-included>
           <summary className="cursor-pointer font-semibold text-ink">{t.report.included}</summary>
           <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1">

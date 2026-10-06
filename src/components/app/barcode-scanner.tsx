@@ -1,4 +1,5 @@
 "use client";
+import { useFailReport } from "./fail-toast";
 
 import { useEffect, useRef, useState } from "react";
 import { Dialog as D } from "radix-ui";
@@ -63,6 +64,7 @@ function useBarcodeReader(videoRef: React.RefObject<HTMLVideoElement | null>, ac
 /** Full-screen live camera with a scan frame. `onCode` set → continuous mode (shopping); otherwise look up + result. */
 export function BarcodeScanner({ open, onClose, onCode }: { open: boolean; onClose: () => void; onCode?: (code: string) => void }) {
   const { t } = useI18n();
+  const { fail } = useFailReport();
   const [result, setResult] = useState<BarcodeResult | "loading" | null>(null);
   const [typing, setTyping] = useState(false);
   const [typed, setTyped] = useState("");
@@ -74,9 +76,9 @@ export function BarcodeScanner({ open, onClose, onCode }: { open: boolean; onClo
     setResult("loading");
     try {
       setResult(await lookupBarcode(code));
-    } catch {
+    } catch (e) {
       setResult(null);
-      toast.error(t.errors.generic);
+      fail("barcode", { code: `lookup:${String((e as Error)?.message || "error").slice(0, 30)}` });
     }
   };
   useBarcodeReader(videoRef, open && camState === "on" && !paused && !typing, (c) => void handle(c));
@@ -169,6 +171,7 @@ export function BarcodeScanner({ open, onClose, onCode }: { open: boolean; onClo
 function ResultCard({ result, onNext, onDone }: { result: BarcodeResult | "loading"; onNext: () => void; onDone: () => void }) {
   const s = useStore();
   const { t } = useI18n();
+  const { fail } = useFailReport();
   const flow = useStatusFlow();
   const [hit, setHit] = useState<LookupHit | null>(result === "loading" ? null : result.hit);
   const [naming, setNaming] = useState(false);
@@ -248,9 +251,9 @@ function ResultCard({ result, onNext, onDone }: { result: BarcodeResult | "loadi
       const image = await photoToDataUrl(file, 1024);
       const named = await identifyProductPhoto({ image, code: result.code });
       if (named) setHit(named);
-      else toast.error(t.errors.generic);
-    } catch {
-      toast.error(t.errors.generic);
+      else fail("barcode", { code: "photo:no_match", image });
+    } catch (e) {
+      fail("barcode", { code: `photo:${String((e as Error)?.message || "error").slice(0, 30)}` });
     } finally {
       setNaming(false);
     }

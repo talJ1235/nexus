@@ -1,5 +1,6 @@
 "use client";
 
+import { useFailReport } from "./fail-toast";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { Camera, FileText, ReceiptText, RotateCcw, Trash2, Upload } from "lucide-react";
@@ -25,6 +26,7 @@ const ACCEPT = /^(image\/|application\/pdf$)/;
 export function ReceiptDialog() {
   const s = useStore();
   const { t, f, locale } = useI18n();
+  const { report } = useFailReport();
   const open = s.panel === "receipt";
   const [phase, setPhaseRaw] = useState<Phase>({ step: "pick" });
   const [text, setText] = useState("");
@@ -286,6 +288,9 @@ export function ReceiptDialog() {
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setPhase({ step: "pick" })}>
                 {t.scan.back}
+              </Button>
+              <Button variant="ghost" onClick={() => report("receipt", { code: phase.message === t.scan.noAi ? "no_ai" : "read_failed" })} data-receipt-report>
+                {t.report.report}
               </Button>
               {phase.receiptId && (
                 <Button variant="accent" onClick={() => void read(phase.receiptId!)}>

@@ -16,6 +16,8 @@ export type ReportDiag = {
   server?: { commit: string | null; aiProviders: string[]; blob: boolean; telegram: boolean } | null;
   assistant?: { question: string; answer: string } | null;
   screenshot?: boolean;
+  /** R16 C1: reported from a failure toast — what failed, its code, and (when the user kept it) the link's domain + path. */
+  failure?: { code: string; what: string; link: string | null } | null;
 };
 
 export type ReportRow = {
@@ -71,6 +73,7 @@ export function reportMarkdown(r: ReportRow): string {
     "",
     "**Diagnostics**",
   ];
+  if (d.failure) lines.push(`- Failed: ${d.failure.what} · code \`${d.failure.code}\`${d.failure.link ? ` · link ${d.failure.link}` : ""}`);
   if (c)
     lines.push(
       `- View: ${c.view} · ${c.device} · viewport ${c.viewport}`,

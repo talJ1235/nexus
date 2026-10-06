@@ -23,11 +23,24 @@ const input = z.strictObject({
   actual: z.string().max(2000).default(""),
   diag: clientDiagSchema.nullable().optional(),
   assistant: z.object({ question: z.string().max(4000), answer: z.string().max(4000) }).nullable().optional(),
+  // R16 C1: from a failure toast. The link is stored as domain + path only (no query string), whatever the client sends.
+  failure: z.strictObject({ code: z.string().max(60), what: z.string().max(120), link: z.string().max(400).nullable() }).nullable().optional(),
   // A picked screenshot, shrunk in the browser to a JPEG data URL.
   screenshot: z.string().max(1_500_000).regex(/^data:image\/(jpeg|png|webp);base64,/).nullable().optional(),
 });
 
 export type ReportView = ReportRow & { screenshot: string | null };
+
+/** "https://shop.example/p/drill?ref=x#y" → "shop.example/p/drill" (null when not an http link). */
+function linkDomainPath(link: string | null) {
+  if (!link) return null;
+  try {
+    const u = new URL(link);
+    return /^https?:$/.test(u.protocol) ? `${u.hostname.replace(/^www\./, "")}${u.pathname}`.slice(0, 300) : null;
+  } catch {
+    return null;
+  }
+}
 const view = (r: typeof schema.reports.$inferSelect): ReportView => ({ ...r, githubIssue: r.githubIssue ?? null });
 
 export async function createReport(raw: z.input<typeof input>): Promise<ReportView> {
@@ -40,6 +53,7 @@ export async function createReport(raw: z.input<typeof input>): Promise<ReportVi
     server: { commit: server.commit, aiProviders: server.aiProviders, blob: server.blob, telegram: server.telegram },
     assistant: f.assistant ?? null,
     screenshot: !!f.screenshot,
+    failure: f.failure ? { ...f.failure, link: linkDomainPath(f.failure.link) } : null,
   };
   const now = Date.now();
   const row = await insertReport(ctx.user.id, { id: `r_${nanoid(10)}`, type: f.type, title: f.title, body: reportBody(f), diagnostics, screenshot: f.screenshot ?? null, status: "open", createdAt: now, updatedAt: now });

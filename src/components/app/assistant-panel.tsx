@@ -1,4 +1,5 @@
 "use client";
+import { useFailReport } from "./fail-toast";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, ArrowUpRight, Brain, Bug, ChartColumn, Check, ChevronRight, CircleHelp, History, MessageSquare, MessageSquareWarning, Send, Square, SquarePen, Wand2, X } from "lucide-react";
@@ -458,6 +459,7 @@ const fromStored = (m: MessageView): Msg => ({
 function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { seed: string | null; seedKey: string | null; onModel: (m: ModelState) => void; mode: ChatMode; setMode: (m: ChatMode) => void; onConversation: (c: { id: string; title: string } | null) => void }) {
   const s = useStore();
   const { t, locale } = useI18n();
+  const { report: failReport } = useFailReport();
   const conv = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const currentProject = s.view.type === "collection" ? (s.view as { id: string }).id : null;
@@ -671,7 +673,14 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
             </div>
           ) : (
             <div key={i} className="space-y-3">
-              {m.error ? <p className="text-sm text-muted">{m.text}</p> : m.plan ? <PlanCard plan={m.plan} defaultTarget={m.target ?? null} /> : <Answer text={m.text} streaming={m.streaming} onItem={openItem} />}
+              {m.error ? (
+                <p className="text-sm text-muted">
+                  {m.text}{" "}
+                  <button type="button" className="font-semibold text-accent-ink underline-offset-2 hover:underline" onClick={() => failReport("ai", { code: m.text === t.ai.noAi ? "no_ai" : "failed" })} data-ai-report>
+                    {t.report.report}
+                  </button>
+                </p>
+              ) : m.plan ? <PlanCard plan={m.plan} defaultTarget={m.target ?? null} /> : <Answer text={m.text} streaming={m.streaming} onItem={openItem} />}
               {m.proposal && <ActionCard proposal={m.proposal} onItem={openItem} />}
               {m.memory && <MemoryChip note={m.memory} />}
               {m.report && <ReportDraftCard draft={m.report} exchange={{ question: m.question ?? "", answer: m.text }} />}

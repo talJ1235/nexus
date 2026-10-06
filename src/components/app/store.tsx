@@ -26,7 +26,11 @@ export type Panel = "import" | "planner" | "assistant" | "alerts" | "share" | "r
 
 export type Layout = "cards" | "table";
 /** A report being written: fields drafted by the assistant (or empty), plus the exchange it came from. */
-export type ReportDraft = Partial<ReportFields> & { assistant?: { question: string; answer: string } | null };
+export type ReportDraft = Partial<ReportFields> & {
+  assistant?: { question: string; answer: string } | null;
+  /** R16 C1: opened from a failure toast's Report action. */
+  failure?: { code: string; what: string; link?: string | null; image?: string | null };
+};
 /** Phones: 2-column cards (default) or one row per item. */
 export type PhoneLayout = "cards" | "rows";
 
