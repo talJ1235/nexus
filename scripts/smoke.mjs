@@ -1997,6 +1997,51 @@ try {
       ok(!bad.length, "phone top bar: full-size logo + compact space chip (360/390, en/he)", bad.join(" | "));
     });
 
+    // R16 A12: switching spaces doesn't reload the page — the sidebar's box is the same on every frame of the switch, the
+    // app lands on Home with the new space's data only, and switching back restores the first space's data.
+    await step("space switch: no reload, sidebar steady every frame, lands on Home", async () => {
+      if (MOBILE) return ok(true, "space switch: no reload, sidebar steady every frame, lands on Home (desktop only)");
+      await page.goto(`${BASE}/?v=to_buy`);
+      await page.waitForSelector(READY);
+      await page.waitForSelector("#boot", { state: "hidden", timeout: 10000 }).catch(() => {});
+      const sw = page.locator("[data-space-switcher]").first();
+      const home = await sw.getAttribute("data-space-id");
+      await sw.click();
+      const others = await page.locator("[data-space-item]").evaluateAll((els, h) => els.map((e) => e.getAttribute("data-space-item")).filter((x) => x && x !== h), home);
+      if (!others.length) {
+        await page.keyboard.press("Escape");
+        return ok(true, "space switch (only one space, skipped)");
+      }
+      const target = others[0];
+      // Sample the sidebar's box on every frame; a marker on window proves there was no reload.
+      await page.evaluate(() => {
+        window.__noReload = true;
+        window.__boxes = [];
+        const aside = document.querySelector("[data-sidebar-logo]").closest("aside, nav, [data-sidebar]") || document.querySelector("[data-sidebar-logo]").parentElement.parentElement;
+        const tick = () => {
+          const r = aside.getBoundingClientRect();
+          window.__boxes.push([Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)].join(","));
+          if (window.__boxes.length < 240) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+      const titlesBefore = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items.length;
+      await page.locator(`[data-space-item="${target}"]`).first().click();
+      await page.waitForFunction((t) => document.querySelector("[data-space-switcher]")?.getAttribute("data-space-id") === t, target, { timeout: 20000 });
+      await page.waitForTimeout(900);
+      const r = await page.evaluate(() => ({ noReload: !!window.__noReload, boxes: [...new Set(window.__boxes)], frames: window.__boxes.length, path: location.pathname + location.search }));
+      const homeShown = await page.locator("[data-home]").count();
+      // The new space's data only: the app's item count equals that space's backup.
+      const backupNew = (await (await ctx.request.get(`${BASE}/api/backup`)).json()).data.items.length;
+      await shot(page, "space-switched");
+      // Back to the first space (same path).
+      await page.locator("[data-space-switcher]").first().click();
+      await page.locator(`[data-space-item="${home}"]`).first().click();
+      await page.waitForFunction((t) => document.querySelector("[data-space-switcher]")?.getAttribute("data-space-id") === t, home, { timeout: 20000 });
+      const back = await page.evaluate(() => !!window.__noReload);
+      ok(r.noReload && back && r.boxes.length === 1 && r.frames > 20 && r.path === "/" && homeShown > 0 && backupNew !== titlesBefore, "space switch: no reload, sidebar steady every frame, lands on Home", JSON.stringify({ ...r, homeShown, items: [titlesBefore, backupNew], back }));
+    });
+
     await step("assistant panel opens", async () => {
       await page.goto(`${BASE}/?v=to_buy`);
       await page.waitForSelector(READY, { timeout: 15000 });

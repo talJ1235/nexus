@@ -2,6 +2,8 @@
 
 import { useCallback } from "react";
 import { switchSpace } from "@/app/space-actions";
+import { loadAppData } from "@/app/data-actions";
+import { toast } from "@/lib/toast";
 import { useI18n } from "@/components/providers";
 import { useDataStore, useStore } from "../store";
 import { cn } from "@/lib/utils";
@@ -83,11 +85,26 @@ export function reloadInto(name: string | null) {
   window.location.replace(u.toString());
 }
 
+/**
+ * R16 A12: switch without a page reload — the action sets the cookie, then the new space's data (the same loader as the
+ * first render) replaces the store's; shell and sidebar stay mounted; lands on Home with "Now in …".
+ */
 export function useSwitchSpace() {
-  return useCallback(async (id: string) => {
-    const r = await switchSpace(id);
-    reloadInto(r.name);
-  }, []);
+  const s = useStore();
+  const { f, t } = useI18n();
+  const { replaceData } = s;
+  return useCallback(
+    async (id: string) => {
+      const r = await switchSpace(id);
+      try {
+        replaceData(await loadAppData());
+      } catch {
+        return reloadInto(r.name);
+      }
+      toast(f(t.spaces.now, { space: r.name }), { duration: 2600 });
+    },
+    [replaceData, f, t],
+  );
 }
 
 /** The signed-in person's display name (first name), for greetings and the account rows. */

@@ -139,7 +139,7 @@ layout-affecting properties animate on close, or the backdrop blur animates. Exp
 transform/opacity-only curve as open (`--ease-out`, ≤ 280 ms), content stays mounted until the animation ends.
 Acceptance: frame timings before/after in Open; no frame > 32 ms during close at 4× throttle.
 
-### A12. [ ] Space switch: no sidebar jump (quick fix; the full transition is D4)
+### A12. [x] Space switch: no sidebar jump (quick fix; the full transition is D4)
 Cause (found): `useSwitchSpace()` (`spaces/space-ui.tsx`) does `window.location.replace(...)` — a full page reload, so the
 shell re-lays out (sidebar jumps, gets cut, snaps back). Expected now: switch **without a full reload** — the server
 action sets the cookie, then the client fetches the new space's data (same loader as the first render) and swaps the
@@ -377,3 +377,9 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
 - **A10:** R14 (`1e2b9cc`) had the Box mark + "Nexus" at 16 px / 800; R15 dropped the wordmark whenever a space exists. The
   wordmark is back (always), and the space switcher is a 40 px pill chip (26 px tile + chevron; the name, ≤ 96 px, only from
   380 px up). Smoke at 360/390 × en/he: no overlap, no overflow, both ≥ 40 px.
+- **A12:** `switchSpace` (cookie) → `loadAppData()` (new action, the same loader as the first render: `getAppData` +
+  `spaceShell`) → `replaceData()` swaps items, lists, groups, budget, alerts, home prefs, space/people/me in place and
+  lands on Home with "Now in …"; on any failure it falls back to the old reload. Smoke samples the sidebar's box on every
+  frame of a switch (one value across ~60 frames, no reload, Home, the new space's data); `test:tenancy` 42/42 (its
+  "keeps the view" check is now "lands on Home", per the brief). Create / leave / delete / restore / transfer still reload
+  (they change the membership list itself) — D4's moment can take those over.

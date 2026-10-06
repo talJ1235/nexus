@@ -119,6 +119,8 @@ type Store = {
   setSort: (s: SortKey) => void;
   view: View;
   setView: (v: View) => void;
+  /** R16 A12: swap in another space's data (from loadAppData) without a reload; lands on Home. */
+  replaceData: (next: AppData) => void;
   /** Increments on every user-initiated view change; 0 on first load (so the first paint isn't animated). */
   navSeq: number;
   /** Direction of the last view change in sidebar order (views slide that way). */
@@ -311,7 +313,9 @@ export function StoreProvider({
   const [altGroups, setAltGroups] = useState(initial.altGroups);
   const [storeSettings, setStoreSettings] = useState(initial.storeSettings);
   const [budget, setBudget] = useState(initial.budget);
-  const [alerts] = useState<Alert[]>(initial.alerts ?? []);
+  const [alerts, setAlerts] = useState<Alert[]>(initial.alerts ?? []);
+  // R16 A12: the space/people/me/rates part of the load lives in state too, so a space switch can swap it in place.
+  const [base, setBase] = useState<AppData>(initial);
   const [homePrefs, setHomePrefs] = useState<HomePrefs>(initial.home ?? DEFAULT_HOME_PREFS);
   const [clock, setClock] = useState<Clock>(() => ({ now: ui.now ?? Date.now(), tz: ui.tz || DEFAULT_TZ, weekStartsOn: 0 }));
   useEffect(() => {
@@ -438,9 +442,9 @@ export function StoreProvider({
   }, [loading, offline]);
   useEffect(() => {
     if (loading || offline || !online) return;
-    const t = setTimeout(() => void saveSnapshot({ data: { ...initial, items, collections, altGroups, storeSettings, budget, importLimitUsd, home: homePrefs }, at: Date.now(), currency }), 1200);
+    const t = setTimeout(() => void saveSnapshot({ data: { ...base, alerts, items, collections, altGroups, storeSettings, budget, importLimitUsd, home: homePrefs }, at: Date.now(), currency }), 1200);
     return () => clearTimeout(t);
-  }, [loading, offline, online, initial, items, collections, altGroups, storeSettings, budget, currency, importLimitUsd, homePrefs]);
+  }, [loading, offline, online, base, alerts, items, collections, altGroups, storeSettings, budget, currency, importLimitUsd, homePrefs]);
 
   // Recent client errors, for problem reports and the assistant's troubleshooting (lib/client-errors).
   useEffect(() => {
@@ -531,6 +535,29 @@ export function StoreProvider({
     }
     applyView(v);
   }, [applyView]);
+
+  // R16 A12: a space switch swaps the whole data set in place (shell and sidebar stay mounted) and lands on Home.
+  const replaceData = useCallback(
+    (next: AppData) => {
+      setItems(next.items);
+      setCollections(next.collections);
+      setAltGroups(next.altGroups);
+      setStoreSettings(next.storeSettings);
+      setBudget(next.budget);
+      setAlerts(next.alerts ?? []);
+      setHomePrefs(next.home ?? DEFAULT_HOME_PREFS);
+      setImportLimitUsd(next.importLimitUsd ?? 130);
+      setBase(next);
+      setOpenItemId(null);
+      setAltOpenId(null);
+      setCompareItemId(null);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("item");
+      window.history.replaceState(window.history.state, "", url);
+      applyView({ type: "home" });
+    },
+    [applyView],
+  );
 
   const setLayout = useCallback((l: Layout) => {
     setLayoutState(l);
@@ -692,8 +719,8 @@ export function StoreProvider({
       clearSelection,
       altOpenId,
       openAlt: setAltOpenId,
-      rates: initial.rates,
-      aiEnabled: initial.aiEnabled,
+      rates: base.rates,
+      aiEnabled: base.aiEnabled,
       currency,
       setCurrency,
       layout,
@@ -732,13 +759,14 @@ export function StoreProvider({
       compareItemId,
       setCompareItemId,
       importLimitUsd,
-      spaceId: initial.space?.id ?? "",
-      admin: !!initial.me?.admin,
-      space: initial.space ?? null,
-      spaces: initial.spaces ?? [],
-      people: initial.people ?? [],
-      me: initial.me ? { id: initial.me.id ?? "", name: initial.me.name, email: initial.me.email } : null,
-      readOnly: offlineAt != null || initial.space?.role === "viewer",
+      spaceId: base.space?.id ?? "",
+      admin: !!base.me?.admin,
+      space: base.space ?? null,
+      spaces: base.spaces ?? [],
+      people: base.people ?? [],
+      me: base.me ? { id: base.me.id ?? "", name: base.me.name, email: base.me.email } : null,
+      readOnly: offlineAt != null || base.space?.role === "viewer",
+      replaceData,
       setImportLimitUsd,
       sidebarCollapsed,
       setSidebarCollapsed,
@@ -782,13 +810,13 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, initial.space, initial.spaces, initial.people, initial.me, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, initial.rates, initial.aiEnabled, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(
     () => value,
     // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately only the data the cards read
-    [items, collections, altGroups, initial.rates, currency, selected, toggleSelect, fresh, imagePending, offlineAt, offline, importLimitUsd, storeSettings],
+    [items, collections, altGroups, base.rates, currency, selected, toggleSelect, fresh, imagePending, offlineAt, offline, importLimitUsd, storeSettings],
   );
 
   return (

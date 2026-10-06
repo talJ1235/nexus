@@ -416,10 +416,15 @@ if (process.env.TENANCY_UI !== "0") {
     await pa.waitForSelector(`[data-space-switcher][data-space-id="${SP.S}"]`, { timeout: 20000 });
     await ready(pa);
     const toastSeen = await pa.getByText("Now in Shared S").waitFor({ timeout: 5000 }).then(() => true, () => false);
-    const after = await pa.content();
-    ok(before.includes(MARK.A) && !before.includes(MARK.S) && after.includes(MARK.S) && !after.includes(`${MARK.A} item`) && toastSeen, "UI: A switches personal → S from the menu; the items change; \"Now in Shared S\" shows");
+    // R16 A12: the switch lands on Home without a reload; open To buy from the sidebar (client-side) to compare the list.
     const v1 = new URL(pa.url()).searchParams.get("v");
-    ok(v1 === "to_buy", "UI: switching keeps the current view", String(v1));
+    await pa.click('[data-carry="view:to_buy"]');
+    await pa.waitForTimeout(600);
+    // Rendered text only: without a reload the first page's (inert) RSC payload script still holds A's titles.
+    const after = await pa.innerText("body");
+    ok(before.includes(MARK.A) && !before.includes(MARK.S) && after.includes(MARK.S) && !after.includes(`${MARK.A} item`) && toastSeen, "UI: A switches personal → S from the menu; the items change; \"Now in Shared S\" shows", JSON.stringify({ bA: before.includes(MARK.A), bS: before.includes(MARK.S), aS: after.includes(MARK.S), aA: after.includes(`${MARK.A} item`), toastSeen }));
+    // R16 A12: a switch lands on Home (no reload).
+    ok(v1 === null, "UI: switching lands on Home", String(v1));
     await ca.close();
 
     // V (viewer of S): no add bar on desktop, no "+" on the phone, a view-only line, disabled card actions.
