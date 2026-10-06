@@ -3,7 +3,8 @@
 // Usage: node scripts/db-restore-test.mjs [--source snapshots/prod-2026-10-05.db]
 import { createClient } from "@libsql/client";
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, rmSync, mkdirSync, copyFileSync } from "node:fs";
+import { existsSync, readdirSync, rmSync, mkdirSync, copyFileSync, readFileSync } from "node:fs";
+import { parseEnv } from "node:util";
 
 const i = process.argv.indexOf("--source");
 const newestProd = existsSync("snapshots")
@@ -18,9 +19,20 @@ const json = "snapshots/restore-test.json";
 for (const f of [srcCopy, target, json]) if (existsSync(f)) rmSync(f);
 copyFileSync(source, srcCopy);
 
+// The R15 migration step needs ADMIN_EMAIL (owner of the backfilled rows). Take it from the environment or .env.local —
+// only that one name; the prod URL/token in .env.local are never passed to the children.
+const localEnv = existsSync(".env.local") ? parseEnv(readFileSync(".env.local", "utf8")) : {};
+const adminEmail = process.env.ADMIN_EMAIL || localEnv.ADMIN_EMAIL;
+if (!adminEmail) {
+  console.error("FAIL: ADMIN_EMAIL not set (environment or .env.local) — the R15 migration needs it");
+  process.exit(1);
+}
+const childEnv = { ...process.env, ADMIN_EMAIL: adminEmail, TURSO_AUTH_TOKEN: "" };
+for (const k of Object.keys(childEnv)) if (k.startsWith("PROD_TURSO_")) delete childEnv[k];
+
 const tsx = ["node_modules/tsx/dist/cli.mjs", "--conditions=react-server"];
 const run = (url, args) =>
-  execFileSync(process.execPath, [...tsx, ...args], { env: { ...process.env, TURSO_DATABASE_URL: `file:${url}`, TURSO_AUTH_TOKEN: "" }, encoding: "utf8" })
+  execFileSync(process.execPath, [...tsx, ...args], { env: { ...childEnv, TURSO_DATABASE_URL: `file:${url}` }, encoding: "utf8" })
     .trim()
     .split("\n")
     .pop();
