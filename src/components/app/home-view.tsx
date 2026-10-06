@@ -13,6 +13,7 @@ import { useMedia } from "@/components/ui/use-media";
 import { EXTENSION_RETIRED, useExtension } from "./use-extension";
 import { Sheet } from "@/components/ui/overlays";
 import { activeSource } from "@/lib/calc";
+import { AXIS_LOCK, pagerOffset, pagerRelease, velocity } from "@/lib/gestures";
 import { dayKeyIn, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, monthGrid, shiftMonth, type HomeModel, type Insight, type NeedRow, type Suggestion, type WeekEvent } from "@/lib/home";
 import { formatMoney, formatMoneyCompact } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -625,11 +626,18 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
   const phrased = usePhrased(sugs.filter((y) => y.kind === "deal" || y.kind === "reorder" || y.kind === "wait" || y.kind === "budget"));
   const dismiss = useDismiss();
   const [idx, setIdx] = useState(0);
+  // Where the next suggestion slides in from (px, physical): set by a swipe, default (12 px) otherwise.
+  const [from, setFrom] = useState<number | null>(null);
   const i = Math.min(idx, sugs.length - 1);
   const x = sugs[i];
   const tpl = template(x, t, fm);
   const ai = phrased[x.key];
-  const go = (d: number) => setIdx((i + d + sugs.length) % sugs.length);
+  const rtl = dir === "rtl";
+  const go = (d: number, fromPx?: number) => {
+    setFrom(fromPx ?? null);
+    setIdx((i + d + sugs.length) % sugs.length);
+  };
+  const { swapRef, handlers: swipeHandlers, dragging } = useSwipePager({ count: sugs.length, index: i, go, rtl });
   const run = async () => {
     const a = x.action;
     if (a.type === "none") return;
@@ -671,7 +679,6 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
       s.setView({ type: "orders" });
     } else s.openItem(a.itemId);
   };
-  const rtl = dir === "rtl";
   const pager = (
     <div className="flex items-center gap-1.5" data-sug-pager>
       <button type="button" onClick={() => go(-1)} className="grid size-7 place-items-center rounded-full border border-card-line bg-surface text-ink max-lg:hidden" aria-label={t.dash.prev}>
@@ -691,8 +698,10 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
   );
   return (
     <section
-      className={cn("r13-sug r13-section", className)}
+      className={cn("r13-sug r13-section touch-pan-y", sugs.length > 1 && "lg:cursor-grab", dragging && "select-none lg:cursor-grabbing", className)}
       style={style}
+      {...swipeHandlers}
+      data-dragging={dragging || undefined}
       data-home-section="suggest"
       tabIndex={0}
       aria-roledescription="carousel"
@@ -714,7 +723,7 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
           <span className="flex flex-1 items-center gap-2 text-[11px] font-bold uppercase tracking-[0.06em] text-ai lg:hidden">{t.dash.suggests}</span>
           {sugs.length > 1 && <span className="lg:hidden">{pager}</span>}
         </div>
-        <div key={x.key} className="r13-swap flex min-w-0 flex-1 flex-col gap-[3px]" data-sug-key={x.key} data-sug-kind={x.kind} data-sug-source={ai || x.kind === "ai" ? "ai" : "template"} aria-live="polite">
+        <div key={x.key} ref={swapRef} style={from != null ? ({ "--sug-from": `${from}px` } as React.CSSProperties) : undefined} className="r13-swap flex min-w-0 flex-1 flex-col gap-[3px]" data-sug-swipe data-sug-key={x.key} data-sug-kind={x.kind} data-sug-source={ai || x.kind === "ai" ? "ai" : "template"} aria-live="polite">
           <span className="flex items-center gap-2 text-[11.5px] font-bold uppercase tracking-[0.06em] text-ai max-lg:hidden">
             {t.dash.suggests}
             {sugs.length > 1 && <em className="font-semibold normal-case not-italic tracking-normal text-muted">{f(t.dash.ofN, { i: i + 1, n: sugs.length })}</em>}
@@ -738,6 +747,79 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
       </div>
     </section>
   );
+}
+
+/**
+ * R16 A7 — swipe (touch) / drag (mouse) between suggestions. Follows the pointer 1:1 once the gesture is horizontal
+ * (axis lock after 8 px, so vertical scrolling still works), rubber-bands at either end, snaps on release (25 % of the
+ * width or a fling). RTL mirrors. Reduced motion: no glide, instant snap. A drag never clicks the button under it.
+ */
+function useSwipePager({ count, index, go, rtl }: { count: number; index: number; go: (d: number, from?: number) => void; rtl: boolean }) {
+  const swapRef = useRef<HTMLDivElement>(null);
+  const reduce = useMedia("(prefers-reduced-motion: reduce)");
+  const g = useRef<{ id: number; x0: number; y0: number; axis: "x" | "y" | null; dx: number; samples: { t: number; v: number }[] } | null>(null);
+  const dragged = useRef(false);
+  const [dragging, setDragging] = useState(false);
+  const dir: 1 | -1 = rtl ? -1 : 1;
+  const place = (x: number, animate: boolean) => {
+    const el = swapRef.current;
+    if (!el) return;
+    el.style.transition = animate && !reduce ? "transform 260ms var(--ease-out)" : "none";
+    el.style.transform = x ? `translateX(${x}px)` : "";
+  };
+  const end = (e: React.PointerEvent<HTMLElement>, cancel = false) => {
+    const st = g.current;
+    g.current = null;
+    if (!st || st.axis !== "x") return;
+    setDragging(false);
+    const width = e.currentTarget.getBoundingClientRect().width || 320;
+    const step = cancel ? 0 : pagerRelease({ dx: st.dx, vx: reduce ? 0 : velocity(st.samples), dir, width, index, count });
+    if (step) {
+      place(0, false);
+      // The next suggestion comes in from the side the finger pushed toward.
+      go(step, Math.sign(st.dx) * 40);
+    } else place(0, true);
+  };
+  const handlers = {
+    onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
+      if (count < 2 || (e.pointerType === "mouse" && e.button !== 0)) return;
+      // Mouse: a drag starting on a button stays a click (touch decides by movement instead).
+      if (e.pointerType === "mouse" && (e.target as HTMLElement).closest("button, a")) return;
+      dragged.current = false;
+      g.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, axis: null, dx: 0, samples: [{ t: e.timeStamp, v: 0 }] };
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
+      const st = g.current;
+      if (!st || st.id !== e.pointerId) return;
+      const dx = e.clientX - st.x0;
+      const dy = e.clientY - st.y0;
+      if (!st.axis) {
+        if (Math.abs(dx) < AXIS_LOCK && Math.abs(dy) < AXIS_LOCK) return;
+        st.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+        if (st.axis === "y") {
+          g.current = null;
+          return;
+        }
+        dragged.current = true;
+        setDragging(true);
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+      }
+      st.dx = dx;
+      st.samples.push({ t: e.timeStamp, v: dx });
+      if (st.samples.length > 8) st.samples.shift();
+      place(pagerOffset(dx, dir, index > 0, index < count - 1), false);
+    },
+    onPointerUp: (e: React.PointerEvent<HTMLElement>) => end(e),
+    onPointerCancel: (e: React.PointerEvent<HTMLElement>) => end(e, true),
+    // A finished drag swallows the click that follows it.
+    onClickCapture: (e: React.MouseEvent) => {
+      if (!dragged.current) return;
+      dragged.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+    },
+  };
+  return { swapRef, handlers, dragging };
 }
 
 // ---------- This week ----------

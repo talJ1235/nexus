@@ -1,6 +1,6 @@
 // Unit test for src/lib/gestures.ts (sheet swipe-down, row swipe decisions).  npx tsx scripts/test-gestures.ts
 import assert from "node:assert/strict";
-import { revealAt, sheetRelease, swipeRelease, velocity } from "../src/lib/gestures";
+import { pagerOffset, pagerRelease, revealAt, sheetRelease, swipeRelease, velocity } from "../src/lib/gestures";
 
 // Sheet: 30 % of the height or a downward fling closes; otherwise springs back.
 assert.equal(sheetRelease(119, 400, 0.1), "stay");
@@ -41,5 +41,21 @@ assert.equal(swipeRelease({ ...base, dx: -70, vx: 0, dir: -1 }), "status");
 assert.equal(velocity([{ t: 0, v: 0 }]), 0);
 assert.ok(Math.abs(velocity([{ t: 0, v: 0 }, { t: 16, v: 15 }, { t: 32, v: 30 }]) - 30 / 32) < 1e-9);
 assert.equal(velocity([{ t: 0, v: 0 }, { t: 50, v: 40 }, { t: 300, v: 40 }]), 0);
+
+// R16 A7: the suggestions pager — 25 % of the width or a fling moves one page; never past the ends; RTL mirrors.
+{
+  const p = (dx: number, vx: number, dir: 1 | -1, index = 1, count = 3) => pagerRelease({ dx, vx, dir, width: 320, index, count });
+  assert.equal(p(-100, 0, 1), 1, "LTR drag left past 25 % = next");
+  assert.equal(p(100, 0, 1), -1, "LTR drag right = previous");
+  assert.equal(p(-40, 0, 1), 0, "short drag snaps back");
+  assert.equal(p(-30, -0.9, 1), 1, "fling left = next");
+  assert.equal(p(-10, -0.9, 1), 0, "a tap-sized fling does nothing");
+  assert.equal(p(100, 0, -1), 1, "RTL drag right = next");
+  assert.equal(p(-100, 0, 1, 2), 0, "no page after the last");
+  assert.equal(p(100, 0, 1, 0), 0, "no page before the first");
+  assert.equal(pagerOffset(-50, 1, true, true), -50, "follows the finger 1:1");
+  assert.ok(Math.abs(pagerOffset(-150, 1, true, false)) < 50, "rubber band at the end");
+  assert.ok(Math.abs(pagerOffset(150, -1, true, false)) < 50, "rubber band at the end (RTL)");
+}
 
 console.log("OK gestures");

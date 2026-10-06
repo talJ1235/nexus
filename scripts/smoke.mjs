@@ -199,6 +199,52 @@ async function homeChecks(page) {
     const back = await card.getAttribute("data-sug-index");
     ok(dots < 2 || (after !== before && back === before), "suggest: keyboard pager", `${before} → ${after} → ${back} (${dots} dots)`);
   });
+  // R16 A7: swipe (phone, touch) / drag (desktop, mouse) moves between suggestions; a short drag snaps back; a drag
+  // over the CTA never clicks it.
+  await step("suggest: swipe / drag pager", async () => {
+    const card = page.locator('[data-home-section="suggest"]');
+    if (!(await card.count()) || Number(await card.getAttribute("data-sug-count")) < 2) return ok(true, "suggest: swipe / drag pager (fewer than two suggestions)");
+    // The desktop opening (once a day) covers the page until it ends.
+    await page.waitForSelector("#boot", { state: "hidden", timeout: 10000 }).catch(() => {});
+    await card.scrollIntoViewIfNeeded();
+    const idx = () => card.getAttribute("data-sug-index");
+    const box = await card.boundingBox();
+    const y = box.y + box.height / 2;
+    const at = (f) => box.x + box.width * f;
+    const cdp = MOBILE ? await page.context().newCDPSession(page) : null;
+    const drag = async (from, to) => {
+      if (MOBILE) {
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: at(from), y }] });
+        for (let k = 1; k <= 10; k++) {
+          await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: at(from + ((to - from) * k) / 10), y }] });
+          await page.waitForTimeout(16);
+        }
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      } else {
+        // On the text (a drag that starts on a button stays a click): positions are shares of the title's width.
+        const t = await card.locator("[data-sug-title]").boundingBox();
+        const tx = (f) => t.x + t.width * f;
+        await page.mouse.move(tx(from), t.y + t.height / 2);
+        await page.mouse.down();
+        for (let k = 1; k <= 10; k++) await page.mouse.move(tx(from + ((to - from) * k) / 10), t.y + t.height / 2);
+        await page.mouse.up();
+      }
+      await page.waitForTimeout(450);
+    };
+    const i0 = await idx();
+    const ltr = (await page.evaluate(() => document.documentElement.dir)) !== "rtl";
+    // Toward "next" (LTR: leftward), past 25 % of the width.
+    await drag(ltr ? 0.95 : 0.05, ltr ? 0.05 : 0.95);
+    const i1 = await idx();
+    // A short drag snaps back.
+    await drag(0.5, ltr ? 0.45 : 0.55);
+    const i2 = await idx();
+    const offset = await card.locator("[data-sug-swipe]").evaluate((e) => getComputedStyle(e).transform);
+    // Back to the first.
+    await drag(ltr ? 0.05 : 0.95, ltr ? 0.95 : 0.05);
+    const i3 = await idx();
+    ok(i1 !== i0 && i2 === i1 && i3 === i0 && (offset === "none" || offset === "matrix(1, 0, 0, 1, 0, 0)"), "suggest: swipe / drag pager", JSON.stringify({ i0, i1, i2, i3, offset }));
+  });
   await step("suggest: border sheen runs without layout", async () => {
     if (!(await page.locator('[data-home-section="suggest"]').count())) return ok(true, "suggest: border sheen runs without layout (no card)");
     await page.evaluate(() => window.scrollTo(0, 0));

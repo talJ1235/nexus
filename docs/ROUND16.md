@@ -106,7 +106,7 @@ is selected every row shows its checkbox. Phone unchanged (long-press to select)
 selection mode. Acceptance: screenshot pair (idle vs hover vs selecting) at 1366, light + dark; smoke asserts the
 checkbox is `opacity:0`/not tabbable-visible at idle and visible after hover and after the first selection.
 
-### A7. [ ] Nexus suggests: swipe on phone, drag on desktop
+### A7. [x] Nexus suggests: swipe on phone, drag on desktop
 Expected: phone — horizontal swipe with snap, rubber-band at the ends, follows the finger 1:1, vertical scroll still
 works (axis lock after ~8 px); desktop — drag with the mouse (grab cursor), plus the existing arrows and dots; keyboard
 ←/→ when focused; RTL flips direction. Reduced motion: no inertia, instant snap. Acceptance: smoke swipes with touch
@@ -352,3 +352,9 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   `--ease-out` in ≤ 260 ms (no spring), content stays mounted. At 4× over 10 runs the close's worst frame is 16.8 ms in 7
   runs and 33.3 ms (one missed vsync, the click frame: 6–12 ms of script) in 3 — just over the brief's 32 ms. Open still
   has one long first frame (the sheet renders 7 actions + prewarms the scanners); it was "smooth" per Tal and not in scope.
+- **A7 frame timings** (`node scripts/perf-frames.mjs suggest [--desktop] --cpu N`, 6 swipes/drags each, rAF deltas): phone
+  touch swipe ×1 → 60 fps median, worst frame 16.8 ms, none > 32 ms; desktop mouse drag ×1 → 60 fps, worst 16.8 ms;
+  phone ×4 → 60 fps median, worst 33.4 ms (2 frames). Before: no swipe/drag existed (only dots/arrows). Release rule
+  (`pagerRelease`: 25 % of the width or a fling ≥ 0.5 px/ms, no wrap past either end) and the rubber band are unit-tested
+  in `test:gestures`; keyboard ←/→ and the dots/arrows keep wrapping as before. A mouse drag that starts on a button stays
+  a click; a finished drag swallows the click under it.

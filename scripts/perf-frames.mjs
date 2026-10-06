@@ -22,6 +22,7 @@ await page.goto(`${BASE}/login?admin=1`);
 await page.fill("#password", process.env.NEXUS_PASSWORD);
 await Promise.all([page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), page.click("button[type=submit]")]);
 await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 30000 });
+await page.waitForSelector("#boot", { state: "hidden", timeout: 10000 }).catch(() => {});
 await page.waitForTimeout(1500);
 const cdp = await ctx.newCDPSession(page);
 
@@ -68,7 +69,7 @@ for (let run = 0; run < RUNS; run++) {
     await page.waitForTimeout(400);
     results.push({ open, close });
   } else if (scenario === "suggest") {
-    const box = await page.locator("[data-suggest-track], [data-home-suggest]").first().boundingBox();
+    const box = await page.locator("[data-home-section=suggest]").first().boundingBox();
     if (!box) throw new Error("no suggestions carousel on Home");
     const y = box.y + Math.min(box.height / 2, 80);
     await startFrames();

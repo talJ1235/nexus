@@ -54,3 +54,29 @@ export function velocity(samples: { t: number; v: number }[]): number {
   const dt = last.t - first.t;
   return dt > 0 ? (last.v - first.v) / dt : 0;
 }
+
+/** Axis lock for horizontal pagers (R16 A7): undecided until the finger moved this far (px). */
+export const AXIS_LOCK = 8;
+
+/**
+ * Pager rubber band: past either end the content follows the finger at a falling rate (eases toward 60 px). `dx` is physical px; `canPrev`/`canNext` are logical (RTL-aware via `dir`).
+ */
+export function pagerOffset(dx: number, dir: 1 | -1, canPrev: boolean, canNext: boolean): number {
+  const toNext = dx * dir < 0;
+  if ((toNext && canNext) || (!toNext && canPrev)) return dx;
+  return Math.sign(dx) * 60 * (1 - Math.exp(-Math.abs(dx) / 150));
+}
+
+/**
+ * Pager released after a horizontal drag: −1 = previous, 1 = next, 0 = snap back. Past 25 % of the width, or a fling,
+ * moves one page (in reading order: LTR drags left for next, RTL drags right). No page past either end.
+ */
+export function pagerRelease({ dx, vx, dir, width, index, count }: { dx: number; vx: number; dir: 1 | -1; width: number; index: number; count: number }): -1 | 0 | 1 {
+  const x = -dx * dir; // + = toward next
+  const v = -vx * dir;
+  let step: -1 | 0 | 1 = 0;
+  if (Math.abs(v) >= FLING && Math.abs(dx) >= 16) step = v > 0 ? 1 : -1;
+  else if (Math.abs(x) >= width * 0.25) step = x > 0 ? 1 : -1;
+  if (index + step < 0 || index + step >= count) return 0;
+  return step;
+}
