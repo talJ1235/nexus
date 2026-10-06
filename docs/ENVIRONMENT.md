@@ -133,3 +133,6 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   every-action sweeps locally, `TENANCY_UI=0` skips the browser). `seed-local.mjs` / `serve-fresh.sh` fill the admin's
   personal space (ADMIN_EMAIL from `.env.local`). The invite QR uses zxing-wasm's writer (`public/vendor/zxing_writer.wasm`,
   self-hosted like the reader). No new env names this session.
+- 2026-10-06 (chat, account B): R16 adds an optional realtime service — **Ably** free tier (app `Nexus`, key with Publish +
+  Subscribe + Presence) as `ABLY_API_KEY` in Vercel (Production) and `.env.local`; without it live sync polls every 10 s.
+  Free limits checked 2026-10-06: 6 M messages/month, 200 concurrent connections. Setup steps: `docs/ROUND16.md` "Before you run".
