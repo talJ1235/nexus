@@ -122,3 +122,14 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   passkeys / email recovery show. Email in dev lands in `.auth-outbox.jsonl` (gitignored). New scripts: `db-snapshot.mjs`,
   `db-restore-test.mjs`, `db-restore-prod.mjs`, `r15-rehearsal.mjs`, `parity-r15.mjs`; tests `test:auth`, `test:otp`,
   `test:authz-coverage`, `test:scope`, `test:roles`, `test:tenancy`, `test:ssrf`, `test:headers`, `test:auth-flow`.
+- 2026-10-06 (Claude Code, R15 session 2): **CI** — `.github/workflows/guards.yml` runs on every push and PR (types, lint,
+  unit tests, `test:authz-coverage` / `test:scope` / `test:ssrf` / `test:query-plans`, `npm audit --omit=dev
+  --audit-level=high`, gitleaks with `.gitleaks.toml` (test fixtures allow-listed), build, `test:tenancy`, `test:headers` on
+  a throwaway server); no secrets needed. All workflow actions pinned by commit SHA (`smoke.yml` too). New scripts:
+  `npm run bench:r15` (main vs round15; needs a built `main` worktree at `../nexus-main-bench` — `git worktree add`,
+  `node_modules` junction, `turbopack.root` = parent in that worktree's `next.config.ts`, never committed), `npm run
+  test:query-plans`, `parity-r15.mjs spaces` (run on the sparse DB: `BASE=http://localhost:3102
+  TURSO_DATABASE_URL=file:sparse-smoke.db`). `test:tenancy` now covers spaces + browser checks (`TENANCY_QUICK=1` skips the
+  every-action sweeps locally, `TENANCY_UI=0` skips the browser). `seed-local.mjs` / `serve-fresh.sh` fill the admin's
+  personal space (ADMIN_EMAIL from `.env.local`). The invite QR uses zxing-wasm's writer (`public/vendor/zxing_writer.wasm`,
+  self-hosted like the reader). No new env names this session.

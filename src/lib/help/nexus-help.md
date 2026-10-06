@@ -6,11 +6,10 @@ file only; don't invent menus or settings that aren't here. UI names are given i
 ## Action buttons
 You may add up to 3 buttons, each on its own line, written exactly as a markdown link with a `nexus:` address. The app
 turns them into buttons; only these addresses work:
-- `nexus:settings` — open Settings (הגדרות): palette, theme, language, currency, monthly budget, import limit, extension
+- `nexus:settings` — open Settings (הגדרות): the space (Space & people, budget, import limit), then You (palette, theme, language, currency, security)
 - `nexus:palette/graphite`, `nexus:palette/plum` — switch the colour palette now
 - `nexus:theme/light`, `nexus:theme/dark`, `nexus:theme/system` — switch light/dark now
-- `nexus:extension` — the browser extension window (download + pairing steps)
-- `nexus:alerts` — Price alerts (התראות מחיר): Telegram link, watched prices, weekly summary
+- `nexus:alerts` — Price alerts (התראות מחיר): recent alerts and when to alert
 - `nexus:receipt` — scan or add a receipt
 - `nexus:barcode` — scan a barcode
 - `nexus:shop` — Shopping mode (מצב קנייה)
@@ -27,16 +26,17 @@ Example: `[Open settings → Palette](nexus:settings)`.
 - **Desktop**: sidebar with Home (בית), To buy (לקנות), On the way (בדרך), Order by store
   (הזמנה לפי חנות), History (היסטוריה), Spending (הוצאות), then Projects (פרויקטים) and Lists (רשימות). The sidebar
   collapses with the panel button at its top (or by dragging its edge, or Ctrl+B). Top bar: search, "Ask Nexus",
-  alerts bell. The paste bar floats at the bottom. The Nexus logo always goes back to Home.
-- **Phone**: top bar (the Nexus logo, search, Ask and your initial — an orange dot on it means unread price alerts) and
+  alerts bell. The paste bar floats at the bottom. The Nexus logo always goes back to Home. Under the logo: the
+  **space switcher** (see Spaces below).
+- **Phone**: top bar (the Nexus logo with the current space's name — tap it to switch — search, Ask and your initial — an orange dot on it means unread price alerts) and
   a dock at the bottom with labels, the same order in every language: Home (בית) · Shopping (קניות) · **+** · Projects ·
   Insights (נתונים). Shopping holds To buy ⇄ On the way
   (the two big cards at its top switch between them; it reopens the one you used last), with a List / Grid switch
   (list by default, remembered) and Sort (By project / By arrival). **+** opens four coloured tiles: Scan a barcode
   (סריקת ברקוד), Scan a receipt (סריקת קבלה), Paste a link (הדבקת קישור), Plan with Nexus (תכנון עם Nexus).
 - **Settings on the phone**: tap your initial (the round button at the end of the top bar) → the "Me" sheet:
-  Settings, palette and theme, Browser extension, Price alerts (התראות מחיר), Telegram, Reports, Report a problem,
-  Export to Excel, Backup, Sign out.
+  your spaces (switch, Create a space, Invite, Space settings), palette and theme, Settings, History, Price alerts
+  (התראות מחיר), Reports, Report a problem, Export to Excel, Backup, Sign out.
 - **Command menu**: press **Esc** (or Ctrl/⌘+K) anywhere — search items, jump to views, change settings, run actions.
 - **Home** (בית, the screen the app opens on): the date and greeting, a status strip (things that need you · packages
   this week · ahead of or behind your budget pace — each scrolls to its section), four stats (Left to buy, Month
@@ -56,6 +56,34 @@ Example: `[Open settings → Palette](nexus:settings)`.
   use List or Grid; the desktop's Cards / Table choice never applies there.
 - An item opens in a sheet: picture, price, open in store, Plan (qty, priority, project/list), Stores, Price history
   and watch/target, Tags & notes, Receipts, Advanced.
+
+## Accounts and sign-in
+<!-- spec: Sign-in, Invite-only sign-up, Settings → Security -->
+- Sign in with **Google** (התחברות עם Google). Nexus is invite-only for now: a new account needs an invite code from Tal
+  or an invite link to a space; without one you can leave your email on the waitlist.
+- **Settings → Security** (אבטחה): your devices (sign one out, or all the others), passkeys, connected accounts and
+  recent sign-in activity. "Was this you?" appears after a sign-in on a new device — "No, sign it out" ends it.
+- **Confirm it's you** (sign in again) is asked before removing someone, transferring ownership, deleting a space or
+  changing passkeys.
+- Tal (admin): **Settings → Invite codes** — sign-up codes and the waitlist.
+
+## Spaces and people
+<!-- spec: Spaces, Switcher, Create a space, Space settings, Viewer, Move to space… -->
+- Everything lives in a **space** (מרחב): your **personal** space (only you) and **shared** spaces (a household, a
+  workshop…). Each has its own lists, projects, items and budget. Assistant chats and memory stay
+  personal.
+- **Switch**: desktop — the button under the logo (or Ctrl/⌘+1…9); phone — tap the space name in the top bar. You stay
+  on the same screen, now in that space.
+- **Create a space**: switcher → Create a space → name, colour, currency → invite people (or Skip for now).
+- **Invite**: switcher → Invite to <space> → choose **Member** (adds and edits) or **Viewer** (only looks) → Copy the
+  link, show the QR code, Send on WhatsApp or Share. A link works 7 days for up to 5 people (Reset link = a new one).
+  The person opens it, sees the space and who invited them, and joins (with Google if needed).
+- **Roles**: Owner manages people and the space; Members add and edit; Viewers can only look (no add bar or "+").
+- **Space settings** (switcher → Space settings, or Settings → Space & people): name, colour, currency, people (change
+  a role, remove, transfer ownership), invite links (uses, expiry, Revoke), **Leave space** (an owner must transfer
+  first), **Delete space** (type its name; it can be restored from Space settings for 7 days).
+- **Move a list or project to another space**: open its edit window (pencil) → **Move to space…** — its items, links,
+  price history and files go with it; Undo in the toast. In shared spaces a small avatar on each item shows who added it.
 
 ## Home suggestions, insights and deliveries
 <!-- spec: Nexus suggests, Nexus noticed, Delivery track, Home suggestions -->
@@ -102,32 +130,23 @@ Example: `[Open settings → Palette](nexus:settings)`.
 - The same link again (still to buy) → quantity +1 (with Undo). Same product from another store → offered as another
   store for the existing item.
 - Manual entry: type a name instead of a link; every field can be edited in the item sheet.
-- Telegram: send a link to your linked bot (see Telegram below). Phone share sheet: share a product page to Nexus
-  (installed app).
-- **Pictures** work on phone and desktop without the extension: Nexus reads what the product is (even abbreviated
+- Phone share sheet: share a product page to Nexus (installed app).
+- **Pictures**: Nexus reads what the product is (even abbreviated
   receipt lines like "חלב תנ 3%"), then looks it up like a Google search — the barcode, your own items, Google Images,
   Open Food Facts, a similar product, and only last an icon — and picks the right photo. A guess it isn't sure of has a
   soft highlight ("Looks right" in the item sheet). **Change picture**: tap the picture in the item sheet (or on a
   receipt card) → choose another, search in Hebrew or English, take a photo, upload, use an icon, or no picture.
 - **Missing picture?** It keeps filling in daily. Without a search key (Settings → Product pictures) only barcodes,
-  Open Food Facts, your items and icons are used. Stores that block servers may still get a real photo from the
-  **browser extension** in the background.
-- **Missing price or name?** Same cause: the store blocked the server. The extension repairs incomplete links on its
-  own (every 30 min while Chrome is open). You can also type the price in the item sheet.
+  Open Food Facts, your items and icons are used.
+- **Missing price or name?** The store blocked the server. Type the price in the item sheet; the daily check tries
+  again.
 - Categories are fixed: Electronics, Mechanical, Tools, Materials, Computers, Camera & audio, Home & kitchen, Office,
   Clothing & personal, Other. Change one in the item sheet.
 
-## The browser extension (Nexus Clipper)
+## The browser extension (Nexus Clipper) — retired
 <!-- spec: Browser extension -->
-- What it does: reads product pages in **your** Chrome, so blocked stores (Amazon, KSP, AliExpress) still give name,
-  price and photo; repairs incomplete items; checks prices the server can't read; powers some store comparisons.
-- Install: Settings → Browser extension → **Download extension** → unzip → open `chrome://extensions` → turn on
-  Developer mode → **Load unpacked** → choose the `nexus-extension` folder → reload Nexus. It connects by itself.
-- **"Not installed" / not connected**: (1) make sure it's enabled in `chrome://extensions`; (2) reload the Nexus tab;
-  (3) it only works in Chrome/Edge on a computer (not on phones); (4) if you updated the zip, click the reload icon on
-  the extension card. The sidebar's owner card shows "Connected · v…" when it works.
-- Shortcut: Alt+Shift+S saves the current product page. No extension? The bookmarklet button in the same window works
-  as a lighter fallback.
+- The Chrome extension and the bookmarklet were retired in Round 15. Add products by pasting links or scanning
+  barcodes and receipts.
 
 ## Statuses, priorities, projects and lists
 <!-- spec: Item lifecycle, Partial move, Alternatives, Multi-select, Project pages, Projects page v2 -->
@@ -154,18 +173,18 @@ Example: `[Open settings → Palette](nexus:settings)`.
   for free shipping"), "Close the gap" suggestions, and **Mark as ordered** for a whole store. Set a store's free
   shipping rule from its header.
 - **Compare stores**: in an item sheet (or the scale button on a card) — Nexus searches other stores and lists the
-  same product sorted by total; "Add as another store". Works best with a search key or the extension.
+  same product sorted by total; "Add as another store". Works best with a search key.
 - **Import VAT**: foreign orders over the VAT-free limit (Settings, default $130) get a warning with the estimated 18 %
   VAT and what to split into another order.
 - **Price watch**: open an item → Price history → Watch price / Target price. Prices are checked every morning; drops,
-  targets and back-in-stock come as alerts (and to Telegram).
+  targets and back-in-stock come as alerts in the app (the bell).
 
 ## Spending and budgets
 <!-- spec: Spending, Monthly budget -->
 - **Spending** (Stats on phones): this month / last month / this year, savings from cheaper stores, 12-month bars, by
   project, store and category, biggest purchases.
 - Monthly budget: the pencil on "This month's budget" (Spending) or Settings. The bar shows received + ordered +
-  forecast (urgent to-buy; a toggle adds normal items). Near (90 %) / over shows in colour and on Telegram.
+  forecast (urgent to-buy; a toggle adds normal items). Near (90 %) / over shows in colour.
 
 ## Receipts
 <!-- spec: Receipts → purchases, Receipts v2, Receipt edge detection, Receipt camera -->
@@ -208,19 +227,17 @@ Example: `[Open settings → Palette](nexus:settings)`.
 - **"AI busy" / no answer**: the free AI providers hit their limits; Nexus switches between Gemini, Groq and
   OpenRouter automatically. Wait a minute and ask again. Without any AI key the assistant is off.
 
-## Telegram
+## Telegram — retired
 <!-- spec: Telegram bot input, Weekly Telegram summary -->
-- Link it: Price alerts (bell) → Telegram → in Telegram open @BotFather, send /newbot, paste the token, then press
-  Start in your new bot. After that: price alerts every morning, budget warnings, a weekly summary on Sundays (toggle
-  in the same panel), and you can **send product links to the bot** to add them (`#name` files it into that
-  project/list; `/list` replies with what's left).
-- Not getting messages: open the bell → Telegram → **Send test**; if it fails, Disconnect and link again.
+- Telegram messages ended in Round 15. Price alerts show in the app (the bell; phone: Me → Price alerts); phone
+  notifications are coming next.
 
 ## Sharing
-<!-- spec: Sharing with permissions, Users & access -->
-- Open a project or list → **Share**: an invite link as viewer or editor (revocable), or a read-only link. Guests
-  type a name once; editors can add links and change qty/priority/notes; they never see receipts or other lists.
-- Revoke a link from the same Share window. Guests can't use the assistant or report problems.
+<!-- spec: Sharing with permissions, Users & access, Retired -->
+- People share a whole **space** with accounts (see Spaces and people). The old per-list guest links (/g, /i/…) stopped
+  working — they show "This link no longer works — ask for a new invite".
+- A list's **Share** keeps its **public read-only link** (anyone with it can look at that one list, nothing else) and
+  points to Invite people for the space.
 
 ## Look and language
 <!-- spec: Design system, Box logo, Mixed Hebrew/English text, Dark mode depth, One picture style, Solid tags, Ask button, Card borders, Sidebar v4, Phone shell v4, Calmer light theme -->
@@ -264,11 +281,10 @@ Example: `[Open settings → Palette](nexus:settings)`.
 - Your reports and their status (open / in progress / fixed / won't fix): Settings → Reports, or the command menu.
 
 ## Common problems
-- **A product is missing its picture or price** → the store blocked the server; install/connect the extension, wait a
-  bit, or set it by hand in the item sheet.
-- **"Not installed" / extension not connected** → see The browser extension.
+- **A product is missing its picture or price** → the store blocked the server; wait for the daily check or set it by
+  hand in the item sheet.
+- **Can't see a list someone shared** → check you're in the right space (switcher); a viewer can look but not edit.
 - **AI busy** → wait a minute; limits reset quickly. Receipts from photos need Gemini specifically.
-- **Telegram silent** → Send test in the alerts panel; relink if it fails.
 - **Totals look wrong** → alternatives count only the winner/cheapest; someday items are left out of store orders;
   check the display currency.
 - **Something is broken or you have an idea** → offer `[Report a problem](nexus:report)`.

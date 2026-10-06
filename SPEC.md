@@ -549,6 +549,54 @@ Brief and checklist: `docs/ROUND14.md` (results and decisions under its "Open").
 - Design parity proof: `scripts/parity.mjs` renders the mockups next to the app (same viewport, light + dark) into
   `docs/design/parity-r14/`.
 
+## Round 15 — accounts, spaces, data isolation (multi-user foundation)
+Brief and checklist: `docs/ROUND15.md` (decisions, numbers and the security checklist under its "Open"); the plan behind
+it: `docs/MULTIUSER.md`, `docs/SECURITY.md`. Built on branch `round15` (Sessions 1–2, 2026-10-05/06); released in Part G
+with Tal (merging deploys and runs the migration on the real database).
+- **Sign-in** (Better Auth 1.7.7): Google (closed-circle mode on `vercel.app`: Google only, invite-only sign-up), passkeys
+  and email-code recovery (built and tested on localhost; shown in production once the own domain + Resend exist), the
+  admin password as a guarded fallback (`/login?admin=1`, ≥ 20 chars, 5/min + 20 failed/day per IP). Sessions in the DB
+  (HMAC-signed cookie, checked on every request, cached ≤ 60 s), 30-day idle / 90-day absolute. Step-up = a sign-in in
+  the last 10 minutes for passkey changes, recovery codes, removing a member, transferring ownership, deleting a space.
+- **Invite-only sign-up**: admin invite codes (Settings → Invite codes, hashed + encrypted for re-copy), a `/join/<token>`
+  space link also counts; otherwise "invite-only — leave your email" (waitlist, Turnstile when configured).
+- **Settings → Security** (`/settings/security`): devices (sign one / all others out), passkeys, connected accounts,
+  activity log (90 days), "Was this you?" on a new device, admin recovery codes.
+- **Spaces**: every user has a personal space; shared spaces have roles owner / member / viewer. All data lives in a
+  space (`space_id` on every data row, denormalised on children); `requireCtx(need)` (`src/lib/ctx.ts`) resolves user +
+  current space (cookie `nexus_space`, checked against memberships on every request, else the personal space) and is the
+  first line of every server action and route; the scoped data layer (`src/lib/db-scoped/`) adds `space_id` to every
+  read and takes it from the ctx on every write (foreign ids → 404). Chats and memory are personal.
+- **Switcher**: desktop button under the logo (tile in the space colour, name, "Shared · N people") → menu with every
+  space (role, facepile, Ctrl/⌘+1…9), Create a space, Invite to <space>, Space settings, Log out. Phone: the space name
+  next to the logo opens the Me sheet with the space rows. Switching keeps the view and says "Now in <space>".
+- **Create a space**: name, colour (6), currency, live tile → invite step. **Invite links** `/join/<token>`: 32 random
+  bytes stored hashed, member or viewer, 7 days, 5 uses, revocable; Copy, a QR drawn on the device (zxing writer, tile in
+  the centre), WhatsApp, native share, reset. `/join/<token>` previews the space (name, colour, who invited, faces,
+  role, expiry) → Accept (signed in) or Continue with Google (signed out; the account is created only if the link is
+  still valid); expired / revoked / used-up links show a calm "ask <name> for a new link".
+- **Space settings**: name / colour / currency (owner), people with last active and a role menu (member ↔ viewer,
+  transfer ownership, remove — step-up), invite links with uses / expiry / revoke, leave (not the last owner), delete
+  (owner, typed name, step-up, soft delete with restore for 7 days, then the cron purges rows and files). Settings
+  is grouped: the current space first (Space & people, budget cap, import limit, backup/restore for owners), then You.
+- **Viewer**: no add bar, no "+", no New project / list, card actions disabled with "View only", a "You can view this
+  space" line; the server refuses every write anyway.
+- **Move to space…** (a list's / project's edit dialog): moves the collection with its items, links, price history,
+  attachments and alerts in one transaction (alternatives groups follow when complete), with Undo. Shared spaces show a
+  small "added by" avatar on rows and cards.
+- **Retired**: the guest system (`/g`, `/i/<token>` → "This link no longer works — ask <owner> for a new invite"; a
+  list's Share keeps its public read-only `/s/<token>` link), Telegram (webhook 410, no digests) and the browser
+  extension (`/api/ext/*` 410, UI hidden, the app ignores it). Code kept in the repo. Price alerts show in the app.
+- Security: SSRF-safe server fetching (`safeFetch`: public addresses only, every redirect and resolved IP checked),
+  enforced nonce CSP + security headers, rate limits, security events, `test:authz-coverage`, `test:scope`,
+  `test:roles`, `test:tenancy` (two users + a viewer: every action with foreign ids; spaces flows; browser checks),
+  `test:ssrf`, `test:headers`, `test:query-plans`; CI on every push (`.github/workflows/guards.yml`).
+- Safety net: `scripts/db-snapshot.mjs` (read-only prod copy), `db-restore-test.mjs`, `db-restore-prod.mjs`
+  (emergency, typed confirmation), `r15-rehearsal.mjs`; the migration (`src/db/migrate-r15.ts`) is idempotent and refuses
+  a remote URL outside the Vercel build.
+- Performance (`npm run bench:r15`, main vs round15 on the prod copy): Home and Shopping first load unchanged
+  (~30 ms); a 2 000-item space's Home ≈ 250 ms server time; every space-scoped list query uses an index.
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
@@ -558,13 +606,13 @@ Brief and checklist: `docs/ROUND14.md` (results and decisions under its "Open").
 - Mobile responsive; installable PWA.
 
 ## Telegram bot input (shipped)
-Send a product link to the linked bot → it's added (same extraction + duplicate rules as the app: same URL → "already saved",
+Retired in Round 15 (webhook answers 410, no messages; code kept). Before that: send a product link to the linked bot → it's added (same extraction + duplicate rules as the app: same URL → "already saved",
 same product from another store → added as another source). `#name` in the message files it into the matching list/project.
 `/list` replies with what's left to buy. Webhook `/api/telegram`: secret header (HMAC of SESSION_SECRET) + must come from the
 linked chat. The webhook is (re)set after linking, whenever the alerts state loads, and by the daily cron.
 
 ## Non-goals (for now)
-Carrier API tracking sync, full multi-user accounts (guests cover sharing).
+Carrier API tracking sync. (Multi-user accounts arrived in Round 15; push + inbox, onboarding and the admin panel are Round 16.)
 
 ## Stack (all free tier)
 Next.js 16 (App Router) on Vercel · Turso (libSQL) + Drizzle · Gemini Flash-Lite (+ optional Groq/OpenRouter) ·
@@ -579,8 +627,18 @@ Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 | `GEMINI_MODEL` | optional override, default tries `gemini-3.5-flash-lite` then fallbacks |
 | `GROQ_API_KEY` | optional second free AI provider (console.groq.com), used when Gemini is busy |
 | `OPENROUTER_API_KEY` | optional third free AI provider (`openrouter/free`) |
-| `APP_PASSWORD` | login password |
-| `SESSION_SECRET` | ≥32 random chars, signs the session cookie |
+| `APP_PASSWORD` | R15: the admin fallback password (≥ 20 chars; also the GitHub prod smoke's `NEXUS_PASSWORD`) |
+| `SESSION_SECRET` | ≥32 random chars (pre-R15 sessions; still used by retired guest/Telegram code) |
+| `BETTER_AUTH_SECRET` | R15: 32+ random bytes — signs session cookies, encrypts invite codes |
+| `BETTER_AUTH_URL` | R15: the app's URL (prod `https://nexus-ashen-beta.vercel.app`, local `http://localhost:3100`) |
+| `ADMIN_EMAIL` | R15: the admin account (migration owner of today's data; Settings → Invite codes) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | R15: Google sign-in (OAuth client, Testing mode) |
+| `NEXT_PUBLIC_APP_URL` / `RESEND_API_KEY` / `EMAIL_FROM` | R15: own domain + email — turn on passkeys and email-code recovery in production |
+| `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | R15, optional: Cloudflare Turnstile on the waitlist |
+| `NEXT_PUBLIC_APP_NAME` | optional: the product name on the new screens (default Nexus) |
+| `PROD_TURSO_DATABASE_URL` / `PROD_TURSO_READ_TOKEN` | PC only, read-only: used by `scripts/db-snapshot.mjs` alone |
+| `AUTH_FULL_LOCAL` | local only (`=1`): full sign-in mode (passkeys, recovery) on localhost; `0` = closed-circle mode |
+| `AUTH_TEST_IDP` | tests only (`=1`, never production): the fake Google for `test:auth-flow` |
 | `BLOB_READ_WRITE_TOKEN` | auto-added when a Blob store is connected |
 | `CRON_SECRET` | authorizes the daily price-check cron (Vercel sends it automatically) |
 | `TELEGRAM_API_BASE` | local tests only: send bot messages to a fake Telegram API (ignored on Vercel) |

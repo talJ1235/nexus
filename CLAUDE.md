@@ -17,9 +17,15 @@
 
 ## Map (read this instead of exploring)
 - Prod: https://nexus-ashen-beta.vercel.app (auto-deploys from `main`). Local: `npx next start -p 3100`, password in `.env.local`.
-- Server actions: `src/app/*-actions.ts` (every one must call `assertAuth`/`assertOwner`/`requireGuest`).
+- Server actions: `src/app/*-actions.ts` — every action and route starts with `requireCtx(need)` / `routeCtx` (`src/lib/ctx.ts`:
+  user + current space from the `nexus_space` cookie, checked against memberships; `test:authz-coverage` enforces it).
+  Data goes through the scoped layer `src/lib/db-scoped/` (`scoped(ctx)` adds `space_id`; raw `db` only there, in
+  `src/lib/spaces.ts`, `src/lib/auth/`, migrations — `test:scope`). Spaces UI: `src/components/app/spaces/`, actions
+  `space-actions.ts`, `/join/[token]`.
+- Auth (Better Auth): `src/lib/auth/` (`server.ts` config + hooks, `session.ts`, `invites.ts`, `security.ts`, `limits.ts`),
+  screens `src/components/auth/`, pages `/login`, `/welcome`, `/passkey`, `/settings/security`, `/settings/invites`.
 - Client state: `src/components/app/store.tsx`; shell: `nexus-app.tsx`; panels: `assistant-panel`, `alerts-panel`, `share-dialog`, `import-dialog`, `settings-dialog`, `command-palette`.
-- Domain libs in `src/lib/`: `extract` (link → product), `tracker` (prices/alerts), `telegram`, `ai` + `assistant` (Gemini, model fallback), `guest` + `invites` (sharing), `backup`, `importer`.
+- Domain libs in `src/lib/`: `extract` (link → product), `tracker` (prices/alerts), `ai` + `assistant` (Gemini, model fallback), `spaces` (spaces, people, invite links), `safe-fetch` (SSRF guard), `backup`, `importer`. Retired in R15 (code kept): `telegram`, `guest`, the extension.
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)
