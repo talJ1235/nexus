@@ -337,7 +337,7 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
             <span className="inline-flex shrink-0 items-stretch">
               <button
                 type="submit"
-                className="inline-flex h-12 shrink-0 items-center gap-[7px] rounded-full bg-brand px-[18px] text-[14px] font-bold text-on-brand transition hover:bg-brand-hover active:scale-[0.97] disabled:opacity-60 lg:rounded-e-none lg:pe-3.5"
+                className="inline-flex h-12 shrink-0 items-center gap-[7px] rounded-full bg-brand px-[18px] text-[14px] font-bold text-on-brand transition hover:bg-brand-hover active:scale-[0.97] disabled:opacity-60 lg:rounded-e-none lg:pe-3.5 lg:active:scale-100 lg:disabled:opacity-100 lg:disabled:hover:bg-brand lg:disabled:[&>*]:opacity-55"
                 disabled={ro.ro || (!isHttpUrl(value.trim()) && !extractUrls(value).length)}
               >
                 {working ? <Spinner /> : <Plus className="size-[17px]" strokeWidth={2.4} />}
