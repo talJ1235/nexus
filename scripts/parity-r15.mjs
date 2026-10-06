@@ -3,6 +3,9 @@
 // docs/design/parity-r15/. Run against a local server in FULL mode (passkeys + recovery visible), local file DB:
 //   AUTH_FULL_LOCAL=1 bash scripts/serve.sh   then   node --env-file=.env.local scripts/parity-r15.mjs [only]
 // Signed-in screens use a session minted in the local file DB for the ADMIN_EMAIL user (never a remote DB).
+// Part C (spaces-*): a "Cohen home" space with two people is added to that file DB for the shots and removed after;
+// run them on a throwaway DB: SEED_PROFILE=sparse bash scripts/serve-fresh.sh, then
+//   BASE=http://localhost:3102 TURSO_DATABASE_URL=file:sparse-smoke.db node --env-file=.env.local scripts/parity-r15.mjs spaces
 import { createClient } from "@libsql/client";
 import { createHmac, randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync, statSync } from "node:fs";
@@ -65,7 +68,7 @@ async function mockShot(name, props, viewport) {
   await ctx.close();
   return buf;
 }
-async function appShot(path, viewport, { dark, plum, he, signedIn, returning } = {}) {
+async function appShot(path, viewport, { dark, plum, he, signedIn, returning, space, act } = {}) {
   const phone = viewport.width < 640;
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, ...(phone ? { isMobile: true, hasTouch: true } : {}), colorScheme: dark ? "dark" : "light" });
   await ctx.addInitScript((m) => {
@@ -79,10 +82,15 @@ async function appShot(path, viewport, { dark, plum, he, signedIn, returning } =
   ];
   if (signedIn && sessionCookie) cookies.push({ name: "nexus_session_dev", value: sessionCookie, url: BASE });
   if (returning && lastCookie) cookies.push({ name: "nexus_last", value: lastCookie, url: BASE });
+  if (space) cookies.push({ name: "nexus_space", value: space, url: BASE });
   await ctx.addCookies(cookies);
   const p = await ctx.newPage();
   await p.goto(`${BASE}${path}`, { waitUntil: "networkidle" }).catch(() => {});
   await p.waitForTimeout(1200);
+  if (act) {
+    await act(p);
+    await p.waitForTimeout(700);
+  }
   const buf = await p.screenshot();
   await ctx.close();
   return buf;
@@ -124,6 +132,60 @@ for (const [file, board, props, path, vp, app, w] of SHOTS) {
   if (ONLY && !file.includes(ONLY)) continue;
   const [m, a] = [await mockShot(board, props, vp), await appShot(path, vp, app)];
   await compose(file, [["mockup", m], ["app", a]], w);
+}
+
+// ---- Part C (spaces): mockup | app pairs, two pairs per file ----
+let shared = null;
+let joinToken = null;
+if (admin && (!ONLY || "spaces".includes(ONLY) || ONLY.startsWith("spaces"))) {
+  const now = Date.now();
+  shared = "parity_cohen";
+  await db.execute({ sql: "DELETE FROM space_member WHERE space_id = ?", args: [shared] });
+  await db.execute({ sql: "DELETE FROM space WHERE id = ?", args: [shared] });
+  await db.execute({ sql: "INSERT INTO space (id, name, slug, kind, currency, color, icon, created_by, created_at) VALUES (?, 'Cohen home', 's-parity', 'shared', 'ILS', 'green', 'home', ?, ?)", args: [shared, admin.id, now] });
+  await db.execute({ sql: "INSERT INTO space_member (id, space_id, user_id, role, created_at) VALUES (?, ?, ?, 'owner', ?)", args: ["pm_admin", shared, admin.id, now] });
+  for (const [uid, name, email, role] of [["parity_noa", "Noa Cohen", "noa.cohen@example.com", "member"], ["parity_yoav", "Yoav Cohen", "yoav.c@example.com", "viewer"]]) {
+    await db.execute({ sql: `INSERT OR IGNORE INTO "user" (id, name, email, email_verified, role, created_at, updated_at) VALUES (?, ?, ?, 1, 'user', ?, ?)`, args: [uid, name, email, now, now] });
+    await db.execute({ sql: "INSERT INTO space_member (id, space_id, user_id, role, created_at) VALUES (?, ?, ?, ?, ?)", args: [`pm_${uid}`, shared, uid, role, now + 1] });
+  }
+  joinToken = randomBytes(32).toString("base64url");
+  const { createHash } = await import("node:crypto");
+  await db.execute({ sql: "DELETE FROM space_invite WHERE space_id = ?", args: [shared] });
+  await db.execute({ sql: "INSERT INTO space_invite (id, token_hash, space_id, role, max_uses, uses, expires_at, created_by, created_at) VALUES ('pi_parity', ?, ?, 'member', 5, 0, ?, ?, ?)", args: [createHash("sha256").update(joinToken).digest("hex"), shared, now + 6.5 * 86_400_000, admin.id, now] });
+}
+const ready = (p) => p.waitForSelector("[data-app-shell][data-ready]", { timeout: 20000 });
+const SPACES = [
+  ["spaces-switcher", [
+    ["Switcher-desktop", {}, "/", DESK, { signedIn: true, space: shared, act: async (p) => { await ready(p); await p.click("[data-space-switcher]"); } }, "mockup · desktop", "app · desktop"],
+    ["Switcher-phone", {}, "/", PHONE, { signedIn: true, space: shared, act: async (p) => { await ready(p); await p.click("[data-phone-space]"); } }, "mockup · phone", "app · phone"],
+  ], 520],
+  ["spaces-create-invite", [
+    ["CreateSpace-desktop", { step: "details" }, "/", DESK, { signedIn: true, space: shared, act: async (p) => { await ready(p); await p.click("[data-space-switcher]"); await p.click("[data-space-create]"); await p.fill("#space-name", "Cohen home"); } }, "mockup · create", "app · create"],
+    ["Invite-phone", {}, "/", PHONE, { signedIn: true, space: shared, act: async (p) => { await ready(p); await p.click("[data-phone-space]"); await p.click("[data-space-invite]"); await p.waitForSelector("[data-invite-qr-toggle]:not([disabled])"); await p.click("[data-invite-qr-toggle]"); await p.waitForSelector('[data-invite-qr="ready"]', { timeout: 15000 }); } }, "mockup · invite", "app · invite"],
+  ], 520],
+  ["spaces-join", [
+    ["Join-phone", { state: "preview" }, () => `/join/${joinToken}`, PHONE, {}, "mockup · preview", "app · preview (signed out)"],
+    ["Join-phone", { state: "expired" }, "/join/" + "x".repeat(43), PHONE, {}, "mockup · expired", "app · dead link"],
+  ], 330],
+  ["spaces-settings", [
+    ["SpaceSettings-desktop", {}, "/", { width: 1440, height: 960 }, { signedIn: true, space: shared, act: async (p) => { await ready(p); await p.click("[data-space-switcher]"); await p.click("[data-space-settings]"); await p.waitForSelector("[data-person]"); } }, "mockup · settings", "app · settings"],
+    ["Dialogs-desktop", { dialog: "delete-space" }, "/", DESK, { signedIn: true, space: shared, act: async (p) => { await ready(p); await p.click("[data-space-switcher]"); await p.click("[data-space-settings]"); await p.waitForSelector("[data-person]"); await p.click("[data-space-delete]"); await p.fill("[data-delete-typed]", "Cohen ho"); } }, "mockup · delete", "app · delete"],
+  ], 520],
+];
+for (const [file, pairs, w] of SPACES) {
+  if (!shared || (ONLY && !file.includes(ONLY))) continue;
+  const cells = [];
+  for (const [board, props, path, vp, app, ml, al] of pairs) {
+    cells.push([ml, await mockShot(board, props, vp)]);
+    cells.push([al, await appShot(typeof path === "function" ? path() : path, vp, app)]);
+  }
+  await compose(file, cells, w);
+}
+if (shared) {
+  await db.execute({ sql: "DELETE FROM space_invite WHERE space_id = ?", args: [shared] });
+  await db.execute({ sql: "DELETE FROM space_member WHERE space_id = ?", args: [shared] });
+  await db.execute({ sql: "DELETE FROM space WHERE id = ?", args: [shared] });
+  await db.execute({ sql: `DELETE FROM "user" WHERE id IN ('parity_noa', 'parity_yoav')` });
 }
 if (sessionCookie) await db.execute({ sql: "DELETE FROM session WHERE user_agent = 'parity'" });
 db.close();
