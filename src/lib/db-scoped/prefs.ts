@@ -2,6 +2,7 @@ import "server-only";
 import { and, eq, inArray, like } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { Scoped } from "./index";
+import { bumpRev, stamp, tombstones } from "./feed";
 
 // R15 B1: owner-level kv keys moved here. user_pref = per person (alerts, memory switch, home, profile, calendar),
 // space_pref = per space (budget per month, import limit, AI caches of the space's items).
@@ -18,16 +19,26 @@ export async function spacePrefLike(s: Scoped, prefix: string) {
     .where(and(eq(schema.spacePref.spaceId, s.spaceId), like(schema.spacePref.key, `${prefix.replace(/[%_]/g, "")}%`)));
 }
 
+/** R16 B1: the space prefs other members see (budget per month, import limit) are in the change feed; AI caches aren't. */
+const synced = (key: string) => key.startsWith("pref:");
+
 export async function spacePrefSet(s: Scoped, key: string, value: string | null) {
+  const where = and(eq(schema.spacePref.spaceId, s.spaceId), eq(schema.spacePref.key, key));
+  const feed = synced(key);
   if (value == null) {
-    await db.delete(schema.spacePref).where(and(eq(schema.spacePref.spaceId, s.spaceId), eq(schema.spacePref.key, key)));
+    const del = db.delete(schema.spacePref).where(where);
+    if (!feed) return void (await del);
+    await s.runBatch([bumpRev(s.spaceId), tombstones(s.spaceId, s.actor, schema.spacePref, { name: "space_pref", key: schema.spacePref.key }, where!), del], 2);
     return;
   }
   const t = Date.now();
-  await db
+  const st = feed ? stamp(s.spaceId, s.actor) : {};
+  const up = db
     .insert(schema.spacePref)
-    .values({ spaceId: s.spaceId, key, value, updatedAt: t })
-    .onConflictDoUpdate({ target: [schema.spacePref.spaceId, schema.spacePref.key], set: { value, updatedAt: t } });
+    .values({ spaceId: s.spaceId, key, value, updatedAt: t, ...st })
+    .onConflictDoUpdate({ target: [schema.spacePref.spaceId, schema.spacePref.key], set: { value, updatedAt: t, ...st } });
+  if (!feed) return void (await up);
+  await s.runBatch([bumpRev(s.spaceId), up], 1);
 }
 
 export async function userPrefGet(userId: string, key: string) {

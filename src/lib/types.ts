@@ -28,6 +28,8 @@ export type AppData = {
   spaces?: SpaceCard[];
   /** R15 C4: people of the current shared space ("added by" avatars); empty in a personal space. */
   people?: Person[];
+  /** R16 B1: the space's change-feed revision this data is at (read before the data, so nothing is skipped). */
+  rev?: number;
 };
 
 export type Person = { id: string; name: string };

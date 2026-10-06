@@ -9,6 +9,9 @@ export const collections = sqliteTable(
   {
     id: text("id").primaryKey(),
     spaceId: text("space_id").notNull(),
+    // R16 B1: change feed — the space revision of the last write, and who made it (user id; "system" = cron).
+    rev: integer("rev").notNull().default(0),
+    revBy: text("rev_by"),
     kind: text("kind", { enum: ["project", "list"] }).notNull().default("list"),
     name: text("name").notNull(),
     description: text("description"),
@@ -28,6 +31,9 @@ export const items = sqliteTable(
   {
     id: text("id").primaryKey(),
     spaceId: text("space_id").notNull(),
+    // R16 B1: change feed — the space revision of the last write, and who made it (user id; "system" = cron).
+    rev: integer("rev").notNull().default(0),
+    revBy: text("rev_by"),
     collectionId: text("collection_id"),
     title: text("title").notNull(),
     brand: text("brand"),
@@ -92,6 +98,9 @@ export const sources = sqliteTable(
   {
     id: text("id").primaryKey(),
     spaceId: text("space_id").notNull(),
+    // R16 B1: change feed — the space revision of the last write, and who made it (user id; "system" = cron).
+    rev: integer("rev").notNull().default(0),
+    revBy: text("rev_by"),
     itemId: text("item_id").notNull(),
     url: text("url").notNull(),
     normalizedUrl: text("normalized_url").notNull(),
@@ -117,6 +126,9 @@ export const sources = sqliteTable(
 export const altGroups = sqliteTable("alt_groups", {
   id: text("id").primaryKey(),
   spaceId: text("space_id").notNull(),
+  // R16 B1: change feed — the space revision of the last write, and who made it (user id; "system" = cron).
+  rev: integer("rev").notNull().default(0),
+  revBy: text("rev_by"),
   name: text("name").notNull(),
   chosenItemId: text("chosen_item_id"),
   createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
@@ -128,6 +140,9 @@ export const pricePoints = sqliteTable(
   {
     id: text("id").primaryKey(),
     spaceId: text("space_id").notNull(),
+    // R16 B1: change feed — the space revision of the last write, and who made it (user id; "system" = cron).
+    rev: integer("rev").notNull().default(0),
+    revBy: text("rev_by"),
     sourceId: text("source_id").notNull(),
     itemId: text("item_id").notNull(),
     price: real("price").notNull(),
@@ -143,6 +158,9 @@ export const attachments = sqliteTable(
   {
     id: text("id").primaryKey(),
     spaceId: text("space_id").notNull(),
+    // R16 B1: change feed — the space revision of the last write, and who made it (user id; "system" = cron).
+    rev: integer("rev").notNull().default(0),
+    revBy: text("rev_by"),
     itemId: text("item_id").notNull(),
     url: text("url").notNull(),
     name: text("name").notNull(),
@@ -159,6 +177,9 @@ export const alerts = sqliteTable(
   {
     id: text("id").primaryKey(),
     spaceId: text("space_id").notNull(),
+    // R16 B1: change feed — the space revision of the last write, and who made it (user id; "system" = cron).
+    rev: integer("rev").notNull().default(0),
+    revBy: text("rev_by"),
     itemId: text("item_id").notNull(),
     sourceId: text("source_id"),
     kind: text("kind", { enum: ["drop", "target", "back_in_stock", "out_of_stock"] }).notNull(),
@@ -230,6 +251,9 @@ export const storeSettings = sqliteTable(
   "store_settings",
   {
     spaceId: text("space_id").notNull(),
+    // R16 B1: change feed — the space revision of the last write, and who made it (user id; "system" = cron).
+    rev: integer("rev").notNull().default(0),
+    revBy: text("rev_by"),
     storeKey: text("store_key").notNull(),
     freeShippingMin: real("free_shipping_min"),
     currency: text("currency").notNull().default("ILS"),
@@ -323,3 +347,31 @@ export type Memory = typeof memories.$inferSelect;
 
 // R15: accounts, sessions, spaces.
 export * from "./auth-schema";
+
+// ---------- R16 B1: change feed ----------
+
+/**
+ * One monotonic revision per space, bumped in the same transaction as every write through the scoped layer.
+ * floor = the oldest revision the tombstones still cover (older clients reload); resetRev = a bulk change (a list moved
+ * to another space) that a client older than it can't replay (it reloads).
+ */
+export const spaceRev = sqliteTable("space_rev", {
+  spaceId: text("space_id").primaryKey(),
+  rev: integer("rev").notNull().default(0),
+  floor: integer("floor").notNull().default(0),
+  resetRev: integer("reset_rev").notNull().default(0),
+});
+
+/** A deleted row of a synced table (kept 30 days): clients remove it when they see a rev newer than theirs. */
+export const tombstone = sqliteTable(
+  "tombstone",
+  {
+    spaceId: text("space_id").notNull(),
+    tbl: text("tbl").notNull(),
+    rowId: text("row_id").notNull(),
+    rev: integer("rev").notNull(),
+    by: text("by"),
+    at: integer("at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.spaceId, t.tbl, t.rowId] }), index("tombstone_space_rev_idx").on(t.spaceId, t.rev), index("tombstone_at_idx").on(t.at)],
+);

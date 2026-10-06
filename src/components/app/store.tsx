@@ -6,6 +6,7 @@ import { installClientErrorCapture } from "@/lib/client-errors";
 import { recordNav } from "@/lib/client-diag";
 import type { ReportFields } from "@/lib/reports";
 import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
+import type { Changes } from "@/lib/db-scoped/changes";
 import type { Alert, AltGroup, AppData, Collection, ItemWithSources, Person, SpaceCard, SpaceInfo, StoreSetting } from "@/lib/types";
 import { DEFAULT_HOME_PREFS, type HomePrefs } from "@/lib/home";
 import { DEFAULT_SHOP_SORT, readShopSort, saveShopSort, type ShopSort } from "@/lib/shop-sort";
@@ -120,7 +121,13 @@ type Store = {
   view: View;
   setView: (v: View) => void;
   /** R16 A12: swap in another space's data (from loadAppData) without a reload; lands on Home. */
-  replaceData: (next: AppData) => void;
+  replaceData: (next: AppData, opts?: { keepView?: boolean }) => void;
+  /** R16 B1: the change-feed revision the store is at, and merging a changesSince result into it (UI state kept). */
+  getRev: () => number;
+  applyChanges: (ch: Changes) => ChangeSummary;
+  /** R16 B4: members online in this space now (Ably presence; empty when polling) → their mode. */
+  present: Map<string, "app" | "shopping">;
+  setPresent: (m: Map<string, "app" | "shopping">) => void;
   /** Increments on every user-initiated view change; 0 on first load (so the first paint isn't animated). */
   navSeq: number;
   /** Direction of the last view change in sidebar order (views slide that way). */
@@ -225,6 +232,10 @@ type Store = {
   fresh: Map<string, "new" | "bump">;
   markFresh: (id: string, kind?: "new" | "bump") => void;
 };
+
+/** R16 B4: what one person changed in a feed update. */
+export type PersonTally = { added: number; changed: number; checked: number; removed: number };
+export type ChangeSummary = { by: Map<string, PersonTally>; closed: { by: string | null } | null };
 
 const Ctx = createContext<Store | null>(null);
 
@@ -389,6 +400,9 @@ export function StoreProvider({
     setCookie(SIDEBAR_COOKIE, c ? "collapsed" : "open");
   }, []);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
+  useEffect(() => {
+    openRef.current = openItemId;
+  }, [openItemId]);
   const [editor, setEditor] = useState<Editor>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -536,9 +550,21 @@ export function StoreProvider({
     applyView(v);
   }, [applyView]);
 
+  // R16 B1: where the store is in the space's change feed.
+  const revRef = useRef(initial.rev ?? 0);
+  const getRev = useCallback(() => revRef.current, []);
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+  const openRef = useRef<string | null>(null);
+  const [present, setPresent] = useState<Map<string, "app" | "shopping">>(() => new Map());
+
   // R16 A12: a space switch swaps the whole data set in place (shell and sidebar stay mounted) and lands on Home.
+  // keepView: the change feed's reset (same space, data reloaded) — nothing moves.
   const replaceData = useCallback(
-    (next: AppData) => {
+    (next: AppData, opts?: { keepView?: boolean }) => {
+      revRef.current = next.rev ?? 0;
       setItems(next.items);
       setCollections(next.collections);
       setAltGroups(next.altGroups);
@@ -548,6 +574,13 @@ export function StoreProvider({
       setHomePrefs(next.home ?? DEFAULT_HOME_PREFS);
       setImportLimitUsd(next.importLimitUsd ?? 130);
       setBase(next);
+      if (opts?.keepView) {
+        const ids = new Set(next.items.map((i) => i.id));
+        if (openRef.current && !ids.has(openRef.current)) setOpenItemId(null);
+        setSelectedState((prev) => new Set([...prev].filter((id) => ids.has(id))));
+        return;
+      }
+      setPresent(new Map());
       setOpenItemId(null);
       setAltOpenId(null);
       setCompareItemId(null);
@@ -558,6 +591,65 @@ export function StoreProvider({
     },
     [applyView],
   );
+
+  /**
+   * R16 B1: merge a changesSince result — upsert by id, remove tombstoned rows — without touching UI state (view,
+   * selection, scroll, an open sheet shows the new values; an item removed under its open sheet closes it). Returns who
+   * did what (B4 activity toasts).
+   */
+  const applyChanges = useCallback((ch: Changes): ChangeSummary => {
+    const summary: ChangeSummary = { by: new Map(), closed: null };
+    const tally = (by: string | null | undefined, k: keyof PersonTally) => {
+      if (!by) return;
+      const t = summary.by.get(by) ?? { added: 0, changed: 0, checked: 0, removed: 0 };
+      t[k]++;
+      summary.by.set(by, t);
+    };
+    const known = new Map(itemsRef.current.map((i) => [i.id, i]));
+    for (const it of ch.items) {
+      const was = known.get(it.id);
+      if (!was) tally(it.revBy, "added");
+      else if (it.status === "purchased" && was.status !== "purchased") tally(it.revBy, "checked");
+      else tally(it.revBy, "changed");
+    }
+    const gone = (tbl: string) => new Set(ch.removed.filter((r) => r.tbl === tbl).map((r) => r.id));
+    const goneItems = gone("items");
+    for (const r of ch.removed) if (r.tbl === "items" && known.has(r.id)) tally(r.by, "removed");
+    if (ch.items.length || goneItems.size)
+      setItems((prev) => {
+        const byId = new Map(ch.items.map((i) => [i.id, i]));
+        const next = prev.filter((p) => !goneItems.has(p.id)).map((p) => byId.get(p.id) ?? p);
+        const have = new Set(prev.map((p) => p.id));
+        return [...ch.items.filter((i) => !have.has(i.id)), ...next];
+      });
+    if (goneItems.size) {
+      setSelectedState((prev) => (Array.from(prev).some((id) => goneItems.has(id)) ? new Set([...prev].filter((id) => !goneItems.has(id))) : prev));
+      if (openRef.current && goneItems.has(openRef.current)) {
+        summary.closed = { by: ch.removed.find((r) => r.id === openRef.current)?.by ?? null };
+        setOpenItemId(null);
+      }
+    }
+    const merge = <T,>(prev: T[], rows: T[], drop: Set<string>, key: (x: T) => string) => {
+      if (!rows.length && !drop.size) return prev;
+      const byKey = new Map(rows.map((r) => [key(r), r]));
+      const next = prev.filter((x) => !drop.has(key(x))).map((x) => byKey.get(key(x)) ?? x);
+      const have = new Set(prev.map(key));
+      return [...next, ...rows.filter((r) => !have.has(key(r)))];
+    };
+    const goneCols = gone("collections");
+    if (ch.collections.length || goneCols.size) {
+      setCollections((prev) => merge(prev, ch.collections, goneCols, (c) => c.id));
+      if (goneCols.size) setItems((prev) => prev.map((i) => (i.collectionId && goneCols.has(i.collectionId) ? { ...i, collectionId: null } : i)));
+    }
+    setAltGroups((prev) => merge(prev, ch.altGroups, gone("alt_groups"), (g) => g.id));
+    setStoreSettings((prev) => merge(prev, ch.storeSettings, gone("store_settings"), (x) => x.storeKey));
+    const goneAlerts = gone("alerts");
+    if (ch.alerts.length || goneAlerts.size) setAlerts((prev) => merge(prev, ch.alerts, goneAlerts, (a) => a.id).sort((a, b) => b.createdAt - a.createdAt).slice(0, 60));
+    if (ch.budget) setBudget(ch.budget);
+    if (ch.importLimitUsd != null) setImportLimitUsd(ch.importLimitUsd);
+    revRef.current = Math.max(revRef.current, ch.rev);
+    return summary;
+  }, []);
 
   const setLayout = useCallback((l: Layout) => {
     setLayoutState(l);
@@ -767,6 +859,10 @@ export function StoreProvider({
       me: base.me ? { id: base.me.id ?? "", name: base.me.name, email: base.me.email } : null,
       readOnly: offlineAt != null || base.space?.role === "viewer",
       replaceData,
+      getRev,
+      applyChanges,
+      present,
+      setPresent,
       setImportLimitUsd,
       sidebarCollapsed,
       setSidebarCollapsed,
@@ -810,7 +906,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

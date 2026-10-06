@@ -68,13 +68,13 @@ export async function applyObservation(s: Scoped, src: Source, obs: Observation,
   const item = await s.byId(schema.items, src.itemId);
   if (!item || item.status !== "to_buy" || !item.watch) return created;
 
-  const push = async (a: Omit<Alert, "id" | "createdAt" | "sentAt" | "readAt" | "itemId" | "sourceId" | "spaceId">) => {
+  const push = async (a: Omit<Alert, "id" | "createdAt" | "sentAt" | "readAt" | "itemId" | "sourceId" | "spaceId" | "rev" | "revBy">) => {
     // One alert per source+kind per 20h — avoid repeats when checked twice in a day.
     const [recent] = await s.select(schema.alerts, and(eq(schema.alerts.sourceId, src.id), eq(schema.alerts.kind, a.kind), gt(schema.alerts.createdAt, t - 20 * 3600_000))).limit(1);
     if (recent) return;
     const row = { id: nanoid(12), itemId: item.id, sourceId: src.id, createdAt: t, sentAt: null, readAt: null, ...a };
     await s.insert(schema.alerts, row);
-    created.push({ ...row, spaceId: s.spaceId });
+    created.push({ ...row, spaceId: s.spaceId, rev: 0, revBy: null });
   };
 
   const rates = await getRates();
@@ -188,7 +188,7 @@ export async function runCronChecks(budgetMs = 28_000, concurrency = 4) {
       const obs = await observe(group[0].source.url);
       fetched++;
       for (const r of group) {
-        const s = new Scoped({ spaceId: r.spaceId, userId: r.ownerId });
+        const s = new Scoped({ spaceId: r.spaceId, userId: r.ownerId, by: "system" });
         checked++;
         if (!obs) {
           blocked++;

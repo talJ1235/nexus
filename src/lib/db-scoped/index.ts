@@ -2,6 +2,8 @@ import "server-only";
 import { and, count as countFn, eq, type SQL } from "drizzle-orm";
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import { db, schema } from "@/db";
+import { schedulePublish } from "@/lib/realtime/publish";
+import { bumpRev, stamp, SYNCED, tombstones, touchParents } from "./feed";
 import type { Ctx } from "@/lib/ctx";
 import { AccessError } from "@/lib/ctx";
 
@@ -14,18 +16,68 @@ type IdTable = SpaceTable & { id: SQLiteColumn };
 type Insert<T extends SpaceTable> = Omit<T["$inferInsert"], "spaceId">;
 type Update<T extends SpaceTable> = Partial<Omit<T["$inferInsert"], "spaceId">>;
 
-/** The minimal scope the layer needs: a space (and the user, for personal rows). */
-export type Scope = { spaceId: string; userId: string | null };
+/** The minimal scope the layer needs: a space (and the user, for personal rows). `by` = who writes ("system" = cron). */
+export type Scope = { spaceId: string; userId: string | null; by?: string };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Stmt = any;
+
+/**
+ * R16 B1: a write to a synced table — the bump + stamp + tombstone statements that run as one batch when awaited
+ * (or join an `s.batch([...])`). Inserts keep `.onConflictDoUpdate()` (the update also stamps).
+ */
+export class Write implements PromiseLike<unknown> {
+  constructor(
+    private readonly s: Scoped,
+    readonly stmts: Stmt[],
+    private readonly main: number,
+    private readonly insertQ?: Stmt,
+    private readonly st?: Record<string, unknown>,
+    /** False for tables outside the change feed (no realtime message). */
+    readonly synced = true,
+  ) {}
+  onConflictDoUpdate(cfg: { target: unknown; set: Record<string, unknown> }) {
+    this.stmts[this.main] = this.insertQ.onConflictDoUpdate({ ...cfg, set: { ...cfg.set, ...this.st } });
+    return this;
+  }
+  onConflictDoNothing(cfg?: unknown) {
+    this.stmts[this.main] = this.insertQ.onConflictDoNothing(cfg);
+    return this;
+  }
+  then<A = unknown, B = never>(ok?: ((v: unknown) => A | PromiseLike<A>) | null, err?: ((e: unknown) => B | PromiseLike<B>) | null): PromiseLike<A | B> {
+    return this.s.runBatch(this.stmts, this.main, this.synced).then(ok, err);
+  }
+}
 
 export function scopeOf(ctx: { space: { id: string }; user: { id: string } }): Scope {
   return { spaceId: ctx.space.id, userId: ctx.user.id };
 }
 
 export class Scoped {
+  private announced = false;
   constructor(readonly scope: Scope) {}
 
   get spaceId() {
     return this.scope.spaceId;
+  }
+
+  /** Who the change feed says made this scope's writes. */
+  get actor() {
+    return this.scope.by ?? this.scope.userId ?? "system";
+  }
+
+  /** Run statements as one batch (a transaction); returns the result of statement `main`. Announces the change once. */
+  async runBatch(stmts: Stmt[], main: number, synced = true) {
+    const r = await db.batch(stmts as [Stmt, ...Stmt[]]);
+    if (synced) this.announce();
+    return (r as unknown[])[main];
+  }
+
+  /** One realtime message per action (per scope), after the response: { rev, by } only (B2). */
+  announce() {
+    if (this.announced) return;
+    this.announced = true;
+    schedulePublish(this.scope.spaceId, this.actor);
   }
 
   /** `space_id = <this space>` [AND cond] for table t. */
@@ -64,23 +116,46 @@ export class Scoped {
     return id;
   }
 
-  insert<T extends SpaceTable>(t: T, values: Insert<T> | Insert<T>[]) {
-    const withSpace = (v: Insert<T>) => ({ ...(v as object), spaceId: this.scope.spaceId }) as T["$inferInsert"];
+  insert<T extends SpaceTable>(t: T, values: Insert<T> | Insert<T>[]): Write {
+    const sp = this.scope.spaceId;
+    const meta = SYNCED.get(t);
+    const st = meta ? stamp(sp, this.actor) : {};
+    const withSpace = (v: Insert<T>) => ({ ...(v as object), ...st, spaceId: sp }) as T["$inferInsert"];
     const rows = Array.isArray(values) ? values.map(withSpace) : withSpace(values);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return db.insert(t as any).values(rows as any);
+    const q = db.insert(t as any).values(rows as any);
+    if (!meta) return new Write(this, [q], 0, q, {}, false);
+    const stmts: Stmt[] = [bumpRev(sp), q];
+    if (meta.parent) {
+      const ids = [...new Set((Array.isArray(rows) ? rows : [rows]).map((r) => (r as { itemId?: string }).itemId).filter((x): x is string => !!x))];
+      if (ids.length) stmts.push(touchParents(sp, this.actor, t, meta, ids));
+    }
+    return new Write(this, stmts, 1, q, st);
   }
 
-  update<T extends SpaceTable>(t: T, set: Update<T>, cond?: SQL) {
+  update<T extends SpaceTable>(t: T, set: Update<T>, cond?: SQL): Write {
     const clean = { ...(set as Record<string, unknown>) };
     delete clean.spaceId;
+    const sp = this.scope.spaceId;
+    const meta = SYNCED.get(t);
+    const where = this.in(t, cond);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return db.update(t as any).set(clean as any).where(this.in(t, cond));
+    const q = db.update(t as any).set({ ...clean, ...(meta ? stamp(sp, this.actor) : {}) } as any).where(where);
+    if (!meta) return new Write(this, [q], 0, undefined, undefined, false);
+    const stmts: Stmt[] = [bumpRev(sp), ...(meta.parent ? [touchParents(sp, this.actor, t, meta, where)] : []), q];
+    return new Write(this, stmts, stmts.length - 1);
   }
 
-  delete<T extends SpaceTable>(t: T, cond?: SQL) {
+  delete<T extends SpaceTable>(t: T, cond?: SQL): Write {
+    const sp = this.scope.spaceId;
+    const meta = SYNCED.get(t);
+    const where = this.in(t, cond);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return db.delete(t as any).where(this.in(t, cond));
+    const q = db.delete(t as any).where(where);
+    if (!meta) return new Write(this, [q], 0, undefined, undefined, false);
+    // Children: the item is re-sent whole (no tombstone needed); others leave a tombstone.
+    const stmts: Stmt[] = [bumpRev(sp), meta.parent ? touchParents(sp, this.actor, t, meta, where) : tombstones(sp, this.actor, t, meta, where), q];
+    return new Write(this, stmts, stmts.length - 1);
   }
 
   async count<T extends SpaceTable>(t: T, cond?: SQL) {
@@ -88,11 +163,17 @@ export class Scoped {
     return r?.n ?? 0;
   }
 
-  /** Run several scoped statements atomically. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  batch(queries: any[]) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return db.batch(queries as any);
+  /** Run several scoped statements atomically (writes keep their bump/stamp/tombstone statements). */
+  async batch(queries: Stmt[]) {
+    const flat: Stmt[] = [];
+    for (const q of queries) {
+      if (q instanceof Write) flat.push(...q.stmts);
+      else flat.push(q);
+    }
+    if (!flat.length) return [];
+    const r = await db.batch(flat as [Stmt, ...Stmt[]]);
+    if (queries.some((q) => q instanceof Write && q.synced)) this.announce();
+    return r;
   }
 
   // ---- personal rows (chats per user within the space; memory per user) ----

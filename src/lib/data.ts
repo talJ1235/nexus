@@ -6,6 +6,7 @@ import { BUDGET_KV_PREFIX, type BudgetHistory } from "./budget";
 import { Scoped } from "./db-scoped";
 import { collectionByShareToken } from "./db-scoped/system";
 import { spacePrefGet, spacePrefLike } from "./db-scoped/prefs";
+import { readRev } from "./db-scoped/feed";
 import { DEFAULT_IMPORT_LIMIT_USD, IMPORT_LIMIT_KEY } from "./import-vat";
 import { loadHomePrefs } from "./home-prefs";
 import { getRates } from "./rates";
@@ -38,6 +39,8 @@ export async function loadItems(s: Scoped, ids?: string[]): Promise<ItemWithSour
 }
 
 export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo, me?: AppData["me"]): Promise<AppData> {
+  // R16 B1: the revision first — a write landing while the data loads is then re-sent by changesSince (idempotent).
+  const rev = (await readRev(s.spaceId)).rev;
   const [collections, items, altGroups, storeSettings, budget, rates, importLimitUsd, alerts, home] = await Promise.all([
     s.select(schema.collections).orderBy(asc(schema.collections.sortOrder), asc(schema.collections.createdAt)),
     loadItems(s),
@@ -49,7 +52,7 @@ export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo, m
     s.select(schema.alerts).orderBy(desc(schema.alerts.createdAt)).limit(60),
     loadHomePrefs(userId),
   ]);
-  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, alerts, home, ...(space ? { space } : {}), ...(me ? { me } : {}) };
+  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, alerts, home, rev, ...(space ? { space } : {}), ...(me ? { me } : {}) };
 }
 
 export async function loadImportLimit(s: Scoped): Promise<number> {

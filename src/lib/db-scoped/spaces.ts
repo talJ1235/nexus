@@ -4,6 +4,10 @@ import { db, schema } from "@/db";
 import { AccessError } from "@/lib/ctx";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import type { Scoped } from "./index";
+import { resetMark } from "./feed";
+import { schedulePublish } from "@/lib/realtime/publish";
+
+const publishLater = (spaceId: string) => schedulePublish(spaceId, "system");
 
 // R15 C3/C4: the two operations that cross a space boundary on purpose. Both live in the data layer: the caller has
 // already checked the role in BOTH spaces (space-actions.ts); here every statement is still bound to an explicit
@@ -36,9 +40,14 @@ export async function moveCollection(from: Scoped, toSpaceId: string, collection
     ...(moveGroups.length ? [db.update(schema.altGroups).set(to).where(and(own(schema.altGroups), inArray(schema.altGroups.id, moveGroups)))] : []),
     ...(ids.length ? ITEM_CHILDREN.map((t) => db.update(t).set(to).where(and(own(t), inArray(t.itemId, ids)))) : []),
     db.update(schema.items).set(to).where(and(own(schema.items), eq(schema.items.collectionId, collectionId))),
+    // R16 B1: rows changed space — both spaces' clients reload their data instead of replaying the feed.
+    resetMark(from.spaceId),
+    resetMark(toSpaceId),
   ];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await db.batch(q as any);
+  from.announce();
+  publishLater(toSpaceId);
   return ids;
 }
 

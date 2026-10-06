@@ -3,6 +3,7 @@ import { type NextRequest } from "next/server";
 import { safeEqualStr } from "@/lib/auth/crypto";
 import { Scoped } from "@/lib/db-scoped";
 import { purgeSpaceData } from "@/lib/db-scoped/spaces";
+import { purgeTombstones } from "@/lib/db-scoped/feed";
 import { systemSpaces } from "@/lib/db-scoped/system";
 import { kvSet } from "@/lib/kv";
 import { normalizeOldPictures } from "@/lib/picture-backfill";
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
   for (const sp of spaces) {
     const left = 50_000 - (Date.now() - started);
     if (left < 3_000) break;
-    const s = new Scoped({ spaceId: sp.id, userId: sp.ownerId });
+    const s = new Scoped({ spaceId: sp.id, userId: sp.ownerId, by: "system" });
     const share = Math.max(2_000, Math.floor(left / Math.max(1, spaces.length)));
     const r = await repairIncomplete(s, share * 0.5).catch(() => ({ tried: 0, repaired: 0 }));
     const i = await backfillImages(s, share * 0.3).catch(() => ({ tried: 0, filled: 0 }));
@@ -60,7 +61,9 @@ export async function GET(req: NextRequest) {
     }
   }
   const purged = await purgeDeletedSpaces().catch(() => 0);
-  const summary = { at: Date.now(), spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, purged };
+  // R16 B1: change-feed tombstones are kept 30 days.
+  const tombstones = await purgeTombstones().catch(() => 0);
+  const summary = { at: Date.now(), spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, purged, tombstones };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }

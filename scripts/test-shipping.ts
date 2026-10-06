@@ -13,7 +13,7 @@ const item = (id: string, sources: Source[], p: Partial<ItemWithSources> = {}) =
 const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 0.01, `${a} ≈ ${b}`);
 
 // Rules: a saved row wins over the pre-filled default; unknown store → none.
-const saved: StoreSetting[] = [{ spaceId: "s", storeKey: "amazon", freeShippingMin: 200, shippingFee: 30, currency: "ILS", updatedAt: 0 }];
+const saved: StoreSetting[] = [{ spaceId: "s", storeKey: "amazon", freeShippingMin: 200, shippingFee: 30, currency: "ILS", updatedAt: 0, rev: 0, revBy: null }];
 assert.equal(shippingRule("amazon", saved)?.freeShippingMin, 200);
 assert.equal(shippingRule("amazon", saved)?.saved, true);
 assert.deepEqual(shippingRule("amazon", []), { freeShippingMin: 49, shippingFee: null, currency: "USD", saved: false });

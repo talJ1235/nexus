@@ -112,7 +112,7 @@ assert.equal(addDays("2026-10-31", 1), "2026-11-01");
   const items = [fan, motor, belt, saw, seed, loose, lateBox, tue, later, noEta, dropped, batchA, batchB];
   const alerts = [alert({ itemId: fan.id, kind: "drop", newPrice: 329 }), alert({ itemId: fan.id, kind: "drop", createdAt: at(2) }), alert({ itemId: lateBox.id }), alert({ itemId: saw.id, kind: "out_of_stock" }), alert({ itemId: seed.id, readAt: at(3) })];
   // AliExpress: free over ₪150, else ₪15. Motor (120) is 30 short (= 20 %); the someday belt (22) doesn't close it → no row.
-  const storeSettings = [{ spaceId: "s", storeKey: "aliexpress", freeShippingMin: 60, currency: "ILS", shippingFee: 15, updatedAt: 0 }];
+  const storeSettings = [{ spaceId: "s", storeKey: "aliexpress", freeShippingMin: 60, currency: "ILS", shippingFee: 15, updatedAt: 0, rev: 0, revBy: null }];
   const input = base({ items, alerts, collections: [railcam, home, tools, extra], storeSettings, budget: { "2026-09": { cap: 3000, currency: "ILS" } } });
   const m = homeModel(input);
   statusMatchesQueue(m);
@@ -206,7 +206,7 @@ assert.equal(addDays("2026-10-31", 1), "2026-11-01");
   const partner = item({ title: "GT2 belt", price: 25, priority: "someday", store: "AliExpress" });
   const buys = [92, 61, 30].map((d) => item({ title: "Filament", status: "purchased", purchasedAt: NOW - d * DAY, purchasedPrice: 80, purchasedCurrency: "ILS" }));
   const inNew = item({ title: "Screws", price: 10, collectionId: nob.id });
-  const input = base({ items: [deal, partner, ...buys, inNew], collections: [...proj, nob], storeSettings: [{ spaceId: "s", storeKey: "aliexpress", freeShippingMin: 100, currency: "ILS", shippingFee: 12, updatedAt: 0 }] });
+  const input = base({ items: [deal, partner, ...buys, inNew], collections: [...proj, nob], storeSettings: [{ spaceId: "s", storeKey: "aliexpress", freeShippingMin: 100, currency: "ILS", shippingFee: 12, updatedAt: 0, rev: 0, revBy: null }] });
   const m = homeModel(input);
   const sug = homeSuggestions(m);
   assert.deepEqual(sug.map((x) => x.kind), ["deal", "reorder", "budget"]);

@@ -254,6 +254,9 @@ export const spacePref = sqliteTable(
   "space_pref",
   {
     spaceId: text("space_id").notNull(),
+    // R16 B1: change feed — the space revision of the last write, and who made it (user id; "system" = cron).
+    rev: integer("rev").notNull().default(0),
+    revBy: text("rev_by"),
     key: text("key").notNull(),
     value: text("value").notNull(),
     updatedAt: integer("updated_at").notNull().default(now),

@@ -1,6 +1,7 @@
 "use server";
 
 import { IMPORT_LIMIT_KEY } from "@/lib/import-vat";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { schema } from "@/db";
 import { requireCtx } from "@/lib/ctx";
@@ -23,7 +24,8 @@ export async function saveStoreSetting(input: z.input<typeof storeSettingInput>)
   const p = storeSettingInput.parse(input);
   const row = { ...p, currency: p.currency.toUpperCase(), updatedAt: Date.now() };
   await s.insert(schema.storeSettings, row).onConflictDoUpdate({ target: [schema.storeSettings.spaceId, schema.storeSettings.storeKey], set: row });
-  return { ...row, spaceId: s.spaceId };
+  const [saved] = await s.select(schema.storeSettings, eq(schema.storeSettings.storeKey, row.storeKey));
+  return saved;
 }
 
 /** Monthly spending cap (null = none). Stored for the current month so past months keep the cap they had. */

@@ -12,7 +12,7 @@ process.env.TURSO_AUTH_TOKEN = "";
 execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", "src/db/migrate.ts"], { env: { ...process.env, ADMIN_EMAIL: "" }, stdio: "ignore" });
 
 async function main() {
-  const { and, asc, desc, eq, inArray, like } = await import("drizzle-orm");
+  const { and, asc, desc, eq, gt, inArray, like } = await import("drizzle-orm");
   const { db, schema } = await import("../src/db");
   const { Scoped } = await import("../src/lib/db-scoped");
   const { systemWatchedSourcesQuery } = await import("../src/lib/db-scoped/system");
@@ -33,6 +33,12 @@ async function main() {
     ["store settings", s.select(schema.storeSettings) as unknown as Q],
     ["alerts (recent 60)", s.select(schema.alerts).orderBy(desc(schema.alerts.createdAt)).limit(60) as unknown as Q],
     ["receipts", s.select(schema.receipts).orderBy(desc(schema.receipts.createdAt)) as unknown as Q],
+    // R16 B1: the change feed (changesSince) — every synced table by (space_id, rev), the tombstones, the space revision.
+    ...([schema.items, schema.collections, schema.altGroups, schema.storeSettings, schema.alerts] as const).map((t) => [`changes since (${(t as unknown as { [k: symbol]: string })[Symbol.for("drizzle:Name")]})`, s.select(t, gt(t.rev, 5)) as unknown as Q] as [string, Q]),
+    ["changes since (space prefs)", db.select({ key: schema.spacePref.key }).from(schema.spacePref).where(and(eq(schema.spacePref.spaceId, "sp"), gt(schema.spacePref.rev, 5))) as unknown as Q],
+    ["changes since (tombstones)", db.select().from(schema.tombstone).where(and(eq(schema.tombstone.spaceId, "sp"), gt(schema.tombstone.rev, 5))) as unknown as Q],
+    ["space revision", db.select().from(schema.spaceRev).where(eq(schema.spaceRev.spaceId, "sp")) as unknown as Q],
+    ["children of changed items (touch parent)", db.select({ id: schema.sources.itemId }).from(schema.sources).where(and(eq(schema.sources.spaceId, "sp"), inArray(schema.sources.id, ids))) as unknown as Q],
     ["conversations (mine)", db.select().from(schema.conversations).where(s.mine(schema.conversations)).orderBy(desc(schema.conversations.updatedAt)) as unknown as Q],
     ["space prefs (budget)", db.select().from(schema.spacePref).where(and(eq(schema.spacePref.spaceId, "sp"), like(schema.spacePref.key, "pref:budget:%"))) as unknown as Q],
     ["memberships of a user", db.select().from(schema.member).innerJoin(schema.space, eq(schema.space.id, schema.member.organizationId)).where(eq(schema.member.userId, "u")) as unknown as Q],

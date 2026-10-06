@@ -28,6 +28,7 @@ assert.match(line, /price_low=90@/);
 assert.match(line, /price_prev=120→105@/, line);
 assert.match(line, /alert=drop 120→105@/, line);
 // Alerts older than 30 days and other items' alerts stay out.
-const old = { ...data, alerts: [{ ...data.alerts[0], createdAt: now - 40 * day }, { ...data.alerts[0], itemId: "other" }] } as AppData;
+const a0 = data.alerts![0];
+const old = { ...data, alerts: [{ ...a0, createdAt: now - 40 * day }, { ...a0, itemId: "other" }] } as AppData;
 assert.doesNotMatch(snapshot(old, "ILS", FALLBACK_RATES).lines[0], /alert=/);
 console.log("test-assistant-context: OK");

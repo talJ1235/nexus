@@ -53,9 +53,9 @@ assert.ok(!msg.includes("Item later"));
 
 // Free shipping: close (≤25 % of the threshold missing) is listed; far away and already free are not.
 const settings = [
-  { spaceId: "s", storeKey: "close", freeShippingMin: 200, shippingFee: 20, currency: "ILS", updatedAt: 0 },
-  { spaceId: "s", storeKey: "far", freeShippingMin: 200, shippingFee: 20, currency: "ILS", updatedAt: 0 },
-  { spaceId: "s", storeKey: "free", freeShippingMin: 100, shippingFee: 20, currency: "ILS", updatedAt: 0 },
+  { spaceId: "s", storeKey: "close", freeShippingMin: 200, shippingFee: 20, currency: "ILS", updatedAt: 0, rev: 0, revBy: null },
+  { spaceId: "s", storeKey: "far", freeShippingMin: 200, shippingFee: 20, currency: "ILS", updatedAt: 0, rev: 0, revBy: null },
+  { spaceId: "s", storeKey: "free", freeShippingMin: 100, shippingFee: 20, currency: "ILS", updatedAt: 0, rev: 0, revBy: null },
 ];
 msg = weeklySummary(
   base({
