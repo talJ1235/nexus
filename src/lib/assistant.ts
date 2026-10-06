@@ -133,7 +133,22 @@ function priceMoves(i: AppData["items"][number], rates: Rates, currency: string)
   const v = (p: (typeof pts)[number]) => Math.round(convert(p.price + (src.shipping ?? 0), p.currency, currency, rates) * 100) / 100;
   const first = pts[0];
   const low = pts.reduce((a, b) => (v(b) < v(a) ? b : a));
-  return `price_first=${v(first)}@${new Date(first.recordedAt).toISOString().slice(0, 10)} price_low=${v(low)}@${new Date(low.recordedAt).toISOString().slice(0, 10)}`;
+  const day = (t: number) => new Date(t).toISOString().slice(0, 10);
+  // R16 A13: the last change too (the reading before the latest different one) — a recent drop can be above the lowest.
+  const last = pts[pts.length - 1];
+  let k = pts.length - 2;
+  while (k >= 0 && pts[k].price === last.price) k--;
+  const prev = k >= 0 ? ` price_prev=${v(pts[k])}→${v(last)}@${day(pts[k + 1].recordedAt)}` : "";
+  return `price_first=${v(first)}@${day(first.recordedAt)} price_low=${v(low)}@${day(low.recordedAt)}${prev}`;
+}
+
+/** R16 A13: the item's latest price alert of the last 30 days (what the bell showed), e.g. "alert=drop 120→99@2026-10-03". */
+function lastAlert(i: AppData["items"][number], alerts: AppData["alerts"], rates: Rates, currency: string) {
+  const since = Date.now() - 30 * 86_400_000;
+  const a = (alerts ?? []).filter((x) => x.itemId === i.id && x.createdAt >= since).sort((x, y) => y.createdAt - x.createdAt)[0];
+  if (!a) return "";
+  const m = (n: number | null) => (n == null ? "?" : Math.round(convert(n, a.currency ?? currency, currency, rates) * 100) / 100);
+  return `alert=${a.kind}${a.oldPrice != null || a.newPrice != null ? ` ${m(a.oldPrice)}→${m(a.newPrice)}` : ""}@${new Date(a.createdAt).toISOString().slice(0, 10)}`;
 }
 
 /** Compact snapshot of the user's data for the model. Items are referenced as [[id]]. */
@@ -157,6 +172,7 @@ export function snapshot(data: AppData, currency: string, rates: Rates) {
       i.orderedAt && i.status === "ordered" ? `ordered=${new Date(i.orderedAt).toISOString().slice(0, 10)}` : "",
       i.targetPrice != null ? `target=${Math.round(convert(i.targetPrice, i.targetCurrency ?? currency, currency, rates))}` : "",
       priceMoves(i, rates, currency),
+      lastAlert(i, data.alerts, rates, currency),
     ].filter(Boolean);
     return parts.join(" | ");
   });
@@ -310,7 +326,7 @@ ${input.memory}
 PROJECTS & LISTS ([id] kind "name")
 ${projects.join("\n") || "(none)"}
 
-ITEMS (status: to_buy / ordered / purchased; price_first / price_low = first recorded and lowest unit price of its store link, only when the price moved — a drop means unit < price_first)
+ITEMS (status: to_buy / ordered / purchased; price_first / price_low = first recorded and lowest unit price of its store link, only when the price moved; price_prev=A→B@date = its last change (B < A is a drop, even when B is above price_low); alert=kind old→new@date = the latest price alert of the last 30 days — a "drop" alert means the price dropped)
 ${lines.join("\n") || "(none)"}
 ${pastBlock(input.past)}${
     input.route === "unsure" && input.help

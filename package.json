@@ -47,7 +47,8 @@
     "test:auth-flow": "node scripts/test-auth-flow.mjs",
     "test:query-plans": "tsx --conditions=react-server scripts/test-query-plans.ts",
     "bench:r15": "node --env-file=.env.local scripts/bench-r15.mjs",
-    "test:status": "tsx scripts/test-status.ts"
+    "test:status": "tsx scripts/test-status.ts",
+    "test:assistant-context": "tsx --conditions=react-server scripts/test-assistant-context.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",

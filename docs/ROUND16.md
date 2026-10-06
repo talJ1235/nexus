@@ -148,7 +148,7 @@ store; sidebar and shell stay mounted; land on **Home**. Realtime channel re-sub
 across frames (sampled every frame during the switch), URL view = home, data = the new space only (`test:tenancy`
 stays green).
 
-### A13. [ ] Open report: "price drop and the AI didn't recognise it"
+### A13. [x] Open report: "price drop and the AI didn't recognise it"
 Triage: check what the assistant gets for an item with a recent price drop (price history, alerts). Fix if the context
 lacks it (add last price change + alert to the item context, no other content); otherwise answer the report with the
 reason. Close the report with a status.
@@ -383,3 +383,11 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   frame of a switch (one value across ~60 frames, no reload, Home, the new space's data); `test:tenancy` 42/42 (its
   "keeps the view" check is now "lands on Home", per the brief). Create / leave / delete / restore / transfer still reload
   (they change the membership list itself) — D4's moment can take those over.
+- **A13 (report `r_rWtP3XmuRl`):** R13 (`ce81ec3`) already gave the assistant `price_first` / `price_low`, but a recent drop
+  that is still above the all-time low (100 → 90 → 120 → **105**) read as "no drop", and the price-drop alert the bell showed
+  wasn't in the context at all. Each to-buy item line now also carries `price_prev=A→B@date` (its last change) and
+  `alert=drop old→new@date` (latest alert, 30 days); the prompt explains both. `test:assistant-context` covers it.
+  **Tal:** there is no API to close a report from here (and this session doesn't write to prod) — after the merge, mark it
+  *fixed* in Settings → Reports. Suggested reply: "The assistant only saw the first and lowest price, so a drop that was
+  still above the lowest price looked like no drop, and it didn't see the price-drop alert. It now sees the last price change
+  and the alert."
