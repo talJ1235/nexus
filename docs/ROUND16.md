@@ -316,8 +316,8 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
 ## Open
 
 ### Session 1 (2026-10-06)
-- **0.1 — R15 Part G results (from the Actions history):** `guards` green on `main` after the merge (`0091467`, run
-  37440 on 08:59 UTC) and on every docs push since. The **prod smoke after the R15 deploy** (`smoke` run 37440189405,
+- **0.1 — R15 Part G results (from the Actions history):** `guards` green on `main` after the merge (`0091467`, run 37439902988,
+  08:59 UTC) and on every docs push since. The **prod smoke after the R15 deploy** (`smoke` run 37440189405,
   `0091467`, 09:02 UTC) signed in through the admin fallback (`PASS owner login`, `PASS anonymous is redirected to /login`,
   anonymous blocked from backup/export/cron) and passed 41 steps incl. AI health, offline snapshot, "no page/console
   errors"; **5 FAIL**, all data-shaped (the smoke expects the demo seed, prod has Tal's real space): Needs-you tile count,
