@@ -558,6 +558,17 @@ with Tal (merging deploys and runs the migration on the real database).
   admin password as a guarded fallback (`/login?admin=1`, ≥ 20 chars, 5/min + 20 failed/day per IP). Sessions in the DB
   (HMAC-signed cookie, checked on every request, cached ≤ 60 s), 30-day idle / 90-day absolute. Step-up = a sign-in in
   the last 10 minutes for passkey changes, recovery codes, removing a member, transferring ownership, deleting a space.
+- **Google sign-in, instant and never dead** (R16 G): the tap shows a spinner + "Opening Google…" in the same frame;
+  the invite check and the sign-in start run in parallel and the page then navigates itself (`disableRedirect`).
+  Failures (a returned `{ error }`, a throw, offline, 429 → "Too many tries", no navigation within 6 s → "Taking longer
+  than usual") show an error with **Try again** and go to the error log as kind `auth` (status only, no email); Back
+  from Google (bfcache) or returning to the tab re-enables the button. The login screen warms the path on mount and on
+  hover/touch (`GET /api/auth/ok` → function + DB connection; `preconnect` to accounts.google.com). Server: the OAuth
+  state lives in an encrypted 10-minute cookie (`account.storeStateStrategy: "cookie"`, still bound to `state`), Better
+  Auth's rate limits use one atomic upsert on `rate_limit` (`ba:` keys; Google 30/min per IP), the callback runs
+  rotation + role + personal space in parallel and the security log after the response (`after()`). Functions run in
+  `dub1` next to the Turso DB (`vercel.json`). Every `/api/auth/*` response has `Server-Timing` (cold / rl / state / db
+  / hooks / other / total). Guard: `scripts/test-google-signin.mjs` (guards.yml); bench: `scripts/bench-signin.mjs`.
 - **Invite-only sign-up**: admin invite codes (Settings → Invite codes, hashed + encrypted for re-copy), a `/join/<token>`
   space link also counts; otherwise "invite-only — leave your email" (waitlist, Turnstile when configured).
 - **Settings → Security** (`/settings/security`): devices (sign one / all others out), passkeys, connected accounts,

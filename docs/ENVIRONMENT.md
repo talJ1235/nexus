@@ -137,3 +137,6 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   Subscribe + Presence) as `ABLY_API_KEY` in Vercel (Production) and `.env.local`; without it live sync polls every 10 s.
   Free limits checked 2026-10-06: 6 M messages/month, 200 concurrent connections. Setup steps: `docs/ROUND16.md` "Before you run".
 - 2026-10-07 (chat, account A): the chat sandbox can now `git push` to `main` directly — attach the repo with push access (the session's "add repo", access `push`), clone into `/home/claude/nexus`, commit as Tal. No GitHub connector needed for docs pushes on this account.
+- 2026-10-07 (PC, R16 Session G): Vercel functions now run in **`dub1` (Dublin)** via `vercel.json` `regions` — next to
+  the Turso DB (`aws-eu-west-1`, Ireland). Before: `fra1` (Frankfurt; `x-vercel-id` shows the region). Hobby allows one
+  region; the DB stays where it is. Sign-in timings: `Server-Timing` on `/api/auth/*`, `scripts/bench-signin.mjs`.
