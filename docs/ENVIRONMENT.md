@@ -136,3 +136,4 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
 - 2026-10-06 (chat, account B): R16 adds an optional realtime service — **Ably** free tier (app `Nexus`, key with Publish +
   Subscribe + Presence) as `ABLY_API_KEY` in Vercel (Production) and `.env.local`; without it live sync polls every 10 s.
   Free limits checked 2026-10-06: 6 M messages/month, 200 concurrent connections. Setup steps: `docs/ROUND16.md` "Before you run".
+- 2026-10-07 (chat, account A): the chat sandbox can now `git push` to `main` directly — attach the repo with push access (the session's "add repo", access `push`), clone into `/home/claude/nexus`, commit as Tal. No GitHub connector needed for docs pushes on this account.
