@@ -27,12 +27,33 @@ const OUTLINE = CUBE(4, 0);
 const MODE_SCRIPT = `(function(){var d=document.documentElement,m="full",r=0;try{r=localStorage.getItem("nexus.motion")==="reduce";if(r)d.setAttribute("data-motion","reduce")}catch(e){}try{var p=matchMedia("(max-width: 768px), (display-mode: standalone)").matches;if(p){var n=performance.getEntriesByType("navigation")[0],t=n&&n.type,s=sessionStorage;if(t==="reload"||t==="back_forward"||s.getItem("nexus.opened"))m="small";s.setItem("nexus.opened","1")}else if(location.pathname!=="/"){m="none"}else{var a=new Date(),k=a.getFullYear()+"-"+(a.getMonth()+1)+"-"+a.getDate();if(localStorage.getItem("nexus.bootDay")===k)m="small";else localStorage.setItem("nexus.bootDay",k)}}catch(e){m="small"}if(r&&m==="full")m="small";d.setAttribute("data-boot",m)})()`;
 
 /**
- * R16 A8 — self-heal for a phone page laid out at desktop width. Seen once on Tal's phone right after Google sign-in
- * (a refresh fixed it; not reproducible in emulation through the same redirect chain — the viewport meta is in <head>).
- * A touch screen whose short side is < 600 px but whose layout viewport is ≥ 1024 px wide got the page without its
- * device-width viewport: reload once per tab session (never loops; tablets and real desktops never match).
+ * R16 A8 + hotfix (2026-10-07) — self-heal for a phone page laid out at desktop width. On Android, an installed app
+ * (Chrome) that comes back from Google's sign-in Custom Tab can keep a stale layout width — Chrome's 980 px fallback —
+ * until a manual refresh (Google's own page renders tiny too, so it's the window, not our meta tag).
+ * Wrong = coarse pointer AND short screen side < 600 AND innerWidth ≥ 1.4 × the screen width in the current orientation
+ * (orientation-aware so a phone in landscape — innerWidth ≈ long side — never matches; tablets and desktops never do).
+ * Checked on load, pageshow, visibilitychange (visible) and resize. Fix: first re-insert the viewport meta (the last
+ * one, which Chrome applies; the same node in the same place, so hydration is unaffected; ≤ 3 tries per page) and
+ * re-check two frames later; still wrong → reload, at most once per 30 s per tab (sessionStorage timestamp) — never a
+ * loop. One `viewport` event per page (numbers taken at detection, no content) goes to the error log (R16 C2).
  */
-const VIEWPORT_GUARD = `(function(){function c(){try{var s=sessionStorage,w=Math.min(screen.width,screen.height);if(w&&w<600&&innerWidth>=1024&&matchMedia("(pointer: coarse)").matches&&!s.getItem("nexus.vpfix")){s.setItem("nexus.vpfix","1");location.reload()}}catch(e){}}c();addEventListener("pageshow",c)})()`;
+const VIEWPORT_GUARD = `(function(){
+var K="nexus.vpfix",VP="width=device-width, initial-scale=1, viewport-fit=cover",busy=0,tries=0,sent=0;
+function dims(){var a=screen.width,b=screen.height,s=Math.min(a,b),l=Math.max(a,b),o=(screen.orientation&&screen.orientation.type)||"",land=o?o.indexOf("landscape")===0:Math.abs(window.orientation||0)===90;return[s,land?l:s]}
+function bad(){try{var d=dims();return!!d[0]&&d[0]<600&&innerWidth>=1.4*d[1]&&matchMedia("(pointer: coarse)").matches}catch(e){return false}}
+function mq(q){return matchMedia(q).matches}
+function snap(had){try{var n=performance.getEntriesByType("navigation")[0],r="-",v=window.visualViewport;try{if(document.referrer)r=new URL(document.referrer).host}catch(e){}
+return["iw="+innerWidth,"ow="+outerWidth,"s="+screen.width+"x"+screen.height,"dpr="+devicePixelRatio,"vv="+(v?Math.round(v.width)+"@"+v.scale.toFixed(2):"-"),"dm="+(mq("(display-mode: standalone)")?"standalone":mq("(display-mode: minimal-ui)")?"minimal-ui":"browser"),"mobile="+(/Mobile/.test(navigator.userAgent)?"yes":"no"),"nav="+((n&&n.type)||"-"),"ref="+r,"meta="+(had?"yes":"no")].join(" ")}catch(e){return"?"}}
+function report(soft,at){if(sent)return;sent=1;try{var m=at+" soft="+(soft?"yes":"no"),b=JSON.stringify({events:[{kind:"viewport",code:"layout",where:location.pathname.slice(0,120),message:m}]});
+if(navigator.sendBeacon)navigator.sendBeacon("/api/errors",new Blob([b],{type:"application/json"}));else fetch("/api/errors",{method:"POST",headers:{"content-type":"application/json"},body:b,keepalive:true})}catch(e){}}
+function after(f){requestAnimationFrame(function(){requestAnimationFrame(f)})}
+function hard(){try{var s=sessionStorage,t=Number(s.getItem(K))||0;if(Date.now()-t>30000){s.setItem(K,String(Date.now()));location.reload()}}catch(e){}}
+function check(){if(busy||!bad())return;busy=1;var h=document.head,all=document.querySelectorAll('meta[name="viewport"]'),m=all[all.length-1],at=snap(!!m);
+if(tries++>=3){report(false,at);busy=0;hard();return}
+if(m){var p=m.parentNode,x=m.nextSibling;if(!/device-width/.test(m.content))m.content=VP;p.removeChild(m);p.insertBefore(m,x)}else{m=document.createElement("meta");m.name="viewport";m.content=VP;h.appendChild(m)}
+after(function(){var still=bad();report(!still,at);busy=0;if(still)hard()})}
+check();addEventListener("pageshow",check);addEventListener("resize",check);document.addEventListener("visibilitychange",function(){document.visibilityState==="visible"&&check()})
+})()`;
 
 /** Eight cubes gather from around the centre (offset, size). */
 const GATHER: [number, number, number][] = [

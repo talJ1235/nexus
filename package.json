@@ -52,6 +52,8 @@
     "test:feed": "tsx --conditions=react-server scripts/test-feed.ts",
     "test:live": "node scripts/test-live.mjs",
     "test:errors": "tsx --conditions=react-server scripts/test-errors.ts",
+    "test:google-signin": "node scripts/test-google-signin.mjs",
+    "test:viewport": "node scripts/test-viewport.mjs",
     "test:settings": "node scripts/test-settings.mjs"
   },
   "dependencies": {

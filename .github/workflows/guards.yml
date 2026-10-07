@@ -72,6 +72,7 @@ jobs:
           TURSO_DATABASE_URL=$CI_DB nohup npx next start -p 3101 > google-server.log 2>&1 &
           for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:3101/login && break; sleep 1; done
           BASE=http://localhost:3101 node scripts/test-google-signin.mjs
+          BASE=http://localhost:3101 node scripts/test-viewport.mjs
       - name: error log — limits, redaction, overflow, onRequestError (R16 C2; starts the built app itself)
         run: npm run -s test:errors
       - name: live shared spaces — fake transport + polling, conflicts, presence (R16 B; starts next dev itself)

@@ -3,7 +3,7 @@
 // numbers (> 6 digits); samples ≤ 500 chars.
 import { createHash } from "node:crypto";
 
-export const KINDS = ["server", "client", "extract", "ai", "cron", "csp", "auth"] as const;
+export const KINDS = ["server", "client", "extract", "ai", "cron", "csp", "auth", "viewport"] as const;
 export type ErrorKind = (typeof KINDS)[number];
 export type ErrorInput = { kind: ErrorKind; code: string; where: string; message: string; sample?: string | null };
 
