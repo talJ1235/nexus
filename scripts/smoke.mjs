@@ -121,18 +121,15 @@ const HOME_ORDER = ["suggest", "week", "needs", "ontheway", "pace", "projects", 
 /** Visible Home sections in page order (the phone's merged "pace projects" card counts as both). */
 const homeSections = (page) =>
   page.$$eval("[data-home-section]", (els) => els.filter((e) => e.offsetParent !== null).flatMap((e) => e.getAttribute("data-home-section").split(" ")));
-async function openSettings(page) {
-  // Already opening (a caller tapped Me → Settings): don't tap the sheet underneath.
-  if (await page.locator("[data-settings-assistant]").waitFor({ timeout: 1500 }).then(() => true, () => false)) return;
-  const btn = page.locator('[data-carry="settings"]:visible').first();
-  if (await btn.count()) await btn.click();
-  else {
-    await page.locator("[data-me-open]").click();
-    // Phones: Me → Settings (R14 A2 needs the full Settings, where the Home diagnostics live).
-    const row = page.locator("[data-me-settings]");
-    if (await row.waitFor({ timeout: 3000 }).then(() => true, () => false)) await row.click({ timeout: 5000 }).catch(() => {});
-  }
-  await page.waitForSelector("[data-ai-suggestions-switch]", { timeout: 5000 }).catch(() => {});
+/** R16 D1: Settings at a section (deep link /settings/<section>; the shell opens over the app). */
+async function openSettings(page, section = "ai") {
+  const base = new URL(page.url()).origin;
+  await page.goto(`${base}/settings/${section}`);
+  await page.waitForSelector(`[data-settings-section="${section}"]`, { timeout: 20000 }).catch(() => {});
+}
+/** The AI phrasing pick (Settings → Assistant & AI): "ai" = AI + rules, "rules" = rules only. */
+async function setAiPick(page, on) {
+  await page.locator(`[data-ai-pick="${on ? "ai" : "rules"}"]`).click();
 }
 async function homeChecks(page) {
   await step("home is the default screen", async () => {
@@ -267,14 +264,8 @@ async function homeChecks(page) {
       const ai = await page.waitForSelector('[data-sug-source="ai"]', { timeout: 15000 }).then(() => true, () => false);
       const setAi = async (on) => {
         await page.evaluate(() => window.scrollTo(0, 0));
-        if (MOBILE) {
-          await page.locator("[data-me-open]").click();
-          await page.locator("[data-me-settings], [data-settings-open]").first().click().catch(() => {});
-        }
-        if (!(await page.locator("[data-ai-suggestions-switch]").count())) await openSettings(page);
-        const sw = page.locator("[data-ai-suggestions-switch]");
-        await sw.scrollIntoViewIfNeeded();
-        if ((await sw.getAttribute("aria-checked")) !== String(on)) await sw.click();
+        await openSettings(page, "ai");
+        await setAiPick(page, on);
         await page.waitForTimeout(400);
         // Close every layer (phone: settings over the Me sheet) and make sure nothing stays open for later steps.
         for (let k = 0; k < 5 && (await page.locator("[role=dialog]:visible").count()); k++) {
@@ -530,7 +521,7 @@ try {
     await step("calendar feed: link in Settings, 200 text/calendar with the token, 404 without", async () => {
       await page.goto(`${BASE}/`);
       await page.waitForSelector(READY, { timeout: 15000 });
-      await openSettings(page);
+      await openSettings(page, "calendar");
       const input = page.locator("[data-cal-url]");
       await input.scrollIntoViewIfNeeded();
       await page.waitForFunction(() => /\/api\/cal\/[\w-]+\.ics$/.test(document.querySelector("[data-cal-url]")?.value ?? ""), null, { timeout: 8000 });
@@ -1614,7 +1605,8 @@ try {
       // Settings → Reports: a sub-page in the same modal; Esc and the back arrow return to Settings, Esc again closes.
       await go();
       await openPalette();
-      await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Open settings|פתיחת ההגדרות|Settings|הגדרות/ }).first().click();
+      await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Open settings|פתיחת ההגדרות/ }).first().click();
+      if (!(await page.locator("[data-settings-reports]").isVisible())) await page.locator('[data-sx-nav="account"]').click();
       await page.locator("[data-settings-reports]").click();
       await page.locator("[data-settings-subpage=reports]").waitFor({ timeout: 8000 });
       await settle();
@@ -1623,7 +1615,7 @@ try {
       await settle();
       r.escBack = (await page.locator("[data-settings-reports]").isVisible()) && (await dialogs()) === 1;
       await page.locator("[data-settings-reports]").click();
-      await page.locator("[data-modal-back]").click();
+      await page.locator("[data-settings-back]:visible").first().click();
       await settle();
       r.arrowBack = await page.locator("[data-settings-reports]").isVisible();
       // (R15 D2: the extension row is gone from Settings.)
@@ -2376,8 +2368,7 @@ try {
           const setLimit = async (v) => {
             await page.goto(`${BASE}/?v=to_buy`);
             await page.waitForSelector(READY);
-            await openPalette();
-            await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Open settings|פתיחת ההגדרות|Settings/ }).first().click();
+            await openSettings(page, "budget");
             const f = page.locator("[data-import-limit]");
             await f.waitFor({ timeout: 8000 });
             await f.fill(String(v));
@@ -2594,7 +2585,7 @@ try {
           await dlg.locator("[data-ai-memory=saved]").waitFor({ timeout: 8000 });
           await page.keyboard.press("Escape");
           await openPalette();
-          await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Open settings|פתיחת ההגדרות|Settings/ }).first().click();
+          await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Settings: Memory|הגדרות: זיכרון/ }).first().click();
           const note = page.locator("[data-memory-note]").filter({ hasText: marker });
           await note.waitFor({ timeout: 10000 });
           await note.scrollIntoViewIfNeeded();
@@ -2903,8 +2894,10 @@ try {
           await page.locator("[data-space-switcher]").first().click();
           await page.locator("[data-space-create]").first().click();
           const tag = `MV${Date.now().toString(36)}`;
-          await page.locator("#space-name").fill(`Smoke ${tag}`);
-          await page.locator("[data-create-submit]").click();
+          // R16 D5: create = the identity editor (name + icon/colour), then the invite step.
+          await page.locator("[data-identity-name]").fill(`Smoke ${tag}`);
+          await page.locator('[data-identity-icon="tools"]').click();
+          await page.locator("[data-identity-save]").click();
           await page.locator("[data-create-skip]").click({ timeout: 15000 });
           await page.waitForFunction((h) => document.querySelector("[data-space-switcher]")?.getAttribute("data-space-id") !== h, home, { timeout: 20000 });
           await page.waitForSelector(READY);
@@ -3231,9 +3224,8 @@ try {
           };
         };
         const setAi = async (on) => {
-          await openSettings(p);
-          const sw = p.locator("[data-ai-suggestions-switch]");
-          if ((await sw.getAttribute("aria-checked")) !== String(on)) await sw.click();
+          await openSettings(p, "ai");
+          await setAiPick(p, on);
           await p.waitForTimeout(500);
           const diag = (await p.locator("[data-home-diag]").count()) ? await p.locator("[data-home-diag]").innerText() : "";
           await p.keyboard.press("Escape");

@@ -1008,3 +1008,13 @@ html body[data-scroll-locked] { margin-right: 0 !important; --removed-body-scrol
   .shop-thumb { transition: none; }
   .shop-pane *, .shop-zoom * { animation: none !important; }
 }
+
+/* R16 D1: Settings → Display → Motion = Reduced (per device, nexus.motion): the same as the OS setting. */
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

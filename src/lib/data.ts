@@ -41,7 +41,7 @@ export async function loadItems(s: Scoped, ids?: string[]): Promise<ItemWithSour
 export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo, me?: AppData["me"]): Promise<AppData> {
   // R16 B1: the revision first — a write landing while the data loads is then re-sent by changesSince (idempotent).
   const rev = (await readRev(s.spaceId)).rev;
-  const [collections, items, altGroups, storeSettings, budget, rates, importLimitUsd, alerts, home] = await Promise.all([
+  const [collections, items, altGroups, storeSettings, budget, rates, importLimitUsd, alerts, home, budgetWarn] = await Promise.all([
     s.select(schema.collections).orderBy(asc(schema.collections.sortOrder), asc(schema.collections.createdAt)),
     loadItems(s),
     s.select(schema.altGroups),
@@ -51,8 +51,15 @@ export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo, m
     loadImportLimit(s),
     s.select(schema.alerts).orderBy(desc(schema.alerts.createdAt)).limit(60),
     loadHomePrefs(userId),
+    loadBudgetWarn(s),
   ]);
-  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, alerts, home, rev, ...(space ? { space } : {}), ...(me ? { me } : {}) };
+  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, budgetWarn, alerts, home, rev, ...(space ? { space } : {}), ...(me ? { me } : {}) };
+}
+
+/** R16 D2: Space settings → Budget → "Warn everyone at 80%" (space pref; on unless turned off). */
+export const BUDGET_WARN_KEY = "pref:budget-warn";
+export async function loadBudgetWarn(s: Scoped): Promise<boolean> {
+  return (await spacePrefGet(s, BUDGET_WARN_KEY)) !== "off";
 }
 
 export async function loadImportLimit(s: Scoped): Promise<number> {

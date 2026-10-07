@@ -2,6 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { z } from "zod";
+import { ICON_KEYS } from "@/components/app/spaces/look";
 import { logSecurityEvent } from "@/lib/auth/events";
 import { checkJoinToken, consumeJoinToken } from "@/lib/auth/invites";
 import { hitLimit, MINUTE } from "@/lib/auth/limits";
@@ -38,6 +39,8 @@ import {
 const Id = z.string().min(1).max(64);
 const Name = z.string().trim().min(1).max(40);
 const Color = z.enum(SPACE_COLORS);
+/** R16 D5: one of the identity board's icons (personal spaces keep "user"). */
+const Icon = z.enum(ICON_KEYS as [string, ...string[]]);
 const Currency = z.enum(SPACE_CURRENCIES);
 const InviteRole = z.enum(["member", "viewer"]);
 
@@ -64,18 +67,18 @@ export async function switchSpace(spaceId: string) {
   return { id, name: m.name };
 }
 
-export async function createSpace(input: { name: string; color: string; currency: string }) {
+export async function createSpace(input: { name: string; color: string; currency: string; icon?: string }) {
   const ctx = await requireCtx("view");
-  const v = z.object({ name: Name, color: Color, currency: Currency }).strict().parse(input);
+  const v = z.object({ name: Name, color: Color, currency: Currency, icon: Icon.optional() }).strict().parse(input);
   if (!(await hitLimit(`space-create:${ctx.user.id}`, 10, 60 * MINUTE))) throw new Error("limit");
   const id = await createSharedSpace(ctx.user.id, v);
   await setSpaceCookie(id);
   return { id };
 }
 
-export async function updateCurrentSpace(input: { name?: string; color?: string; currency?: string }) {
+export async function updateCurrentSpace(input: { name?: string; color?: string; currency?: string; icon?: string }) {
   const ctx = await requireCtx("owner");
-  const v = z.object({ name: Name.optional(), color: Color.optional(), currency: Currency.optional() }).strict().parse(input);
+  const v = z.object({ name: Name.optional(), color: Color.optional(), currency: Currency.optional(), icon: Icon.optional() }).strict().parse(input);
   await updateSpace(ctx.space.id, v);
 }
 

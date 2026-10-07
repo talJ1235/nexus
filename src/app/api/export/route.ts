@@ -29,9 +29,12 @@ export async function GET(req: NextRequest) {
   else if (v === "unsorted") view = { type: "to_buy", f: "none" };
 
   const collection = cid ? data.collections.find((c) => c.id === cid) : null;
-  const items = itemsForView(data.items, view);
+  // R16 D1: Settings → Data → Export items = every item in the space.
+  const all = !cid && v === "all";
+  const items = all ? data.items : itemsForView(data.items, view);
   const title =
     collection?.name ??
+    (all ? "Nexus" : null) ??
     (view.type === "store" ? view.key : view.type === "collection" ? "Nexus" : view.type === "history" ? t.nav.history : view.type === "to_buy" && view.f ? (view.f === "urgent" ? t.nav.urgent : t.nav.unsorted) : t.nav.toBuy);
 
   const wb = new ExcelJS.Workbook();

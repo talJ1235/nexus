@@ -162,6 +162,8 @@ type Store = {
   fillImages: (ids: string[]) => void;
   /** VAT-free import limit, USD (G2). */
   importLimitUsd: number;
+  budgetWarn: boolean;
+  setBudgetWarn: (v: boolean) => void;
   /** R15: the current space's id ("" in an old offline snapshot) — receipt uploads go under spaces/<id>/. */
   spaceId: string;
   /** R15: the signed-in user is the admin (Settings → Invite codes). */
@@ -200,6 +202,9 @@ type Store = {
   navOpen: boolean;
   settingsOpen: boolean;
   setSettingsOpen: (o: boolean) => void;
+  /** R16 D1: the open settings section ("" = the default: Account on desktop, the section list on phones). */
+  settingsSection: string | null;
+  openSettings: (section?: string) => void;
   extOpen: boolean;
   /** Round 8 D3: the "Report a problem" form (null = closed) and the Reports screen. */
   reportDraft: ReportDraft | null;
@@ -398,6 +403,7 @@ export function StoreProvider({
   const [imagePending, setImagePending] = useState<Set<string>>(() => new Set());
   const [compareItemId, setCompareItemId] = useState<string | null>(null);
   const [importLimitUsd, setImportLimitUsd] = useState(initial.importLimitUsd ?? 130);
+  const [budgetWarn, setBudgetWarn] = useState(initial.budgetWarn ?? true);
   const [sidebarCollapsed, setSidebarCollapsedState] = useState(!!ui.sidebarCollapsed);
   const setSidebarCollapsed = useCallback((c: boolean) => {
     setSidebarCollapsedState(c);
@@ -410,7 +416,10 @@ export function StoreProvider({
   const [editor, setEditor] = useState<Editor>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<string | null>(null);
+  const settingsOpen = settingsSection != null;
+  const setSettingsOpen = useCallback((o: boolean) => setSettingsSection(o ? "" : null), []);
+  const openSettings = useCallback((section?: string) => setSettingsSection(section ?? ""), []);
   const [extOpen, setExtOpen] = useState(false);
   const [reportDraft, setReportDraft] = useState<ReportDraft | null>(null);
   const openReport = useCallback((d?: ReportDraft) => setReportDraft(d ?? {}), []);
@@ -577,6 +586,7 @@ export function StoreProvider({
       setAlerts(next.alerts ?? []);
       setHomePrefs(next.home ?? DEFAULT_HOME_PREFS);
       setImportLimitUsd(next.importLimitUsd ?? 130);
+      setBudgetWarn(next.budgetWarn ?? true);
       setBase(next);
       if (opts?.keepView) {
         const ids = new Set(next.items.map((i) => i.id));
@@ -651,6 +661,7 @@ export function StoreProvider({
     if (ch.alerts.length || goneAlerts.size) setAlerts((prev) => merge(prev, ch.alerts, goneAlerts, (a) => a.id).sort((a, b) => b.createdAt - a.createdAt).slice(0, 60));
     if (ch.budget) setBudget(ch.budget);
     if (ch.importLimitUsd != null) setImportLimitUsd(ch.importLimitUsd);
+    if (ch.budgetWarn != null) setBudgetWarn(ch.budgetWarn);
     revRef.current = Math.max(revRef.current, ch.rev);
     return summary;
   }, []);
@@ -855,6 +866,8 @@ export function StoreProvider({
       compareItemId,
       setCompareItemId,
       importLimitUsd,
+      budgetWarn,
+      setBudgetWarn,
       spaceId: base.space?.id ?? "",
       admin: !!base.me?.admin,
       space: base.space ?? null,
@@ -883,6 +896,8 @@ export function StoreProvider({
       navOpen,
       settingsOpen,
       setSettingsOpen,
+      settingsSection,
+      openSettings,
       extOpen,
       reportDraft,
       openReport,
@@ -910,7 +925,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, budgetWarn, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, settingsSection, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

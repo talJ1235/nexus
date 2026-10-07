@@ -7,6 +7,8 @@ import { requireCtx } from "@/lib/ctx";
 import { loadItems } from "@/lib/data";
 import { scoped } from "@/lib/db-scoped";
 import { kvGet } from "@/lib/kv";
+import { userPrefGet } from "@/lib/db-scoped/prefs";
+import { NOTIFY_KEY, parseNotify } from "@/lib/home-prefs";
 import { getAlertPrefs, runServerChecks, setAlertPrefs, type AlertPrefs } from "@/lib/tracker";
 import type { Alert, ItemWithSources } from "@/lib/types";
 
@@ -25,7 +27,9 @@ const TELEGRAM_OFF = { hasToken: false, bot: null, connected: false };
 export async function getAlertsState(): Promise<AlertsState> {
   const ctx = await requireCtx("view");
   const s = scoped(ctx);
-  const [alerts, prefs, last] = await Promise.all([s.select(schema.alerts).orderBy(desc(schema.alerts.createdAt)).limit(60), getAlertPrefs(ctx.user.id), kvGet("pref:last_check")]);
+  const [all, prefs, last, notifyRaw] = await Promise.all([s.select(schema.alerts).orderBy(desc(schema.alerts.createdAt)).limit(60), getAlertPrefs(ctx.user.id), kvGet("pref:last_check"), userPrefGet(ctx.user.id, NOTIFY_KEY)]);
+  // R16 D1: "A tracked price drops" off → no drop / target alerts in the bell.
+  const alerts = parseNotify(notifyRaw, null).drop ? all : all.filter((a) => a.kind !== "drop" && a.kind !== "target");
   return {
     alerts,
     unread: alerts.filter((a) => !a.readAt).length,

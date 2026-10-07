@@ -17,6 +17,8 @@ export type AppData = {
   aiEnabled: boolean;
   /** VAT-free personal import limit in USD (G2); missing in older offline snapshots → the default. */
   importLimitUsd?: number;
+  /** R16 D2: warn the space at 80 % of the monthly budget (missing = on). */
+  budgetWarn?: boolean;
   /** Round 13 Home: recent alerts (Needs you) and the owner's Home prefs; missing in older offline snapshots. */
   alerts?: Alert[];
   home?: HomePrefs;
@@ -33,9 +35,9 @@ export type AppData = {
 };
 
 export type Person = { id: string; name: string };
-export type SpaceCard = { id: string; name: string; kind: "personal" | "shared"; color: string; role: "owner" | "member" | "viewer"; count: number; faces: Person[] };
+export type SpaceCard = { id: string; name: string; kind: "personal" | "shared"; color: string; icon?: string; photo?: string | null; role: "owner" | "member" | "viewer"; count: number; faces: Person[] };
 
-export type SpaceInfo = { id: string; name: string; kind: "personal" | "shared"; color: string; icon: string; currency: string; role: "owner" | "member" | "viewer" };
+export type SpaceInfo = { id: string; name: string; kind: "personal" | "shared"; color: string; icon: string; photo?: string | null; createdAt?: number; currency: string; role: "owner" | "member" | "viewer" };
 
 export type SourceDraft = {
   url: string;

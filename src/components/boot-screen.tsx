@@ -24,7 +24,7 @@ const CUBE = (x: number, y: number) =>
   `M${x + 28} ${y}l28 16v32l-28 16-28-16V${y + 16}z M${x} ${y + 16}l28 16 28-16 M${x + 28} ${y + 32}v32`;
 const OUTLINE = CUBE(4, 0);
 
-const MODE_SCRIPT = `(function(){var d=document.documentElement,m="full";try{var p=matchMedia("(max-width: 768px), (display-mode: standalone)").matches;if(p){var n=performance.getEntriesByType("navigation")[0],t=n&&n.type,s=sessionStorage;if(t==="reload"||t==="back_forward"||s.getItem("nexus.opened"))m="small";s.setItem("nexus.opened","1")}else if(location.pathname!=="/"){m="none"}else{var a=new Date(),k=a.getFullYear()+"-"+(a.getMonth()+1)+"-"+a.getDate();if(localStorage.getItem("nexus.bootDay")===k)m="small";else localStorage.setItem("nexus.bootDay",k)}}catch(e){m="small"}d.setAttribute("data-boot",m)})()`;
+const MODE_SCRIPT = `(function(){var d=document.documentElement,m="full",r=0;try{r=localStorage.getItem("nexus.motion")==="reduce";if(r)d.setAttribute("data-motion","reduce")}catch(e){}try{var p=matchMedia("(max-width: 768px), (display-mode: standalone)").matches;if(p){var n=performance.getEntriesByType("navigation")[0],t=n&&n.type,s=sessionStorage;if(t==="reload"||t==="back_forward"||s.getItem("nexus.opened"))m="small";s.setItem("nexus.opened","1")}else if(location.pathname!=="/"){m="none"}else{var a=new Date(),k=a.getFullYear()+"-"+(a.getMonth()+1)+"-"+a.getDate();if(localStorage.getItem("nexus.bootDay")===k)m="small";else localStorage.setItem("nexus.bootDay",k)}}catch(e){m="small"}if(r&&m==="full")m="small";d.setAttribute("data-boot",m)})()`;
 
 /**
  * R16 A8 — self-heal for a phone page laid out at desktop width. Seen once on Tal's phone right after Google sign-in

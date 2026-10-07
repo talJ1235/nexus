@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, gt } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { loadBudgetHistory, loadImportLimit, loadItems } from "@/lib/data";
+import { loadBudgetHistory, loadBudgetWarn, loadImportLimit, loadItems } from "@/lib/data";
 import type { AltGroup, Alert, Collection, ItemWithSources, StoreSetting } from "@/lib/types";
 import type { BudgetHistory } from "@/lib/budget";
 import { readRev } from "./feed";
@@ -21,6 +21,7 @@ export type Changes = {
   alerts: Alert[];
   budget?: BudgetHistory;
   importLimitUsd?: number;
+  budgetWarn?: boolean;
   removed: Removed[];
 };
 
@@ -47,8 +48,8 @@ export async function changesFor(s: Scoped, since: number): Promise<Changes> {
   if (itemRows.length > MAX_ITEMS) return { rev: meta.rev, reset: true, ...EMPTY };
   const items = itemRows.length ? await loadItems(s, itemRows.map((r) => r.id)) : [];
   const prefsChanged = prefs.length > 0 || removed.some((r) => r.tbl === "space_pref");
-  const [budget, importLimitUsd] = prefsChanged ? await Promise.all([loadBudgetHistory(s), loadImportLimit(s)]) : [undefined, undefined];
-  return { rev: meta.rev, items, collections, altGroups, storeSettings, alerts, removed, ...(budget ? { budget, importLimitUsd } : {}) };
+  const [budget, importLimitUsd, budgetWarn] = prefsChanged ? await Promise.all([loadBudgetHistory(s), loadImportLimit(s), loadBudgetWarn(s)]) : [undefined, undefined, undefined];
+  return { rev: meta.rev, items, collections, altGroups, storeSettings, alerts, removed, ...(budget ? { budget, importLimitUsd, budgetWarn } : {}) };
 }
 
 /** Just the space's revision (the polling fallback's cheap check). */

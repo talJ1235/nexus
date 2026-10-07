@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useStore } from "./store";
 
 /** Settings → "What Nexus knows about you" (Round 9 C3): the switch, the computed profile (read-only), the notes. */
-export function MemorySection() {
+export function MemorySection({ bare }: { bare?: boolean } = {}) {
   const s = useStore();
   const { t, f, locale } = useI18n();
   const [st, setSt] = useState<MemoryState | null>(null);
@@ -75,10 +75,10 @@ export function MemorySection() {
   );
 
   return (
-    <section className="space-y-3 border-t border-line pt-5" data-memory>
+    <section className={cn("space-y-3", !bare && "border-t border-line pt-5")} data-memory>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-[15px] font-bold">{t.memory.title}</h3>
+          {!bare && <h3 className="text-[15px] font-bold">{t.memory.title}</h3>}
           <p className="mt-1 text-xs leading-relaxed text-muted">{t.memory.hint}</p>
         </div>
         <button

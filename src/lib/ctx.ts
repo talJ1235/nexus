@@ -16,7 +16,7 @@ export type Need = "view" | "edit" | "owner";
 export type Ctx = {
   user: SessionUser["user"];
   session: SessionUser["session"];
-  space: { id: string; name: string; kind: "personal" | "shared"; currency: string; color: string; icon: string };
+  space: { id: string; name: string; kind: "personal" | "shared"; currency: string; color: string; icon: string; photo: string | null; createdAt: number };
   role: SpaceRole;
   memberships: Membership[];
 };
@@ -51,7 +51,7 @@ const resolve = cache(async (): Promise<Ctx | null> => {
   return {
     user: su.user,
     session: su.session,
-    space: { id: m.spaceId, name: m.name, kind: m.kind, currency: m.currency, color: m.color, icon: m.icon },
+    space: { id: m.spaceId, name: m.name, kind: m.kind, currency: m.currency, color: m.color, icon: m.icon, photo: m.photo, createdAt: +m.createdAt },
     role: m.role,
     memberships,
   };

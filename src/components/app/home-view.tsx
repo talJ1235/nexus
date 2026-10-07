@@ -108,8 +108,9 @@ export function HomeView() {
         altGroups: s.altGroups,
         currency: s.currency,
         dismissed: s.homePrefs.dismissed,
+        notify: s.homePrefs.notify,
       }),
-    [s.items, s.alerts, s.budget, s.storeSettings, s.rates, clock, s.collections, s.altGroups, s.currency, s.homePrefs.dismissed],
+    [s.items, s.alerts, s.budget, s.storeSettings, s.rates, clock, s.collections, s.altGroups, s.currency, s.homePrefs.dismissed, s.homePrefs.notify],
   );
   const ruleSugs = useMemo(() => homeSuggestions(model), [model]);
   const ext = useExtension();

@@ -1,0 +1,131 @@
+/* R16 D1–D5: the settings shell and the space identity editor, ported from docs/design/r16/nx16.css (approved boards).
+   Scoped under .nx (the R15 kit in components/auth/nx.css); dark = html.dark, Plum = html[data-palette=plum]. */
+
+.nx.sx-root{background:transparent}
+.nx .sx-nav{height:34px;border-radius:8px;display:flex;align-items:center;gap:10px;padding:0 10px;font-size:13.5px;font-weight:500;color:var(--ink2);position:relative;border:0;background:transparent;width:100%;text-align:start;cursor:pointer}
+.nx .sx-nav:hover{background:var(--hover)}
+.nx .sx-nav:focus-visible{outline:none;box-shadow:var(--focus)}
+.nx .sx-nav svg{color:var(--muted);flex-shrink:0}
+.nx .sx-nav.on{background:var(--sel);color:var(--ink);font-weight:600}
+.nx .sx-nav.on svg{color:var(--ink)}
+.nx .sx-nav.on::before{content:"";position:absolute;inset-inline-start:0;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--spark)}
+[data-palette=plum] .nx .sx-nav.on::before{background:var(--brand)}
+.nx .sx-group{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--faint);padding:14px 10px 6px;letter-spacing:.01em}
+.nx .sx-h{display:flex;align-items:center;gap:12px;min-height:40px}
+.nx .sx-h h1{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0;flex:1}
+.nx .sec{font-size:12.5px;font-weight:600;color:var(--muted);margin:0 0 8px}
+.nx .li{display:flex;align-items:center;gap:12px;min-height:54px;padding:8px 16px}
+.nx .li+.li{border-top:1px solid var(--line-in)}
+.nx .li .grow{flex:1;min-width:0;line-height:1.35}
+.nx .li .grow b{font-weight:600}
+.nx .tile4{border:1px solid var(--line);border-radius:12px;background:var(--raised);padding:18px;display:flex;flex-direction:column;gap:12px;color:var(--ink);text-align:start;cursor:pointer}
+.nx .tile4:hover{background:var(--s)}
+.nx .tile4:disabled{opacity:.55;cursor:default}
+.nx .wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.nx .wk>div{border-radius:8px;background:var(--s);border:1px solid var(--line-in);height:74px;padding:6px;display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--faint);min-width:0}
+.nx .wk>div.today{border-color:var(--ink2)}
+.nx .ev{border-radius:5px;padding:2px 5px;font-size:11px;font-weight:600;color:var(--ink2);background:var(--info-t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nx .ev.w{background:var(--warn-t)}
+
+/* segmented control */
+.nx .seg{display:inline-flex;padding:3px;border-radius:10px;background:var(--s2);gap:2px}
+.nx .seg>button{height:32px;padding:0 14px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--ink2);border:0;background:transparent;cursor:pointer}
+.nx .seg>.on{background:var(--raised);color:var(--ink);font-weight:600;box-shadow:var(--sh1),0 0 0 1px var(--line)}
+.nx .seg.lg>button{height:38px}
+
+/* choice tiles (theme / palette / preset) */
+.nx .pick{border:1px solid var(--line);border-radius:12px;background:var(--raised);padding:8px;display:flex;flex-direction:column;gap:8px;position:relative;text-align:start;color:var(--ink);cursor:pointer}
+.nx .pick:focus-visible{outline:none;box-shadow:var(--focus)}
+.nx .pick.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+[data-palette=plum] .nx .pick.on{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand)}
+.nx .pick[aria-disabled=true]{opacity:.6;cursor:default}
+.nx .pick .lbl{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;padding:0 2px 2px}
+.nx .pick .tick{margin-inline-start:auto;width:18px;height:18px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;flex-shrink:0}
+[data-palette=plum] .nx .pick .tick{background:var(--brand);color:#fff}
+.nx .pick .tick svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.nx .mini{border-radius:8px;overflow:hidden;display:flex;height:64px;border:1px solid rgba(0,0,0,.06)}
+.nx .mini i{display:block}
+
+/* swatches + icon picks */
+.nx .sw{width:30px;height:30px;border-radius:50%;border:0;padding:0;flex-shrink:0;cursor:pointer}
+.nx .sw.on{box-shadow:0 0 0 2px var(--raised),0 0 0 4px var(--ink)}
+[data-palette=plum] .nx .sw.on{box-shadow:0 0 0 2px var(--raised),0 0 0 4px var(--brand)}
+.nx .icp{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;color:var(--ink2);border:0;background:transparent;cursor:pointer}
+.nx .icp:hover{background:var(--hover)}
+.nx .icp svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.nx .icp.on{background:var(--sel);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+[data-palette=plum] .nx .icp.on{box-shadow:inset 0 0 0 1.5px var(--brand);color:var(--brand)}
+
+/* ring (security checkup) */
+.nx .ring{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:conic-gradient(var(--ok) var(--p,66%),var(--s3) 0)}
+.nx .ring>span{width:44px;height:44px;border-radius:50%;background:var(--raised);display:grid;place-items:center;font-weight:700;font-size:13px}
+.nx .av.xl{width:56px;height:56px;font-size:22px}
+
+/* cover band: space colour + the Box logo's isometric grid */
+.nx .cover{position:relative;overflow:hidden;border-radius:14px;isolation:isolate;color:#fff}
+.nx .cover::before{content:"";position:absolute;inset:0;opacity:.22;z-index:-1;background-image:linear-gradient(30deg,rgba(255,255,255,.55) 1px,transparent 1px),linear-gradient(150deg,rgba(255,255,255,.55) 1px,transparent 1px);background-size:28px 16px}
+.nx .cover::after{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(60% 90% at 85% 10%,rgba(255,255,255,.28),transparent 60%)}
+.nx .cover .btn{background:rgba(255,255,255,.9);color:#171717;border-color:transparent}
+.nx .cover .btn:hover{background:#fff}
+
+/* big stat number */
+.nx .big{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.nx .stat{border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.nx .stat b{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.nx .bar-row{height:8px;border-radius:999px;background:var(--s3);overflow:hidden}
+.nx .bar-row>i{display:block;height:100%;border-radius:inherit;background:var(--ink)}
+[data-palette=plum] .nx .bar-row>i{background:var(--brand)}
+.nx .bar-row>i.warn{background:var(--warn)}
+.nx .bar-row>i.bad{background:var(--danger)}
+.nx .ptable{width:100%;border-collapse:collapse;font-size:13.5px}
+.nx .ptable th{font-size:12px;font-weight:500;color:var(--muted);text-align:start;padding:10px 12px;border-bottom:1px solid var(--line-in)}
+.nx .ptable td{padding:8px 12px;border-top:1px solid var(--line-in);vertical-align:middle}
+.nx .ptable tr:first-child td{border-top:0}
+.nx .dng{border-color:color-mix(in srgb,var(--danger) 40%,var(--line));background:var(--danger-t)}
+.nx .btn.dng-o{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}
+.nx .btn.dng{background:var(--danger);border-color:var(--danger);color:#fff}
+.nx .btn.dng:disabled{opacity:.5}
+
+/* the shell's frame */
+.nx .sx-dialog{position:fixed;inset:0;margin:auto;width:min(1220px,92vw);height:min(700px,92vh);z-index:50;display:flex;overflow:hidden;background:var(--raised);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh3);outline:none}
+.nx .sx-aside{width:240px;flex-shrink:0;padding:14px 10px 10px;display:flex;flex-direction:column;gap:1px;background:var(--s);border-inline-end:1px solid var(--line-in);overflow-y:auto}
+.nx .sx-main{flex:1;min-width:0;padding:22px 36px 24px;overflow-y:auto;position:relative}
+.nx .sx-body{max-width:880px;display:flex;flex-direction:column;gap:22px;min-height:100%}
+.nx .sx-phone{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;outline:none}
+.nx .sx-pbar{display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 8px;padding-top:max(6px,env(safe-area-inset-top));border-bottom:1px solid var(--line-in);background:var(--bg);flex-shrink:0}
+.nx .sx-pbar b{font-size:17px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx .sx-pscroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:16px 16px calc(24px + env(safe-area-inset-bottom))}
+.nx .sx-pscroll .sx-body{gap:18px}
+.nx .sx-prow{display:flex;align-items:center;gap:14px;min-height:52px;padding:6px 14px;width:100%;border:0;background:transparent;text-align:start;color:var(--ink);font-size:15px;cursor:pointer}
+.nx .sx-prow+.sx-prow{border-top:1px solid var(--line-in)}
+.nx .sx-prow .ic{width:34px;height:34px;border-radius:9px}
+.nx .sx-prow .val{font-size:13px;color:var(--muted);white-space:nowrap}
+.nx .sx-prow>svg:last-child{color:var(--faint)}
+.nx .sx-page{animation:sx-push .26s var(--ease-out,cubic-bezier(.2,.8,.2,1)) both}
+.nx .sx-page.back{animation:sx-pop .22s var(--ease-out,cubic-bezier(.2,.8,.2,1)) both}
+@keyframes sx-push{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+@keyframes sx-pop{from{transform:translateX(-24px);opacity:0}to{transform:none;opacity:1}}
+[dir=rtl] .nx .sx-page{animation-name:sx-push-rtl}
+[dir=rtl] .nx .sx-page.back{animation-name:sx-pop-rtl}
+@keyframes sx-push-rtl{from{transform:translateX(-24px);opacity:0}to{transform:none;opacity:1}}
+@keyframes sx-pop-rtl{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+.nx .sx-in{animation:sx-in .18s ease-out both}
+@keyframes sx-in{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.nx .sx-page,.nx .sx-page.back,.nx .sx-in{animation:none}}
+html[data-motion=reduce] .nx .sx-page,html[data-motion=reduce] .nx .sx-in{animation:none}
+.nx .sx-scrim{position:fixed;inset:0;z-index:50;background:var(--scrim)}
+.nx .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.nx .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.nx .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:1023px){.nx .grid2,.nx .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}.nx .sx-pscroll .grid2.stack{grid-template-columns:1fr}}
+@media (max-width:420px){.nx .grid3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.nx .sx-pscroll .grid2.stack{grid-template-columns:1fr}.nx .sx-pscroll .grid2 .grid2{gap:8px}}
+/* Phones: the bar above already names the section. */
+.nx .sx-pscroll .sx-h{min-height:0}
+.nx .sx-pscroll .sx-h h1{display:none}
+.nx .sx-main .sx-h{padding-inline-end:40px}
+.nx .cover .btn.ghost{background:rgba(255,255,255,.16);color:#fff}
+.nx .nsel{appearance:none;height:32px;padding:0 28px 0 10px;border-radius:8px;border:1px solid var(--line);background:var(--raised) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a8984' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center/14px;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;max-width:100%}
+[dir=rtl] .nx .nsel{padding:0 10px 0 28px;background-position:left 8px center}
+.nx .tgl{cursor:pointer}
+.nx .tgl:disabled{opacity:.45;cursor:default}
+.nx .tgl:focus-visible{outline:none;box-shadow:var(--focus)}

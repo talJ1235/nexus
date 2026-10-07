@@ -6,7 +6,7 @@ import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } fr
 import { cn } from "@/lib/utils";
 import type { SpaceCard } from "@/lib/types";
 import { useStore } from "../store";
-import { Facepile, openSpaces, ShoppingNow, SpaceTile, usePresence, useSwitchSpace } from "./space-ui";
+import { Facepile, openSpaces, ShoppingNow, SpaceLook, usePresence, useSwitchSpace } from "./space-ui";
 
 const isMac = () => typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 
@@ -44,7 +44,7 @@ export function SpaceSwitcher({ collapsed }: { collapsed?: boolean }) {
           data-space-switcher
           data-space-id={cur.id}
         >
-          <SpaceTile name={cur.name} color={cur.color} size={28} />
+          <SpaceLook space={cur} size={28} />
           {!collapsed && (
             <>
               <span className="min-w-0 flex-1 leading-tight">
@@ -61,7 +61,7 @@ export function SpaceSwitcher({ collapsed }: { collapsed?: boolean }) {
         {s.me && <MenuLabel>{s.me.email}</MenuLabel>}
         {s.spaces.map((sp, i) => (
           <MenuItem key={sp.id} onSelect={() => sp.id !== cur.id && void go(sp.id)} className="h-auto min-h-11 py-1.5" data-space-item={sp.id}>
-            <SpaceTile name={sp.name} color={sp.color} size={22} />
+            <SpaceLook space={sp} size={22} />
             <span className="min-w-0 flex-1 leading-tight">
               <span className={cn("block truncate", sp.id === cur.id && "font-semibold")}>{sp.name}</span>
               <span className="block truncate text-[11.5px] text-muted">{sp.kind === "personal" ? t.spaces.personal : t.spaces.roles[sp.role]}</span>
@@ -122,7 +122,7 @@ export function SpaceRows({ close }: { close: (fn: () => void) => () => void }) 
           aria-current={sp.id === cur.id ? "true" : undefined}
           data-space-item={sp.id}
         >
-          <SpaceTile name={sp.name} color={sp.color} size={32} />
+          <SpaceLook space={sp} size={32} />
           <span className="min-w-0 flex-1 leading-tight">
             <span className={cn("block truncate", sp.id === cur.id ? "font-bold" : "font-semibold")}>{sp.name}</span>
             {sp.id === cur.id && presence.shopping.length ? <ShoppingNow className="mt-0.5 max-w-full" /> : <span className="block truncate text-[12.5px] text-muted">{sub(sp, true)}</span>}

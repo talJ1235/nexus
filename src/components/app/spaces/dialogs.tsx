@@ -2,120 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, MessageCircle, QrCode, RotateCcw, Share2 } from "lucide-react";
-import { createInviteLink, createSpace, moveCollectionBack, moveCollectionToSpace, revokeInviteLink } from "@/app/space-actions";
+import { createInviteLink, moveCollectionBack, moveCollectionToSpace, revokeInviteLink } from "@/app/space-actions";
 import { useI18n } from "@/components/providers";
-import { Button, Input, Label } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/overlays";
 import { APP_NAME } from "@/lib/brand";
 import { toast } from "@/lib/toast";
-import { cn } from "@/lib/utils";
 import { Segmented } from "../settings-dialog";
 import { useStore } from "../store";
 import { InviteQr } from "./qr";
-import { reloadInto, SpaceTile, TILE } from "./space-ui";
-
-const COLORS = Object.keys(TILE) as (keyof typeof TILE)[];
-const CURRENCIES = [
-  ["ILS", "₪ ILS"],
-  ["USD", "$ USD"],
-  ["EUR", "€ EUR"],
-] as const;
-
-function Swatches({ value, onChange, size = 28 }: { value: string; onChange: (c: string) => void; size?: number }) {
-  const { t } = useI18n();
-  return (
-    <div role="radiogroup" aria-label={t.spaces.color} className="flex flex-wrap gap-2.5">
-      {COLORS.map((c) => (
-        <button
-          key={c}
-          type="button"
-          role="radio"
-          aria-checked={value === c}
-          aria-label={t.spaces.colors[c as keyof typeof t.spaces.colors]}
-          onClick={() => onChange(c)}
-          className={cn("rounded-full transition active:scale-95", value === c && "ring-2 ring-fg ring-offset-2 ring-offset-surface")}
-          style={{ width: size, height: size, background: TILE[c] }}
-          data-swatch={c}
-        />
-      ))}
-    </div>
-  );
-}
-
-/** CreateSpace-desktop / -phone: name, colour (live tile), currency → then the invite step. */
-export function CreateSpaceDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  const s = useStore();
-  const { t } = useI18n();
-  const [name, setName] = useState("");
-  const [color, setColor] = useState("green");
-  const [currency, setCurrency] = useState<string>(s.space?.currency ?? "ILS");
-  const [busy, setBusy] = useState(false);
-  const [created, setCreated] = useState<string | null>(null);
-  const close = (o: boolean) => {
-    onOpenChange(o);
-    // A new space was made: open it (the invite step can be skipped).
-    if (!o && created) reloadInto(created);
-  };
-  const submit = async () => {
-    if (!name.trim() || busy) return;
-    setBusy(true);
-    try {
-      await createSpace({ name: name.trim(), color, currency });
-      setCreated(name.trim());
-    } catch {
-      toast.error(t.spaces.failed);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <Modal open={open} onOpenChange={close} title={created ? `${t.spaces.inviteTo.replace("{space}", created)}` : t.spaces.create} className="max-w-[520px]">
-      {created ? (
-        <div className="space-y-4" data-create-invite>
-          <InvitePanel name={created} color={color} />
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => close(false)} data-create-skip>
-              {t.spaces.skip}
-            </Button>
-            <Button variant="primary" onClick={() => close(false)} data-create-done>
-              {t.spaces.done}
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <form
-          className="space-y-5"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void submit();
-          }}
-          data-create-space
-        >
-          <div className="flex flex-wrap items-center gap-4">
-            <SpaceTile name={name || t.spaces.namePh} color={color} size={56} />
-            <Swatches value={color} onChange={setColor} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="space-name">{t.spaces.name}</Label>
-            <Input id="space-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t.spaces.namePh} maxLength={40} autoFocus autoComplete="off" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>{t.spaces.currency}</Label>
-            <Segmented label={t.spaces.currency} value={currency} onChange={setCurrency} options={CURRENCIES.map(([v, l]) => ({ value: v, label: l }))} />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => close(false)}>
-              {t.spaces.cancel}
-            </Button>
-            <Button type="submit" variant="primary" disabled={!name.trim() || busy} data-create-submit>
-              {t.spaces.continue}
-            </Button>
-          </div>
-        </form>
-      )}
-    </Modal>
-  );
-}
+import { SpaceLook } from "./space-ui";
 
 /** Invite-desktop / -phone body: role, one link (Copy · QR · WhatsApp · Share), reset. Used by Invite and Create. */
 export function InvitePanel({ name, color }: { name: string; color: string }) {
@@ -276,7 +172,7 @@ export function MoveDialog({ collectionId, onOpenChange }: { collectionId: strin
             className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-start transition hover:bg-surface-2 disabled:opacity-60"
             data-move-target={sp.id}
           >
-            <SpaceTile name={sp.name} color={sp.color} size={28} />
+            <SpaceLook space={sp} size={28} />
             <span className="min-w-0 flex-1 truncate font-medium">{sp.name}</span>
             <span className="text-[12px] text-muted">{sp.kind === "personal" ? t.spaces.personal : t.spaces.roles[sp.role]}</span>
           </button>

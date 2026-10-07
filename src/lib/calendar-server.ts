@@ -7,6 +7,8 @@ import { userByPref, userPrefGet, userPrefSet } from "./db-scoped/prefs";
 export const CAL_TOKEN_KEY = "cal:token";
 export const CAL_SEQ_KEY = "cal:seq";
 export const CAL_SUBSCRIBED_KEY = "cal:subscribed";
+/** R16 D1: the kinds kept in the feed (JSON CalKinds; missing = all). */
+export const CAL_KINDS_KEY = "cal:kinds";
 
 const newToken = () => randomBytes(24).toString("base64url");
 
