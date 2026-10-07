@@ -191,6 +191,7 @@ export const en = {
     on: "On",
     off: "Off",
     showAll: "Show all {n}",
+    nowIn: "You're now in",
     budget80Toast: "{space} is at {pct}% of this month's budget",
   },
   security: {

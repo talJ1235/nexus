@@ -193,6 +193,7 @@ export const he: Dict = {
     on: "פועל",
     off: "כבוי",
     showAll: "הצגת כל ה־{n}",
+    nowIn: "עכשיו במרחב",
     budget80Toast: "{space} הגיע ל־{pct}% מהתקציב של החודש",
   },
   security: {

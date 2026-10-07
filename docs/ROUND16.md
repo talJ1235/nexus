@@ -323,7 +323,7 @@ menus/tabs/chips are clickable):
 The boards show the target; where a board shows a feature that doesn't exist yet (phone push in Notifications =
 "Soon"), build it disabled with that label.
 
-### D1. [ ] Settings on desktop: a large, structured screen
+### D1. [x] Settings on desktop: a large, structured screen
 Replace the small centred dialog (`settings-dialog.tsx`) with a **large two-pane dialog** over the app (Tal 2026-10-07:
 dialog, not a full page; ≈ 1220×700 at 1366×768, max 92 vw × 92 vh, close button + Esc): side nav of sections (You:
 Account & security · Display · **Notifications** (Tal 2026-10-07: its own section — in app now, phone push "Soon";
@@ -332,24 +332,24 @@ price drops, shared-list changes, budget 80%, deliveries, sales ending) · Assis
 on the right, **no section scrolls at 1366×768** except long lists. Deep links (`/settings/display`), command-palette
 entries per section, Esc/back closes. Existing pages `/settings/security`, `/settings/invites` become sections.
 
-### D2. [ ] Space settings: bigger, no scrolling
+### D2. [x] Space settings: bigger, no scrolling
 Same shell as D1 (the "Space" group), opened directly from the switcher/space menu. Sections: General (identity, name,
 currency), People (roles, remove, transfer), Invites (links, QR), Danger zone (leave, delete). At 1366×768 nothing
 scrolls; at 1280×720 only the People list may.
 
-### D3. [ ] Phone: sectioned full-screen overlays
+### D3. [x] Phone: sectioned full-screen overlays
 Settings, Space settings and every other full-screen overlay (audit the list in Open: Security, Invite codes, Memory,
 Reports, Import, …): a section list → section page (push, swipe-back/Android back returns to the list), never one long
 scroll of everything. Bottom sheets that cover part of the screen stay as they are.
 
-### D4. [ ] Space switch moment: "You're now in Jacoby Home"
+### D4. [x] Space switch moment: "You're now in Jacoby Home"
 On a switch: the space tile flies from the switcher to the centre (shared-element), a wash of the space colour, name +
 facepile, ≈ 700–900 ms total, then lands on **Home** (A12 already avoids the reload). The data loads during the
 animation; if it isn't ready the moment holds with a subtle progress (max 3 s, then skeletons). Reduced motion: 150 ms
 cross-fade with the name. Interruptible by a tap. Acceptance: frame timings ≥ 55 fps on the bench PC, sidebar box
 constant, smoke asserts the overlay appears and Home shows the new space.
 
-### D5. [ ] Space identity editor (+ photo like a WhatsApp group)
+### D5. [x] Space identity editor (+ photo like a WhatsApp group)
 Tal couldn't find a way to change the space look. Build the `CreateSpace` identity step for create **and** edit:
 - Tile: icon set (the board's 10–24 icons, use the unused `icon` column) × 6 colour gradients; live preview in the
   switcher/sidebar sizes.

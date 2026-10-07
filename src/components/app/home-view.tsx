@@ -143,7 +143,7 @@ export function HomeView() {
   }, [look, model]);
   const [editing, setEditing] = useState<HomeLayout | null>(null);
 
-  if (s.loading) return <HomeSkeleton />;
+  if (s.loading || s.switching) return <HomeSkeleton />;
   if (model.empty) return <HomeEmpty model={model} />;
 
   const has: Record<HomeSection, boolean> = {

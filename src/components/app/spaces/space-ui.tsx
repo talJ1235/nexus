@@ -16,6 +16,7 @@ import type { Person } from "@/lib/types";
 export { avatarColor, TILE, tileColor } from "./colors";
 import { avatarColor } from "./colors";
 import { SpaceTile } from "./tile";
+import { startMoment } from "./moment";
 export { SpaceTile };
 
 const initial = (name: string) => (name.trim()[0] ?? "?").toUpperCase();
@@ -115,17 +116,31 @@ export function useSwitchSpace() {
   const s = useStore();
   const { f, t } = useI18n();
   const { replaceData } = s;
+  const { spaces } = s;
   return useCallback(
     async (id: string) => {
-      const r = await switchSpace(id);
+      // R16 D4: the moment starts at once (from the tile that was tapped); the data swaps in underneath it.
+      const card = spaces.find((x) => x.id === id);
+      const src = document.querySelector(`[data-space-item="${CSS.escape(id)}"] [data-space-tile]`) ?? document.querySelector("[data-space-switcher] [data-space-tile], [data-phone-space] [data-space-tile]");
+      let done: (ok: boolean) => void = () => {};
+      const ready = new Promise<boolean>((r) => (done = r));
+      if (card) startMoment({ card, from: src?.getBoundingClientRect() ?? null, ready });
+      let r: { name: string };
+      try {
+        r = await switchSpace(id);
+      } catch {
+        done(false);
+        return void toast.error(t.spaces.failed);
+      }
       try {
         replaceData(await loadAppData());
+        done(true);
       } catch {
         return reloadInto(r.name);
       }
-      toast(f(t.spaces.now, { space: r.name }), { duration: 2600 });
+      if (!card) toast(f(t.spaces.now, { space: r.name }), { duration: 2600 });
     },
-    [replaceData, f, t],
+    [replaceData, f, t, spaces],
   );
 }
 

@@ -204,6 +204,9 @@ type Store = {
   setSettingsOpen: (o: boolean) => void;
   /** R16 D1: the open settings section ("" = the default: Account on desktop, the section list on phones). */
   settingsSection: string | null;
+  /** R16 D4: a space switch is still loading after its moment — Home shows skeletons. */
+  switching: boolean;
+  setSwitching: (v: boolean) => void;
   openSettings: (section?: string) => void;
   extOpen: boolean;
   /** Round 8 D3: the "Report a problem" form (null = closed) and the Reports screen. */
@@ -417,6 +420,7 @@ export function StoreProvider({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [settingsSection, setSettingsSection] = useState<string | null>(null);
+  const [switching, setSwitching] = useState(false);
   const settingsOpen = settingsSection != null;
   const setSettingsOpen = useCallback((o: boolean) => setSettingsSection(o ? "" : null), []);
   const openSettings = useCallback((section?: string) => setSettingsSection(section ?? ""), []);
@@ -898,6 +902,8 @@ export function StoreProvider({
       setSettingsOpen,
       settingsSection,
       openSettings,
+      switching,
+      setSwitching,
       extOpen,
       reportDraft,
       openReport,
@@ -925,7 +931,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, budgetWarn, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, settingsSection, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [openSettings, setSettingsOpen, loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, budgetWarn, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, settingsSection, switching, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

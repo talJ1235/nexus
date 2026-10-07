@@ -80,7 +80,7 @@ async function appShot(path, viewport, opts = {}) {
   await page.waitForTimeout(900);
   if (opts.act) {
     await opts.act(page);
-    await page.waitForTimeout(600);
+    if (!opts.now) await page.waitForTimeout(600);
   }
   const buf = await page.screenshot();
   await ctx.close();
@@ -132,6 +132,16 @@ const SHOTS = [
     300,
   ],
   ["d5-create-space", [["mockup · create", "SpaceIdentity-desktop", { mode: "create" }, DESK], ["app", "/", DESK, { act: async (p) => (await p.click("[data-space-switcher]"), await p.click("[data-space-create]"), await p.fill("[data-identity-name]", "Workshop"), await p.click('[data-identity-icon="maker"]')) }]], 640],
+  // D4 has no board by design: the moment itself (desktop mid-flight + landed, phone held).
+  [
+    "d4-switch-moment",
+    [
+      ["app · desktop, 450 ms in", "/", DESK, { space: personal, act: async (p) => (await p.click("[data-space-switcher]"), await p.click(`[data-space-item="${shared}"]`), await p.waitForSelector("[data-space-moment]"), await p.waitForTimeout(450)), now: true }],
+      ["app · landed on Home", "/", DESK, { space: personal, act: async (p) => (await p.click("[data-space-switcher]"), await p.click(`[data-space-item="${shared}"]`), await p.waitForSelector("[data-space-moment]", { state: "detached", timeout: 8000 })) }],
+      ["app · phone, 500 ms in (dark, he)", "/", PHONE, { space: personal, dark: true, he: true, act: async (p) => (await p.click("[data-phone-space]"), await p.click(`[data-space-item="${shared}"]`), await p.waitForSelector("[data-space-moment]"), await p.waitForTimeout(500)), now: true }],
+    ],
+    520,
+  ],
 ];
 
 for (const [file, cells, w] of SHOTS) {
@@ -146,6 +156,5 @@ for (const [file, cells, w] of SHOTS) {
 
 await dropShared();
 await db.execute({ sql: "DELETE FROM session WHERE user_agent = 'parity'" });
-if (personal) void personal;
 db.close();
 await browser.close();

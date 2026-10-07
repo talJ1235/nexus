@@ -172,6 +172,53 @@ for (const width of [360, 390]) {
   }
 }
 
+// ---- D4: the switch moment ----
+for (const reduce of [false, true]) {
+  const { ctx, page } = await open({ width: 1366, height: 768 });
+  if (reduce) await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(`${BASE}/`);
+  await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 30000 });
+  const from = await page.locator("[data-space-switcher]").first().getAttribute("data-space-id");
+  await page.locator("[data-space-switcher]").first().click();
+  const target = await page.locator("[data-space-item]").evaluateAll((els, h) => els.map((e) => e.getAttribute("data-space-item")).find((x) => x && x !== h), from);
+  // Frame deltas + the sidebar's box on every frame while the moment runs.
+  await page.evaluate(() => {
+    const w = window;
+    w.__f = [];
+    w.__box = new Set();
+    let last = performance.now();
+    const tick = (t) => {
+      w.__f.push(t - last);
+      last = t;
+      const r = document.querySelector("[data-sidebar-logo]")?.closest("nav")?.getBoundingClientRect();
+      if (r) w.__box.add(`${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)},${Math.round(r.height)}`);
+      if (w.__f.length < 150) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  const t0 = Date.now();
+  await page.locator(`[data-space-item="${target}"]`).first().click();
+  const seen = await page.waitForSelector("[data-space-moment]", { timeout: 2000 }).then(() => true, () => false);
+  await page.waitForSelector("[data-space-moment]", { state: "detached", timeout: 6000 }).catch(() => {});
+  const ms = Date.now() - t0;
+  const now = await page.locator("[data-space-switcher]").first().getAttribute("data-space-id");
+  await page.waitForTimeout(800);
+  const { frames, boxes } = await page.evaluate(() => ({ frames: window.__f.slice(1), boxes: [...window.__box] }));
+  const sorted = [...frames].sort((a, b) => a - b);
+  const p50 = sorted[Math.floor(sorted.length / 2)] ?? 0;
+  const fps = p50 ? Math.round(1000 / p50) : 0;
+  const long = frames.filter((d) => d > 50).length;
+  const home = (await page.locator("[data-home], [data-home-empty]").count()) > 0;
+  ok(seen && now === target && home && boxes.length === 1, `D4 switch moment${reduce ? " (reduced motion)" : ""}: overlay, lands on Home in the new space, sidebar box constant`, JSON.stringify({ seen, now, target, home, boxes }));
+  console.log(`  D4 timing${reduce ? " reduced" : ""}: overlay ${ms} ms, median ${fps} fps, frames > 50 ms: ${long}, worst ${Math.round(sorted[sorted.length - 1] ?? 0)} ms`);
+  if (!reduce) ok(fps >= 55, "D4 moment runs at ≥ 55 fps (median frame)", String(fps));
+  // Back to where we were.
+  await page.locator("[data-space-switcher]").first().click();
+  await page.locator(`[data-space-item="${from}"]`).first().click();
+  await page.waitForSelector("[data-space-moment]", { state: "detached", timeout: 6000 }).catch(() => {});
+  await ctx.close();
+}
+
 // ---- D5: the space photo ----
 {
   const fixture = readFileSync("scripts/fixtures/space-photo-gps.jpg");

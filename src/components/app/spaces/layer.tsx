@@ -6,6 +6,7 @@ import { toast } from "@/lib/toast";
 import { useStore } from "../store";
 import { InviteDialog, MoveDialog } from "./dialogs";
 import { IdentityDialog } from "./identity";
+import { SwitchMoment } from "./moment";
 import { NOW_IN_KEY, onOpenSpaces, useSwitchSpace, type SpaceDialog } from "./space-ui";
 
 /** Mounted once in the app shell: the space dialogs, Ctrl/⌘+1…9 to switch, the "Now in …" toast after a switch,
@@ -63,6 +64,7 @@ export function SpacesLayer() {
       <InviteDialog open={d?.kind === "invite"} onOpenChange={close} />
       <IdentityDialog open={d?.kind === "identity" || d?.kind === "create"} create={d?.kind === "create"} onOpenChange={close} />
       <MoveDialog collectionId={d?.kind === "move" ? d.collectionId : null} onOpenChange={close} />
+      <SwitchMoment />
     </>
   );
 }
