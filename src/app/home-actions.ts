@@ -12,7 +12,10 @@ import { getAppData, getItem } from "@/lib/data";
 import { dayKeyIn, HIDE_MS } from "@/lib/home";
 import { numbersIn, validateHomeAi, type HomeAi } from "@/lib/home-ai";
 import { CURRENCIES } from "@/lib/money";
-import { HOME_AI_KEY, HOME_DISMISSED_KEY, parseDismissed } from "@/lib/home-prefs";
+import { HOME_AI_KEY, HOME_DISMISSED_KEY, HOME_LAYOUT_KEY, homeLayoutKey, NOTIFY_KEY, parseDismissed } from "@/lib/home-prefs";
+import { parseLayout, serialize, type HomeLayout } from "@/lib/home-layout";
+import { setAlertPrefs } from "@/lib/tracker";
+import type { NotifyPrefs } from "@/lib/home";
 import { kvGet, kvSet } from "@/lib/kv";
 import { createItemCore } from "@/lib/service";
 import type { ItemWithSources } from "@/lib/types";
@@ -40,6 +43,29 @@ export async function setAiSuggestions(on: boolean): Promise<boolean> {
   const ctx = await requireCtx("view");
   await userPrefSet(ctx.user.id, HOME_AI_KEY, z.boolean().parse(on) ? null : "off");
   return on;
+}
+
+/** R16 D1: Settings → Notifications (in the app). The drop threshold goes to the tracker's alert prefs. */
+export async function saveNotifyPrefs(p: NotifyPrefs): Promise<NotifyPrefs> {
+  const ctx = await requireCtx("view");
+  const v = z.strictObject({ drop: z.boolean(), budget: z.boolean(), delivery: z.boolean(), minDropPct: z.number().int().min(1).max(90) }).parse(p);
+  await Promise.all([
+    userPrefSet(ctx.user.id, NOTIFY_KEY, JSON.stringify({ drop: v.drop, budget: v.budget, delivery: v.delivery })),
+    setAlertPrefs(ctx.user.id, { minDropPct: v.minDropPct }),
+  ]);
+  return v;
+}
+
+/** R16 E1: Home's layout for this space (also remembered as the person's last layout). Personal — viewers too. */
+export async function saveHomeLayout(layout: HomeLayout): Promise<HomeLayout> {
+  const ctx = await requireCtx("view");
+  const raw = JSON.stringify(layout);
+  if (raw.length > 4000) throw new Error("too_large");
+  const v = parseLayout(raw);
+  if (!v) throw new Error("invalid");
+  const out = serialize(v);
+  await Promise.all([userPrefSet(ctx.user.id, homeLayoutKey(ctx.space.id), out), userPrefSet(ctx.user.id, HOME_LAYOUT_KEY, out)]);
+  return v;
 }
 
 /** "Add to list" for something bought before (reorder due): a new to-buy item with the same picture and links. */

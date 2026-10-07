@@ -14,21 +14,16 @@ import type { Person } from "@/lib/types";
 // `online` is accepted so it only has to feed data.
 
 export { avatarColor, TILE, tileColor } from "./colors";
-import { avatarColor, tileColor } from "./colors";
+import { avatarColor } from "./colors";
+import { SpaceTile } from "./tile";
+import { startMoment } from "./moment";
+export { SpaceTile };
 
 const initial = (name: string) => (name.trim()[0] ?? "?").toUpperCase();
 
-export function SpaceTile({ name, color, size = 28, className }: { name: string; color: string; size?: number; className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn("grid shrink-0 place-items-center font-bold text-white", className)}
-      style={{ width: size, height: size, borderRadius: Math.round(size / 4), background: tileColor(color), fontSize: Math.round(size * 0.46) }}
-      data-space-tile
-    >
-      {initial(name)}
-    </span>
-  );
+/** SpaceTile for a space record (current space, switcher cards, join preview). */
+export function SpaceLook({ space, size = 28, className, style }: { space: { name: string; color: string; icon?: string | null; photo?: string | null }; size?: number; className?: string; style?: React.CSSProperties }) {
+  return <SpaceTile name={space.name} color={space.color} icon={space.icon} photo={space.photo} size={size} className={className} style={style} />;
 }
 
 export function Avatar({ person, size = 24, online, className, title }: { person: Person; size?: number; online?: boolean; className?: string; title?: string }) {
@@ -87,7 +82,7 @@ export function ShoppingNow({ className }: { className?: string }) {
 
 // ---- one place that opens the space dialogs (mounted once: SpacesLayer) ----
 
-export type SpaceDialog = { kind: "create" } | { kind: "invite" } | { kind: "settings" } | { kind: "move"; collectionId: string };
+export type SpaceDialog = { kind: "create" } | { kind: "invite" } | { kind: "settings" } | { kind: "identity" } | { kind: "move"; collectionId: string };
 const EVENT = "nexus:spaces";
 export function openSpaces(d: SpaceDialog) {
   window.dispatchEvent(new CustomEvent<SpaceDialog>(EVENT, { detail: d }));
@@ -121,17 +116,31 @@ export function useSwitchSpace() {
   const s = useStore();
   const { f, t } = useI18n();
   const { replaceData } = s;
+  const { spaces } = s;
   return useCallback(
     async (id: string) => {
-      const r = await switchSpace(id);
+      // R16 D4: the moment starts at once (from the tile that was tapped); the data swaps in underneath it.
+      const card = spaces.find((x) => x.id === id);
+      const src = document.querySelector(`[data-space-item="${CSS.escape(id)}"] [data-space-tile]`) ?? document.querySelector("[data-space-switcher] [data-space-tile], [data-phone-space] [data-space-tile]");
+      let done: (ok: boolean) => void = () => {};
+      const ready = new Promise<boolean>((r) => (done = r));
+      if (card) startMoment({ card, from: src?.getBoundingClientRect() ?? null, ready });
+      let r: { name: string };
+      try {
+        r = await switchSpace(id);
+      } catch {
+        done(false);
+        return void toast.error(t.spaces.failed);
+      }
       try {
         replaceData(await loadAppData());
+        done(true);
       } catch {
         return reloadInto(r.name);
       }
-      toast(f(t.spaces.now, { space: r.name }), { duration: 2600 });
+      if (!card) toast(f(t.spaces.now, { space: r.name }), { duration: 2600 });
     },
-    [replaceData, f, t],
+    [replaceData, f, t, spaces],
   );
 }
 

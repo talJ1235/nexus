@@ -1,6 +1,7 @@
 # R15 F1 — guards on every push (any branch) and every PR: types, lint, unit tests, the authz / scope / SSRF /
 # query-plan guards, the production dependency audit, secret scanning, then a build and the two server checks
-# (tenancy with two users + a viewer, security headers + no CSP violations). Everything runs on throwaway file
+# (tenancy with two users + a viewer, security headers + no CSP violations), and the R16 server tests (error log,
+# live sync, settings / space look / Home customise). Everything runs on throwaway file
 # databases on the runner — no secrets, no remote DB, no AI keys. Actions are pinned by commit SHA.
 name: guards
 on:
@@ -16,7 +17,7 @@ env:
 jobs:
   guards:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: { fetch-depth: 0 }
@@ -29,7 +30,7 @@ jobs:
         run: npx eslint --quiet .
       - name: unit tests
         run: |
-          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles; do
+          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles status feed assistant-context; do
             echo "::group::test:$t"; npm run -s test:$t; echo "::endgroup::"
           done
       - name: authz coverage · data scope · SSRF · query plans
@@ -86,5 +87,23 @@ jobs:
           TURSO_DATABASE_URL=$CI_DB nohup npx next start -p 3102 > fedcm-server.log 2>&1 &
           for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:3102/login && break; sleep 1; done
           BASE=http://localhost:3102 node scripts/test-google-fedcm.mjs
+      - name: error log — limits, redaction, overflow, onRequestError (R16 C2; starts the built app itself)
+        run: npm run -s test:errors
+      - name: live shared spaces — fake transport + polling, conflicts, presence (R16 B; starts next dev itself)
+        run: npm run -s test:live
+      - name: settings shell, space look, switch moment, Home customise (R16 D1–D5, E1)
+        env:
+          CI_DB: file:ci-settings.db
+          ADMIN_EMAIL: ci-admin@example.com
+          BETTER_AUTH_SECRET: ci-secret-0123456789abcdef0123456789abcdef
+          BETTER_AUTH_URL: http://localhost:3107
+          AUTH_FULL_LOCAL: "0"
+          NEXUS_AI_MOCK: "1"
+        run: |
+          TURSO_DATABASE_URL=$CI_DB npx tsx src/db/migrate.ts
+          TURSO_DATABASE_URL=$CI_DB node scripts/seed-local.mjs
+          TURSO_DATABASE_URL=$CI_DB nohup npx next start -p 3107 > settings-server.log 2>&1 &
+          for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:3107/login && break; sleep 1; done
+          BASE=http://localhost:3107 TURSO_DATABASE_URL=$CI_DB node scripts/test-settings.mjs
       - if: failure()
-        run: tail -40 headers-server.log 2>/dev/null || true; tail -40 google-server.log 2>/dev/null || true; tail -40 fedcm-server.log 2>/dev/null || true
+        run: tail -40 headers-server.log 2>/dev/null || true; tail -40 google-server.log 2>/dev/null || true; tail -40 fedcm-server.log 2>/dev/null || true; tail -40 settings-server.log 2>/dev/null || true

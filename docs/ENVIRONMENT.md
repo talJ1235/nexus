@@ -140,3 +140,10 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
 - 2026-10-07 (PC, R16 Session G): Vercel functions now run in **`dub1` (Dublin)** via `vercel.json` `regions` — next to
   the Turso DB (`aws-eu-west-1`, Ireland). Before: `fra1` (Frankfurt; `x-vercel-id` shows the region). Hobby allows one
   region; the DB stays where it is. Sign-in timings: `Server-Timing` on `/api/auth/*`, `scripts/bench-signin.mjs`.
+- 2026-10-07 (PC, R16 Session 2): new checks `npm run test:settings` (needs a running server on a FILE DB with the
+  ADMIN_EMAIL user + demo data — locally `bash scripts/serve-r16.sh`, then `TURSO_DATABASE_URL=file:r16-smoke.db node
+  --env-file=.env.local scripts/test-settings.mjs`), `scripts/parity-r16.mjs` (boards vs app → `docs/design/parity-r16/`,
+  boards rendered by `scripts/lib/board.mjs`), fixture `scripts/fixtures/space-photo-gps.jpg`. `guards.yml` now also
+  runs `test:errors`, `test:live` and `test:settings` (CI seeds `ci-settings.db`; timeout 60 min). The local smoke reads
+  `NEXUS_PASSWORD` — set it from `.env.local`'s `APP_PASSWORD`. Space photos need `BLOB_READ_WRITE_TOKEN` on Vercel
+  (already set for item pictures); without it (local only) they're kept inline. No new env names.

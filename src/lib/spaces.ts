@@ -7,7 +7,7 @@ import { randomToken, sha256 } from "@/lib/auth/crypto";
 
 // Spaces (R15 A4/B1/C): every user has exactly one personal space, plus the shared spaces they own or joined.
 
-export type Membership = { spaceId: string; role: SpaceRole; name: string; kind: "personal" | "shared"; color: string; icon: string; currency: string };
+export type Membership = { spaceId: string; role: SpaceRole; name: string; kind: "personal" | "shared"; color: string; icon: string; currency: string; photo: string | null; createdAt: Date };
 
 export function firstName(name: string | null | undefined, email: string) {
   const n = (name ?? "").trim().split(/\s+/)[0];
@@ -47,6 +47,9 @@ export async function listMemberships(userId: string): Promise<Membership[]> {
       color: schema.space.color,
       icon: schema.space.icon,
       currency: schema.space.currency,
+      // R16 D5: the space photo (Better Auth's `logo` column, unused before).
+      photo: schema.space.logo,
+      createdAt: schema.space.createdAt,
     })
     .from(schema.member)
     .innerJoin(schema.space, eq(schema.space.id, schema.member.organizationId))
@@ -72,16 +75,16 @@ export const INVITE_DAYS = 7;
 export const INVITE_MAX_USES = 5;
 export const DELETE_UNDO_MS = 7 * 86_400_000;
 
-export async function createSharedSpace(userId: string, v: { name: string; color: SpaceColor; currency: string }) {
+export async function createSharedSpace(userId: string, v: { name: string; color: SpaceColor; currency: string; icon?: string }) {
   const id = nanoid();
   await db.batch([
-    db.insert(schema.space).values({ id, name: v.name, slug: `s-${id}`, kind: "shared", currency: v.currency, color: v.color, icon: "home", createdBy: userId, createdAt: new Date() }),
+    db.insert(schema.space).values({ id, name: v.name, slug: `s-${id}`, kind: "shared", currency: v.currency, color: v.color, icon: v.icon ?? "home", createdBy: userId, createdAt: new Date() }),
     db.insert(schema.member).values({ id: nanoid(), organizationId: id, userId, role: "owner", createdAt: new Date() }),
   ]);
   return id;
 }
 
-export async function updateSpace(spaceId: string, v: Partial<{ name: string; color: SpaceColor; currency: string }>) {
+export async function updateSpace(spaceId: string, v: Partial<{ name: string; color: SpaceColor; currency: string; icon: string; logo: string | null }>) {
   await db.update(schema.space).set(v).where(and(eq(schema.space.id, spaceId), isNull(schema.space.deletedAt)));
 }
 
@@ -264,7 +267,7 @@ export async function revokeSpaceInvite(spaceId: string, id: string) {
 }
 
 export type InvitePreview =
-  | { ok: true; spaceId: string; name: string; color: string; role: "member" | "viewer"; expiresAt: number; inviter: string | null; inviterId: string; count: number; faces: Face[] }
+  | { ok: true; spaceId: string; name: string; color: string; icon: string; photo: string | null; role: "member" | "viewer"; expiresAt: number; inviter: string | null; inviterId: string; count: number; faces: Face[] }
   | { ok: false; problem: "invalid" | "expired" | "used_up" | "revoked"; inviter: string | null };
 
 /** What /join/<token> shows (no secrets): the space, who invited, people, the role, expiry — or why it's dead. */
@@ -282,7 +285,7 @@ export async function invitePreview(token: string): Promise<InvitePreview> {
   const problem = row.sp.deletedAt || row.inv.revokedAt ? "revoked" : row.inv.expiresAt <= Date.now() ? "expired" : row.inv.uses >= row.inv.maxUses ? "used_up" : null;
   if (problem) return { ok: false, problem, inviter };
   const f = (await spaceFaces([row.sp.id])).get(row.sp.id) ?? { count: 0, faces: [] };
-  return { ok: true, spaceId: row.sp.id, name: row.sp.name, color: row.sp.color, role: row.inv.role, expiresAt: row.inv.expiresAt, inviter, inviterId: row.inv.createdBy, count: f.count, faces: f.faces };
+  return { ok: true, spaceId: row.sp.id, name: row.sp.name, color: row.sp.color, icon: row.sp.icon, photo: row.sp.logo, role: row.inv.role, expiresAt: row.inv.expiresAt, inviter, inviterId: row.inv.createdBy, count: f.count, faces: f.faces };
 }
 
 /** The switcher's space cards + the current shared space's people (page load). */
@@ -293,7 +296,7 @@ export async function spaceShell(memberships: Membership[], current: { id: strin
   ]);
   const spaces = memberships.map((m) => {
     const f = faces.get(m.spaceId);
-    return { id: m.spaceId, name: m.name, kind: m.kind, color: m.color, role: m.role, count: f?.count ?? 1, faces: f?.faces ?? [] };
+    return { id: m.spaceId, name: m.name, kind: m.kind, color: m.color, icon: m.icon, photo: m.photo, role: m.role, count: f?.count ?? 1, faces: f?.faces ?? [] };
   });
   return { spaces, people: people.map((p) => ({ id: p.id, name: p.name || p.email.split("@")[0] })) };
 }

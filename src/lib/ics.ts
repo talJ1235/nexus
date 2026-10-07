@@ -14,19 +14,31 @@ export type CalEvent = { uid: string; day: string; title: string; itemId: string
 export type SeqMap = Record<string, { day: string; seq: number; modified: number }>;
 
 /** The feed's events: arrivals of ordered items with an eta (late ones stay on their day, labelled) and reorder dates. */
-export function calendarEvents(items: ItemWithSources[], now: number, tz: string, t: { arrives: string; late: string; reorder: string }): CalEvent[] {
+/** R16 D1: which kinds the user keeps in the feed (Settings → Calendar). */
+export type CalKinds = { deliveries: boolean; reorders: boolean };
+export const DEFAULT_CAL_KINDS: CalKinds = { deliveries: true, reorders: true };
+export function parseCalKinds(raw: string | null | undefined): CalKinds {
+  try {
+    const v = JSON.parse(raw ?? "{}") as Partial<CalKinds>;
+    return { deliveries: v.deliveries !== false, reorders: v.reorders !== false };
+  } catch {
+    return DEFAULT_CAL_KINDS;
+  }
+}
+
+export function calendarEvents(items: ItemWithSources[], now: number, tz: string, t: { arrives: string; late: string; reorder: string }, kinds: CalKinds = DEFAULT_CAL_KINDS): CalEvent[] {
   const today = dayKeyIn(now, tz);
   const from = addDays(today, -PAST_DAYS);
   const to = addDays(today, NEXT_DAYS);
   const out: CalEvent[] = [];
-  for (const i of items) {
+  for (const i of kinds.deliveries ? items : []) {
     if (i.status !== "ordered" || i.eta == null) continue;
     const day = dayKeyIn(i.eta, tz);
     if (day < from || day > to) continue;
     const late = day < today;
     out.push({ uid: `${i.id}-eta@nexus`, day, itemId: i.id, title: (late ? t.late : t.arrives).replace("{item}", i.title) });
   }
-  for (const r of reorderDue(items, now)) {
+  for (const r of kinds.reorders ? reorderDue(items, now) : []) {
     const day = dayKeyIn(Math.max(r.cadence.due, now), tz);
     if (day > to) continue;
     out.push({ uid: `${r.item.id}-reorder@nexus`, day, itemId: r.item.id, title: t.reorder.replace("{item}", r.item.title) });

@@ -117,22 +117,20 @@ async function traceLoad(ctx, url, ms = 2500) {
 }
 
 // ---- Round 13 Part A: Home (the dashboard) — default screen, section order, phone height, tiles, logo.
-const HOME_ORDER = ["suggest", "week", "needs", "ontheway", "pace", "projects", "noticed"];
+const HOME_ORDER = ["suggest", "week", "needs", "ontheway"];
 /** Visible Home sections in page order (the phone's merged "pace projects" card counts as both). */
 const homeSections = (page) =>
-  page.$$eval("[data-home-section]", (els) => els.filter((e) => e.offsetParent !== null).flatMap((e) => e.getAttribute("data-home-section").split(" ")));
-async function openSettings(page) {
-  // Already opening (a caller tapped Me → Settings): don't tap the sheet underneath.
-  if (await page.locator("[data-settings-assistant]").waitFor({ timeout: 1500 }).then(() => true, () => false)) return;
-  const btn = page.locator('[data-carry="settings"]:visible').first();
-  if (await btn.count()) await btn.click();
-  else {
-    await page.locator("[data-me-open]").click();
-    // Phones: Me → Settings (R14 A2 needs the full Settings, where the Home diagnostics live).
-    const row = page.locator("[data-me-settings]");
-    if (await row.waitFor({ timeout: 3000 }).then(() => true, () => false)) await row.click({ timeout: 5000 }).catch(() => {});
-  }
-  await page.waitForSelector("[data-ai-suggestions-switch]", { timeout: 5000 }).catch(() => {});
+  page.$$eval("[data-home-grid] [data-widget]", (els, all) => els.filter((e) => e.offsetParent !== null).map((e) => e.getAttribute("data-widget")).filter((id) => all.includes(id)), HOME_ORDER_ALL);
+const HOME_ORDER_ALL = ["suggest", "week", "needs", "ontheway", "pace", "projects", "noticed"];
+/** R16 D1: Settings at a section (deep link /settings/<section>; the shell opens over the app). */
+async function openSettings(page, section = "ai") {
+  const base = new URL(page.url()).origin;
+  await page.goto(`${base}/settings/${section}`);
+  await page.waitForSelector(`[data-settings-section="${section}"]`, { timeout: 20000 }).catch(() => {});
+}
+/** The AI phrasing pick (Settings → Assistant & AI): "ai" = AI + rules, "rules" = rules only. */
+async function setAiPick(page, on) {
+  await page.locator(`[data-ai-pick="${on ? "ai" : "rules"}"]`).click();
 }
 async function homeChecks(page) {
   await step("home is the default screen", async () => {
@@ -267,14 +265,8 @@ async function homeChecks(page) {
       const ai = await page.waitForSelector('[data-sug-source="ai"]', { timeout: 15000 }).then(() => true, () => false);
       const setAi = async (on) => {
         await page.evaluate(() => window.scrollTo(0, 0));
-        if (MOBILE) {
-          await page.locator("[data-me-open]").click();
-          await page.locator("[data-me-settings], [data-settings-open]").first().click().catch(() => {});
-        }
-        if (!(await page.locator("[data-ai-suggestions-switch]").count())) await openSettings(page);
-        const sw = page.locator("[data-ai-suggestions-switch]");
-        await sw.scrollIntoViewIfNeeded();
-        if ((await sw.getAttribute("aria-checked")) !== String(on)) await sw.click();
+        await openSettings(page, "ai");
+        await setAiPick(page, on);
         await page.waitForTimeout(400);
         // Close every layer (phone: settings over the Me sheet) and make sure nothing stays open for later steps.
         for (let k = 0; k < 5 && (await page.locator("[role=dialog]:visible").count()); k++) {
@@ -309,36 +301,34 @@ async function homeChecks(page) {
     }
     ok(visible >= 1 && (!MOBILE || visible === 1) && switched, "noticed: insights render (phone: dots switch)", `${visible} visible, switched ${switched}`);
   });
-  // A5: Customize — hide "Nexus noticed", move "Projects" up one, Done, reload: the order persisted; then Reset.
+  // A5 → R16 E1: Customise — hide "Next delivery", move "Needs you" up one (grip + arrow key), Done, reload: the layout
+  // persisted (server, per space); then Reset → the Household preset again.
   await step("customize: hide + move persist after reload", async () => {
+    const widgets = () => page.$$eval("[data-home-grid] [data-widget]", (els) => els.map((e) => e.getAttribute("data-widget")));
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.locator("[data-home-customize]").click();
     await page.waitForSelector("[data-home-customizing]");
-    await page.locator('[data-customize-row="noticed"] [data-customize-eye]').click();
-    if (MOBILE) await page.locator('[data-customize-row="projects"] [data-customize-up]').click();
-    else {
-      await page.locator('[data-customize-row="projects"] [data-customize-handle]').focus();
-      await page.keyboard.press("ArrowUp");
-    }
-    const draft = await page.$$eval("[data-customize-row]", (els) => els.map((e) => e.getAttribute("data-customize-row")));
+    const start = await widgets();
+    await page.locator('[data-widget-hide="nextdel"]').click();
+    await page.locator('[data-widget-handle="needs"]').focus();
+    await page.keyboard.press("ArrowUp");
+    const draft = await widgets();
     await page.locator("[data-home-done]").click();
+    await page.waitForTimeout(800);
     await page.reload();
-    await page.waitForSelector("[data-home]", { timeout: 15000 });
+    await page.waitForSelector("[data-home-grid]", { timeout: 15000 });
     await page.waitForTimeout(400);
-    const got = await homeSections(page);
-    const cookie = (await page.context().cookies()).find((c) => c.name === "nexus_home")?.value ?? "";
-    const iP = draft.indexOf("projects");
-    const moved = iP >= 0 && draft[iP + 1] === "pace";
-    const persisted = cookie.includes("projects.pace") && cookie.includes("-noticed") && !got.includes("noticed");
-    // Desktop shows the order directly; the phone merges pace + projects into one card either way.
-    const domOrder = MOBILE || got.indexOf("projects") < got.indexOf("pace");
-    // Reset restores the default.
+    const got = await widgets();
+    const iP = start.indexOf("needs");
+    const moved = draft.indexOf("needs") === iP - 1 && !draft.includes("nextdel");
+    const persisted = !got.includes("nextdel") && got.indexOf("needs") >= 0 && got.indexOf("needs") < got.indexOf(start[iP - 1]);
     await page.locator("[data-home-customize]").click();
     await page.locator("[data-home-reset]").click();
+    const preset = await page.locator('[data-home-preset="household"]').getAttribute("aria-checked");
     await page.locator("[data-home-done]").click();
-    await page.waitForTimeout(300);
-    const reset = (await page.context().cookies()).find((c) => c.name === "nexus_home")?.value === HOME_ORDER.join(".");
-    ok(moved && persisted && domOrder && reset, "customize: hide + move persist after reload", `draft ${draft.join(",")} cookie "${cookie}" dom ${got.join(",")} reset ${reset}`);
+    await page.waitForTimeout(500);
+    const reset = preset === "true" && (await widgets()).includes("nextdel");
+    ok(moved && persisted && reset, "customize: hide + move persist after reload", `start ${start.join(",")} draft ${draft.join(",")} after ${got.join(",")} reset ${reset}`);
   });
   // The logo returns to Home from every view.
   await step("logo returns to Home from every view", async () => {
@@ -530,7 +520,7 @@ try {
     await step("calendar feed: link in Settings, 200 text/calendar with the token, 404 without", async () => {
       await page.goto(`${BASE}/`);
       await page.waitForSelector(READY, { timeout: 15000 });
-      await openSettings(page);
+      await openSettings(page, "calendar");
       const input = page.locator("[data-cal-url]");
       await input.scrollIntoViewIfNeeded();
       await page.waitForFunction(() => /\/api\/cal\/[\w-]+\.ics$/.test(document.querySelector("[data-cal-url]")?.value ?? ""), null, { timeout: 8000 });
@@ -1614,7 +1604,8 @@ try {
       // Settings → Reports: a sub-page in the same modal; Esc and the back arrow return to Settings, Esc again closes.
       await go();
       await openPalette();
-      await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Open settings|פתיחת ההגדרות|Settings|הגדרות/ }).first().click();
+      await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Open settings|פתיחת ההגדרות/ }).first().click();
+      if (!(await page.locator("[data-settings-reports]").isVisible())) await page.locator('[data-sx-nav="account"]').click();
       await page.locator("[data-settings-reports]").click();
       await page.locator("[data-settings-subpage=reports]").waitFor({ timeout: 8000 });
       await settle();
@@ -1623,12 +1614,16 @@ try {
       await settle();
       r.escBack = (await page.locator("[data-settings-reports]").isVisible()) && (await dialogs()) === 1;
       await page.locator("[data-settings-reports]").click();
-      await page.locator("[data-modal-back]").click();
+      await page.locator("[data-settings-back]:visible").first().click();
       await settle();
       r.arrowBack = await page.locator("[data-settings-reports]").isVisible();
-      // (R15 D2: the extension row is gone from Settings.)
+      // (R15 D2: the extension row is gone from Settings.) R16 D3: on phones Esc goes back to the section list first.
       await page.keyboard.press("Escape");
       await settle();
+      if (MOBILE && (await dialogs()) > 0) {
+        await page.keyboard.press("Escape");
+        await settle();
+      }
       r.settingsClosed = (await dialogs()) === 0;
       // Reports sheet → "Report a problem" form on top; Esc closes the form, then the sheet.
       await openPalette();
@@ -2376,8 +2371,7 @@ try {
           const setLimit = async (v) => {
             await page.goto(`${BASE}/?v=to_buy`);
             await page.waitForSelector(READY);
-            await openPalette();
-            await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Open settings|פתיחת ההגדרות|Settings/ }).first().click();
+            await openSettings(page, "budget");
             const f = page.locator("[data-import-limit]");
             await f.waitFor({ timeout: 8000 });
             await f.fill(String(v));
@@ -2594,7 +2588,7 @@ try {
           await dlg.locator("[data-ai-memory=saved]").waitFor({ timeout: 8000 });
           await page.keyboard.press("Escape");
           await openPalette();
-          await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Open settings|פתיחת ההגדרות|Settings/ }).first().click();
+          await page.getByRole("dialog").locator("[cmdk-item]").filter({ hasText: /Settings: Memory|הגדרות: זיכרון/ }).first().click();
           const note = page.locator("[data-memory-note]").filter({ hasText: marker });
           await note.waitFor({ timeout: 10000 });
           await note.scrollIntoViewIfNeeded();
@@ -2903,8 +2897,10 @@ try {
           await page.locator("[data-space-switcher]").first().click();
           await page.locator("[data-space-create]").first().click();
           const tag = `MV${Date.now().toString(36)}`;
-          await page.locator("#space-name").fill(`Smoke ${tag}`);
-          await page.locator("[data-create-submit]").click();
+          // R16 D5: create = the identity editor (name + icon/colour), then the invite step.
+          await page.locator("[data-identity-name]").fill(`Smoke ${tag}`);
+          await page.locator('[data-identity-icon="tools"]').click();
+          await page.locator("[data-identity-save]").click();
           await page.locator("[data-create-skip]").click({ timeout: 15000 });
           await page.waitForFunction((h) => document.querySelector("[data-space-switcher]")?.getAttribute("data-space-id") !== h, home, { timeout: 20000 });
           await page.waitForSelector(READY);
@@ -3121,6 +3117,8 @@ try {
         const cdp = await ctx.newCDPSession(p);
         const touch = (type, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x: 195, y }] });
         await p.evaluate(() => window.scrollTo(0, 0));
+        // The pull listener attaches just after the app is ready; nobody pulls within those milliseconds.
+        await p.waitForTimeout(400);
         await touch("touchStart", 200);
         for (let y = 210; y <= 420; y += 15) await touch("touchMove", y);
         const ind = await p.locator("[data-pull]").count();
@@ -3231,9 +3229,8 @@ try {
           };
         };
         const setAi = async (on) => {
-          await openSettings(p);
-          const sw = p.locator("[data-ai-suggestions-switch]");
-          if ((await sw.getAttribute("aria-checked")) !== String(on)) await sw.click();
+          await openSettings(p, "ai");
+          await setAiPick(p, on);
           await p.waitForTimeout(500);
           const diag = (await p.locator("[data-home-diag]").count()) ? await p.locator("[data-home-diag]").innerText() : "";
           await p.keyboard.press("Escape");

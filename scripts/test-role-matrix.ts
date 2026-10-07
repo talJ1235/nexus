@@ -17,9 +17,9 @@ const EXPECT: Record<Need, Record<Who, boolean>> = {
   owner: { owner: true, member: false, viewer: false, outsider: false, "signed-out": false, banned: false },
 };
 
-const A: Membership = { spaceId: "A", role: "owner", name: "A", kind: "shared", color: "plum", icon: "home", currency: "ILS" };
+const A: Membership = { spaceId: "A", role: "owner", name: "A", kind: "shared", color: "plum", icon: "home", currency: "ILS", photo: null, createdAt: new Date(0) };
 const mine = (role: Membership["role"]): Membership[] => [
-  { spaceId: "P", role: "owner", name: "me", kind: "personal", color: "plum", icon: "user", currency: "ILS" },
+  { spaceId: "P", role: "owner", name: "me", kind: "personal", color: "plum", icon: "user", currency: "ILS", photo: null, createdAt: new Date(0) },
   { ...A, role },
 ];
 function canInA(who: Who, need: Need) {
@@ -48,11 +48,11 @@ const VIEW_OK = new Set([
   "alert-actions.ts#getAlertsState", "alert-actions.ts#saveAlertPrefs", "alert-actions.ts#gone",
   "alert-actions.ts#tgSaveToken", "alert-actions.ts#tgFinishLink", "alert-actions.ts#tgDisconnect", "alert-actions.ts#tgTest",
   "barcode-actions.ts#lookupBarcode",
-  "cal-actions.ts#calendarInfo", "cal-actions.ts#regenerateCalendar", "cal-actions.ts#markCalendarSubscribed", "cal-actions.ts#calendarSubscribed",
+  "cal-actions.ts#calendarInfo", "cal-actions.ts#regenerateCalendar", "cal-actions.ts#markCalendarSubscribed", "cal-actions.ts#calendarSubscribed", "cal-actions.ts#setCalendarKinds",
   "chat-actions.ts#me",
   "compare-actions.ts#compareStart", "compare-actions.ts#compareVerify",
   "guest-actions.ts#gone",
-  "home-actions.ts#dismissHome", "home-actions.ts#undismissHome", "home-actions.ts#setAiSuggestions", "home-actions.ts#phraseSuggestions", "home-actions.ts#homeLook", "home-actions.ts#homeDiag",
+  "home-actions.ts#dismissHome", "home-actions.ts#undismissHome", "home-actions.ts#setAiSuggestions", "home-actions.ts#phraseSuggestions", "home-actions.ts#homeLook", "home-actions.ts#homeDiag", "home-actions.ts#saveNotifyPrefs", "home-actions.ts#saveHomeLayout",
   "memory-actions.ts#getMemoryState", "memory-actions.ts#setMemoryEnabled", "memory-actions.ts#saveMemoryNote", "memory-actions.ts#updateMemoryNote", "memory-actions.ts#deleteMemoryNote",
   "picture-actions.ts#understandReceiptLines", "picture-actions.ts#findLinePictures", "picture-actions.ts#searchPictures", "picture-actions.ts#pictureIcons", "picture-actions.ts#itemPictureChoices", "picture-actions.ts#pictureSearchStatus",
   "receipt-actions.ts#listReceipts",

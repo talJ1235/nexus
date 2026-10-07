@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/components/providers";
 import { toast } from "@/lib/toast";
 import { useStore } from "../store";
-import { CreateSpaceDialog, InviteDialog, MoveDialog } from "./dialogs";
-import { SpaceSettingsDialog } from "./space-settings";
+import { InviteDialog, MoveDialog } from "./dialogs";
+import { IdentityDialog } from "./identity";
+import { SwitchMoment } from "./moment";
 import { NOW_IN_KEY, onOpenSpaces, useSwitchSpace, type SpaceDialog } from "./space-ui";
 
 /** Mounted once in the app shell: the space dialogs, Ctrl/⌘+1…9 to switch, the "Now in …" toast after a switch,
@@ -16,7 +17,8 @@ export function SpacesLayer() {
   const [d, setD] = useState<SpaceDialog | null>(null);
   const go = useSwitchSpace();
 
-  useEffect(() => onOpenSpaces(setD), []);
+  // R16 D2: Space settings are a section group of Settings now.
+  useEffect(() => onOpenSpaces((x) => (x.kind === "settings" ? s.openSettings("space") : setD(x))), [s]);
 
   useEffect(() => {
     if (s.loading) return;
@@ -38,7 +40,8 @@ export function SpacesLayer() {
       if (panel) u.searchParams.delete("panel");
       window.history.replaceState(null, "", u);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time deep link
-      setD({ kind: welcome ? "create" : "settings" });
+      if (welcome) setD({ kind: "create" });
+      else s.openSettings("space");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.loading]);
@@ -58,10 +61,10 @@ export function SpacesLayer() {
   const close = (o: boolean) => !o && setD(null);
   return (
     <>
-      <CreateSpaceDialog open={d?.kind === "create"} onOpenChange={close} />
       <InviteDialog open={d?.kind === "invite"} onOpenChange={close} />
-      <SpaceSettingsDialog open={d?.kind === "settings"} onOpenChange={close} />
+      <IdentityDialog open={d?.kind === "identity" || d?.kind === "create"} create={d?.kind === "create"} onOpenChange={close} />
       <MoveDialog collectionId={d?.kind === "move" ? d.collectionId : null} onOpenChange={close} />
+      <SwitchMoment />
     </>
   );
 }

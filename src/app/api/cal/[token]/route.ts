@@ -1,11 +1,11 @@
 import { type NextRequest } from "next/server";
-import { calendarUser, CAL_SEQ_KEY, rateLimited } from "@/lib/calendar-server";
+import { calendarUser, CAL_KINDS_KEY, CAL_SEQ_KEY, rateLimited } from "@/lib/calendar-server";
 import { loadItems } from "@/lib/data";
 import { Scoped } from "@/lib/db-scoped";
 import { userPrefGet, userPrefSet } from "@/lib/db-scoped/prefs";
 import { spaceIdsOfUser } from "@/lib/db-scoped/system";
 import { dictionaries } from "@/lib/i18n";
-import { buildIcs, calendarEvents, nextSeqs, type SeqMap } from "@/lib/ics";
+import { buildIcs, calendarEvents, nextSeqs, parseCalKinds, type SeqMap } from "@/lib/ics";
 import { publicOrigin } from "@/lib/telegram";
 import { ownerPrefs } from "@/lib/tracker";
 
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
   const { locale } = await ownerPrefs(userId);
   const t = dictionaries[locale].cal;
   const items = (await Promise.all((await spaceIdsOfUser(userId)).map((spaceId) => loadItems(new Scoped({ spaceId, userId }))))).flat();
-  const events = calendarEvents(items, now, "Asia/Jerusalem", t);
+  const events = calendarEvents(items, now, "Asia/Jerusalem", t, parseCalKinds(await userPrefGet(userId, CAL_KINDS_KEY)));
   let prev: SeqMap = {};
   try {
     prev = JSON.parse((await userPrefGet(userId, CAL_SEQ_KEY)) ?? "{}");

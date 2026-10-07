@@ -9,6 +9,8 @@ import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
 import type { Changes } from "@/lib/db-scoped/changes";
 import type { Alert, AltGroup, AppData, Collection, ItemWithSources, Person, SpaceCard, SpaceInfo, StoreSetting } from "@/lib/types";
 import { DEFAULT_HOME_PREFS, type HomePrefs } from "@/lib/home";
+import { defaultLayout, fromLegacy, type HomeLayout } from "@/lib/home-layout";
+import { saveHomeLayout } from "@/app/home-actions";
 import { DEFAULT_SHOP_SORT, readShopSort, saveShopSort, type ShopSort } from "@/lib/shop-sort";
 import { paramToView, type View } from "@/lib/views";
 import { markBooted } from "@/lib/boot";
@@ -49,32 +51,14 @@ export type Clock = { now: number; tz: string; weekStartsOn: 0 | 1 };
 const TZ_COOKIE = "nexus_tz";
 const DEFAULT_TZ = "Asia/Jerusalem";
 
-/** Home sections that Customize can move or hide (the header card is fixed). */
+/** R13 Home section ids (status-strip jumps); R16 E1 lays Home out as widgets (lib/home-layout). */
 export const HOME_SECTIONS = ["suggest", "week", "needs", "ontheway", "pace", "projects", "noticed"] as const;
 export type HomeSection = (typeof HOME_SECTIONS)[number];
-export type HomeLayout = { order: HomeSection[]; hidden: HomeSection[] };
-export const DEFAULT_HOME_LAYOUT: HomeLayout = { order: [...HOME_SECTIONS], hidden: [] };
-/** Cookie form: "suggest.week.-noticed…" (order; "-" = hidden). Unknown ids dropped, missing ones appended. */
-export function parseHomeLayout(v: string | null | undefined): HomeLayout {
-  if (!v) return DEFAULT_HOME_LAYOUT;
-  const order: HomeSection[] = [];
-  const hidden: HomeSection[] = [];
-  for (const raw of v.split(".")) {
-    const id = raw.replace(/^-/, "") as HomeSection;
-    if (!HOME_SECTIONS.includes(id) || order.includes(id)) continue;
-    order.push(id);
-    if (raw.startsWith("-")) hidden.push(id);
-  }
-  for (const id of HOME_SECTIONS) if (!order.includes(id)) order.push(id);
-  return { order, hidden };
-}
-export const homeLayoutCookie = (l: HomeLayout) => l.order.map((id) => (l.hidden.includes(id) ? `-${id}` : id)).join(".");
 
 const LAYOUT_COOKIE = "nexus_layout";
 const SORT_COOKIE = "nexus_sort";
 const PHONE_LAYOUT_COOKIE = "nexus_phone_layout";
 const SIDEBAR_COOKIE = "nexus_sidebar";
-const HOME_COOKIE = "nexus_home";
 const setCookie = (k: string, v: string) => {
   document.cookie = `${k}=${v}; path=/; max-age=31536000; samesite=lax`;
 };
@@ -97,6 +81,7 @@ type Store = {
   homePrefs: HomePrefs;
   setHomePrefs: (p: HomePrefs) => void;
   /** Home section order + hidden ones (Customize, cookie). */
+  /** R16 E1: Home's widgets for this space (saved per user per space on the server). */
   homeLayout: HomeLayout;
   setHomeLayout: (l: HomeLayout) => void;
   clock: Clock;
@@ -162,6 +147,8 @@ type Store = {
   fillImages: (ids: string[]) => void;
   /** VAT-free import limit, USD (G2). */
   importLimitUsd: number;
+  budgetWarn: boolean;
+  setBudgetWarn: (v: boolean) => void;
   /** R15: the current space's id ("" in an old offline snapshot) — receipt uploads go under spaces/<id>/. */
   spaceId: string;
   /** R15: the signed-in user is the admin (Settings → Invite codes). */
@@ -200,6 +187,12 @@ type Store = {
   navOpen: boolean;
   settingsOpen: boolean;
   setSettingsOpen: (o: boolean) => void;
+  /** R16 D1: the open settings section ("" = the default: Account on desktop, the section list on phones). */
+  settingsSection: string | null;
+  /** R16 D4: a space switch is still loading after its moment — Home shows skeletons. */
+  switching: boolean;
+  setSwitching: (v: boolean) => void;
+  openSettings: (section?: string) => void;
   extOpen: boolean;
   /** Round 8 D3: the "Report a problem" form (null = closed) and the Reports screen. */
   reportDraft: ReportDraft | null;
@@ -359,10 +352,11 @@ export function StoreProvider({
     setShopSortState(v);
     saveShopSort(v);
   }, []);
-  const [homeLayout, setHomeLayoutState] = useState<HomeLayout>(() => parseHomeLayout(ui.homeLayout));
+  const [homeLayout, setHomeLayoutState] = useState<HomeLayout>(() => initial.home?.layout ?? fromLegacy(ui.homeLayout) ?? defaultLayout(initial.space?.kind === "shared"));
   const setHomeLayout = useCallback((l: HomeLayout) => {
     setHomeLayoutState(l);
-    setCookie(HOME_COOKIE, homeLayoutCookie(l));
+    // Saved per user per space; a failed save keeps this device's copy until the next load.
+    void saveHomeLayout(l).catch(() => {});
   }, []);
   const upsertStoreSetting = useCallback((row: StoreSetting) => setStoreSettings((prev) => [...prev.filter((x) => x.storeKey !== row.storeKey), row]), []);
   const [selected, setSelectedState] = useState<Set<string>>(() => new Set());
@@ -398,6 +392,7 @@ export function StoreProvider({
   const [imagePending, setImagePending] = useState<Set<string>>(() => new Set());
   const [compareItemId, setCompareItemId] = useState<string | null>(null);
   const [importLimitUsd, setImportLimitUsd] = useState(initial.importLimitUsd ?? 130);
+  const [budgetWarn, setBudgetWarn] = useState(initial.budgetWarn ?? true);
   const [sidebarCollapsed, setSidebarCollapsedState] = useState(!!ui.sidebarCollapsed);
   const setSidebarCollapsed = useCallback((c: boolean) => {
     setSidebarCollapsedState(c);
@@ -410,7 +405,11 @@ export function StoreProvider({
   const [editor, setEditor] = useState<Editor>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<string | null>(null);
+  const [switching, setSwitching] = useState(false);
+  const settingsOpen = settingsSection != null;
+  const setSettingsOpen = useCallback((o: boolean) => setSettingsSection(o ? "" : null), []);
+  const openSettings = useCallback((section?: string) => setSettingsSection(section ?? ""), []);
   const [extOpen, setExtOpen] = useState(false);
   const [reportDraft, setReportDraft] = useState<ReportDraft | null>(null);
   const openReport = useCallback((d?: ReportDraft) => setReportDraft(d ?? {}), []);
@@ -576,7 +575,9 @@ export function StoreProvider({
       setBudget(next.budget);
       setAlerts(next.alerts ?? []);
       setHomePrefs(next.home ?? DEFAULT_HOME_PREFS);
+      setHomeLayoutState(next.home?.layout ?? defaultLayout(next.space?.kind === "shared"));
       setImportLimitUsd(next.importLimitUsd ?? 130);
+      setBudgetWarn(next.budgetWarn ?? true);
       setBase(next);
       if (opts?.keepView) {
         const ids = new Set(next.items.map((i) => i.id));
@@ -651,6 +652,7 @@ export function StoreProvider({
     if (ch.alerts.length || goneAlerts.size) setAlerts((prev) => merge(prev, ch.alerts, goneAlerts, (a) => a.id).sort((a, b) => b.createdAt - a.createdAt).slice(0, 60));
     if (ch.budget) setBudget(ch.budget);
     if (ch.importLimitUsd != null) setImportLimitUsd(ch.importLimitUsd);
+    if (ch.budgetWarn != null) setBudgetWarn(ch.budgetWarn);
     revRef.current = Math.max(revRef.current, ch.rev);
     return summary;
   }, []);
@@ -855,6 +857,8 @@ export function StoreProvider({
       compareItemId,
       setCompareItemId,
       importLimitUsd,
+      budgetWarn,
+      setBudgetWarn,
       spaceId: base.space?.id ?? "",
       admin: !!base.me?.admin,
       space: base.space ?? null,
@@ -883,6 +887,10 @@ export function StoreProvider({
       navOpen,
       settingsOpen,
       setSettingsOpen,
+      settingsSection,
+      openSettings,
+      switching,
+      setSwitching,
       extOpen,
       reportDraft,
       openReport,
@@ -910,7 +918,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [openSettings, setSettingsOpen, loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, budgetWarn, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, settingsSection, switching, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

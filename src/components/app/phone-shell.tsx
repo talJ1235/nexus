@@ -14,7 +14,7 @@ import { usePlusOpen, useStore, type View } from "./store";
 import { useAddActions } from "./add-actions";
 import { AskButton } from "./top-bar";
 import { PhoneSearchResults, rememberSearch } from "./phone-search";
-import { SpaceTile, useMeName } from "./spaces/space-ui";
+import { SpaceLook, useMeName } from "./spaces/space-ui";
 
 /** Phone / tablet (<1024 px) top bar = home-v4 (R14 B2): Box + "Nexus", then the search circle, the Ask circle and the
  *  avatar (Me; a dot when price alerts are unread), 36 px controls with ≥ 40 px tap areas. Search expands in place. */
@@ -78,7 +78,7 @@ export function PhoneTopBar() {
               chip (tile + chevron; the name only when there's room) that never squeezes the logo. */}
           {s.space ? (
             <button type="button" onClick={() => s.setMeOpen(true)} className="me-auto ms-1 flex h-10 min-w-10 items-center gap-1 overflow-hidden rounded-full border border-line bg-surface pe-1.5 ps-[5px]" aria-label={`${t.spaces.switch}: ${s.space.name}`} data-phone-space>
-              <SpaceTile name={s.space.name} color={s.space.color} size={26} />
+              <SpaceLook space={s.space} size={26} />
               <b className="min-w-0 max-w-[96px] truncate text-[13px] font-bold max-[379px]:hidden" data-phone-space-name>{s.space.name}</b>
               <ChevronDown className="size-3.5 shrink-0 text-muted" />
             </button>

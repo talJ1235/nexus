@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { joinSpace } from "@/app/space-actions";
 import { useI18n } from "@/components/providers";
-import { avatarColor, tileColor } from "@/components/app/spaces/colors";
+import { avatarColor } from "@/components/app/spaces/colors";
+import { SpaceTile } from "@/components/app/spaces/tile";
 import { authClient } from "@/lib/auth/client";
 import type { InvitePreview } from "@/lib/spaces";
 import { BoxMark } from "./brand-art";
@@ -65,9 +66,8 @@ export function JoinFlow({ token, preview, days, signedIn, auto, app, provider }
         <>
           <div style={{ marginTop: 72, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 16 }}>
             <div style={{ position: "relative" }}>
-              <span className="ws xl" style={{ width: 72, height: 72, fontSize: 30, borderRadius: 18, background: tileColor(preview.color) }}>
-                {name.trim()[0]?.toUpperCase()}
-              </span>
+              {/* R16 D5: the space's icon or photo, as in the switcher. */}
+              <SpaceTile name={name} color={preview.color} icon={preview.icon} photo={preview.photo} size={72} style={{ borderRadius: 18 }} />
               {preview.inviter && (
                 <span className="av" style={{ position: "absolute", insetInlineEnd: -8, bottom: -6, boxShadow: "0 0 0 3px var(--raised)", background: avatarColor(preview.inviterId ?? "x") }}>
                   {preview.inviter.trim()[0]?.toUpperCase()}

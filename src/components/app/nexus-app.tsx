@@ -14,7 +14,8 @@ import { AddBar, SHOWS_PENDING, type Incoming } from "./add-bar";
 import { PendingCard } from "./pending";
 import { CollectionDialog } from "./collection-dialog";
 import { CommandPalette } from "./command-palette";
-import { SettingsDialog } from "./settings-dialog";
+import { SettingsShell } from "./settings/shell";
+import { BudgetWatch } from "./settings/budget-watch";
 import { ReportDialog } from "./report-dialog";
 import { ReportsSheet } from "./reports-sheet";
 import { ItemActionSheet, ItemShortcuts } from "./quick-actions";
@@ -191,7 +192,8 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <SelectionBar />
       <CollectionDialog />
       <CommandPalette />
-      <SettingsDialog />
+      <SettingsShell />
+      <BudgetWatch />
       <ReportDialog />
       <ReportsSheet />
       <MeSheet />

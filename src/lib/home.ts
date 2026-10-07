@@ -1,5 +1,6 @@
 // Home (the dashboard, Round 13): every number on the page comes from one pure function, `homeModel`.
 // No network, no strings that depend on the language (the UI words them), so scripts/test-home.ts can check it all.
+import type { HomeLayout } from "./home-layout";
 import { capFor, monthForecast, monthKeyIn, monthStartIn, nextMonthKey, type BudgetHistory } from "./budget";
 import { activeSource, countable, lineTotal, PRIORITY_RANK, sourceTotal, spendDate } from "./calc";
 import { convert, type Rates } from "./money";
@@ -203,6 +204,8 @@ export type HomeInput = {
   weekStartsOn?: 0 | 1;
   /** Row/suggestion key → hidden until (ms): "✕" on a Needs-you row, "Not now" on a suggestion. */
   dismissed?: Record<string, number>;
+  /** R16 D1: Settings → Notifications (drop / delivery off = no price-drop or late rows). */
+  notify?: Pick<NotifyPrefs, "drop" | "delivery">;
 };
 
 export type Segment = { key: string; value: number; collectionId: string | null };
@@ -359,12 +362,13 @@ export function homeModel(input: HomeInput) {
   const alertSeen = new Set<string>();
   for (const a of [...alerts].sort((x, y) => y.createdAt - x.createdAt)) {
     if (a.readAt || !["drop", "target", "back_in_stock"].includes(a.kind) || alertSeen.has(a.itemId)) continue;
+    if (input.notify?.drop === false && a.kind !== "back_in_stock") continue;
     const item = byId.get(a.itemId);
     if (!item || item.status !== "to_buy") continue;
     alertSeen.add(a.itemId);
     needs.push({ key: `alert:${a.id}`, kind: "alert", alert: a, item });
   }
-  for (const p of late) needs.push({ key: `late:${p.item.id}`, kind: "late", item: p.item, daysLate: daysBetween(dayKeyIn(p.item.eta!, tz), today) });
+  for (const p of input.notify?.delivery === false ? [] : late) needs.push({ key: `late:${p.item.id}`, kind: "late", item: p.item, daysLate: daysBetween(dayKeyIn(p.item.eta!, tz), today) });
   {
     const order = toBuyAll.filter((i) => i.priority !== "someday");
     const leftOut = toBuyAll.filter((i) => i.priority === "someday");
@@ -655,5 +659,13 @@ export type HomePrefs = {
   dismissed: Record<string, number>;
   /** Phrase "Nexus suggests" with the AI once a day (on by default); off = templates only. kv `pref:home:ai`. */
   aiSuggestions: boolean;
+  /** R16 D1: Settings → Notifications (in the app). Missing in older offline snapshots → all on. */
+  notify?: NotifyPrefs;
+  /** R16 E1: this space's Home layout (or the user's last one); null = never customised → the default preset. */
+  layout?: HomeLayout | null;
 };
-export const DEFAULT_HOME_PREFS: HomePrefs = { dismissed: {}, aiSuggestions: true };
+/** Which in-app notices the user wants: price drops (bell + Needs you; `minDropPct` is the tracker's threshold),
+ *  budget at 80 %, deliveries due/late. Shared-list activity is the per-device "live activity" switch. */
+export type NotifyPrefs = { drop: boolean; minDropPct: number; budget: boolean; delivery: boolean };
+export const DEFAULT_NOTIFY: NotifyPrefs = { drop: true, minDropPct: 5, budget: true, delivery: true };
+export const DEFAULT_HOME_PREFS: HomePrefs = { dismissed: {}, aiSuggestions: true, notify: DEFAULT_NOTIFY };

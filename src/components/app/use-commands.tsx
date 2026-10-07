@@ -11,6 +11,8 @@ import { CURRENCIES } from "@/lib/money";
 import { PALETTES } from "@/lib/palette";
 import { toast } from "@/lib/toast";
 import { PaletteSwatch } from "./settings-dialog";
+
+const SETTINGS_SECTIONS = ["account", "display", "notif", "ai", "calendar", "memory", "data", "general", "people", "budget", "danger"] as const;
 import { useStore } from "./store";
 import { PHONE, useMedia } from "@/components/ui/use-media";
 
@@ -48,6 +50,15 @@ export function useCommands(): AppCommand[] {
       : { id: "layout", group: "actions", label: s.layout === "cards" ? t.view.table : t.view.cards, keywords: `layout ${t.view.cards} ${t.view.table}`, icon: s.layout === "cards" ? <Rows3 /> : <LayoutGrid />, run: () => s.setLayout(s.layout === "cards" ? "table" : "cards") },
     // Settings
     { id: "settings", group: "settings", label: t.settings.open, keywords: "settings preferences הגדרות", icon: <Settings2 />, run: () => s.setSettingsOpen(true), testId: "open-settings" },
+    // R16 D1: one entry per section (deep link /settings/<section>).
+    ...SETTINGS_SECTIONS.filter((id) => s.space?.kind === "shared" || (id !== "people" && id !== "danger")).map((id) => ({
+      id: `settings-${id}`,
+      group: "settings" as const,
+      label: `${t.sx.title}: ${t.sx.sections[id]}`,
+      keywords: `settings ${t.sx.keywords[id]} הגדרות`,
+      icon: <Settings2 />,
+      run: () => s.openSettings(id),
+    })),
     ...(["light", "dark", "system"] as const).map((m) => ({
       id: `theme-${m}`,
       group: "settings" as const,

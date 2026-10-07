@@ -10,7 +10,7 @@ import { spacePrefSet } from "@/lib/db-scoped/prefs";
 import { BUDGET_KV_PREFIX, capFor, monthKeyIn, type BudgetHistory } from "@/lib/budget";
 import type { Conflict } from "@/lib/conflict";
 import { spacePrefBy } from "@/lib/db-scoped/prefs";
-import { loadBudgetHistory } from "@/lib/data";
+import { BUDGET_WARN_KEY, loadBudgetHistory } from "@/lib/data";
 import type { StoreSetting } from "@/lib/types";
 
 const storeSettingInput = z.strictObject({
@@ -36,6 +36,14 @@ export async function saveImportLimit(usd: number): Promise<number> {
   const s = scoped(await requireCtx("edit"));
   const v = z.number().positive().max(100_000).parse(usd);
   await spacePrefSet(s, IMPORT_LIMIT_KEY, String(v));
+  return v;
+}
+
+/** R16 D2: Space settings → Budget → "Warn everyone at 80%". */
+export async function saveBudgetWarn(on: boolean): Promise<boolean> {
+  const s = scoped(await requireCtx("edit"));
+  const v = z.boolean().parse(on);
+  await spacePrefSet(s, BUDGET_WARN_KEY, v ? null : "off");
   return v;
 }
 
