@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings · desktop</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.li{display:flex;align-items:center;gap:12px;min-height:54px;padding:8px 16px}
+.li+.li{border-top:1px solid var(--line-in)}
+.li .grow{flex:1;min-width:0;line-height:1.35}
+.tile4{border:1px solid var(--line);border-radius:12px;background:var(--raised);padding:18px;display:flex;flex-direction:column;gap:12px;color:var(--ink);text-align:start}
+.wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.wk>div{border-radius:8px;background:var(--s);border:1px solid var(--line-in);height:74px;padding:6px;display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--faint)}
+.ev{border-radius:5px;padding:2px 5px;font-size:11px;font-weight:600;color:var(--ink2);background:var(--info-t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev.w{background:var(--warn-t)}
+.sx-h{padding-inline-end:40px}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:1366px;height:768px;position:relative;overflow:hidden;background:var(--bg)">
+  <div style="position:absolute;inset:8px 8px 8px 248px;background:var(--raised);border:1px solid var(--line);border-radius:12px"></div>
+  <div class="scrim"></div>
+  <div class="modal" role="dialog" aria-label="Settings" style="left:73px;top:34px;width:1220px;height:700px;display:flex;overflow:hidden">
+  <a class="btn sm icon ghost" href="#" aria-label="Close settings" style="position:absolute;top:16px;inset-inline-end:16px;z-index:2"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg></a>
+
+  <aside style="width:240px;flex-shrink:0;padding:14px 10px 10px;display:flex;flex-direction:column;gap:1px;background:var(--s);border-inline-end:1px solid var(--line-in)">
+    <div style="display:flex;align-items:center;gap:8px;padding:0 10px;height:30px"><b style="font-size:15px;flex:1">Settings</b><span class="kbd">Esc</span></div>
+    <label class="input" style="height:34px;border-radius:8px;margin:6px 0 4px;font-size:13px;padding:0 10px" for="sxq"><svg class="i sm" viewBox="0 0 24 24" style="color:var(--faint)"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input id="sxq" placeholder="Search settings" style="font-size:13px"><span class="kbd">/</span></label>
+
+    <div class="sx-group"><span class="av xs c1">T</span>You</div>
+    <sc-for list="{{you}}" as="n" hint-placeholder-count="6">
+      <button class="{{n.cls}}" onClick="{{n.go}}"><svg class="i" viewBox="0 0 24 24"><path d="{{n.d}}"></path></svg>{{n.label}}</button>
+    </sc-for>
+
+    <div class="sx-group" style="padding-top:18px"><span class="tile t22 gr-green"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg></span><span style="flex:1;color:var(--ink2)">Jacoby Home</span><span class="badge" style="height:18px;font-size:11px">Owner</span></div>
+    <sc-for list="{{space}}" as="n" hint-placeholder-count="4">
+      <a class="sx-nav" href="SpaceSettings-desktop.dc.html"><svg class="i" viewBox="0 0 24 24"><path d="{{n.d}}"></path></svg>{{n.label}}</a>
+    </sc-for>
+
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:1px;border-top:1px solid var(--line-in);padding-top:8px">
+      <a class="sx-nav" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z M4 22v-7"></path></svg>Report a problem</a>
+      <a class="sx-nav" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9"></path></svg>Sign out</a>
+    </div>
+  </aside>
+
+  <main style="flex:1;min-width:0;padding:22px 36px 24px;overflow:hidden">
+  <div style="max-width:880px;display:flex;flex-direction:column;gap:22px;height:100%">
+
+    <sc-if value="{{isAccount}}" hint-placeholder-val="{{ true }}">
+      <div class="sx-h"><h1>Account &amp; security</h1></div>
+      <div style="display:flex;gap:16px;align-items:center;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--s)">
+        <span class="av xl c1">T</span>
+        <span style="flex:1;line-height:1.35"><b style="font-size:16px">Tal Jacoby</b><br><span class="sub">tal.jacoby10@gmail.com</span></span>
+        <a class="btn sm" href="#">Edit name</a>
+        <div style="width:1px;align-self:stretch;background:var(--line-in);margin:0 6px"></div>
+        <div class="ring" style="--p:66%"><span>2/3</span></div>
+        <span style="line-height:1.35;width:150px"><b>Security checkup</b><br><a class="link" href="#" style="font-size:13px;font-weight:500">Review 1 device</a></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+        <div>
+          <p class="sec">Sign-in</p>
+          <div class="card">
+            <div class="li"><span class="g">G</span><span class="grow"><b>Google</b><br><span class="tiny">Main sign-in</span></span><span class="badge ok">Connected</span></div>
+            <div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"></rect><path d="M11 18h2"></path></svg></span><span class="grow"><b>Passkey · Pixel 8</b><br><span class="tiny">Last used today</span></span><a class="btn sm icon ghost" href="#" aria-label="Remove passkey"><svg class="i sm" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg></a></div>
+            <div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg></span><span class="grow"><b>Passkey · Windows Hello</b><br><span class="tiny">Last used yesterday</span></span><a class="btn sm icon ghost" href="#" aria-label="Remove passkey"><svg class="i sm" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg></a></div>
+            <a class="li" href="#" style="font-weight:600"><span class="ic" style="background:transparent"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></span>Add passkey</a>
+          </div>
+        </div>
+        <div>
+          <p class="sec">Devices</p>
+          <div class="card">
+            <div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg></span><span class="grow"><b>This computer</b><br><span class="tiny">Chrome · Windows · active now</span></span><span class="badge ok">This one</span></div>
+            <div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"></rect><path d="M11 18h2"></path></svg></span><span class="grow"><b>Pixel 8</b><br><span class="tiny">Nexus app · 1 hour ago</span></span><a class="btn sm ghost" href="#">Sign out</a></div>
+            <div class="li" style="background:var(--warn-t)"><span class="ic warn"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"></rect><path d="M11 18h2"></path></svg></span><span class="grow"><b>iPad · new</b><br><span class="tiny">Haifa · Oct 6, 22:10</span></span><a class="btn sm" href="#">Review</a></div>
+          </div>
+          <a class="btn sm block" href="#" style="margin-top:10px;height:36px">Sign out all other devices</a>
+        </div>
+      </div>
+      <div class="card" style="margin-top:auto"><div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 9h18v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z M3 9l2-5h14l2 5 M10 13h4"></path></svg></span><span class="grow"><b>Invite codes</b> <span class="badge info" style="margin-inline-start:6px">Admin</span><br><span class="tiny">3 active · 7 people joined</span></span><a class="btn sm" href="#">Manage</a></div></div>
+    </sc-if>
+
+    <sc-if value="{{isDisplay}}" hint-placeholder-val="{{ false }}">
+      <div class="sx-h"><h1>Display</h1></div>
+      <div>
+        <p class="sec">Theme</p>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+          <button class="pick on"><span class="mini" style="background:#eeede9"><i style="width:26%;background:#f8f7f4;border-inline-end:1px solid #dcdad3"></i><i style="flex:1;padding:8px;display:flex;flex-direction:column;gap:5px"><i style="height:7px;width:60%;border-radius:3px;background:#c9c6be"></i><i style="height:20px;border-radius:5px;background:#fff;border:1px solid #dcdad3"></i></i></span><span class="lbl">Light<span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span></span></button>
+          <button class="pick"><span class="mini" style="background:#0b0b0b"><i style="width:26%;background:#141414;border-inline-end:1px solid #2c2c2c"></i><i style="flex:1;padding:8px;display:flex;flex-direction:column;gap:5px"><i style="height:7px;width:60%;border-radius:3px;background:#3a3a3a"></i><i style="height:20px;border-radius:5px;background:#181818;border:1px solid #2c2c2c"></i></i></span><span class="lbl">Dark</span></button>
+          <button class="pick"><span class="mini" style="background:linear-gradient(105deg,#eeede9 50%,#0b0b0b 50%)"><i style="width:26%;background:#f8f7f4"></i><i style="flex:1;padding:8px;display:flex;flex-direction:column;gap:5px"><i style="height:7px;width:60%;border-radius:3px;background:#8a8984"></i><i style="height:20px;border-radius:5px;background:linear-gradient(105deg,#fff 40%,#181818 40%)"></i></i></span><span class="lbl">Match device</span></button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px">
+        <div>
+          <p class="sec">Colour</p>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+            <button class="pick on" style="flex-direction:row;align-items:center;padding:12px"><span style="display:flex"><span class="sw" style="background:#171717;width:24px;height:24px"></span><span class="sw" style="background:#f59e0b;width:24px;height:24px;margin-inline-start:-6px;box-shadow:0 0 0 2px var(--raised)"></span></span><span class="lbl" style="flex:1;padding:0">Graphite<span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span></span></button>
+            <button class="pick" style="flex-direction:row;align-items:center;padding:12px"><span style="display:flex"><span class="sw" style="background:#7c4dff;width:24px;height:24px"></span><span class="sw" style="background:#fb7a3c;width:24px;height:24px;margin-inline-start:-6px;box-shadow:0 0 0 2px var(--raised)"></span></span><span class="lbl" style="flex:1;padding:0">Plum</span></button>
+          </div>
+        </div>
+        <div>
+          <p class="sec">Language</p>
+          <div class="seg lg" style="width:100%"><button class="on" style="flex:1;justify-content:center">English</button><button style="flex:1;justify-content:center" lang="he">עברית</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M9 8h4a3 3 0 0 1 0 6h-3v3 M9 8v9"></path></svg></span><span class="grow"><b>Currency</b><br><span class="tiny">Rates updated 2 hours ago</span></span><span class="sel">₪ Israeli shekel<svg class="i sm" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></span></div>
+        <div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14 M12 5l7 7-7 7"></path></svg></span><span class="grow"><b>Motion</b><br><span class="tiny">Opening animation, transitions</span></span><span class="sel">Match device<svg class="i sm" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></span></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isNotif}}" hint-placeholder-val="{{ false }}">
+      <div class="sx-h"><h1>Notifications</h1></div>
+      <div>
+        <p class="sec">Where</p>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+          <button class="pick on" style="flex-direction:row;align-items:center;padding:14px;gap:12px"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="2"></rect><path d="M14 9h5 M14 13h3"></path></svg></span><span style="flex:1;line-height:1.3"><b>In the app</b><br><span class="tiny">Bell and toasts</span></span><span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span></button>
+          <button class="pick" style="flex-direction:row;align-items:center;padding:14px;gap:12px;opacity:.6" aria-disabled="true"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"></rect><path d="M11 18h2"></path></svg></span><span style="flex:1;line-height:1.3"><b>On your phone</b><br><span class="tiny">Push notifications</span></span><span class="badge">Soon</span></button>
+        </div>
+      </div>
+      <div>
+        <p class="sec">Tell me when</p>
+        <div class="card">
+          <div class="li"><span class="ic ok"><svg class="i" viewBox="0 0 24 24"><path d="M22 17l-8.5-8.5-5 5L2 7 M16 17h6v-6"></path></svg></span><span class="grow"><b>A tracked price drops</b></span><span class="sel">Any drop<svg class="i sm" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></span><span class="tgl on" role="switch" aria-checked="true" aria-label="Price drops"></span></div>
+          <div class="li"><span class="ic"><span class="av xs c2">N</span></span><span class="grow"><b>Someone changes a shared list</b><br><span class="tiny">“Noa added 3 items”</span></span><span class="tgl on" role="switch" aria-checked="true" aria-label="Shared list changes"></span></div>
+          <div class="li"><span class="ic warn"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"></path></svg></span><span class="grow"><b>Budget reaches 80%</b></span><span class="tgl on" role="switch" aria-checked="true" aria-label="Budget warning"></span></div>
+          <div class="li"><span class="ic info"><svg class="i" viewBox="0 0 24 24"><path d="M3 7h12v10H3z M15 10h4l2 3v4h-6"></path><circle cx="7" cy="18" r="1.6"></circle><circle cx="18" cy="18" r="1.6"></circle></svg></span><span class="grow"><b>A delivery is due or late</b></span><span class="tgl on" role="switch" aria-checked="true" aria-label="Deliveries"></span></div>
+          <div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg></span><span class="grow"><b>A sale ends</b></span><span class="tgl" role="switch" aria-checked="false" aria-label="Sales ending"></span></div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isAi}}" hint-placeholder-val="{{ false }}">
+      <div class="sx-h"><h1>Assistant &amp; AI</h1><a class="btn sm" href="#" style="border-radius:999px;gap:8px"><svg class="i sm" viewBox="0 0 24 24" style="color:var(--spark)"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z"></path></svg>Ask Nexus</a></div>
+      <div>
+        <p class="sec">Nexus suggests on Home</p>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+          <button class="pick on" style="padding:16px;gap:12px"><span style="display:flex;align-items:center;gap:10px"><span class="ic" style="background:var(--warn-t);color:var(--spark)"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg></span><b style="flex:1">AI + rules</b><span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span></span><span style="border-radius:10px;background:var(--s);padding:10px 12px;font-size:13px;color:var(--ink2);line-height:1.4">“Coffee beans run out around Friday — Ivory has them 12% cheaper.”</span></button>
+          <button class="pick" style="padding:16px;gap:12px"><span style="display:flex;align-items:center;gap:10px"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16 M4 12h10 M4 18h6"></path></svg></span><b style="flex:1">Rules only</b><span class="badge">No AI</span></span><span style="border-radius:10px;background:var(--s);padding:10px 12px;font-size:13px;color:var(--ink2);line-height:1.4">Coffee beans · bought every 3 weeks · due Friday</span></button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-5-5L5 21"></path></svg></span><span class="grow"><b>Product pictures</b><br><span class="tiny">Found with Google Images</span></span><span class="tgl on" role="switch" aria-checked="true" aria-label="Product pictures"></span></div>
+        <div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z M5 17a3 3 0 0 1 3-3h11 M9 8h6"></path></svg></span><span class="grow"><b>Memory</b><br><span class="tiny">12 things the assistant knows about you</span></span><button class="btn sm" onClick="{{goMemory}}">Open</button></div>
+        <div class="li"><span class="ic ok"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span><span class="grow"><b>Status</b><br><span class="tiny">Last AI reply 2 minutes ago · backup model ready</span></span><span class="badge ok">Working</span></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isCal}}" hint-placeholder-val="{{ false }}">
+      <div class="sx-h"><h1>Calendar</h1></div>
+      <div style="display:flex;gap:16px;align-items:center;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--s)">
+        <span class="ic" style="width:48px;height:48px;border-radius:12px;background:var(--raised);border:1px solid var(--line)"><svg class="i lg" viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M3 10h18 M8 2v4 M16 2v4"></path></svg></span>
+        <span style="flex:1;min-width:0;line-height:1.4"><b>Calendar feed</b><br><span class="mono tiny">https://nexus-ashen-beta.vercel.app/api/ics/k_9f3c…</span></span>
+        <a class="btn sm" href="#"><svg class="i sm" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>Copy</a>
+        <a class="btn sm pri" href="#">Add to Google Calendar</a>
+      </div>
+      <div>
+        <p class="sec">This week in your calendar</p>
+        <div class="wk">
+          <div>Sun</div><div>Mon<span class="ev">PLA arrives</span></div><div>Tue</div><div>Wed<span class="ev w">Fan sale ends</span></div><div>Thu<span class="ev">NOCO arrives</span></div><div>Fri</div><div>Sat</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="li"><span class="ic info"><svg class="i" viewBox="0 0 24 24"><path d="M3 7h12v10H3z M15 10h4l2 3v4h-6"></path><circle cx="7" cy="18" r="1.6"></circle><circle cx="18" cy="18" r="1.6"></circle></svg></span><span class="grow"><b>Deliveries</b></span><span class="tgl on" role="switch" aria-checked="true" aria-label="Deliveries"></span></div>
+        <div class="li"><span class="ic warn"><svg class="i" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg></span><span class="grow"><b>Sales ending</b></span><span class="tgl on" role="switch" aria-checked="true" aria-label="Sales ending"></span></div>
+        <div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span><span class="grow"><b>Project dates</b></span><span class="tgl" role="switch" aria-checked="false" aria-label="Project dates"></span></div>
+      </div>
+      <div style="margin-top:auto;display:flex;align-items:center;gap:12px"><span class="sub" style="flex:1">Received or deleted items leave the calendar on the next sync.</span><a class="btn sm dng-o" href="#">Reset link</a></div>
+    </sc-if>
+
+    <sc-if value="{{isMemory}}" hint-placeholder-val="{{ false }}">
+      <div class="sx-h"><h1>Memory <span class="badge" style="vertical-align:4px">12</span></h1><label class="input" style="height:34px;width:220px;border-radius:8px;font-size:13px" for="mq"><svg class="i sm" viewBox="0 0 24 24" style="color:var(--faint)"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input id="mq" placeholder="Search memory" style="font-size:13px"></label><a class="btn sm dng-o" href="#">Clear all</a></div>
+      <div class="card" style="flex:1;min-height:0;overflow:hidden">
+        <sc-for list="{{facts}}" as="f" hint-placeholder-count="7">
+          <div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="{{f.d}}"></path></svg></span><span class="grow"><b style="font-weight:500">{{f.t}}</b><br><span class="tiny">{{f.s}}</span></span><a class="btn sm icon ghost" href="#" aria-label="Forget"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 6h18 M8 6V4h8v2 M6 6l1 14h10l1-14"></path></svg></a></div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isData}}" hint-placeholder-val="{{ false }}">
+      <div class="sx-h"><h1>Data</h1><span class="badge ok"><svg class="i sm" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>Last backup Oct 3, 21:40</span></div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+        <a class="tile4" href="#"><span class="ic ok" style="width:44px;height:44px"><svg class="i lg" viewBox="0 0 24 24"><path d="M12 3v12 M7 10l5 5 5-5 M4 19h16"></path></svg></span><span><b style="font-size:15px">Back up</b><br><span class="sub">Everything in one file</span></span></a>
+        <a class="tile4" href="#"><span class="ic info" style="width:44px;height:44px"><svg class="i lg" viewBox="0 0 24 24"><path d="M12 21V9 M7 14l5-5 5 5 M4 5h16"></path></svg></span><span><b style="font-size:15px">Restore</b><br><span class="sub">Merge or replace from a backup</span></span></a>
+        <a class="tile4" href="#"><span class="ic" style="width:44px;height:44px"><svg class="i lg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18 M3 15h18 M9 3v18"></path></svg></span><span><b style="font-size:15px">Import a spreadsheet</b><br><span class="sub">CSV · Excel · Google Sheets</span></span></a>
+        <a class="tile4" href="#"><span class="ic" style="width:44px;height:44px"><svg class="i lg" viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z M14 2v6h6 M9 14h6 M9 18h4"></path></svg></span><span><b style="font-size:15px">Import receipts</b><br><span class="sub">Store invoices with VAT</span></span></a>
+      </div>
+      <div class="card"><div class="li"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h16v16H4z M4 9h16 M9 9v11"></path></svg></span><span class="grow"><b>Export items</b><br><span class="tiny">A CSV of every item in this space</span></span><a class="btn sm" href="#">Export</a></div></div>
+    </sc-if>
+
+  </div>
+  </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"section":{"editor":"enum","options":["account","display","notif","ai","calendar","memory","data"],"default":"account"},"$preview":{"width":1366,"height":768}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) { if (prev.section !== this.props.section && this.state && this.state.sec) this.setState({ sec: null }); }
+  renderVals() {
+    const p = this.props;
+    const sec = (this.state && this.state.sec) || p.section || 'account';
+    const go = (k) => () => this.setState({ sec: k });
+    const you = [
+      ['account', 'Account & security', 'M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z M12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z M8.5 16.5c.8-1.6 2-2.4 3.5-2.4s2.7.8 3.5 2.4'],
+      ['display', 'Display', 'M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4 M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
+      ['notif', 'Notifications', 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.9 1.9 0 0 0 3.4 0'],
+      ['ai', 'Assistant & AI', 'M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z'],
+      ['calendar', 'Calendar', 'M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M3 10h18 M8 2v4 M16 2v4'],
+      ['memory', 'Memory', 'M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z M5 17a3 3 0 0 1 3-3h11 M9 8h6'],
+      ['data', 'Data', 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6 M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3']
+    ].map(([k, label, d]) => ({ label, d, go: go(k), cls: 'sx-nav' + (k === sec ? ' on' : '') }));
+    const space = [
+      ['General', 'M4 6h10 M18 6h2 M4 12h4 M12 12h8 M4 18h12 M16 4v4 M10 10v4 M18 16v4'],
+      ['People & invites', 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M22 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.8'],
+      ['Budget', 'M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z M16 14.5h.01'],
+      ['Danger zone', 'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z M12 9v4 M12 17h.01']
+    ].map(([label, d]) => ({ label, d }));
+    const cart = 'M2 3h3l2.7 12.4a1.5 1.5 0 0 0 1.5 1.1h8.6a1.5 1.5 0 0 0 1.5-1.1L21 7H6';
+    const facts = [
+      ['Buys coffee beans about every 3 weeks', 'Learned Oct 2 · from your history', 'M17 8h1a4 4 0 0 1 0 8h-1 M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z M6 2v3 M10 2v3 M14 2v3'],
+      ['Prefers KSP and Ivory for electronics', 'You told Ask · Sep 28', cart],
+      ['Tools budget is ₪400 a month', 'You told Ask · Sep 21', 'M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z'],
+      ['Building a 3D-printer enclosure', 'Learned from a project · Sep 19', 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z'],
+      ['Shares Jacoby Home with Noa and Yoav', 'From your spaces', 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
+      ['Waits for sales on big purchases', 'You told Ask · Sep 12', 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z'],
+      ['Likes Elegoo PLA for 3D printing', 'Learned Sep 9 · from your history', 'M21 16V8l-9-5-9 5v8l9 5z M3.3 7 12 12l8.7-5 M12 22V12']
+    ].map(([t, s, d]) => ({ t, s, d }));
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      you, space, facts,
+      goMemory: go('memory'),
+      isAccount: sec === 'account', isDisplay: sec === 'display', isNotif: sec === 'notif', isAi: sec === 'ai',
+      isCal: sec === 'calendar', isMemory: sec === 'memory', isData: sec === 'data'
+    };
+  }
+}
+</script>
+</body>
+</html>

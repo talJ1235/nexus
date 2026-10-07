@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Customise Home · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.top{height:56px;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;flex-shrink:0;border-bottom:1px solid var(--line-in)}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:136px;grid-auto-flow:dense;gap:10px;position:relative}
+.g2 .wg{overflow:hidden}
+.wg .tb.on{background:var(--sel);color:var(--ink)}
+.wg{padding:12px;gap:6px;min-height:92px}
+.wg .wh{font-size:11px}
+.big{font-size:22px}
+.wiggle{animation:wig .32s ease-in-out infinite alternate}
+@keyframes wig{from{transform:rotate(-.6deg)}to{transform:rotate(.6deg)}}
+@media (prefers-reduced-motion:reduce){.wiggle{animation:none}}
+.fh{display:inline-flex;height:28px;border-radius:8px;background:var(--s2);padding:2px}
+.fh>button{height:24px;padding:0 8px;border-radius:6px;border:0;background:transparent;font-size:11.5px;font-weight:600;color:var(--muted)}
+.fh>button.on{background:var(--raised);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.tb{width:32px;height:32px}
+.li{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 14px;width:100%;border:0;background:transparent;text-align:start;color:var(--ink);font-size:15px}
+.li+.li{border-top:1px solid var(--line-in)}
+.new{font-size:10px;font-weight:700;color:var(--ok);background:var(--ok-t);border-radius:4px;padding:1px 5px}
+.up{animation:up .3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes up{from{transform:translateY(40%)}to{transform:none}}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--info);flex-shrink:0}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}
+.rw{display:flex;align-items:center;gap:8px;font-size:13px}
+.rw .r{margin-inline-start:auto;color:var(--muted);font-size:12px}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:390px;height:844px;display:flex;flex-direction:column;background:var(--screen);overflow:hidden;position:relative">
+  <div class="top"><b style="font-size:17px;flex:1">Customise Home</b><button class="btn sm ghost" onClick="{{reset}}">Reset</button><button class="btn sm pri" style="height:36px">Done</button></div>
+  <div style="display:flex;gap:8px;padding:12px 16px;overflow:hidden;flex-shrink:0">
+    <sc-for list="{{presets}}" as="p" hint-placeholder-count="4"><button class="{{p.cls}}" onClick="{{p.pick}}" style="height:36px">{{p.n}}</button></sc-for>
+  </div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:4px 16px 0">
+    <div class="g2 cz">
+      <sc-for list="{{widgets}}" as="w" hint-placeholder-count="7">
+        <sc-if value="{{w.slot}}" hint-placeholder-val="{{ false }}"><div class="slot" style="{{w.span}}"></div></sc-if>
+        <sc-if value="{{w.real}}" hint-placeholder-val="{{ true }}">
+        <div class="{{w.cls}}" style="{{w.span}}">
+          <div class="wh"><svg class="i sm" viewBox="0 0 24 24" style="color:var(--faint)"><path d="M9 5h.01 M9 12h.01 M9 19h.01 M15 5h.01 M15 12h.01 M15 19h.01"></path></svg><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{w.t}}</span>
+            <span class="tools"><button class="{{w.tallCls}}" onClick="{{w.tall}}" aria-label="Double height"><svg viewBox="0 0 24 24"><path d="M12 3v18 M8 7l4-4 4 4 M8 17l4 4 4-4"></path></svg></button><button class="tb" onClick="{{w.hide}}" aria-label="Hide"><svg viewBox="0 0 24 24"><path d="M5 12h14"></path></svg></button></span>
+          </div>
+          <sc-if value="{{w.kStat}}" hint-placeholder-val="{{ false }}"><span class="big num">{{w.big}}</span><span class="tiny">{{w.sub}}</span></sc-if>
+          <sc-if value="{{w.kText}}" hint-placeholder-val="{{ false }}"><span style="font-size:13.5px;line-height:1.4">{{w.text}}</span></sc-if>
+          <sc-if value="{{w.kList}}" hint-placeholder-val="{{ false }}"><sc-for list="{{w.rows}}" as="r" hint-placeholder-count="2"><div class="rw"><span class="{{r.dot}}"></span>{{r.a}}<span class="r">{{r.b}}</span></div></sc-for></sc-if>
+          <div class="fh" style="align-self:flex-start;margin-top:2px"><button class="{{w.halfCls}}" onClick="{{w.toHalf}}">Half</button><button class="{{w.fullCls}}" onClick="{{w.toFull}}">Full</button></div>
+        </div>
+        </sc-if>
+      </sc-for>
+      <sc-if value="{{dragging}}" hint-placeholder-val="{{ false }}">
+        <div class="wg lifted" style="position:absolute;left:24px;right:-8px;top:160px;pointer-events:none">
+          <div class="wh"><svg class="i sm" viewBox="0 0 24 24"><path d="M9 5h.01 M9 12h.01 M9 19h.01 M15 5h.01 M15 12h.01 M15 19h.01"></path></svg>Nexus suggests</div>
+          <span style="font-size:13.5px;line-height:1.4">Coffee beans run out around Friday — Ivory has them 12% cheaper.</span>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+  <div style="padding:12px 16px 24px;border-top:1px solid var(--line-in);background:var(--screen);flex-shrink:0">
+    <button class="btn block lg" onClick="{{openAdd}}"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Add widget<span class="badge" style="margin-inline-start:4px">{{trayCount}}</span></button>
+  </div>
+
+  <sc-if value="{{adding}}" hint-placeholder-val="{{ false }}">
+    <button class="scrim" onClick="{{closeAdd}}" aria-label="Close" style="border:0"></button>
+    <div class="sheet up" style="padding:0 12px 24px">
+      <div class="grab"></div>
+      <div style="padding:6px 6px 10px"><b style="font-size:16px">Add a widget</b></div>
+      <div class="card">
+        <sc-for list="{{tray}}" as="t" hint-placeholder-count="6">
+          <button class="li" onClick="{{t.add}}"><span class="ic" style="width:34px;height:34px;border-radius:9px"><svg class="i sm" viewBox="0 0 24 24"><path d="{{t.d}}"></path></svg></span><span style="flex:1">{{t.t}}</span><sc-if value="{{t.isNew}}" hint-placeholder-val="{{ false }}"><span class="new">NEW</span></sc-if><svg class="i sm" viewBox="0 0 24 24" style="color:var(--muted)"><path d="M12 5v14M5 12h14"></path></svg></button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"preset":{"editor":"enum","options":["household","maker","deals","minimal"],"default":"household"},"state":{"editor":"enum","options":["editing","dragging","add-sheet"],"default":"dragging"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) { if (prev.preset !== this.props.preset || prev.state !== this.props.state) this.setState({ layout: null, custom: false, adding: null }); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const W = {
+      left: { t: 'Left to buy', k: 'stat', big: '₪2,140', sub: '14 items', d: 'M2 3h3l2.7 12.4a1.5 1.5 0 0 0 1.5 1.1h8.6a1.5 1.5 0 0 0 1.5-1.1L21 7H6' },
+      budget: { t: 'Budget', k: 'stat', big: '62%', sub: '₪1,860 / 3,000', d: 'M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z' },
+      way: { t: 'On the way', k: 'stat', big: '3', sub: 'Next: Thu', d: 'M3 7h12v10H3z M15 10h4l2 3v4h-6' },
+      saved: { t: 'Saved', k: 'stat', big: '₪412', sub: 'This year', d: 'M12 2v20 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6' },
+      suggest: { t: 'Nexus suggests', k: 'text', text: 'Coffee beans run out around Friday — Ivory has them 12% cheaper.', d: 'M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z' },
+      needs: { t: 'Needs you', k: 'list', rows: [['NOCO received?', 'Late', 'warn'], ['Fan sale', 'Wed', 'info'], ['Milk low', 'Today', 'info'], ['Lamp −9%', 'Now', 'ok'], ['Groceries 78%', 'Oct', 'warn']], d: 'M12 8v4 M12 16h.01 M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z' },
+      activity: { t: 'Space today', k: 'list', isNew: true, rows: [['Noa added 3 items', '10:42', 'c2']], d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
+      drops: { t: 'Price drops', k: 'list', isNew: true, rows: [['Elegoo PLA', '−18%', 'ok'], ['Desk lamp', '−9%', 'ok'], ['Coffee beans', '−12%', 'ok'], ['HDMI cable', '−20%', 'ok'], ['Dish soap', '−7%', 'ok']], d: 'M22 17l-8.5-8.5-5 5L2 7 M16 17h6v-6' },
+      projects: { t: 'Projects', k: 'list', rows: [['Printer enclosure', '6/9', 'info'], ['Balcony garden', '2/7', 'info'], ['Kitchen shelves', '1/4', 'info'], ['Bike repair', 'Done', 'ok']], d: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
+      vslast: { t: 'Vs last month', k: 'stat', isNew: true, big: '−8%', sub: '₪160 less', d: 'M3 3v18h18 M7 14l4-4 4 4 5-5' },
+      nextdel: { t: 'Next delivery', k: 'stat', isNew: true, big: 'Thu', sub: 'NOCO charger', d: 'M3 7h12v10H3z M15 10h4l2 3v4h-6' },
+      most: { t: 'Most bought', k: 'list', isNew: true, rows: [['Milk', '9×', 'info']], d: 'M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z' }
+    };
+    const P = {
+      household: [['left', 'H', 1], ['budget', 'H', 1], ['suggest', 'F', 1], ['needs', 'H', 2], ['way', 'H', 1], ['saved', 'H', 1], ['activity', 'F', 1]],
+      maker: [['projects', 'F', 2], ['suggest', 'F', 1], ['left', 'H', 1], ['drops', 'H', 1], ['way', 'H', 1], ['budget', 'H', 1]],
+      deals: [['drops', 'F', 2], ['saved', 'H', 1], ['vslast', 'H', 1], ['suggest', 'F', 1], ['nextdel', 'H', 1], ['budget', 'H', 1]],
+      minimal: [['left', 'H', 1], ['budget', 'H', 1], ['suggest', 'F', 1]]
+    };
+    const preset = s.preset || p.preset || 'household';
+    const layout = s.layout || P[preset];
+    const setLayout = (l) => this.setState({ layout: l, custom: true, adding: false });
+    const st = p.state || 'dragging';
+    const dragging = st === 'dragging' && !s.layout && preset === 'household';
+    const widgets = [];
+    layout.forEach(([id, size, h], i) => {
+      const w = W[id];
+      h = h || 1;
+      if (dragging && id === 'suggest') { widgets.push({ slot: true, real: false, span: 'grid-column:span 2' }); return; }
+      widgets.push({
+        slot: false, real: true, t: w.t, big: w.big, sub: w.sub, text: w.text,
+        cls: 'wg' + (st === 'editing' || st === 'dragging' ? ' wiggle' : ''),
+        rows: (w.rows || []).slice(0, h === 2 ? 5 : 2).map(([a, b, dot]) => ({ a, b, dot: 'dot ' + dot })),
+        tallCls: 'tb' + (h === 2 ? ' on' : ''),
+        tall: () => setLayout(layout.map((x, j) => j === i ? [x[0], x[1], (x[2] || 1) === 2 ? 1 : 2] : x)),
+        kStat: w.k === 'stat', kText: w.k === 'text', kList: w.k === 'list',
+        span: 'grid-column:span ' + (size === 'F' ? 2 : 1) + ';grid-row:span ' + h,
+        halfCls: size === 'H' ? 'on' : '', fullCls: size === 'F' ? 'on' : '',
+        toHalf: () => setLayout(layout.map((x, j) => j === i ? [x[0], 'H', x[2]] : x)),
+        toFull: () => setLayout(layout.map((x, j) => j === i ? [x[0], 'F', x[2]] : x)),
+        hide: () => setLayout(layout.filter((_, j) => j !== i))
+      });
+    });
+    const used = layout.map((x) => x[0]);
+    const tray = Object.keys(W).filter((id) => used.indexOf(id) < 0).map((id) => ({ t: W[id].t, d: W[id].d, isNew: !!W[id].isNew, add: () => setLayout(layout.concat([[id, 'H', 1]])) }));
+    const presets = [['household', 'Household'], ['maker', 'Maker'], ['deals', 'Deal watcher'], ['minimal', 'Minimal']]
+      .map(([k, n]) => ({ n, cls: 'chipb' + (k === preset && !s.custom ? ' on' : ''), pick: () => this.setState({ preset: k, layout: null, custom: false }) }));
+    const adding = s.adding != null ? s.adding : st === 'add-sheet';
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      widgets, tray, trayCount: tray.length, presets, dragging, adding,
+      openAdd: () => this.setState({ adding: true }), closeAdd: () => this.setState({ adding: false }),
+      reset: () => this.setState({ preset: 'household', layout: null, custom: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Space look · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.top{height:56px;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;flex-shrink:0}
+.band{background:linear-gradient(160deg,#faf8f4,#f3f0ea);position:relative;overflow:hidden;isolation:isolate}
+.nx.dark .band{background:linear-gradient(160deg,#161616,#121212)}
+.nx.plum .band{background:linear-gradient(160deg,#faf7ff,#efe9fa)}
+.nx.plum.dark .band{background:linear-gradient(160deg,#1a1330,#120d1c)}
+.band::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.55;background-image:linear-gradient(30deg,var(--line-in) 1px,transparent 1px),linear-gradient(150deg,var(--line-in) 1px,transparent 1px);background-size:32px 18px;-webkit-mask-image:radial-gradient(70% 70% at 50% 45%,#000,transparent);mask-image:radial-gradient(70% 70% at 50% 45%,#000,transparent)}
+.icp{width:100%;height:48px}
+.li{display:flex;align-items:center;gap:14px;min-height:54px;padding:6px 16px;width:100%;border:0;background:transparent;text-align:start;color:var(--ink);font-size:15px;font-weight:500}
+.li+.li{border-top:1px solid var(--line-in)}
+.up{animation:up .3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes up{from{transform:translateY(40%)}to{transform:none}}
+.cw{position:absolute;left:50%;top:50%;width:300px;height:300px;transform:translate(-50%,-50%);border-radius:75px;box-shadow:0 0 0 999px rgba(0,0,0,.62);border:2px solid rgba(255,255,255,.92)}
+.cw::before,.cw::after{content:"";position:absolute;inset:0;border-radius:inherit;background-image:linear-gradient(90deg,transparent 33%,rgba(255,255,255,.35) 33%,rgba(255,255,255,.35) calc(33% + 1px),transparent calc(33% + 1px),transparent 66%,rgba(255,255,255,.35) 66%,rgba(255,255,255,.35) calc(66% + 1px),transparent calc(66% + 1px))}
+.cw::after{transform:rotate(90deg)}
+.cbtn{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;border:0;background:rgba(255,255,255,.14);color:#fff}
+.cbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+input[type=range]{accent-color:#fff;flex:1}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:390px;height:844px;display:flex;flex-direction:column;background:var(--screen);overflow:hidden;position:relative">
+
+  <sc-if value="{{notCrop}}" hint-placeholder-val="{{ true }}">
+    <div class="band" style="flex-shrink:0;padding-bottom:22px;border-bottom:1px solid var(--line-in)">
+      <div class="top"><a class="btn icon ghost" href="SpaceSettings-phone.dc.html" aria-label="Back"><svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></a><b style="font-size:17px;flex:1">{{heading}}</b><a class="btn sm pri" href="#" style="height:36px">{{saveLabel}}</a></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:6px">
+        <button class="tile t120 {{tileCls}}" onClick="{{openSource}}" aria-label="Change photo" style="border:0;padding:0"><svg viewBox="0 0 24 24"><path d="{{iconD}}"></path></svg></button>
+        <div style="display:flex;align-items:center;gap:10px"><span class="tile t28 {{tileCls}}"><svg viewBox="0 0 24 24"><path d="{{iconD}}"></path></svg></span><b>{{name}}</b><span class="tile t22 {{tileCls}}" style="margin-inline-start:8px"><svg viewBox="0 0 24 24"><path d="{{iconD}}"></path></svg></span></div>
+      </div>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:16px;flex:1;min-height:0">
+      <label class="input" for="nm"><input id="nm" value="{{name}}" aria-label="Space name"></label>
+      <div class="seg lg" style="width:100%"><button class="{{tabIcon}}" onClick="{{toIcon}}" style="flex:1;justify-content:center">Icon &amp; colour</button><button class="{{tabPhoto}}" onClick="{{openSource}}" style="flex:1;justify-content:center">Photo</button></div>
+      <div style="display:flex;justify-content:space-between;padding:0 4px">
+        <sc-for list="{{colors}}" as="c" hint-placeholder-count="6"><button class="{{c.cls}}" onClick="{{c.pick}}" aria-label="{{c.n}}" style="width:38px;height:38px"></button></sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;overflow:hidden">
+        <sc-for list="{{icons}}" as="ic" hint-placeholder-count="24"><button class="{{ic.cls}}" onClick="{{ic.pick}}" aria-label="{{ic.n}}"><svg viewBox="0 0 24 24"><path d="{{ic.d}}"></path></svg></button></sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isSource}}" hint-placeholder-val="{{ false }}">
+    <button class="scrim" onClick="{{closeSource}}" aria-label="Close" style="border:0"></button>
+    <div class="sheet up" style="padding:0 12px 24px">
+      <div class="grab"></div>
+      <div style="padding:6px 6px 10px"><b style="font-size:16px">Space photo</b></div>
+      <div class="card">
+        <button class="li" onClick="{{toCrop}}"><svg class="i" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"></path></svg>Take a photo</button>
+        <button class="li" onClick="{{toCrop}}"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-5-5L5 21"></path></svg>Choose from gallery</button>
+        <button class="li" onClick="{{removePhoto}}" style="color:var(--danger)"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18 M8 6V4h8v2 M6 6l1 14h10l1-14"></path></svg>Remove photo</button>
+      </div>
+      <button class="btn block lg" onClick="{{closeSource}}" style="margin-top:10px">Cancel</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isCrop}}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:#0b0b0b;display:flex;flex-direction:column;color:#fff">
+      <div style="position:relative;flex:1;overflow:hidden">
+        <div class="photo" style="{{zoomStyle}}"></div>
+        <div class="cw"></div>
+        <div style="position:absolute;top:14px;left:0;right:0;text-align:center;font-size:13px;opacity:.85;display:flex;align-items:center;justify-content:center;gap:8px"><svg class="i sm" viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12 M11 11.5v-2a1.5 1.5 0 0 1 3 0V12 M14 10.5a1.5 1.5 0 0 1 3 0V12 M17 11.5a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-2a6 6 0 0 1-5-2.7L4.3 15.2a1.5 1.5 0 0 1 2.5-1.7L8 15"></path></svg>Pinch to zoom · drag to move</div>
+      </div>
+      <div style="padding:16px 20px 28px;display:flex;flex-direction:column;gap:16px;background:#0b0b0b">
+        <div style="display:flex;align-items:center;gap:12px"><button class="cbtn" onClick="{{rotate}}" aria-label="Rotate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8 M21 3v5h-5"></path></svg></button><input type="range" min="100" max="300" value="{{zoom}}" onChange="{{onZoom}}" aria-label="Zoom"></div>
+        <div style="display:flex;gap:10px"><button class="btn lg" onClick="{{toIcon}}" style="flex:1;background:transparent;color:#fff;border-color:rgba(255,255,255,.3)">Cancel</button><button class="btn lg" onClick="{{usePhoto}}" style="flex:1;background:#fff;color:#111;border-color:#fff">Use photo</button></div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"mode":{"editor":"enum","options":["edit","create"],"default":"edit"},"screen":{"editor":"enum","options":["icon","source","crop","photo-set"],"default":"icon"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) { if (prev.screen !== this.props.screen && this.state && this.state.scr) this.setState({ scr: null }); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const scr = s.scr || p.screen || 'icon';
+    const col = s.col || 'violet', ic = s.ic == null ? 5 : s.ic, zoom = s.zoom || 160, deg = s.deg || 0;
+    const hasPhoto = s.photo != null ? s.photo : scr === 'photo-set';
+    const ICONS = [
+      ['Home', 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
+      ['Cart', 'M2 3h3l2.7 12.4a1.5 1.5 0 0 0 1.5 1.1h8.6a1.5 1.5 0 0 0 1.5-1.1L21 7H6 M9 21h.01 M18 21h.01'],
+      ['Basket', 'M3 10h18l-2 10H5z M8 10l4-6 4 6'],
+      ['Tools', 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z'],
+      ['Electronics', 'M6 6h12v12H6z M9 9h6v6H9z M9 2v4 M15 2v4 M9 18v4 M15 18v4 M2 9h4 M2 15h4 M18 9h4 M18 15h4'],
+      ['Maker', 'M21 16V8l-9-5-9 5v8l9 5z M3.3 7 12 12l8.7-5 M12 22V12'],
+      ['Gifts', 'M3 8h18v4H3z M5 12v9h14v-9 M12 8v13 M12 8c-2-4-6-4-6-1.5S9 8 12 8c3 0 6 .5 6-1.5S14 4 12 8'],
+      ['Travel', 'M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z'],
+      ['Garden', 'M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z M2 21c0-3 1.9-5.4 5.1-6'],
+      ['Family', 'M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z'],
+      ['Favourites', 'M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z'],
+      ['Study', 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5'],
+      ['Photo', 'M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z'],
+      ['Baby', 'M9 12h.01 M15 12h.01 M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5 M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1'],
+      ['Pets', 'M11 4.5a1.5 2 0 1 0-3 0 1.5 2 0 0 0 3 0z M16 4.5a1.5 2 0 1 0-3 0 1.5 2 0 0 0 3 0z M7 9a1.5 2 0 1 0-3 0 1.5 2 0 0 0 3 0z M20 9a1.5 2 0 1 0-3 0 1.5 2 0 0 0 3 0z M12 11c-3 0-6 4-6 7 0 2 1.5 3 3 3 1.2 0 2-.6 3-.6s1.8.6 3 .6c1.5 0 3-1 3-3 0-3-3-7-6-7z'],
+      ['Coffee', 'M17 8h1a4 4 0 0 1 0 8h-1 M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z M6 2v3 M10 2v3 M14 2v3'],
+      ['Car', 'M5 17h14v-5l-2-5H7l-2 5z M5 12h14 M7 17v2 M17 17v2 M7.5 14.5h.01 M16.5 14.5h.01'],
+      ['Sport', 'M6.5 6.5v11 M17.5 6.5v11 M3 9v6 M21 9v6 M6.5 12h11'],
+      ['Music', 'M9 18V5l12-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0z M21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z'],
+      ['Work', 'M3 7h18v13H3z M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M3 13h18'],
+      ['Clothes', 'M20.4 6.6 16 4a4 4 0 0 1-8 0L3.6 6.6a1 1 0 0 0-.5 1.2l.9 3a1 1 0 0 0 1.2.7L7 11v9h10v-9l1.8.5a1 1 0 0 0 1.2-.7l.9-3a1 1 0 0 0-.5-1.2z'],
+      ['Kitchen', 'M3 2v7c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2V2 M6 2v20 M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z M21 15v7'],
+      ['Living room', 'M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3 M2 13a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v5H2z M5 18v2 M19 18v2'],
+      ['Games', 'M6 11h4 M8 9v4 M15 12h.01 M18 10h.01 M17.3 5H6.7a4 4 0 0 0-4 3.6L2 15a3 3 0 0 0 5.2 2.1L9 15h6l1.8 2.1A3 3 0 0 0 22 15l-.7-6.4A4 4 0 0 0 17.3 5z']
+    ];
+    const COLS = ['green', 'blue', 'violet', 'amber', 'rose', 'slate'];
+    const create = p.mode === 'create';
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      name: create ? 'Workshop' : 'Jacoby Home',
+      heading: create ? 'New space' : 'Space look',
+      saveLabel: create ? 'Next' : 'Save',
+      tileCls: hasPhoto ? 'photo' : 'gr-' + col,
+      iconD: ICONS[ic][1],
+      colors: COLS.map((c) => ({ n: c, cls: 'sw gr-' + c + (c === col && !hasPhoto ? ' on' : ''), pick: () => this.setState({ col: c, photo: false, scr: 'icon' }) })),
+      icons: ICONS.map(([n, d], i) => ({ n, d, cls: 'icp' + (i === ic && !hasPhoto ? ' on' : ''), pick: () => this.setState({ ic: i, photo: false, scr: 'icon' }) })),
+      tabIcon: hasPhoto ? '' : 'on', tabPhoto: hasPhoto ? 'on' : '',
+      toIcon: () => this.setState({ scr: 'icon' }),
+      openSource: () => this.setState({ scr: 'source' }), closeSource: () => this.setState({ scr: 'icon' }),
+      toCrop: () => this.setState({ scr: 'crop' }),
+      removePhoto: () => this.setState({ scr: 'icon', photo: false }),
+      usePhoto: () => this.setState({ scr: 'icon', photo: true }),
+      zoom, onZoom: (e) => this.setState({ zoom: Number(e.target.value) }),
+      rotate: () => this.setState({ deg: (deg + 90) % 360 }),
+      zoomStyle: 'position:absolute;inset:-60px;background-position:45% 40%;transition:transform .25s ease;background-size:' + zoom + '%;transform:rotate(' + deg + 'deg)',
+      notCrop: scr !== 'crop', isSource: scr === 'source', isCrop: scr === 'crop'
+    };
+  }
+}
+</script>
+</body>
+</html>

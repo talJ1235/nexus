@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.gh{font-size:13px;font-weight:600;color:var(--muted);padding:18px 4px 8px;display:flex;align-items:center;gap:8px}
+.li{display:flex;align-items:center;gap:12px;min-height:52px;padding:6px 14px;width:100%;border:0;background:transparent;text-align:start;color:var(--ink);font-size:15px}
+.li+.li{border-top:1px solid var(--line-in)}
+.li .grow{flex:1;min-width:0;line-height:1.3}
+.li .v{font-size:13px;color:var(--faint)}
+.chev{width:16px;height:16px;color:var(--faint);fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.ic.s{width:32px;height:32px;border-radius:9px}
+.top{height:56px;display:flex;align-items:center;gap:4px;padding:0 4px;border-bottom:1px solid var(--line-in);background:var(--screen);flex-shrink:0}
+.page{flex:1;min-height:0;overflow:hidden;padding:4px 16px 24px;display:flex;flex-direction:column}
+.push{animation:push .28s cubic-bezier(.2,.8,.2,1) both}
+@keyframes push{from{transform:translateX(28%);opacity:.3}to{transform:none;opacity:1}}
+.tl{border:1px solid var(--line);border-radius:12px;background:var(--raised);padding:14px;display:flex;flex-direction:column;gap:10px;color:var(--ink)}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:390px;height:844px;display:flex;flex-direction:column;background:var(--screen);overflow:hidden">
+
+  <sc-if value="{{isList}}" hint-placeholder-val="{{ true }}">
+    <div class="top"><a class="btn icon ghost" href="#" aria-label="Back"><svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></a><b style="font-size:17px">Settings</b></div>
+    <div class="page">
+      <div style="display:flex;gap:14px;align-items:center;padding:16px 4px 4px"><span class="av xl c1">T</span><span style="flex:1;line-height:1.35"><b style="font-size:17px">Tal Jacoby</b><br><span class="sub">tal.jacoby10@gmail.com</span></span></div>
+      <div class="gh">You</div>
+      <div class="card">
+        <sc-for list="{{you}}" as="n" hint-placeholder-count="6">
+          <button class="li" onClick="{{n.go}}"><span class="ic s"><svg class="i sm" viewBox="0 0 24 24"><path d="{{n.d}}"></path></svg></span><span class="grow">{{n.label}}</span><span class="v">{{n.v}}</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+        </sc-for>
+      </div>
+      <div class="gh"><span class="tile t22 gr-green"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg></span>Jacoby Home</div>
+      <div class="card">
+        <a class="li" href="SpaceSettings-phone.dc.html"><span class="ic s"><svg class="i sm" viewBox="0 0 24 24"><path d="M4 6h10 M18 6h2 M4 12h4 M12 12h8 M4 18h12 M16 4v4 M10 10v4 M18 16v4"></path></svg></span><span class="grow">Space settings</span><span class="v">4 people</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <a class="li" href="#"><span class="ic s"><svg class="i sm" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z M4 22v-7"></path></svg></span><span class="grow">Report a problem</span></a>
+        <a class="li" href="#" style="color:var(--danger)"><span class="ic s dng"><svg class="i sm" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9"></path></svg></span><span class="grow">Sign out</span></a>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isPage}}" hint-placeholder-val="{{ false }}">
+    <div class="top"><button class="btn icon ghost" onClick="{{back}}" aria-label="Back to settings"><svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><b style="font-size:17px">{{title}}</b></div>
+    <div class="page push">
+
+      <sc-if value="{{isAccount}}" hint-placeholder-val="{{ false }}">
+        <div class="card" style="margin-top:14px;padding:14px;display:flex;gap:14px;align-items:center"><div class="ring" style="--p:66%"><span>2/3</span></div><span style="flex:1;line-height:1.35"><b>Security checkup</b><br><a class="link" href="#" style="font-size:13px;font-weight:500">Review 1 device</a></span></div>
+        <div class="gh">Sign-in</div>
+        <div class="card">
+          <div class="li"><span class="g">G</span><span class="grow">Google</span><span class="badge ok">Connected</span></div>
+          <div class="li"><span class="ic s"><svg class="i sm" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"></rect><path d="M11 18h2"></path></svg></span><span class="grow">Pixel 8<br><span class="tiny">Passkey · used today</span></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></div>
+          <div class="li"><span class="ic s"><svg class="i sm" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg></span><span class="grow">Windows Hello<br><span class="tiny">Passkey · used yesterday</span></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></div>
+          <a class="li" href="#" style="font-weight:600"><span class="ic s" style="background:transparent"><svg class="i sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></span>Add passkey</a>
+        </div>
+        <div class="gh">Devices</div>
+        <div class="card">
+          <div class="li"><span class="ic s"><svg class="i sm" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"></rect><path d="M11 18h2"></path></svg></span><span class="grow">This phone<br><span class="tiny">Active now</span></span></div>
+          <div class="li" style="background:var(--warn-t)"><span class="ic s warn"><svg class="i sm" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"></rect><path d="M11 18h2"></path></svg></span><span class="grow">iPad · new<br><span class="tiny">Haifa · Oct 6, 22:10</span></span><a class="btn sm" href="#">Review</a></div>
+        </div>
+        <a class="btn block" href="#" style="margin-top:14px">Sign out all other devices</a>
+      </sc-if>
+
+      <sc-if value="{{isDisplay}}" hint-placeholder-val="{{ false }}">
+        <div class="gh">Theme</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+          <button class="pick on"><span class="mini" style="height:58px;background:#eeede9;flex-direction:column;padding:7px;gap:5px"><i style="height:6px;width:55%;border-radius:3px;background:#c9c6be"></i><i style="flex:1;border-radius:5px;background:#fff;border:1px solid #dcdad3"></i></span><span class="lbl">Light</span></button>
+          <button class="pick"><span class="mini" style="height:58px;background:#0b0b0b;flex-direction:column;padding:7px;gap:5px"><i style="height:6px;width:55%;border-radius:3px;background:#3a3a3a"></i><i style="flex:1;border-radius:5px;background:#181818;border:1px solid #2c2c2c"></i></span><span class="lbl">Dark</span></button>
+          <button class="pick"><span class="mini" style="height:58px;background:linear-gradient(105deg,#eeede9 50%,#0b0b0b 50%);flex-direction:column;padding:7px;gap:5px"><i style="height:6px;width:55%;border-radius:3px;background:#8a8984"></i><i style="flex:1;border-radius:5px;background:linear-gradient(105deg,#fff 45%,#181818 45%)"></i></span><span class="lbl">Device</span></button>
+        </div>
+        <div class="gh">Colour</div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+          <button class="pick on" style="flex-direction:row;align-items:center;padding:12px"><span class="sw" style="background:#171717;width:22px;height:22px"></span><span class="sw" style="background:#f59e0b;width:22px;height:22px;margin-inline-start:-12px;box-shadow:0 0 0 2px var(--raised)"></span><span class="lbl" style="padding:0">Graphite</span></button>
+          <button class="pick" style="flex-direction:row;align-items:center;padding:12px"><span class="sw" style="background:#7c4dff;width:22px;height:22px"></span><span class="sw" style="background:#fb7a3c;width:22px;height:22px;margin-inline-start:-12px;box-shadow:0 0 0 2px var(--raised)"></span><span class="lbl" style="padding:0">Plum</span></button>
+        </div>
+        <div class="gh">Language</div>
+        <div class="seg lg" style="width:100%"><button class="on" style="flex:1;justify-content:center">English</button><button style="flex:1;justify-content:center" lang="he">עברית</button></div>
+        <div class="card" style="margin-top:16px">
+          <div class="li"><span class="grow">Currency</span><span class="v">₪ ILS</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></div>
+          <div class="li"><span class="grow">Motion</span><span class="v">Match device</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isNotif}}" hint-placeholder-val="{{ false }}">
+        <div class="gh">Where</div>
+        <div class="card">
+          <div class="li"><span class="ic s"><svg class="i sm" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="2"></rect></svg></span><span class="grow">In the app</span><span class="tgl on" role="switch" aria-checked="true" aria-label="In the app"></span></div>
+          <div class="li" style="opacity:.6"><span class="ic s"><svg class="i sm" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"></rect><path d="M11 18h2"></path></svg></span><span class="grow">On this phone</span><span class="badge">Soon</span></div>
+        </div>
+        <div class="gh">Tell me when</div>
+        <div class="card">
+          <div class="li"><span class="ic s ok"><svg class="i sm" viewBox="0 0 24 24"><path d="M22 17l-8.5-8.5-5 5L2 7 M16 17h6v-6"></path></svg></span><span class="grow">A price drops</span><span class="tgl on" role="switch" aria-checked="true" aria-label="Price drops"></span></div>
+          <div class="li"><span class="ic s"><span class="av xs c2">N</span></span><span class="grow">A shared list changes</span><span class="tgl on" role="switch" aria-checked="true" aria-label="Shared list changes"></span></div>
+          <div class="li"><span class="ic s warn"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"></path></svg></span><span class="grow">Budget reaches 80%</span><span class="tgl on" role="switch" aria-checked="true" aria-label="Budget warning"></span></div>
+          <div class="li"><span class="ic s info"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 7h12v10H3z M15 10h4l2 3v4h-6"></path></svg></span><span class="grow">A delivery is due or late</span><span class="tgl on" role="switch" aria-checked="true" aria-label="Deliveries"></span></div>
+          <div class="li"><span class="ic s"><svg class="i sm" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"></path></svg></span><span class="grow">A sale ends</span><span class="tgl" role="switch" aria-checked="false" aria-label="Sales ending"></span></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isAi}}" hint-placeholder-val="{{ false }}">
+        <div class="gh">Nexus suggests on Home</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="pick on" style="padding:14px;gap:10px"><span style="display:flex;align-items:center;gap:10px"><span class="ic s" style="background:var(--warn-t);color:var(--spark)"><svg class="i sm" viewBox="0 0 24 24"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z"></path></svg></span><b style="flex:1">AI + rules</b><span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span></span><span style="border-radius:10px;background:var(--s);padding:9px 11px;font-size:13px;color:var(--ink2)">“Coffee beans run out around Friday — Ivory has them 12% cheaper.”</span></button>
+          <button class="pick" style="padding:14px;flex-direction:row;align-items:center;gap:10px"><span class="ic s"><svg class="i sm" viewBox="0 0 24 24"><path d="M4 6h16 M4 12h10 M4 18h6"></path></svg></span><b style="flex:1">Rules only</b><span class="badge">No AI</span></button>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div class="li"><span class="grow">Product pictures<br><span class="tiny">Google Images</span></span><span class="tgl on" role="switch" aria-checked="true" aria-label="Product pictures"></span></div>
+          <button class="li" onClick="{{goMemory}}"><span class="grow">Memory</span><span class="v">12</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+          <div class="li"><span class="grow">Status</span><span class="badge ok">Working</span></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isCal}}" hint-placeholder-val="{{ false }}">
+        <div class="card" style="margin-top:14px;padding:16px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;gap:12px;align-items:center"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M3 10h18 M8 2v4 M16 2v4"></path></svg></span><span style="flex:1;min-width:0;line-height:1.35"><b>Calendar feed</b><br><span class="mono tiny">…/api/ics/k_9f3c…</span></span></div>
+          <div style="display:flex;gap:8px"><a class="btn sm" href="#" style="flex:1">Copy link</a><a class="btn sm pri" href="#" style="flex:1">Add to Google</a></div>
+        </div>
+        <div class="gh">What goes in</div>
+        <div class="card">
+          <div class="li"><span class="grow">Deliveries</span><span class="tgl on" role="switch" aria-checked="true" aria-label="Deliveries"></span></div>
+          <div class="li"><span class="grow">Sales ending</span><span class="tgl on" role="switch" aria-checked="true" aria-label="Sales ending"></span></div>
+          <div class="li"><span class="grow">Project dates</span><span class="tgl" role="switch" aria-checked="false" aria-label="Project dates"></span></div>
+        </div>
+        <a class="btn block dng-o" href="#" style="margin-top:16px">Reset link</a>
+      </sc-if>
+
+      <sc-if value="{{isMemory}}" hint-placeholder-val="{{ false }}">
+        <label class="input" style="margin-top:14px;height:40px" for="mq"><svg class="i sm" viewBox="0 0 24 24" style="color:var(--faint)"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input id="mq" placeholder="Search memory"></label>
+        <div class="card" style="margin-top:12px">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="6">
+            <div class="li"><span class="grow" style="font-size:14px">{{f}}</span><a class="btn sm icon ghost" href="#" aria-label="Forget"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 6h18 M8 6V4h8v2 M6 6l1 14h10l1-14"></path></svg></a></div>
+          </sc-for>
+        </div>
+        <a class="btn block dng-o" href="#" style="margin-top:14px">Clear all</a>
+      </sc-if>
+
+      <sc-if value="{{isData}}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:14px"><span class="badge ok">Last backup Oct 3, 21:40</span></div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px">
+          <a class="tl" href="#"><span class="ic ok"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v12 M7 10l5 5 5-5 M4 19h16"></path></svg></span><b>Back up</b></a>
+          <a class="tl" href="#"><span class="ic info"><svg class="i" viewBox="0 0 24 24"><path d="M12 21V9 M7 14l5-5 5 5 M4 5h16"></path></svg></span><b>Restore</b></a>
+          <a class="tl" href="#"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18 M3 15h18 M9 3v18"></path></svg></span><b>Import sheet</b></a>
+          <a class="tl" href="#"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z M14 2v6h6 M9 14h6 M9 18h4"></path></svg></span><b>Import receipts</b></a>
+        </div>
+        <div class="card" style="margin-top:14px"><div class="li"><span class="grow">Export items<br><span class="tiny">CSV</span></span><a class="btn sm" href="#">Export</a></div></div>
+      </sc-if>
+
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"screen":{"editor":"enum","options":["list","account","display","notif","ai","calendar","memory","data"],"default":"list"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) { if (prev.screen !== this.props.screen && this.state && this.state.scr) this.setState({ scr: null }); }
+  renderVals() {
+    const p = this.props;
+    const scr = (this.state && this.state.scr) || p.screen || 'list';
+    const go = (k) => () => this.setState({ scr: k });
+    const rows = [
+      ['account', 'Account & security', '2/3', 'M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z'],
+      ['display', 'Display', 'Light', 'M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4 M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
+      ['notif', 'Notifications', 'In the app', 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.9 1.9 0 0 0 3.4 0'],
+      ['ai', 'Assistant & AI', 'AI + rules', 'M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z'],
+      ['calendar', 'Calendar', 'On', 'M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M3 10h18 M8 2v4 M16 2v4'],
+      ['memory', 'Memory', '12', 'M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z M5 17a3 3 0 0 1 3-3h11'],
+      ['data', 'Data', 'Oct 3', 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6']
+    ];
+    const titles = { account: 'Account & security', display: 'Display', notif: 'Notifications', ai: 'Assistant & AI', calendar: 'Calendar', memory: 'Memory', data: 'Data' };
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      you: rows.map(([k, label, v, d]) => ({ label, v, d, go: go(k) })),
+      facts: ['Buys coffee beans about every 3 weeks', 'Prefers KSP and Ivory for electronics', 'Tools budget is ₪400 a month', 'Building a 3D-printer enclosure', 'Waits for sales on big purchases', 'Likes Elegoo PLA'],
+      back: go('list'), goMemory: go('memory'), title: titles[scr] || '',
+      isList: scr === 'list', isPage: scr !== 'list',
+      isAccount: scr === 'account', isDisplay: scr === 'display', isNotif: scr === 'notif', isAi: scr === 'ai',
+      isCal: scr === 'calendar', isMemory: scr === 'memory', isData: scr === 'data'
+    };
+  }
+}
+</script>
+</body>
+</html>

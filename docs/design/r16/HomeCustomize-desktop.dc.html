@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Customise Home · desktop</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:112px;grid-auto-flow:dense;gap:12px;align-content:start;position:relative}
+.grid .wg{overflow:hidden}
+.wg .tb.on{background:var(--sel);color:var(--ink)}
+.wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.wk>span{height:46px;border-radius:7px;background:var(--s);border:1px solid var(--line-in);font-size:10.5px;color:var(--faint);padding:4px 5px;display:flex;flex-direction:column;gap:3px}
+.wk>span i{display:block;height:5px;border-radius:3px;background:var(--info)}
+.wk>span i.w{background:var(--warn)}
+.rw{display:flex;align-items:center;gap:8px;font-size:13px;min-height:26px}
+.rw .r{margin-inline-start:auto;color:var(--muted);font-size:12px}
+.tray{width:250px;flex-shrink:0;border-inline-start:1px solid var(--line-in);padding:18px 16px;display:flex;flex-direction:column;gap:8px;background:var(--s)}
+.ti{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--raised);font-size:13px;font-weight:500;cursor:grab}
+.ti .ic{width:30px;height:30px;border-radius:8px}
+.ti .add{margin-inline-start:auto;width:28px;height:28px;border-radius:7px;border:0;background:var(--s2);display:grid;place-items:center;color:var(--ink)}
+.ti .add svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.new{font-size:10px;font-weight:700;color:var(--ok);background:var(--ok-t);border-radius:4px;padding:1px 5px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--info);flex-shrink:0}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:1366px;height:768px;display:flex;padding:8px 8px 8px 0;box-sizing:border-box;background:var(--bg)">
+  <aside style="width:232px;flex-shrink:0;padding:4px 10px;display:flex;flex-direction:column;gap:2px">
+    <div style="display:flex;align-items:center;gap:10px;height:44px;padding:0 8px;border-radius:8px;font-weight:600;margin-bottom:8px"><span class="tile t28 gr-green"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg></span><span style="flex:1">Jacoby Home</span><svg class="i sm" viewBox="0 0 24 24" style="color:var(--muted)"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"></path></svg></div>
+    <a class="nav on" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Home</a>
+    <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M2 3h3l2.7 12.4a1.5 1.5 0 0 0 1.5 1.1h8.6a1.5 1.5 0 0 0 1.5-1.1L21 7H6"></path></svg>Shopping<span class="c">14</span></a>
+    <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Projects</a>
+    <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 3v18h18 M7 15l4-4 3 3 5-6"></path></svg>Spending</a>
+    <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z"></path></svg>Insights</a>
+  </aside>
+
+  <main style="flex:1;min-width:0;background:var(--raised);border:1px solid var(--line);border-radius:12px;display:flex;overflow:hidden">
+    <div style="flex:1;min-width:0;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <h1 class="t-title" style="font-size:22px;flex:1">Customise Home</h1>
+        <button class="btn sm ghost" onClick="{{reset}}"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8 M3 3v5h5"></path></svg>Reset</button>
+        <button class="btn sm pri">Done</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <sc-for list="{{presets}}" as="p" hint-placeholder-count="4"><button class="{{p.cls}}" onClick="{{p.pick}}"><svg viewBox="0 0 24 24"><path d="{{p.d}}"></path></svg>{{p.n}}</button></sc-for>
+        <sc-if value="{{isCustom}}" hint-placeholder-val="{{ false }}"><span class="chipb on">Custom</span></sc-if>
+      </div>
+
+      <div class="grid cz">
+        <sc-for list="{{widgets}}" as="w" hint-placeholder-count="8">
+          <sc-if value="{{w.slot}}" hint-placeholder-val="{{ false }}"><div class="slot" style="{{w.span}}"></div></sc-if>
+          <sc-if value="{{w.real}}" hint-placeholder-val="{{ true }}">
+          <div class="wg" style="{{w.span}}">
+            <div class="wh"><svg class="i sm" viewBox="0 0 24 24" style="color:var(--faint);cursor:grab"><path d="M9 5h.01 M9 12h.01 M9 19h.01 M15 5h.01 M15 12h.01 M15 19h.01"></path></svg>{{w.t}}
+              <span class="tools"><button class="{{w.tallCls}}" onClick="{{w.tall}}" aria-label="Double height" title="Double height"><svg viewBox="0 0 24 24"><path d="M12 3v18 M8 7l4-4 4 4 M8 17l4 4 4-4"></path></svg></button><span class="sz"><sc-for list="{{w.sizes}}" as="z" hint-placeholder-count="3"><span class="{{z.cls}}" onClick="{{z.pick}}">{{z.n}}</span></sc-for></span><button class="tb" onClick="{{w.hide}}" aria-label="Hide"><svg viewBox="0 0 24 24"><path d="M9.9 4.2A10 10 0 0 1 12 4c6 0 10 8 10 8a17 17 0 0 1-2.2 3.2 M6.6 6.6A17 17 0 0 0 2 12s4 8 10 8a9.7 9.7 0 0 0 5.4-1.6 M2 2l20 20 M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg></button></span>
+            </div>
+            <sc-if value="{{w.kStat}}" hint-placeholder-val="{{ false }}"><span class="big num">{{w.big}}</span><span class="tiny">{{w.sub}}</span><sc-if value="{{w.hasMeter}}" hint-placeholder-val="{{ false }}"><div class="meter"><i style="{{w.meter}}"></i></div></sc-if></sc-if>
+            <sc-if value="{{w.kText}}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;line-height:1.45;color:var(--ink)">{{w.text}}</span><span style="display:flex;gap:6px"><span class="btn sm">{{w.a1}}</span><span class="btn sm ghost">Not now</span></span></sc-if>
+            <sc-if value="{{w.kWeek}}" hint-placeholder-val="{{ false }}"><div class="wk"><span>Sun</span><span>Mon<i></i></span><span>Tue</span><span>Wed<i class="w"></i></span><span>Thu<i></i></span><span>Fri</span><span>Sat</span></div></sc-if>
+            <sc-if value="{{w.kList}}" hint-placeholder-val="{{ false }}"><sc-for list="{{w.rows}}" as="r" hint-placeholder-count="3"><div class="rw"><span class="{{r.dot}}"></span>{{r.a}}<span class="r">{{r.b}}</span></div></sc-for></sc-if>
+            <sc-if value="{{w.kBars}}" hint-placeholder-val="{{ false }}"><div class="bar"><i style="height:40%"></i><i style="height:55%"></i><i style="height:35%"></i><i style="height:70%"></i><i style="height:50%"></i><i class="hi" style="height:62%"></i></div></sc-if>
+            <span class="handle" aria-hidden="true"><svg viewBox="0 0 14 14"><path d="M12 5 5 12 M12 9l-3 3"></path></svg></span>
+          </div>
+          </sc-if>
+        </sc-for>
+        <sc-if value="{{dragging}}" hint-placeholder-val="{{ false }}">
+          <div class="wg lifted" style="position:absolute;inset-inline-start:52%;top:112px;width:46%;pointer-events:none">
+            <div class="wh"><svg class="i sm" viewBox="0 0 24 24"><path d="M9 5h.01 M9 12h.01 M9 19h.01 M15 5h.01 M15 12h.01 M15 19h.01"></path></svg>This week</div>
+            <div class="wk"><span>Sun</span><span>Mon<i></i></span><span>Tue</span><span>Wed<i class="w"></i></span><span>Thu<i></i></span><span>Fri</span><span>Sat</span></div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div class="tray">
+      <b style="font-size:14px">Widgets</b>
+      <span class="tiny" style="margin-bottom:4px">Drag in, or tap +</span>
+      <sc-for list="{{tray}}" as="t" hint-placeholder-count="7">
+        <div class="ti"><span class="ic"><svg class="i sm" viewBox="0 0 24 24"><path d="{{t.d}}"></path></svg></span><span style="flex:1;line-height:1.25">{{t.t}}<sc-if value="{{t.isNew}}" hint-placeholder-val="{{ false }}"><br><span class="new">NEW</span></sc-if></span><button class="add" onClick="{{t.add}}" aria-label="Add widget"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button></div>
+      </sc-for>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"preset":{"editor":"enum","options":["household","maker","deals","minimal"],"default":"household"},"dragging":{"editor":"boolean","default":true},"$preview":{"width":1366,"height":768}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) { if (prev.preset !== this.props.preset) this.setState({ layout: null, custom: false }); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const W = {
+      left: { t: 'Left to buy', k: 'stat', big: '₪2,140', sub: '14 items', m: 0, d: 'M2 3h3l2.7 12.4a1.5 1.5 0 0 0 1.5 1.1h8.6a1.5 1.5 0 0 0 1.5-1.1L21 7H6' },
+      budget: { t: 'October budget', k: 'stat', big: '62%', sub: '₪1,860 of ₪3,000', m: 62, d: 'M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z' },
+      way: { t: 'On the way', k: 'stat', big: '3', sub: 'Next: Thursday', m: 0, d: 'M3 7h12v10H3z M15 10h4l2 3v4h-6' },
+      saved: { t: 'Saved', k: 'stat', big: '₪412', sub: 'This year', m: 0, d: 'M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z' },
+      suggest: { t: 'Nexus suggests', k: 'text', text: 'Coffee beans run out around Friday — Ivory has them 12% cheaper.', a1: 'Add to list', d: 'M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z' },
+      week: { t: 'This week', k: 'week', d: 'M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M3 10h18' },
+      needs: { t: 'Needs you', k: 'list', rows: [['Mark NOCO received', 'Due yesterday', 'warn'], ['Fan sale ends', 'Wed', 'info'], ['Milk is running low', 'Today', 'info'], ['Desk lamp dropped 9%', 'Buy now?', 'ok'], ['Budget at 78% for groceries', 'Oct', 'warn']], d: 'M12 8v4 M12 16h.01 M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z' },
+      activity: { t: 'Space today', k: 'list', isNew: true, rows: [['Noa added 3 items', '10:42', 'c2'], ['Yoav checked milk', '09:15', 'c3']], d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
+      drops: { t: 'Price drops', k: 'list', isNew: true, rows: [['Elegoo PLA', '−18%', 'ok'], ['Desk lamp', '−9%', 'ok'], ['Coffee beans', '−12%', 'ok'], ['HDMI cable', '−20%', 'ok'], ['Dish soap', '−7%', 'ok']], d: 'M22 17l-8.5-8.5-5 5L2 7 M16 17h6v-6' },
+      projects: { t: 'Projects', k: 'list', rows: [['Printer enclosure', '6 of 9 bought', 'info'], ['Balcony garden', '2 of 7', 'info'], ['Kitchen shelves', '1 of 4', 'info'], ['Bike repair', 'Done', 'ok']], d: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
+      pace: { t: 'October pace', k: 'bars', d: 'M3 3v18h18 M7 15l4-4 3 3 5-6' },
+      vslast: { t: 'Vs last month', k: 'stat', isNew: true, big: '−8%', sub: '₪160 less than September', m: 0, d: 'M3 3v18h18 M7 14l4-4 4 4 5-5' },
+      nextdel: { t: 'Next delivery', k: 'stat', isNew: true, big: 'Thu', sub: 'NOCO charger · AliExpress', m: 0, d: 'M3 7h12v10H3z M15 10h4l2 3v4h-6' },
+      bycat: { t: 'Budget by category', k: 'bars', isNew: true, d: 'M4 20V10 M10 20V4 M16 20v-8 M22 20H2' },
+      most: { t: 'Most bought', k: 'list', isNew: true, rows: [['Milk', '9×', 'info'], ['Coffee beans', '4×', 'info']], d: 'M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z' }
+    };
+    const P = {
+      household: [['left', 'S', 1], ['budget', 'S', 1], ['way', 'S', 1], ['saved', 'S', 1], ['suggest', 'M', 1], ['week', 'M', 1], ['needs', 'M', 2], ['activity', 'M', 1], ['nextdel', 'M', 1]],
+      maker: [['projects', 'M', 2], ['suggest', 'M', 1], ['left', 'S', 1], ['way', 'S', 1], ['drops', 'S', 1], ['budget', 'S', 1], ['pace', 'M', 1], ['needs', 'M', 1]],
+      deals: [['drops', 'M', 2], ['saved', 'S', 1], ['budget', 'S', 1], ['suggest', 'M', 1], ['vslast', 'S', 1], ['nextdel', 'S', 1], ['pace', 'M', 1]],
+      minimal: [['left', 'M', 1], ['budget', 'M', 1], ['suggest', 'L', 1]]
+    };
+    const preset = s.preset || p.preset || 'household';
+    const layout = s.layout || P[preset];
+    const SPAN = { S: 3, M: 6, L: 12 };
+    const setLayout = (l) => this.setState({ layout: l, custom: true });
+    const dragging = !!p.dragging && !s.layout && preset === 'household';
+    const widgets = [];
+    layout.forEach(([id, size, h], i) => {
+      const w = W[id];
+      h = h || 1;
+      if (dragging && id === 'week') { widgets.push({ slot: true, real: false, span: 'grid-column:span 6' }); return; }
+      widgets.push({
+        slot: false, real: true, t: w.t, big: w.big, sub: w.sub, text: w.text, a1: w.a1,
+        hasMeter: !!w.m, meter: 'width:' + (w.m || 0) + '%',
+        rows: (w.rows || []).slice(0, h === 2 ? 6 : 2).map(([a, b, dot]) => ({ a, b, dot: dot.indexOf('c') === 0 ? 'dot ' + dot : 'dot ' + dot })),
+        kStat: w.k === 'stat', kText: w.k === 'text', kWeek: w.k === 'week', kList: w.k === 'list', kBars: w.k === 'bars',
+        span: 'grid-column:span ' + SPAN[size] + ';grid-row:span ' + h,
+        sizes: ['S', 'M', 'L'].map((n) => ({ n, cls: n === size ? 'on' : '', pick: () => setLayout(layout.map((x, j) => j === i ? [x[0], n, x[2]] : x)) })),
+        tallCls: 'tb' + (h === 2 ? ' on' : ''),
+        tall: () => setLayout(layout.map((x, j) => j === i ? [x[0], x[1], (x[2] || 1) === 2 ? 1 : 2] : x)),
+        hide: () => setLayout(layout.filter((_, j) => j !== i))
+      });
+    });
+    const used = layout.map((x) => x[0]);
+    const tray = Object.keys(W).filter((id) => used.indexOf(id) < 0).map((id) => ({ t: W[id].t, d: W[id].d, isNew: !!W[id].isNew, add: () => setLayout(layout.concat([[id, 'M', 1]])) }));
+    const presets = [
+      ['household', 'Household', 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
+      ['maker', 'Maker', 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z'],
+      ['deals', 'Deal watcher', 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01'],
+      ['minimal', 'Minimal', 'M4 12h16']
+    ].map(([k, n, d]) => ({ n, d, cls: 'chipb' + (k === preset && !s.custom ? ' on' : ''), pick: () => this.setState({ preset: k, layout: null, custom: false }) }));
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      widgets, tray, presets, dragging, isCustom: !!s.custom,
+      reset: () => this.setState({ preset: 'household', layout: null, custom: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

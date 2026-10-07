@@ -312,9 +312,16 @@ the provider → button enabled. Add to `guards.yml`. Update `SPEC.md` (auth sec
 > Tal 2026-10-07: boards come for D1/D3 (Settings), D2 (Space settings), D5 (Space identity) and E1 (Home customise)
 > only. **D4 and E2 have no board by design** — build them from this text; not an "Open" item.
 
-Design language as R15 ("less text, visuals first, light, premium"). Boards to be approved: `Settings-desktop`,
-`Settings-phone`, `SpaceSettings-desktop`, `SpaceSettings-phone`, `SpaceIdentity` (desktop + phone, incl. crop),
-`SpaceSwitch` (motion storyboard), `HomeCustomize` (desktop + phone), `HomeWidgets` (new indicators).
+Design language as R15 ("less text, visuals first, light, premium"). **Boards approved by Tal 2026-10-07**, in
+`docs/design/r16/` (styles `nx.css` from R15 + `nx16.css`; each board has Tweaks for dark, palette and state, and its
+menus/tabs/chips are clickable):
+- [x] `Settings-desktop` (sections incl. Notifications), [x] `Settings-phone`
+- [x] `SpaceSettings-desktop`, [x] `SpaceSettings-phone` (invite sheet)
+- [x] `SpaceIdentity-desktop`, [x] `SpaceIdentity-phone` (icon × colour, photo source sheet, crop/zoom/rotate)
+- [x] `HomeCustomize-desktop`, [x] `HomeCustomize-phone` (presets, width + height, drag, widget tray incl. E2 widgets)
+- No board by design: `SpaceSwitch` (D4) and `HomeWidgets` (E2 — the new widgets appear in the HomeCustomize tray).
+The boards show the target; where a board shows a feature that doesn't exist yet (phone push in Notifications =
+"Soon"), build it disabled with that label.
 
 ### D1. [ ] Settings on desktop: a large, structured screen
 Replace the small centred dialog (`settings-dialog.tsx`) with a **large two-pane dialog** over the app (Tal 2026-10-07:

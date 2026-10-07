@@ -16,7 +16,9 @@ to setup, tooling or workflow is recorded there in the same session.
   - **From the brief's text only (no board):** D4 space-switch moment, E2 new Home widgets. The builder builds them from
     `docs/ROUND16.md`; Tal corrects after seeing them. `Presence` board dropped (Session 1 built it from the R15 board).
   - Order: Settings + Space settings + Identity first, then HomeCustomize.
-- **Boards made (2026-10-07, account A) — waiting for Tal's approval.** Canvas "Nexus R16 — Settings, Spaces & Home"
+- **Boards approved by Tal (2026-10-07) and committed to `docs/design/r16/`** (board list ticked in `docs/ROUND16.md`
+  Part D). Next: Tal runs Session 2 with the prompt below.
+- Boards made (2026-10-07, account A). Canvas "Nexus R16 — Settings, Spaces & Home"
   (private Design artifact on account A): 8 boards — `Main` (= `Settings-desktop`), `Settings-phone`,
   `SpaceSettings-desktop`, `SpaceSettings-phone`, `SpaceIdentity-desktop`, `SpaceIdentity-phone`,
   `HomeCustomize-desktop`, `HomeCustomize-phone`; shared `nx.css` (R15, unchanged) + `nx16.css` (R16 additions).
@@ -200,6 +202,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-07 · A · Tal approved the R16 boards (after widening the settings dialog to 1220 and fixing the People table). Copied to `docs/design/r16/` (`Main` → `Settings-desktop`), ticked the list in `docs/ROUND16.md` Part D, gave Tal the Session 2 prompt.
 - 2026-10-07 · A · R16 Session 2 boards made on a new canvas "Nexus R16 — Settings, Spaces & Home" (8 interactive boards, R15 look, 1366×768 desktop / 390 phone, dark + Plum as tweaks). Tal chose: settings as a large dialog, Home widget height 1×/2×, Notifications as its own section → boards + brief D1/E1 updated. Waiting for Tal's final approval → then copy to `docs/design/r16/` and give the Session 2 prompt (see "Current state & handoff").
 - 2026-10-07 · A · Caught up after R16 Session 1 release. Tal: Ably key in Vercel, live sync checked on prod; A8 was the installed PWA; report `r_rWtP3XmuRl` left for later. Chose mockups for Settings / Space settings / Identity / HomeCustomize only (D4 + E2 from text); boards made in a new chat. Advised: Android wrapper after R17, web updates flow without store releases. Updated "Current state & handoff".
 - 2026-10-06 · B · Tal's usage nearly out → wrote the "Current state & handoff" section above (next steps, Session 1 prompt, mockup board list), new `docs/R16-PLANNING.md` (questions + answers, causes found, notes → items table, realtime research, renumbering note for `MULTIUSER.md`/`STRATEGY.md`). Continue on the other account from "Current state & handoff".

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Space look · desktop</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.sk{border-radius:6px;background:var(--s2)}
+.prev{background:linear-gradient(160deg,#faf8f4,#f3f0ea);position:relative;overflow:hidden;isolation:isolate}
+.nx.dark .prev{background:linear-gradient(160deg,#161616,#121212)}
+.nx.plum .prev{background:linear-gradient(160deg,#faf7ff,#efe9fa)}
+.nx.plum.dark .prev{background:linear-gradient(160deg,#1a1330,#120d1c)}
+.prev::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.5;background-image:linear-gradient(30deg,var(--line-in) 1px,transparent 1px),linear-gradient(150deg,var(--line-in) 1px,transparent 1px);background-size:32px 18px;-webkit-mask-image:radial-gradient(70% 60% at 50% 35%,#000,transparent);mask-image:radial-gradient(70% 60% at 50% 35%,#000,transparent)}
+.where{background:var(--raised);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600}
+.where .k{margin-inline-start:auto;font-size:11px;font-weight:500;color:var(--faint)}
+.crop{position:relative;width:340px;height:300px;border-radius:12px;overflow:hidden;background-size:150%;background-position:45% 40%;cursor:grab}
+.crop .win{position:absolute;left:50%;top:50%;width:220px;height:220px;transform:translate(-50%,-50%);border-radius:55px;box-shadow:0 0 0 999px rgba(10,10,10,.58);border:2px solid rgba(255,255,255,.9)}
+.crop .win::before,.crop .win::after{content:"";position:absolute;inset:0;border-radius:inherit;background-image:linear-gradient(90deg,transparent 33%,rgba(255,255,255,.35) 33%,rgba(255,255,255,.35) calc(33% + 1px),transparent calc(33% + 1px),transparent 66%,rgba(255,255,255,.35) 66%,rgba(255,255,255,.35) calc(66% + 1px),transparent calc(66% + 1px))}
+.crop .win::after{transform:rotate(90deg)}
+.drop{border:1.5px dashed var(--line-strong);border-radius:14px;height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--s);text-align:center}
+input[type=range]{accent-color:var(--ink);flex:1}
+.nx.plum input[type=range]{accent-color:var(--brand)}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:1366px;height:768px;position:relative;overflow:hidden;display:flex;padding:8px 8px 8px 0;box-sizing:border-box;background:var(--bg)">
+  <aside style="width:248px;flex-shrink:0;padding:6px 10px;display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;align-items:center;gap:10px;height:44px;padding:0 8px;border-radius:8px;background:var(--sel);font-weight:600"><span class="tile t28 {{tileCls}}"><svg viewBox="0 0 24 24"><path d="{{iconD}}"></path></svg></span>{{name}}</div>
+    <div class="sk" style="height:28px;width:80%"></div><div class="sk" style="height:28px;width:70%"></div><div class="sk" style="height:28px;width:75%"></div>
+  </aside>
+  <main style="flex:1;background:var(--raised);border:1px solid var(--line);border-radius:12px"></main>
+  <div class="scrim"></div>
+
+  <div class="modal" role="dialog" aria-label="Space look" style="left:233px;top:74px;width:900px;height:620px;display:flex;overflow:hidden">
+    <div class="prev" style="width:320px;flex-shrink:0;padding:24px;display:flex;flex-direction:column;gap:12px;border-inline-end:1px solid var(--line-in)">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:22px 0 18px">
+        <span class="tile t120 {{tileCls}}" style="{{rot}}"><svg viewBox="0 0 24 24"><path d="{{iconD}}"></path></svg></span>
+        <b style="font-size:18px;letter-spacing:-.01em">{{name}}</b>
+      </div>
+      <div class="where"><span class="tile t28 {{tileCls}}"><svg viewBox="0 0 24 24"><path d="{{iconD}}"></path></svg></span>{{name}}<span class="k">Switcher</span></div>
+      <div class="where"><span class="tile t22 {{tileCls}}"><svg viewBox="0 0 24 24"><path d="{{iconD}}"></path></svg></span><span style="font-size:12.5px">{{name}}</span><span class="k">Sidebar</span></div>
+      <div class="where" style="padding:10px"><span class="tile t40 {{tileCls}}"><svg viewBox="0 0 24 24"><path d="{{iconD}}"></path></svg></span><span style="line-height:1.25">Join {{name}}<br><span class="pile" style="margin-top:4px"><span class="av xs c1">T</span><span class="av xs c2">N</span><span class="av xs c3">Y</span></span></span><span class="k">Invite</span></div>
+    </div>
+
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div class="mhead"><h2 class="t-h2" style="flex:1">{{heading}}</h2><a class="btn sm icon ghost" href="#" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg></a></div>
+      <div class="mbody" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:18px">
+        <div class="field"><label class="label" for="nm">Name</label><div class="input"><input id="nm" value="{{name}}"></div></div>
+        <div class="seg" style="align-self:flex-start"><button class="{{tabIcon}}" onClick="{{toIcon}}"><svg class="i sm" viewBox="0 0 24 24"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z"></path></svg>Icon &amp; colour</button><button class="{{tabPhoto}}" onClick="{{toPhoto}}"><svg class="i sm" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"></path></svg>Photo</button></div>
+
+        <sc-if value="{{isIcon}}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:12px;align-items:center">
+            <sc-for list="{{colors}}" as="c" hint-placeholder-count="6"><button class="{{c.cls}}" onClick="{{c.pick}}" aria-label="{{c.n}}"></button></sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px">
+            <sc-for list="{{icons}}" as="ic" hint-placeholder-count="24"><button class="{{ic.cls}}" onClick="{{ic.pick}}" aria-label="{{ic.n}}"><svg viewBox="0 0 24 24"><path d="{{ic.d}}"></path></svg></button></sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{isPhotoEmpty}}" hint-placeholder-val="{{ false }}">
+          <div class="drop">
+            <span class="ic" style="width:52px;height:52px;border-radius:14px"><svg class="i lg" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-5-5L5 21"></path></svg></span>
+            <span><b>Drop a photo here</b><br><span class="tiny">JPG · PNG · WebP · HEIC — up to 10 MB</span></span>
+            <button class="btn sm" onClick="{{toCrop}}">Choose a photo</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{isCrop}}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:18px;align-items:flex-start">
+            <div class="crop"><div class="photo" style="{{zoomStyle}}"></div><div class="win"></div></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:10px;padding-top:4px">
+              <span class="tiny">Drag to move</span>
+              <label class="label" for="zm">Zoom</label>
+              <div style="display:flex;align-items:center;gap:8px"><svg class="i sm" viewBox="0 0 24 24" style="color:var(--faint)"><circle cx="11" cy="11" r="7"></circle><path d="M8 11h6"></path></svg><input id="zm" type="range" min="100" max="300" value="{{zoom}}" onChange="{{onZoom}}"><svg class="i sm" viewBox="0 0 24 24" style="color:var(--faint)"><circle cx="11" cy="11" r="7"></circle><path d="M8 11h6 M11 8v6"></path></svg></div>
+              <button class="btn sm" onClick="{{rotate}}" style="align-self:flex-start"><svg class="i sm" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8 M21 3v5h-5"></path></svg>Rotate</button>
+              <div class="divider" style="margin:4px 0"></div>
+              <button class="btn sm ghost" onClick="{{toEmpty}}" style="align-self:flex-start">Replace photo</button>
+              <button class="btn sm ghost dng-o" onClick="{{toIcon}}" style="align-self:flex-start">Remove photo</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div class="mfoot" style="border-top:1px solid var(--line-in)"><span class="tiny" style="margin-inline-end:auto;align-self:center">Only owners can change this</span><a class="btn" href="#">Cancel</a><a class="btn pri" href="#">{{saveLabel}}</a></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"mode":{"editor":"enum","options":["edit","create"],"default":"edit"},"tab":{"editor":"enum","options":["icon","photo-empty","photo-crop"],"default":"icon"},"$preview":{"width":1366,"height":768}}'>
+class Component extends DCLogic {
+  componentDidUpdate(prev) { if (prev.tab !== this.props.tab && this.state && this.state.tab) this.setState({ tab: null }); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const tab = s.tab || p.tab || 'icon';
+    const col = s.col || 'green', ic = s.ic == null ? 0 : s.ic, zoom = s.zoom || 150, deg = s.deg || 0;
+    const ICONS = [
+      ['Home', 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
+      ['Cart', 'M2 3h3l2.7 12.4a1.5 1.5 0 0 0 1.5 1.1h8.6a1.5 1.5 0 0 0 1.5-1.1L21 7H6 M9 21h.01 M18 21h.01'],
+      ['Basket', 'M3 10h18l-2 10H5z M8 10l4-6 4 6'],
+      ['Tools', 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z'],
+      ['Electronics', 'M6 6h12v12H6z M9 9h6v6H9z M9 2v4 M15 2v4 M9 18v4 M15 18v4 M2 9h4 M2 15h4 M18 9h4 M18 15h4'],
+      ['Maker', 'M21 16V8l-9-5-9 5v8l9 5z M3.3 7 12 12l8.7-5 M12 22V12'],
+      ['Gifts', 'M3 8h18v4H3z M5 12v9h14v-9 M12 8v13 M12 8c-2-4-6-4-6-1.5S9 8 12 8c3 0 6 .5 6-1.5S14 4 12 8'],
+      ['Travel', 'M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z'],
+      ['Garden', 'M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z M2 21c0-3 1.9-5.4 5.1-6'],
+      ['Family', 'M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z'],
+      ['Favourites', 'M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z'],
+      ['Study', 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5'],
+      ['Photo', 'M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z'],
+      ['Baby', 'M9 12h.01 M15 12h.01 M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5 M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1'],
+      ['Pets', 'M11 4.5a1.5 2 0 1 0-3 0 1.5 2 0 0 0 3 0z M16 4.5a1.5 2 0 1 0-3 0 1.5 2 0 0 0 3 0z M7 9a1.5 2 0 1 0-3 0 1.5 2 0 0 0 3 0z M20 9a1.5 2 0 1 0-3 0 1.5 2 0 0 0 3 0z M12 11c-3 0-6 4-6 7 0 2 1.5 3 3 3 1.2 0 2-.6 3-.6s1.8.6 3 .6c1.5 0 3-1 3-3 0-3-3-7-6-7z'],
+      ['Coffee', 'M17 8h1a4 4 0 0 1 0 8h-1 M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z M6 2v3 M10 2v3 M14 2v3'],
+      ['Car', 'M5 17h14v-5l-2-5H7l-2 5z M5 12h14 M7 17v2 M17 17v2 M7.5 14.5h.01 M16.5 14.5h.01'],
+      ['Sport', 'M6.5 6.5v11 M17.5 6.5v11 M3 9v6 M21 9v6 M6.5 12h11'],
+      ['Music', 'M9 18V5l12-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0z M21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z'],
+      ['Work', 'M3 7h18v13H3z M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M3 13h18'],
+      ['Clothes', 'M20.4 6.6 16 4a4 4 0 0 1-8 0L3.6 6.6a1 1 0 0 0-.5 1.2l.9 3a1 1 0 0 0 1.2.7L7 11v9h10v-9l1.8.5a1 1 0 0 0 1.2-.7l.9-3a1 1 0 0 0-.5-1.2z'],
+      ['Kitchen', 'M3 2v7c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2V2 M6 2v20 M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z M21 15v7'],
+      ['Living room', 'M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3 M2 13a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v5H2z M5 18v2 M19 18v2'],
+      ['Games', 'M6 11h4 M8 9v4 M15 12h.01 M18 10h.01 M17.3 5H6.7a4 4 0 0 0-4 3.6L2 15a3 3 0 0 0 5.2 2.1L9 15h6l1.8 2.1A3 3 0 0 0 22 15l-.7-6.4A4 4 0 0 0 17.3 5z']
+    ];
+    const COLS = ['green', 'blue', 'violet', 'amber', 'rose', 'slate'];
+    const photo = tab === 'photo-crop';
+    const create = p.mode === 'create';
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      name: create ? 'Workshop' : 'Jacoby Home',
+      heading: create ? 'Create a space' : 'Space look',
+      saveLabel: create ? 'Continue' : 'Save',
+      tileCls: photo ? 'photo' : 'gr-' + col,
+      iconD: ICONS[ic][1],
+      rot: photo ? 'background-size:' + zoom + '%;background-position:45% 40%' : '',
+      colors: COLS.map((c) => ({ n: c, cls: 'sw gr-' + c + (c === col ? ' on' : ''), pick: () => this.setState({ col: c, tab: 'icon' }) })),
+      icons: ICONS.map(([n, d], i) => ({ n, d, cls: 'icp' + (i === ic ? ' on' : ''), pick: () => this.setState({ ic: i }) })),
+      tabIcon: tab === 'icon' ? 'on' : '', tabPhoto: tab !== 'icon' ? 'on' : '',
+      toIcon: () => this.setState({ tab: 'icon' }), toPhoto: () => this.setState({ tab: 'photo-empty' }),
+      toCrop: () => this.setState({ tab: 'photo-crop' }), toEmpty: () => this.setState({ tab: 'photo-empty' }),
+      zoom, onZoom: (e) => this.setState({ zoom: Number(e.target.value) }),
+      zoomStyle: 'position:absolute;inset:-30px;background-position:45% 40%;transition:transform .25s ease;background-size:' + zoom + '%;transform:rotate(' + deg + 'deg)',
+      rotate: () => this.setState({ deg: (deg + 90) % 360 }),
+      isIcon: tab === 'icon', isPhotoEmpty: tab === 'photo-empty', isCrop: photo
+    };
+  }
+}
+</script>
+</body>
+</html>
