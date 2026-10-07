@@ -317,9 +317,11 @@ Design language as R15 ("less text, visuals first, light, premium"). Boards to b
 `SpaceSwitch` (motion storyboard), `HomeCustomize` (desktop + phone), `HomeWidgets` (new indicators).
 
 ### D1. [ ] Settings on desktop: a large, structured screen
-Replace the small centred dialog (`settings-dialog.tsx`) with a large two-pane screen (≈ 960×640, max 90 vh; or a full
-page `/settings/<section>` — follow the board): side nav of sections (You: Account & security · Display · Assistant & AI
-· Calendar · Memory · Data (backup, import, export) — Space: General · People & invites · Budget · Danger zone), content
+Replace the small centred dialog (`settings-dialog.tsx`) with a **large two-pane dialog** over the app (Tal 2026-10-07:
+dialog, not a full page; ≈ 1220×700 at 1366×768, max 92 vw × 92 vh, close button + Esc): side nav of sections (You:
+Account & security · Display · **Notifications** (Tal 2026-10-07: its own section — in app now, phone push "Soon";
+price drops, shared-list changes, budget 80%, deliveries, sales ending) · Assistant & AI · Calendar · Memory · Data
+(backup, import, export) — Space: General · People & invites · Budget · Danger zone), content
 on the right, **no section scrolls at 1366×768** except long lists. Deep links (`/settings/display`), command-palette
 entries per section, Esc/back closes. Existing pages `/settings/security`, `/settings/invites` become sections.
 
@@ -353,7 +355,8 @@ Tal couldn't find a way to change the space look. Build the `CreateSpace` identi
 ## Part E — Home (Session 2)
 ### E1. [ ] Customise: presets and widget sizes
 Keep hide/reorder; add **presets** (board: e.g. Household — shopping first; Maker — projects first; Deal watcher —
-prices first; Minimal) and **sizes per widget** (S/M/L on a 12-column desktop grid; phone: full or half width). Drag to
+prices first; Minimal) and **sizes per widget** (width S/M/L = 3/6/12 of a 12-column desktop grid, phone half or full
+width; plus **height 1× or 2×** on both — Tal 2026-10-07; tall list widgets show more rows). Drag to
 reorder with smooth FLIP animation, resize by handle or size menu, live preview, Reset. Saved per user per space
 (fallback to the user's last layout). Must feel native: no layout jump, ≥ 55 fps while dragging.
 
