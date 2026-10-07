@@ -146,7 +146,7 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
           </svg>
           <span style={{ flex: 1 }}>{a.errors[error]}</span>
           {retryable && (
-            <button type="button" className="link" style={{ background: "none", border: 0, padding: "0 4px", minHeight: 40, fontWeight: 600 }} onClick={() => google(last.current.hint, last.current.provider, last.current.which)} data-auth="retry">
+            <button type="button" className="link" style={{ background: "none", border: 0, padding: "0 4px", minHeight: 40, fontWeight: 600, alignSelf: "center", flexShrink: 0 }} onClick={() => google(last.current.hint, last.current.provider, last.current.which)} data-auth="retry">
               {a.tryAgain}
             </button>
           )}
