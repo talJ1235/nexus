@@ -13,6 +13,9 @@ until a refresh — the core of a household app, (2) a set of bugs on PC and pho
 ## How to run (two sessions)
 - Branch **`round16`** from `main`. Commit each item as `R16.<part><k>: …`. Push the branch after each part.
 - **Session 1 = Parts 0, A, B, C** (fixes, live sync, error reporting). Runs now.
+- **Session G = Part G** (Google sign-in speed). Its own session, **runs now** — it doesn't need mockups and doesn't
+  wait for Session 2. Same branch rules (`round16`, merge `origin/main` first, `R16.G<k>` commits, ff-merge to `main`
+  when green — there is no DB change in G).
 - **Session 2 = Parts D, E, F** (settings & spaces screens, Home customisation, guards/docs). Runs **after Tal approves
   the mockups** in `docs/design/r16/` (the planner makes them in parallel; the session-2 prompt says when they're in).
   If a board is missing for an item, build from the text here and list it in "## Open".
@@ -247,6 +250,63 @@ people can't silently overwrite each other.
 - Acceptance: `test:errors` — 200 events from one user in a minute → 30 stored, rest rejected 429; 2 000 distinct
   fingerprints → table stays at 1 000 + overflow; a sample containing an email/URL query/long number is redacted;
   a thrown error in a test action appears once with count 3 after 3 calls; `test:authz-coverage` covers the route.
+
+## Part G — Google sign-in: instant, and it always opens (Session G) — added by Tal 2026-10-07
+Tal: after tapping "Continue with Google" it takes far too long before Google's page appears, and **sometimes it never
+opens**. Expected: the tap feels instant, Google's page starts loading right away, and it never silently does nothing.
+Applies to both buttons (`data-auth="google"` and the "Continue as …" returning account), PC and phone (browser + PWA).
+
+Planner's read of the code (verify, don't assume):
+- The click is `google()` in `src/components/auth/login-form.tsx` → (optional `POST /api/auth-flow/invite`) →
+  `authClient.signIn.social()` → `POST /api/auth/sign-in/social` (a serverless function: cold start + a DB rate-limit row
+  + the OAuth state row in Turso) → only then the browser navigates to Google. Every step is sequential.
+- **Likely "never opens":** better-auth's client usually *returns* `{ error }` instead of throwing. The code only handles
+  a throw, so a 429/500/network error leaves `busy = true` → the button stays disabled and nothing happens. Also: no
+  timeout on the request, and returning from Google with Back restores the page from bfcache with the button still
+  disabled.
+- **Likely "slow":** cold start of the auth function; function region vs Turso region (every DB round trip crosses an
+  ocean if they differ — check `vercel.json`/project region and the Turso DB location); on the way back, the callback runs
+  ~10 sequential DB calls in `databaseHooks.session.create.after` (rotation delete, other-sessions select, security
+  events, role check, `ensurePersonalSpace`) before the redirect into the app.
+
+### G1. [ ] Measure first
+Before changing anything, write numbers into Open: (a) click → first navigation request to `accounts.google.com`, cold
+and warm (Playwright with the `test-idp` provider locally + a real prod run via the Vercel logs/`Server-Timing`);
+(b) `/api/auth/sign-in/social` server time split into cold start / rate limit / state / other; (c) callback
+(`/api/auth/callback/google`) server time split the same way, hooks included; (d) the function region and the Turso
+region. Add a `Server-Timing` header to both routes (stays — useful for later).
+
+### G2. [ ] It always opens (correctness)
+- Handle the returned `{ error }` as well as a throw; on any failure show the error with a **Try again** that works,
+  and send it to the C2 error log (kind `auth`, no email in the payload).
+- Timeout: if Google hasn't started loading within 6 s, cancel, show "Taking longer than usual — Try again", re-enable.
+- Reset `busy` on `pageshow` (bfcache) and on visibility return, so Back from Google never leaves a dead button.
+- Rate limit on `/sign-in/social`: 10/min per IP is fine for people but make sure a household behind one IP (NAT) and
+  retries can't hit it; show `limit` text if it does instead of hanging.
+- Phone PWA (standalone): confirm the redirect to Google and back lands inside the app and the session cookie sticks;
+  if it can't on a platform, open Google in the browser tab flow that works and say so in Open.
+
+### G3. [ ] It feels instant (speed)
+- **Immediate feedback:** on press, within one frame: button shows the spinner + "Opening Google…", no layout shift.
+- **Warm the path:** when the sign-in screen mounts (and on hover/touchstart of the button), fire a cheap request that
+  wakes the auth function and the DB connection, plus `preconnect` to `accounts.google.com`.
+- **Fewer round trips before the redirect:** run the invite check in parallel or fold it into the same request; if
+  better-auth 1.7.7 supports cookie-stored OAuth state (`account.storeStateStrategy: "cookie"` — check the docs/source
+  for the exact option), use it so starting sign-in needs no DB write; keep CSRF/state checks intact (`test:auth`,
+  `test:auth-flow` must still pass, `docs/SECURITY.md` unchanged in meaning).
+- **Region:** if the function and Turso are in different regions, set the function region next to the DB (Hobby allows
+  one region) — write before/after round-trip times in Open. Don't move the DB.
+- **Callback:** keep what must finish before the redirect (session, rotation, role) and move the rest
+  (security-event logging, new-device check, `ensurePersonalSpace` when the space already exists) to run after the
+  response (`after()` / `waitUntil`), or batch them into one DB call. Nothing security-relevant may be dropped.
+
+Targets (prod, phone on 4G and PC, written in Open before/after): visual response **< 100 ms**; navigation to Google
+starts **< 700 ms warm, < 1.5 s cold** (p95 of 10 runs); back from Google → app shell visible **< 1.5 s**; 0 dead
+buttons in 30 tries including Back, offline and a forced 500.
+
+### G4. [ ] Guards
+Smoke (`test-idp`): click → navigation within budget; forced 500 / 429 / timeout → error + working Try again; Back from
+the provider → button enabled. Add to `guards.yml`. Update `SPEC.md` (auth section) and `ENVIRONMENT.md` (region).
 
 ## Part D — settings and space screens (Session 2, mockups `docs/design/r16/`)
 > Tal 2026-10-07: boards come for D1/D3 (Settings), D2 (Space settings), D5 (Space identity) and E1 (Home customise)
