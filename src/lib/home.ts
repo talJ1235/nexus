@@ -1,5 +1,6 @@
 // Home (the dashboard, Round 13): every number on the page comes from one pure function, `homeModel`.
 // No network, no strings that depend on the language (the UI words them), so scripts/test-home.ts can check it all.
+import type { HomeLayout } from "./home-layout";
 import { capFor, monthForecast, monthKeyIn, monthStartIn, nextMonthKey, type BudgetHistory } from "./budget";
 import { activeSource, countable, lineTotal, PRIORITY_RANK, sourceTotal, spendDate } from "./calc";
 import { convert, type Rates } from "./money";
@@ -660,6 +661,8 @@ export type HomePrefs = {
   aiSuggestions: boolean;
   /** R16 D1: Settings → Notifications (in the app). Missing in older offline snapshots → all on. */
   notify?: NotifyPrefs;
+  /** R16 E1: this space's Home layout (or the user's last one); null = never customised → the default preset. */
+  layout?: HomeLayout | null;
 };
 /** Which in-app notices the user wants: price drops (bell + Needs you; `minDropPct` is the tracker's threshold),
  *  budget at 80 %, deliveries due/late. Shared-list activity is the per-device "live activity" switch. */

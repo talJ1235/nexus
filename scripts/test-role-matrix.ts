@@ -52,7 +52,7 @@ const VIEW_OK = new Set([
   "chat-actions.ts#me",
   "compare-actions.ts#compareStart", "compare-actions.ts#compareVerify",
   "guest-actions.ts#gone",
-  "home-actions.ts#dismissHome", "home-actions.ts#undismissHome", "home-actions.ts#setAiSuggestions", "home-actions.ts#phraseSuggestions", "home-actions.ts#homeLook", "home-actions.ts#homeDiag", "home-actions.ts#saveNotifyPrefs",
+  "home-actions.ts#dismissHome", "home-actions.ts#undismissHome", "home-actions.ts#setAiSuggestions", "home-actions.ts#phraseSuggestions", "home-actions.ts#homeLook", "home-actions.ts#homeDiag", "home-actions.ts#saveNotifyPrefs", "home-actions.ts#saveHomeLayout",
   "memory-actions.ts#getMemoryState", "memory-actions.ts#setMemoryEnabled", "memory-actions.ts#saveMemoryNote", "memory-actions.ts#updateMemoryNote", "memory-actions.ts#deleteMemoryNote",
   "picture-actions.ts#understandReceiptLines", "picture-actions.ts#findLinePictures", "picture-actions.ts#searchPictures", "picture-actions.ts#pictureIcons", "picture-actions.ts#itemPictureChoices", "picture-actions.ts#pictureSearchStatus",
   "receipt-actions.ts#listReceipts",

@@ -1,6 +1,7 @@
 // Home (Round 13): the user's dismissed rows / snoozed suggestions and the "AI-written suggestions" switch (user_pref, R15).
 import "server-only";
 import { userPrefGetMany } from "./db-scoped/prefs";
+import { parseLayout } from "./home-layout";
 import { DEFAULT_NOTIFY, type HomePrefs, type NotifyPrefs } from "./home";
 
 export const HOME_DISMISSED_KEY = "pref:home:dismissed";
@@ -32,7 +33,12 @@ export function parseDismissed(raw: string | null | undefined, now = Date.now())
   }
 }
 
-export async function loadHomePrefs(userId: string): Promise<HomePrefs> {
-  const kv = await userPrefGetMany(userId, [HOME_DISMISSED_KEY, HOME_AI_KEY, NOTIFY_KEY, ALERTS_KEY]);
-  return { dismissed: parseDismissed(kv[HOME_DISMISSED_KEY]), aiSuggestions: kv[HOME_AI_KEY] !== "off", notify: parseNotify(kv[NOTIFY_KEY], kv[ALERTS_KEY]) };
+/** R16 E1: Home's layout per space; the last one saved anywhere is the fallback. */
+export const HOME_LAYOUT_KEY = "pref:home:layout";
+export const homeLayoutKey = (spaceId: string) => `${HOME_LAYOUT_KEY}:${spaceId}`;
+
+export async function loadHomePrefs(userId: string, spaceId?: string): Promise<HomePrefs> {
+  const kv = await userPrefGetMany(userId, [HOME_DISMISSED_KEY, HOME_AI_KEY, NOTIFY_KEY, ALERTS_KEY, HOME_LAYOUT_KEY, ...(spaceId ? [homeLayoutKey(spaceId)] : [])]);
+  const layout = (spaceId ? parseLayout(kv[homeLayoutKey(spaceId)]) : null) ?? parseLayout(kv[HOME_LAYOUT_KEY]);
+  return { dismissed: parseDismissed(kv[HOME_DISMISSED_KEY]), aiSuggestions: kv[HOME_AI_KEY] !== "off", notify: parseNotify(kv[NOTIFY_KEY], kv[ALERTS_KEY]), layout };
 }

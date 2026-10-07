@@ -50,7 +50,7 @@ export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo, m
     getRates(),
     loadImportLimit(s),
     s.select(schema.alerts).orderBy(desc(schema.alerts.createdAt)).limit(60),
-    loadHomePrefs(userId),
+    loadHomePrefs(userId, s.spaceId),
     loadBudgetWarn(s),
   ]);
   return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, budgetWarn, alerts, home, rev, ...(space ? { space } : {}), ...(me ? { me } : {}) };

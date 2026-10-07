@@ -605,3 +605,27 @@ Commits `R16.G1`–`R16.G4` on `round16` (no DB change; `rate_limit` gets `ba:` 
   scripts/bench-signin.mjs` (targets: tap → Google < 700 ms warm, < 1.5 s cold, p95 of 10; feedback < 100 ms), and
   `x-vercel-id` should read `…::dub1::…`. Back from Google → app shell (< 1.5 s) needs a real Google sign-in: DevTools →
   Network → `callback/google` → Timing shows the Server-Timing split. 4G phone runs: Tal, on the phone.
+
+### Session 2 (2026-10-07) — stopped early (usage limit)
+- **Done, on `round16` (pushed), not merged:** D1–D3 + D5 (`c0f6997`), D4 (`a3b7b2a`). Guards: `npm run test:settings`
+  (no-scroll at 1366×768 / 1280×720, deep links incl. old /settings/security|invites, Esc, palette, phone push/Back,
+  no overflow 360/390 en+he, photo EXIF stripped + owner-only, D4 overlay/sidebar box/fps) — all PASS locally;
+  `test:authz-coverage` (185), `test:scope`, `test:roles`, `test:home`, `test:help`, `test:budget` OK.
+  D4 timing (local `next start`, 1366): median 60 fps, 1 frame > 50 ms (83 ms, the data swap under the wash);
+  overlay 1.6 s total because the local data load took ~1.2 s (min moment 820 ms); reduced motion 0.43 s.
+- **Decisions:** settings shell uses the R15 `.nx` kit + ported `nx16.css`; one commit for D1–D3+D5 (files interleave).
+  Space photo goes in Better Auth's unused `space.logo` column, icon in `space.icon` → **no schema change**. Photo is
+  cropped on the device (HEIC only where the browser decodes it — Safari; elsewhere "try a JPG or PNG"), server
+  re-encodes with sharp to 512 px WebP without metadata; without a Blob token (local only, never on Vercel) it's kept
+  inline as a data URL. Notifications: drop/budget/delivery toggles are real (bell + Needs-you filters, 80 % toast);
+  phone push and "A sale ends" / calendar "Sales ending" are built disabled with "Soon" (no data yet). Calendar toggles
+  = Deliveries + Reorder dates (what the feed has). Motion = Match device / Reduced (no "Full": the OS setting can't
+  be overridden). Space Data tiles (backup/restore) stay owner-only (the API is).
+- **Not done (next session):** E1 UI (widget grid, presets chips, size menu, FLIP drag, resize, tray, phone half/full)
+  and E2 widget UI — groundwork committed: `src/lib/home-layout.ts` (widgets, presets, legacy-cookie migration,
+  edits), `src/lib/home-widgets.ts` (E2 metrics), `saveHomeLayout` + per-space load in `loadHomePrefs`, `hc` strings.
+  Then: unit tests for both libs in `test:home`, update the R13 customise smoke steps, parity PNGs (run
+  `scripts/parity-r16.mjs` into `docs/design/parity-r16/` — only scratch shots taken so far), F1 (`test:live`,
+  `test:errors`, `test:settings` into `guards.yml`), F2 docs (SPEC, help, CLAUDE.md map, ENVIRONMENT), full smoke,
+  the migration rehearsal (`scripts/r16-rehearsal.mjs --base origin/main` — expect no DB change this session), merge.
+- Open error log at start: `extract · blocked · cwc.co.il` ×3 — likely Tal's failing link from notes item 10.
