@@ -40,16 +40,23 @@ for (let i = 0; i < RUNS; i++) {
     window.__fb = null;
     b?.addEventListener("pointerdown", () => {
       const t0 = performance.now();
+      sessionStorage.setItem("b-down", String(Date.now()));
       const mo = new MutationObserver(() => {
-        if (b.getAttribute("aria-busy") === "true" && window.__fb == null) window.__fb = performance.now() - t0;
+        if (b.getAttribute("aria-busy") === "true" && window.__fb == null) {
+          window.__fb = performance.now() - t0;
+          sessionStorage.setItem("b-fb", String(window.__fb));
+        }
       });
       mo.observe(b, { attributes: true, childList: true, subtree: true });
     }, { once: true });
   }, SEL);
-  const t0 = Date.now();
   await page.click(SEL);
   await page.waitForURL((u) => isIdp(u), { timeout: 20_000 }).catch(() => {});
-  const fb = await page.evaluate(() => window.__fb).catch(() => null);
+  // The navigation left the page: read the tap time and the feedback from its sessionStorage (same origin, back).
+  if (!process.env.CALLBACK_EMAIL) await page.goBack({ waitUntil: "load" }).catch(() => {});
+  const saved = await page.evaluate(() => ({ down: Number(sessionStorage.getItem("b-down")), fb: sessionStorage.getItem("b-fb") })).catch(() => ({}));
+  const t0 = saved.down || Date.now();
+  const fb = saved.fb == null ? null : Number(saved.fb);
   if (process.env.CALLBACK_EMAIL) {
     await page.fill("#email", process.env.CALLBACK_EMAIL);
     const t1 = Date.now();
