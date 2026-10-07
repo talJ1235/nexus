@@ -6,7 +6,7 @@ file only; don't invent menus or settings that aren't here. UI names are given i
 ## Action buttons
 You may add up to 3 buttons, each on its own line, written exactly as a markdown link with a `nexus:` address. The app
 turns them into buttons; only these addresses work:
-- `nexus:settings` — open Settings (הגדרות): the space (Space & people, budget, import limit), then You (palette, theme, language, currency, security)
+- `nexus:settings` — open Settings (הגדרות): You (account, display, notifications, assistant, calendar, memory, data) and the space (general, people, budget, danger zone)
 - `nexus:palette/graphite`, `nexus:palette/plum` — switch the colour palette now
 - `nexus:theme/light`, `nexus:theme/dark`, `nexus:theme/system` — switch light/dark now
 - `nexus:alerts` — Price alerts (התראות מחיר): recent alerts and when to alert
@@ -34,85 +34,79 @@ Example: `[Open settings → Palette](nexus:settings)`.
   (the two big cards at its top switch between them; it reopens the one you used last), with a List / Grid switch
   (list by default, remembered) and Sort (By project / By arrival). **+** opens four coloured tiles: Scan a barcode
   (סריקת ברקוד), Scan a receipt (סריקת קבלה), Paste a link (הדבקת קישור), Plan with Nexus (תכנון עם Nexus).
-- **Settings on the phone**: tap your initial (the round button at the end of the top bar) → the "Me" sheet:
-  your spaces (switch, Create a space, Invite, Space settings), palette and theme, Settings, History, Price alerts
-  (התראות מחיר), Reports, Report a problem, Export to Excel, Backup, Sign out.
+- **Settings on the phone**: tap your initial (end of the top bar) → the "Me" sheet (spaces, palette, theme,
+  Settings, History, Price alerts, Reports, Report a problem, Export, Backup, Sign out).
 - **Command menu**: press **Esc** (or Ctrl/⌘+K) anywhere — search items, jump to views, change settings, run actions.
-- **Home** (בית, the screen the app opens on): the date and greeting, a status strip (things that need you · packages
-  this week · ahead of or behind your budget pace — each scrolls to its section), four stats (Left to buy, Month
-  budget, On the way, Saved this year), "Nexus suggests" (one idea at a time; Not now hides it for 7 days), This week
-  (its **Month** link opens the month calendar — see Calendar below),
-  Needs you (price drops, late packages, free-shipping gaps, time to reorder — ✕ or a swipe hides one for 7 days),
-  On the way, Month pace, Projects and "Nexus noticed". **Customize** (top of Home) reorders or hides sections.
-  Settings → Assistant → "AI-written suggestions" switches the AI wording of suggestions off (templates only).
+- **Home** (בית, the screen the app opens on): the greeting, a status strip (things that need you · packages this
+  week · budget pace — each scrolls to its widget) and **widgets**: Left to buy, Budget, On the way, Saved, Nexus
+  suggests, This week (**Month** opens the month calendar), Needs you (✕ or a swipe hides a row for 7 days),
+  Deliveries, Month pace, Projects, Nexus noticed, and new ones: Price drops, Vs last month, Next delivery, Budget by
+  category, Most bought, Space today (who added or bought what in a shared space).
+<!-- spec: Home widgets -->
+- **Customize** (top of Home) → presets **Household · Maker · Deal watcher · Minimal**, or arrange your own: drag a
+  widget by its dots (or arrow keys), resize by the corner or the size menu (S / M / L wide, 1× / 2× tall; phones:
+  Half / Full and 2×), hide it (eye), add one from the Widgets list (desktop) or **Add widget** (phone). Reset = the
+  Household preset; Done saves it — for you, per space.
 <!-- spec: To buy filters, Phone layouts -->
 - **To buy** (one list — there are no separate Urgent / Unsorted pages any more): the "To buy" header with filter chips
   **All · Urgent (דחוף) · No project (ללא פרויקט)**, each with its count, then project chips, Category, Sort and the
   layout switch. Desktop: cards or table. Phone: the same chips under the To buy ⇄ On the way switch; list (grouped by
   project) or 2-column grid. To take items out of a project: select them → Move to → Remove from project (הסרה
-  מהפרויקט), or on desktop drag them onto the "No project" chip. The totals and indicators live on Home and Spending
-  (a project's or a store's page keeps its own budget / free-shipping summary).
-- **List / Grid on the phone**: the round switch next to Sort (or "Grid" / "List" in the phone search). Phones always
-  use List or Grid; the desktop's Cards / Table choice never applies there.
+  מהפרויקט), or on desktop drag them onto the "No project" chip. Totals live on Home and Spending.
+- **List / Grid on the phone**: the round switch next to Sort; the desktop's Cards / Table never applies there.
 - An item opens in a sheet: picture, price, open in store, Plan (qty, priority, project/list), Stores, Price history
   and watch/target, Tags & notes, Receipts, Advanced.
 
 ## Accounts and sign-in
 <!-- spec: Sign-in, Google sign-in, Invite-only sign-up, Settings → Security -->
 - Sign in with **Google** (התחברות עם Google). Nexus is invite-only for now: a new account needs an invite code from Tal
-  or an invite link to a space; without one you can leave your email on the waitlist.
-- Google sign-in that fails says why, with **Try again** (נסו שוב).
-- **Settings → Security** (אבטחה): your devices (sign one out, or all the others), passkeys, connected accounts and
-  recent sign-in activity. "Was this you?" appears after a sign-in on a new device — "No, sign it out" ends it.
-- **Confirm it's you** (sign in again) is asked before removing someone, transferring ownership, deleting a space or
-  changing passkeys.
-- Tal (admin): **Settings → Invite codes** — sign-up codes and the waitlist.
+  or an invite link to a space; without one you can leave your email on the waitlist. A failed sign-in says why, with
+  **Try again** (נסו שוב).
+- **Settings → Account & security** (חשבון ואבטחה): your name, a security checkup, sign-in methods (Google,
+  passkeys), devices (sign one out, or all the others; a new sign-in to review is at the top — "No, sign it out" ends
+  it), and Activity & recovery. **Confirm it's you** (sign in again) is asked before removing someone, transferring
+  ownership, deleting a space or changing passkeys. Tal (admin): Account → **Invite codes**.
 
 ## Spaces and people
-<!-- spec: Spaces, Switcher, Create a space, Space settings, Viewer, Move to space… -->
+<!-- spec: Spaces, Switcher, Create a space, Space settings, Viewer, Move to space…, Space look, Space switch moment -->
 - Everything lives in a **space** (מרחב): your **personal** space (only you) and **shared** spaces (a household, a
-  workshop…). Each has its own lists, projects, items and budget. Assistant chats and memory stay
-  personal.
-- **Switch**: desktop — the button under the logo (or Ctrl/⌘+1…9); phone — tap the space name in the top bar. You stay
-  on the same screen, now in that space.
-- **Create a space**: switcher → Create a space → name, colour, currency → invite people (or Skip for now).
-- **Invite**: switcher → Invite to <space> → choose **Member** (adds and edits) or **Viewer** (only looks) → Copy the
-  link, show the QR code, Send on WhatsApp or Share. A link works 7 days for up to 5 people (Reset link = a new one).
-  The person opens it, sees the space and who invited them, and joins (with Google if needed).
-- **Roles**: Owner manages people and the space; Members add and edit; Viewers can only look (no add bar or "+").
-- **Space settings** (switcher → Space settings, or Settings → Space & people): name, colour, currency, people (change
-  a role, remove, transfer ownership), invite links (uses, expiry, Revoke), **Leave space** (an owner must transfer
-  first), **Delete space** (type its name; it can be restored from Space settings for 7 days).
-- **Move a list or project to another space**: open its edit window (pencil) → **Move to space…** — its items, links,
-  price history and files go with it; Undo in the toast. In shared spaces a small avatar on each item shows who added it.
+  workshop…), each with its own lists, projects, items and budget. Assistant chats and memory stay personal.
+- **Switch**: desktop — the button under the logo (or Ctrl/⌘+1…9); phone — tap the space chip in the top bar. Its tile
+  flies to the centre — "You're now in …" — and you land on its Home (tap to skip).
+- **Create a space**: switcher → Create a space → name, icon and colour (or a photo) → invite people (or Skip).
+- **Invite**: switcher → Invite → **Member** (adds and edits) or **Viewer** (only looks) → Copy the link, QR, WhatsApp
+  or Share. A link works 7 days for up to 5 people. Roles: Owner manages people and the space.
+- **Space settings** (switcher → Space settings, or Settings → the space's sections): **General** (name, currency, the
+  look), **People & invites** (roles, remove, transfer, links + QR, Revoke), **Budget** (monthly budget, by category,
+  "Warn everyone at 80%", import limit), **Danger zone** (transfer, **Leave**, **Delete** — type its name; restorable
+  for 7 days).
+- **Space look** (owners): Edit look → an icon (24) and one of 6 colours, or **Photo** — from the device or the camera,
+  then drag / pinch or the slider to zoom, Rotate, Save. The photo is stored small, without location data.
+- **Move a list or project to another space**: its edit window (pencil) → **Move to space…** (items, links, price history
+  and files go along; Undo in the toast). In shared spaces a small avatar on each item shows who added it.
+<!-- spec: Live shared spaces, Conflicts -->
+- **Live**: in a shared space, changes by others appear within a second, no refresh. Green dots = who's here now;
+  "Noa is shopping"; small toasts like "Noa added 3 items" (Settings → Notifications). If two people change the same
+  thing, the second sees "Noa changed this a moment ago" with **Show** or **Apply mine**; different fields just merge.
 
 ## Home suggestions, insights and deliveries
 <!-- spec: Nexus suggests, Nexus noticed, Delivery track, Home suggestions -->
-- **Nexus suggests** (top of Home): one idea at a time — a deal on something you want (sometimes "order both" when
-  another item makes the order ship free), time to reorder something you buy regularly, a cheaper weekday, a project
-  without a budget. The main button does it; "Not now" hides it for 7 days. Wording comes from the AI once a day;
-  Settings → Assistant → "AI-written suggestions" off = plain wording, no AI calls.
-- Home always has something to say once you have items: when those exact rules find little, the AI looks at your list
-  once a day (it may only point at your own items and numbers), and simple tips fill in — set a monthly budget, a target
-  price for your priciest item, an arrival date for an order, "still want X?" after 30 days, the extension, a receipt.
-  Settings → Assistant shows "Home suggestions: last run … · source rules/AI · N items" and the last error, if any.
-- **Nexus noticed**: short facts from your own data (shipping saved by ordering together, a cheaper weekday for a
-  category, a project without a budget), each with one link.
-- Deliveries show one 4-step track — Ordered · Shipped · In country · Delivered — estimated from the order date and the
-  expected date (we don't read carrier stages); late = all four in orange; no date = one step and "No date".
+- **Nexus suggests**: one idea at a time — a deal on something you want (sometimes "order both" for free shipping),
+  time to reorder, a cheaper weekday, a project without a budget. The button does it; "Not now" hides it for 7 days.
+  When the exact rules find little, the AI looks once a day (only at your own items and numbers) and simple tips fill
+  in. Settings → Assistant & AI: AI + rules, or Rules only (no AI calls); Status shows the last run and any error.
+- **Nexus noticed**: short facts from your data (shipping saved, a cheaper weekday, a project without a budget).
+- Deliveries show a 4-step track — Ordered · Shipped · In country · Delivered — estimated from the order and expected
+  dates; late = all four in orange; no date = "No date".
 
 ## Calendar
 <!-- spec: Month view, Calendar sync -->
-- **Month view**: on Home, This week → **Month** (חודש). Desktop: the card grows into a month grid; phone: a sheet.
-  ‹ › move between months; coloured dots mark arrivals, late packages, reorder dates, price drops and the budget week
-  close; tap a day to list its events, tap an event to open the item.
-- **Calendar sync**: Settings → **Calendar** (לוח שנה) → **Subscribe in Google Calendar**, or **Apple / Outlook** (a
-  webcal link), or **Copy link**. Your calendar then shows "📦 X arrives" on each expected date and "🔁 Reorder X";
-  moved dates move and received or deleted items disappear on their own. Google refreshes subscribed calendars every
-  few hours, so changes can take up to a day. Only item names are shared — no prices or stores. **Regenerate link**
-  makes a new secret address and stops the old one (subscribe again with the new one).
-- Before you subscribe, each event in the month view has an **Add to Google Calendar** button (a one-off copy that
-  won't follow later changes); once you've subscribed, those buttons go away to avoid duplicates.
+- **Month view**: Home → This week → **Month** (חודש): ‹ › between months, dots for arrivals, late packages, reorder
+  dates, price drops and the budget; tap a day for its events.
+- **Calendar sync**: Settings → **Calendar** (לוח שנה) → **Add to Google Calendar**, **Apple / Outlook** (webcal) or
+  **Copy**. It shows "📦 X arrives" and "🔁 Reorder X" (choose which); moved dates move, received or deleted items go
+  (Google refreshes every few hours). Names only — no prices or stores. **Reset link** stops the old address.
+- Before you subscribe, events in the month view have a one-off **Add to Google Calendar** button.
 
 ## Search, menus and gestures
 <!-- spec: One search, Nested overlays, Quick actions, Row swipes, Phone bottom sheets -->
@@ -242,14 +236,19 @@ Example: `[Open settings → Palette](nexus:settings)`.
 
 ## Look and language
 <!-- spec: Design system, Box logo, Mixed Hebrew/English text, Dark mode depth, One picture style, Solid tags, Ask button, Card borders, Sidebar v4, Phone shell v4, Calmer light theme -->
-- The desktop sidebar marks the open page with a soft tint and a thin coloured bar; the phone dock has labels; the light
-  theme is a calm, slightly darker paper tone; the logo's side face follows light / dark (Graphite).
-- Pictures share one style (cut-outs on a white tile, photos full-bleed); tags over pictures are solid; "Ask Nexus" is
-  always a rounded pill; Home and Shopping cards have a clearer 1 px outline.
-- Palette: Settings (הגדרות) → Palette (צבעים) → **Graphite & Amber** (גרפיט וענבר, default) or **Plum** (שזיף). Theme
-  (ערכת נושא): Light / Dark / System. Both
-  change instantly, per device. Language: Settings → Language (English / עברית, full right-to-left).
-- Mixed Hebrew/English titles are shown in their natural direction.
+- Settings → **Display** (תצוגה): theme Light / Dark / Match device, colour **Graphite** (default) or **Plum** (שזיף),
+  language (English / עברית, full right-to-left), currency, Motion (Match device / Reduced). Per device, instant.
+- Pictures share one style; "Ask Nexus" is always a rounded pill; mixed Hebrew/English titles keep their direction.
+
+## Settings
+<!-- spec: Settings, Notifications -->
+- Desktop: a large window — sections on the side (You, then the current space), search with `/`, Esc closes. Phone: a
+  list of sections, each opens as its own page (Back returns). Each section has an address (e.g. /settings/display)
+  and a command-menu entry ("Settings: Budget").
+- **Notifications** (התראות): in the app — a tracked price drops (any / 5 / 10 / 20 %), someone changes a shared list,
+  the budget reaches 80 %, a delivery is due or late. Push to the phone: Soon.
+- **Assistant & AI**: AI + rules or Rules only for "Nexus suggests"; Memory; the AI status. **Calendar**: the feed
+  link and which kinds it carries. **Data**: back up / restore (owner), import a spreadsheet or receipts, export items.
 
 ## Offline and the phone app
 <!-- spec: Offline, read-only v1, First load, Loading skeletons, Opening, Opening v4 -->
@@ -270,16 +269,18 @@ Example: `[Open settings → Palette](nexus:settings)`.
 - **Export to Excel** (a BOM: item, qty, unit price, total, store, link, priority, status): a project or list page →
   the ⋯ menu → Export to Excel; the command menu → Export to Excel (the current project/list, or everything to buy);
   phones: the Me sheet → Export to Excel.
-- Full JSON backup (download) and restore (merge or replace): Settings, or the command menu → Backup. Secrets are never
+- Full JSON backup (download) and restore (merge or replace): Settings → Data, or the command menu → Backup. Secrets are never
   in a backup.
 
 ## Report a problem
-<!-- spec: Reports, Simpler reports -->
+<!-- spec: Reports, Simpler reports, Report a failure, Error log -->
 - From the assistant (it drafts the report when you say something is broken or have an idea), the command menu,
   Settings, or the phone's Me sheet: choose Bug / Complaint / Idea, write what happened in one box (for a bug also
   what you expected), optionally add a screenshot, Send. What's attached automatically is listed under "Included
   automatically" (screen, device, versions, recent errors — never personal data or prices).
-- Your reports and their status (open / in progress / fixed / won't fix): Settings → Reports, or the command menu.
+- When something fails (a link, a picture search, a receipt, a barcode, an answer, an import), its error toast has
+  **Report**: the form opens filled in; the link is attached (domain + path, can be unticked), a picture only if ticked.
+- Your reports and their status: Settings → Account → Your reports, or the command menu.
 
 ## Common problems
 - **A product is missing its picture or price** → the store blocked the server; wait for the daily check or set it by

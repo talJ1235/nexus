@@ -117,10 +117,11 @@ async function traceLoad(ctx, url, ms = 2500) {
 }
 
 // ---- Round 13 Part A: Home (the dashboard) — default screen, section order, phone height, tiles, logo.
-const HOME_ORDER = ["suggest", "week", "needs", "ontheway", "pace", "projects", "noticed"];
+const HOME_ORDER = ["suggest", "week", "needs", "ontheway"];
 /** Visible Home sections in page order (the phone's merged "pace projects" card counts as both). */
 const homeSections = (page) =>
-  page.$$eval("[data-home-section]", (els) => els.filter((e) => e.offsetParent !== null).flatMap((e) => e.getAttribute("data-home-section").split(" ")));
+  page.$$eval("[data-home-grid] [data-widget]", (els, all) => els.filter((e) => e.offsetParent !== null).map((e) => e.getAttribute("data-widget")).filter((id) => all.includes(id)), HOME_ORDER_ALL);
+const HOME_ORDER_ALL = ["suggest", "week", "needs", "ontheway", "pace", "projects", "noticed"];
 /** R16 D1: Settings at a section (deep link /settings/<section>; the shell opens over the app). */
 async function openSettings(page, section = "ai") {
   const base = new URL(page.url()).origin;
@@ -300,36 +301,34 @@ async function homeChecks(page) {
     }
     ok(visible >= 1 && (!MOBILE || visible === 1) && switched, "noticed: insights render (phone: dots switch)", `${visible} visible, switched ${switched}`);
   });
-  // A5: Customize — hide "Nexus noticed", move "Projects" up one, Done, reload: the order persisted; then Reset.
+  // A5 → R16 E1: Customise — hide "Next delivery", move "Needs you" up one (grip + arrow key), Done, reload: the layout
+  // persisted (server, per space); then Reset → the Household preset again.
   await step("customize: hide + move persist after reload", async () => {
+    const widgets = () => page.$$eval("[data-home-grid] [data-widget]", (els) => els.map((e) => e.getAttribute("data-widget")));
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.locator("[data-home-customize]").click();
     await page.waitForSelector("[data-home-customizing]");
-    await page.locator('[data-customize-row="noticed"] [data-customize-eye]').click();
-    if (MOBILE) await page.locator('[data-customize-row="projects"] [data-customize-up]').click();
-    else {
-      await page.locator('[data-customize-row="projects"] [data-customize-handle]').focus();
-      await page.keyboard.press("ArrowUp");
-    }
-    const draft = await page.$$eval("[data-customize-row]", (els) => els.map((e) => e.getAttribute("data-customize-row")));
+    const start = await widgets();
+    await page.locator('[data-widget-hide="nextdel"]').click();
+    await page.locator('[data-widget-handle="needs"]').focus();
+    await page.keyboard.press("ArrowUp");
+    const draft = await widgets();
     await page.locator("[data-home-done]").click();
+    await page.waitForTimeout(800);
     await page.reload();
-    await page.waitForSelector("[data-home]", { timeout: 15000 });
+    await page.waitForSelector("[data-home-grid]", { timeout: 15000 });
     await page.waitForTimeout(400);
-    const got = await homeSections(page);
-    const cookie = (await page.context().cookies()).find((c) => c.name === "nexus_home")?.value ?? "";
-    const iP = draft.indexOf("projects");
-    const moved = iP >= 0 && draft[iP + 1] === "pace";
-    const persisted = cookie.includes("projects.pace") && cookie.includes("-noticed") && !got.includes("noticed");
-    // Desktop shows the order directly; the phone merges pace + projects into one card either way.
-    const domOrder = MOBILE || got.indexOf("projects") < got.indexOf("pace");
-    // Reset restores the default.
+    const got = await widgets();
+    const iP = start.indexOf("needs");
+    const moved = draft.indexOf("needs") === iP - 1 && !draft.includes("nextdel");
+    const persisted = !got.includes("nextdel") && got.indexOf("needs") >= 0 && got.indexOf("needs") < got.indexOf(start[iP - 1]);
     await page.locator("[data-home-customize]").click();
     await page.locator("[data-home-reset]").click();
+    const preset = await page.locator('[data-home-preset="household"]').getAttribute("aria-checked");
     await page.locator("[data-home-done]").click();
-    await page.waitForTimeout(300);
-    const reset = (await page.context().cookies()).find((c) => c.name === "nexus_home")?.value === HOME_ORDER.join(".");
-    ok(moved && persisted && domOrder && reset, "customize: hide + move persist after reload", `draft ${draft.join(",")} cookie "${cookie}" dom ${got.join(",")} reset ${reset}`);
+    await page.waitForTimeout(500);
+    const reset = preset === "true" && (await widgets()).includes("nextdel");
+    ok(moved && persisted && reset, "customize: hide + move persist after reload", `start ${start.join(",")} draft ${draft.join(",")} after ${got.join(",")} reset ${reset}`);
   });
   // The logo returns to Home from every view.
   await step("logo returns to Home from every view", async () => {
@@ -1618,9 +1617,13 @@ try {
       await page.locator("[data-settings-back]:visible").first().click();
       await settle();
       r.arrowBack = await page.locator("[data-settings-reports]").isVisible();
-      // (R15 D2: the extension row is gone from Settings.)
+      // (R15 D2: the extension row is gone from Settings.) R16 D3: on phones Esc goes back to the section list first.
       await page.keyboard.press("Escape");
       await settle();
+      if (MOBILE && (await dialogs()) > 0) {
+        await page.keyboard.press("Escape");
+        await settle();
+      }
       r.settingsClosed = (await dialogs()) === 0;
       // Reports sheet → "Report a problem" form on top; Esc closes the form, then the sheet.
       await openPalette();

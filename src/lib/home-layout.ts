@@ -29,13 +29,14 @@ export const rowsFor = (h: 1 | 2, one = 3, two = 7) => (h === 2 ? two : one);
 const it = (id: WidgetId, w: Width, h: 1 | 2 = 1): LayoutItem => ({ id, w, h });
 
 /**
- * The presets (board HomeCustomize). Household also keeps the R13 sections people already had (projects, pace,
- * Nexus noticed) after the board's set; in a personal space "Space today" makes no sense → "On the way" instead.
+ * The presets, exactly as the board HomeCustomize (the other R13 sections — projects, pace, Nexus noticed — are in Maker /
+ * Deal watcher and in the tray; a saved R13 layout keeps them). In a personal space "Space today" makes no sense →
+ * "Deliveries" (the R13 On the way list) instead.
  */
 export function presetItems(p: PresetId, shared = true): LayoutItem[] {
   const list: LayoutItem[] =
     p === "household"
-      ? [it("left", "S"), it("budget", "S"), it("way", "S"), it("saved", "S"), it("suggest", "M"), it("week", "M"), it("needs", "M", 2), it("activity", "M"), it("nextdel", "M"), it("projects", "M"), it("pace", "M"), it("noticed", "L")]
+      ? [it("left", "S"), it("budget", "S"), it("way", "S"), it("saved", "S"), it("suggest", "M"), it("week", "M"), it("needs", "M", 2), it("activity", "M"), it("nextdel", "M")]
       : p === "maker"
         ? [it("projects", "M", 2), it("suggest", "M"), it("left", "S"), it("way", "S"), it("drops", "S"), it("budget", "S"), it("pace", "M"), it("needs", "M")]
         : p === "deals"

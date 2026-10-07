@@ -362,9 +362,7 @@ export function ReportsPage() {
   return (
     <>
       <SectionHead title={t.sx.sections.reports} />
-      <div data-settings-subpage="reports">
-        <ReportsSubpage openId={openId} onOpen={setOpenId} />
-      </div>
+      <ReportsSubpage openId={openId} onOpen={setOpenId} />
     </>
   );
 }

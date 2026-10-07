@@ -571,7 +571,7 @@ with Tal (merging deploys and runs the migration on the real database).
   / hooks / other / total). Guard: `scripts/test-google-signin.mjs` (guards.yml); bench: `scripts/bench-signin.mjs`.
 - **Invite-only sign-up**: admin invite codes (Settings → Invite codes, hashed + encrypted for re-copy), a `/join/<token>`
   space link also counts; otherwise "invite-only — leave your email" (waitlist, Turnstile when configured).
-- **Settings → Security** (`/settings/security`): devices (sign one / all others out), passkeys, connected accounts,
+- **Settings → Security** (R16: Settings → Account & security, `/settings/account`): devices (sign one / all others out), passkeys, connected accounts,
   activity log (90 days), "Was this you?" on a new device, admin recovery codes.
 - **Spaces**: every user has a personal space; shared spaces have roles owner / member / viewer. All data lives in a
   space (`space_id` on every data row, denormalised on children); `requireCtx(need)` (`src/lib/ctx.ts`) resolves user +
@@ -608,6 +608,47 @@ with Tal (merging deploys and runs the migration on the real database).
 - Performance (`npm run bench:r15`, main vs round15 on the prod copy): Home and Shopping first load unchanged
   (~30 ms); a 2 000-item space's Home ≈ 250 ms server time; every space-scoped list query uses an index.
 
+## Round 16 — live shared spaces, error reporting, settings & spaces screens, Home widgets
+Brief: `docs/ROUND16.md` (decisions and numbers under its "Open"). Built on branch `round16` (Sessions 1, G, 2,
+2026-10-06/07). The Google sign-in work (Part G) is described under Round 15 → Google sign-in.
+- **Live shared spaces**: a change by one member reaches the others within ~1 s without a refresh. Every write bumps a
+  per-space revision in the same transaction (`space_rev`, `rev`/`rev_by` on the synced tables, tombstones for 30 days);
+  the server publishes one `{ rev, by }` message per action to Ably (`space:<id>`, token = one channel, subscribe +
+  presence, 15 min; no content on the wire) and clients pull `changesSince(rev)`. Without `ABLY_API_KEY` (or Ably
+  down) the app polls every 10 s while visible. Presence: green dots, "Noa is shopping"; activity toasts ("Noa added 3
+  items", at most one per 10 s per person; Settings → Notifications). Guard: `npm run test:live`.
+- **Conflicts**: edits carry the revision they saw; when someone else changed the same fields first, nothing is written
+  and a toast says "Noa changed this a moment ago" with **Show** / **Apply mine**. Different fields merge silently.
+- **Report a failure**: error toasts of failed actions have **Report** → the report form prefilled (what failed; the
+  link as domain + path, on by default; a picture only if ticked).
+- **Error log** (admin, `/admin/errors`, `node scripts/errors.mjs`): unexpected errors grouped by fingerprint (count,
+  people as hashed counts, release, redacted sample), from server actions/routes, link extraction (stage + domain),
+  AI providers, cron steps and the browser; limits so it can't be abused (8 KB, 10 events, 30/h per user, 1 000 rows).
+- **Settings** (R16 D1–D3): desktop = a large two-pane dialog (≈ 1220 × 700): You — Account & security, Display,
+  Notifications, Assistant & AI, Calendar, Memory, Data; the current space — General, People & invites, Budget, Danger
+  zone; search (`/`), Esc closes (or goes back from a sub-page), deep links `/settings/<section>` (the old
+  `/settings/security` and `/settings/invites` open their sections), a command-menu entry per section. Phones: a section
+  list → the section's page, Back / swipe from the edge returns. Account: name, a security checkup, sign-in methods,
+  devices (a new sign-in to review sits first), sub-pages Activity & recovery, Your reports, Invite codes (admin).
+  Display: theme, colour, language, currency, Motion (Match device / Reduced, per device). Calendar: which kinds the
+  feed carries (deliveries, reorder dates). Data: back up / restore (owner), import, receipts, export every item.
+- **Notifications**: in the app (bell + toasts): a tracked price drops (threshold any / 5 / 10 / 20 %), someone changes
+  a shared list (per device), the budget reaches 80 % (once a month per space; the space can turn it off for everyone),
+  a delivery is due or late. Phone push and "a sale ends" show "Soon".
+- **Space look** (R16 D5): an icon (24) on one of 6 gradients, or a photo — chosen from the device or the camera,
+  cropped in a rounded square (drag, pinch / wheel / slider to zoom, rotate 90°), re-encoded on the server to a 512 px
+  WebP without EXIF/GPS (`/api/space-photo`, owners only, Blob `spaces/<id>/identity/`, the old photo deleted). Shown
+  wherever the space tile is (switcher, sidebar, phone top bar, settings, invite page). Create a space uses the same editor.
+- **Space switch moment** (R16 D4): switching spaces flies the space's tile to the centre over a wash of its colour with
+  "You're now in …", name and faces (≈ 0.8 s; holds with a progress line while the data loads, at most 3 s; a tap
+  ends it; reduced motion = a short fade), then lands on Home without a page reload.
+- **Home widgets** (R16 E1–E2): Home is a grid of widgets — S / M / L wide (3 / 6 / 12 of 12 columns; phones half /
+  full) and 1× or 2× tall (list widgets show more rows). Customise: presets Household, Maker, Deal watcher, Minimal;
+  drag to reorder, the corner or the size menu to resize, hide, add from the Widgets tray (desktop) or "Add widget"
+  (phone). Widgets: Left to buy, Budget, On the way, Saved, Nexus suggests, This week, Needs you, Deliveries, Month
+  pace, Projects, Nexus noticed, and new — Price drops (this week), Vs last month (same days), Next delivery, Budget by
+  category, Most bought, Space today. Saved per person per space (`user_pref`), the last layout as the fallback.
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
@@ -623,7 +664,7 @@ same product from another store → added as another source). `#name` in the mes
 linked chat. The webhook is (re)set after linking, whenever the alerts state loads, and by the daily cron.
 
 ## Non-goals (for now)
-Carrier API tracking sync. (Multi-user accounts arrived in Round 15; push + inbox, onboarding and the admin panel are Round 16.)
+Carrier API tracking sync. (Multi-user accounts arrived in Round 15; push + inbox, onboarding and the admin panel are Round 17.)
 
 ## Stack (all free tier)
 Next.js 16 (App Router) on Vercel · Turso (libSQL) + Drizzle · Gemini Flash-Lite (+ optional Groq/OpenRouter) ·

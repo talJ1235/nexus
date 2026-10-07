@@ -22,9 +22,19 @@
   Data goes through the scoped layer `src/lib/db-scoped/` (`scoped(ctx)` adds `space_id`; raw `db` only there, in
   `src/lib/spaces.ts`, `src/lib/auth/`, migrations — `test:scope`). Spaces UI: `src/components/app/spaces/`, actions
   `space-actions.ts`, `/join/[token]`.
+- Live sync (R16 B): every scoped write bumps the space revision (`src/lib/db-scoped/feed.ts`, `changes.ts` →
+  `changesSince`); `src/lib/realtime/` publishes `{ rev, by }` to Ably (fake transport for tests, polling without
+  `ABLY_API_KEY`); client: `live-sync.tsx` + `store.applyChanges`; conflicts via `base` revisions (`lib/conflict.ts`).
+- Error log (R16 C2): `src/lib/errors/` (intake limits, redaction), `src/instrumentation.ts` (`onRequestError`),
+  `/api/errors`, `/admin/errors`, `node scripts/errors.mjs`.
+- Settings (R16 D): `src/components/app/settings/` (shell = desktop dialog / phone pages, `you.tsx`, `account.tsx`,
+  `space.tsx`; kit = `components/auth/nx.css` + `settings/nx16.css`), deep links `/settings/[[...section]]`. Space look:
+  `spaces/look.ts` (icons, gradients), `spaces/tile.tsx`, `spaces/identity.tsx`, `/api/space-photo`; switch moment
+  `spaces/moment.tsx`. Home (R16 E): `src/lib/home-layout.ts` (widgets, presets), `lib/home-widgets.ts` (E2 numbers),
+  `home-grid.tsx` (grid + Customise), `home-extra.tsx`; layout per user per space in `user_pref`.
 - Auth (Better Auth): `src/lib/auth/` (`server.ts` config + hooks, `session.ts`, `invites.ts`, `security.ts`, `limits.ts`),
-  screens `src/components/auth/`, pages `/login`, `/welcome`, `/passkey`, `/settings/security`, `/settings/invites`.
-- Client state: `src/components/app/store.tsx`; shell: `nexus-app.tsx`; panels: `assistant-panel`, `alerts-panel`, `share-dialog`, `import-dialog`, `settings-dialog`, `command-palette`.
+  screens `src/components/auth/`, pages `/login`, `/welcome`, `/passkey`; account/security/invite codes are Settings sections.
+- Client state: `src/components/app/store.tsx`; shell: `nexus-app.tsx`; panels: `assistant-panel`, `alerts-panel`, `share-dialog`, `import-dialog`, `settings/shell`, `command-palette`.
 - Domain libs in `src/lib/`: `extract` (link → product), `tracker` (prices/alerts), `ai` + `assistant` (Gemini, model fallback), `spaces` (spaces, people, invite links), `safe-fetch` (SSRF guard), `backup`, `importer`. Retired in R15 (code kept): `telegram`, `guest`, the extension.
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
