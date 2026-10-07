@@ -97,7 +97,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 </a>
               </form>
             ) : (
-              <LoginForm full={mode === "full"} next={next} error={error} returning={returning} app={APP_NAME} testIdp={testIdpEnabled()} />
+              <LoginForm full={mode === "full"} next={next} error={error} returning={returning} app={APP_NAME} testIdp={testIdpEnabled()} googleClientId={testIdpEnabled() ? null : (process.env.GOOGLE_CLIENT_ID ?? null)} />
             )}
           </div>
           <LegalLine />

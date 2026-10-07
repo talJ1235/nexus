@@ -22,6 +22,8 @@ const ok = (c, m, d = "") => {
 const browser = await chromium.launch();
 async function open() {
   const ctx = await browser.newContext();
+  // The redirect path: a browser without FedCM (the in-app sheet is covered by test-google-fedcm.mjs).
+  await ctx.addInitScript(() => delete window.IdentityCredential);
   const page = await ctx.newPage();
   const reports = [];
   await page.route((u) => isGoogle(u), (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>Google stub</title><p id=stub>stub</p>" }));

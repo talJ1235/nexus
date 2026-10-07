@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { preconnect } from "react-dom";
 import { authClient } from "@/lib/auth/client";
+import { fedcmAvailable, googleIdToken, loadGis } from "@/lib/auth/google-fedcm";
 import { installClientErrorCapture, reportAuthFailure } from "@/lib/client-errors";
 import { useI18n } from "@/components/providers";
 import { GoogleMark, PasskeyIcon } from "./brand-art";
@@ -11,7 +12,7 @@ export type LoginError = "cancelled" | "noAccess" | "unverified" | "generic" | "
 type Which = "google" | "returning" | "test-idp";
 
 /** Google, passkey, the invite code (kept through the Google redirect in a signed cookie) and "Lost access?". */
-export function LoginForm(props: { full: boolean; next: string; error: LoginError | null; returning: { name: string; email: string } | null; app: string; testIdp?: boolean }) {
+export function LoginForm(props: { full: boolean; next: string; error: LoginError | null; returning: { name: string; email: string } | null; app: string; testIdp?: boolean; googleClientId?: string | null }) {
   const { t, f } = useI18n();
   // R16 C2: sign-in failures reach the error log too (anonymous: 10 events/hour per IP).
   useEffect(() => installClientErrorCapture(), []);
@@ -26,6 +27,10 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
   const attempt = useRef(0);
   const timer = useRef<number | undefined>(undefined);
   const navigating = useRef(false);
+  // Hotfix 2026-10-07: Google's account sheet (FedCM) first where the browser has it; once it didn't give a token on
+  // this page (skipped, dismissed, blocked, too slow) the redirect is used from then on.
+  const redirectOnly = useRef(false);
+  const sheet = () => !!props.googleClientId && !redirectOnly.current && fedcmAvailable();
   // Full mode: a new account adds a passkey once (skippable) before the first-run screen.
   const newUser = props.full ? `/passkey?next=${encodeURIComponent("/welcome")}` : "/welcome";
 
@@ -65,8 +70,50 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
     warmedAt.current = Date.now();
     preconnect("https://accounts.google.com");
     void fetch("/api/auth/ok", { cache: "no-store" }).catch(() => {});
-  }, []);
+    if (props.googleClientId && fedcmAvailable()) void loadGis();
+  }, [props.googleClientId]);
   useEffect(() => warm(), [warm]);
+
+  /** The sheet gave a Google ID token: the server verifies it (+ our nonce) and signs in — same rules as the redirect. */
+  const idTokenSignIn = async (r: { token: string; nonce: string }, invite: Promise<{ ok?: boolean; error?: LoginError }>, abort: AbortController, mine: number) => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      if (attempt.current !== mine) return;
+      abort.abort();
+      fail("slow", "google_timeout", "id token sign-in took over 15 s");
+    }, 15_000);
+    try {
+      const j = await invite;
+      if (attempt.current !== mine) return;
+      if (!j.ok) return fail(j.error ?? "badCode");
+      const res = await authClient.signIn.social({ provider: "google", idToken: { token: r.token, nonce: r.nonce }, callbackURL: props.next, fetchOptions: { signal: abort.signal } });
+      if (attempt.current !== mine) return;
+      if (res.error) {
+        // Try again takes the redirect (a token the server refused won't get better by asking again).
+        redirectOnly.current = true;
+        const status = res.error.status ?? 0;
+        const kind = String(res.error.code ?? "").toLowerCase();
+        const msg = String(res.error.message ?? "");
+        // Same screens as the redirect's errorCallbackURL: no invite → InviteOnly (the ref is the opaque pending id).
+        if (kind.startsWith("invite_")) {
+          navigating.current = true;
+          return window.location.assign(`/login?error=${encodeURIComponent(kind)}&error_description=${encodeURIComponent(msg)}`);
+        }
+        if (kind === "email_not_verified") return fail("unverified");
+        if (kind === "admin_must_link" || /account not linked/i.test(msg)) return fail("noAccess");
+        if (status === 429) return fail("limit", "google_limit", "status 429");
+        return fail("generic", "google_status", `id token: status ${status}${kind ? ` ${kind}` : ""}`);
+      }
+      // A user row made by this very request = a new account → the first-run path, like newUserCallbackURL.
+      const created = res.data && "user" in res.data && res.data.user ? new Date(res.data.user.createdAt).getTime() : 0;
+      navigating.current = true;
+      window.location.assign(Date.now() - created < 120_000 ? newUser : props.next);
+    } catch (e) {
+      if (attempt.current !== mine) return;
+      if (!navigator.onLine) return fail("offline");
+      fail("generic", "google_network", (e as Error)?.name === "AbortError" ? "aborted" : "network error");
+    }
+  };
 
   const google = async (hint?: string, provider = "google", which: Which = "google") => {
     if (busy) return;
@@ -77,6 +124,28 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
     if (!navigator.onLine) return fail("offline");
     const abort = new AbortController();
     window.clearTimeout(timer.current);
+    // The invite check (sets the signed invite cookie) runs beside the sign-in start; we only go on once both are fine.
+    const invite = code.trim()
+      ? fetch("/api/auth-flow/invite", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code }), signal: abort.signal }).then(
+          (r) => r.json().catch(() => ({})) as Promise<{ ok?: boolean; error?: LoginError }>,
+        )
+      : Promise.resolve({ ok: true } as { ok?: boolean; error?: LoginError });
+    invite.catch(() => {});
+    if (provider === "google" && sheet()) {
+      // The person may take their time choosing in the sheet: 90 s, then say so (Try again uses the redirect).
+      timer.current = window.setTimeout(() => {
+        if (attempt.current !== mine) return;
+        abort.abort();
+        redirectOnly.current = true;
+        fail("slow", "google_timeout", "account sheet: no answer after 90 s");
+      }, 90_000);
+      const r = await googleIdToken({ clientId: props.googleClientId!, hint, signal: abort.signal });
+      if (attempt.current !== mine) return;
+      if ("token" in r) return idTokenSignIn(r, invite, abort, mine);
+      redirectOnly.current = true;
+      reportAuthFailure("google_fedcm", r.fallback);
+      window.clearTimeout(timer.current);
+    }
     // Google hasn't started loading within 6 s → cancel and say so (the page is still here, so it hasn't).
     timer.current = window.setTimeout(() => {
       if (attempt.current !== mine) return;
@@ -85,12 +154,6 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
       fail("slow", "google_timeout", navigating.current ? "navigation not started after 6 s" : "sign-in start took over 6 s");
     }, 6000);
     try {
-      // The invite check and the sign-in start run side by side; we only leave once both are fine.
-      const invite = code.trim()
-        ? fetch("/api/auth-flow/invite", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code }), signal: abort.signal }).then(
-            (r) => r.json().catch(() => ({})) as Promise<{ ok?: boolean; error?: LoginError }>,
-          )
-        : Promise.resolve({ ok: true } as { ok?: boolean; error?: LoginError });
       const start = authClient.signIn.social({
         provider,
         callbackURL: props.next,

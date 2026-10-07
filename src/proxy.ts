@@ -39,20 +39,24 @@ const PUBLIC_PREFIXES = [
 // connectivity check) — exact hosts, https + wss, connect-src only.
 const ABLY_HOSTS = ["main.realtime.ably.net", ..."abcde".split("").map((x) => `main.${x}.fallback.ably-realtime.com`), "internet-up.ably-realtime.com"];
 const ABLY_CONNECT = ABLY_HOSTS.flatMap((h) => [`https://${h}`, `wss://${h}`]).join(" ");
+// Hotfix 2026-10-07: Google Identity Services for the in-app (FedCM) sign-in — the paths Google documents for GIS:
+// the script (needed only by browsers without 'strict-dynamic'), its stylesheet, its frames and its fetches (FedCM's
+// config / accounts / assertion requests are checked against connect-src). Nothing else of Google's.
+const GIS = "https://accounts.google.com/gsi/";
 
 function csp(nonce: string) {
   const dev = process.env.NODE_ENV === "development";
   const turnstile = process.env.TURNSTILE_SITE_KEY ? " https://challenges.cloudflare.com" : "";
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'${dev ? " 'unsafe-eval'" : ""}${turnstile}`,
-    "style-src 'self' 'unsafe-inline'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'${dev ? " 'unsafe-eval'" : ""}${turnstile} ${GIS}client`,
+    `style-src 'self' 'unsafe-inline' ${GIS}style`,
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' https://*.blob.vercel-storage.com https://blob.vercel-storage.com https://vercel.com ${ABLY_CONNECT}`,
+    `connect-src 'self' https://*.blob.vercel-storage.com https://blob.vercel-storage.com https://vercel.com ${ABLY_CONNECT} ${GIS}`,
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
-    `frame-src 'self'${turnstile}`,
+    `frame-src 'self'${turnstile} ${GIS}`,
     "object-src 'none'",
     "base-uri 'none'",
     "frame-ancestors 'none'",

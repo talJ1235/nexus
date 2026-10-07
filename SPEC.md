@@ -569,6 +569,18 @@ with Tal (merging deploys and runs the migration on the real database).
   rotation + role + personal space in parallel and the security log after the response (`after()`). Functions run in
   `dub1` next to the Turso DB (`vercel.json`). Every `/api/auth/*` response has `Server-Timing` (cold / rl / state / db
   / hooks / other / total). Guard: `scripts/test-google-signin.mjs` (guards.yml); bench: `scripts/bench-signin.mjs`.
+- **Google without leaving the app** (hotfix 2026-10-07): where the browser has FedCM (Android Chrome, installed app
+  or tab; desktop Chrome / Edge) and not on iOS, the tap opens Google's own account sheet (Google Identity Services,
+  `use_fedcm_for_prompt`; the script is warmed on the login screen) instead of a redirect — an installed Android app
+  used to come back from the redirect's Custom Tab at desktop width. The sheet's ID token goes to
+  `/api/auth/sign-in/social` (Better Auth verifies it; the nonce comes from `POST /api/auth/google/nonce` in a signed
+  httpOnly single-use cookie). Same invite rules (InviteOnly screen), errors, busy state and Try again; a new account goes
+  to the first-run path. Sheet skipped / dismissed / GIS blocked / no FedCM / iOS → the redirect above (reported as
+  `auth`/`google_fedcm`); after a failure the page uses the redirect. Guard: `scripts/test-google-fedcm.mjs`.
+- **Phone layout self-heal** (hotfix 2026-10-07): `VIEWPORT_GUARD` (boot screen) catches a phone page laid out at
+  desktop width (coarse pointer, short side < 600, `innerWidth` ≥ 1.4 × the screen width in the current orientation),
+  re-inserts the viewport meta, and reloads at most once per 30 s per tab if that didn't help; each case goes to the
+  error log as kind `viewport` (layout numbers only). Manifest `id` / `scope` = `/`. Guard: `scripts/test-viewport.mjs`.
 - **Invite-only sign-up**: admin invite codes (Settings → Invite codes, hashed + encrypted for re-copy), a `/join/<token>`
   space link also counts; otherwise "invite-only — leave your email" (waitlist, Turnstile when configured).
 - **Settings → Security** (`/settings/security`): devices (sign one / all others out), passkeys, connected accounts,
