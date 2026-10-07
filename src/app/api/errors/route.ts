@@ -1,18 +1,15 @@
-// R16 C2: the browser's error reports (uncaught errors, unhandled rejections, error toasts) → the error log.
+// R16 C2: the browser's error reports (+ R16 G2: Google sign-in failures, kind "auth") (uncaught errors, unhandled rejections, error toasts) → the error log.
 // Works signed out too (login pages), so it's on the authz allow-list; every limit lives in lib/errors/intake:
 // same origin, ≤ 8 KB, ≤ 10 events, strict shape, 30 events/hour per user / 10 per IP signed out → then 429.
 import { z } from "zod";
 import { recordError } from "@/lib/errors/record";
 import { boundedBody, reporter, sameOrigin } from "@/lib/errors/intake";
 
-const Event = z
-  .object({
-    kind: z.literal("client"),
-    code: z.enum(["error", "rejection", "toast"]),
-    where: z.string().max(120),
-    message: z.string().min(1).max(300),
-  })
-  .strict();
+const Event = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("client"), code: z.enum(["error", "rejection", "toast"]), where: z.string().max(120), message: z.string().min(1).max(300) }).strict(),
+  // R16 G2: a Google sign-in that failed to open (status / timeout / network only — the email never leaves the page).
+  z.object({ kind: z.literal("auth"), code: z.enum(["google_status", "google_timeout", "google_network", "google_limit"]), where: z.string().max(120), message: z.string().min(1).max(300) }).strict(),
+]);
 const Body = z.object({ events: z.array(Event).min(1).max(10) }).strict();
 
 export async function POST(req: Request) {
