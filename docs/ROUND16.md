@@ -249,6 +249,9 @@ people can't silently overwrite each other.
   a thrown error in a test action appears once with count 3 after 3 calls; `test:authz-coverage` covers the route.
 
 ## Part D — settings and space screens (Session 2, mockups `docs/design/r16/`)
+> Tal 2026-10-07: boards come for D1/D3 (Settings), D2 (Space settings), D5 (Space identity) and E1 (Home customise)
+> only. **D4 and E2 have no board by design** — build them from this text; not an "Open" item.
+
 Design language as R15 ("less text, visuals first, light, premium"). Boards to be approved: `Settings-desktop`,
 `Settings-phone`, `SpaceSettings-desktop`, `SpaceSettings-phone`, `SpaceIdentity` (desktop + phone, incl. crop),
 `SpaceSwitch` (motion storyboard), `HomeCustomize` (desktop + phone), `HomeWidgets` (new indicators).

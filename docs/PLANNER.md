@@ -6,44 +6,34 @@ writes the round briefs. Everything durable lives in this repo, not in chat hist
 Setup of this chat (network, GitHub connector, rebuilding it on a new account): `docs/ENVIRONMENT.md` — any change
 to setup, tooling or workflow is recorded there in the same session.
 
-## Current state & handoff (updated 2026-10-06, account B → read this first on any account)
-- **Prod:** R15 (accounts + spaces) released and in use; Tal has a shared space "Jacoby Home".
-- **In progress:** Round 16 — brief `docs/ROUND16.md` (planner notes: `docs/R16-PLANNING.md`) written and on `main` (commit `f8b9b2057`, docs `29ae6db`).
-  - **Session 1 (Parts 0, A, B, C)** can run now in Claude Code on Tal's PC — prompt below.
-  - **Session 2 (Parts D, E, F)** waits for the R16 mockups (not made yet — next planner task).
-- **Tal to do (optional, ~5 min):** Ably account + key → `ABLY_API_KEY` in Vercel (Production) and `.env.local` (steps in
-  `docs/ROUND16.md` "Before you run"). Without it live sync polls every 10 s.
-- **Claude Code prompt for Session 1:**
-  ```
-  Round 16, session 1 (docs/ROUND16.md) — Parts 0, A, B, C, unattended, on branch round16. Same "How to run" rules as
-  the brief says. Step 0, now while I'm here: make sure .claude/settings.local.json allows "Bash(git push origin round16)",
-  "Bash(git push -u origin round16)", "Bash(git merge --ff-only round16)", "Bash(git merge --no-edit origin/main)" in
-  addition to what earlier rounds used. Then go through Parts 0, A, B, C without stopping; merge to main only if
-  everything is green and the migration rehearsal on the prod snapshot copy passes.
-  ```
-- **Next planner task — R16 mockups** (Tal chose "in parallel": Session 1 runs while mockups are made):
-  - New claude.ai Design canvas **"Nexus R16 — Settings, Spaces & Home"** on the current account (canvases are per
-    account; reuse the R15 look: copy `docs/design/r15/nx.css` and the boards' structure, design language in
-    `docs/ROUND15.md` "Design language": minimal text, visuals first, light warm brand panel, no black hero).
-  - Boards (desktop 1366 and phone 390, light + dark, Graphite + Plum, states as tweaks):
-    1. `Settings-desktop` — large two-pane, side nav (You: Account & security · Display · Assistant & AI · Calendar ·
-       Memory · Data — Space: General · People & invites · Budget · Danger zone), no scrolling at 1366×768.
-    2. `Settings-phone` — section list → section page (push, back).
-    3. `SpaceSettings-desktop` / `SpaceSettings-phone` — cover band in space colour/photo, sections General, People,
-       Invites, Danger zone; no scroll on desktop.
-    4. `SpaceIdentity` — tile = icon (10–24) × 6 gradients, or photo with crop/zoom/rotate like a WhatsApp group picture;
-       create + edit; live preview at switcher/sidebar sizes.
-    5. `SpaceSwitch` — motion storyboard: tile flies from switcher to centre, colour wash, "You're now in <space>" +
-       facepile, ~800 ms, lands on Home; reduced-motion version.
-    6. `HomeCustomize` — edit mode with presets (Household, Maker, Deal watcher, Minimal), S/M/L widget sizes on a
-       12-col grid (phone full/half), drag handles, Reset.
-    7. `HomeWidgets` — new indicators: price drops this week, money saved by tracking, spending vs last month, next
-       delivery, budget by category, most bought, shared-space activity today.
-    8. Optional: `Presence` — green dots, "Noa is shopping" chip, activity toast, conflict toast ("Noa changed this a
-       moment ago · Show · Apply mine"), one-tap Report on an error toast.
-  - After Tal approves: copy boards to `docs/design/r16/` — via Tal's PC (linked computer, write files only, never run
-    git there; the builder commits them as `R16.0`) or with the GitHub connector if few files. Then give Tal the
-    Session 2 prompt ("Round 16, session 2 … Parts D, E, F; boards are in docs/design/r16/").
+## Current state & handoff (updated 2026-10-07, account A → read this first on any account)
+- **Prod:** R16 Session 1 (Parts 0, A, B, C — fixes, live sync, error reporting) released 2026-10-07 (`f203591`); results
+  in `docs/ROUND16.md` "## Open". `ABLY_API_KEY` is set in Vercel (Production) and Tal checked live sync on prod.
+- **In progress:** R16 Session 2 (Parts D, E, F) — **waits for mockups**. Tal chose (2026-10-07) the split:
+  - **With boards:** D1 + D3 `Settings-desktop` / `Settings-phone`, D2 `SpaceSettings-desktop` / `SpaceSettings-phone`,
+    D5 `SpaceIdentity` (create + edit, icon × gradient, photo crop/zoom/rotate), E1 `HomeCustomize` (presets, S/M/L sizes,
+    drag, Reset).
+  - **From the brief's text only (no board):** D4 space-switch moment, E2 new Home widgets. The builder builds them from
+    `docs/ROUND16.md`; Tal corrects after seeing them. `Presence` board dropped (Session 1 built it from the R15 board).
+  - Order: Settings + Space settings + Identity first, then HomeCustomize.
+- **Next planner task — make those boards** in a **new chat** (Tal's rule: one session per task). Canvas
+  **"Nexus R16 — Settings, Spaces & Home"** on the current account (canvases are per account). Reuse the R15 look: copy
+  `docs/design/r15/nx.css` and the boards' structure (`SpaceSettings-desktop`, `Security-*`, `CreateSpace-*`,
+  `Switcher-*`); design language in `docs/ROUND15.md` "Design language" (minimal text, visuals first, light warm brand
+  panel, no black hero). Desktop 1366 (no scroll at 1366×768; 1280×720 only People may scroll) and phone 390, light +
+  dark, Graphite + Plum, states as tweaks. Settings sections: You — Account & security · Display · Assistant & AI ·
+  Calendar · Memory · Data; Space — General · People & invites · Budget · Danger zone. Phone = section list → section
+  page (push, back). Space settings: cover band in space colour/photo.
+  - After Tal approves: copy boards to `docs/design/r16/` (GitHub connector / sandbox push, or Tal's PC — write files
+    only, never run git there; the builder commits them as `R16.0`), tick the board list in `docs/ROUND16.md` Part D, then
+    give Tal the Session 2 prompt:
+    ```
+    Round 16, session 2 (docs/ROUND16.md) — Parts D, E, F, unattended, on branch round16. Boards are in
+    docs/design/r16/; D4 and E2 have no board by design — build them from the brief's text. Same "How to run" rules as
+    session 1. Merge to main only if everything is green and the migration rehearsal on the prod snapshot copy passes.
+    ```
+- **Small facts from Tal (2026-10-07):** the A8 "desktop layout after sign-in" happened in the **installed PWA (Chrome)**;
+  he isn't handling report `r_rWtP3XmuRl` for now (leave it open, don't nag).
 - **Renumbering:** `MULTIUSER.md`/`STRATEGY.md` still say "R16 product layer" — read it as **R17**.
 - **After R16:** R17 product layer (push + inbox, onboarding, admin/usage without content, AI quota, privacy/delete/export,
   QR desktop login, remove password fallback + guest tables) — needs its own mockups first (MULTIUSER §6 list).
@@ -167,6 +157,11 @@ to setup, tooling or workflow is recorded there in the same session.
   Live sync = **Ably free tier** (`ABLY_API_KEY`, no content on the wire, per-space token) with a 10 s polling fallback;
   conflicts by row `rev` ("already changed by Noa"). Mockups in parallel: Session 1 (fixes, sync, errors) runs now,
   Session 2 (screens) after Tal approves `docs/design/r16/`. Additive migrations → each session may merge when green.
+- **R16 Session 2 mockups (Tal 2026-10-07):** boards only for Settings, Space settings, Space identity and Home customise;
+  D4 switch moment + E2 widgets built from text. **Android app wrapper:** not before R17 ships (push, onboarding, QR
+  login) — the wrapper (Capacitor) loads the live Vercel site, so web updates reach the app with no store update; only
+  native changes (icon, permissions, plugins) need a new Play release. Do it when moving from the family circle to the
+  Play closed test (12 testers × 14 days).
 
 ## Product direction (discussed 2026-10-03, not started)
 - Toward a multi-user product: sign-up on web or app, short onboarding questionnaire (habits, stores), Google sign-in,
@@ -197,6 +192,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-07 · A · Caught up after R16 Session 1 release. Tal: Ably key in Vercel, live sync checked on prod; A8 was the installed PWA; report `r_rWtP3XmuRl` left for later. Chose mockups for Settings / Space settings / Identity / HomeCustomize only (D4 + E2 from text); boards made in a new chat. Advised: Android wrapper after R17, web updates flow without store releases. Updated "Current state & handoff".
 - 2026-10-06 · B · Tal's usage nearly out → wrote the "Current state & handoff" section above (next steps, Session 1 prompt, mockup board list), new `docs/R16-PLANNING.md` (questions + answers, causes found, notes → items table, realtime research, renumbering note for `MULTIUSER.md`/`STRATEGY.md`). Continue on the other account from "Current state & handoff".
 - 2026-10-06 · B · R16 planned from `docs/R16-NOTES.md`. Causes found in code: receipt prices wiped by `statusPatch()` on → To buy (receipt items have no source); "Move to" lists only the space's lists (new space has none); space switch = full page reload (`useSwitchSpace` → `location.replace`) → sidebar jump. Tal chose: notes now, product layer → R17; mockups in parallel (two sessions); Ably for live sync. Wrote `docs/ROUND16.md` (Parts 0, A–F). Next: R16 mockups canvas (settings, space settings, identity + photo crop, switch moment, Home customise/widgets).
 - 2026-10-06 · B · R15 released (merged `0091467`; Tal signs in with Google on PC + phone, made shared space "Jacoby Home"). First prod login "button does nothing" = Tal's stale tab/browser — the same page in the desktop app's browser on his PC redirected to Google fine; still frame = Tal's Windows has animations off (`prefers-reduced-motion`). Tal's long test notes (sync, receipt bugs, menus, settings redesign, space identity + photo, home presets, swipe suggestions, error auto-reporting, admin/usage) captured in `docs/R16-NOTES.md` for the next planning chat.
