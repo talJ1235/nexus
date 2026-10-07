@@ -318,7 +318,7 @@ Design language as R15 ("less text, visuals first, light, premium"). Boards to b
 
 ### D1. [ ] Settings on desktop: a large, structured screen
 Replace the small centred dialog (`settings-dialog.tsx`) with a **large two-pane dialog** over the app (Tal 2026-10-07:
-dialog, not a full page; ≈ 1120×700 at 1366×768, max 92 vw × 92 vh, close button + Esc): side nav of sections (You:
+dialog, not a full page; ≈ 1220×700 at 1366×768, max 92 vw × 92 vh, close button + Esc): side nav of sections (You:
 Account & security · Display · **Notifications** (Tal 2026-10-07: its own section — in app now, phone push "Soon";
 price drops, shared-list changes, budget 80%, deliveries, sales ending) · Assistant & AI · Calendar · Memory · Data
 (backup, import, export) — Space: General · People & invites · Budget · Danger zone), content
