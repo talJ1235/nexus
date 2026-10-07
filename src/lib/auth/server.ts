@@ -12,6 +12,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { APP_NAME } from "@/lib/brand";
+import { timed } from "@/lib/timing";
 import { addMember, ensurePersonalSpace, firstName } from "@/lib/spaces";
 import { adminEmail, authMode, fallbackEnabled, isAdminEmail, SESSION_IDLE_S, sessionCookieName, STEP_UP_MS, testIdpEnabled } from "./config";
 import { safeEqualStr } from "./crypto";
@@ -317,7 +318,7 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        after: async (u, ctx) => {
+        after: async (u, ctx) => timed("hooks", async () => {
           const headers = ctx?.request?.headers ?? ctx?.headers;
           const check = await checkInviteCookie(readInviteCookie(cookieValue(headers, INVITE_COOKIE)));
           if (check.ok && check.kind === "code") await consumeSignupCode(check.id, u.id);
@@ -327,7 +328,7 @@ export const auth = betterAuth({
             if (used) await addMember(used.spaceId, u.id, used.role);
           }
           if (check.ok) await logSecurityEvent(u.id, "invite_used", { kind: check.kind }, headers);
-        },
+        }),
       },
     },
     session: {
@@ -336,7 +337,7 @@ export const auth = betterAuth({
           const headers = ctx?.request?.headers ?? ctx?.headers;
           return { data: { ...s, method: sessionMethod(ctx?.path), city: requestCity(headers) } };
         },
-        after: async (s, ctx) => {
+        after: async (s, ctx) => timed("hooks", async () => {
           const headers = ctx?.request?.headers ?? ctx?.headers;
           const method = sessionMethod(ctx?.path);
           // Rotation: a sign-in from a browser that already had a session replaces it.
@@ -355,7 +356,7 @@ export const auth = betterAuth({
           const want = u && isAdminEmail(u.email) ? "admin" : "user";
           if (u && u.role !== want) await db.update(schema.user).set({ role: want }).where(eq(schema.user.id, s.userId));
           if (u) await ensurePersonalSpace(s.userId, firstName(null, u.email));
-        },
+        }),
       },
     },
   },
