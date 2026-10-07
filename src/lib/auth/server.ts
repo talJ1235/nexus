@@ -8,19 +8,20 @@ import { nextCookies } from "better-auth/next-js";
 import { admin, captcha, emailOTP, genericOAuth, organization } from "better-auth/plugins";
 import { createAccessControl } from "better-auth/plugins/access";
 import { and, eq, ne } from "drizzle-orm";
+import { after } from "next/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { APP_NAME } from "@/lib/brand";
 import { timed } from "@/lib/timing";
-import { addMember, ensurePersonalSpace, firstName } from "@/lib/spaces";
+import { addMember, ensurePersonalSpace, firstName, personalSpaceId } from "@/lib/spaces";
 import { adminEmail, authMode, fallbackEnabled, isAdminEmail, SESSION_IDLE_S, sessionCookieName, STEP_UP_MS, testIdpEnabled } from "./config";
 import { safeEqualStr } from "./crypto";
 import { useRecoveryCode } from "./security";
 import { codeEmail, sendEmail } from "./email";
 import { logSecurityEvent, requestCity } from "./events";
 import { checkInviteCookie, consumeJoinToken, consumeSignupCode, INVITE_COOKIE, readInviteCookie } from "./invites";
-import { DAY, HOUR, hitLimit, peekLimit } from "./limits";
+import { authRateLimitStorage, DAY, HOUR, hitLimit, peekLimit } from "./limits";
 
 // R15 A1 — accounts with Better Auth. SECURITY.md §2–§4, MULTIUSER.md §4.1. The HTTP surface is an allow-list (below):
 // every space/member/admin write goes through Nexus's own server actions (requireCtx), never the plugins' routes.
@@ -166,6 +167,16 @@ function sessionMethod(path: string | undefined) {
   return null;
 }
 
+/** Work that must happen but needn't hold the response (Next's after()); outside a request (scripts) it just runs. */
+async function afterResponse(fn: () => Promise<void>) {
+  const run = () => fn().catch((e) => console.error("[auth] after-response work failed", e));
+  try {
+    after(run);
+  } catch {
+    await run();
+  }
+}
+
 /** Text the user can see, never secret: for the waitlist screen we keep the Google email server-side under an opaque id. */
 async function rememberPendingEmail(email: string) {
   const id = nanoid(24);
@@ -281,7 +292,10 @@ export const auth = betterAuth({
         },
       }
     : {},
-  account: { accountLinking: { enabled: true, trustedProviders: [], requireLocalEmailVerified: true } },
+  // R16 G3: the OAuth state (state + PKCE verifier + nonce) lives in an encrypted, httpOnly, 10-minute cookie instead
+  // of a DB row, so starting sign-in needs no DB write. The callback still requires the cookie and checks its state
+  // equals the `state` Google returns (CSRF), then expires it.
+  account: { storeStateStrategy: "cookie", accountLinking: { enabled: true, trustedProviders: [], requireLocalEmailVerified: true } },
   session: {
     expiresIn: SESSION_IDLE_S,
     updateAge: 24 * 60 * 60,
@@ -291,7 +305,9 @@ export const auth = betterAuth({
       city: { type: "string", required: false, input: false },
     },
   },
-  rateLimit: { enabled: true, storage: "database", window: 60, max: 100, customRules: { "/sign-in/email-otp": { window: 60, max: 5 }, "/sign-in/social": { window: 60, max: 10 } } },
+  // R16 G2/G3: one atomic DB statement per check (authRateLimitStorage). Google: 30/min per IP — a household behind one
+  // IP (NAT) retrying can't reach it; past it the button says so ("limit") instead of hanging.
+  rateLimit: { enabled: true, window: 60, max: 100, customStorage: authRateLimitStorage, customRules: { "/sign-in/email-otp": { window: 60, max: 5 }, "/sign-in/social": { window: 60, max: 30 } } },
   advanced: {
     useSecureCookies: false, // the names below carry their own prefix; Secure is set from the URL
     cookiePrefix: "nexus",
@@ -340,22 +356,30 @@ export const auth = betterAuth({
         after: async (s, ctx) => timed("hooks", async () => {
           const headers = ctx?.request?.headers ?? ctx?.headers;
           const method = sessionMethod(ctx?.path);
-          // Rotation: a sign-in from a browser that already had a session replaces it.
+          // R16 G3: what the app needs on arrival runs before the redirect, in parallel — rotation (a sign-in from a
+          // browser that already had a session replaces it), the admin role (follows ADMIN_EMAIL on every sign-in, so
+          // changing the env moves it), the personal space. The security log runs right after the response.
           const old = cookieValue(headers, sessionCookieName(baseURL))?.split(".")[0];
-          if (old && old !== s.token) await db.delete(schema.session).where(and(eq(schema.session.token, old), eq(schema.session.userId, s.userId)));
-          const ua = headers?.get("user-agent") ?? "";
-          const others = await db
-            .select({ ua: schema.session.userAgent })
-            .from(schema.session)
-            .where(and(eq(schema.session.userId, s.userId), ne(schema.session.id, s.id)));
-          const kind = method === "fallback" ? "fallback_sign_in" : method === "email-otp" ? "recovery" : method === "recovery-code" ? null : "sign_in";
-          if (kind) await logSecurityEvent(s.userId, kind, { method }, headers);
-          if (others.length && !others.some((o) => o.ua === ua)) await logSecurityEvent(s.userId, "new_device", { method }, headers);
-          // The admin role follows ADMIN_EMAIL (checked on every sign-in, so changing the env moves it).
-          const [u] = await db.select({ email: schema.user.email, role: schema.user.role }).from(schema.user).where(eq(schema.user.id, s.userId));
+          const [, [u], space] = await Promise.all([
+            old && old !== s.token ? db.delete(schema.session).where(and(eq(schema.session.token, old), eq(schema.session.userId, s.userId))) : null,
+            db.select({ email: schema.user.email, role: schema.user.role }).from(schema.user).where(eq(schema.user.id, s.userId)),
+            personalSpaceId(s.userId),
+          ]);
           const want = u && isAdminEmail(u.email) ? "admin" : "user";
-          if (u && u.role !== want) await db.update(schema.user).set({ role: want }).where(eq(schema.user.id, s.userId));
-          if (u) await ensurePersonalSpace(s.userId, firstName(null, u.email));
+          await Promise.all([
+            u && u.role !== want ? db.update(schema.user).set({ role: want }).where(eq(schema.user.id, s.userId)) : null,
+            u && !space ? ensurePersonalSpace(s.userId, firstName(null, u.email)) : null,
+          ]);
+          await afterResponse(async () => {
+            const ua = headers?.get("user-agent") ?? "";
+            const others = await db
+              .select({ ua: schema.session.userAgent })
+              .from(schema.session)
+              .where(and(eq(schema.session.userId, s.userId), ne(schema.session.id, s.id)));
+            const kind = method === "fallback" ? "fallback_sign_in" : method === "email-otp" ? "recovery" : method === "recovery-code" ? null : "sign_in";
+            if (kind) await logSecurityEvent(s.userId, kind, { method }, headers);
+            if (others.length && !others.some((o) => o.ua === ua)) await logSecurityEvent(s.userId, "new_device", { method }, headers);
+          });
         }),
       },
     },

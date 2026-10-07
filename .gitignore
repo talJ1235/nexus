@@ -65,3 +65,4 @@ query-plans-test.db*
 /feed-test.db*
 /live-test.db*
 /errors-test.db*
+/bench-signin.db*
