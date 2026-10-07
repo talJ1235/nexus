@@ -373,9 +373,9 @@ by tracking, spending vs last month, next delivery, budget by category, most bou
 Hidden by default unless a preset includes them; each has an empty state and a skeleton.
 
 ## Part F — guards and docs (end of Session 2)
-### F1. [ ] Guards
+### F1. [x] Guards
 `test:live`, `test:errors` in `guards.yml`; overflow-at-360 and sidebar-box-per-frame smokes cover D1–D4; parity PNGs.
-### F2. [ ] Docs
+### F2. [x] Docs
 `SPEC.md` Round 16 section (edit, don't append twice), help (`nexus-help.md`: live sync, conflicts, reporting, settings,
 space photo, Home presets), `CLAUDE.md` map (change feed, realtime, error log, `scripts/errors.mjs`), `ENVIRONMENT.md`
 (`ABLY_API_KEY`, new scripts/tests, log line).
@@ -621,7 +621,7 @@ Commits `R16.G1`–`R16.G4` on `round16` (no DB change; `rate_limit` gets `ba:` 
   phone push and "A sale ends" / calendar "Sales ending" are built disabled with "Soon" (no data yet). Calendar toggles
   = Deliveries + Reorder dates (what the feed has). Motion = Match device / Reduced (no "Full": the OS setting can't
   be overridden). Space Data tiles (backup/restore) stay owner-only (the API is).
-- **Not done (next session):** E1 UI (widget grid, presets chips, size menu, FLIP drag, resize, tray, phone half/full)
+- **Not done (next session)** — all done in "Session 2 continued" below: E1 UI (widget grid, presets chips, size menu, FLIP drag, resize, tray, phone half/full)
   and E2 widget UI — groundwork committed: `src/lib/home-layout.ts` (widgets, presets, legacy-cookie migration,
   edits), `src/lib/home-widgets.ts` (E2 metrics), `saveHomeLayout` + per-space load in `loadHomePrefs`, `hc` strings.
   Then: unit tests for both libs in `test:home`, update the R13 customise smoke steps, parity PNGs (run
@@ -629,3 +629,50 @@ Commits `R16.G1`–`R16.G4` on `round16` (no DB change; `rate_limit` gets `ba:` 
   `test:errors`, `test:settings` into `guards.yml`), F2 docs (SPEC, help, CLAUDE.md map, ENVIRONMENT), full smoke,
   the migration rehearsal (`scripts/r16-rehearsal.mjs --base origin/main` — expect no DB change this session), merge.
 - Open error log at start: `extract · blocked · cwc.co.il` ×3 — likely Tal's failing link from notes item 10.
+
+### Session 2 continued (2026-10-07) — E, F, release
+- **The "Not done" list above is done:** E1–E2 (`d3c80e0`), F1–F2 (`439d05d`).
+- **E1 decisions:** the four header numbers (Left to buy, Budget, On the way, Saved) are widgets now — the Minimal and
+  Deal-watcher presets need that; the greeting and the status strip stay above the grid. Presets are exactly the board's
+  (Household = 9 widgets); Projects, Month pace and Nexus noticed are in Maker / Deal watcher and the tray. A first try
+  appended them to Household too, which made the phone Home 2 318 px (R13 limit 1 800) — reverted. An R13 Home cookie
+  (custom order / hidden sections) migrates once into a custom layout, so nobody loses a section they had. Layout saved
+  per person per space in `user_pref` (`pref:home:layout:<space>`, plus `pref:home:layout` = the last one, used for a
+  space never customised) — no schema change. In a personal space Household shows Deliveries instead of Space today.
+  Grid: 12 columns (S/M/L = 3/6/12), phones 2 (half/full), rows 1× / 2× with a minimum height (cards grow with their
+  content, nothing is clipped). "Nexus suggests" now adapts to its own width (container query) since it can be M wide.
+  Customise shows each widget in a dashed frame with a bar (grip, name, size menu, hide) over inert content; phones get
+  Half/Full + 2× under each widget and an "Add widget" sheet.
+- **E1 drag, measured first:** median **30 fps** (59 of 73 frames > 32 ms) at first, while plain mouse moves over the
+  same path ran at 60 fps with ~110 ms of script → per-frame paint of the dragged widget. With its own layer while
+  dragged (`will-change: transform`; transform-only movement, FLIP for the others): **60 fps median, 0 of 86 frames
+  > 32 ms, worst 17 ms** (1366×768, `test:settings`, 3 runs; also on the CI-style fresh DB). The profiler's own early
+  30 fps runs after the fix were the boot animation playing behind the page (the profiler didn't set the boot key).
+- **E2:** Price drops (biggest drop per item, last 7 days), Vs last month (month so far vs the same days last month,
+  paid + on the way), Next delivery (a late one first), Budget by category, Most bought (same name, bought ≥ 2 times),
+  Space today (who added / bought today, not you, not the cron) — `lib/home-widgets.ts`, unit-tested in `test:home`;
+  an empty state each; skeleton = Home's own. No board by design; the HomeCustomize tray shows them.
+- **F1:** `guards.yml` runs `test:errors`, `test:live`, `test:settings` (CI migrates + seeds `ci-settings.db` and starts
+  `next start` on :3107 — the same steps checked locally) and the unit tests `status`, `feed`, `assistant-context`;
+  timeout 60 min. Overflow at 360 and the sidebar box per frame for D1–D4 are in `test:settings` (settings sections at
+  360/390 en+he, the D4 moment) and the existing smoke (A12 switch).
+- **F2:** SPEC Round 16 section; help (live sync, conflicts, Report on a failure, Settings, Notifications, space look,
+  switch moment, Home widgets — 99 SPEC features, 24.4 KB); CLAUDE.md map; ENVIRONMENT log.
+- **Parity:** 17 PNGs in `docs/design/parity-r16/` (+ Session 1's sign-in sizes), each ≤ 240 KB.
+- **Checks (round16 `439d05d`):** 28 unit/static guards OK (incl. `authz-coverage` 186, `scope`, `ssrf`, `query-plans`,
+  `roles`, `help`, `home`); `test:settings` OK (local DB and a fresh CI-style DB); `test:errors` OK; `test:live` OK
+  (fake p50 116 ms, polling p50 9.0 s). Full smoke on a fresh copy of local.db: desktop 79/80 — the one fail is
+  "partial move splits the item", which passes alone (Session 1's known full-run flake). Phone 90/93: "camera opens
+  fast" (machine load; R14 + Session 1: fails on `main` too), "phone shopping: switch frames on a mid phone" (passes
+  alone 2/2), and the boot-screen pull-to-refresh step — that one failed alone too: the smoke touched within
+  milliseconds of the app's ready marker, before the pull listener was attached (a race, not a broken gesture — a
+  CDP repro armed it 1 of 3 times when touching instantly, 3 of 3 a moment later). Fixed: the listener no longer
+  re-subscribes on every store change (deps = loading / offline / busy) and the smoke waits 400 ms before pulling →
+  3/3 PASS.
+- **Migration rehearsal** (`r16-rehearsal.mjs --base origin/main`, copy of `snapshots/prod-2026-10-06-post.db`): no
+  new tables or columns this session, nothing dropped, row counts equal in all 39 tables, integrity ok, second run a
+  no-op, To buy 8 / On the way 1 / History 10 unchanged.
+- **Tal:** (1) the space photo needs nothing new on Vercel (the Blob token is already set); (2) try Customise on the
+  phone — the board had no state with Half/Full + 2× while dragging, so the controls sit under each widget; (3) the
+  error log's `cwc.co.il` "blocked" entries are probably your failing link (notes item 10) — the site refuses our
+  fetch; paste the URL and R17 can look at a per-site fallback.

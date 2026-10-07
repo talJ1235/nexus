@@ -22,8 +22,9 @@ export function PullToRefresh() {
   const start = useRef<number | null>(null);
   const dyRef = useRef(0);
 
+  const { loading, offlineAt } = s;
   useEffect(() => {
-    if (s.loading || s.offlineAt != null) return;
+    if (loading || offlineAt != null) return;
     const phone = () => window.matchMedia("(max-width: 1023px)").matches;
     const down = (e: TouchEvent) => {
       if (!phone() || window.scrollY > 0 || busy || document.querySelector('[role="dialog"]')) return;
@@ -63,7 +64,8 @@ export function PullToRefresh() {
       window.removeEventListener("touchend", up);
       window.removeEventListener("touchcancel", up);
     };
-  }, [s, busy, t]);
+    // Only these matter — re-subscribing on every store change (R16: more of them since live sync) isn't needed.
+  }, [loading, offlineAt, busy]);
 
   if (!dy && !busy) return null;
   const k = busy ? 1 : Math.min(1, dy / PULL_AT);

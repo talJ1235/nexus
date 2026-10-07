@@ -3117,6 +3117,8 @@ try {
         const cdp = await ctx.newCDPSession(p);
         const touch = (type, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x: 195, y }] });
         await p.evaluate(() => window.scrollTo(0, 0));
+        // The pull listener attaches just after the app is ready; nobody pulls within those milliseconds.
+        await p.waitForTimeout(400);
         await touch("touchStart", 200);
         for (let y = 210; y <= 420; y += 15) await touch("touchMove", y);
         const ind = await p.locator("[data-pull]").count();
