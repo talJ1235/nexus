@@ -13,8 +13,19 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
 <style>
 body{margin:0}
-.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:112px;grid-auto-flow:dense;gap:12px;align-content:start;position:relative}
-.grid .wg{overflow:hidden}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:128px;grid-auto-flow:dense;gap:12px;align-content:start;position:relative}
+.grid .wg{padding:12px 14px;gap:6px}
+.grid .wg.up{z-index:4}
+.ttl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wg .tools{flex-shrink:0;margin-inline-start:0}
+.szb{height:26px;padding:0 6px 0 8px;border-radius:7px;border:1px solid var(--line);background:var(--raised);display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--ink2);white-space:nowrap}
+.szb svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.szb.on{border-color:var(--ink);color:var(--ink)}
+.szm{position:absolute;top:40px;inset-inline-end:10px;z-index:5;width:180px;display:flex;flex-direction:column;gap:2px;text-transform:none;letter-spacing:0}
+.szm .seg{width:100%;margin:0 0 6px}.szm .seg>button{flex:1;justify-content:center;height:28px;padding:0}
+.grid .wg .tiny{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rw{white-space:nowrap}
+.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .wg .tb.on{background:var(--sel);color:var(--ink)}
 .wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .wk>span{height:46px;border-radius:7px;background:var(--s);border:1px solid var(--line-in);font-size:10.5px;color:var(--faint);padding:4px 5px;display:flex;flex-direction:column;gap:3px}
@@ -58,12 +69,20 @@ body{margin:0}
         <sc-for list="{{widgets}}" as="w" hint-placeholder-count="8">
           <sc-if value="{{w.slot}}" hint-placeholder-val="{{ false }}"><div class="slot" style="{{w.span}}"></div></sc-if>
           <sc-if value="{{w.real}}" hint-placeholder-val="{{ true }}">
-          <div class="wg" style="{{w.span}}">
-            <div class="wh"><svg class="i sm" viewBox="0 0 24 24" style="color:var(--faint);cursor:grab"><path d="M9 5h.01 M9 12h.01 M9 19h.01 M15 5h.01 M15 12h.01 M15 19h.01"></path></svg>{{w.t}}
-              <span class="tools"><button class="{{w.tallCls}}" onClick="{{w.tall}}" aria-label="Double height" title="Double height"><svg viewBox="0 0 24 24"><path d="M12 3v18 M8 7l4-4 4 4 M8 17l4 4 4-4"></path></svg></button><span class="sz"><sc-for list="{{w.sizes}}" as="z" hint-placeholder-count="3"><span class="{{z.cls}}" onClick="{{z.pick}}">{{z.n}}</span></sc-for></span><button class="tb" onClick="{{w.hide}}" aria-label="Hide"><svg viewBox="0 0 24 24"><path d="M9.9 4.2A10 10 0 0 1 12 4c6 0 10 8 10 8a17 17 0 0 1-2.2 3.2 M6.6 6.6A17 17 0 0 0 2 12s4 8 10 8a9.7 9.7 0 0 0 5.4-1.6 M2 2l20 20 M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg></button></span>
+          <div class="{{w.cls}}" style="{{w.span}}">
+            <div class="wh"><svg class="i sm" viewBox="0 0 24 24" style="color:var(--faint);cursor:grab"><path d="M9 5h.01 M9 12h.01 M9 19h.01 M15 5h.01 M15 12h.01 M15 19h.01"></path></svg><span class="ttl">{{w.t}}</span>
+              <span class="tools"><button class="{{w.szbCls}}" onClick="{{w.menu}}" aria-label="Widget size">{{w.szl}}<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button><button class="tb" onClick="{{w.hide}}" aria-label="Hide"><svg viewBox="0 0 24 24"><path d="M9.9 4.2A10 10 0 0 1 12 4c6 0 10 8 10 8a17 17 0 0 1-2.2 3.2 M6.6 6.6A17 17 0 0 0 2 12s4 8 10 8a9.7 9.7 0 0 0 5.4-1.6 M2 2l20 20 M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg></button></span>
             </div>
+            <sc-if value="{{w.isOpen}}" hint-placeholder-val="{{ false }}">
+              <div class="menu szm" role="dialog" aria-label="Widget size">
+                <div class="mlabel">Width</div>
+                <div class="seg"><sc-for list="{{w.sizes}}" as="z" hint-placeholder-count="3"><button class="{{z.cls}}" onClick="{{z.pick}}">{{z.n}}</button></sc-for></div>
+                <div class="mlabel">Height</div>
+                <div class="seg"><button class="{{w.h1Cls}}" onClick="{{w.setH1}}">1×</button><button class="{{w.h2Cls}}" onClick="{{w.setH2}}">2×</button></div>
+              </div>
+            </sc-if>
             <sc-if value="{{w.kStat}}" hint-placeholder-val="{{ false }}"><span class="big num">{{w.big}}</span><span class="tiny">{{w.sub}}</span><sc-if value="{{w.hasMeter}}" hint-placeholder-val="{{ false }}"><div class="meter"><i style="{{w.meter}}"></i></div></sc-if></sc-if>
-            <sc-if value="{{w.kText}}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;line-height:1.45;color:var(--ink)">{{w.text}}</span><span style="display:flex;gap:6px"><span class="btn sm">{{w.a1}}</span><span class="btn sm ghost">Not now</span></span></sc-if>
+            <sc-if value="{{w.kText}}" hint-placeholder-val="{{ false }}"><span class="clamp" style="font-size:14px;line-height:1.45;color:var(--ink)">{{w.text}}</span></sc-if>
             <sc-if value="{{w.kWeek}}" hint-placeholder-val="{{ false }}"><div class="wk"><span>Sun</span><span>Mon<i></i></span><span>Tue</span><span>Wed<i class="w"></i></span><span>Thu<i></i></span><span>Fri</span><span>Sat</span></div></sc-if>
             <sc-if value="{{w.kList}}" hint-placeholder-val="{{ false }}"><sc-for list="{{w.rows}}" as="r" hint-placeholder-count="3"><div class="rw"><span class="{{r.dot}}"></span>{{r.a}}<span class="r">{{r.b}}</span></div></sc-for></sc-if>
             <sc-if value="{{w.kBars}}" hint-placeholder-val="{{ false }}"><div class="bar"><i style="height:40%"></i><i style="height:55%"></i><i style="height:35%"></i><i style="height:70%"></i><i style="height:50%"></i><i class="hi" style="height:62%"></i></div></sc-if>
@@ -90,14 +109,14 @@ body{margin:0}
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"preset":{"editor":"enum","options":["household","maker","deals","minimal"],"default":"household"},"dragging":{"editor":"boolean","default":true},"$preview":{"width":1366,"height":768}}'>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"preset":{"editor":"enum","options":["household","maker","deals","minimal"],"default":"household"},"dragging":{"editor":"boolean","default":true},"sizeMenu":{"editor":"boolean","default":true},"$preview":{"width":1366,"height":768}}'>
 class Component extends DCLogic {
   componentDidUpdate(prev) { if (prev.preset !== this.props.preset) this.setState({ layout: null, custom: false }); }
   renderVals() {
     const p = this.props, s = this.state || {};
     const W = {
       left: { t: 'Left to buy', k: 'stat', big: '₪2,140', sub: '14 items', m: 0, d: 'M2 3h3l2.7 12.4a1.5 1.5 0 0 0 1.5 1.1h8.6a1.5 1.5 0 0 0 1.5-1.1L21 7H6' },
-      budget: { t: 'October budget', k: 'stat', big: '62%', sub: '₪1,860 of ₪3,000', m: 62, d: 'M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z' },
+      budget: { t: 'Budget', k: 'stat', big: '62%', sub: '₪1,860 of ₪3,000', m: 62, d: 'M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z' },
       way: { t: 'On the way', k: 'stat', big: '3', sub: 'Next: Thursday', m: 0, d: 'M3 7h12v10H3z M15 10h4l2 3v4h-6' },
       saved: { t: 'Saved', k: 'stat', big: '₪412', sub: 'This year', m: 0, d: 'M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z' },
       suggest: { t: 'Nexus suggests', k: 'text', text: 'Coffee beans run out around Friday — Ivory has them 12% cheaper.', a1: 'Add to list', d: 'M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z' },
@@ -123,6 +142,7 @@ class Component extends DCLogic {
     const SPAN = { S: 3, M: 6, L: 12 };
     const setLayout = (l) => this.setState({ layout: l, custom: true });
     const dragging = !!p.dragging && !s.layout && preset === 'household';
+    const openIdx = s.open != null ? s.open : (p.sizeMenu ?? true) ? 1 : -1;
     const widgets = [];
     layout.forEach(([id, size, h], i) => {
       const w = W[id];
@@ -135,8 +155,14 @@ class Component extends DCLogic {
         kStat: w.k === 'stat', kText: w.k === 'text', kWeek: w.k === 'week', kList: w.k === 'list', kBars: w.k === 'bars',
         span: 'grid-column:span ' + SPAN[size] + ';grid-row:span ' + h,
         sizes: ['S', 'M', 'L'].map((n) => ({ n, cls: n === size ? 'on' : '', pick: () => setLayout(layout.map((x, j) => j === i ? [x[0], n, x[2]] : x)) })),
-        tallCls: 'tb' + (h === 2 ? ' on' : ''),
-        tall: () => setLayout(layout.map((x, j) => j === i ? [x[0], x[1], (x[2] || 1) === 2 ? 1 : 2] : x)),
+        szl: size + (h === 2 ? ' · 2×' : ''),
+        szbCls: 'szb' + (openIdx === i ? ' on' : ''),
+        cls: 'wg' + (openIdx === i ? ' up' : ''),
+        isOpen: openIdx === i,
+        menu: () => this.setState({ open: openIdx === i ? -1 : i }),
+        h1Cls: h === 1 ? 'on' : '', h2Cls: h === 2 ? 'on' : '',
+        setH1: () => this.setState({ layout: layout.map((x, j) => j === i ? [x[0], x[1], 1] : x), custom: true }),
+        setH2: () => this.setState({ layout: layout.map((x, j) => j === i ? [x[0], x[1], 2] : x), custom: true }),
         hide: () => setLayout(layout.filter((_, j) => j !== i))
       });
     });
