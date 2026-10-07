@@ -269,14 +269,14 @@ Planner's read of the code (verify, don't assume):
   ~10 sequential DB calls in `databaseHooks.session.create.after` (rotation delete, other-sessions select, security
   events, role check, `ensurePersonalSpace`) before the redirect into the app.
 
-### G1. [ ] Measure first
+### G1. [x] Measure first
 Before changing anything, write numbers into Open: (a) click → first navigation request to `accounts.google.com`, cold
 and warm (Playwright with the `test-idp` provider locally + a real prod run via the Vercel logs/`Server-Timing`);
 (b) `/api/auth/sign-in/social` server time split into cold start / rate limit / state / other; (c) callback
 (`/api/auth/callback/google`) server time split the same way, hooks included; (d) the function region and the Turso
 region. Add a `Server-Timing` header to both routes (stays — useful for later).
 
-### G2. [ ] It always opens (correctness)
+### G2. [x] It always opens (correctness)
 - Handle the returned `{ error }` as well as a throw; on any failure show the error with a **Try again** that works,
   and send it to the C2 error log (kind `auth`, no email in the payload).
 - Timeout: if Google hasn't started loading within 6 s, cancel, show "Taking longer than usual — Try again", re-enable.
@@ -286,7 +286,7 @@ region. Add a `Server-Timing` header to both routes (stays — useful for later)
 - Phone PWA (standalone): confirm the redirect to Google and back lands inside the app and the session cookie sticks;
   if it can't on a platform, open Google in the browser tab flow that works and say so in Open.
 
-### G3. [ ] It feels instant (speed)
+### G3. [x] It feels instant (speed)
 - **Immediate feedback:** on press, within one frame: button shows the spinner + "Opening Google…", no layout shift.
 - **Warm the path:** when the sign-in screen mounts (and on hover/touchstart of the button), fire a cheap request that
   wakes the auth function and the DB connection, plus `preconnect` to `accounts.google.com`.
@@ -304,7 +304,7 @@ Targets (prod, phone on 4G and PC, written in Open before/after): visual respons
 starts **< 700 ms warm, < 1.5 s cold** (p95 of 10 runs); back from Google → app shell visible **< 1.5 s**; 0 dead
 buttons in 30 tries including Back, offline and a forced 500.
 
-### G4. [ ] Guards
+### G4. [x] Guards
 Smoke (`test-idp`): click → navigation within budget; forced 500 / 429 / timeout → error + working Try again; Back from
 the provider → button enabled. Add to `guards.yml`. Update `SPEC.md` (auth section) and `ENVIRONMENT.md` (region).
 
@@ -552,3 +552,49 @@ supermarket mode v2 → R19 price comparison → closed circle on the PWA → An
   Prod smoke after the deploy (run 37538431911): 50 PASS, 5 FAIL — the same five demo-data steps as the R15/R14 prod runs
   (Needs-you count, month view, calendar arrival, demo-id layouts, demo project summary; see 0.1), so the R16 migration
   ran on prod and nothing new broke. **Tal:** mark report `r_rWtP3XmuRl` fixed in Settings → Reports (A13 reply above).
+
+### Session G (2026-10-07) — Google sign-in
+Commits `R16.G1`–`R16.G4` on `round16` (no DB change; `rate_limit` gets `ba:` rows, the unused `auth_rate_limit` table stays).
+- **G1 measured (before)** — from Tal's PC in Israel, home network, `scripts/bench-signin.mjs` (tap → first request to
+  accounts.google.com, the request stubbed so nobody signs in), prod still on `main` `f203591`:
+  - tap → Google: first tap **1742 ms** (new instance), warm **median 669 ms**, worst warm 788 ms (8 runs, 7 s apart).
+    Visual response: **none** — the button only went `disabled`.
+  - `POST /api/auth/sign-in/social` by curl: 1.5–1.8 s on a fresh instance, ~0.50–0.55 s warm, vs `/api/auth/ok` ~0.33 s
+    and a static file ~0.24 s → ~170 ms of DB work per start.
+  - Statements per request (local, Server-Timing counts): sign-in start **3** (rate limit 2 = read + write, OAuth state 1);
+    callback **16** (rate limit 2, state 5, Better Auth's own + hooks 9, hooks sequential).
+  - Regions: functions **fra1** (Frankfurt, from `x-vercel-id`), Turso **aws-eu-west-1** (Ireland) — not an ocean, but
+    every statement paid the Frankfurt↔Dublin hop.
+  - `Server-Timing` now on every `/api/auth/*` response: `cold` (first request of the instance + ms since boot), `rl`,
+    `state`, `db` (time;count), `hooks`, `other`, `total`.
+- **G2 done:** returned `{ error }` and throws both handled; 429 → "Too many tries"; offline → "You're offline"; no
+  navigation within 6 s → "Taking longer than usual"; every error has **Try again** (retries the same button); failures
+  go to the error log as kind `auth` (`google_status` / `google_timeout` / `google_network` / `google_limit`, message =
+  status only). `pageshow` (bfcache) and returning to the tab after the navigation started re-enable the button. Google
+  limit 10 → **30/min per IP**.
+  - **PWA (open for Tal):** the flow is the same full-page redirect as R15 (no popup), and the state is a first-party
+    cookie set on our origin before leaving — same as the R15 signed state cookie — so nothing changed for standalone
+    mode. Not verifiable from here: please try once from the installed app on the iPhone and the Android phone (tap
+    Google → choose account → you land inside the app, signed in). If iOS opens Google outside the app and comes back to
+    Safari instead, tell the next session — the fix is to open sign-in in the browser tab flow on iOS standalone.
+- **G3 done:** spinner + "Opening Google…" in the tap's frame (aria-busy, same height, no shift); warm-up on mount and on
+  hover/touch (`GET /api/auth/ok` = function + DB connection; `preconnect` to accounts.google.com); invite check in
+  parallel with the start, the page navigates itself (`disableRedirect`); OAuth state in an encrypted 10-minute cookie
+  (`account.storeStateStrategy: "cookie"` — Better Auth 1.7.7 option; still bound to Google's `state`, expired after use;
+  `test:auth`, `test:auth-flow` pass, SECURITY.md unchanged in meaning: "OIDC with PKCE + state + nonce"); Better Auth's
+  rate limits → one atomic upsert (`customStorage`); callback: rotation + role + personal-space check in parallel, the
+  security log (sign-in / new device) via `after()`. **Statements: start 3 → 1, callback 16 → 8 before the redirect.**
+  Functions moved to **dub1** (`vercel.json`). Local production build (`next start`, file DB): tap → feedback **4 ms**,
+  tap → Google **~25 ms** (desktop and 390 px phone).
+- **G4 done:** `scripts/test-google-signin.mjs` in `guards.yml` (`next start` + dummy Google client, Google stubbed): tap →
+  busy < 100 ms, warm navigation < 700 ms, forced 500 / 429 / 6 s timeout / offline → error + working Try again + `auth`
+  report without an email, Back from Google → button enabled, 30 mixed tries → 0 dead buttons. Green on CI (run
+  37610908622) and locally (dev + production build). Also green: `test:auth-flow`, `test:auth`, `test:otp`, `test:errors`,
+  `authz-coverage` (180), `scope`, `roles`, `query-plans`, all CI unit tests, `npm run -s check`. SPEC (sign-in section),
+  ENVIRONMENT (region), help (`test:help` needed the new SPEC feature).
+- **Not released yet:** the fast-forward of `main` to `round16` (= prod deploy) was blocked by the session's permission
+  check, so prod still runs `f203591`. Tal: `git fetch origin && git push origin origin/round16:main` (fast-forward; no DB
+  change). After the deploy, the **after** numbers: `BASE=https://nexus-ashen-beta.vercel.app RUNS=10 GAP_MS=7000 node
+  scripts/bench-signin.mjs` (targets: tap → Google < 700 ms warm, < 1.5 s cold, p95 of 10; feedback < 100 ms), and
+  `x-vercel-id` should read `…::dub1::…`. Back from Google → app shell (< 1.5 s) needs a real Google sign-in: DevTools →
+  Network → `callback/google` → Timing shows the Server-Timing split. 4G phone runs: Tal, on the phone.
