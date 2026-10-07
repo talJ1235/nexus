@@ -16,7 +16,15 @@ to setup, tooling or workflow is recorded there in the same session.
   - **From the brief's text only (no board):** D4 space-switch moment, E2 new Home widgets. The builder builds them from
     `docs/ROUND16.md`; Tal corrects after seeing them. `Presence` board dropped (Session 1 built it from the R15 board).
   - Order: Settings + Space settings + Identity first, then HomeCustomize.
-- **Next planner task — make those boards** in a **new chat** (Tal's rule: one session per task). Canvas
+- **Boards made (2026-10-07, account A) — waiting for Tal's approval.** Canvas "Nexus R16 — Settings, Spaces & Home"
+  (private Design artifact on account A): 8 boards — `Main` (= `Settings-desktop`), `Settings-phone`,
+  `SpaceSettings-desktop`, `SpaceSettings-phone`, `SpaceIdentity-desktop`, `SpaceIdentity-phone`,
+  `HomeCustomize-desktop`, `HomeCustomize-phone`; shared `nx.css` (R15, unchanged) + `nx16.css` (R16 additions).
+  Planner choices on the boards (Tal can overrule): settings = full screen with its own side menu ("Back to Nexus",
+  Esc) instead of a dialog; space tiles get 6 gradients + 24 icons; Home sizes S/M/L = 3/6/12 of 12 columns, phone
+  Half/Full; new widgets marked NEW in the widget tray. On approval, copy `project/*` to `docs/design/r16/` (rename
+  `Main.dc.html` → `Settings-desktop.dc.html` and fix the links to it in `SpaceSettings-desktop`).
+- **(Done) planner task — make those boards** in a **new chat** (Tal's rule: one session per task). Canvas
   **"Nexus R16 — Settings, Spaces & Home"** on the current account (canvases are per account). Reuse the R15 look: copy
   `docs/design/r15/nx.css` and the boards' structure (`SpaceSettings-desktop`, `Security-*`, `CreateSpace-*`,
   `Switcher-*`); design language in `docs/ROUND15.md` "Design language" (minimal text, visuals first, light warm brand
@@ -192,6 +200,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-07 · A · R16 Session 2 boards made on a new canvas "Nexus R16 — Settings, Spaces & Home" (8 interactive boards, R15 look, 1366×768 desktop / 390 phone, dark + Plum as tweaks). Waiting for Tal's approval → then copy to `docs/design/r16/` and give the Session 2 prompt (see "Current state & handoff").
 - 2026-10-07 · A · Caught up after R16 Session 1 release. Tal: Ably key in Vercel, live sync checked on prod; A8 was the installed PWA; report `r_rWtP3XmuRl` left for later. Chose mockups for Settings / Space settings / Identity / HomeCustomize only (D4 + E2 from text); boards made in a new chat. Advised: Android wrapper after R17, web updates flow without store releases. Updated "Current state & handoff".
 - 2026-10-06 · B · Tal's usage nearly out → wrote the "Current state & handoff" section above (next steps, Session 1 prompt, mockup board list), new `docs/R16-PLANNING.md` (questions + answers, causes found, notes → items table, realtime research, renumbering note for `MULTIUSER.md`/`STRATEGY.md`). Continue on the other account from "Current state & handoff".
 - 2026-10-06 · B · R16 planned from `docs/R16-NOTES.md`. Causes found in code: receipt prices wiped by `statusPatch()` on → To buy (receipt items have no source); "Move to" lists only the space's lists (new space has none); space switch = full page reload (`useSwitchSpace` → `location.replace`) → sidebar jump. Tal chose: notes now, product layer → R17; mockups in parallel (two sessions); Ably for live sync. Wrote `docs/ROUND16.md` (Parts 0, A–F). Next: R16 mockups canvas (settings, space settings, identity + photo crop, switch moment, Home customise/widgets).
