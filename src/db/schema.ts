@@ -372,7 +372,7 @@ export const errorEvent = sqliteTable(
   "error_event",
   {
     fingerprint: text("fingerprint").primaryKey(),
-    kind: text("kind").notNull(), // server | client | extract | ai | cron | csp | auth
+    kind: text("kind").notNull(), // server | client | extract | ai | cron | csp | auth | viewport
     code: text("code").notNull(),
     where: text("where_at").notNull(),
     message: text("message").notNull(),

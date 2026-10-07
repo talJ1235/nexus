@@ -71,5 +71,6 @@ jobs:
           TURSO_DATABASE_URL=$CI_DB nohup npx next start -p 3101 > google-server.log 2>&1 &
           for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:3101/login && break; sleep 1; done
           BASE=http://localhost:3101 node scripts/test-google-signin.mjs
+          BASE=http://localhost:3101 node scripts/test-viewport.mjs
       - if: failure()
         run: tail -40 headers-server.log 2>/dev/null || true; tail -40 google-server.log 2>/dev/null || true

@@ -605,3 +605,24 @@ Commits `R16.G1`–`R16.G4` on `round16` (no DB change; `rate_limit` gets `ba:` 
   scripts/bench-signin.mjs` (targets: tap → Google < 700 ms warm, < 1.5 s cold, p95 of 10; feedback < 100 ms), and
   `x-vercel-id` should read `…::dub1::…`. Back from Google → app shell (< 1.5 s) needs a real Google sign-in: DevTools →
   Network → `callback/google` → Timing shows the Server-Timing split. 4G phone runs: Tal, on the phone.
+
+### Hotfix — Android PWA viewport (2026-10-07)
+Separate from Session 2 (worktree `../nexus-pwafix`, branch `hotfix-pwa-viewport` off `origin/main`).
+- **hotfix.1 — guard + diagnostics + manifest.**
+  - `VIEWPORT_GUARD` (`boot-screen.tsx`): wrong = coarse pointer AND short screen side < 600 AND `innerWidth` ≥ 1.4 × the
+    screen width **in the current orientation**. Decision: the brief said "1.4 × short side", but a phone in landscape has
+    `innerWidth` ≈ long side (740 ≥ 1.4 × 360) and would match — so landscape compares against the long side
+    (`screen.orientation.type`, fallback `window.orientation`; iOS keeps `screen.width` portrait). Checked on load,
+    `pageshow`, `visibilitychange` (visible), `resize`. Soft fix: re-insert the **last** viewport meta (Chrome applies the
+    last; Next adds a second one after hydration — measured) as the same node in the same place (hydration unaffected),
+    re-check two frames later, ≤ 3 soft tries per page; still wrong → reload, at most once per 30 s per tab
+    (`sessionStorage["nexus.vpfix"]` = timestamp).
+  - Diagnostics: one `viewport`/`layout` event per page to `/api/errors` (new kind; same limits; `sendBeacon`, so it
+    survives the reload). Message, numbers taken at detection: `iw ow s=WxH dpr vv=width@scale dm mobile nav ref=<host>
+    meta soft=yes|no`. Admin: `/admin/errors` filter kind `viewport`; the sample shows the latest numbers (the fingerprint
+    groups by path + soft + referrer host + display mode).
+  - Manifest: `id: "/"`, `scope: "/"`.
+  - Test: `npm run test:viewport` (`scripts/test-viewport.mjs`, in `guards.yml` after the Google test): Android emulation
+    360×740 with the viewport forced to `width=980` → soft fix (no reload) / sticky → exactly one reload / always broken →
+    no second reload; healthy phone portrait + landscape + desktop never reload or report; the server accepts the event.
+    Green locally (production build), with `test:google-signin` and `test:auth-flow`.

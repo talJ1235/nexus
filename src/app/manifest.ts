@@ -5,7 +5,11 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Nexus",
     short_name: "Nexus",
     description: "Everything you plan to buy, in one place",
+    // Hotfix 2026-10-07: a stable app identity and an explicit scope, so the installed app keeps every page of the
+    // origin in its own window (Android).
+    id: "/",
     start_url: "/",
+    scope: "/",
     display: "standalone",
     background_color: "#0b0b0b",
     theme_color: "#0b0b0b",
