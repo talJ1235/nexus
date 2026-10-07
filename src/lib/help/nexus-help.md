@@ -58,9 +58,10 @@ Example: `[Open settings → Palette](nexus:settings)`.
   and watch/target, Tags & notes, Receipts, Advanced.
 
 ## Accounts and sign-in
-<!-- spec: Sign-in, Invite-only sign-up, Settings → Security -->
+<!-- spec: Sign-in, Google sign-in, Invite-only sign-up, Settings → Security -->
 - Sign in with **Google** (התחברות עם Google). Nexus is invite-only for now: a new account needs an invite code from Tal
   or an invite link to a space; without one you can leave your email on the waitlist.
+- Google sign-in that fails says why, with **Try again** (נסו שוב).
 - **Settings → Security** (אבטחה): your devices (sign one out, or all the others), passkeys, connected accounts and
   recent sign-in activity. "Was this you?" appears after a sign-in on a new device — "No, sign it out" ends it.
 - **Confirm it's you** (sign in again) is asked before removing someone, transferring ownership, deleting a space or
