@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment, startTransition, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Eye, EyeOff, GripVertical, LayoutGrid, Package, RefreshCw, Sparkles, Tag, TrendingDown, TrendingUp, Truck, X } from "lucide-react";
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Package, RefreshCw, Sparkles, Tag, TrendingDown, TrendingUp, Truck, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { toast } from "@/lib/toast";
 import { updateItem } from "@/app/actions";
@@ -22,7 +22,13 @@ import { ProductImage, useStatusFlow } from "./item-card";
 import { useReadOnly } from "./offline-banner";
 import { useAddActions } from "./add-actions";
 import { useMeName } from "./spaces/space-ui";
-import { DEFAULT_HOME_LAYOUT, HOME_SECTIONS, useStore, type HomeLayout, type HomeSection } from "./store";
+import { useStore, type HomeSection } from "./store";
+import { Card } from "./home-card";
+import { Customise, WidgetGrid, type RenderWidget } from "./home-grid";
+import { ActivityWidget, ByCategoryWidget, DropsWidget, MostBoughtWidget, NextDeliveryWidget, VsLastWidget } from "./home-extra";
+import { defaultLayout, rowsFor, type HomeLayout, type WidgetId } from "@/lib/home-layout";
+import { homeExtras } from "@/lib/home-widgets";
+import { monthStartIn } from "@/lib/budget";
 import { COLLECTION_COLORS } from "./view-items";
 
 type T = ReturnType<typeof useI18n>["t"];
@@ -76,20 +82,6 @@ function whenLabel(key: string, today: string, fm: Fmt) {
 
 // ---------- The view ----------
 
-const SECTION_ICON: Record<HomeSection, React.ReactNode> = {
-  suggest: <Sparkles />,
-  week: <CalendarDays />,
-  needs: <AlertTriangle />,
-  ontheway: <Truck />,
-  pace: <TrendingUp />,
-  projects: <LayoutGrid />,
-  noticed: <Sparkles />,
-};
-const sectionName = (id: HomeSection, t: T) =>
-  ({ suggest: t.dash.suggests, week: t.dash.week, needs: t.dash.needsYou, ontheway: t.dash.onTheWay, pace: t.dash.paceLink, projects: t.dash.projects, noticed: t.dash.noticed })[id];
-/** Half-width sections pair up on desktop (7 + 5 cols); a lone one spans the row. */
-const HALF: Partial<Record<HomeSection, number>> = { needs: 7, ontheway: 5, pace: 5, projects: 7 };
-
 export function HomeView() {
   const s = useStore();
   const { clock } = s;
@@ -142,92 +134,93 @@ export function HomeView() {
     return mergeHome(model.noticed, ai, fallbackInsights(model), 3);
   }, [look, model]);
   const [editing, setEditing] = useState<HomeLayout | null>(null);
+  const shared = s.space?.kind === "shared";
+  // E2: the new indicators' numbers (pure, lib/home-widgets).
+  const extras = useMemo(() => {
+    const lastKey = shiftMonth(model.month, -1);
+    const monthFrom = monthStartIn(model.month, clock.tz);
+    const monthTo = monthStartIn(shiftMonth(model.month, 1), clock.tz);
+    return homeExtras({ items: s.items, alerts: s.alerts, rates: s.rates, currency: s.currency, now: clock.now, tz: clock.tz, monthFrom, monthTo, lastMonthFrom: monthStartIn(lastKey, clock.tz), lastMonthKey: lastKey, me: s.me?.id });
+  }, [s.items, s.alerts, s.rates, s.currency, clock, model, s.me?.id]);
+
+  // One renderer for view and Customise; the R13 sections stay out of view while they have nothing to show.
+  const render = useCallback<RenderWidget>(
+    (id, h, edit) => {
+      const has: Partial<Record<WidgetId, boolean>> = {
+        suggest: sugs.length > 0,
+        week: model.week.events.length > 0,
+        needs: model.needs.length > 0,
+        ontheway: model.packages.length > 0,
+        pace: model.pace.cap != null || model.pace.usual != null || model.stats.budget.spent > 0,
+        projects: model.projects.length > 0,
+        noticed: noticed.length > 0,
+      };
+      if (!edit && has[id] === false) return null;
+      const c = "h-full";
+      switch (id) {
+        case "left":
+        case "budget":
+        case "way":
+        case "saved":
+          return <Stats model={model} only={id} />;
+        case "suggest":
+          return <SuggestCard sugs={sugs} className={c} />;
+        case "week":
+          return <WeekCard model={model} className={c} />;
+        case "needs":
+          return <NeedsCard model={model} rows={rowsFor(h, 3, 8)} className={c} />;
+        case "ontheway":
+          return <OnTheWayCard model={model} rows={rowsFor(h, 3, 8)} className={c} />;
+        case "pace":
+          return <PaceCard model={model} className={c} />;
+        case "projects":
+          return <ProjectsCard model={model} rows={rowsFor(h, 3, 8)} className={c} />;
+        case "noticed":
+          return <NoticedCard list={noticed} className={c} />;
+        case "drops":
+          return <DropsWidget x={extras} h={h} className={c} />;
+        case "vslast":
+          return <VsLastWidget x={extras} h={h} className={c} />;
+        case "nextdel":
+          return <NextDeliveryWidget x={extras} h={h} className={c} />;
+        case "bycat":
+          return <ByCategoryWidget x={extras} h={h} className={c} />;
+        case "most":
+          return <MostBoughtWidget x={extras} h={h} className={c} />;
+        case "activity":
+          return <ActivityWidget x={extras} h={h} className={c} />;
+      }
+    },
+    [model, sugs, noticed, extras],
+  );
 
   if (s.loading || s.switching) return <HomeSkeleton />;
   if (model.empty) return <HomeEmpty model={model} />;
 
-  const has: Record<HomeSection, boolean> = {
-    suggest: sugs.length > 0,
-    week: model.week.events.length > 0,
-    needs: model.needs.length > 0,
-    ontheway: model.packages.length > 0,
-    pace: model.pace.cap != null || model.pace.usual != null || model.stats.budget.spent > 0,
-    projects: model.projects.length > 0,
-    noticed: noticed.length > 0,
-  };
-  const layout = editing ?? s.homeLayout;
-  const shown = layout.order.filter((id) => has[id] && !layout.hidden.includes(id));
   const stagger = s.navSeq === 0;
+  if (editing)
+    return (
+      <div className="flex flex-col gap-3 pb-4 lg:grid lg:grid-cols-12 lg:gap-[14px]" data-home dir="auto">
+        <Customise
+          draft={editing}
+          setDraft={setEditing as React.Dispatch<React.SetStateAction<HomeLayout>>}
+          render={render}
+          shared={shared}
+          desktop={desktop}
+          onDone={() => {
+            s.setHomeLayout(editing);
+            setEditing(null);
+          }}
+          onReset={() => setEditing(defaultLayout(shared))}
+        />
+      </div>
+    );
 
   return (
     <div className="flex flex-col gap-3 pb-4 lg:grid lg:grid-cols-12 lg:gap-[14px]" data-home dir="auto">
-      <HomeHeader model={model} editing={!!editing} onCustomize={() => setEditing({ order: [...s.homeLayout.order], hidden: [...s.homeLayout.hidden] })} onDone={() => {
-        if (editing) s.setHomeLayout(editing);
-        setEditing(null);
-      }} onReset={() => setEditing({ ...DEFAULT_HOME_LAYOUT, order: [...HOME_SECTIONS], hidden: [] })} />
-      {editing ? (
-        <CustomizeList layout={editing} has={has} onChange={setEditing} />
-      ) : (
-        <Sections shown={shown} model={model} sugs={sugs} noticed={noticed} stagger={stagger} />
-      )}
+      <HomeHeader model={model} onCustomize={() => setEditing(s.homeLayout)} />
+      <WidgetGrid layout={s.homeLayout} render={render} stagger={stagger} />
     </div>
-  );
-}
-
-function Sections({ shown, model, sugs, noticed, stagger }: { shown: HomeSection[]; model: HomeModel; sugs: Suggestion[]; noticed: Insight[]; stagger: boolean }) {
-  // Desktop spans: two adjacent half sections share a row (their own widths when they add up to 12, else 6 + 6).
-  const spans = new Map<HomeSection, number>();
-  for (let k = 0; k < shown.length; k++) {
-    const a = shown[k];
-    const b = shown[k + 1];
-    if (HALF[a] && b && HALF[b]) {
-      const fit = HALF[a]! + HALF[b]! === 12;
-      spans.set(a, fit ? HALF[a]! : 6);
-      spans.set(b, fit ? HALF[b]! : 6);
-      k++;
-    } else spans.set(a, 12);
-  }
-  const span = (id: HomeSection) => ({ 12: "lg:col-span-12", 7: "lg:col-span-7", 6: "lg:col-span-6", 5: "lg:col-span-5" })[spans.get(id) ?? 12];
-  return (
-    <>
-      {shown.map((id, k) => {
-        const cls = cn(span(id), stagger && "r13-rise");
-        const style = stagger ? ({ "--d": `${(k + 1) * 60}ms` } as React.CSSProperties) : undefined;
-        const prev = shown[k - 1];
-        const next = shown[k + 1];
-        switch (id) {
-          case "suggest":
-            return <SuggestCard key={id} sugs={sugs} className={cls} style={style} />;
-          case "week":
-            return <WeekCard key={id} model={model} className={cls} style={style} />;
-          case "needs":
-            return <NeedsCard key={id} model={model} className={cls} style={style} />;
-          case "ontheway":
-            return <OnTheWayCard key={id} model={model} className={cls} style={style} />;
-          case "pace": {
-            // Phones: pace + projects next to each other become one "Money & projects" card.
-            const merged = next === "projects" || prev === "projects";
-            return (
-              <Fragment key={id}>
-                {merged && next === "projects" && <MoneyProjectsCard model={model} className={cn(cls, "lg:hidden")} style={style} />}
-                <PaceCard model={model} className={cn(cls, merged && "max-lg:hidden")} style={style} />
-              </Fragment>
-            );
-          }
-          case "projects": {
-            const merged = next === "pace" || prev === "pace";
-            return (
-              <Fragment key={id}>
-                {merged && next === "pace" && <MoneyProjectsCard model={model} className={cn(cls, "lg:hidden")} style={style} />}
-                <ProjectsCard model={model} className={cn(cls, merged && "max-lg:hidden")} style={style} />
-              </Fragment>
-            );
-          }
-          case "noticed":
-            return <NoticedCard key={id} list={noticed} className={cls} style={style} />;
-        }
-      })}
-    </>
   );
 }
 
@@ -241,7 +234,7 @@ function greeting(now: number, tz: string, t: T) {
   return h >= 5 && h < 12 ? t.dash.morning : h >= 12 && h < 17 ? t.dash.afternoon : h >= 17 && h < 23 ? t.dash.evening : t.dash.night;
 }
 
-function HomeHeader({ model, editing, onCustomize, onDone, onReset }: { model: HomeModel; editing: boolean; onCustomize: () => void; onDone: () => void; onReset: () => void }) {
+function HomeHeader({ model, onCustomize }: { model: HomeModel; onCustomize: () => void }) {
   const s = useStore();
   const meName = useMeName();
   const { t, f } = useI18n();
@@ -257,17 +250,7 @@ function HomeHeader({ model, editing, onCustomize, onDone, onReset }: { model: H
             {f(greeting(s.clock.now, s.clock.tz, t), { name: meName })}
           </h1>
         </div>
-        {editing ? (
-          <div className="flex shrink-0 items-center gap-1.5">
-            <button type="button" onClick={onReset} className="h-9 rounded-full px-3 text-[13px] font-semibold text-muted hover:text-ink" data-home-reset>
-              {t.dash.reset}
-            </button>
-            <button type="button" onClick={onDone} className="h-9 rounded-full bg-brand px-4 text-[13px] font-semibold text-on-brand" data-home-done>
-              {t.dash.done}
-            </button>
-          </div>
-        ) : (
-          <button
+        <button
             type="button"
             onClick={onCustomize}
             className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-card-line bg-surface px-3 text-[12.5px] font-semibold text-ink transition hover:border-ink/40 max-lg:size-10 max-lg:justify-center max-lg:px-0"
@@ -277,19 +260,11 @@ function HomeHeader({ model, editing, onCustomize, onDone, onReset }: { model: H
             <LayoutGrid className="size-4" />
             <span className="max-lg:hidden">{t.dash.customize}</span>
           </button>
-        )}
       </div>
-      {editing ? (
-        <p className="px-1 text-[13px] text-muted lg:px-6 lg:pb-5">
-          <span className="max-lg:hidden">{t.dash.customizeHint}</span>
-          <span className="lg:hidden">{t.dash.customizeHintPhone}</span>
-        </p>
-      ) : (
-        <div className="r13-card overflow-hidden max-lg:mt-1 lg:contents">
-          <StatusStrip model={model} />
-          <Stats model={model} />
-        </div>
-      )}
+      {/* R16 E1: the four numbers are widgets now; the strip stays with the greeting. */}
+      <div className="r13-card overflow-hidden empty:hidden max-lg:mt-1 lg:contents">
+        <StatusStrip model={model} />
+      </div>
     </section>
   );
 }
@@ -383,7 +358,9 @@ function Meter({ parts, marker, className }: { parts: { value: number; color: st
 function Stat({ label, value, small, children, valueClass }: { label: string; value: string; small?: string; children?: React.ReactNode; valueClass?: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5 px-3 py-2.5 lg:gap-1.5 lg:px-5 lg:pb-[18px] lg:pt-4">
-      <span className="truncate text-[12px] font-semibold text-muted lg:text-[12.5px]">{label}</span>
+      <span className="truncate text-[12px] font-semibold text-muted lg:text-[12.5px]" data-stat-label>
+        {label}
+      </span>
       <span className={cn("tabular truncate text-[20px] font-extrabold leading-[1.1] tracking-[-0.03em] lg:text-[28px]", valueClass)}>
         {value}
         {small && <small className="ms-1 text-[12px] font-medium tracking-normal text-muted lg:text-[13px]">{small}</small>}
@@ -393,7 +370,18 @@ function Stat({ label, value, small, children, valueClass }: { label: string; va
   );
 }
 
-function Stats({ model }: { model: HomeModel }) {
+const STAT_ORDER = ["left", "budget", "way", "saved"] as const;
+function StatCell({ only, children }: { only: (typeof STAT_ORDER)[number]; children: React.ReactNode }) {
+  const kids = (Array.isArray(children) ? children : [children]).filter(Boolean);
+  return (
+    <section className="r13-card r13-section flex h-full min-w-0 flex-col [&>*]:flex-1" data-home-section={`stat-${only}`} data-home-stat={only}>
+      {kids[STAT_ORDER.indexOf(only)]}
+    </section>
+  );
+}
+
+/** The four numbers (R16 E1: each its own widget — `only` picks one; the cell gives it a card). */
+function Stats({ model, only }: { model: HomeModel; only: "left" | "budget" | "way" | "saved" }) {
   const s = useStore();
   const { t, f } = useI18n();
   const fm = useFmt();
@@ -406,7 +394,7 @@ function Stats({ model }: { model: HomeModel }) {
   const segName = (id: string | null) => (id ? s.collections.find((x) => x.id === id)?.name ?? "" : t.dash.other);
   const nextKey = o.next != null ? dayKeyIn(o.next, model.ctx.tz) : null;
   return (
-    <div className="grid grid-cols-2 border-line-in lg:grid-cols-4 lg:border-t [&>*]:border-line-in max-lg:[&>*:nth-child(n+3)]:border-t max-lg:[&>*:nth-child(even)]:border-s lg:[&>*+*]:border-s" data-home-stats>
+    <StatCell only={only}>
       <Stat label={t.dash.leftToBuy} value={fm.money(l.total)}>
         <span className="truncate text-[12px] text-muted">
           <b className="font-bold text-warn">{l.count === 1 ? t.dash.itemsOne : f(t.dash.items, { n: l.count })}</b>
@@ -480,37 +468,11 @@ function Stats({ model }: { model: HomeModel }) {
           </span>
         </div>
       )}
-    </div>
+    </StatCell>
   );
 }
 
 // ---------- Section chrome ----------
-
-function Card({ id, title, icon, count, badge, link, onLink, className, style, children, ai }: { id: HomeSection | string; title: string; icon?: React.ReactNode; count?: number; badge?: boolean; link?: string; onLink?: () => void; className?: string; style?: React.CSSProperties; children: React.ReactNode; ai?: boolean }) {
-  return (
-    <section className={cn("r13-card r13-section flex min-w-0 flex-col", className)} style={style} data-home-section={id}>
-      <div className="flex min-h-[42px] items-center gap-2 border-b border-line-in px-4 py-2 lg:min-h-[46px] lg:px-[18px] lg:py-2.5">
-        {icon && <span className={cn("flex [&_svg]:size-4", ai ? "text-ai" : "text-ink")}>{icon}</span>}
-        <h2 className={cn("text-[12px] font-bold uppercase tracking-[0.05em]", ai && "text-ai")}>{title}</h2>
-        {count != null &&
-          (badge ? (
-            <span className="tabular rounded-full bg-warn px-[7px] text-[11px] font-bold leading-[18px] text-bg" data-home-count={id}>
-              {count}
-            </span>
-          ) : (
-            <span className="tabular text-[12px] text-muted">· {count}</span>
-          ))}
-        {link && (
-          <button type="button" onClick={onLink} className="relative ms-auto flex items-center gap-0.5 text-[12.5px] font-medium text-muted transition hover:text-ink after:absolute after:-inset-3 after:content-['']" data-card-link={id}>
-            {link}
-            <ChevronRight className="size-3.5 rtl:-scale-x-100" />
-          </button>
-        )}
-      </div>
-      {children}
-    </section>
-  );
-}
 
 // ---------- A3: Nexus suggests ----------
 
@@ -682,7 +644,7 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
   };
   const pager = (
     <div className="flex items-center gap-1.5" data-sug-pager>
-      <button type="button" onClick={() => go(-1)} className="grid size-7 place-items-center rounded-full border border-card-line bg-surface text-ink max-lg:hidden" aria-label={t.dash.prev}>
+      <button type="button" onClick={() => go(-1)} className="grid size-7 place-items-center rounded-full border border-card-line bg-surface text-ink @max-[600px]:hidden" aria-label={t.dash.prev}>
         <ChevronLeft className="size-3.5 rtl:-scale-x-100" />
       </button>
       <span className="flex gap-1">
@@ -692,14 +654,14 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
           </button>
         ))}
       </span>
-      <button type="button" onClick={() => go(1)} className="grid size-7 place-items-center rounded-full border border-card-line bg-surface text-ink max-lg:hidden" aria-label={t.dash.next}>
+      <button type="button" onClick={() => go(1)} className="grid size-7 place-items-center rounded-full border border-card-line bg-surface text-ink @max-[600px]:hidden" aria-label={t.dash.next}>
         <ChevronRight className="size-3.5 rtl:-scale-x-100" />
       </button>
     </div>
   );
   return (
     <section
-      className={cn("r13-sug r13-section touch-pan-y", sugs.length > 1 && "lg:cursor-grab", dragging && "select-none lg:cursor-grabbing", className)}
+      className={cn("r13-sug r13-section @container touch-pan-y", sugs.length > 1 && "lg:cursor-grab", dragging && "select-none lg:cursor-grabbing", className)}
       style={style}
       {...swipeHandlers}
       data-dragging={dragging || undefined}
@@ -716,23 +678,23 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
       data-sug-count={sugs.length}
       data-sug-kinds={sugs.map((y) => y.kind).join(" ")}
     >
-      <div className="r13-sug-in flex flex-col gap-2 px-3.5 py-3 lg:flex-row lg:items-center lg:gap-[18px] lg:px-5 lg:py-4">
-        <div className="flex items-center gap-2.5 lg:contents">
-          <span className="r13-orb grid size-[26px] shrink-0 place-items-center rounded-lg text-white lg:size-11 lg:rounded-xl [&_svg]:size-3.5 lg:[&_svg]:size-[22px]" aria-hidden>
+      <div className="r13-sug-in flex flex-col gap-2 px-3.5 py-3 @min-[600px]:flex-row @min-[600px]:items-center @min-[600px]:gap-[18px] @min-[600px]:px-5 @min-[600px]:py-4">
+        <div className="flex items-center gap-2.5 @min-[600px]:contents">
+          <span className="r13-orb grid size-[26px] shrink-0 place-items-center rounded-lg text-white @min-[600px]:size-11 @min-[600px]:rounded-xl [&_svg]:size-3.5 @min-[600px]:[&_svg]:size-[22px]" aria-hidden>
             <Sparkles />
           </span>
-          <span className="flex flex-1 items-center gap-2 text-[11px] font-bold uppercase tracking-[0.06em] text-ai lg:hidden">{t.dash.suggests}</span>
-          {sugs.length > 1 && <span className="lg:hidden">{pager}</span>}
+          <span className="flex flex-1 items-center gap-2 text-[11px] font-bold uppercase tracking-[0.06em] text-ai @min-[600px]:hidden">{t.dash.suggests}</span>
+          {sugs.length > 1 && <span className="@min-[600px]:hidden">{pager}</span>}
         </div>
         <div key={x.key} ref={swapRef} style={from != null ? ({ "--sug-from": `${from}px` } as React.CSSProperties) : undefined} className="r13-swap flex min-w-0 flex-1 flex-col gap-[3px]" data-sug-swipe data-sug-key={x.key} data-sug-kind={x.kind} data-sug-source={ai || x.kind === "ai" ? "ai" : "template"} aria-live="polite">
-          <span className="flex items-center gap-2 text-[11.5px] font-bold uppercase tracking-[0.06em] text-ai max-lg:hidden">
+          <span className="flex items-center gap-2 text-[11.5px] font-bold uppercase tracking-[0.06em] text-ai @max-[600px]:hidden">
             {t.dash.suggests}
             {sugs.length > 1 && <em className="font-semibold normal-case not-italic tracking-normal text-muted">{f(t.dash.ofN, { i: i + 1, n: sugs.length })}</em>}
           </span>
-          <b className="text-[15px] font-semibold leading-snug lg:text-[16px]" data-sug-title>
+          <b className="text-[15px] font-semibold leading-snug @min-[600px]:text-[16px]" data-sug-title>
             {ai?.title ?? tpl.title}
           </b>
-          <span className="text-[12.5px] text-muted max-lg:line-clamp-1">{ai?.why || tpl.why}</span>
+          <span className="text-[12.5px] text-muted @max-[600px]:line-clamp-1">{ai?.why || tpl.why}</span>
         </div>
         <div className="flex items-center gap-2">
           {tpl.cta && (
@@ -743,7 +705,7 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
           <button type="button" onClick={() => dismiss(`sug:${x.key}`, ai?.title ?? tpl.title)} className="h-9 rounded-full px-3 text-[13px] font-semibold text-muted transition hover:text-ink" data-sug-notnow>
             {t.dash.notNow}
           </button>
-          {sugs.length > 1 && <span className="ms-1 max-lg:hidden">{pager}</span>}
+          {sugs.length > 1 && <span className="ms-1 @max-[600px]:hidden">{pager}</span>}
         </div>
       </div>
     </section>
@@ -1076,14 +1038,14 @@ function MonthCalendar({ model, onEv }: { model: HomeModel; onEv: (e: WeekEvent)
 
 // ---------- Needs you ----------
 
-function NeedsCard({ model, className, style }: { model: HomeModel; className?: string; style?: React.CSSProperties }) {
+function NeedsCard({ model, rows = 4, className, style }: { model: HomeModel; rows?: number; className?: string; style?: React.CSSProperties }) {
   const s = useStore();
   const { t } = useI18n();
   return (
     <Card id="needs" title={t.dash.needsYou} count={model.needs.length} badge link={t.dash.all} onLink={() => s.setPanel("alerts")} className={className} style={style}>
       <div className="r13-rows px-4 pb-1 lg:px-[18px]">
-        {model.needs.slice(0, 4).map((n, k) => (
-          <NeedRowView key={n.key} n={n} model={model} className={k === 3 ? "max-lg:hidden" : undefined} />
+        {model.needs.slice(0, rows).map((n) => (
+          <NeedRowView key={n.key} n={n} model={model} />
         ))}
       </div>
     </Card>
@@ -1244,7 +1206,7 @@ function useSwipeAway(onAway: () => void) {
 
 // ---------- On the way ----------
 
-function OnTheWayCard({ model, className, style }: { model: HomeModel; className?: string; style?: React.CSSProperties }) {
+function OnTheWayCard({ model, rows = 4, className, style }: { model: HomeModel; rows?: number; className?: string; style?: React.CSSProperties }) {
   const s = useStore();
   const { t, f } = useI18n();
   const fm = useFmt();
@@ -1252,12 +1214,12 @@ function OnTheWayCard({ model, className, style }: { model: HomeModel; className
   return (
     <Card id="ontheway" title={t.dash.onTheWay} count={model.packages.length} link={t.dash.trackAll} onLink={() => s.setView({ type: "ordered" })} className={className} style={style}>
       <div className="r13-rows px-4 pb-1 lg:px-[18px]">
-        {model.packages.slice(0, 4).map((p, k) => {
+        {model.packages.slice(0, rows).map((p) => {
           const late = p.track.late;
           const d = p.item.eta != null ? dayKeyIn(p.item.eta, tz) : null;
           const lateDays = late && d ? Math.round((utc(model.today).getTime() - utc(d).getTime()) / 86_400_000) : 0;
           return (
-            <button key={p.item.id} type="button" onClick={() => s.openItem(p.item.id)} className={cn("block w-full py-2.5 text-start lg:py-[11px]", k === 3 && "max-lg:hidden")} data-package={p.item.id}>
+            <button key={p.item.id} type="button" onClick={() => s.openItem(p.item.id)} className="block w-full py-2.5 text-start lg:py-[11px]" data-package={p.item.id}>
               <span className="flex items-center gap-3">
                 <ProductImage src={p.item.imageUrl} alt="" className="size-9 shrink-0 rounded-lg border border-line-in lg:size-10" iconClass="size-5" />
                 <span className="min-w-0 flex-1">
@@ -1353,13 +1315,13 @@ function PaceCard({ model, className, style }: { model: HomeModel; className?: s
   );
 }
 
-function ProjectRows({ model, compact }: { model: HomeModel; compact?: boolean }) {
+function ProjectRows({ model, compact, rows = 99 }: { model: HomeModel; compact?: boolean; rows?: number }) {
   const s = useStore();
   const { t, f } = useI18n();
   const fm = useFmt();
   return (
     <div className="r13-rows px-4 lg:px-[18px]">
-      {model.projects.map((p) => {
+      {model.projects.slice(0, rows).map((p) => {
         const color = COLLECTION_COLORS[p.collection.color] ?? COLLECTION_COLORS.slate;
         return (
           <button key={p.collection.id} type="button" onClick={() => s.setView({ type: "collection", id: p.collection.id })} className={cn("block w-full text-start", compact ? "py-2.5" : "py-3")} data-home-project={p.collection.id}>
@@ -1392,41 +1354,15 @@ function ProjectRows({ model, compact }: { model: HomeModel; compact?: boolean }
   );
 }
 
-function ProjectsCard({ model, className, style }: { model: HomeModel; className?: string; style?: React.CSSProperties }) {
+function ProjectsCard({ model, rows, className, style }: { model: HomeModel; rows?: number; className?: string; style?: React.CSSProperties }) {
   const s = useStore();
   const { t } = useI18n();
   return (
     <Card id="projects" title={t.dash.projects} link={t.dash.allProjects} onLink={() => s.setView({ type: "projects" })} className={className} style={style}>
-      <ProjectRows model={model} />
+      <ProjectRows model={model} rows={rows} />
     </Card>
   );
 }
-
-function MoneyProjectsCard({ model, className, style }: { model: HomeModel; className?: string; style?: React.CSSProperties }) {
-  const s = useStore();
-  const { t, f } = useI18n();
-  const fm = useFmt();
-  const b = model.stats.budget;
-  return (
-    <Card id="pace projects" title={t.dash.moneyProjects} link={t.dash.spending} onLink={() => s.setView({ type: "spending" })} className={className} style={style}>
-      <div className="flex flex-col gap-1.5 px-4 pb-2.5 pt-2.5">
-        <span className="tabular text-[22px] font-extrabold tracking-[-0.03em]">
-          {fm.money(b.spent)}
-          <small className="ms-1 text-[12px] font-medium tracking-normal text-muted">{b.cap != null ? f(t.dash.ofCapIn, { amount: fm.money(b.cap), month: fm.month(model.month) }) : f(t.dash.spentIn, { month: fm.month(model.month) })}</small>
-        </span>
-        {b.cap != null && <Meter parts={[{ value: Math.min(b.spent, b.cap), color: b.spent > b.cap ? "var(--danger)" : "var(--ink)" }, { value: Math.max(0, b.cap - b.spent), color: "transparent" }]} marker={b.todayFrac} />}
-        <Sentence model={model} />
-      </div>
-      {model.projects.length > 0 && (
-        <div className="border-t border-line-in">
-          <ProjectRows model={model} compact />
-        </div>
-      )}
-    </Card>
-  );
-}
-
-// ---------- A4: Nexus noticed ----------
 
 function insightText(x: Insight, t: T, fm: Fmt) {
   switch (x.kind) {
@@ -1536,89 +1472,6 @@ function NoticedCard({ list, className, style }: { list: Insight[]; className?: 
         })()}
       </div>
     </section>
-  );
-}
-
-// ---------- A5: Customize (edit mode) ----------
-
-function CustomizeList({ layout, has, onChange }: { layout: HomeLayout; has: Record<HomeSection, boolean>; onChange: (l: HomeLayout) => void }) {
-  const { t, f } = useI18n();
-  const [drag, setDrag] = useState<HomeSection | null>(null);
-  const move = (id: HomeSection, to: number) => {
-    const order = layout.order.filter((x) => x !== id);
-    order.splice(Math.max(0, Math.min(order.length, to)), 0, id);
-    onChange({ ...layout, order });
-  };
-  const toggle = (id: HomeSection) => onChange({ ...layout, hidden: layout.hidden.includes(id) ? layout.hidden.filter((x) => x !== id) : [...layout.hidden, id] });
-  return (
-    <div className="flex flex-col gap-2 lg:col-span-12" data-home-customizing>
-      {layout.order.map((id, k) => {
-        const hidden = layout.hidden.includes(id);
-        const name = sectionName(id, t);
-        return (
-          <div
-            key={id}
-            className={cn("r13-card flex min-h-[52px] items-center gap-2 px-2 py-1.5 transition-[opacity,transform] duration-200 lg:px-3", hidden && "opacity-55", drag === id && "scale-[0.99] opacity-70")}
-            data-customize-row={id}
-            data-hidden={hidden ? "" : undefined}
-            onDragOver={(e) => {
-              if (!drag || drag === id) return;
-              e.preventDefault();
-              const r = e.currentTarget.getBoundingClientRect();
-              const after = e.clientY > r.top + r.height / 2;
-              const from = layout.order.indexOf(drag);
-              let to = k + (after ? 1 : 0);
-              if (from < to) to--;
-              if (to !== from) move(drag, to);
-            }}
-            onDrop={(e) => e.preventDefault()}
-          >
-            <button
-              type="button"
-              draggable
-              onDragStart={(e) => {
-                setDrag(id);
-                e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData("text/plain", id);
-              }}
-              onDragEnd={() => setDrag(null)}
-              onKeyDown={(e) => {
-                if (e.key === "ArrowUp") (e.preventDefault(), move(id, k - 1));
-                if (e.key === "ArrowDown") (e.preventDefault(), move(id, k + 1));
-              }}
-              className="grid size-9 shrink-0 cursor-grab place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-ink active:cursor-grabbing max-lg:hidden"
-              aria-label={f(t.dash.dragHandle, { name })}
-              data-customize-handle
-            >
-              <GripVertical className="size-4" />
-            </button>
-            <span className={cn("flex size-8 shrink-0 place-items-center justify-center rounded-lg bg-surface-2 [&_svg]:size-4", id === "suggest" || id === "noticed" ? "text-ai" : "text-ink")}>{SECTION_ICON[id]}</span>
-            <span className="min-w-0 flex-1 truncate text-[14px] font-semibold">
-              {name}
-              {!has[id] && <span className="ms-2 text-[12px] font-normal text-muted">—</span>}
-            </span>
-            <span className="flex items-center gap-1 lg:hidden">
-              <button type="button" disabled={k === 0} onClick={() => move(id, k - 1)} className="grid size-10 place-items-center rounded-full text-ink disabled:opacity-30" aria-label={`${t.dash.moveUp}: ${name}`} data-customize-up>
-                <ChevronUp className="size-[18px]" />
-              </button>
-              <button type="button" disabled={k === layout.order.length - 1} onClick={() => move(id, k + 1)} className="grid size-10 place-items-center rounded-full text-ink disabled:opacity-30" aria-label={`${t.dash.moveDown}: ${name}`} data-customize-down>
-                <ChevronDown className="size-[18px]" />
-              </button>
-            </span>
-            <button
-              type="button"
-              onClick={() => toggle(id)}
-              className="grid size-10 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-ink"
-              aria-label={f(hidden ? t.dash.show : t.dash.hide, { name })}
-              aria-pressed={!hidden}
-              data-customize-eye
-            >
-              {hidden ? <EyeOff className="size-[18px]" /> : <Eye className="size-[18px]" />}
-            </button>
-          </div>
-        );
-      })}
-    </div>
   );
 }
 

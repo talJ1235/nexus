@@ -360,14 +360,14 @@ Tal couldn't find a way to change the space look. Build the `CreateSpace` identi
   (`test:roles`); tile/photo visible in switcher, sidebar, join preview.
 
 ## Part E — Home (Session 2)
-### E1. [ ] Customise: presets and widget sizes
+### E1. [x] Customise: presets and widget sizes
 Keep hide/reorder; add **presets** (board: e.g. Household — shopping first; Maker — projects first; Deal watcher —
 prices first; Minimal) and **sizes per widget** (width S/M/L = 3/6/12 of a 12-column desktop grid, phone half or full
 width; plus **height 1× or 2×** on both — Tal 2026-10-07; tall list widgets show more rows). Drag to
 reorder with smooth FLIP animation, resize by handle or size menu, live preview, Reset. Saved per user per space
 (fallback to the user's last layout). Must feel native: no layout jump, ≥ 55 fps while dragging.
 
-### E2. [ ] More indicators
+### E2. [x] More indicators
 New widgets from the `HomeWidgets` board (planner's candidates, all from data we have: price drops this week, money saved
 by tracking, spending vs last month, next delivery, budget by category, most bought, shared-space activity today).
 Hidden by default unless a preset includes them; each has an empty state and a skeleton.

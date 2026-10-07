@@ -9,6 +9,8 @@ import { CURRENCY_COOKIE, type Currency, type Rates } from "@/lib/money";
 import type { Changes } from "@/lib/db-scoped/changes";
 import type { Alert, AltGroup, AppData, Collection, ItemWithSources, Person, SpaceCard, SpaceInfo, StoreSetting } from "@/lib/types";
 import { DEFAULT_HOME_PREFS, type HomePrefs } from "@/lib/home";
+import { defaultLayout, fromLegacy, type HomeLayout } from "@/lib/home-layout";
+import { saveHomeLayout } from "@/app/home-actions";
 import { DEFAULT_SHOP_SORT, readShopSort, saveShopSort, type ShopSort } from "@/lib/shop-sort";
 import { paramToView, type View } from "@/lib/views";
 import { markBooted } from "@/lib/boot";
@@ -49,32 +51,14 @@ export type Clock = { now: number; tz: string; weekStartsOn: 0 | 1 };
 const TZ_COOKIE = "nexus_tz";
 const DEFAULT_TZ = "Asia/Jerusalem";
 
-/** Home sections that Customize can move or hide (the header card is fixed). */
+/** R13 Home section ids (status-strip jumps); R16 E1 lays Home out as widgets (lib/home-layout). */
 export const HOME_SECTIONS = ["suggest", "week", "needs", "ontheway", "pace", "projects", "noticed"] as const;
 export type HomeSection = (typeof HOME_SECTIONS)[number];
-export type HomeLayout = { order: HomeSection[]; hidden: HomeSection[] };
-export const DEFAULT_HOME_LAYOUT: HomeLayout = { order: [...HOME_SECTIONS], hidden: [] };
-/** Cookie form: "suggest.week.-noticed…" (order; "-" = hidden). Unknown ids dropped, missing ones appended. */
-export function parseHomeLayout(v: string | null | undefined): HomeLayout {
-  if (!v) return DEFAULT_HOME_LAYOUT;
-  const order: HomeSection[] = [];
-  const hidden: HomeSection[] = [];
-  for (const raw of v.split(".")) {
-    const id = raw.replace(/^-/, "") as HomeSection;
-    if (!HOME_SECTIONS.includes(id) || order.includes(id)) continue;
-    order.push(id);
-    if (raw.startsWith("-")) hidden.push(id);
-  }
-  for (const id of HOME_SECTIONS) if (!order.includes(id)) order.push(id);
-  return { order, hidden };
-}
-export const homeLayoutCookie = (l: HomeLayout) => l.order.map((id) => (l.hidden.includes(id) ? `-${id}` : id)).join(".");
 
 const LAYOUT_COOKIE = "nexus_layout";
 const SORT_COOKIE = "nexus_sort";
 const PHONE_LAYOUT_COOKIE = "nexus_phone_layout";
 const SIDEBAR_COOKIE = "nexus_sidebar";
-const HOME_COOKIE = "nexus_home";
 const setCookie = (k: string, v: string) => {
   document.cookie = `${k}=${v}; path=/; max-age=31536000; samesite=lax`;
 };
@@ -97,6 +81,7 @@ type Store = {
   homePrefs: HomePrefs;
   setHomePrefs: (p: HomePrefs) => void;
   /** Home section order + hidden ones (Customize, cookie). */
+  /** R16 E1: Home's widgets for this space (saved per user per space on the server). */
   homeLayout: HomeLayout;
   setHomeLayout: (l: HomeLayout) => void;
   clock: Clock;
@@ -367,10 +352,11 @@ export function StoreProvider({
     setShopSortState(v);
     saveShopSort(v);
   }, []);
-  const [homeLayout, setHomeLayoutState] = useState<HomeLayout>(() => parseHomeLayout(ui.homeLayout));
+  const [homeLayout, setHomeLayoutState] = useState<HomeLayout>(() => initial.home?.layout ?? fromLegacy(ui.homeLayout) ?? defaultLayout(initial.space?.kind === "shared"));
   const setHomeLayout = useCallback((l: HomeLayout) => {
     setHomeLayoutState(l);
-    setCookie(HOME_COOKIE, homeLayoutCookie(l));
+    // Saved per user per space; a failed save keeps this device's copy until the next load.
+    void saveHomeLayout(l).catch(() => {});
   }, []);
   const upsertStoreSetting = useCallback((row: StoreSetting) => setStoreSettings((prev) => [...prev.filter((x) => x.storeKey !== row.storeKey), row]), []);
   const [selected, setSelectedState] = useState<Set<string>>(() => new Set());
@@ -589,6 +575,7 @@ export function StoreProvider({
       setBudget(next.budget);
       setAlerts(next.alerts ?? []);
       setHomePrefs(next.home ?? DEFAULT_HOME_PREFS);
+      setHomeLayoutState(next.home?.layout ?? defaultLayout(next.space?.kind === "shared"));
       setImportLimitUsd(next.importLimitUsd ?? 130);
       setBudgetWarn(next.budgetWarn ?? true);
       setBase(next);

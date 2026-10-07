@@ -2,6 +2,8 @@
 import assert from "node:assert/strict";
 import { addDays, cadenceOf, dayKeyIn, deliveryTrack, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, monthGrid, reorderDue, shiftMonth, weekDays, type HomeInput } from "../src/lib/home";
 import { numbersIn, numbersKnown, validateHomeAi } from "../src/lib/home-ai";
+import { add, defaultLayout, fromLegacy, moveTo, parseLayout, patch, presetItems, PRESETS, remove, serialize, sizeFromDrag, unused, WIDGETS } from "../src/lib/home-layout";
+import { homeExtras } from "../src/lib/home-widgets";
 import { FALLBACK_RATES } from "../src/lib/money";
 import type { Alert, Collection, ItemWithSources, PricePoint, Source } from "../src/lib/types";
 
@@ -311,6 +313,79 @@ assert.equal(addDays("2026-10-31", 1), "2026-11-01");
   const m = homeModel(base({ items: [later] }));
   assert.ok(m.events.some((e) => e.kind === "arrive" && e.day === "2026-11-13"));
   assert.equal(m.week.events.filter((e) => e.kind === "arrive").length, 0); // not this week
+}
+
+// ---- R16 E1: layout model ----
+{
+  for (const p of PRESETS) {
+    const items = presetItems(p);
+    assert.ok(items.length >= 3 && new Set(items.map((x) => x.id)).size === items.length, `preset ${p}: unique widgets`);
+  }
+  assert.ok(presetItems("household", false).every((x) => x.id !== "activity"), "personal space: no Space today");
+  assert.ok(presetItems("household", false).some((x) => x.id === "ontheway"));
+  const d = defaultLayout();
+  assert.equal(d.preset, "household");
+  // round trip, junk dropped, duplicates removed, sizes clamped
+  assert.deepEqual(parseLayout(serialize(d)), d);
+  const junk = parseLayout(JSON.stringify({ v: 2, preset: "nope", items: [{ id: "left", w: "XL", h: 7 }, { id: "left", w: "S", h: 1 }, { id: "evil" }, { id: "drops", w: "L", h: 2, p: "half" }] }));
+  assert.deepEqual(junk, { v: 2, preset: null, items: [{ id: "left", w: "M", h: 1 }, { id: "drops", w: "L", h: 2, p: "half" }] });
+  assert.equal(parseLayout("{bad"), null);
+  assert.equal(parseLayout(JSON.stringify({ v: 1, order: [] })), null);
+  // the R13 cookie → v2: numbers first, the person's order, hidden ones out
+  const legacy = fromLegacy("projects.pace.-noticed.suggest");
+  assert.deepEqual(legacy!.items.map((x) => x.id), ["left", "budget", "way", "saved", "projects", "pace", "suggest", "week", "needs", "ontheway"]);
+  assert.equal(legacy!.preset, null);
+  assert.equal(fromLegacy(""), null);
+  // edits turn the layout custom
+  const m = moveTo(d, "needs", 0);
+  assert.equal(m.items[0].id, "needs");
+  assert.equal(m.preset, null);
+  assert.equal(moveTo(d, "left", 0), d, "a no-op move keeps the preset");
+  assert.equal(patch(d, "left", { w: "L", h: 2 }).items[0].w, "L");
+  assert.ok(!remove(d, "week").items.some((x) => x.id === "week"));
+  const a = add(remove(d, "week"), "week", 1);
+  assert.equal(a.items[1].id, "week");
+  assert.equal(add(d, "left"), d, "already there");
+  assert.deepEqual(unused({ v: 2, preset: null, items: [] }).slice(0, 6), ["drops", "vslast", "nextdel", "bycat", "most", "activity"], "new widgets first in the tray");
+  assert.equal(unused({ v: 2, preset: null, items: WIDGETS.map((id) => ({ id, w: "M" as const, h: 1 as const })) }).length, 0);
+  // corner drag: columns snap to the nearest of 3/6/12, rows to 1×/2×
+  assert.deepEqual(sizeFromDrag({ id: "left", w: "S", h: 1 }, 3.4, 0.2), { w: "M", h: 1 });
+  assert.deepEqual(sizeFromDrag({ id: "left", w: "M", h: 1 }, 5, 0.7), { w: "L", h: 2 });
+  assert.deepEqual(sizeFromDrag({ id: "left", w: "L", h: 2 }, -9, -0.8), { w: "S", h: 1 });
+}
+
+// ---- R16 E2: the new indicators ----
+{
+  const monthFrom = Date.UTC(2026, 8, 30, 21); // 1 Oct 00:00 Israel
+  const monthTo = Date.UTC(2026, 9, 31, 22);
+  const lastFrom = Date.UTC(2026, 7, 31, 21); // 1 Sep
+  const bought = (title: string, d: number, price: number, extra: Opt = {}) => item({ title, status: "purchased", purchasedAt: d, purchasedPrice: price, purchasedCurrency: "ILS", price, ...extra });
+  const lamp = item({ title: "Desk lamp" });
+  const milkA = bought("Milk 1L", at(2), 7, { category: "groceries" });
+  const milkB = bought("milk 1l", at(3), 7, { category: "groceries" });
+  const sepMilk = bought("Milk 1L", Date.UTC(2026, 8, 2, 9), 30, { category: "groceries" });
+  const drill = bought("Drill", at(4, 10), 300, { category: "tools", addedByUserId: "noa", createdAt: at(4, 9), revBy: "yoav" });
+  const shipping = item({ title: "Hub", status: "ordered", orderedAt: at(1), eta: at(6) });
+  const lateOne = item({ title: "Cable", status: "ordered", orderedAt: at(1), eta: at(2) });
+  const x = homeExtras({
+    items: [lamp, milkA, milkB, sepMilk, drill, shipping, lateOne],
+    alerts: [alert({ itemId: lamp.id, oldPrice: 200, newPrice: 150, createdAt: at(3) }), alert({ itemId: lamp.id, oldPrice: 150, newPrice: 140, createdAt: at(4) }), alert({ itemId: lamp.id, oldPrice: 100, newPrice: 50, createdAt: at(4) - 9 * DAY })],
+    rates, currency: "ILS", now: NOW, tz, monthFrom, monthTo, lastMonthFrom: lastFrom, lastMonthKey: "2026-09", me: "tal",
+  });
+  assert.deepEqual(x.drops.map((d) => [d.title, d.pct]), [["Desk lamp", 25]], "biggest drop this week, old ones out");
+  assert.equal(x.vsLast.last, 30);
+  near(x.vsLast.now, 7 + 7 + 300 + 100 + 100, "this month so far (paid + on the way)");
+  assert.ok(x.vsLast.pct! > 0);
+  assert.equal(x.nextDelivery?.title, "Cable");
+  assert.equal(x.nextDelivery?.late, true, "a late package comes first");
+  assert.equal(x.byCategory[0].category, "tools");
+  assert.deepEqual(x.mostBought.map((m) => [m.title, m.count]), [["milk 1l", 3]], "same name in any case counts together (latest title); bought twice or more");
+  assert.deepEqual(x.activity.map((a) => [a.userId, a.added, a.bought]), [["yoav", 0, 1], ["noa", 1, 0]], "today: noa added the drill, yoav bought it");
+  const today = homeExtras({ items: [item({ title: "Bread", addedByUserId: "noa", createdAt: NOW - 3_600_000 }), item({ title: "Eggs", addedByUserId: "tal", createdAt: NOW - 60_000 }), bought("Soap", NOW - 600_000, 9, { revBy: "yoav", createdAt: at(1) })], alerts: [], rates, currency: "ILS", now: NOW, tz, monthFrom, monthTo, lastMonthFrom: lastFrom, lastMonthKey: "2026-09", me: "tal" });
+  assert.deepEqual(today.activity.map((a) => [a.userId, a.added, a.bought]), [["yoav", 0, 1], ["noa", 1, 0]], "others only, newest first");
+  const empty = homeExtras({ items: [], alerts: [], rates, currency: "ILS", now: NOW, tz, monthFrom, monthTo, lastMonthFrom: lastFrom, lastMonthKey: "2026-09" });
+  assert.equal(empty.vsLast.pct, null);
+  assert.equal(empty.nextDelivery, null);
 }
 
 console.log("OK test-home");

@@ -45,6 +45,8 @@ for (const [uid, name, email, role] of [["parity_noa", "Noa Cohen", "noa.cohen@e
   await db.execute({ sql: `INSERT OR IGNORE INTO "user" (id, name, email, email_verified, role, created_at, updated_at) VALUES (?, ?, ?, 1, 'user', ?, ?)`, args: [uid, name, email, now, now] });
   await db.execute({ sql: "INSERT INTO space_member (id, space_id, user_id, role, created_at) VALUES (?, ?, ?, ?, ?)", args: [`pm_${uid}`, shared, uid, role, now + 1] });
 }
+// Home layouts start from the default preset each run (shots below change them).
+await db.execute({ sql: "DELETE FROM user_pref WHERE user_id = ? AND key LIKE 'pref:home:layout%'", args: [admin.id] });
 const personal = (await db.execute({ sql: "SELECT s.id FROM space s JOIN space_member m ON m.space_id = s.id WHERE m.user_id = ? AND s.kind = 'personal' LIMIT 1", args: [admin.id] })).rows[0]?.id;
 
 const browser = await chromium.launch();
@@ -61,7 +63,8 @@ export async function appPage(viewport, { dark, plum, he, space, reduce } = {}) 
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, ...(phone ? { isMobile: true, hasTouch: true } : {}), colorScheme: dark ? "dark" : "light", reducedMotion: reduce ? "reduce" : "no-preference" });
   await ctx.addInitScript((m) => {
     localStorage.setItem("theme", m);
-    localStorage.setItem("nexus.bootDay", "x");
+    const d = new Date();
+    localStorage.setItem("nexus.bootDay", `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
     sessionStorage.setItem("nexus.opened", "1");
   }, dark ? "dark" : "light");
   const cookies = [
@@ -139,6 +142,36 @@ const SHOTS = [
       ["app · desktop, 450 ms in", "/", DESK, { space: personal, act: async (p) => (await p.click("[data-space-switcher]"), await p.click(`[data-space-item="${shared}"]`), await p.waitForSelector("[data-space-moment]"), await p.waitForTimeout(450)), now: true }],
       ["app · landed on Home", "/", DESK, { space: personal, act: async (p) => (await p.click("[data-space-switcher]"), await p.click(`[data-space-item="${shared}"]`), await p.waitForSelector("[data-space-moment]", { state: "detached", timeout: 8000 })) }],
       ["app · phone, 500 ms in (dark, he)", "/", PHONE, { space: personal, dark: true, he: true, act: async (p) => (await p.click("[data-phone-space]"), await p.click(`[data-space-item="${shared}"]`), await p.waitForSelector("[data-space-moment]"), await p.waitForTimeout(500)), now: true }],
+    ],
+    520,
+  ],
+  // E1/E2 (the personal space has the demo data; the shared one is empty).
+  [
+    "e1-customize-desktop",
+    [
+      ["mockup · household", "HomeCustomize-desktop", { preset: "household", dragging: false, sizeMenu: false }, DESK],
+      ["app", "/", DESK, { space: personal, act: async (p) => (await p.click("[data-home-customize]"), await p.waitForSelector("[data-home-customizing]")) }],
+      ["mockup · size menu", "HomeCustomize-desktop", { preset: "deals", dragging: false, sizeMenu: true }, DESK],
+      ["app · deal watcher + size menu", "/", DESK, { space: personal, act: async (p) => (await p.click("[data-home-customize]"), await p.click('[data-home-preset="deals"]'), await p.waitForTimeout(400), await p.locator("[data-widget-size]").nth(1).click()) }],
+    ],
+    520,
+  ],
+  [
+    "e1-customize-phone",
+    [
+      ["mockup · editing", "HomeCustomize-phone", { state: "editing" }, PHONE],
+      ["app", "/", PHONE, { space: personal, act: async (p) => (await p.click("[data-home-customize]"), await p.waitForSelector("[data-home-customizing]")) }],
+      ["mockup · add sheet", "HomeCustomize-phone", { state: "add-sheet" }, PHONE],
+      ["app", "/", PHONE, { space: personal, act: async (p) => (await p.click("[data-home-customize]"), await p.click("[data-home-add-widget]"), await p.waitForSelector("[data-home-tray]")) }],
+    ],
+    300,
+  ],
+  [
+    "e2-home-widgets",
+    [
+      ["app · Home, household (desktop)", "/", DESK, { space: personal }],
+      ["app · Home, deal watcher (dark plum)", "/", DESK, { space: personal, dark: true, plum: true, act: async (p) => (await p.click("[data-home-customize]"), await p.click('[data-home-preset="deals"]'), await p.click("[data-home-done]"), await p.waitForTimeout(500)) }],
+      ["app · Home (phone, he)", "/", PHONE, { space: personal, he: true }],
     ],
     520,
   ],
