@@ -100,7 +100,8 @@ function DisplayPage() {
           ))}
         </div>
       </div>
-      <div className="grid2">
+      {/* R17 D2: colour and language one under the other on phones (the Graphite chip was cut at 360). */}
+      <div className="grid2 stack">
         <div>
           <p className="sec">{t.sx.colour}</p>
           <div className="grid2" style={{ gap: 12 }} role="radiogroup" aria-label={t.sx.colour}>

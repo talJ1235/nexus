@@ -154,8 +154,10 @@ export function SpendingView() {
   const fmt = (v: number) => formatMoney(Math.round(v), s.currency, locale);
   // Phones: big amounts compact (₪12.4K) so tiles and rows never push the screen wider.
   const phone = useMedia(PHONE);
+  // R17: compact only after hydration — Node and the browser write compact Hebrew amounts differently (#418).
+  const hydrated = useMedia("all");
   // R17 A6: amounts never cut — compact on phones, and on desktop once they're too long for a quarter-width tile.
-  const fmtK = (v: number) => (phone || Math.abs(v) >= 10_000_000 ? formatMoneyCompact(Math.round(v), s.currency, locale) : fmt(v));
+  const fmtK = (v: number) => (phone || (hydrated && Math.abs(v) >= 10_000_000) ? formatMoneyCompact(Math.round(v), s.currency, locale) : fmt(v));
 
   const data = useMemo(() => {
     const spent = s.items

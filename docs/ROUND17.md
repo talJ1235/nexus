@@ -288,10 +288,10 @@ marked fixed automatically.
 ---
 
 ## Part F — guards and docs (end of Session 1)
-### F1. [ ] Guards
+### F1. [x] Guards
 `test:clip` (A6), `test:polish` extended (A1, A2, A3 frame check), `test:delete-account`, `test:ai-quota`,
 `test:blocked` (parsers + ladder with fixtures; no network in CI) in `guards.yml`. Prod smoke green in real-data mode.
-### F2. [ ] Docs
+### F2. [x] Docs
 `SPEC.md` Round 17 section (edit, don't append twice), help topics (0.2), `CLAUDE.md` map (help topics, AI gate,
 fetch ladder, delete-account job), `ENVIRONMENT.md` (`CF_FETCH_URL`, `CF_FETCH_SECRET`, `ADMIN_EMERGENCY_TOKEN`, new
 scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI redaction).
@@ -495,3 +495,23 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   its open `extract · blocked/fetch/no_price/parse` entries fixed (C2). The CSP entries still have no blocked host in
   the sample (the CSP report intake keeps only the directive) — left as is; when one repeats, the browser's own report
   is the next step.
+- **D2 (again, found in the final visual pass):** at 360 the Graphite chip was still cut — not clipped, *covered* by the
+  Plum chip (the colour chips overflowed their half of the Colour/Language row). Colour and Language now stack on
+  phones; `test:clip` also checks that no line of text is under a painted, non-fixed neighbour (transparent full-card
+  tap buttons don't count).
+- **Verification (2026-10-08, this PC, production build):** `npm run -s check` OK. Unit tests: all 34 in the CI list +
+  `test:help` OK. `test:clip` 752 screens, 0 cut text. `test:polish` OK (after fixing a hydration mismatch it caught on
+  Spending: compact amounts now switch only after hydration — Node and Chromium write compact Hebrew differently).
+  `test:tenancy` 46/46, `test:errors`, `test:live`, `test:settings`, `test:headers` (emergency sign-in, CI-style),
+  `test:google-signin`, `test:viewport`, `test:google-fedcm` (one focus check failed once, passed on the rerun),
+  `test:auth-flow` OK. Smoke on a fresh seeded DB: desktop 81/81; phone 92/93 — "item sheet morph" fails about 2 in 7
+  runs alone (a ~1 300 px page-scroll jump on open, seen only when the tapped card is a smoke-created item), recorded as
+  a flake, not fixed. Space switch 1 813–1 850 ms over 40 switches. Visual pass (screenshots): Display at 360 he/Graphite
+  and en/Plum dark, Account phone he dark (Notifications on by default) + the delete flow, Calendar phone, Privacy he,
+  Home 1280×720 dark and 390 he Plum, the item sheet with a full title.
+- **Migration rehearsal** (`node --env-file=.env.local scripts/r17-rehearsal.mjs --base origin/main`, copy of
+  `snapshots/prod-2026-10-06-post.db`): new table `ai_usage`; new columns `items.full_title`, `user.deletion_requested_at`
+  (both nullable); nothing dropped; row counts equal in all 39 tables; integrity ok; second run a no-op (whole-DB hash);
+  To buy 8 / On the way 1 / History 10 unchanged; 499 ms. B1 backfill (rules only) on the copy: 5 items with a title over
+  50 characters, 1 changed (its title still matched the store's original), 4 skipped as possibly renamed (their title
+  differs from the store's read); only `title` / `full_title` changed; counts unchanged.

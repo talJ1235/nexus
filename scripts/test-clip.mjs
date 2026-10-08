@@ -127,9 +127,33 @@ function scan(rootSel) {
     // Vertically, a cut is a whole line out of view (glyph boxes poke past a tight line-height without being cut).
     const cutY = rects.some((r) => r.top >= vis.b - 1 || r.bottom <= vis.t + 1);
     const offScreen = tx.r > vw + 1.5 || tx.l < -1.5;
-    if (!cutX && !cutY && !offScreen) continue;
+    // R17 D2: covered — the middle of a line of its text is under another element that isn't a fixed/sticky layer (a
+    // neighbour that overlaps it, like the Graphite chip under the Plum chip at 360).
+    let covered = null;
+    if (!cutX && !cutY && !offScreen) {
+      for (const r of rects) {
+        const x = (Math.max(r.left, vis.l) + Math.min(r.right, vis.r)) / 2;
+        const y = (r.top + r.bottom) / 2;
+        if (x < 0 || y < 0 || x > vw || y > innerHeight) continue;
+        const hit = document.elementFromPoint(x, y);
+        if (!hit || el.contains(hit) || hit.contains(el)) continue;
+        // A transparent layer with nothing of its own (the full-card "tap anywhere" button) hides nothing.
+        const hs = getComputedStyle(hit);
+        const painted = !/rgba\(0, 0, 0, 0\)|transparent/.test(hs.backgroundColor) || hs.backgroundImage !== "none" || [...hit.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) || hit.tagName === "IMG";
+        if (!painted || +hs.opacity === 0) continue;
+        let layer = false;
+        for (let n = hit; n; n = n.parentElement) if (/fixed|sticky/.test(getComputedStyle(n).position) && !n.contains(el)) layer = true;
+        if (!layer) {
+          covered = hit;
+          break;
+        }
+      }
+      if (!covered) continue;
+    }
     const intended = ellipsis || clamp;
-    const why = offScreen && !cutX
+    const why = covered
+      ? `covered by ${covered.tagName.toLowerCase()}${[...covered.attributes].find((a) => a.name.startsWith("data-"))?.name ?? ""}`
+      : offScreen && !cutX
       ? "runs off the screen"
       : NUM.test(text)
         ? "number truncated"
