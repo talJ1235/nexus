@@ -864,8 +864,8 @@ html[data-boot="full"]:not([data-booted]) .r13-rise { animation-play-state: paus
 }
 
 /* ---------- Assistant v2 (Round 7 F2) ---------- */
-/* Desktop panel slides in with a small spring. */
-.assistant-sheet[data-state="open"] { animation: slide-from-right 450ms var(--ease-spring); }
+/* Desktop panel slides in on the drawer curve (polish #27: 260 ms, no bounce past its edge). */
+.assistant-sheet[data-state="open"] { animation: slide-from-right 260ms var(--ease-drawer); }
 [dir="rtl"] .assistant-sheet[data-state="open"] { animation-name: slide-from-left; }
 @media (max-width: 639px) {
   .assistant-sheet { max-width: none; border: 0; }
