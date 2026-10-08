@@ -1930,8 +1930,12 @@ try {
       );
     });
 
-    // R16 A8: a phone screen laid out at desktop width (no device-width viewport applied) reloads once and never loops;
-    // a normal phone and a desktop never reload.
+    // Hotfix.1 guard (boot-screen VIEWPORT_GUARD): a phone screen laid out at desktop width is fixed with at most one
+    // reload and never loops (soft fix = re-insert the viewport meta first; a reload only when that doesn't help, at most
+    // once per 30 s, `sessionStorage["nexus.vpfix"]` = its timestamp); a normal phone and a desktop are never touched.
+    // Here the wide layout comes from the emulated viewport (1100 px on a 390 px phone screen), which no meta change can
+    // fix → the reload path. scripts/test-viewport.mjs covers the meta-driven cases (soft fix, sticky, always broken,
+    // reports, landscape) in detail.
     await step("viewport guard: a phone at desktop width reloads once, never loops", async () => {
       const run = async (opts) => {
         const c = await browser.newContext(opts);
@@ -1939,15 +1943,28 @@ try {
         let docs = 0;
         p.on("framenavigated", (f) => f === p.mainFrame() && docs++);
         await p.goto(`${BASE}/login`);
-        await p.waitForTimeout(1500);
+        await p.waitForTimeout(2500);
+        const settled = docs;
+        // Give it more chances to loop: the guard also checks on resize / pageshow / visibility.
+        await p.evaluate(() => {
+          document.dispatchEvent(new Event("visibilitychange"));
+          dispatchEvent(new Event("resize"));
+          dispatchEvent(new Event("pageshow"));
+        });
+        await p.waitForTimeout(2000);
         const r = await p.evaluate(() => ({ flag: sessionStorage.getItem("nexus.vpfix"), nav: performance.getEntriesByType("navigation")[0]?.type }));
         await c.close();
-        return { docs, ...r };
+        return { docs, settled, ...r };
       };
       const wide = await run({ viewport: { width: 1100, height: 844 }, screen: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
       const phone = await run({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
       const desk = await run({ viewport: { width: 1366, height: 860 } });
-      ok(wide.flag === "1" && wide.nav === "reload" && wide.docs === phone.docs + 1 && !phone.flag && phone.nav === "navigate" && !desk.flag && desk.nav === "navigate", "viewport guard: a phone at desktop width reloads once, never loops", JSON.stringify({ wide, phone, desk }));
+      const recent = (f) => /^\d{13}$/.test(f ?? "") && Math.abs(Date.now() - Number(f)) < 120_000;
+      ok(
+        recent(wide.flag) && wide.nav === "reload" && wide.docs === phone.docs + 1 && wide.docs === wide.settled && !phone.flag && phone.nav === "navigate" && !desk.flag && desk.nav === "navigate" && phone.docs === phone.settled && desk.docs === desk.settled,
+        "viewport guard: a phone at desktop width reloads once, never loops",
+        JSON.stringify({ wide, phone, desk }),
+      );
     });
 
     // R16 A9: sign-in — the cube field sits inside its panel at every size (never cropped), and on phones the form block is
