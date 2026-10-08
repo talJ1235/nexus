@@ -153,8 +153,8 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   sign-in; the password fallback and `APP_PASSWORD` are gone), optional `CF_FETCH_URL` + `CF_FETCH_SECRET` (Cloudflare
   fetch worker, setup in `scripts/cf-worker/README.md`). GitHub secrets for the prod smoke: `SMOKE_ADMIN_TOKEN` (=
   `ADMIN_EMERGENCY_TOKEN`) and `SMOKE_ADMIN_EMAIL`; `NEXUS_PASSWORD` is unused. **Scripts/tests** — `scripts/serve-smoke.sh
-  [--build]` serves the build on a fresh seeded `smoke.db` and writes a test session cookie to `.next/smoke-session.txt`
-  (local smoke/parity/perf scripts sign in with it through `scripts/lib/sign-in.mjs`; no password); `scripts/lib/
+  [--build]` serves the build on a fresh seeded `smoke.db`; local smoke/parity/perf scripts sign in through
+  `scripts/lib/sign-in.mjs`, which mints a session row in `smoke.db` per sign-in (signed with `.env.local`'s secret; no password); `scripts/lib/
   test-app.mjs` = fresh seeded DB + signed session + server for browser tests; new `test:clip` (cut-off text, ~13 min on
   this PC), `test:short-name`, `test:ai-quota`, `test:blocked`, `test:delete-account`; `scripts/switch-timing.mjs` (space
   switch timing), `scripts/blocked-probe.mjs` (fetch-ladder table via `/api/debug/blocked`); `POLISH_ONLY=A1,A2` runs
