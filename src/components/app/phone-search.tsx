@@ -91,6 +91,12 @@ function Results({ q, onClose, onPick }: { q: string; onClose: () => void; onPic
     onClose();
     setTimeout(fn, 30);
   };
+  // R17 A3: Settings covers the screen — open it in the same frame the search closes (no Home in between).
+  const openSettings = () => {
+    if (query) rememberSearch(query);
+    s.setSettingsOpen(true);
+    onClose();
+  };
   const row = "flex min-h-[56px] w-full items-center gap-3 px-3.5 py-2 text-start";
   const chip = "grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-ink [&_svg]:size-[18px]";
 
@@ -115,7 +121,7 @@ function Results({ q, onClose, onPick }: { q: string; onClose: () => void; onPic
               { k: "receipt", icon: <ReceiptText />, label: t.phone.receipt, run: () => s.setScanner("receipt") },
               { k: "settings", icon: <Settings2 />, label: t.search.openAll, run: () => s.setSettingsOpen(true) },
             ].map((a) => (
-              <button key={a.k} type="button" className={row} onClick={() => go(a.run)} data-search-quick={a.k}>
+              <button key={a.k} type="button" className={row} onClick={() => (a.k === "settings" ? openSettings() : go(a.run))} data-search-quick={a.k}>
                 <span className={chip}>{a.icon}</span>
                 <span className="min-w-0 flex-1 truncate text-[14px] font-semibold">{a.label}</span>
               </button>
@@ -128,7 +134,7 @@ function Results({ q, onClose, onPick }: { q: string; onClose: () => void; onPic
           {res.commands.length + res.views.length > 0 && (
             <Group title={t.search.settingsActions} id="settings">
               <CommandRows cmds={[...res.commands, ...res.views]} q={query} go={go} />
-              <button type="button" className={row} onClick={() => go(() => s.setSettingsOpen(true))} data-search-open-settings>
+              <button type="button" className={row} onClick={openSettings} data-search-open-settings>
                 <span className={chip}>
                   <Settings2 />
                 </span>

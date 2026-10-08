@@ -1583,6 +1583,64 @@ try {
       await page.waitForSelector(READY, { timeout: 15000 });
     });
 
+    // R17 A4: Space settings from the space switcher closes back to where you were (Home) with ✕/back, Esc, the system
+    // Back and (phone) the edge swipe; opened from Settings, back returns to Settings.
+    await step("space settings: from the switcher → closes to Home (every close); from Settings → back to Settings", async () => {
+      const r = {};
+      const shell = () => page.locator("[data-settings]").filter({ visible: true }).first();
+      const gone = async () => (await page.locator("[data-settings]").filter({ visible: true }).count()) === 0 && (await page.locator("[data-home-grid]").first().isVisible());
+      const fromSwitcher = async () => {
+        await page.goto(`${BASE}/`);
+        await page.waitForSelector("[data-home-grid]", { timeout: 15000 });
+        await page.waitForTimeout(300);
+        if (MOBILE) {
+          await page.locator("[data-me-open]").click();
+          await page.locator("[data-space-settings]").filter({ visible: true }).first().click();
+        } else {
+          await page.locator("[data-space-switcher]").filter({ visible: true }).first().click();
+          await page.locator("[data-space-settings]").filter({ visible: true }).first().click();
+        }
+        await shell().waitFor({ timeout: 5000 });
+        await page.waitForTimeout(350);
+      };
+      const closers = {
+        button: async () => page.locator(MOBILE ? "[data-settings-back]" : "[data-settings-close]").filter({ visible: true }).first().click(),
+        esc: async () => page.keyboard.press("Escape"),
+      };
+      // Android Back (the system back = history back); desktop has no back gesture for a dialog.
+      if (MOBILE) closers.back = async () => page.goBack();
+      if (MOBILE)
+        closers.swipe = async () => {
+          const cdp = await ctx.newCDPSession(page);
+          const t = (type, x, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
+          await t("touchStart", 6, 400);
+          for (let k = 1; k <= 8; k++) await t("touchMove", 6 + k * 20, 402);
+          await t("touchEnd");
+        };
+      for (const [name, fn] of Object.entries(closers)) {
+        await fromSwitcher();
+        await fn();
+        await page.waitForTimeout(500);
+        r[name] = await gone();
+        if (!r[name]) r[`${name}Why`] = { url: page.url().replace(BASE, ""), shells: await page.locator("[data-settings]").count(), section: await page.locator("[data-settings]").first().getAttribute("data-settings-section").catch(() => null) };
+      }
+      // From Settings: the space page's back is the Settings list (phone) / the dialog stays open (desktop Esc closes all).
+      await page.goto(`${BASE}/`);
+      await page.waitForSelector("[data-home-grid]", { timeout: 15000 });
+      if (MOBILE) {
+        await page.locator("[data-me-open]").click();
+        await page.locator("[data-me-settings]").click();
+        await shell().waitFor();
+        await page.locator("[data-sx-nav=space]").filter({ visible: true }).first().click();
+        await page.waitForTimeout(350);
+        await page.locator("[data-settings-back]").filter({ visible: true }).first().click();
+        await page.waitForTimeout(400);
+        r.fromSettings = (await shell().getAttribute("data-settings-section")) === "list";
+        await page.keyboard.press("Escape");
+      } else r.fromSettings = true; // desktop: Space sections are in the same dialog as the rest of Settings
+      ok(Object.values(r).every(Boolean), "space settings: from the switcher → closes to Home (every close); from Settings → back to Settings", JSON.stringify(r));
+    });
+
     await step("Esc opens command palette with quick settings", async () => {
       await openPalette();
       const dialog = page.getByRole("dialog");

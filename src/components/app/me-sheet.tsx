@@ -77,7 +77,7 @@ export function MeSheet() {
         </section>
 
         <nav className="space-y-0.5">
-          <button type="button" className={row} onClick={go(() => s.setSettingsOpen(true))} data-me-settings>
+          <button type="button" className={row} onClick={() => (s.setSettingsOpen(true), s.setMeOpen(false))} data-me-settings>
             <Settings /> <span className="flex-1">{t.nav.settings}</span> <ChevronRight className="size-4 text-faint rtl:-scale-x-100" />
           </button>
           <button type="button" className={row} onClick={go(() => s.setView({ type: "history" }))} data-me-history>

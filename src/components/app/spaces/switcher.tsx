@@ -82,7 +82,7 @@ export function SpaceSwitcher({ collapsed }: { collapsed?: boolean }) {
             {f(t.spaces.inviteTo, { space: cur.name })}
           </MenuItem>
         )}
-        <MenuItem onSelect={() => openSpaces({ kind: "settings" })} data-space-settings>
+        <MenuItem onSelect={() => openSpaces({ kind: "settings", from: "switcher" })} data-space-settings>
           <Settings />
           {t.spaces.settings}
         </MenuItem>
@@ -139,7 +139,7 @@ export function SpaceRows({ close }: { close: (fn: () => void) => () => void }) 
           <UserPlus /> {f(t.spaces.inviteTo, { space: cur.name })}
         </button>
       )}
-      <button type="button" className={cn(row, "font-semibold [&>svg]:mx-[6px] [&>svg]:size-5 [&>svg]:text-muted")} onClick={close(() => openSpaces({ kind: "settings" }))} data-space-settings>
+      <button type="button" className={cn(row, "font-semibold [&>svg]:mx-[6px] [&>svg]:size-5 [&>svg]:text-muted")} onClick={() => (openSpaces({ kind: "settings", from: "switcher" }), close(() => {})())} data-space-settings>
         <Settings /> {t.spaces.settings}
       </button>
     </section>

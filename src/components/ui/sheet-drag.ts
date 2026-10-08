@@ -179,9 +179,22 @@ export function useSheetDrag(onClose: () => void) {
 const backStack: { close: () => void; popped: boolean }[] = [];
 let skipPops = 0;
 let listening = false;
+// R17 A4: a surface that opens in the same moment another closes (the Me sheet → Settings) must push its entry only
+// after the closing one's `history.back()` has landed — otherwise that back pops the NEW entry and a later Back leaves
+// the page. Pushes wait here while a skipped pop is pending (a stuck count is dropped after 400 ms).
+let deferred: (() => void)[] = [];
+let stuck: ReturnType<typeof setTimeout> | null = null;
+const flush = () => {
+  if (skipPops > 0) return;
+  if (stuck) clearTimeout(stuck), (stuck = null);
+  const run = deferred;
+  deferred = [];
+  for (const f of run) f();
+};
 const onPop = () => {
   if (skipPops > 0) {
     skipPops--;
+    flush();
     return;
   }
   const top = backStack.pop();
@@ -202,9 +215,19 @@ export function useBackClose(open: boolean, onClose: () => void, media = PHONE) 
       listening = true;
     }
     const entry = { close: () => close.current(), popped: false };
-    backStack.push(entry);
-    history.pushState({ ...(history.state ?? {}), nxSheet: backStack.length }, "");
+    let live = true;
+    const push = () => {
+      if (!live) return;
+      backStack.push(entry);
+      history.pushState({ ...(history.state ?? {}), nxSheet: backStack.length }, "");
+    };
+    if (skipPops > 0) {
+      deferred.push(push);
+      stuck ??= setTimeout(() => ((skipPops = 0), (stuck = null), flush()), 400);
+    } else push();
     return () => {
+      live = false;
+      deferred = deferred.filter((f) => f !== push);
       const i = backStack.indexOf(entry);
       if (i < 0) return;
       backStack.splice(i, 1);

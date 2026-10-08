@@ -36,7 +36,7 @@ const ENV = {
   REALTIME_FAKE: "1",
   NEXT_DIST_DIR: undefined,
 };
-// POLISH_ONLY=A1,A2 runs only those sections (tags: 6, phone, 23, reduced, desktop, A1, A2, 29).
+// POLISH_ONLY=A1,A2 runs only those sections (tags: 6, phone, 23, reduced, desktop, A1, A2, A3, 29).
 const want = (tag) => !process.env.POLISH_ONLY || process.env.POLISH_ONLY.split(",").includes(tag);
 let fails = 0;
 const ok = (c, m, d = "") => {
@@ -412,6 +412,52 @@ if (want("A2")) {
   if (low.length) console.log(`INFO A2 ${low.length} widgets under 70 % that show all their data:\n  ${low.join("\n  ")}`);
   ok(bad.length === 0, `A2 ${checked} widget × size checks: content fills ≥ 70 % (or a centred empty state), nothing overflows`, bad.join("\n  "));
   await db.execute({ sql: `DELETE FROM user_pref WHERE user_id = ? AND key LIKE 'pref:home:layout%'`, args: [admin] });
+}
+
+// ---------- R17 A3: Settings is on screen from the first frame (cold deep link, and a tap in the app) ----------
+// Cold: an init script samples every frame from document start — a frame that shows Home's widgets without the settings
+// shell over them is a flash. Tap: the frame right after the click already has the shell.
+if (want("A3")) {
+  for (const phone of [true, false]) {
+    const { ctx, page } = await open({ phone, space: personal });
+    await page.addInitScript(() => {
+      window.__frames = [];
+      const tick = () => {
+        const shell = [...document.querySelectorAll("[data-settings]")].some((e) => e.getBoundingClientRect().width > 0);
+        const home = [...document.querySelectorAll("[data-home-grid] .hw")].some((e) => e.getBoundingClientRect().width > 0);
+        window.__frames.push({ shell, home });
+        if (window.__frames.length < 600) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    await page.goto(`${BASE}/settings/display`);
+    await page.waitForSelector("[data-settings-section=display], [data-settings] [data-sx-page=display], [data-settings]");
+    await page.waitForTimeout(1500);
+    const f = await page.evaluate(() => window.__frames);
+    const flash = f.filter((x) => x.home && !x.shell).length;
+    const firstShell = f.findIndex((x) => x.shell);
+    ok(flash === 0 && firstShell >= 0 && firstShell <= 2, `A3 cold /settings/display (${phone ? "phone" : "desktop"}): the shell is there from the first frame, never Home alone`, JSON.stringify({ frames: f.length, firstShell, flash }));
+    // A tap in the app: Home → Settings.
+    await page.goto(`${BASE}/`);
+    await page.waitForSelector("[data-home-grid] .hw");
+    await page.waitForTimeout(600);
+    if (phone) {
+      await page.locator("[data-me-open]").click();
+      await page.locator("[data-me-settings]").waitFor();
+      await page.waitForTimeout(400);
+    }
+    const target = phone ? "[data-me-settings]" : "aside button[data-carry=settings]";
+    const r = await page.evaluate(async (sel) => {
+      const el = [...document.querySelectorAll(sel)].find((e) => e.getBoundingClientRect().width > 0);
+      if (!el) return { error: "no settings button" };
+      el.click();
+      await new Promise((r) => requestAnimationFrame(() => r()));
+      const shell = [...document.querySelectorAll("[data-settings]")].some((e) => e.getBoundingClientRect().width > 0);
+      return { shell };
+    }, target);
+    ok(r.shell === true, `A3 tap → Settings (${phone ? "phone, from the avatar sheet" : "desktop, sidebar"}): the shell is in the next frame`, JSON.stringify(r));
+    await ctx.close();
+  }
 }
 
 // ---------- #29: 30 navigations in 30 s across 3 spaces → 0 × 429 ----------

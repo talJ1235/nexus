@@ -100,7 +100,7 @@ Acceptance: `test:home` / `test:polish` check per widget × size (S/M/L × 1×/2
 and the worst-case data: content fills ≥ 70 % of the widget's inner height when there's enough data, or the widget
 shows its empty state centred; nothing overflows or clips. Parity PNGs of every widget at 2× (≤ 10 files).
 
-### A3. [ ] Settings show Home for a moment before opening
+### A3. [x] Settings show Home for a moment before opening
 Cause (found while planning): `SettingsShell` (`components/app/settings/shell.tsx`) opens only after `loading` is false,
 so `/settings…` renders Home first and the dialog after the data arrives; the in-app path has a similar gap.
 Expected: tapping Settings (any entry: avatar menu, palette, deep link, `/settings/<section>`) shows the Settings
@@ -109,7 +109,7 @@ on phone (phone settings are full-screen pages).
 Acceptance: Playwright frame capture from the tap: first painted frame after the tap already contains the settings
 shell; on a cold `/settings/display` load no Home content is painted (phone + desktop).
 
-### A4. [ ] Space settings: same flash, and Back goes to the wrong place
+### A4. [x] Space settings: same flash, and Back goes to the wrong place
 Same as A3 when opening Space settings from the space switcher. Back/close: **opened from the switcher → back to
 where you were (Home)**; opened from Settings → back to Settings. Works with ✕, Esc, Android Back, swipe-back.
 Acceptance: smoke covers both entry points × all close methods.
@@ -345,3 +345,19 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   + 500-item space): no visible leaf outside its card; under 70 % fill fails when the widget has items it isn't showing
   (`data-more` > 0); widgets that show everything they have (e.g. 1 price drop) are listed as INFO (40). Parity:
   `docs/design/parity-r17/widgets-2x-*.png` (6).
+- **A3 causes (two):** a cold `/settings/…` load streamed and painted Home before the shell opened in an effect after
+  `loading`; and the phone's in-app paths (Me sheet → Settings, search → Settings) closed their sheet first and opened
+  Settings 120 / 30 ms later, so Home showed in between. Now `/settings/[[...section]]` passes the section into the app's
+  boot (store starts with Settings open); before hydration the server paints `BootFrame` (the shell's boxes, phone or
+  desktop by CSS, skeleton rows — Radix portals and `matchMedia` don't exist on the server); the real shell replaces it
+  without its entrance animation. Me sheet / search open Settings in the same frame. `test:polish` A3: per-frame sampling
+  from document start on a cold `/settings/display` (phone + desktop) → 0 frames of Home without the shell; tap → the
+  shell is in the next frame (phone from the Me sheet, desktop sidebar). On desktop the shell is a dialog, so Home is
+  behind its scrim once loaded — never on its own.
+- **A4:** `openSettings(section, "switcher")` remembers the origin; from the switcher, back from Space settings' first
+  page closes Settings (✕/back, Esc, Android Back, edge swipe → Home); from Settings, back returns to the list (phone; on
+  desktop Space sections are part of the one dialog). Found while testing: a surface opening in the same moment another
+  closes (Me sheet → Space settings) raced the closing one's `history.back()` — about 1 in 5 Android Backs then left the
+  page. `useBackClose` now holds new history entries until pending skipped pops land (400 ms safety). Smoke step
+  "space settings: from the switcher …" desktop + phone (6/6 phone after the fix). The `/settings/people` failure toast
+  in Tal's report did not reproduce (people load fine on the seeded shared spaces).

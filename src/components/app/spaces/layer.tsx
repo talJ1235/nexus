@@ -18,7 +18,7 @@ export function SpacesLayer() {
   const go = useSwitchSpace();
 
   // R16 D2: Space settings are a section group of Settings now.
-  useEffect(() => onOpenSpaces((x) => (x.kind === "settings" ? s.openSettings("space") : setD(x))), [s]);
+  useEffect(() => onOpenSpaces((x) => (x.kind === "settings" ? s.openSettings("space", x.from) : setD(x))), [s]);
 
   useEffect(() => {
     if (s.loading) return;

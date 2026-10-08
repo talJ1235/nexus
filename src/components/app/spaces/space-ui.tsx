@@ -83,7 +83,7 @@ export function ShoppingNow({ className }: { className?: string }) {
 
 // ---- one place that opens the space dialogs (mounted once: SpacesLayer) ----
 
-export type SpaceDialog = { kind: "create" } | { kind: "invite" } | { kind: "settings" } | { kind: "identity" } | { kind: "move"; collectionId: string };
+export type SpaceDialog = { kind: "create" } | { kind: "invite" } | { kind: "settings"; from?: "switcher" } | { kind: "identity" } | { kind: "move"; collectionId: string };
 const EVENT = "nexus:spaces";
 export function openSpaces(d: SpaceDialog) {
   window.dispatchEvent(new CustomEvent<SpaceDialog>(EVENT, { detail: d }));

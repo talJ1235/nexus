@@ -2,7 +2,7 @@
 
 import "../../auth/nx.css";
 import "./nx16.css";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Dialog as D } from "radix-ui";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
@@ -72,11 +72,37 @@ export function SettingsShell() {
       openSettings("");
     }
   }, [loading, openSettings]);
+  // R17 A3: a deep link (/settings[/<section>]) is open from the first paint — the server renders BootFrame (the shell's
+  // chrome, phone or desktop by CSS, skeleton inside) because Radix portals and matchMedia only exist after hydration;
+  // the real shell replaces it without its entrance animation.
+  const hydrated = useSyncExternalStore(noop, () => true, () => false);
+  const [fromBoot] = useState(open);
+  if (!open) return null;
+  if (!hydrated) return <BootFrame />;
   // Mounted only while open: a fresh path each time.
-  return open ? <Shell key={desktop ? "d" : "p"} desktop={desktop} /> : null;
+  return <Shell key={desktop ? "d" : "p"} desktop={desktop} instant={fromBoot} />;
 }
 
-function Shell({ desktop }: { desktop: boolean }) {
+const noop = () => () => {};
+
+/** The settings frame painted before hydration (cold /settings/… load): same boxes as the real shell, rows as skeletons. */
+function BootFrame() {
+  const rows = (n: number) => Array.from({ length: n }, (_, k) => <span key={k} className="block h-11 rounded-xl bg-surface-2/70" />);
+  return (
+    <div className="nx sx-root" data-settings-boot>
+      <div className="sx-scrim max-lg:hidden" />
+      <div className="sx-dialog max-lg:hidden" data-settings>
+        <div className="flex w-[260px] shrink-0 flex-col gap-2 border-e border-line p-4">{rows(8)}</div>
+        <div className="flex flex-1 flex-col gap-3 p-8">{rows(6)}</div>
+      </div>
+      <div className="sx-phone lg:hidden" data-settings>
+        <div className="flex flex-col gap-3 p-4 pt-[calc(env(safe-area-inset-top)+64px)]">{rows(7)}</div>
+      </div>
+    </div>
+  );
+}
+
+function Shell({ desktop, instant }: { desktop: boolean; instant?: boolean }) {
   const s = useStore();
   const shared = s.space?.kind === "shared";
   const [path, setPath] = useState<string[]>(() => pathFor(s.settingsSection ?? "", desktop, shared));
@@ -131,7 +157,11 @@ function Shell({ desktop }: { desktop: boolean }) {
     if (desktop) setPath(SUB[id] ? [SUB[id], id] : [id]);
     else setPath(pathFor(id, false, shared));
   };
+  // R17 A4: opened from the space switcher → its first page is the root; back from it closes (✕, Esc, Android Back,
+  // swipe) and returns to where you were. Opened from Settings → back goes to the Settings list as before.
+  const fromSwitcher = s.settingsFrom === "switcher";
   const back = () => {
+    if (fromSwitcher && path.length <= 1) return close();
     setDir("back");
     setPath((p) => p.slice(0, -1));
   };
@@ -142,7 +172,7 @@ function Shell({ desktop }: { desktop: boolean }) {
       <D.Portal>
         <div className="nx sx-root" dir={undefined}>
           {desktop ? (
-            <Desktop path={path} setPath={(p) => (setDir("in"), setPath(p))} back={back} dir={dir} props={props} />
+            <Desktop path={path} setPath={(p) => (setDir("in"), setPath(p))} back={back} dir={dir} props={props} instant={instant} />
           ) : (
             <Phone path={path} back={back} dir={dir} props={props} />
           )}
@@ -154,7 +184,7 @@ function Shell({ desktop }: { desktop: boolean }) {
 
 // ---------------- desktop ----------------
 
-function Desktop({ path, setPath, back, dir, props }: { path: string[]; setPath: (p: string[]) => void; back: () => void; dir: "in" | "back"; props: PageProps }) {
+function Desktop({ path, setPath, back, dir, props, instant }: { path: string[]; setPath: (p: string[]) => void; back: () => void; dir: "in" | "back"; props: PageProps; instant?: boolean }) {
   const s = useStore();
   const { t } = useI18n();
   const spaceIds = useSpaceSections();
@@ -181,9 +211,9 @@ function Desktop({ path, setPath, back, dir, props }: { path: string[]; setPath:
 
   return (
     <>
-      <D.Overlay className="sx-scrim overlay-in" data-sheet-scrim />
+      <D.Overlay className={cn("sx-scrim", !instant && "overlay-in")} data-sheet-scrim />
       <D.Content
-        className="sx-dialog sx-in"
+        className={cn("sx-dialog", !instant && "sx-in")}
         aria-describedby={undefined}
         onEscapeKeyDown={(e) => {
           if (document.activeElement === search.current && q) {
