@@ -3,9 +3,10 @@
  * `markBooted()` once the app has its data. Transform/opacity only.
  *
  * When (inline script below, before the first paint → `<html data-boot="full|small|none">`):
- * - **Phone / installed app**: `full` when the app is opened (new tab, PWA launch, first page of the session);
- *   `small` on a reload, back/forward or a later load in the same session (`sessionStorage`).
- * - **Desktop**: `full` on the first open of the day (a local date key in `localStorage`), `small` after that;
+ * - **Phone / installed app** (polish #7, Tal 2026-10-08): `full` on the first app open of the day (the same local date
+ *   key as desktop, `localStorage` "nexus.bootDay"); `small` on every other open, a reload, back/forward or a later load
+ *   in the same session (`sessionStorage`).
+ * - **Desktop**: `full` on the first open of the day (the same key), `small` after that;
  *   pages other than the app (login, shared lists) show nothing.
  *
  * Timeline (seconds): 0–0.9 the palette field blooms and the isometric cube grid scales in (radial mask) and drifts ·
@@ -24,7 +25,7 @@ const CUBE = (x: number, y: number) =>
   `M${x + 28} ${y}l28 16v32l-28 16-28-16V${y + 16}z M${x} ${y + 16}l28 16 28-16 M${x + 28} ${y + 32}v32`;
 const OUTLINE = CUBE(4, 0);
 
-const MODE_SCRIPT = `(function(){var d=document.documentElement,m="full",r=0;try{r=localStorage.getItem("nexus.motion")==="reduce";if(r)d.setAttribute("data-motion","reduce")}catch(e){}try{var p=matchMedia("(max-width: 768px), (display-mode: standalone)").matches;if(p){var n=performance.getEntriesByType("navigation")[0],t=n&&n.type,s=sessionStorage;if(t==="reload"||t==="back_forward"||s.getItem("nexus.opened"))m="small";s.setItem("nexus.opened","1")}else if(location.pathname!=="/"){m="none"}else{var a=new Date(),k=a.getFullYear()+"-"+(a.getMonth()+1)+"-"+a.getDate();if(localStorage.getItem("nexus.bootDay")===k)m="small";else localStorage.setItem("nexus.bootDay",k)}}catch(e){m="small"}if(r&&m==="full")m="small";d.setAttribute("data-boot",m)})()`;
+const MODE_SCRIPT = `(function(){var d=document.documentElement,m="full",r=0;try{r=localStorage.getItem("nexus.motion")==="reduce";if(r)d.setAttribute("data-motion","reduce")}catch(e){}try{var p=matchMedia("(max-width: 768px), (display-mode: standalone)").matches,a=new Date(),k=a.getFullYear()+"-"+(a.getMonth()+1)+"-"+a.getDate(),L=localStorage;if(p){var n=performance.getEntriesByType("navigation")[0],t=n&&n.type,s=sessionStorage;if(t==="reload"||t==="back_forward"||s.getItem("nexus.opened")||L.getItem("nexus.bootDay")===k)m="small";else L.setItem("nexus.bootDay",k);s.setItem("nexus.opened","1")}else if(location.pathname!=="/"){m="none"}else{if(L.getItem("nexus.bootDay")===k)m="small";else L.setItem("nexus.bootDay",k)}}catch(e){m="small"}if(r&&m==="full")m="small";d.setAttribute("data-boot",m)})()`;
 
 /**
  * R16 A8 + hotfix (2026-10-07) — self-heal for a phone page laid out at desktop width. On Android, an installed app

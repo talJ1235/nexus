@@ -1,6 +1,7 @@
 /** Hide the opening (components/boot-screen.tsx) once the app is ready. Safe to call many times / on pages without it.
- *  - Full opening (Round 13 D1, 3.0 s): the sequence always plays to the end — no skip (Tal's choice), even when the
- *    app is ready sooner. At 2.5 s the exit starts: the box flies into the top-bar logo (phone) or the sidebar logo
+ *  - Full opening (Round 13 D1, 3.0 s): once a day — the first app open of the day (phone/PWA and desktop share the
+ *    day key, localStorage "nexus.bootDay"; Tal's choice 2026-10-08, polish #7); every other open, reload and back /
+ *    forward gets the small mark. When it plays, it plays to the end, even when the app is ready sooner. At 2.5 s the exit starts: the box flies into the top-bar logo (phone) or the sidebar logo
  *    (desktop), the field fades, and Home's cards rise in (`<html data-booted>` releases their paused animation);
  *    it is gone at 2.95 s.
  *  - Reduced motion: the assembled mark + word, then a 600 ms fade as soon as the app is ready.

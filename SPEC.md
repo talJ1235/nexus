@@ -501,8 +501,8 @@ Brief and checklist: `docs/ROUND13.md`. Shipped (branch `round13`, 2026-10-04):
   cookie `nexus_sidebar`.
 - **Opening v4** (`boot-screen.tsx`, `lib/boot.ts`): 3.0 s, wordmark only — cubes gather, faces assemble, the dot lands
   and the box squashes, two rings + 14 particles, a sweep, the letters rise, a moving hold, then the box flies into the
-  top-bar / sidebar logo and Home's cards rise in. Phones/PWA on app open; desktop on the first open of the day
-  (`localStorage nexus.bootDay`), small loader otherwise; reduced motion = mark + word, 600 ms fade. Transform/opacity
+  top-bar / sidebar logo and Home's cards rise in. Phones/PWA and desktop: on the first app open of the day (one
+  key, `localStorage nexus.bootDay`; phones since polish #7), small loader otherwise; reduced motion = mark + word, 600 ms fade. Transform/opacity
   only (no letter blur).
 - **Card borders**: `--card-line` / `--line-in` (+ warn / info / AI tints) on Home, Shopping and search cards; border vs
   surface ≥ 1.25:1 in all four themes (`npm run test:contrast`).
