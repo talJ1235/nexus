@@ -231,7 +231,7 @@ background:var(--bg);color:var(--ink);font-family:inherit;font-size:14px;line-he
 @media (max-width:899px){.nx .auth-center{align-items:center;padding:12px 0 24px}}
 /* Polish #20: press feedback for the kit (the tap highlight is off, so without it a tap showed nothing until the page
    changed): rows, tiles, picks and buttons darken on press; buttons and tiles also give a little (scale .98). All
-   :hover rules are for a mouse only (above), so nothing stays lit after a tap. */
+   :hover rules (here and in settings/nx16.css) are mouse-only, so nothing stays lit after a tap. */
 .nx .btn,.nx .tile4,.nx .pick,.nx .seg button,.nx .sx-nav,.nx .sx-prow,.nx .icp,.nx button.li,.nx a.li,.nx .li-sw{transition:transform 120ms var(--ease-out),background-color 120ms var(--ease-out)}
 .nx .sx-nav:active,.nx .sx-prow:active,.nx .icp:active,.nx .seg button:active,.nx button.li:active,.nx a.li:active,.nx .li-sw:active{background-color:var(--hover)!important}
 .nx .btn:not([disabled]):active,.nx .tile4:not(:disabled):active,.nx .pick:active{transform:scale(.98)}
