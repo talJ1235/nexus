@@ -654,7 +654,9 @@ body {
 @media (max-width: 768px) {
   :root [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(96px + env(safe-area-inset-bottom)) !important; }
   :root[data-selecting] [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
-  .nx-toast-title, .nx-toast-desc { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  /* Polish #9: the title stays one line; the description (often the item's name — the only content) gets two. */
+  .nx-toast-title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .nx-toast-desc { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
 }
 
 /* Polish #8: a toast's title / description takes its reading order from its own text (an English item name in the
