@@ -297,3 +297,20 @@ fetch ladder, delete-account job), `ENVIRONMENT.md` (`CF_FETCH_URL`, `CF_FETCH_S
 scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI redaction).
 
 ## Open
+
+### Session 1 (2026-10-08)
+- **0.1 — at start.** Open reports: 1 — Tal's complaint "the Nexus suggests border animation is cut off" (Home, phone
+  384×784, Graphite dark, he) → A1. Its "Last 3 client errors" are 3 × the generic failure toast on `/settings/people`
+  (19:08) — the same toast is in the error log (`client · toast`, 1×); with the `server · Error` below (07:47, a members
+  query `… inner join … where … is null`) it points at Space settings → People failing to load once; not reproduced at
+  start, watched in A4. Error log (10 open): `viewport · layout` /login 8× + 8× at 390×844 with `iw=1100 dm=browser
+  mobile=no` (desktop DevTools emulation without a device-width meta pass — `mobile=no`, `dpr=1`: a desktop browser, not
+  a phone; no action) and 1× `/` in the installed app (`dm=standalone`, `iw=980`, `ref=accounts.google.com` — the
+  hotfix.1 self-heal case, it reloaded once); `extract · blocked` cwc.co.il 3× (`title+gemini-url`) → Part C;
+  `csp · connect-src` 2× and `csp · manifest-src` 2× (no blocked URI kept in the sample — E5 adds the directive's host
+  to the sample so these can be acted on); `auth · google_fedcm skipped:unknown_reason` 1× and `auth · google_status
+  403` 1× (hotfix.2–4 territory; E5 groups them). POLISH-AUDIT "Fixes" open items: the Graphite chip cut at 360 (→ D2/A6),
+  4 help-worthy notes (→ 0.2), the two machine-sensitive smoke timing steps (→ 0.3), Tal's real-phone checklist (left
+  to Tal; the Notifications-switch line there is moot after D3). R16 Open leftovers: the reseeded smoke DB + looser
+  camera budget (→ 0.3), the prod smoke "real data" mode (→ 0.3), the viewport-guard smoke step that saw 3 documents
+  locally (→ 0.3).
