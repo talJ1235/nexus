@@ -99,6 +99,25 @@ const ready = async (page) => {
   await page.waitForFunction(() => !!window.__nexusTest, null, { timeout: 180_000 });
   await page.waitForSelector("[data-item-card]");
 };
+/** Run `act` (a close) and watch the dialog from inside the page: the moment it turns data-state="closed" it must have a
+ *  running animation, and it must still be mounted then (gone by 700 ms). */
+const exitAnimates = async (page, sel, act) => {
+  const armed = await page.evaluate((s) => {
+    const el = document.querySelector(s);
+    if (!el) return false;
+    window.__exit = { anims: -1, gone: false };
+    new MutationObserver((_, mo) => {
+      if (el.getAttribute("data-state") !== "closed") return;
+      window.__exit.anims = el.getAnimations().length;
+      mo.disconnect();
+    }).observe(el, { attributes: true, attributeFilter: ["data-state"] });
+    return true;
+  }, sel);
+  await act();
+  await page.waitForTimeout(700);
+  const r = await page.evaluate((s) => ({ ...window.__exit, gone: !document.querySelector(s) }), sel);
+  return { ok: armed && r.anims >= 1 && r.gone, detail: `armed=${armed} animsWhenClosed=${r.anims} goneAfter700ms=${r.gone}` };
+};
 const ROUTES = ["/", "/?v=to_buy", "/?v=ordered", "/?v=history", "/?v=spending", "/?v=projects", "/?v=collection&id=pa_big_c0", "/?v=store&key=ksp", "/settings/account", "/add"];
 const HYDRATION = /hydrat|#418|#423|#425|did not match|server rendered (text|html)/i;
 
@@ -153,14 +172,16 @@ for (const variant of [{}, { phone: true, he: true }]) {
   await collect("[data-sheet-close]");
   await collect("[data-sheet-more]");
   await collect('[role="dialog"] [role="radio"]');
-  await page.locator("[data-sheet-close]").click();
-  await page.waitForTimeout(500);
+  // #5: closing a sheet with ✕ and a modal with Esc each run an exit animation before the dialog unmounts.
+  const sheetX = await exitAnimates(page, '[role="dialog"]', () => page.locator("[data-sheet-close]").click());
   await page.locator("[data-plus]").click();
   await page.locator('[data-plus-action="list"]').click();
   await page.waitForSelector("[data-modal-close]");
+  await page.waitForTimeout(400);
   await collect("[data-modal-close]");
   await collect("button.hit");
-  await page.keyboard.press("Escape");
+  const modalEsc = await exitAnimates(page, '[role="dialog"]', () => page.keyboard.press("Escape"));
+  ok(sheetX.ok && modalEsc.ok, "#5 phone: the item sheet (✕) and a modal (Esc) animate out before unmounting", `sheet ${sheetX.detail}; modal ${modalEsc.detail}`);
   ok(tooSmall.length === 0, "#4 sheet ✕ / more / segments, Modal ✕ and the icon Buttons have a ≥ 40 × 40 tap area on touch", tooSmall.join(", "));
   // #2: delete → the toast's Undo is a 40px target (then Undo, so the data stays as seeded).
   await page.goto(`${BASE}/?v=to_buy`);
@@ -187,6 +208,19 @@ for (const variant of [{}, { phone: true, he: true }]) {
   const knob = await sw.evaluate((el) => getComputedStyle(el, "::after").transitionProperty);
   ok(before !== after && rb && rb.height >= 40 && /transform/.test(knob), "#3 tapping a switch row's title flips it; row ≥ 40px; the knob transitions transform", `${before}→${after} ${JSON.stringify(rb)} ${knob}`);
   await row.locator("b").first().click();
+  await ctx.close();
+}
+
+// ---------- desktop guards (1366) in the demo space ----------
+{
+  const { ctx, page } = await open({ space: personal });
+  await page.goto(`${BASE}/?v=to_buy`);
+  await ready(page);
+  await page.locator("[data-item-card]").first().click();
+  await page.waitForSelector("[data-sheet-close]");
+  await page.waitForTimeout(400);
+  const sideEsc = await exitAnimates(page, '[role="dialog"]', () => page.keyboard.press("Escape"));
+  ok(sideEsc.ok, "#5 desktop: the side sheet animates out on Esc before unmounting", sideEsc.detail);
   await ctx.close();
 }
 

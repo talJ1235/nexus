@@ -573,6 +573,28 @@ body {
   .modal-phone { top: auto; bottom: 0; width: 100%; max-width: none; max-height: 90vh; border-width: 1px 0 0; border-radius: 26px 26px 0 0; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
   .modal-phone[data-state="open"] { animation: sheet-up 320ms var(--ease-out); }
 }
+/* Polish #5: closing leaves along the path it came in by (✕, Esc, the scrim and Back, like the swipe already did).
+   Radix keeps the dialog mounted until its exit animation ends. `to`-only keyframes start from wherever the surface is
+   (mid-entry, or already off-screen after a swipe — whose inline `animation: none` skips this altogether). */
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes pop-out { to { opacity: 0; transform: scale(0.985) translateY(6px); } }
+@keyframes sheet-down { to { transform: translateY(100%); } }
+@keyframes slide-to-right { to { transform: translateX(100%); } }
+@keyframes slide-to-left { to { transform: translateX(-100%); } }
+.overlay-in[data-state="closed"] { animation: fade-out 150ms ease-out both; }
+.animate-pop-in[data-state="closed"], .actions-sheet[data-state="closed"] { animation: pop-out 150ms var(--ease-out) both; }
+.sheet-in-end[data-state="closed"], .assistant-sheet[data-state="closed"] { animation: slide-to-right 180ms var(--ease-drawer) both; }
+.sheet-in-start[data-state="closed"] { animation: slide-to-left 180ms var(--ease-drawer) both; }
+[dir="rtl"] .sheet-in-end[data-state="closed"], [dir="rtl"] .assistant-sheet[data-state="closed"] { animation-name: slide-to-left; }
+[dir="rtl"] .sheet-in-start[data-state="closed"] { animation-name: slide-to-right; }
+/* The card → sheet morph: the picture flies back to its card while the sheet fades (as it faded in). */
+.sheet-in-end[data-morphed][data-state="closed"], .sheet-in-start[data-morphed][data-state="closed"] { animation: fade-out 150ms ease-out both; }
+@media (max-width: 639px) {
+  .sheet-phone[data-state="closed"], [dir="rtl"] .sheet-phone[data-state="closed"],
+  .modal-phone[data-state="closed"], .assistant-sheet[data-state="closed"], [dir="rtl"] .assistant-sheet[data-state="closed"],
+  .actions-sheet[data-state="closed"] { animation: sheet-down 200ms var(--ease-drawer) both; }
+  .sheet-phone[data-morphed][data-state="closed"] { animation: fade-out 150ms ease-out both; }
+}
 
 /* ---------- Mixed Hebrew/English text ----------
    Product and user titles work out their own reading order (so "Elegoo PLA 1.75mm אדום" keeps

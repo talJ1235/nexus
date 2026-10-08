@@ -345,7 +345,11 @@ export function ItemSheet() {
   const s = useStore();
   const { t, f, locale } = useI18n();
   const openItemId = useOpenItemId();
-  const item = openItemId ? s.items.find((i) => i.id === openItemId) ?? null : null;
+  const liveItem = openItemId ? s.items.find((i) => i.id === openItemId) ?? null : null;
+  // Polish #5: the sheet animates out after it closes — keep showing the last item meanwhile, not an empty panel.
+  const [kept, setKept] = useState(liveItem);
+  if (liveItem && liveItem !== kept) setKept(liveItem);
+  const item = liveItem ?? kept;
   const [newLink, setNewLink] = useState("");
   const [adding, setAdding] = useState(false);
 
@@ -416,7 +420,7 @@ export function ItemSheet() {
   const deep = deepFor === itemId;
 
   return (
-    <Sheet open={!!item} onOpenChange={(o) => !o && morphClose(openItemId, () => s.openItem(null))} title={item?.title ?? ""} className="bg-bg">
+    <Sheet open={!!liveItem} onOpenChange={(o) => !o && morphClose(openItemId, () => s.openItem(null))} title={item?.title ?? ""} className="bg-bg">
       {item && (
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between gap-2 border-b border-line bg-surface px-4 py-2.5" data-sheet-grip>
