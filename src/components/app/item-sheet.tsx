@@ -443,6 +443,7 @@ export function ItemSheet() {
                     key={item.id + item.title}
                     defaultValue={item.title}
                     rows={1}
+                    data-big
                     onBlur={(e) => {
                       const v = e.target.value.trim();
                       if (v && v !== item.title) void save({ title: v });

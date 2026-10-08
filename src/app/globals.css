@@ -372,6 +372,15 @@ body {
   }
 }
 
+/* Polish #1: iOS Safari zooms into any field under 16px and never zooms back. On touch every text field is at least
+   16px — one rule instead of per-field sizes (the shared Input/Textarea are text-sm, the .nx kit 13–15px). Fields
+   that are already bigger opt out with data-big (the item sheet's name, the alt sheet's price) or keep their own
+   size below (the sign-in code boxes). Never fixed with maximum-scale (mobile-native rule 4). */
+@media (pointer: coarse) {
+  :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), textarea, select):not([data-big]) { font-size: 16px !important; }
+  .nx .otp input { font-size: 22px !important; }
+}
+
 /* ---------- Loading & transitions ----------
    Principles: nothing flashes on fast loads, everything that does move is composited
    (opacity/transform only — no background repaints), and the page appears as one piece. */

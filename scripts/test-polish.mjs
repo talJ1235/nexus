@@ -94,6 +94,11 @@ async function open({ phone = false, he = false, space = "pa_big" } = {}) {
   });
   return { ctx, page: await ctx.newPage() };
 }
+/** The app is hydrated (its test hook is up) and has drawn its cards. */
+const ready = async (page) => {
+  await page.waitForFunction(() => !!window.__nexusTest, null, { timeout: 180_000 });
+  await page.waitForSelector("[data-item-card]");
+};
 const ROUTES = ["/", "/?v=to_buy", "/?v=ordered", "/?v=history", "/?v=spending", "/?v=projects", "/?v=collection&id=pa_big_c0", "/?v=store&key=ksp", "/settings/account", "/add"];
 const HYDRATION = /hydrat|#418|#423|#425|did not match|server rendered (text|html)/i;
 
@@ -108,6 +113,29 @@ for (const variant of [{}, { phone: true, he: true }]) {
     await page.waitForTimeout(1500);
   }
   ok(errors.length === 0, `#6 0 hydration errors on ${ROUTES.length} routes in the 500-item space (${variant.phone ? "phone, Hebrew" : "desktop, English"})`, errors.join("\n  "));
+  await ctx.close();
+}
+
+// ---------- phone guards (390, touch) in the demo space ----------
+{
+  const { ctx, page } = await open({ phone: true, space: personal });
+  /** Text fields on screen whose computed font size is under 16px (iOS zooms into them). */
+  const smallFields = () => page.evaluate(() => [...document.querySelectorAll("input, textarea, select")]
+    .filter((el) => el.getBoundingClientRect().width > 0 && !["checkbox", "radio", "range", "color", "file", "hidden"].includes(el.type) && parseFloat(getComputedStyle(el).fontSize) < 16)
+    .map((el) => `${el.tagName.toLowerCase()}[${el.getAttribute("aria-label") ?? el.placeholder ?? ""}] ${getComputedStyle(el).fontSize}`));
+  await page.goto(`${BASE}/?v=history`);
+  await page.waitForSelector("[data-item-card]");
+  const small = await smallFields();
+  await page.goto(`${BASE}/?v=to_buy`);
+  await ready(page);
+  await page.locator("[data-item-card]").first().click();
+  await page.waitForSelector('[role="dialog"]');
+  await page.waitForTimeout(600);
+  small.push(...(await smallFields()));
+  await page.goto(`${BASE}/settings/display`);
+  await page.waitForSelector('[data-settings-section="display"]');
+  small.push(...(await smallFields()));
+  ok(small.length === 0, "#1 every text field is ≥ 16px on a coarse pointer (paste bar, search, item sheet, settings)", small.join(", "));
   await ctx.close();
 }
 

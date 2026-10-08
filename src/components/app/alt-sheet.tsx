@@ -67,6 +67,7 @@ export function AltSheet() {
             key={group.id + group.name}
             defaultValue={group.name}
                         aria-label={t.alt.rename}
+            data-big
             onBlur={(e) => void rename(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
             className="bidi -mx-1.5 mb-4 w-[calc(100%+12px)] rounded-md border border-transparent bg-transparent px-1.5 py-1 text-xl font-semibold outline-none hover:border-line focus:border-accent"
