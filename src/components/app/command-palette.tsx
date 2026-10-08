@@ -81,8 +81,9 @@ export function CommandPalette() {
       }}
     >
       <D.Portal>
-        <D.Overlay className="overlay-in fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
-        <D.Content className="fixed inset-x-0 top-[10vh] z-50 mx-auto w-[calc(100vw-24px)] max-w-[600px] animate-pop-in overflow-hidden rounded-2xl border border-line bg-raised shadow-pop outline-none">
+        {/* Polish #10: no open/close animation — keyboard-first and opened all day (the Raycast rule). */}
+        <D.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
+        <D.Content className="fixed inset-x-0 top-[10vh] z-50 mx-auto w-[calc(100vw-24px)] max-w-[600px] overflow-hidden rounded-2xl border border-line bg-raised shadow-pop outline-none">
           <D.Title className="sr-only">{t.cmd.placeholder}</D.Title>
           <D.Description className="sr-only">{t.cmd.placeholder}</D.Description>
           <Command loop filter={paletteFilter} label={t.cmd.placeholder} className="flex max-h-[min(560px,75vh)] flex-col">

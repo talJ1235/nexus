@@ -221,6 +221,15 @@ for (const variant of [{}, { phone: true, he: true }]) {
   await page.waitForTimeout(400);
   const sideEsc = await exitAnimates(page, '[role="dialog"]', () => page.keyboard.press("Escape"));
   ok(sideEsc.ok, "#5 desktop: the side sheet animates out on Esc before unmounting", sideEsc.detail);
+  // #10: Ctrl K opens the palette with no animation at all (dialog, its contents and the scrim).
+  await page.keyboard.press("Control+k");
+  await page.waitForSelector("[cmdk-input]");
+  const paletteAnims = await page.evaluate(() => {
+    const d = document.querySelector("[cmdk-input]").closest('[role="dialog"]');
+    return d.getAnimations({ subtree: true }).length + (d.previousElementSibling?.getAnimations().length ?? 0);
+  });
+  ok(paletteAnims === 0, "#10 the command palette opens with 0 animations", String(paletteAnims));
+  await page.keyboard.press("Escape");
   await ctx.close();
 }
 

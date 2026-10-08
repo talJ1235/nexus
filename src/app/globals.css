@@ -501,6 +501,8 @@ body {
 /* Product photos fade in once decoded instead of popping. */
 .product-img { opacity: 0; transition: opacity 280ms ease-out; }
 .product-img[data-loaded] { opacity: 1; }
+/* Polish #10: the command palette appears whole — its thumbnails (decoded already) don't fade in either. */
+[cmdk-root] .product-img { transition: none; }
 
 /* Price tag: soft teal tag with a notched leading edge (flips in RTL). */
 .price-tag {
