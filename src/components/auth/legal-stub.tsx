@@ -1,34 +1,46 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import "./nx.css";
-import { dictionaries, isLocale, LOCALE_COOKIE } from "@/lib/i18n";
+import { isLocale, LOCALE_COOKIE } from "@/lib/i18n";
+import { legal, LEGAL_UPDATED } from "@/lib/i18n/legal";
 
-// R15 A2 stub for /privacy and /terms: the text comes in R16 (Tal approves it first). Public (proxy) so the sign-in
-// links work signed out.
+// R17 E3 — /privacy and /terms (en + he, the text in lib/i18n/legal.ts). Public (proxy) so the sign-in links work signed
+// out; the same page from the login footer, Settings → Account and About. Not legal advice (docs/ROUND17.md Open).
 export async function LegalStub({ kind }: { kind: "privacy" | "terms" }) {
   const raw = (await cookies()).get(LOCALE_COOKIE)?.value;
-  const t = dictionaries[isLocale(raw) ? raw : "en"].auth.legal;
+  const locale = isLocale(raw) ? raw : "en";
+  const doc = legal[locale][kind];
   return (
-    <div className="nx">
-      <main className="page">
-        <div style={{ height: 44 }} />
+    <div className="nx" dir={locale === "he" ? "rtl" : "ltr"} lang={locale}>
+      <main className="page" style={{ maxWidth: 720, marginInline: "auto", paddingInline: 16, paddingBottom: 48 }} data-legal={kind}>
+        <div style={{ height: 32 }} />
         <h1 className="t-title" style={{ marginTop: 20 }}>
-          {kind === "privacy" ? t.privacyTitle : t.termsTitle}
+          {doc.title}
         </h1>
-        <p className="badge info" style={{ marginTop: 12, alignSelf: "flex-start" }}>
-          {t.soon}
+        <p className="sub" style={{ marginTop: 6 }}>
+          {doc.updated}: {LEGAL_UPDATED}
         </p>
-        <p className="t-body" style={{ marginTop: 12 }}>
-          {t.soonBody}
+        <p className="t-body" style={{ marginTop: 16 }}>
+          {doc.intro}
         </p>
-        {/* R16 C2: the one part that's already true and needs saying. */}
-        {kind === "privacy" && (
-          <p className="t-body" style={{ marginTop: 12 }} data-privacy-errors>
-            {t.errorLog}
-          </p>
-        )}
-        <a className="link" href="/login" style={{ marginTop: 24 }}>
-          {t.back}
-        </a>
+        {doc.sections.map((s) => (
+          <section key={s.h} style={{ marginTop: 22 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>{s.h}</h2>
+            {s.p.map((p, k) => (
+              <p key={k} className="t-body" style={{ marginTop: k ? 8 : 0, overflowWrap: "anywhere" }}>
+                {p}
+              </p>
+            ))}
+          </section>
+        ))}
+        <p style={{ marginTop: 28, display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <a className="link" href={kind === "privacy" ? "/terms" : "/privacy"}>
+            {legal[locale][kind === "privacy" ? "terms" : "privacy"].title}
+          </a>
+          <Link className="link" href="/">
+            {doc.back}
+          </Link>
+        </p>
       </main>
     </div>
   );

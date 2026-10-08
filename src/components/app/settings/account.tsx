@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ackNewSignIn, createRecoveryCodes, getSecurityState, removePasskey, renameMyPasskey, signOutDevice, signOutOtherDevices, type SecurityState } from "@/app/security-actions";
 import { setNotificationsOn } from "@/app/home-actions";
+import { deletionBlocks, requestAccountDeletion } from "@/app/account-actions";
 import { DEFAULT_NOTIFY } from "@/lib/home";
 import { loadAppData } from "@/app/data-actions";
 import { useI18n } from "@/components/providers";
@@ -291,6 +292,7 @@ export function AccountPage({ go, phone }: PageProps) {
       </div>
 
       <NotificationsRow />
+      <MyDataRows onStepUp={() => setStepUp(true)} go={go} />
 
       <div className={cn(s.admin ? "grid3" : "grid2", "sx-tiles")} style={{ marginTop: "auto" }} data-account-tiles>
         <MiniCard icon={P.history} title={t.sx.sections.activity} sub={t.sx.activitySub} action={t.sx.open} onClick={() => go("activity")} data="activity" />
@@ -299,6 +301,93 @@ export function AccountPage({ go, phone }: PageProps) {
       </div>
       {stepUp && <StepUp full={!!st?.full} admin={!!st?.admin} onClose={() => setStepUp(false)} />}
     </>
+  );
+}
+
+/** R17 E4: Download my data (JSON / Excel), Delete account (what goes, typed email, 7 days to undo), Privacy · Terms. */
+function MyDataRows({ onStepUp, go }: { onStepUp: () => void; go: PageProps["go"] }) {
+  const s = useStore();
+  const { t, f } = useI18n();
+  const a = t.account;
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [blocked, setBlocked] = useState<{ id: string; name: string }[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const email = s.me?.email ?? "";
+  const start = async () => {
+    setOpen(true);
+    setBlocked(await deletionBlocks().catch(() => []));
+  };
+  const confirm = async () => {
+    setBusy(true);
+    const r = await requestAccountDeletion(typed).catch(() => null);
+    setBusy(false);
+    if (!r) return void toast.error(t.errors.generic);
+    if ("stepUp" in r) return onStepUp();
+    if ("mismatch" in r) return void toast.error(a.mismatch);
+    if ("blocked" in r) return setBlocked(r.blocked);
+    window.location.assign("/delete-account?done=1");
+  };
+  return (
+    <div className="card" data-my-data>
+      <Li icon={P.download} title={a.downloadTitle} sub={a.downloadSub}>
+        <a className="btn sm" href="/api/my-data?format=json" download data-my-data-json>
+          {a.json}
+        </a>
+        <a className="btn sm" href="/api/my-data?format=xlsx" download data-my-data-xlsx>
+          {a.excel}
+        </a>
+      </Li>
+      <Li icon={P.trash} tone="dng" title={a.deleteTitle} sub={a.deleteSub} data-delete-account-row>
+        {!open && (
+          <button type="button" className="btn sm dng" onClick={() => void start()} data-delete-account-open>
+            {a.deleteOpen}
+          </button>
+        )}
+      </Li>
+      {open && (
+        <div className="li" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }} data-delete-account-flow>
+          <ul className="tiny" style={{ paddingInlineStart: 18, display: "grid", gap: 4, margin: 0 }}>
+            {a.what.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+          {blocked && blocked.length > 0 ? (
+            <div className="alert dng" role="alert" data-delete-blocked>
+              <span>
+                {a.blockedTitle} {blocked.map((b) => b.name).join(", ")}
+              </span>
+              <button type="button" className="btn sm" onClick={() => go("general")}>
+                {a.openSpace}
+              </button>
+            </div>
+          ) : (
+            <>
+              <label className="input" style={{ height: 38 }}>
+                <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={f(a.typeEmail, { email })} aria-label={f(a.typeEmail, { email })} autoComplete="off" dir="ltr" data-delete-typed-email />
+              </label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button type="button" className="btn sm dng" disabled={busy || typed.trim().toLowerCase() !== email.toLowerCase()} onClick={() => void confirm()} data-delete-account-confirm>
+                  {a.deleteNow}
+                </button>
+                <button type="button" className="btn sm" onClick={() => (setOpen(false), setTyped(""))}>
+                  {a.cancel}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      <div className="li" style={{ minHeight: 44 }} data-legal-links>
+        <a className="link" href="/privacy" target="_blank" rel="noreferrer">
+          {a.privacy}
+        </a>
+        <span className="tiny">·</span>
+        <a className="link" href="/terms" target="_blank" rel="noreferrer">
+          {t.auth.legal.termsTitle}
+        </a>
+      </div>
+    </div>
   );
 }
 

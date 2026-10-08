@@ -77,3 +77,4 @@ ci-*.db
 /clip-test.db*
 /switch-test.db*
 /ai-quota-test.db*
+/delete-account-test.db*

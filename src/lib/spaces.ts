@@ -110,7 +110,8 @@ export async function spaceMembers(spaceId: string): Promise<SpacePerson[]> {
     })
     .from(schema.member)
     .innerJoin(schema.user, eq(schema.user.id, schema.member.userId))
-    .where(eq(schema.member.organizationId, spaceId))
+    // R17 E4: an account waiting to be deleted is hidden from everyone at once.
+    .where(and(eq(schema.member.organizationId, spaceId), isNull(schema.user.deletionRequestedAt)))
     .orderBy(asc(schema.member.createdAt));
   const rank: Record<string, number> = { owner: 0, member: 1, viewer: 2 };
   return rows
@@ -128,7 +129,7 @@ export async function spaceFaces(spaceIds: string[]) {
     .select({ spaceId: schema.member.organizationId, id: schema.user.id, name: schema.user.name, email: schema.user.email })
     .from(schema.member)
     .innerJoin(schema.user, eq(schema.user.id, schema.member.userId))
-    .where(inArray(schema.member.organizationId, spaceIds))
+    .where(and(inArray(schema.member.organizationId, spaceIds), isNull(schema.user.deletionRequestedAt)))
     .orderBy(asc(schema.member.createdAt));
   for (const r of rows) {
     const e = out.get(r.spaceId) ?? { count: 0, faces: [] };

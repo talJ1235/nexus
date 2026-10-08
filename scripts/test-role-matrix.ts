@@ -69,6 +69,8 @@ const VIEW_OK = new Set([
   // R16 C2: the error log — every action checks isAdmin() right after (admin()), viewers of a space get not_found.
   "error-actions.ts#admin",
   "admin-actions.ts#admin", // R17 E2: admin-only (isAdmin), the AI quota
+  // R17 E4: personal account actions (delete / restore your own account) — any role, about the caller only.
+  "account-actions.ts#deletionBlocks", "account-actions.ts#requestAccountDeletion", "account-actions.ts#restoreMyAccount",
 ]);
 const dir = join(__dirname, "..", "src", "app");
 const viewUses: string[] = [];

@@ -258,7 +258,7 @@ Counts: assistant message = 1, receipt read = 1, Home suggestions phrasing = 1/d
 Acceptance: unit tests (quota boundary, admin bypass, override, redaction of a prompt with names/emails), every model
 call site goes through it (a static guard like `test:authz-coverage`).
 
-### E3. [ ] Privacy and terms pages
+### E3. [x] Privacy and terms pages
 `/privacy` and `/terms` (en + he), from `MULTIUSER.md` §4.9 + Israeli Privacy Protection Law (incl. Amendment 13)
 notice items: who runs it (Tal, contact = a dedicated address — **placeholder `privacy@…` until Tal creates it**, in
 Open), what's collected and why, Google sign-in data (name, email, picture), the Google sign-in script on the login
@@ -268,7 +268,7 @@ Vercel Blob, Resend, Ably, Cloudflare if C2 step 3 is on), the error log (what i
 Linked from the login footer, Settings → Account, and the app's About. Not legal advice — a line in Open for Tal to
 get it reviewed before the public launch.
 
-### E4. [ ] Delete account + export
+### E4. [x] Delete account + export
 Settings → Account → "Delete account" (a small flow in the existing kit, no new board): what will be deleted, typed
 confirmation, then: sign out everywhere, account hidden at once, **7 days to undo** (sign in again → "Restore your
 account?"), then a purge job deletes the personal space + its blobs + the user row and sessions. In shared spaces the
@@ -472,3 +472,21 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   script are store home pages or placeholder product ids — swap in real product links before reading the numbers.
   Acceptance "cwc returns title + price + image on prod" therefore depends on Tal's Worker setup (see "Before you run");
   `test:blocked` covers the parsers, the cwc page as the Worker returns it, and the Worker's private-address guard.
+- **E3:** `/privacy` and `/terms` in English + Hebrew (`lib/i18n/legal.ts`, rendered by `components/auth/legal-stub.tsx`):
+  who runs it, what's kept and why, Google sign-in data + the GIS script on the login page, AI providers with the
+  free-tier caveat and how to turn AI off, processors (Vercel, Turso, Resend, Ably, Google, Groq, OpenRouter,
+  Cloudflare when the Worker is on), the error log (30 days), retention, rights (access/correction/deletion, the
+  Privacy Protection Authority), the deletion process, essential cookies only. Linked from the login footer (already),
+  Settings → Account and the Me sheet (the app has no separate About page). **Tal:** the contact is a placeholder
+  (`privacy@…`, `PRIVACY_CONTACT` in `lib/i18n/legal.ts`) until you create the address; the text is not legal advice —
+  have it reviewed before the public launch.
+- **E4:** Settings → Account → **Download my data** (`/api/my-data?format=json|xlsx`: every space you own — its full
+  backup — plus your own chats and memory; nothing from spaces you don't own) and **Delete account** (what goes, typed
+  email, step-up when the sign-in is older than 10 minutes; refused with the list of shared spaces you alone own while
+  they have other members). Then: `user.deletion_requested_at` (additive column), every session revoked, hidden from
+  people lists/facepiles, `/delete-account?done=1`. Signing in within 7 days → `/restore-account` ("Restore your
+  account?" / "No, sign out"). The daily cron purges after 7 days (personal spaces + blobs, shared spaces with nobody
+  else, chats, memory, prefs, AI usage, security log, sign-in rows, the user; their reports keep the text without the
+  user id); items they added to others' shared spaces stay and show a "?" chip "Added by Former member". Public
+  `/delete-account` explains it (for Google Play). `test:delete-account` (block, hide, restore, 7-day purge with a fake
+  clock, export tenancy) passes.

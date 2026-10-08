@@ -60,7 +60,8 @@
     "test:clip": "node scripts/test-clip.mjs",
     "test:ai-quota": "tsx --conditions=react-server scripts/test-ai-quota.ts",
     "test:short-name": "tsx scripts/test-short-name.ts",
-    "test:blocked": "tsx --conditions=react-server scripts/test-blocked.ts"
+    "test:blocked": "tsx --conditions=react-server scripts/test-blocked.ts",
+    "test:delete-account": "tsx --conditions=react-server scripts/test-delete-account.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",

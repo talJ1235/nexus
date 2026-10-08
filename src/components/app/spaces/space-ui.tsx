@@ -159,6 +159,12 @@ export function AddedBy({ userId, size = 16, className }: { userId: string | nul
   const { t, f } = useI18n();
   if (!userId || s.space?.kind !== "shared") return null;
   const p = s.people.find((x) => x.id === userId);
-  if (!p) return null;
+  // R17 E4: someone who left or deleted their account — their items stay, as added by a former member.
+  if (!p)
+    return (
+      <span className={cn("grid shrink-0 place-items-center rounded-full bg-surface-2 text-[9px] font-bold text-muted ring-2 ring-surface", className)} style={{ width: size, height: size }} title={f(t.spaces.addedBy, { name: t.account.formerMember })} data-added-by-former>
+        ?
+      </span>
+    );
   return <Avatar person={p} size={size} className={cn("ring-2 ring-surface", className)} title={f(t.spaces.addedBy, { name: p.name })} />;
 }

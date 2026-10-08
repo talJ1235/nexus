@@ -21,6 +21,9 @@ export const SECURITY_EVENT_KINDS = [
   // R17 E1: the admin emergency sign-in (the fallback_* kinds stay for old rows).
   "emergency_sign_in",
   "emergency_failed",
+  // R17 E4: delete account (requested / restored within the 7 days).
+  "account_deletion_requested",
+  "account_restored",
 ] as const;
 export type SecurityEventKind = (typeof SECURITY_EVENT_KINDS)[number];
 

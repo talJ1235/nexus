@@ -20,6 +20,8 @@ const PUBLIC_PREFIXES = [
   "/api/cron/",
   "/api/reports/export",
   "/privacy",
+  // R17 E4: how to delete an account (public — Google Play links to it).
+  "/delete-account",
   "/terms",
   "/i/",
   "/api/invite/",

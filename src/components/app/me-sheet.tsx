@@ -112,6 +112,15 @@ export function MeSheet() {
               <LogOut /> <span className="flex-1">{t.nav.signOut}</span>
             </button>
           </form>
+          {/* R17 E3: About — the privacy and terms pages. */}
+          <p className="flex justify-center gap-3 pt-2 text-[12.5px] text-muted" data-me-legal>
+            <a className="underline underline-offset-2" href="/privacy" target="_blank" rel="noreferrer">
+              {t.account.privacy}
+            </a>
+            <a className="underline underline-offset-2" href="/terms" target="_blank" rel="noreferrer">
+              {t.auth.legal.termsTitle}
+            </a>
+          </p>
         </nav>
       </div>
     </Sheet>

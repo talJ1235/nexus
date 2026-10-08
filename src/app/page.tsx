@@ -13,6 +13,7 @@ import { currentCtx, meInfo, spaceInfo, type Ctx } from "@/lib/ctx";
 import { getAppData } from "@/lib/data";
 import { scoped } from "@/lib/db-scoped";
 import { needsRecoveryPasskey } from "@/lib/auth/security";
+import { deletionRequestedAt } from "@/lib/db-scoped/account";
 import { spaceShell } from "@/lib/spaces";
 import { getCurrencyPref, getUiPrefs } from "@/lib/server-prefs";
 
@@ -24,6 +25,8 @@ export default async function Home({ searchParams, settings }: { searchParams: P
   const ctx = await currentCtx();
   if (!ctx) redirect("/login");
   if (await needsRecoveryPasskey(ctx.user.id, ctx.session)) redirect("/passkey?forced=1");
+  // R17 E4: signed in again during the 7 days after "Delete account" → offer to restore it first.
+  if ((await deletionRequestedAt(ctx.user.id)) != null) redirect("/restore-account");
   const [{ v, f }, currency, prefs] = await Promise.all([searchParams, getCurrencyPref(), getUiPrefs()]);
   const jar = await cookies();
   const tz = decodeURIComponent(jar.get("nexus_tz")?.value ?? "").slice(0, 60) || null;

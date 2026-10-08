@@ -15,6 +15,7 @@ import { repairIncomplete } from "@/lib/service";
 import { dropSpaceRows, spacesToPurge } from "@/lib/spaces";
 import { ownerPrefs, runCronChecks } from "@/lib/tracker";
 import { backfillShortNames } from "@/lib/db-scoped/short-names";
+import { accountsToPurge, purgeAccount } from "@/lib/db-scoped/account";
 
 export const maxDuration = 60;
 
@@ -84,7 +85,14 @@ export async function GET(req: NextRequest) {
   const errorSamples = await dropOldSamples().catch(failed("error-samples", 0));
   // R17 E5: error-log rows (and viewport diagnostics) not seen for 30 days are deleted.
   const errorsPurged = await purgeOldErrors().catch(failed("error-purge", 0));
-  const summary = { at: Date.now(), spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples, errorsPurged };
+  // R17 E4: accounts whose 7-day undo window is over.
+  let accountsPurged = 0;
+  for (const { id } of await accountsToPurge().catch(failed("account-purge", [] as { id: string }[]))) {
+    const urls = await purgeAccount(id).catch(failed("account-purge", [] as string[]));
+    if (urls.length && process.env.BLOB_READ_WRITE_TOKEN) await del(urls).catch(() => {});
+    accountsPurged++;
+  }
+  const summary = { at: Date.now(), spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }
