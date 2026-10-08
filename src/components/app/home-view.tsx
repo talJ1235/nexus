@@ -446,7 +446,7 @@ function Stats({ model, only }: { model: HomeModel; only: "left" | "budget" | "w
         </Stat>
       ) : (
         <Stat label={f(t.dash.spentIn, { month })} value={fm.fit(b.spent)}>
-          <span className="truncate text-[12px] text-muted">{b.vsUsualPct != null ? f(t.dash.vsUsual, { pct: fm.pct(b.vsUsualPct) }) : t.dash.noUsual}</span>
+          <span className="line-clamp-2 text-[12px] text-muted">{b.vsUsualPct != null ? f(t.dash.vsUsual, { pct: fm.pct(b.vsUsualPct) }) : t.dash.noUsual}</span>
           {b.usual != null && b.usual > 0 && <Meter parts={[{ value: Math.min(b.spent, b.usual), color: "var(--ink)" }, { value: Math.max(0, b.usual - b.spent), color: "transparent" }]} marker={b.todayFrac} />}
         </Stat>
       )}
