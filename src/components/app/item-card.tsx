@@ -24,6 +24,7 @@ import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "@/compo
 import { DeliveryTrack } from "./delivery-track";
 import { dayKeyIn, deliveryTrack } from "@/lib/home";
 import { ItemContextMenu, openItemActions, SHORTCUT, StatusIcon, statusActs, useActionLabels, useItemActions } from "./quick-actions";
+import { EASE_OUT } from "@/lib/motion";
 
 /**
  * The one product picture frame (Round 11 D1), used everywhere a product picture shows. Cut-outs — and pictures not
@@ -100,7 +101,7 @@ function fly(src: HTMLElement, a: DOMRect, to: HTMLElement | null, done: () => v
   if (hidden) hidden.style.opacity = "0";
   // Target off-screen (or gone): the picture shrinks and fades where it is instead of flying somewhere unseen.
   const anim = b
-    ? clone.animate([{ transform: `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})` }, { transform: "none" }], { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)" })
+    ? clone.animate([{ transform: `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})` }, { transform: "none" }], { duration: 380, easing: EASE_OUT })
     : clone.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.85)" }], { duration: 220, easing: "ease-out", fill: "forwards" });
   let over = false;
   const finish = () => {

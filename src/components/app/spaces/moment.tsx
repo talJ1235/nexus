@@ -7,6 +7,7 @@ import { useStore } from "../store";
 import { deepOf, gradientOf } from "./look";
 import { Facepile } from "./space-ui";
 import { SpaceTile } from "./tile";
+import { EASE_OUT } from "@/lib/motion";
 
 /**
  * R16 D4 — "You're now in Jacoby Home": on a space switch the tile flies from the switcher to the centre (a shared
@@ -25,7 +26,7 @@ export function startMoment(m: Moment) {
 const TILE = 96;
 const MIN_MS = 820;
 const HOLD_MS = 3000;
-const EASE = "cubic-bezier(.2,.8,.2,1)";
+const EASE = EASE_OUT;
 
 export function SwitchMoment() {
   const [m, setM] = useState<Moment | null>(null);

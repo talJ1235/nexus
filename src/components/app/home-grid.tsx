@@ -6,6 +6,7 @@ import { useI18n } from "@/components/providers";
 import { Pop, PopContent, PopTrigger, Sheet } from "@/components/ui/overlays";
 import { add, moveTo, NEW_WIDGETS, patch, phoneWidth, PRESETS, presetItems, remove, sizeFromDrag, SPAN, unused, type HomeLayout, type LayoutItem, type PresetId, type WidgetId, type Width } from "@/lib/home-layout";
 import { cn } from "@/lib/utils";
+import { EASE_OUT } from "@/lib/motion";
 
 /**
  * R16 E1 — Home's widget grid (board HomeCustomize). View: 12 columns on desktop (S/M/L = 3/6/12), 2 on phones
@@ -57,7 +58,7 @@ export function WidgetGrid({ layout, render, stagger }: { layout: HomeLayout; re
 }
 
 const reduced = () => typeof window !== "undefined" && (window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.getAttribute("data-motion") === "reduce");
-const EASE = "cubic-bezier(.2,.8,.2,1)";
+const EASE = EASE_OUT;
 type Pt = { x: number; y: number };
 
 export function Customise({

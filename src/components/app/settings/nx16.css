@@ -101,8 +101,8 @@
 .nx .sx-prow .ic{width:34px;height:34px;border-radius:9px}
 .nx .sx-prow .val{font-size:13px;color:var(--muted);white-space:nowrap}
 .nx .sx-prow>svg:last-child{color:var(--faint)}
-.nx .sx-page{animation:sx-push .26s var(--ease-out,cubic-bezier(.2,.8,.2,1)) both}
-.nx .sx-page.back{animation:sx-pop .22s var(--ease-out,cubic-bezier(.2,.8,.2,1)) both}
+.nx .sx-page{animation:sx-push .26s var(--ease-out) both}
+.nx .sx-page.back{animation:sx-pop .22s var(--ease-out) both}
 @keyframes sx-push{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
 @keyframes sx-pop{from{transform:translateX(-24px);opacity:0}to{transform:none;opacity:1}}
 [dir=rtl] .nx .sx-page{animation-name:sx-push-rtl}
