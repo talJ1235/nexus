@@ -4,10 +4,13 @@
 //   sheet      tap → busy < 100 ms; GIS gets our client id, FedCM on, a server nonce (signed httpOnly cookie); the token
 //              goes to /sign-in/social with that nonce; existing account → next, new account → /welcome, no invite →
 //              the InviteOnly screen, 401 → error + Try again (which uses the redirect), 429 → limit
-//   cancel     (hotfix.3) the person closes the sheet (user_cancel, or a reasonless skip after it showed) → stays on the
-//              login screen: no redirect, no error, no report, focus back; the next tap asks the sheet again
-//   fallback   sheet couldn't show (immediate skip) / dismissed by us, GIS script blocked, no FedCM, iOS → the full-page
-//              redirect (+ `google_fedcm` report)
+//   cancel     (hotfix.3/4) the person says no — dismissed, skipped (user_cancel / tap_outside / no reason), not displayed
+//              because suppressed_by_user → stays on the login screen: no navigation, no error, no report, focus back; when
+//              it never showed, a note points at the link; the next tap asks the sheet again
+//   link       (hotfix.4) "Use another Google account" (he: "חשבון גוגל אחר") → the redirect, without the sheet; only
+//              where the sheet is used (not without FedCM, not on iOS)
+//   fallback   technical only: skipped issuing_failed, not displayed for a non-user reason (no Google session…), GIS
+//              script blocked, no FedCM, iOS → the full-page redirect (+ `google_fedcm` report)
 //   server     the nonce endpoint; ID tokens without / with a wrong nonce, for another provider or with extra fields are
 //              refused; the nonce is single-use
 //   csp        no violations while GIS loads
@@ -35,7 +38,10 @@ else if(m==="skipped"){cb&&cb({isSkippedMoment:function(){return true},getSkippe
 else if(m==="dismissed"){cb&&cb({isSkippedMoment:function(){return false},isDismissedMoment:function(){return true},getDismissedReason:function(){return"cancel_called"}})}
 else if(m==="user_cancel"){cb&&cb({isSkippedMoment:function(){return true},getSkippedReason:function(){return"user_cancel"}})}
 else if(m==="closed_late"){cb&&cb({isSkippedMoment:function(){return true},getSkippedReason:function(){throw new Error("not supported with FedCM")}})}
-},mode()==="closed_late"?1500:120)},
+else if(m==="issuing_failed"){cb&&cb({isSkippedMoment:function(){return true},getSkippedReason:function(){return"issuing_failed"}})}
+else if(m==="no_session"){cb&&cb({isSkippedMoment:function(){return false},isNotDisplayed:function(){return true},getNotDisplayedReason:function(){return"opt_out_or_no_session"}})}
+else if(m==="suppressed"){cb&&cb({isSkippedMoment:function(){return false},isNotDisplayed:function(){return true},getNotDisplayedReason:function(){return"suppressed_by_user"}})}
+},/^(closed_late|user_cancel|dismissed)$/.test(mode())?1500:120)},
 cancel:function(){window.__gis.cancelled=true}}}}})();`;
 
 const browser = await chromium.launch();
@@ -152,9 +158,12 @@ try {
   }
   // ---- hotfix.3: the person closes the sheet → stays on the login screen (no redirect, no error, no report); the next
   // tap asks the sheet again
-  for (const [name, gis] of [
-    ["closed by the person (user_cancel)", "user_cancel"],
-    ["closed after it showed, no reason given (FedCM)", "closed_late"],
+  for (const [name, gis, quick] of [
+    ["closed by the person (user_cancel)", "user_cancel", false],
+    ["closed after it showed, no reason given (FedCM)", "closed_late", false],
+    ["dismissed", "dismissed", false],
+    ["skipped at once, no reason (Chrome holds the sheet back after a close)", "skipped", true],
+    ["not displayed: suppressed_by_user", "suppressed", true],
   ]) {
     const { ctx, page, seen } = await open({ gis, social: () => [200, user("2020-01-01T00:00:00.000Z")] });
     const google = navTo(page, (u) => isGoogle(u) && u.pathname !== "/gsi/client", 4000);
@@ -162,8 +171,11 @@ try {
     const left = await google;
     await page.waitForTimeout(300);
     const st = { left: String(left), path: new URL(page.url()).pathname, enabled: await page.locator(BTN).isEnabled(), busy: await page.locator(BTN).getAttribute("aria-busy"), error: await errorShown(page), focused: await page.evaluate((s) => document.activeElement === document.querySelector(s), BTN), reports: seen.reports.filter((b) => /google_fedcm|google_timeout/.test(b)).length };
-    ok(!left && st.path === "/login" && st.enabled && st.busy !== "true" && !st.error && st.reports === 0, `cancel — ${name}: stays on the login screen, button enabled, no error, no report`, JSON.stringify(st));
+    const neverShown = seen.reports.filter((b) => /never_shown/.test(b)).length;
+    ok(!left && st.path === "/login" && st.enabled && st.busy !== "true" && !st.error && st.reports === (quick ? 1 : 0) && neverShown === (quick ? 1 : 0), `cancel — ${name}: stays on the login screen, no navigation, button enabled, no error, ${quick ? "logged once as never_shown (no toast)" : "no report"}`, JSON.stringify({ ...st, neverShown }));
     ok(st.focused, `cancel — ${name}: focus back on the Google button`);
+    const note = await page.locator("[data-auth=sheet-paused]").isVisible().catch(() => false);
+    ok(note === quick, `cancel — ${name}: ${quick ? "a note points at “Use another Google account”" : "no note"}`, String(note));
     await page.evaluate(() => (window.__gisMode = "credential"));
     const went = navTo(page, (u) => u.origin === BASE && u.pathname === "/");
     await page.click(BTN);
@@ -172,9 +184,45 @@ try {
     await ctx.close();
   }
   // ---- fallbacks to the redirect
+  // ---- hotfix.4: "Use another Google account" → the redirect, without the sheet; only where the sheet is used
+  {
+    const { ctx, page, seen } = await open({ gis: "credential" });
+    const link = page.locator("[data-auth=google-other]");
+    const shown = await link.isVisible();
+    const txt = (await link.textContent()) ?? "";
+    const went = navTo(page, (u) => isGoogle(u) && u.pathname !== "/gsi/client");
+    await link.click();
+    const dest = await went;
+    ok(shown && /another Google account/.test(txt), "link: “Use another Google account” under the Google button (FedCM browser)", txt);
+    ok(!!dest && (seen.gis?.inits.length ?? 0) === 0 && !seen.reports.some((b) => /google_fedcm/.test(b)), "link: → the full-page redirect, the sheet never asked, no report", JSON.stringify({ dest: String(dest), inits: seen.gis?.inits.length ?? 0 }));
+    await ctx.close();
+  }
+  for (const [name, opts] of [
+    ["no FedCM", { fedcm: false }],
+    ["iOS", { ua: IOS }],
+  ]) {
+    const { ctx, page } = await open(opts);
+    await page.waitForTimeout(300);
+    ok((await page.locator("[data-auth=google-other]").count()) === 0, `link: not shown — ${name} (the Google button is the redirect there)`);
+    await ctx.close();
+  }
+  {
+    // Hebrew label
+    const ctx = await browser.newContext({ serviceWorkers: "block" });
+    await ctx.addCookies([{ name: "nexus_locale", value: "he", url: BASE }]);
+    await ctx.addInitScript(() => {
+      if (!("IdentityCredential" in window)) window.IdentityCredential = function IdentityCredential() {};
+    });
+    await ctx.route((u) => isGoogle(u), (r) => r.fulfill({ status: 200, contentType: "text/javascript", body: GIS_STUB }));
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+    ok(((await page.locator("[data-auth=google-other]").textContent()) ?? "").includes("חשבון גוגל אחר"), "link: Hebrew “חשבון גוגל אחר”");
+    await ctx.close();
+  }
+  // ---- fallbacks to the redirect: technical reasons only
   for (const [name, opts, gisExpected, reason] of [
-    ["sheet skipped (cooldown / not signed in to Google / origin not allowed)", { gis: "skipped" }, true, "skipped:unknown_reason"],
-    ["sheet dismissed", { gis: "dismissed" }, true, "dismissed:cancel_called"],
+    ["sheet skipped: issuing_failed", { gis: "issuing_failed" }, true, "skipped:issuing_failed"],
+    ["not displayed: no Google session in the browser", { gis: "no_session" }, true, "not_displayed:opt_out_or_no_session"],
     ["GIS script blocked", { gis: "blocked" }, true, "script"],
     ["no FedCM in this browser", { fedcm: false }, false, null],
     ["iOS", { ua: IOS }, false, null],

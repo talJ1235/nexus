@@ -360,6 +360,8 @@ export const he: Dict = {
     passkey: "המשך עם מפתח גישה",
     waitingPasskey: "ממתין למפתח הגישה…",
     openingGoogle: "פותח את Google…",
+    otherGoogle: "חשבון גוגל אחר",
+    sheetPaused: "רשימת החשבונות של Google לא נפתחה הפעם.",
     tryAgain: "נסו שוב",
     newHere: "חדש/ה כאן?",
     useCode: "יש לי קוד הזמנה",

@@ -57,15 +57,19 @@ export function loadGis(timeoutMs = 5000): Promise<boolean> {
 }
 
 /** token = signed in; cancelled = the person closed the sheet (stay on the login screen); fallback = use the redirect. */
-export type IdTokenResult = { token: string; nonce: string } | { cancelled: string } | { fallback: string };
+/** token = signed in; cancelled = the person said no (stay on the login screen; `quick` = it never showed, e.g. Chrome
+ *  holds the sheet back right after a close); fallback = a technical reason → the redirect. */
+export type IdTokenResult = { token: string; nonce: string } | { cancelled: string; quick: boolean } | { fallback: string };
 
-/** Hotfix.3: the person closing the sheet themselves. GIS names it (user_cancel / tap_outside); over FedCM it often gives
- *  no reason at all — then a skip that comes after the sheet had time to show counts as closed by the person, while an
- *  immediate one (FedCM cooldown after an earlier close, no Google session, origin not allowed) still means "couldn't
- *  show" → the redirect, so a tap never does nothing. */
+/**
+ * Hotfix.4 (Tal, Android app): any dismissal by the person is a cancel — the redirect's Google page opens tiny in the
+ * installed app's Custom Tab, so it's never the answer to "no". Only technical reasons fall back to the redirect.
+ *   skipped       user_cancel / tap_outside / no reason (FedCM often gives none) → cancel; issuing_failed / auto_cancel → fallback
+ *   dismissed     anything but credential_returned → cancel (cancel_called from our own abort is already settled)
+ *   not displayed suppressed_by_user → cancel; any other reason (no Google session, origin, client, browser) → fallback
+ */
 export const SHOWN_MS = 1000;
-const USER_CLOSED = new Set(["user_cancel", "tap_outside"]);
-const NOT_USER = new Set(["auto_cancel", "issuing_failed"]);
+const SKIP_TECHNICAL = new Set(["issuing_failed", "auto_cancel"]);
 const safe = (f?: () => string) => {
   try {
     return f?.() ?? "";
@@ -73,10 +77,12 @@ const safe = (f?: () => string) => {
     return "";
   }
 };
-export function closedByPerson(reason: string, elapsedMs: number) {
-  if (USER_CLOSED.has(reason)) return true;
-  if (NOT_USER.has(reason)) return false;
-  return (reason === "" || reason === "unknown_reason") && elapsedMs >= SHOWN_MS;
+export type Moment = { kind: "skipped" | "dismissed" | "not_displayed"; reason: string };
+/** "cancel" (the person) or "fallback" (technical) for a GIS prompt moment; null = wait (the credential is coming). */
+export function classifyMoment(m: Moment): "cancel" | "fallback" | null {
+  if (m.kind === "skipped") return SKIP_TECHNICAL.has(m.reason) ? "fallback" : "cancel";
+  if (m.kind === "dismissed") return m.reason === "credential_returned" ? null : "cancel";
+  return m.reason === "suppressed_by_user" ? "cancel" : "fallback";
 }
 
 /** Ask for an account through the sheet. Resolves with the token, or with why the redirect should be used instead. */
@@ -123,16 +129,19 @@ export async function googleIdToken(opts: { clientId: string; hint?: string; sig
       });
       const t0 = performance.now();
       id.prompt((n) => {
-        if (n.isSkippedMoment?.()) {
-          const why = safe(n.getSkippedReason);
-          finish(closedByPerson(why, performance.now() - t0) ? { cancelled: why || "closed" } : { fallback: `skipped:${why || "?"}` });
-        }
-        else if (n.isNotDisplayed?.()) finish({ fallback: `not_displayed:${safe(n.getNotDisplayedReason) || "?"}` });
-        else if (n.isDismissedMoment?.()) {
-          const why = safe(n.getDismissedReason) || "?";
-          // "credential_returned": the callback above has (or is about to) run.
-          if (why !== "credential_returned") finish({ fallback: `dismissed:${why}` });
-        }
+        const m: Moment | null = n.isSkippedMoment?.()
+          ? { kind: "skipped", reason: safe(n.getSkippedReason) }
+          : n.isNotDisplayed?.()
+            ? { kind: "not_displayed", reason: safe(n.getNotDisplayedReason) }
+            : n.isDismissedMoment?.()
+              ? { kind: "dismissed", reason: safe(n.getDismissedReason) }
+              : null;
+        if (!m) return;
+        const verdict = classifyMoment(m);
+        const what = `${m.kind}:${m.reason || "?"}`;
+        // "credential_returned": the callback above has (or is about to) run.
+        if (verdict === "cancel") finish({ cancelled: what, quick: performance.now() - t0 < SHOWN_MS });
+        else if (verdict === "fallback") finish({ fallback: what });
       });
     } catch {
       finish({ fallback: "gis_error" });

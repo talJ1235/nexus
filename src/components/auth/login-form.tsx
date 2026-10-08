@@ -32,6 +32,14 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
   // just keeps you on this screen.
   const redirectOnly = useRef(false);
   const sheet = () => !!props.googleClientId && !redirectOnly.current && fedcmAvailable();
+  // Hotfix.4: where the sheet is used, a quiet "Use another Google account" link = the redirect (known only after mount:
+  // FedCM is a browser feature). `paused`: the sheet didn't show (Chrome holds it back after a close) → point at the link.
+  const [sheetPath, setSheetPath] = useState(false);
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser feature, known only on the client
+    setSheetPath(!!props.googleClientId && fedcmAvailable());
+  }, [props.googleClientId]);
   // Full mode: a new account adds a passkey once (skippable) before the first-run screen.
   const newUser = props.full ? `/passkey?next=${encodeURIComponent("/welcome")}` : "/welcome";
 
@@ -116,12 +124,13 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
     }
   };
 
-  const google = async (hint?: string, provider = "google", which: Which = "google") => {
+  const google = async (hint?: string, provider = "google", which: Which = "google", redirect = false) => {
     if (busy) return;
     const mine = ++attempt.current;
     last.current = { hint, provider, which };
     setBusy(which);
     setError(null);
+    setPaused(false);
     if (!navigator.onLine) return fail("offline");
     const abort = new AbortController();
     window.clearTimeout(timer.current);
@@ -132,7 +141,7 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
         )
       : Promise.resolve({ ok: true } as { ok?: boolean; error?: LoginError });
     invite.catch(() => {});
-    if (provider === "google" && sheet()) {
+    if (provider === "google" && !redirect && sheet()) {
       // The person may take their time choosing in the sheet: 90 s, then say so (Try again uses the redirect).
       timer.current = window.setTimeout(() => {
         if (attempt.current !== mine) return;
@@ -143,11 +152,17 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
       const r = await googleIdToken({ clientId: props.googleClientId!, hint, signal: abort.signal });
       if (attempt.current !== mine) return;
       if ("token" in r) return idTokenSignIn(r, invite, abort, mine);
-      // Hotfix.3: the person closed the sheet — that's a "no", not a failure: stay here, the button works again (the next
-      // tap asks the sheet again; if Chrome won't show it so soon, that tap gets the redirect). No error, no report.
+      // Hotfix.3/4: the person said no (dismissed / cancelled) — not a failure: stay here, the button works again, no
+      // error, no report, never the redirect (its Google page opens tiny in the installed app). If the sheet didn't even
+      // show (Chrome holds it back right after a close), say so and point at "Use another Google account".
       if ("cancelled" in r) {
         abort.abort();
         reset();
+        // It never showed: could also be technical (e.g. the origin missing from the OAuth client) → logged, no toast.
+        if (r.quick) {
+          setPaused(true);
+          reportAuthFailure("google_fedcm", `never_shown:${r.cancelled}`);
+        }
         // After the re-render: the button is still disabled (busy) in this tick.
         requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(`[data-auth="${which}"]`)?.focus({ preventScroll: true }));
         return;
@@ -257,6 +272,18 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
             {busy === "google" ? <span className="spinner" style={{ width: 20, height: 20 }} aria-hidden="true" /> : <GoogleMark />}
             {busy === "google" ? a.openingGoogle : a.google}
           </button>
+        )}
+        {sheetPath && !verifying && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, marginTop: -2 }}>
+            {paused && (
+              <span className="sub" role="status" style={{ textAlign: "center" }} data-auth="sheet-paused">
+                {a.sheetPaused}
+              </span>
+            )}
+            <button type="button" className="link" style={{ background: "none", border: 0, padding: "8px 6px", minHeight: 40, fontSize: 13, fontWeight: 500 }} onClick={() => google(undefined, "google", "google", true)} disabled={!!busy} data-auth="google-other">
+              {a.otherGoogle}
+            </button>
+          </div>
         )}
         {props.testIdp && (
           <button type="button" className="btn lg block" onClick={() => google(undefined, "test-idp", "test-idp")} disabled={!!busy} aria-busy={busy === "test-idp"} data-auth="test-idp">

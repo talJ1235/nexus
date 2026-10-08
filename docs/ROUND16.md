@@ -769,6 +769,24 @@ Separate from Session 2 (worktree `../nexus-pwafix`, branch `hotfix-pwa-viewport
   3. If you still get the Google page: check `/admin/errors` for `google_fedcm` (the reason) and `viewport` events
      (`iw` / `ow` / `vv` numbers, `soft=yes|no` = whether the guard fixed it without a reload).
   4. iPhone: unchanged (redirect) — check it still signs in.
+- **hotfix.4 (2026-10-08) — a "no" in the sheet never opens Google's page.** Tal (Android app): the sheet works and he
+  lands at phone width, but dismissing it still went to the redirect, whose Google page opens tiny (Chrome Custom Tab,
+  not fixable from our side). hotfix.3's rule ("reasonless skip after ≥ 1 s") didn't catch his dismissal. Now every
+  outcome from the person is a cancel → stays on `/login`, button idle, focus back, no error toast, no redirect:
+  dismissed (anything but `credential_returned`), skipped (`user_cancel` / `tap_outside` / no reason — FedCM often gives
+  none) and not displayed `suppressed_by_user`. The redirect fallback stays for technical reasons only (no FedCM, iOS,
+  GIS script blocked, nonce / network failure, a callback without a credential, skipped `issuing_failed` /
+  `auto_cancel`, not displayed for any other reason, e.g. no Google session in the browser), logged as
+  `auth`/`google_fedcm` as before. If the sheet never showed (< 1 s — e.g. Chrome holding it back right after a close)
+  a short note says so (en "Google's account list didn't open just now." / he) and that case is logged once as
+  `google_fedcm` `never_shown:<reason>` (it can also be technical, e.g. an origin missing from the OAuth client) — no
+  toast. New: **Use another Google account** (he "חשבון גוגל אחר"), a quiet link under the Google button, only where the
+  sheet is used (FedCM, not iOS) → the redirect, without the sheet. `classifyMoment()` in `lib/auth/google-fedcm.ts`.
+  Tests: `test:google-fedcm` 58 checks (dismissed / user_cancel / reasonless / immediate skip / suppressed → no navigation;
+  link → redirect, no sheet, hidden without FedCM and on iOS, Hebrew label; technical fallbacks → redirect + report) PASS
+  3/3 on a CI-like server; `test:google-signin`, `test:auth-flow`, `test:auth`, `test:help` OK. SPEC updated; help not
+  (24 992 of 25 000 bytes — no room). **Tal:** dismiss the sheet → you stay on the login screen; "Use another Google
+  account" is the way to a different account (it opens Google's page).
 
 ### Cleanup (2026-10-08)
 - **Smoke viewport step** (`smoke: viewport step follows hotfix.1`): it still asserted the R16 A8 guard

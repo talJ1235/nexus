@@ -358,6 +358,8 @@ export const en = {
     passkey: "Continue with passkey",
     waitingPasskey: "Waiting for passkey…",
     openingGoogle: "Opening Google…",
+    otherGoogle: "Use another Google account",
+    sheetPaused: "Google's account list didn't open just now.",
     tryAgain: "Try again",
     newHere: "New here?",
     useCode: "Use an invite code",
