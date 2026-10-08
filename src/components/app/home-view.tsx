@@ -269,21 +269,31 @@ function HomeHeader({ model, onCustomize }: { model: HomeModel; onCustomize: () 
   );
 }
 
-/** Scroll to a section and flash its outline (600 ms). Picks the visible copy (phones show the merged money card). */
-function goToSection(id: HomeSection) {
-  const el = [...document.querySelectorAll<HTMLElement>(`[data-home-section~="${id}"]`)].find((x) => x.offsetParent !== null);
-  if (!el) return;
+/** R16 E1: a status tile's section may not be on Home (presets, hidden widgets) — the nearest widget that is. */
+const SECTION_FALLBACK: Partial<Record<HomeSection, string[]>> = {
+  pace: ["pace", "stat-budget", "bycat"],
+  ontheway: ["ontheway", "nextdel", "stat-way"],
+  needs: ["needs"],
+};
+
+/** Scroll to a section and flash its outline (600 ms). Picks the visible copy. False when nothing on Home matches. */
+function goToSection(id: HomeSection): boolean {
+  const ids = SECTION_FALLBACK[id] ?? [id];
+  const el = ids.map((x) => [...document.querySelectorAll<HTMLElement>(`[data-home-section~="${x}"]`)].find((e) => e.offsetParent !== null)).find(Boolean);
+  if (!el) return false;
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   el.classList.remove("r13-flash");
   void el.offsetWidth;
   el.classList.add("r13-flash");
   window.setTimeout(() => el.classList.remove("r13-flash"), 1400);
+  return true;
 }
 
 const TONE_CHIP = { warn: "bg-warn-soft text-warn", info: "bg-info-soft text-info", ok: "bg-ok-soft text-ok", bad: "bg-danger-soft text-danger" } as const;
 
 function StatusStrip({ model }: { model: HomeModel }) {
+  const s = useStore();
   const { t, f } = useI18n();
   const fm = useFmt();
   const st = model.status;
@@ -321,7 +331,12 @@ function StatusStrip({ model }: { model: HomeModel }) {
         <button
           key={x.id}
           type="button"
-          onClick={() => goToSection(x.id)}
+          onClick={() => {
+            // Nothing for it on Home (hidden / not in the preset): Needs you → the alerts panel, the rest → their views.
+            if (goToSection(x.id)) return;
+            if (x.id === "needs") s.setPanel("alerts");
+            else s.setView({ type: x.id === "pace" ? "spending" : "ordered" });
+          }}
           className={cn("group flex min-w-0 items-center gap-3 px-3 py-2.5 text-start transition-colors hover:bg-surface-2 max-lg:gap-2 lg:px-4 lg:py-3", k > 0 && "border-s border-line-in")}
           aria-label={f(t.dash.goTo, { name: x.line })}
           data-home-tile={x.id}

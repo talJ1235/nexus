@@ -141,7 +141,8 @@ async function homeChecks(page) {
   await step("home section order", async () => {
     const got = await homeSections(page);
     const expect = HOME_ORDER.filter((id) => got.includes(id));
-    ok(got.length >= 4 && JSON.stringify(got) === JSON.stringify(expect), "home section order", `${got.join(",")} (want ${expect.join(",")})`);
+    // R16 E1: Household has 4 of the R13 sections; real data may show fewer (empty ones stay out of view).
+    ok(got.length >= 2 && JSON.stringify(got) === JSON.stringify(expect), "home section order", `${got.join(",")} (want ${expect.join(",")})`);
     await shot(page, "home-v4");
   });
   await step("home status count = Needs-you queue", async () => {
@@ -171,13 +172,20 @@ async function homeChecks(page) {
       await page.waitForTimeout(150);
       await page.locator(`[data-home-tile="${id}"]:visible`).first().click();
       await page.waitForTimeout(1000);
-      const r = await page.evaluate((id) => {
-        const el = [...document.querySelectorAll(`[data-home-section~="${id}"]`)].find((x) => x.offsetParent !== null);
-        if (!el) return null;
+      // R16 E1: the tile flashes its widget — or the nearest one on Home (pace → Budget…), or opens its view / panel.
+      const r = await page.evaluate(() => {
+        const el = [...document.querySelectorAll(".r13-flash")].find((x) => x.offsetParent !== null);
+        const moved = !document.querySelector("[data-home]") || !!document.querySelector('[role="dialog"]');
+        if (!el) return moved ? { moved } : null;
         const b = el.getBoundingClientRect();
-        return { top: b.top, inView: b.top >= 0 && b.top < innerHeight - 60, flash: el.classList.contains("r13-flash") };
-      }, id);
-      if (!r?.inView || !r.flash) bad.push(`${id}:${JSON.stringify(r)}`);
+        return { top: Math.round(b.top), inView: b.top >= 0 && b.top < innerHeight - 60, flash: true, at: el.getAttribute("data-home-section") };
+      });
+      if (!r || (!r.moved && !r.inView)) bad.push(`${id}:${JSON.stringify(r)}`);
+      if (r?.moved) {
+        for (let k = 0; k < 3 && (await page.locator('[role="dialog"]:visible').count()); k++) await page.keyboard.press("Escape");
+        await page.goto(`${BASE}/`);
+        await page.waitForSelector("[data-home]", { timeout: 15000 });
+      }
     }
     await page.evaluate(() => window.scrollTo(0, 0));
     ok(tiles.length >= 2 && !bad.length, "home status tiles scroll to their sections", `${tiles.length} tiles; ${bad.join(" ")}`);
@@ -304,10 +312,14 @@ async function homeChecks(page) {
   // A5 → R16 E1: Customise — hide "Next delivery", move "Needs you" up one (grip + arrow key), Done, reload: the layout
   // persisted (server, per space); then Reset → the Household preset again.
   await step("customize: hide + move persist after reload", async () => {
-    const widgets = () => page.$$eval("[data-home-grid] [data-widget]", (els) => els.map((e) => e.getAttribute("data-widget")));
+    // R16 E1: the layout is saved on the server for this person — never edit a real account (prod) from the smoke.
+    if (!WRITE) return ok(true, "customize: hide + move persist after reload (skipped: writes the person's saved layout; localhost + SMOKE_WRITE only)");
+    const widgets =() => page.$$eval("[data-home-grid] [data-widget]", (els) => els.map((e) => e.getAttribute("data-widget")));
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.locator("[data-home-customize]").click();
     await page.waitForSelector("[data-home-customizing]");
+    // Start from the Household preset whatever an earlier run saved.
+    await page.locator("[data-home-reset]").click();
     const start = await widgets();
     await page.locator('[data-widget-hide="nextdel"]').click();
     await page.locator('[data-widget-handle="needs"]').focus();
