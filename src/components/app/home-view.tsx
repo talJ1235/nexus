@@ -30,6 +30,7 @@ import { defaultLayout, rowsFor, type HomeLayout, type WidgetId } from "@/lib/ho
 import { homeExtras } from "@/lib/home-widgets";
 import { monthStartIn } from "@/lib/budget";
 import { COLLECTION_COLORS } from "./view-items";
+import { trackAiWork } from "@/lib/ai-work";
 
 type T = ReturnType<typeof useI18n>["t"];
 
@@ -536,7 +537,7 @@ function useHomeLook(ruleSugs: number, ruleIns: number, fbSugs: number, fbIns: n
   useEffect(() => {
     if (ruleSugs < 0 || s.offlineAt != null || s.loading) return;
     let alive = true;
-    homeLook({ ruleSugs, ruleIns, fbSugs: Math.min(fbSugs, 20), fbIns, currency: s.currency, locale: locale === "he" ? "he" : "en" })
+    trackAiWork(homeLook({ ruleSugs, ruleIns, fbSugs: Math.min(fbSugs, 20), fbIns, currency: s.currency, locale: locale === "he" ? "he" : "en" }))
       // A transition: the whole Home re-renders with it, and it often lands during the opening animation.
       .then((r) => alive && startTransition(() => setLook(r)))
       .catch(() => {});
@@ -558,9 +559,11 @@ function usePhrased(sugs: Suggestion[]) {
   useEffect(() => {
     if (!on || !keys) return;
     let alive = true;
-    phraseSuggestions(
-      sugs.map(({ key, kind, facts }) => ({ key, kind, facts })),
-      locale,
+    trackAiWork(
+      phraseSuggestions(
+        sugs.map(({ key, kind, facts }) => ({ key, kind, facts })),
+        locale,
+      ),
     )
       .then((m) => alive && setMap(m))
       .catch(() => {});

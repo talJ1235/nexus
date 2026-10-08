@@ -58,6 +58,7 @@ import { ContentSkeleton, ProjectHeaderSkeleton, Skel } from "./skeletons";
 import { COLLECTION_COLORS, useTable, useViewItems } from "./view-items";
 import { FALLBACK_RATES, type Currency } from "@/lib/money";
 import { DEFAULT_IMPORT_LIMIT_USD } from "@/lib/import-vat";
+import { useAiWork } from "@/lib/ai-work";
 
 /** Everything the first paint needs that the server knows without loading data. */
 export type AppBoot = UiInit & { currency: Currency; aiEnabled: boolean };
@@ -100,6 +101,7 @@ function useHeaderHeightVar() {
 
 function Shell({ incoming }: { incoming?: Incoming }) {
   const s = useStore();
+  useAiWork(s.pending.length > 0); // a pasted link being read (polish #17)
   const { t } = useI18n();
   const collapsed = s.sidebarCollapsed;
   const size = useLayoutSize();

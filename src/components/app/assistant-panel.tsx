@@ -33,6 +33,7 @@ import { unitPrice } from "@/lib/calc";
 import { ProductImage } from "./item-card";
 import { ActionCard } from "./assistant-action-card";
 import { useStore } from "./store";
+import { useAiWork } from "@/lib/ai-work";
 
 // ---------- Suggested questions (Round 8 D1: a vertical list, never a sideways scroll; Round 12 #3: rows) ----------
 
@@ -466,6 +467,7 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
+  useAiWork(busy);
   const endRef = useRef<HTMLDivElement>(null);
   const abort = useRef<AbortController | null>(null);
   const [recent, setRecent] = useState<string[]>(() => (typeof window === "undefined" ? [] : readRecent()));

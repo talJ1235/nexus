@@ -837,7 +837,7 @@ html[data-boot="full"]:not([data-booted]) .r13-rise { animation-play-state: paus
   width: 200%;
   z-index: -1;
   background: linear-gradient(90deg, var(--brand), var(--spark), var(--brand), var(--spark), var(--brand));
-  animation: flow-border 5.5s linear infinite;
+  animation: flow-border 5.5s linear infinite; /* polish #17: rests after a cycle unless the AI works (lib/ai-work.ts) */
   will-change: transform;
 }
 @keyframes flow-border { from { transform: translateX(-50%); } to { transform: translateX(0); } }
@@ -1023,7 +1023,7 @@ html body[data-scroll-locked] { margin-right: 0 !important; --removed-body-scrol
 .r13-sug::before {
   content: ""; position: absolute; top: 0; bottom: 0; inset-inline-start: 0; width: 300%; z-index: -1;
   background: linear-gradient(100deg, var(--ai), var(--spark), var(--ai)) 0 0 / 33.3334% 100% repeat-x;
-  animation: r13-sheen 10s linear infinite; will-change: transform;
+  animation: r13-sheen 10s linear infinite; will-change: transform; /* polish #17: lib/ai-work.ts rests it */
 }
 @keyframes r13-sheen { from { transform: translateX(-33.3334%); } to { transform: translateX(0); } }
 .r13-sug::after { inset: -1.5px; }
@@ -1032,7 +1032,8 @@ html body[data-scroll-locked] { margin-right: 0 !important; --removed-body-scrol
   background: linear-gradient(100deg, color-mix(in srgb, var(--ai) 9%, var(--surface)), var(--surface) 45%, color-mix(in srgb, var(--spark) 8%, var(--surface)));
 }
 .r13-orb { background: linear-gradient(135deg, var(--ai), var(--spark)); }
-.r13-orb svg { animation: r13-twinkle 3.2s ease-in-out infinite; }
+.r13-orb svg { animation: r13-twinkle 3.2s ease-in-out infinite; } /* polish #17: lib/ai-work.ts rests it */
+html[data-motion="reduce"] .flow-border::before, html[data-motion="reduce"] .r13-sug::before, html[data-motion="reduce"] .r13-orb svg { animation: none !important; }
 @keyframes r13-twinkle { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.12) rotate(12deg); } }
 .r13-sug:focus-visible { outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) {
