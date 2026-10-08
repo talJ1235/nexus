@@ -12,6 +12,8 @@ export type Extras = {
   drops: { itemId: string; title: string; pct: number; at: number }[];
   vsLast: { now: number; last: number; pct: number | null; lastMonthKey: string };
   nextDelivery: { itemId: string; title: string; eta: number; late: boolean; store: string | null } | null;
+  /** R17 A2: the deliveries after the next one (a 2× Next delivery lists them), soonest first, at most 5. */
+  laterDeliveries: { itemId: string; title: string; eta: number; late: boolean; store: string | null }[];
   byCategory: { category: string; total: number }[];
   mostBought: { key: string; title: string; count: number; itemId: string }[];
   activity: { userId: string; added: number; bought: number; last: number }[];
@@ -56,6 +58,10 @@ export function homeExtras(input: { items: ItemWithSources[]; alerts: Alert[]; r
   const next = late ?? ordered.find((i) => dayKeyIn(i.eta!, tz) >= today) ?? null;
   const store = (i: ItemWithSources) => (i.sources.find((s) => s.id === i.chosenSourceId) ?? i.sources[0])?.store ?? null;
   const nextDelivery = next ? { itemId: next.id, title: next.title, eta: next.eta!, late: next === late, store: store(next) } : null;
+  const laterDeliveries = ordered
+    .filter((i) => i !== next)
+    .slice(0, 5)
+    .map((i) => ({ itemId: i.id, title: i.title, eta: i.eta!, late: dayKeyIn(i.eta!, tz) < today, store: store(i) }));
 
   // This month by category (paid + on the way).
   const cat = new Map<string, number>();
@@ -98,5 +104,5 @@ export function homeExtras(input: { items: ItemWithSources[]; alerts: Alert[]; r
   }
   const activity = [...act.values()].sort((a, b) => b.last - a.last);
 
-  return { drops, vsLast, nextDelivery, byCategory, mostBought, activity };
+  return { drops, vsLast, nextDelivery, laterDeliveries, byCategory, mostBought, activity };
 }

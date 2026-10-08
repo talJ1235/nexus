@@ -12,7 +12,8 @@ import { Avatar } from "./spaces/space-ui";
 import { useStore } from "./store";
 
 // R16 E2 — the new Home indicators (numbers from lib/home-widgets.ts). Each has an empty state; the skeleton is
-// Home's own while the data loads. Taller (2×) list widgets show more rows.
+// Home's own while the data loads. Taller (2×) list widgets show more rows; R17 A2: 2× number widgets grow a chart or a
+// list (vs last month: the two months as bars; next delivery: the ones after it), and an empty state sits centred.
 
 type P = { x: Extras; h: 1 | 2; className?: string; style?: React.CSSProperties };
 
@@ -22,7 +23,7 @@ function useMoney() {
   return (v: number) => formatMoney(Math.round(v), s.currency, locale);
 }
 const Empty = ({ children }: { children: React.ReactNode }) => (
-  <p className="flex flex-1 items-center px-4 py-3 text-[13px] text-muted lg:px-[18px]" data-widget-empty>
+  <p className="flex flex-1 items-center justify-center px-4 py-3 text-center text-[13px] text-muted lg:px-[18px]" data-widget-empty>
     {children}
   </p>
 );
@@ -33,7 +34,7 @@ export function DropsWidget({ x, h, className, style }: P) {
   const { t } = useI18n();
   const rows = x.drops.slice(0, rowsFor(h, 3, 8));
   return (
-    <Card id="drops" title={t.hc.names.drops} icon={<TrendingDown />} count={x.drops.length || undefined} className={className} style={style}>
+    <Card id="drops" title={t.hc.names.drops} icon={<TrendingDown />} count={x.drops.length || undefined} className={className} style={style} more={x.drops.length - rows.length}>
       {rows.length === 0 ? (
         <Empty>{t.hc.dropsEmpty}</Empty>
       ) : (
@@ -51,7 +52,7 @@ export function DropsWidget({ x, h, className, style }: P) {
   );
 }
 
-export function VsLastWidget({ x, className, style }: P) {
+export function VsLastWidget({ x, h, className, style }: P) {
   const { t, f, locale } = useI18n();
   const m = useMoney();
   const v = x.vsLast;
@@ -62,28 +63,49 @@ export function VsLastWidget({ x, className, style }: P) {
       {v.pct == null ? (
         <Empty>{t.hc.vsNone}</Empty>
       ) : (
-        <div className="flex flex-col gap-1 px-4 pb-3 pt-2.5 lg:px-[18px]" data-vslast={v.pct}>
+        <div className="flex flex-1 flex-col gap-1 px-4 pb-3 pt-2.5 lg:px-[18px]" data-vslast={v.pct}>
           <Big className={less ? "text-ok" : "text-warn"}>
             {v.pct > 0 ? "+" : v.pct < 0 ? "−" : ""}
             {Math.abs(v.pct)}%
           </Big>
           <span className="truncate text-[12.5px] text-muted">{f(less ? t.hc.vsLess : t.hc.vsMore, { amount: m(Math.abs(v.now - v.last)), month })}</span>
           <span className="truncate text-[11.5px] text-faint">{t.hc.sameDays}</span>
+          {h === 2 && (
+            <span className="mt-auto flex flex-col gap-2 border-t border-line-in pt-3" data-stat-tall>
+              {[
+                { key: "now", label: t.hc.thisMonth, v: v.now, tone: less ? "bg-ok" : "bg-warn" },
+                { key: "last", label: month, v: v.last, tone: "bg-ink/30" },
+              ].map((r) => (
+                <span key={r.key} className="flex items-center gap-2.5 text-[12.5px]">
+                  <span className="w-[30%] shrink-0 truncate text-muted">{r.label}</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
+                    <i className={cn("grow-x block h-full rounded-full", r.tone)} style={{ width: `${(r.v / Math.max(1, v.now, v.last)) * 100}%` }} />
+                  </span>
+                  <span className="tabular w-[28%] shrink-0 text-end font-semibold">{m(r.v)}</span>
+                </span>
+              ))}
+            </span>
+          )}
         </div>
       )}
     </Card>
   );
 }
 
-export function NextDeliveryWidget({ x, className, style }: P) {
+export function NextDeliveryWidget({ x, h, className, style }: P) {
   const s = useStore();
   const { t, locale } = useI18n();
   const n = x.nextDelivery;
   const today = dayKeyIn(s.clock.now, s.clock.tz);
   const day = n ? dayKeyIn(n.eta, s.clock.tz) : null;
-  const label = !n || !day ? "" : n.late ? t.hc.late : day === today ? t.hc.today : new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { weekday: "short", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`));
+  const when = (d: { eta: number; late: boolean }) => {
+    const k = dayKeyIn(d.eta, s.clock.tz);
+    return d.late ? t.hc.late : k === today ? t.hc.today : new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { weekday: "short", timeZone: "UTC" }).format(new Date(`${k}T12:00:00Z`));
+  };
+  const label = !n || !day ? "" : when(n);
+  const later = h === 2 ? x.laterDeliveries.slice(0, 4) : [];
   return (
-    <Card id="nextdel" title={t.hc.names.nextdel} icon={<Truck />} className={className} style={style}>
+    <Card id="nextdel" title={t.hc.names.nextdel} icon={<Truck />} className={className} style={style} more={n && h === 2 ? x.laterDeliveries.length - later.length : 0}>
       {!n ? (
         <Empty>{t.hc.nextEmpty}</Empty>
       ) : (
@@ -91,6 +113,16 @@ export function NextDeliveryWidget({ x, className, style }: P) {
           <Big className={n.late ? "text-warn" : undefined}>{label}</Big>
           <bdi className="truncate text-[12.5px] text-muted">{[n.title, n.store].filter(Boolean).join(" · ")}</bdi>
         </button>
+      )}
+      {n && later.length > 0 && (
+        <div className="mt-auto flex flex-col border-t border-line-in px-4 pb-1 lg:px-[18px]" data-stat-tall>
+          {later.map((d) => (
+            <button key={d.itemId} type="button" onClick={() => s.openItem(d.itemId)} className="flex min-h-[34px] w-full items-center gap-2.5 text-start text-[12.5px]" data-later-delivery={d.itemId}>
+              <bdi className="min-w-0 flex-1 truncate font-medium">{d.title}</bdi>
+              <span className={cn("shrink-0 font-semibold", d.late ? "text-warn" : "text-info")}>{when(d)}</span>
+            </button>
+          ))}
+        </div>
       )}
     </Card>
   );
@@ -103,7 +135,7 @@ export function ByCategoryWidget({ x, h, className, style }: P) {
   const rows = x.byCategory.slice(0, rowsFor(h, 3, 7));
   const max = Math.max(1, ...rows.map((r) => r.total));
   return (
-    <Card id="bycat" title={t.hc.names.bycat} icon={<BarChart3 />} link={t.dash.spending} onLink={() => s.setView({ type: "spending" })} className={className} style={style}>
+    <Card id="bycat" title={t.hc.names.bycat} icon={<BarChart3 />} link={t.dash.spending} onLink={() => s.setView({ type: "spending" })} className={className} style={style} more={x.byCategory.length - rows.length}>
       {rows.length === 0 ? (
         <Empty>{t.hc.bycatEmpty}</Empty>
       ) : (
@@ -128,7 +160,7 @@ export function MostBoughtWidget({ x, h, className, style }: P) {
   const { t, f } = useI18n();
   const rows = x.mostBought.slice(0, rowsFor(h, 3, 8));
   return (
-    <Card id="most" title={t.hc.names.most} icon={<Star />} className={className} style={style}>
+    <Card id="most" title={t.hc.names.most} icon={<Star />} className={className} style={style} more={x.mostBought.length - rows.length}>
       {rows.length === 0 ? (
         <Empty>{t.hc.mostEmpty}</Empty>
       ) : (
@@ -153,7 +185,7 @@ export function ActivityWidget({ x, h, className, style }: P) {
   const rows = x.activity.slice(0, rowsFor(h, 3, 7));
   const time = (ms: number) => new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { hour: "2-digit", minute: "2-digit" }).format(ms);
   return (
-    <Card id="activity" title={t.hc.names.activity} icon={<Users />} className={className} style={style}>
+    <Card id="activity" title={t.hc.names.activity} icon={<Users />} className={className} style={style} more={shared ? x.activity.length - rows.length : 0}>
       {!shared ? (
         <Empty>{t.hc.actPersonal}</Empty>
       ) : rows.length === 0 ? (

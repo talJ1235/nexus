@@ -34,6 +34,7 @@ export const en = {
     vsMore: "{amount} more than {month}",
     vsNone: "Nothing to compare with yet",
     sameDays: "Same days of the month",
+    thisMonth: "This month so far",
     nextEmpty: "Nothing on the way",
     today: "Today",
     late: "Late",

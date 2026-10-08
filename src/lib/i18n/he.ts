@@ -36,6 +36,7 @@ export const he: Dict = {
     vsMore: "{amount} יותר מ{month}",
     vsNone: "עוד אין עם מה להשוות",
     sameDays: "אותם ימים בחודש",
+    thisMonth: "החודש עד היום",
     nextEmpty: "שום דבר לא בדרך",
     today: "היום",
     late: "באיחור",

@@ -166,21 +166,21 @@ export function HomeView() {
         case "budget":
         case "way":
         case "saved":
-          return <Stats model={model} only={id} />;
+          return <Stats model={model} only={id} h={h} />;
         case "suggest":
-          return <SuggestCard sugs={sugs} className={c} />;
+          return <SuggestCard sugs={sugs} h={h} className={c} />;
         case "week":
-          return <WeekCard model={model} className={c} />;
+          return <WeekCard model={model} h={h} className={c} />;
         case "needs":
           return <NeedsCard model={model} rows={rowsFor(h, 3, 8)} className={c} />;
         case "ontheway":
           return <OnTheWayCard model={model} rows={rowsFor(h, 3, 8)} className={c} />;
         case "pace":
-          return <PaceCard model={model} className={c} />;
+          return <PaceCard model={model} h={h} className={c} />;
         case "projects":
           return <ProjectsCard model={model} rows={rowsFor(h, 3, 8)} className={c} />;
         case "noticed":
-          return <NoticedCard list={noticed} className={c} />;
+          return <NoticedCard list={noticed} h={h} className={c} />;
         case "drops":
           return <DropsWidget x={extras} h={h} className={c} />;
         case "vslast":
@@ -390,21 +390,50 @@ function Stat({ label, value, small, children, valueClass }: { label: string; va
 }
 
 const STAT_ORDER = ["left", "budget", "way", "saved"] as const;
-function StatCell({ only, children }: { only: (typeof STAT_ORDER)[number]; children: React.ReactNode }) {
+function StatCell({ only, more = 0, children }: { only: (typeof STAT_ORDER)[number]; more?: number; children: React.ReactNode }) {
   const kids = (Array.isArray(children) ? children : [children]).filter(Boolean);
   return (
-    <section className="r13-card r13-section flex h-full min-w-0 flex-col [&>*]:flex-1" data-home-section={`stat-${only}`} data-home-stat={only}>
+    <section className="r13-card r13-section flex h-full min-w-0 flex-col [&>*]:flex-1" data-home-section={`stat-${only}`} data-home-stat={only} data-more={Math.max(0, more)}>
       {kids[STAT_ORDER.indexOf(only)]}
     </section>
   );
 }
 
-/** The four numbers (R16 E1: each its own widget — `only` picks one; the cell gives it a card). */
-function Stats({ model, only }: { model: HomeModel; only: "left" | "budget" | "way" | "saved" }) {
+/** R17 A2: a 2× number widget's extra rows (a breakdown), pinned to the bottom of the card. */
+function TallRows({ rows }: { rows: { key: string; dot?: string; label: React.ReactNode; value: React.ReactNode; onClick?: () => void; tone?: string }[] }) {
+  if (!rows.length) return null;
+  return (
+    <span className="mt-auto flex flex-col border-t border-line-in pt-1.5" data-stat-tall>
+      {rows.map((r) => {
+        const inner = (
+          <>
+            {r.dot && <i className="size-2 shrink-0 rounded-full" style={{ background: r.dot }} />}
+            <bdi className="min-w-0 flex-1 truncate">{r.label}</bdi>
+            <span className={cn("tabular shrink-0 font-semibold", r.tone ?? "text-ink")}>{r.value}</span>
+          </>
+        );
+        return r.onClick ? (
+          <button key={r.key} type="button" onClick={r.onClick} className="flex min-h-[30px] w-full items-center gap-2 text-start text-[12.5px] text-muted">
+            {inner}
+          </button>
+        ) : (
+          <span key={r.key} className="flex min-h-[30px] items-center gap-2 text-[12.5px] text-muted">
+            {inner}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+/** The four numbers (R16 E1: each its own widget — `only` picks one; the cell gives it a card). R17 A2: at 2× each
+ *  grows a breakdown (left: by list, budget: the month's pace chart, on the way: the next packages, saved: where from). */
+function Stats({ model, only, h = 1 }: { model: HomeModel; only: "left" | "budget" | "way" | "saved"; h?: 1 | 2 }) {
   const s = useStore();
   const { t, f } = useI18n();
   const fm = useFmt();
   const { leftToBuy: l, budget: b, onTheWay: o, saved } = model.stats;
+  const tall = h === 2;
   const month = fm.month(model.month);
   const segColor = (id: string | null) => {
     const c = id ? s.collections.find((x) => x.id === id) : null;
@@ -413,14 +442,15 @@ function Stats({ model, only }: { model: HomeModel; only: "left" | "budget" | "w
   const segName = (id: string | null) => (id ? s.collections.find((x) => x.id === id)?.name ?? "" : t.dash.other);
   const nextKey = o.next != null ? dayKeyIn(o.next, model.ctx.tz) : null;
   return (
-    <StatCell only={only}>
+    <StatCell only={only} more={!tall ? 0 : only === "left" ? l.segments.length - 5 : only === "way" ? model.packages.length - 4 : 0}>
       <Stat label={t.dash.leftToBuy} value={fm.fit(l.total)}>
         <span className="truncate text-[12px] text-muted">
           <b className="font-bold text-warn">{l.count === 1 ? t.dash.itemsOne : f(t.dash.items, { n: l.count })}</b>
           {l.urgent > 0 && <> · {f(t.dash.urgentN, { n: l.urgent })}</>}
         </span>
         <Meter parts={l.segments.map((g) => ({ value: g.value, color: segColor(g.collectionId) }))} />
-        <span className="flex min-w-0 gap-2.5 overflow-hidden text-[11px] text-muted max-lg:hidden">
+        {tall && <TallRows rows={l.segments.slice(0, 5).map((g) => ({ key: g.key, dot: segColor(g.collectionId), label: segName(g.collectionId), value: fm.money(g.value) }))} />}
+        <span className={cn("flex min-w-0 gap-2.5 overflow-hidden text-[11px] text-muted max-lg:hidden", tall && "hidden")}>
           {l.segments.slice(0, 3).map((g) => (
             <span key={g.key} className="flex min-w-0 items-center gap-1.5">
               <i className="size-2 shrink-0 rounded-full" style={{ background: segColor(g.collectionId) }} />
@@ -443,11 +473,21 @@ function Stats({ model, only }: { model: HomeModel; only: "left" | "budget" | "w
           </span>
           <Meter parts={[{ value: Math.min(b.spent, b.cap), color: b.spent > b.cap ? "var(--danger)" : "var(--ink)" }, { value: Math.max(0, b.cap - b.spent), color: "transparent" }]} marker={b.todayFrac} />
           <span className="truncate text-[11px] text-muted max-lg:hidden">{t.dash.meterNote}</span>
+          {tall && (
+            <span className="mt-auto block pt-2" data-stat-tall>
+              <PaceChart model={model} />
+            </span>
+          )}
         </Stat>
       ) : (
         <Stat label={f(t.dash.spentIn, { month })} value={fm.fit(b.spent)}>
           <span className="line-clamp-2 text-[12px] text-muted">{b.vsUsualPct != null ? f(t.dash.vsUsual, { pct: fm.pct(b.vsUsualPct) }) : t.dash.noUsual}</span>
           {b.usual != null && b.usual > 0 && <Meter parts={[{ value: Math.min(b.spent, b.usual), color: "var(--ink)" }, { value: Math.max(0, b.usual - b.spent), color: "transparent" }]} marker={b.todayFrac} />}
+          {tall && (
+            <span className="mt-auto block pt-2" data-stat-tall>
+              <PaceChart model={model} />
+            </span>
+          )}
         </Stat>
       )}
       <Stat label={t.dash.onTheWay} value={String(o.count)} small={o.count === 1 ? t.dash.packageOne : t.dash.packagesN}>
@@ -470,17 +510,35 @@ function Stats({ model, only }: { model: HomeModel; only: "left" | "budget" | "w
             ))}
           </span>
         )}
+        {tall && (
+          <TallRows
+            rows={model.packages.slice(0, 4).map((p) => {
+              const d = p.item.eta != null ? dayKeyIn(p.item.eta, model.ctx.tz) : null;
+              return { key: p.item.id, label: p.item.title, value: p.track.late ? t.dash.lateShort : d ? whenLabel(d, model.today, fm) : "—", tone: p.track.late ? "text-warn" : d ? "text-info" : "text-muted", onClick: () => s.openItem(p.item.id) };
+            })}
+          />
+        )}
       </Stat>
       {saved.total > 0.5 ? (
         <Stat label={t.dash.savedYear} value={fm.fit(saved.total)} valueClass="text-ok">
           <span className="truncate text-[12px] text-muted">{saved.month > 0.5 ? <b className="font-bold text-ok">+{f(t.dash.thisMonth, { amount: fm.money(saved.month) })}</b> : null}</span>
-          <span className="flex flex-col text-[11px] leading-snug text-muted max-lg:hidden">
-            {saved.drops > 0.5 && <span>{f(t.dash.fromDrops, { amount: fm.money(saved.drops) })}</span>}
-            {saved.freeShipping > 0.5 && <span>{f(t.dash.fromShipping, { amount: fm.money(saved.freeShipping) })}</span>}
-          </span>
+          {tall ? (
+            <TallRows
+              rows={[
+                saved.month > 0.5 && { key: "month", label: fm.month(model.month), value: fm.money(saved.month), tone: "text-ok" },
+                saved.drops > 0.5 && { key: "drops", label: f(t.dash.fromDrops, { amount: "" }).trim(), value: fm.money(saved.drops), tone: "text-ok" },
+                saved.freeShipping > 0.5 && { key: "ship", label: f(t.dash.fromShipping, { amount: "" }).trim(), value: fm.money(saved.freeShipping), tone: "text-ok" },
+              ].filter((r): r is { key: string; label: string; value: string; tone: string } => !!r)}
+            />
+          ) : (
+            <span className="flex flex-col text-[11px] leading-snug text-muted max-lg:hidden">
+              {saved.drops > 0.5 && <span>{f(t.dash.fromDrops, { amount: fm.money(saved.drops) })}</span>}
+              {saved.freeShipping > 0.5 && <span>{f(t.dash.fromShipping, { amount: fm.money(saved.freeShipping) })}</span>}
+            </span>
+          )}
         </Stat>
       ) : (
-        <div className="flex min-w-0 flex-col gap-1.5 px-3 py-3 lg:px-5 lg:pt-4">
+        <div className={cn("flex min-w-0 flex-col gap-1.5 px-3 py-3 lg:px-5 lg:pt-4", tall && "justify-center text-center")}>
           <span className="truncate text-[12px] font-semibold text-muted lg:text-[12.5px]">{t.dash.savedYear}</span>
           <span className="text-[13px] font-semibold leading-snug text-muted" data-saved-empty>
             {t.dash.startSaving}
@@ -601,7 +659,7 @@ function useDismiss() {
   };
 }
 
-function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className?: string; style?: React.CSSProperties }) {
+function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?: 1 | 2; className?: string; style?: React.CSSProperties }) {
   const s = useStore();
   const { t, f, dir } = useI18n();
   const fm = useFmt();
@@ -622,6 +680,9 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
     setIdx((i + d + sugs.length) % sugs.length);
   };
   const { swapRef, handlers: swipeHandlers, dragging } = useSwipePager({ count: sugs.length, index: i, go, rtl });
+  // R17 A2: a 2× card lists the next suggestions (up to 3) under the current one instead of leaving the height empty.
+  const tall = h === 2;
+  const more = tall ? Array.from({ length: Math.min(3, sugs.length - 1) }, (_, k) => ({ d: k + 1, y: sugs[(i + k + 1) % sugs.length] })) : [];
   const run = async () => {
     const a = x.action;
     if (a.type === "none") return;
@@ -668,7 +729,10 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
       <button type="button" onClick={() => go(-1)} className="grid size-7 place-items-center rounded-full border border-card-line bg-surface text-ink @max-[600px]:hidden" aria-label={t.dash.prev}>
         <ChevronLeft className="size-3.5 rtl:-scale-x-100" />
       </button>
-      <span className="flex gap-1">
+      <span className="tabular text-[11.5px] font-semibold text-muted @min-[260px]:hidden" aria-live="polite" data-sug-count-text>
+        {i + 1} / {sugs.length}
+      </span>
+      <span className="flex gap-1 @max-[260px]:hidden">
         {sugs.map((y, k) => (
           <button key={y.key} type="button" onClick={() => setIdx(k)} aria-label={f(t.dash.ofN, { i: k + 1, n: sugs.length })} aria-current={k === i ? "true" : undefined} className="relative grid h-5 place-items-center after:absolute after:-inset-x-1 after:-inset-y-3 after:content-['']">
             <i className={cn("block h-1.5 rounded-full transition-[width,background-color] duration-300", k === i ? "w-4 bg-ai" : "w-1.5 bg-card-line")} />
@@ -682,7 +746,7 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
   );
   return (
     <section
-      className={cn("r13-sug r13-section @container touch-pan-y", sugs.length > 1 && "lg:cursor-grab", dragging && "select-none lg:cursor-grabbing", className)}
+      className={cn("r13-sug r13-section @container flex touch-pan-y flex-col", sugs.length > 1 && "lg:cursor-grab", dragging && "select-none lg:cursor-grabbing", className)}
       style={style}
       {...swipeHandlers}
       data-dragging={dragging || undefined}
@@ -697,14 +761,16 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
       }}
       data-sug-index={i}
       data-sug-count={sugs.length}
+      data-more={Math.max(0, sugs.length - 1 - more.length)}
       data-sug-kinds={sugs.map((y) => y.kind).join(" ")}
     >
-      <div className="r13-sug-in flex flex-col gap-2 px-3.5 py-3 @min-[600px]:flex-row @min-[600px]:items-center @min-[600px]:gap-[18px] @min-[600px]:px-5 @min-[600px]:py-4">
+      <div className="r13-sug-in flex flex-1 flex-col">
+      <div className={cn("flex flex-col gap-2 px-3.5 py-3 @min-[600px]:flex-row @min-[600px]:items-center @min-[600px]:gap-[18px] @min-[600px]:px-5 @min-[600px]:py-4", !more.length && "my-auto")}>
         <div className="flex items-center gap-2.5 @min-[600px]:contents">
           <span className="r13-orb grid size-[26px] shrink-0 place-items-center rounded-lg text-white @min-[600px]:size-11 @min-[600px]:rounded-xl [&_svg]:size-3.5 @min-[600px]:[&_svg]:size-[22px]" aria-hidden>
             <Sparkles />
           </span>
-          <span className="flex flex-1 items-center gap-2 text-[11px] font-bold uppercase tracking-[0.06em] text-ai @min-[600px]:hidden">{t.dash.suggests}</span>
+          <span className="min-w-0 flex-1 truncate text-[11px] font-bold uppercase tracking-[0.06em] text-ai @min-[600px]:hidden">{t.dash.suggests}</span>
           {sugs.length > 1 && <span className="@min-[600px]:hidden">{pager}</span>}
         </div>
         <div key={x.key} ref={swapRef} style={from != null ? ({ "--sug-from": `${from}px` } as React.CSSProperties) : undefined} className="r13-swap flex min-w-0 flex-1 flex-col gap-[3px]" data-sug-swipe data-sug-key={x.key} data-sug-kind={x.kind} data-sug-source={ai || x.kind === "ai" ? "ai" : "template"} aria-live="polite">
@@ -728,6 +794,24 @@ function SuggestCard({ sugs, className, style }: { sugs: Suggestion[]; className
           </button>
           {sugs.length > 1 && <span className="ms-1 @max-[600px]:hidden">{pager}</span>}
         </div>
+      </div>
+      {more.length > 0 && (
+        <div className="mt-auto flex flex-col border-t border-line-in px-3.5 pb-1.5 @min-[600px]:px-5" data-sug-more-list>
+          {more.map(({ d, y }) => {
+            const yt = template(y, t, fm);
+            return (
+              <button key={y.key} type="button" onClick={() => go(d)} className="flex min-h-[44px] w-full items-center gap-2.5 py-1.5 text-start" data-sug-more={y.key}>
+                <i className="size-1.5 shrink-0 rounded-full bg-ai" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <b className="block truncate text-[13.5px] font-semibold">{phrased[y.key]?.title ?? yt.title}</b>
+                  <span className="block truncate text-[12px] text-muted">{phrased[y.key]?.why || yt.why}</span>
+                </span>
+                <ChevronRight className="size-3.5 shrink-0 text-muted rtl:-scale-x-100" />
+              </button>
+            );
+          })}
+        </div>
+      )}
       </div>
     </section>
   );
@@ -823,7 +907,7 @@ function evText(e: WeekEvent, t: T, fm: Fmt, tz: string) {
   return { title: name, sub: t.dash.ev[e.kind].sub };
 }
 
-function WeekCard({ model, className, style }: { model: HomeModel; className?: string; style?: React.CSSProperties }) {
+function WeekCard({ model, h = 1, className, style }: { model: HomeModel; h?: 1 | 2; className?: string; style?: React.CSSProperties }) {
   const s = useStore();
   const { t, f } = useI18n();
   const fm = useFmt();
@@ -839,10 +923,13 @@ function WeekCard({ model, className, style }: { model: HomeModel; className?: s
     else s.openItem(e.item.id);
   };
   const upcoming = events.filter((e) => e.day >= today);
-  const list = open ? upcoming : upcoming.slice(0, 3);
+  const tall = h === 2;
+  const fold3 = tall ? 7 : 3;
+  const perDay = tall ? 4 : 2;
+  const list = open ? upcoming : upcoming.slice(0, fold3);
   const fold = (shown: boolean) => cn("grid transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-out)]", shown ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0");
   return (
-    <Card id="week" title={t.dash.week} icon={<CalendarDays />} className={className} style={style} link={month && desktop ? t.dash.monthClose : t.dash.monthLink} onLink={() => setMonth(!month)}>
+    <Card id="week" title={t.dash.week} icon={<CalendarDays />} className={className} style={style} more={desktop ? 0 : upcoming.length - list.length} link={month && desktop ? t.dash.monthClose : t.dash.monthLink} onLink={() => setMonth(!month)}>
       <span className="sr-only">{events.length === 1 ? t.dash.weekCountOne : f(t.dash.weekCount, { n: events.length })}</span>
       {desktop && (
         <div className={fold(month)} aria-hidden={!month} inert={!month}>
@@ -865,7 +952,7 @@ function WeekCard({ model, className, style }: { model: HomeModel; className?: s
           const evs = events.filter((e) => e.day === d);
           const isToday = d === today;
           return (
-            <div key={d} className="relative flex min-h-[112px] min-w-0 flex-col gap-[5px] px-2.5" data-week-day={d}>
+            <div key={d} className={cn("relative flex min-w-0 flex-col gap-[5px] px-2.5", tall ? "min-h-[240px]" : "min-h-[112px]")} data-week-day={d}>
               <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-muted">{fm.wd(d)}</span>
               <span className="flex items-center gap-1.5 text-[20px] font-bold leading-none">
                 {Number(d.slice(8))}
@@ -873,7 +960,7 @@ function WeekCard({ model, className, style }: { model: HomeModel; className?: s
               </span>
               <i className={cn("absolute start-2.5 top-[48px] size-[9px] rounded-full border-2", isToday ? "border-ink bg-ink shadow-[0_0_0_4px_color-mix(in_srgb,var(--ink)_12%,transparent)]" : "border-card-line bg-surface")} aria-hidden />
               <div className="mt-[22px] flex flex-col gap-[7px]">
-                {evs.slice(0, evs.length > 2 ? 1 : 2).map((e, k) => {
+                {evs.slice(0, evs.length > perDay ? perDay - 1 : perDay).map((e, k) => {
                   const x = evText(e, t, fm, tz);
                   return (
                     <button key={k} type="button" onClick={() => onEv(e)} className="flex min-w-0 gap-1.5 text-start text-[12px] leading-tight" data-week-ev={e.kind}>
@@ -885,7 +972,7 @@ function WeekCard({ model, className, style }: { model: HomeModel; className?: s
                     </button>
                   );
                 })}
-                {evs.length > 2 && <span className="ps-5 text-[12px] font-semibold text-muted">{f(t.dash.moreDay, { n: evs.length - 1 })}</span>}
+                {evs.length > perDay && <span className="ps-5 text-[12px] font-semibold text-muted">{f(t.dash.moreDay, { n: evs.length - (perDay - 1) })}</span>}
               </div>
             </div>
           );
@@ -925,9 +1012,9 @@ function WeekCard({ model, className, style }: { model: HomeModel; className?: s
               </button>
             );
           })}
-          {upcoming.length > 3 && (
+          {upcoming.length > fold3 && (
             <button type="button" onClick={() => setOpen(!open)} className="flex min-h-[40px] w-full items-center gap-1 px-4 text-start text-[12.5px] font-semibold text-muted" aria-expanded={open} data-week-more>
-              {open ? t.dash.lessWeek : f(t.dash.moreWeek, { n: upcoming.length - 3 })}
+              {open ? t.dash.lessWeek : f(t.dash.moreWeek, { n: upcoming.length - fold3 })}
               <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} />
             </button>
           )}
@@ -1063,7 +1150,7 @@ function NeedsCard({ model, rows = 4, className, style }: { model: HomeModel; ro
   const s = useStore();
   const { t } = useI18n();
   return (
-    <Card id="needs" title={t.dash.needsYou} count={model.needs.length} badge link={t.dash.all} onLink={() => s.setPanel("alerts")} className={className} style={style}>
+    <Card id="needs" title={t.dash.needsYou} count={model.needs.length} badge link={t.dash.all} onLink={() => s.setPanel("alerts")} className={cn("@container", className)} style={style} more={model.needs.length - rows}>
       <div className="r13-rows px-4 pb-1 lg:px-[18px]">
         {model.needs.slice(0, rows).map((n) => (
           <NeedRowView key={n.key} n={n} model={model} />
@@ -1163,8 +1250,8 @@ function NeedRowView({ n, model, className }: { n: NeedRow; model: HomeModel; cl
           <span className="block truncate text-[12.5px] text-muted">{sub}</span>
         </div>
         <button type="button" disabled={ro.ro && n.kind !== "alert"} onClick={run} className="h-8 shrink-0 rounded-full border border-card-line bg-surface px-3 text-[12.5px] font-semibold transition hover:border-ink/40 disabled:opacity-50" data-need-act>
-          <span className="max-lg:hidden">{act}</span>
-          <span className="lg:hidden">{actShort}</span>
+          <span className="max-lg:hidden @max-[400px]:hidden">{act}</span>
+          <span className="lg:hidden @max-[400px]:!inline">{actShort}</span>
         </button>
         <button
           type="button"
@@ -1233,7 +1320,7 @@ function OnTheWayCard({ model, rows = 4, className, style }: { model: HomeModel;
   const fm = useFmt();
   const tz = model.ctx.tz;
   return (
-    <Card id="ontheway" title={t.dash.onTheWay} count={model.packages.length} link={t.dash.trackAll} onLink={() => s.setView({ type: "ordered" })} className={className} style={style}>
+    <Card id="ontheway" title={t.dash.onTheWay} count={model.packages.length} link={t.dash.trackAll} onLink={() => s.setView({ type: "ordered" })} className={className} style={style} more={model.packages.length - rows}>
       <div className="r13-rows px-4 pb-1 lg:px-[18px]">
         {model.packages.slice(0, rows).map((p) => {
           const late = p.track.late;
@@ -1274,7 +1361,7 @@ function OnTheWayCard({ model, rows = 4, className, style }: { model: HomeModel;
 
 // ---------- Pace + projects (+ the phone's merged card) ----------
 
-function PaceChart({ model }: { model: HomeModel }) {
+function PaceChart({ model, tall }: { model: HomeModel; tall?: boolean }) {
   const { t } = useI18n();
   const p = model.pace;
   const W = 400;
@@ -1286,7 +1373,7 @@ function PaceChart({ model }: { model: HomeModel }) {
   const line = (vals: number[]) => vals.map((v, d) => `${d ? "L" : "M"}${x(d).toFixed(1)},${y(v).toFixed(1)}`).join("");
   const tx = x(p.dayOfMonth - 1);
   return (
-    <svg viewBox={`0 0 ${W} ${H + 6}`} preserveAspectRatio="none" className="h-[110px] w-full overflow-visible" role="img" aria-label={t.dash.pace.replace("{month}", "")} data-pace-chart>
+    <svg viewBox={`0 0 ${W} ${H + 6}`} preserveAspectRatio="none" className={cn("w-full overflow-visible", tall ? "h-full min-h-[110px]" : "h-[110px]")} role="img" aria-label={t.dash.pace.replace("{month}", "")} data-pace-chart>
       {p.cap != null && <line x1="0" x2={W} y1={y(p.cap)} y2={y(p.cap)} stroke="var(--warn)" strokeOpacity=".55" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />}
       {p.usual && <path d={line(p.usual)} fill="none" stroke="var(--muted)" strokeWidth="1.2" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />}
       <path d={line(p.spent)} fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
@@ -1317,7 +1404,7 @@ function Sentence({ model }: { model: HomeModel }) {
   );
 }
 
-function PaceCard({ model, className, style }: { model: HomeModel; className?: string; style?: React.CSSProperties }) {
+function PaceCard({ model, h = 1, className, style }: { model: HomeModel; h?: 1 | 2; className?: string; style?: React.CSSProperties }) {
   const s = useStore();
   const { t, f } = useI18n();
   const fm = useFmt();
@@ -1329,7 +1416,13 @@ function PaceCard({ model, className, style }: { model: HomeModel; className?: s
           {fm.money(model.stats.budget.spent)}
           {p.cap != null && <small className="ms-1 text-[12.5px] font-medium tracking-normal text-muted">{f(t.dash.ofCap, { amount: fm.money(p.cap) })}</small>}
         </span>
-        <PaceChart model={model} />
+        {h === 2 ? (
+          <div className="min-h-[110px] flex-1">
+            <PaceChart model={model} tall />
+          </div>
+        ) : (
+          <PaceChart model={model} />
+        )}
         <Sentence model={model} />
       </div>
     </Card>
@@ -1354,7 +1447,9 @@ function ProjectRows({ model, compact, rows = 99 }: { model: HomeModel; compact?
               <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
                 <i className="grow-x block h-full rounded-full" style={{ width: `${Math.round(p.pctBought * 100)}%`, background: color }} />
               </span>
-              <span className="tabular shrink-0 text-[12.5px] font-semibold">{f(t.dash.leftShort, { amount: compact ? fm.compact(p.left) : fm.money(p.left) })}</span>
+              <span className="tabular min-w-0 overflow-hidden whitespace-nowrap text-[12.5px] font-semibold" data-project-left>
+                {compact ? f(t.dash.leftShort, { amount: fm.compact(p.left) }) : <>{t.dash.leftShort.split("{amount}")[0]}{fm.fit(p.left)}{t.dash.leftShort.split("{amount}")[1]}</>}
+              </span>
             </span>
             {!compact && (
               <span className="mt-1 block truncate ps-[calc(28%+12px)] text-[12px] text-muted">
@@ -1379,7 +1474,7 @@ function ProjectsCard({ model, rows, className, style }: { model: HomeModel; row
   const s = useStore();
   const { t } = useI18n();
   return (
-    <Card id="projects" title={t.dash.projects} link={t.dash.allProjects} onLink={() => s.setView({ type: "projects" })} className={className} style={style}>
+    <Card id="projects" title={t.dash.projects} link={t.dash.allProjects} onLink={() => s.setView({ type: "projects" })} className={className} style={style} more={rows != null ? model.projects.length - rows : 0}>
       <ProjectRows model={model} rows={rows} />
     </Card>
   );
@@ -1410,7 +1505,7 @@ function insightText(x: Insight, t: T, fm: Fmt) {
   }
 }
 
-function NoticedCard({ list, className, style }: { list: Insight[]; className?: string; style?: React.CSSProperties }) {
+function NoticedCard({ list, h = 1, className, style }: { list: Insight[]; h?: 1 | 2; className?: string; style?: React.CSSProperties }) {
   const s = useStore();
   const { t, f } = useI18n();
   const fm = useFmt();
@@ -1432,7 +1527,8 @@ function NoticedCard({ list, className, style }: { list: Insight[]; className?: 
     } else if (x.action?.itemId) s.openItem(x.action.itemId);
   };
   const swipe = useRef<{ x: number; id: number } | null>(null);
-  const dots = list.length > 1 && (
+  const tall = h === 2;
+  const dots = list.length > 1 && !tall && (
     <span className="-me-3 ms-auto flex lg:hidden" role="tablist">
       {list.map((x, k) => (
         <button key={x.key} type="button" role="tab" aria-selected={k === i} aria-label={f(t.dash.insightN, { i: k + 1, n: list.length })} onClick={() => setIdx(k)} className="relative grid h-6 w-8 place-items-center after:absolute after:inset-x-0 after:-inset-y-2 after:content-['']">
@@ -1442,14 +1538,14 @@ function NoticedCard({ list, className, style }: { list: Insight[]; className?: 
     </span>
   );
   return (
-    <section className={cn("r13-card r13-section flex min-w-0 flex-col", className)} style={style} data-home-section="noticed" data-noticed-count={list.length} data-noticed-kinds={list.map((y) => y.kind).join(" ")}>
+    <section className={cn("r13-card r13-section flex min-w-0 flex-col", className)} style={style} data-home-section="noticed" data-more={tall ? Math.max(0, list.length - 3) : list.length - 1} data-noticed-count={list.length} data-noticed-kinds={list.map((y) => y.kind).join(" ")}>
       <div className="flex min-h-[42px] items-center gap-2 border-b border-line-in px-4 py-2 lg:min-h-[46px] lg:px-[18px] lg:py-2.5">
         <Sparkles className="size-4 text-ai" />
         <h2 className="text-[12px] font-bold uppercase tracking-[0.05em] text-ai">{t.dash.noticed}</h2>
         {dots}
       </div>
       {/* Desktop: all insights side by side. */}
-      <div className="grid max-lg:hidden" style={{ gridTemplateColumns: `repeat(${list.length}, minmax(0, 1fr))` }}>
+      <div className="grid flex-1 max-lg:hidden" style={{ gridTemplateColumns: `repeat(${list.length}, minmax(0, 1fr))` }}>
         {list.map((x, k) => {
           const it = insightText(x, t, fm);
           return (
@@ -1463,8 +1559,27 @@ function NoticedCard({ list, className, style }: { list: Insight[]; className?: 
           );
         })}
       </div>
+      {/* Phone 2×: all of them, one under the other. */}
+      {tall && (
+        <div className="flex flex-1 flex-col lg:hidden" data-noticed-phone-all>
+          {list.slice(0, 3).map((x, k) => {
+            const it = insightText(x, t, fm);
+            return (
+              <div key={x.key} className={cn("flex flex-1 flex-col gap-1.5 px-4 py-2.5", k > 0 && "border-t border-line-in")} data-insight={x.kind}>
+                <p className="text-[13.5px] leading-relaxed">{it.text}</p>
+                {it.link && (
+                  <button type="button" onClick={() => act(x)} className="self-start py-1 text-[13px] font-semibold underline underline-offset-4">
+                    {it.link}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
       {/* Phone: one at a time; swipe or tap the dots. */}
       <div
+        hidden={tall}
         className="touch-pan-y px-4 pb-3 pt-2.5 lg:hidden"
         onPointerDown={(e) => (swipe.current = { x: e.clientX, id: e.pointerId })}
         onPointerUp={(e) => {

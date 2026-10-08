@@ -84,14 +84,14 @@ sign-in sheet + "Use another Google account", daily opening, everything in POLIS
 
 ## Part A — Tal's bugs (Home, Settings, spaces)
 
-### A1. [ ] "Nexus suggests" border animation ends cut off
+### A1. [x] "Nexus suggests" border animation ends cut off
 Tal: the animation around the card stops abruptly. Since polish #17 it plays one cycle and pauses at the end.
 Expected: one cycle on mount that **fades out softly** (opacity to 0 over ≈ 600 ms, eased) instead of freezing on a
 frame; again (same fade-out) while the AI works. The cycle itself must be seamless (no jump at the loop seam while it
 runs during AI work). Same rule for the paste capsule's `flow-border`. Reduced motion: none.
 Acceptance: frame trace of the end of the cycle shows a continuous opacity ramp, no single-frame change > 0.1 opacity.
 
-### A2. [ ] Widgets at 2× height don't fill (desktop + phone)
+### A2. [x] Widgets at 2× height don't fill (desktop + phone)
 Tal: "Nexus suggests" at 2× only makes the frame taller — a big empty area, no more suggestions. Expected: every
 widget at 2× uses the height: list widgets show more rows (suggestions: more cards / a second row; Needs you, Next
 delivery, Most bought, Price drops, Budget by category: more rows), number widgets grow a chart or breakdown, never
@@ -329,3 +329,19 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   each release ≥ 2 weeks old except gitleaks v3 = its only node24 release), `runs-on: ubuntu-24.04` in both workflows.
   Smoke at this point (fresh DB, local build): desktop 79/80 + the DB-path step green when rerun alone; phone 92/93 +
   quick actions green 3/3 alone after the fix (full reruns at the end of the round).
+- **A1:** the moving layer (`::before` of `.r13-sug` / `.flow-border`) now sits over a still copy of the same gradient on
+  the element; at a cycle boundary with no AI work it keeps sliding while it fades to 0 (600 ms, `ease-in-out`, via
+  `data-loop-rest`), then pauses invisibly; AI work fades it back in (300 ms) and resumes. The twinkle keeps resting at
+  its start pose. `test:polish` A1: sampled per frame through the boundary — continuous ramp 1 → 0, largest single-frame
+  change ≤ 0.1, paused after (both loops PASS). Tal's report (the only open one) is this item — mark it fixed after the
+  deploy.
+- **A2:** 2× widgets: Suggests lists the next (up to 3) suggestions under the current one; Left to buy → rows by list;
+  Budget → the month's pace chart; On the way → the next 4 packages; Saved → where it came from; Pace → a taller chart;
+  This week → up to 4 events a day (desktop) / 7 (phone); Noticed (phone) → all, stacked; vs last month → the two months
+  as bars; Next delivery → the ones after it. Empty states are centred. Fixed on the way: Projects' amount ran past the
+  card in narrow cells (now compacts via `FitMoney`), Needs' row overflowed an S card by 6 px (short action label under
+  400 px container width), the Suggests pager ran out of a half-width phone card with many suggestions (`3 / 9` text
+  under 260 px). Rule in `test:polish` A2 (320 checks: 17 widgets × S/M/L × 1×/2× desktop + half/full × 1×/2× phone, demo
+  + 500-item space): no visible leaf outside its card; under 70 % fill fails when the widget has items it isn't showing
+  (`data-more` > 0); widgets that show everything they have (e.g. 1 price drop) are listed as INFO (40). Parity:
+  `docs/design/parity-r17/widgets-2x-*.png` (6).
