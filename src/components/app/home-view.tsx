@@ -15,7 +15,8 @@ import { Sheet } from "@/components/ui/overlays";
 import { activeSource } from "@/lib/calc";
 import { AXIS_LOCK, pagerOffset, pagerRelease, velocity } from "@/lib/gestures";
 import { dayKeyIn, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, monthGrid, shiftMonth, type HomeModel, type Insight, type NeedRow, type Suggestion, type WeekEvent } from "@/lib/home";
-import { formatMoney, formatMoneyCompact } from "@/lib/money";
+import { formatMoney, formatMoneyCompact, formatMoneyShort } from "@/lib/money";
+import { FitMoney } from "@/components/ui/fit-money";
 import { cn } from "@/lib/utils";
 import { DeliveryTrack } from "./delivery-track";
 import { ProductImage, useStatusFlow } from "./item-card";
@@ -62,6 +63,8 @@ function useFmt() {
     return {
       f,
       money: (v: number) => formatMoney(Math.round(v), s.currency, locale),
+      /** Polish #23: a money figure that turns compact when it doesn't fit its line (never an ellipsis). */
+      fit: (v: number) => <FitMoney full={formatMoney(Math.round(v), s.currency, locale)} short={formatMoneyShort(Math.round(v), s.currency, locale)} />,
       compact: (v: number) => formatMoneyCompact(Math.round(v), s.currency, locale),
       wd: (key: string) => wShort.format(utc(key)),
       dayShort: (key: string) => dShort.format(utc(key)),
@@ -371,7 +374,7 @@ function Meter({ parts, marker, className }: { parts: { value: number; color: st
   );
 }
 
-function Stat({ label, value, small, children, valueClass }: { label: string; value: string; small?: string; children?: React.ReactNode; valueClass?: string }) {
+function Stat({ label, value, small, children, valueClass }: { label: string; value: React.ReactNode; small?: string; children?: React.ReactNode; valueClass?: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5 px-3 py-2.5 lg:gap-1.5 lg:px-5 lg:pb-[18px] lg:pt-4">
       <span className="truncate text-[12px] font-semibold text-muted lg:text-[12.5px]" data-stat-label>
@@ -411,7 +414,7 @@ function Stats({ model, only }: { model: HomeModel; only: "left" | "budget" | "w
   const nextKey = o.next != null ? dayKeyIn(o.next, model.ctx.tz) : null;
   return (
     <StatCell only={only}>
-      <Stat label={t.dash.leftToBuy} value={fm.money(l.total)}>
+      <Stat label={t.dash.leftToBuy} value={fm.fit(l.total)}>
         <span className="truncate text-[12px] text-muted">
           <b className="font-bold text-warn">{l.count === 1 ? t.dash.itemsOne : f(t.dash.items, { n: l.count })}</b>
           {l.urgent > 0 && <> · {f(t.dash.urgentN, { n: l.urgent })}</>}
@@ -427,7 +430,7 @@ function Stats({ model, only }: { model: HomeModel; only: "left" | "budget" | "w
         </span>
       </Stat>
       {b.cap != null ? (
-        <Stat label={f(t.dash.monthBudget, { month })} value={fm.money(b.spent)} small={f(t.dash.ofCap, { amount: fm.money(b.cap) })}>
+        <Stat label={f(t.dash.monthBudget, { month })} value={fm.fit(b.spent)} small={f(t.dash.ofCap, { amount: fm.money(b.cap) })}>
           <span className="truncate text-[12px] text-muted">
             {b.left! >= 0 ? (
               <b className="font-bold text-ok">
@@ -442,7 +445,7 @@ function Stats({ model, only }: { model: HomeModel; only: "left" | "budget" | "w
           <span className="truncate text-[11px] text-muted max-lg:hidden">{t.dash.meterNote}</span>
         </Stat>
       ) : (
-        <Stat label={f(t.dash.spentIn, { month })} value={fm.money(b.spent)}>
+        <Stat label={f(t.dash.spentIn, { month })} value={fm.fit(b.spent)}>
           <span className="truncate text-[12px] text-muted">{b.vsUsualPct != null ? f(t.dash.vsUsual, { pct: fm.pct(b.vsUsualPct) }) : t.dash.noUsual}</span>
           {b.usual != null && b.usual > 0 && <Meter parts={[{ value: Math.min(b.spent, b.usual), color: "var(--ink)" }, { value: Math.max(0, b.usual - b.spent), color: "transparent" }]} marker={b.todayFrac} />}
         </Stat>
@@ -469,7 +472,7 @@ function Stats({ model, only }: { model: HomeModel; only: "left" | "budget" | "w
         )}
       </Stat>
       {saved.total > 0.5 ? (
-        <Stat label={t.dash.savedYear} value={fm.money(saved.total)} valueClass="text-ok">
+        <Stat label={t.dash.savedYear} value={fm.fit(saved.total)} valueClass="text-ok">
           <span className="truncate text-[12px] text-muted">{saved.month > 0.5 ? <b className="font-bold text-ok">+{f(t.dash.thisMonth, { amount: fm.money(saved.month) })}</b> : null}</span>
           <span className="flex flex-col text-[11px] leading-snug text-muted max-lg:hidden">
             {saved.drops > 0.5 && <span>{f(t.dash.fromDrops, { amount: fm.money(saved.drops) })}</span>}

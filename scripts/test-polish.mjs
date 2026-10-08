@@ -211,6 +211,30 @@ for (const variant of [{}, { phone: true, he: true }]) {
   await ctx.close();
 }
 
+// ---------- #23: big amounts never end in an ellipsis (worst-case space, Hebrew, 360) ----------
+{
+  const { ctx, page } = await open({ phone: true, he: true });
+  await page.setViewportSize({ width: 360, height: 780 });
+  const cut = [];
+  const scan = (where) => page.evaluate((w) => [...document.querySelectorAll("[data-home-stat] .tabular, [data-fit-money]")]
+    .filter((el) => {
+      const box = el.matches("[data-fit-money]") ? el.parentElement : el;
+      return box.getBoundingClientRect().width > 0 && box.scrollWidth > box.clientWidth + 1;
+    })
+    .map((el) => `${w}: ${el.textContent.trim().slice(0, 40)}`), where);
+  await page.goto(`${BASE}/`);
+  await page.waitForFunction(() => !!window.__nexusTest, null, { timeout: 180_000 });
+  await page.waitForSelector("[data-home-stat]");
+  await page.waitForTimeout(800);
+  cut.push(...(await scan("home")));
+  const shortOnes = await page.locator('[data-fit-money="short"]').count();
+  await page.goto(`${BASE}/?v=to_buy`);
+  await ready(page);
+  cut.push(...(await scan("to_buy")));
+  ok(cut.length === 0 && shortOnes > 0, "#23 no amount in the Home stat tiles / To buy tile is cut; ₪62B goes compact when it doesn't fit", `${cut.join(", ")} short=${shortOnes}`);
+  await ctx.close();
+}
+
 // ---------- reduced motion (phone, OS setting) ----------
 {
   const { ctx, page } = await open({ phone: true, space: personal, reduce: true });

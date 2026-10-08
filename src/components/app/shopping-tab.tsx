@@ -6,7 +6,8 @@ import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { countable, lineTotal } from "@/lib/calc";
 import { dayKeyIn, deliveryTrack } from "@/lib/home";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, formatMoneyShort } from "@/lib/money";
+import { FitMoney } from "@/components/ui/fit-money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BuyFilterChips } from "./buy-filters";
@@ -59,9 +60,11 @@ function ShopSwitch() {
   const way = pending ?? actual;
   const day = n.next != null ? new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { weekday: "short", timeZone: s.clock.tz }).format(new Date(n.next)) : null;
   const waySub = day ? (n.late ? f(t.shopTab.waySubLate, { day, n: n.late }) : f(t.shopTab.waySub, { day })) : n.late ? f(t.shopTab.wayLate, { n: n.late }) : n.ordered ? t.shopTab.noDate : t.shopTab.wayNone;
-  const money = formatMoney(Math.round(n.total), s.currency, locale);
+  // Polish #23: the amount turns compact (₪62.2B) when the line doesn't fit — never an ellipsis on the number.
+  const money = <FitMoney full={formatMoney(Math.round(n.total), s.currency, locale)} short={formatMoneyShort(Math.round(n.total), s.currency, locale)} />;
+  const [subA, subB] = t.shopTab.buySub.split("{amount}");
   const cards = [
-    { v: "to_buy" as const, icon: <ShoppingCart />, label: t.shopTab.toBuy, count: n.toBuy, sub: n.urgent ? f(t.shopTab.buySub, { amount: money, n: n.urgent }) : money, tone: "bg-warn-soft text-warn" },
+    { v: "to_buy" as const, icon: <ShoppingCart />, label: t.shopTab.toBuy, count: n.toBuy, sub: n.urgent ? <>{subA}{money}{f(subB, { n: n.urgent })}</> : money, tone: "bg-warn-soft text-warn" },
     { v: "ordered" as const, icon: <Truck />, label: t.shopTab.onTheWay, count: n.ordered, sub: waySub, tone: "bg-info-soft text-info" },
   ];
   return (

@@ -45,6 +45,15 @@ export function formatMoneyCompact(amount: number | null | undefined, currency: 
   }
 }
 
+/** Polish #23: compact notation at any size (₪49.9M, ‏49.9 מ׳ ₪), locale-aware, currency kept — for a figure that doesn't fit. */
+export function formatMoneyShort(amount: number, currency: string, locale: string) {
+  try {
+    return new Intl.NumberFormat(locale === "he" ? "he-IL" : "en-US", { style: "currency", currency, notation: "compact", maximumFractionDigits: 1 }).format(amount);
+  } catch {
+    return formatMoney(amount, currency, locale);
+  }
+}
+
 /** Parse "₪1,299.90", "US $12.50", "12,50 €" → { amount, currency }. */
 export function parsePrice(raw: unknown, fallbackCurrency?: string): { amount: number; currency?: string } | null {
   if (raw == null) return null;
