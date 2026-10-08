@@ -937,6 +937,9 @@ html body[data-scroll-locked] { margin-right: 0 !important; --removed-body-scrol
 ::view-transition-old(root),
 ::view-transition-new(root) { animation: none; }
 ::view-transition-group(*) { animation-duration: 420ms; animation-timing-function: var(--ease-out); }
+/* Polish #18: collapsing / expanding the desktop sidebar — the layout snaps, the page cross-fades. */
+html[data-vt="sidebar"]::view-transition-old(root) { animation: fade-out 180ms ease-out both; }
+html[data-vt="sidebar"]::view-transition-new(root) { animation: fade 180ms ease-out both; }
 /* The cover keeps its rounded top corners the whole way (Round 10 A2): card and header share one radius, and the
    group itself clips with it while its size animates, so neither end snaps. The snapshots fill the group. */
 ::view-transition-group(*.project-cover) { border-radius: 25px 25px 0 0; overflow: clip; }

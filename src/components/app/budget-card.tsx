@@ -190,7 +190,7 @@ export function MonthBudget() {
       <div className="relative mt-5">
         <div className="flex h-3 gap-1 overflow-hidden rounded-full bg-white/12" role="img" aria-label={`${t.budget.title}: ${m(fc.total)}${fc.cap != null ? ` / ${m(fc.cap)}` : ""}`}>
           {segs.map((sg, i) => (
-            <div key={sg.key} className={cn("grow-x h-full rounded-full transition-[width] duration-500", sg.cls)} style={{ width: pct(sg.value), animationDelay: `${200 + i * 80}ms` }} />
+            <div key={sg.key} className={cn("grow-x h-full rounded-full", sg.cls)} style={{ width: pct(sg.value), animationDelay: `${200 + i * 80}ms` }} />
           ))}
         </div>
         {fc.cap != null && fc.total > fc.cap && <span aria-hidden className="absolute -top-1 -bottom-1 w-0.5 rounded-full bg-white" style={{ insetInlineStart: pct(fc.cap) }} />}

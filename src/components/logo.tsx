@@ -30,7 +30,7 @@ export function LogoPill({ className, collapsed }: { className?: string; collaps
   return (
     <span
       className={cn(
-        "inline-flex h-12 shrink-0 items-center gap-2 overflow-hidden whitespace-nowrap rounded-full bg-brand ps-2.5 text-on-brand transition-[width,padding] duration-[450ms] ease-[var(--ease-out)]",
+        "inline-flex h-12 shrink-0 items-center gap-2 overflow-hidden whitespace-nowrap rounded-full bg-brand ps-2.5 text-on-brand",
         collapsed ? "w-12 pe-2.5" : "pe-4",
         className,
       )}

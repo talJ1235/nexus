@@ -122,7 +122,6 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <div
         className={cn(
           "lg:grid lg:grid-cols-[var(--sw)_minmax(0,1fr)] lg:gap-2 lg:pe-[26px] lg:ps-1",
-          liveW == null && "lg:transition-[grid-template-columns] lg:duration-[400ms] lg:ease-[var(--ease-out)]",
         )}
       >
         <aside className="sticky top-0 hidden h-dvh min-w-0 lg:block" data-sidebar-w={sw}>

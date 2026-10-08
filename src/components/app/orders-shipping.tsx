@@ -38,7 +38,7 @@ export function ShippingRow({ storeKey, store, gap, rule }: { storeKey: string; 
             aria-valuenow={Math.round(gap.progress * 100)}
             className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-sunken"
           >
-            <span className="block h-full rounded-full transition-[width] duration-500" style={{ width: `${gap.progress * 100}%`, background: "var(--store)" }} />
+            <span className="block h-full w-full origin-left rounded-full transition-transform duration-500 ease-[var(--ease-out)] rtl:origin-right" style={{ transform: `scaleX(${gap.progress})`, background: "var(--store)" }} />
           </div>
         </div>
       ) : (

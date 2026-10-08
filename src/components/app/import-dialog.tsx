@@ -285,7 +285,7 @@ export function ImportDialog() {
                 </span>
               </div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sunken">
-                <div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${fill.total ? (fill.done / fill.total) * 100 : 100}%` }} />
+                <div className="h-full w-full origin-left rounded-full bg-accent transition-transform duration-500 ease-[var(--ease-out)] rtl:origin-right" style={{ transform: `scaleX(${fill.total ? fill.done / fill.total : 1})` }} />
               </div>
             </div>
           ) : (

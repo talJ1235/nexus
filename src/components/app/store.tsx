@@ -395,8 +395,14 @@ export function StoreProvider({
   const [budgetWarn, setBudgetWarn] = useState(initial.budgetWarn ?? true);
   const [sidebarCollapsed, setSidebarCollapsedState] = useState(!!ui.sidebarCollapsed);
   const setSidebarCollapsed = useCallback((c: boolean) => {
-    setSidebarCollapsedState(c);
     setCookie(SIDEBAR_COOKIE, c ? "collapsed" : "open");
+    // Polish #18: the layout snaps to its new columns and the page cross-fades (a view transition: opacity on the
+    // compositor, globals.css `html[data-vt="sidebar"]`) instead of re-laying the whole page every frame for 400 ms.
+    const html = document.documentElement;
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<unknown> } };
+    if (!doc.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches || html.getAttribute("data-motion") === "reduce") return setSidebarCollapsedState(c);
+    html.setAttribute("data-vt", "sidebar");
+    doc.startViewTransition(() => flushSync(() => setSidebarCollapsedState(c))).finished.finally(() => html.removeAttribute("data-vt"));
   }, []);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   useEffect(() => {
