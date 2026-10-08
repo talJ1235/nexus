@@ -360,4 +360,5 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   closes (Me sheet → Space settings) raced the closing one's `history.back()` — about 1 in 5 Android Backs then left the
   page. `useBackClose` now holds new history entries until pending skipped pops land (400 ms safety). Smoke step
   "space settings: from the switcher …" desktop + phone (6/6 phone after the fix). The `/settings/people` failure toast
-  in Tal's report did not reproduce (people load fine on the seeded shared spaces).
+  in Tal's report (and the one `server · Error` members query at 07:47) was not investigated further — a single
+  prod query failure with no repeat in the log; left open.
