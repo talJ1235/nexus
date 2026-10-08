@@ -127,7 +127,7 @@ export function CompareSheet() {
                           <StoreMark store={r.store} storeKey={r.storeKey} url={r.url} size={32} />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="truncate font-bold">{r.store}</span>
+                              <span className="bidi truncate font-bold">{r.store}</span>
                               {save != null && save > 0.5 && <span className="shrink-0 rounded-full bg-ok-soft px-2 py-0.5 text-[11px] font-bold text-ok">−{m(save)}</span>}
                             </div>
                             <div className="truncate text-xs text-muted bidi">{r.title}</div>

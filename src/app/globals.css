@@ -657,6 +657,11 @@ body {
   .nx-toast-title, .nx-toast-desc { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 }
 
+/* Polish #8: a toast's title / description takes its reading order from its own text (an English item name in the
+   Hebrew UI keeps its start and loses its end when cut), aligned to the page's start like .bidi. */
+.nx-toast-title, .nx-toast-desc { unicode-bidi: plaintext; text-align: left; }
+:root[dir="rtl"] .nx-toast-title, :root[dir="rtl"] .nx-toast-desc { text-align: right; }
+
 /* Same link pasted again: the existing card glows once to show where the +1 went. */
 .bump { animation: bump 1.2s var(--ease-out); }
 @keyframes bump {

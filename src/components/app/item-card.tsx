@@ -437,7 +437,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
             </>
           )}
           {collection && stores[0] && <span aria-hidden className="max-sm:hidden">·</span>}
-          {stores[0] && <span className="min-w-0 truncate">{stores[0]}</span>}
+          {stores[0] && <span className="bidi min-w-0 truncate">{stores[0]}</span>}
           {stores.length > 1 && (
             <span dir="ltr" className="shrink-0 text-[11px] max-sm:hidden">
               +{stores.length - 1}

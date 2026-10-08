@@ -113,7 +113,7 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 {known && <StoreMark store={g.store} storeKey={g.key} url={g.url} size={24} />}
                 <div className="min-w-0">
-                  <h2 className="truncate text-base font-semibold">{g.store}</h2>
+                  <h2 className="bidi truncate text-base font-semibold">{g.store}</h2>
                   <p className="tabular text-xs text-muted">
                     {g.items.length === 1 ? t.collection.itemsCountOne : f(t.orders.items, { n: g.items.length })}
                     {g.gap.fee > 0 && <span> · {f(t.orders.fee, { amount: formatMoney(g.gap.fee, s.currency, locale) })}</span>}
