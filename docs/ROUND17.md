@@ -132,7 +132,7 @@ Guard (new, in `guards.yml`): `test:clip` walks all routes/sections/sheets and f
 (`text-overflow: ellipsis` or `-webkit-line-clamp`) **and** a way to read the full text (title / expandable); numbers
 never truncate (polish #23). Report = screen + selector + text.
 
-### A7. [ ] Space switch: a fixed, noticeable moment
+### A7. [x] Space switch: a fixed, noticeable moment
 Tal: the switch should take the same time every time, even when the personal space loads faster, so the user feels
 "I moved space". Measure on prod the slowest switch (p95 over 20 switches each way, personal ↔ Jacoby Home, warm and
 first-of-session) + a margin → fixed total between **1.5 s and 2.0 s** (write the measurement and the chosen value in
@@ -371,3 +371,11 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   from the first frame with skeleton rows for the others; the tiles stack one per line under 1024 px. Smoke (phone,
   local prod build, file DB): CLS 0 cold and warm, devices answer 7 ms warm, no tile text cut at 360. Not measured
   against Turso (this session doesn't touch prod) — the batch is the part that matters there.
+- **A7 — chosen 1.8 s.** Not measured on prod: this session has no signed-in prod session to drive and doesn't touch
+  prod. Local production build, seeded data (`node scripts/switch-timing.mjs 20`, 40 switches personal ↔ shared):
+  data ready p50 111 ms, p95 228 ms, max 394 ms (first of the session); R16's local D4 run saw ~1.2 s data loads, and
+  Turso from Vercel adds round trips — so the moment is set near the top of the range, 1800 ms, leaving ~1.5 s of
+  margin over the slowest local load. Result: all 40 totals 1813–1850 ms (±50 ms of 1800), 60 fps median; reduced
+  motion: fixed 600 ms cross-fade, 10/10 within 608–642 ms. A tap no longer ends it; Esc / Back do. The tile breathes once
+  in the hold so the longer moment reads as one gesture. **Tal:** run `scripts/switch-timing.mjs`'s numbers against prod
+  feel — if a switch on the phone ever shows the progress line, raise `SWITCH_MS` (max 2000) in `spaces/moment.tsx`.

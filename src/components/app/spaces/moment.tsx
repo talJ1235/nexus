@@ -8,13 +8,16 @@ import { deepOf, gradientOf } from "./look";
 import { Facepile } from "./space-ui";
 import { SpaceTile } from "./tile";
 import { EASE_OUT } from "@/lib/motion";
+import { useBackClose } from "@/components/ui/sheet-drag";
 
 /**
  * R16 D4 — "You're now in Jacoby Home": on a space switch the tile flies from the switcher to the centre (a shared
  * element: a clone animated from the source tile's box), a wash of the space colour fills the screen, the name and the
- * faces come in; ≈ 800 ms, then it lifts off Home with the new space's data already swapped in underneath. The data
- * loads during it; not ready → it holds with a thin progress line, up to 3 s, then gives way to Home's skeletons.
- * A tap ends it early. Reduced motion: a 150 ms cross-fade with the name. Transform + opacity only (Web Animations).
+ * faces come in, then it lifts off Home with the new space's data already swapped in underneath.
+ * R17 A7 (Tal): the moment takes the same time on every switch — SWITCH_MS from the tap to Home, however fast the data
+ * is — so the move is felt; the choreography fills it. The data loads during it; not ready at the end → it holds with a
+ * thin progress line, up to 3 s, then gives way to Home's skeletons. A tap does NOT end it; Esc / Back still do.
+ * Reduced motion: a fixed 600 ms cross-fade with the name. Transform + opacity only (Web Animations).
  */
 
 export type Moment = { card: SpaceCard; from: DOMRect | null; ready: Promise<boolean> };
@@ -24,7 +27,10 @@ export function startMoment(m: Moment) {
 }
 
 const TILE = 96;
-const MIN_MS = 820;
+/** The whole moment, tap → Home (R17 A7: measured, see docs/ROUND17.md Open). */
+export const SWITCH_MS = 1800;
+const REDUCED_MS = 600;
+const LEAVE_MS = 240;
 const HOLD_MS = 3000;
 const EASE = EASE_OUT;
 
@@ -63,14 +69,16 @@ function Run({ m, onEnd }: { m: Moment; onEnd: () => void }) {
       anims.push(a);
     };
     const t0 = performance.now();
+    performance.mark("moment:start");
     let ready = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const leave = () => {
       if (ended.current) return;
       ended.current = true;
-      const out = root.current?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: reduce ? 150 : 240, easing: "ease-out", fill: "forwards" });
-      if (out) out.onfinish = onEnd;
-      else onEnd();
+      const out = root.current?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: reduce ? 150 : LEAVE_MS, easing: "ease-out", fill: "forwards" });
+      const end = () => (performance.mark("moment:end"), onEnd());
+      if (out) out.onfinish = end;
+      else end();
     };
     if (reduce) {
       go(root.current, [{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: "linear" });
@@ -85,10 +93,14 @@ function Run({ m, onEnd }: { m: Moment; onEnd: () => void }) {
       } else go(el, [{ transform: "scale(.6)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 420, easing: EASE });
       go(wash.current, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
       go(text.current, [{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { duration: 320, delay: 260, easing: EASE });
+      // The rest of the time the tile breathes once (a slow settle), so the hold reads as part of the moment.
+      go(tile.current?.firstElementChild ?? null, [{ transform: "none" }, { transform: "scale(1.035)", offset: 0.5 }, { transform: "none" }], { duration: SWITCH_MS - LEAVE_MS - 600, delay: 600, easing: "ease-in-out" });
     }
-    const minMs = reduce ? 150 : MIN_MS;
+    // Leave so that the fade-out ends exactly at the fixed total.
+    const minMs = reduce ? REDUCED_MS - 150 : SWITCH_MS - LEAVE_MS;
     void m.ready.then(() => {
       ready = true;
+      performance.mark("moment:ready");
       setSwitching(false);
       const left = minMs - (performance.now() - t0);
       if (left <= 0) leave();
@@ -110,6 +122,7 @@ function Run({ m, onEnd }: { m: Moment; onEnd: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Esc / Back cancel it (a tap doesn't — Tal wants the moment noticed).
   const skip = () => {
     if (ended.current) return;
     ended.current = true;
@@ -117,6 +130,13 @@ function Run({ m, onEnd }: { m: Moment; onEnd: () => void }) {
     setSwitching(true);
     onEnd();
   };
+  useBackClose(true, skip, "(max-width: 1023px)");
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => e.key === "Escape" && (e.preventDefault(), skip());
+    window.addEventListener("keydown", k, true);
+    return () => window.removeEventListener("keydown", k, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- skip only touches refs and stable setters
+  }, []);
 
   const c = m.card;
   return (
@@ -124,8 +144,7 @@ function Run({ m, onEnd }: { m: Moment; onEnd: () => void }) {
       ref={root}
       role="status"
       aria-live="polite"
-      onPointerDown={skip}
-      style={{ position: "fixed", inset: 0, zIndex: 70, display: "grid", placeItems: "center", cursor: "pointer", contain: "strict" }}
+      style={{ position: "fixed", inset: 0, zIndex: 70, display: "grid", placeItems: "center", contain: "strict" }}
       data-space-moment={c.id}
     >
       <div ref={wash} aria-hidden style={{ position: "absolute", inset: 0, background: `radial-gradient(120% 90% at 50% 40%, ${deepOf(c.color)}f2, ${deepOf(c.color)} 70%), ${gradientOf(c.color)}`, willChange: "opacity" }} />
