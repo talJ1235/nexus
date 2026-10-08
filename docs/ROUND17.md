@@ -327,4 +327,5 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   multi-second stall. Why: a check that fails on unchanged code teaches everyone to ignore FAIL lines. Actions:
   `checkout` v7.0.1, `setup-node` v7.0.0, `upload-artifact` v7.0.1, `gitleaks-action` v3.0.0 (all node24, SHA-pinned,
   each release ≥ 2 weeks old except gitleaks v3 = its only node24 release), `runs-on: ubuntu-24.04` in both workflows.
-  Smoke at this point (fresh DB, local build): desktop 80/80, phone 93/93.
+  Smoke at this point (fresh DB, local build): desktop 79/80 + the DB-path step green when rerun alone; phone 92/93 +
+  quick actions green 3/3 alone after the fix (full reruns at the end of the round).
