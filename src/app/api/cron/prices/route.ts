@@ -4,7 +4,7 @@ import { safeEqualStr } from "@/lib/auth/crypto";
 import { Scoped } from "@/lib/db-scoped";
 import { purgeSpaceData } from "@/lib/db-scoped/spaces";
 import { purgeTombstones } from "@/lib/db-scoped/feed";
-import { dropOldSamples } from "@/lib/db-scoped/errors";
+import { dropOldSamples, purgeOldErrors } from "@/lib/db-scoped/errors";
 import { reportError } from "@/lib/errors/record";
 import { systemSpaces } from "@/lib/db-scoped/system";
 import { kvSet } from "@/lib/kv";
@@ -82,7 +82,9 @@ export async function GET(req: NextRequest) {
   // R16 B1: change-feed tombstones are kept 30 days. C2: error samples too (counts stay).
   const tombstones = await purgeTombstones().catch(failed("tombstones", 0));
   const errorSamples = await dropOldSamples().catch(failed("error-samples", 0));
-  const summary = { at: Date.now(), spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples };
+  // R17 E5: error-log rows (and viewport diagnostics) not seen for 30 days are deleted.
+  const errorsPurged = await purgeOldErrors().catch(failed("error-purge", 0));
+  const summary = { at: Date.now(), spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples, errorsPurged };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }

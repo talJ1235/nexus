@@ -1120,6 +1120,7 @@ export const en = {
     categorizing: "Sorting it out…",
     added: "Added",
     partial: "Added — some details couldn't be read, fill them in",
+    blocked: "Store blocks automatic reading — add the price by hand",
     failed: "Couldn't read that page. Added the link so you can fill in the details.",
     invalidUrl: "That doesn't look like a link.",
     queue: "{done} of {total} added",

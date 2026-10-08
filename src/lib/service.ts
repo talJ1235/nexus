@@ -161,6 +161,7 @@ export async function buildDraft(s: Scoped, ex: Extracted, hintCollectionId: str
     tags,
     collectionId,
     quality,
+    ...(ex.blocked && price == null ? { blocked: true } : {}),
     source: {
       url: ex.url,
       normalizedUrl: ex.normalizedUrl,
@@ -171,7 +172,8 @@ export async function buildDraft(s: Scoped, ex: Extracted, hintCollectionId: str
       shipping: null,
       availability: ex.availability,
       rawTitle: title,
-      extractMethod: method,
+      // R17 C2: "blocked" marks a store that refuses automatic reading (the sheet says to add the price by hand).
+      extractMethod: ex.blocked && price == null ? "blocked" : ex.via && ex.via !== "direct" ? `${method}+${ex.via}` : method,
       gtin: ex.gtin ?? null,
     },
   };

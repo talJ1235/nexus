@@ -69,3 +69,23 @@ export async function dropOldSamples(days = 30) {
   await db.batch([db.update(schema.errorEvent).set({ sample: null }).where(inArray(schema.errorEvent.fingerprint, fs)), db.delete(schema.errorUser).where(inArray(schema.errorUser.fingerprint, fs))]);
   return fs.length;
 }
+
+/** R17 C2/E5: a store host that reads again through the fetch ladder — its open "extract · blocked/fetch" entries are fixed
+ *  (if it's refused again later, the entry comes back as new). `where` is `extract:<domain>`. */
+export async function markExtractFixed(host: string) {
+  const where = [`extract:${host}`, `extract:www.${host}`];
+  await db
+    .update(schema.errorEvent)
+    .set({ status: "fixed" })
+    .where(and(eq(schema.errorEvent.kind, "extract"), inArray(schema.errorEvent.code, ["blocked", "fetch", "no_price", "parse"]), inArray(schema.errorEvent.where, where), sql`${schema.errorEvent.status} <> 'fixed'`));
+}
+
+/** R17 E5: retention — error-log rows (and viewport diagnostics, kind `viewport`) not seen for 30 days are deleted. */
+export async function purgeOldErrors(days = 30) {
+  const cut = Date.now() - days * 86_400_000;
+  const old = await db.select({ f: schema.errorEvent.fingerprint }).from(schema.errorEvent).where(lt(schema.errorEvent.lastSeen, cut));
+  if (!old.length) return 0;
+  const fs = old.map((o) => o.f);
+  await db.batch([db.delete(schema.errorUser).where(inArray(schema.errorUser.fingerprint, fs)), db.delete(schema.errorEvent).where(inArray(schema.errorEvent.fingerprint, fs))]);
+  return fs.length;
+}

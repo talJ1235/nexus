@@ -455,6 +455,11 @@ export function ItemSheet() {
                     aria-label={t.item.title}
                     className="bidi -mx-1.5 w-[calc(100%+12px)] field-sizing-content min-h-[2.4em] resize-none rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-[17px] font-semibold leading-snug outline-none hover:border-line focus:border-accent"
                   />
+                  {active?.extractMethod === "blocked" && active.price == null && (
+                    <p className="mt-1 text-[12px] text-muted" data-store-blocked>
+                      {t.add.blocked}
+                    </p>
+                  )}
                   {item.fullTitle && <FullTitle key={item.id} text={item.fullTitle} onUse={() => void save({ title: item.fullTitle!, fullTitle: null })} />}
                   <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-muted">
                     {active?.store && <span>{active.store}</span>}

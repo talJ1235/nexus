@@ -188,13 +188,13 @@ Today: `extract.ts` fetches from Vercel; stores behind Cloudflare/Akamai refuse 
 error log). The planner fetched Tal's cwc link from a non-Vercel server with no block: title, ₪999, image, and the
 price is in `product:price:amount` (which `parseHtml` already reads). So the page is fine — the IP is the problem.
 
-### C1. [ ] Measure
+### C1. [x] Measure
 `scripts/blocked-probe.mjs`: for every store host in the error log + a list of ~30 Israeli and global stores
 (cwc.co.il, ksp.co.il, ivory.co.il, bug.co.il, zap.co.il, Shufersal, Rami Levy, IKEA IL, Amazon, AliExpress, Temu,
 eBay, Shein, …) fetch one product page through each method below **from Vercel** (a debug route, admin-only, like
 `/api/debug/extract`) and record: status, blocked y/n, fields found, ms. Table in Open, before and after.
 
-### C2. [ ] A ladder of methods (server-side only, free)
+### C2. [x] A ladder of methods (server-side only, free)
 Try in order, stop at the first that yields title + price (or title + image):
 1. Direct (today).
 2. **Platform APIs** by detection or a per-host cache of what worked: WooCommerce Store API
@@ -456,3 +456,19 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   sensitive. (b) **Keep ICS, nudge Google**: no API exists to force a refresh; changing the feed URL forces a re-fetch
   but breaks the subscription — not usable. (c) **Apple/Outlook** already refresh more often (Apple honours
   `REFRESH-INTERVAL` ~hourly). Recommendation: (a) with `calendar.app.created`, opt-in per user, in a later round.
+- **C1/C2:** the ladder lives in `lib/extract.ts` (`extractFromUrl` = direct → WooCommerce Store API → Shopify
+  `product.js` → Cloudflare Worker; first rung with a name + a price/picture wins; per-host memory `fetch:win:<host>`, 7
+  days, tried first; everything through `safeFetch`; the tracker, compare, picture and repair paths all call
+  `extractFromUrl`, so they climb it too). Still refused → the item is saved as read, the source is marked `blocked`, a
+  plain note (not an error toast) and the sheet say "Store blocks automatic reading — add the price by hand". A host
+  that reads again marks its open `extract · blocked/fetch` log entries fixed (E5). Worker: `scripts/cf-worker/
+  fetch-worker.js` + README (secret header, http(s) only, private/loopback/link-local refused, ≤ 5 checked redirects,
+  2.5 MB, 9 s, no cookies). Probe: `/api/debug/blocked?url=` (admin) + `scripts/blocked-probe.mjs` (prints the table).
+  **Measured from here, not from Vercel:** from this PC (a home IP) cwc.co.il's product page loads (title, ₪999, picture
+  from `product:price:amount` / og tags) but its `/wp-json/wc/store/v1/` Store API answers a Cloudflare challenge (403) —
+  so for cwc the platform-API rung won't help from Vercel either; **the Worker is the fix for cwc**. The before/after
+  table must be run on prod after the deploy (`BASE=https://nexus-ashen-beta.vercel.app SMOKE_ADMIN_TOKEN=…
+  SMOKE_ADMIN_EMAIL=… node scripts/blocked-probe.mjs`, once the Worker env vars are set); several of the ~30 URLs in the
+  script are store home pages or placeholder product ids — swap in real product links before reading the numbers.
+  Acceptance "cwc returns title + price + image on prod" therefore depends on Tal's Worker setup (see "Before you run");
+  `test:blocked` covers the parsers, the cwc page as the Worker returns it, and the Worker's private-address guard.

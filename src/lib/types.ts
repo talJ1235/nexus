@@ -66,6 +66,8 @@ export type ItemDraft = {
   collectionId: string | null;
   source: SourceDraft;
   quality: "full" | "partial" | "failed";
+  /** R17 C2: the store refused every rung of the fetch ladder and no price was found — "add the price by hand". */
+  blocked?: boolean;
 };
 
 export type Duplicate = { itemId: string; title: string; reason: "url" | "title" };

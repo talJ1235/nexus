@@ -59,7 +59,8 @@
     "test:polish": "node scripts/test-polish.mjs",
     "test:clip": "node scripts/test-clip.mjs",
     "test:ai-quota": "tsx --conditions=react-server scripts/test-ai-quota.ts",
-    "test:short-name": "tsx scripts/test-short-name.ts"
+    "test:short-name": "tsx scripts/test-short-name.ts",
+    "test:blocked": "tsx --conditions=react-server scripts/test-blocked.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",

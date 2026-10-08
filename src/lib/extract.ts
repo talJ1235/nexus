@@ -4,6 +4,8 @@ import * as cheerio from "cheerio";
 import { parsePrice } from "./money";
 import { normalizeUrl, storeFromUrl } from "./stores";
 import { isPublicHttpUrl } from "./utils";
+import { kvGet, kvSet } from "./kv";
+import { parseShopify, parseWoo, shopifyApiUrl, wooApiUrl, type ApiProduct } from "./store-apis";
 
 export type Extracted = {
   url: string; // final URL after redirects
@@ -19,7 +21,9 @@ export type Extracted = {
   /** Barcode from JSON-LD (gtin13/12/8/gtin/gtin14, or a numeric mpn), digits only. */
   gtin?: string | null;
   store: { key: string; name: string };
-  method: "jsonld" | "microdata" | "meta" | "title" | "ai" | "client" | "none";
+  method: "jsonld" | "microdata" | "meta" | "title" | "ai" | "client" | "none" | "woo" | "shopify" | "worker";
+  /** R17 C2: which rung of the fetch ladder read it (direct = our own fetch of the page). */
+  via?: FetchStep;
   pageText: string | null; // trimmed visible text, for AI fallback
   blocked: boolean;
 };
@@ -310,7 +314,105 @@ function storeSpecific(html: string, storeKey: string): { price: number | null; 
   return { price: null, currency: null, title: null };
 }
 
-export async function extractFromUrl(inputUrl: string): Promise<Extracted> {
+// ---------- R17 C2: the fetch ladder ----------
+// Stores behind Cloudflare/Akamai refuse Vercel's addresses (the page is fine — the IP is the problem). In order, until
+// one yields a name + a price (or a name + a picture): 1. our own fetch (as before); 2. the store's own public JSON
+// (WooCommerce Store API, Shopify product.js); 3. the Cloudflare Worker (CF_FETCH_URL + CF_FETCH_SECRET; skipped
+// without them — scripts/cf-worker/). The rung that worked is remembered per host for 7 days (kv fetch:win:<host>)
+// and tried first next time. Every request goes through safeFetch (SSRF guard). The tracker uses the same ladder.
+export type FetchStep = "direct" | "woo" | "shopify" | "worker";
+const STEPS: FetchStep[] = ["direct", "woo", "shopify", "worker"];
+const WIN_MS = 7 * 86_400_000;
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "";
+  }
+};
+const good = (e: Extracted) => !e.blocked && !!e.title && (e.price != null || !!e.image);
+export const workerConfigured = () => !!(process.env.CF_FETCH_URL && process.env.CF_FETCH_SECRET && process.env.CF_FETCH_SECRET.length >= 16);
+
+/** Read a product link, climbing the ladder when the store refuses us. `only` runs one rung (the probe). */
+export async function extractFromUrl(inputUrl: string, opts: { only?: FetchStep; remember?: boolean } = {}): Promise<Extracted> {
+  const host = hostOf(inputUrl);
+  let win: { step: FetchStep; at: number } | null = null;
+  if (!opts.only && host) {
+    try {
+      const v = JSON.parse((await kvGet(`fetch:win:${host}`)) ?? "null") as { step: FetchStep; at: number } | null;
+      if (v && Date.now() - v.at < WIN_MS && STEPS.includes(v.step)) win = v;
+    } catch {}
+  }
+  const order = opts.only ? [opts.only] : win ? [win.step, ...STEPS.filter((s) => s !== win!.step)] : STEPS;
+  let first: Extracted | null = null;
+  for (const step of order) {
+    const ex = await runStep(step, inputUrl).catch(() => null);
+    if (!ex) continue;
+    if (step === "direct" || !first) first ??= ex;
+    if (good(ex)) {
+      if (!opts.only && opts.remember !== false && host && win?.step !== step) await kvSet(`fetch:win:${host}`, JSON.stringify({ step, at: Date.now() })).catch(() => {});
+      if (step !== "direct" && host) await onLadderWin(host).catch(() => {});
+      return { ...ex, via: step };
+    }
+  }
+  if (first) return { ...first, via: first.via ?? "direct" };
+  const s = storeFromUrl(inputUrl);
+  return { url: inputUrl, normalizedUrl: normalizeUrl(inputUrl), title: null, description: null, brand: null, image: null, price: null, currency: null, availability: null, siteName: null, method: "none", pageText: null, blocked: true, store: { key: s.key, name: s.name }, via: "direct" };
+}
+
+/** A host that was refused and now reads through the ladder: its "extract · blocked" log entries are marked fixed. */
+async function onLadderWin(host: string) {
+  const { markExtractFixed } = await import("./db-scoped/errors");
+  await markExtractFixed(host);
+}
+
+async function runStep(step: FetchStep, url: string): Promise<Extracted | null> {
+  if (step === "direct") return extractDirect(url);
+  if (step === "worker") return workerConfigured() ? extractViaWorker(url) : null;
+  const api = step === "woo" ? wooApiUrl(url) : shopifyApiUrl(url);
+  if (!api || !isPublicHttpUrl(url)) return null;
+  const res = await safeFetch(api, { headers: { "user-agent": HEADERS["user-agent"], accept: "application/json", "accept-language": HEADERS["accept-language"] }, timeoutMs: 5000, maxBytes: 1_000_000 });
+  if (!res.ok || !/json|javascript/.test(res.headers.get("content-type") ?? "")) return null;
+  const p = step === "woo" ? parseWoo(res.text) : parseShopify(res.text);
+  return p ? fromApi(url, p, step) : null;
+}
+
+/** An API product as an extraction (the page URL stays the item's link). */
+export function fromApi(url: string, p: ApiProduct, step: "woo" | "shopify"): Extracted {
+  const store = storeFromUrl(url);
+  return {
+    url,
+    normalizedUrl: normalizeUrl(url),
+    title: p.title,
+    description: null,
+    brand: p.brand,
+    image: p.image,
+    price: p.price,
+    currency: p.currency ?? store.currency ?? null,
+    availability: null,
+    siteName: null,
+    store: { key: store.key, name: store.name },
+    method: step,
+    pageText: null,
+    blocked: false,
+  };
+}
+
+/** The Worker fetches the page from Cloudflare's network and hands back the HTML (it checks the secret, http(s) only,
+ *  no private ranges, size/time caps, no cookies). Our side: the target is a public URL; the worker URL goes through
+ *  safeFetch like any other. */
+async function extractViaWorker(url: string): Promise<Extracted | null> {
+  if (!isPublicHttpUrl(url)) return null;
+  const target = fetchTarget(url);
+  const res = await safeFetch(`${process.env.CF_FETCH_URL!.replace(/\/$/, "")}/?url=${encodeURIComponent(target.url)}`, { headers: { "x-fetch-secret": process.env.CF_FETCH_SECRET! }, timeoutMs: 9000, maxBytes: 2_500_000 });
+  if (!res.ok) return null;
+  const finalUrl = res.headers.get("x-final-url") || target.url;
+  const status = Number(res.headers.get("x-status") || 200);
+  const ex = fromHtml(res.text, finalUrl, status);
+  return { ...ex, method: ex.method === "none" ? "none" : ex.method };
+}
+
+async function extractDirect(inputUrl: string): Promise<Extracted> {
   const base = {
     url: inputUrl,
     normalizedUrl: normalizeUrl(inputUrl),
@@ -338,6 +440,13 @@ export async function extractFromUrl(inputUrl: string): Promise<Extracted> {
   if (!fetched.html) {
     return { ...base, url: finalUrl, normalizedUrl: normalizeUrl(finalUrl), store: { key: store.key, name: store.name }, blocked: fetched.status >= 400 };
   }
+  return fromHtml(fetched.html, finalUrl, fetched.status);
+}
+
+/** A fetched product page → an extraction (our own fetch and the Worker's). */
+export function fromHtml(html: string, finalUrl: string, status: number): Extracted {
+  const fetched = { html, status };
+  const store = storeFromUrl(finalUrl);
   const parsed = parseHtml(fetched.html, finalUrl);
   const blocked =
     fetched.status >= 400 ||
