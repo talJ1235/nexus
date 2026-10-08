@@ -676,6 +676,21 @@ Commits `R16.G1`–`R16.G4` on `round16` (no DB change; `rate_limit` gets `ba:` 
   phone — the board had no state with Half/Full + 2× while dragging, so the controls sit under each widget; (3) the
   error log's `cwc.co.il` "blocked" entries are probably your failing link (notes item 10) — the site refuses our
   fetch; paste the URL and R17 can look at a per-site fallback.
+- **Release (2026-10-07/08):** `main` fast-forwarded to round16 (`cff3455`, then `fdf2276`); `guards` on `main` green
+  with every new step (run 37669091097: tenancy 46/46, errors, live, settings — D4 60 fps, E1 drag 60 fps, 0/81 frames
+  > 32 ms). The first `guards` run failed one tenancy UI check that still looked for the old "Now in …" toast (D4
+  replaced it with the moment) — test updated (`fdf2276`).
+- **Prod smoke after the deploy (run 37669282070, `94c3abd`, with the Android hotfix):** 41 PASS, 13 FAIL. 10 also
+  failed on the hotfix-only deploy just before (37665679010): Needs-you count, month view, calendar arrival, demo-id
+  layouts, To-buy summary on demo pages, category filter, checkboxes, the viewport-guard step, offline, a wasm
+  console line — data-shaped / hotfix-side, not R16 Session 2. The 3 new ones were mine and are fixed (`7a8e093`):
+  section order (the step wanted ≥ 4 sections; Household has 4 and Tal's data shows 3), the status strip's "budget
+  pace" tile had nowhere to go when Month pace isn't on Home (now: nearest widget — Budget — or the Spending view; Needs
+  you → alerts panel), and Customise.
+- **Tal — your Home layout:** the prod smoke's Customise step saved its edits to your account (since E1 the layout is
+  saved on the server, not in a cookie) and one run stopped half-way, so your Home is probably "Custom" with **Next
+  delivery hidden and Needs you moved up**. Home → Customize → **Reset** → Done puts Household back. The step is now
+  local-only (`SMOKE_WRITE` on localhost), so it won't happen again.
 
 ### Hotfix — Android PWA viewport (2026-10-07)
 Separate from Session 2 (worktree `../nexus-pwafix`, branch `hotfix-pwa-viewport` off `origin/main`).
