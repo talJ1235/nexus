@@ -424,7 +424,7 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
       </div>
 
       <div className="flex flex-1 flex-col gap-[5px] px-2 pb-1.5 pt-2.5 prow:min-w-0 prow:gap-[2px] prow:p-0 pcard:gap-0.5 pcard:px-[11px] pcard:pb-[11px] pcard:pt-[9px]">
-        <h3 className="bidi line-clamp-2 min-h-[2.7em] text-[14px] font-semibold leading-[1.35] text-ink prow:line-clamp-1 prow:min-h-0 prow:text-[13.5px] pcard:min-h-[34px] pcard:text-[13px] pcard:leading-[1.3]">
+        <h3 className="bidi line-clamp-2 min-h-[2.7em] [overflow-wrap:anywhere] text-[14px] font-semibold leading-[1.35] text-ink prow:line-clamp-1 prow:min-h-0 prow:text-[13.5px] pcard:min-h-[34px] pcard:text-[13px] pcard:leading-[1.3]">
           {item.title}
         </h3>
         {/* Phones show the store here (rows are grouped by project; cards carry a project pill). */}
