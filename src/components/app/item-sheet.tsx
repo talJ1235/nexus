@@ -455,6 +455,7 @@ export function ItemSheet() {
                     aria-label={t.item.title}
                     className="bidi -mx-1.5 w-[calc(100%+12px)] field-sizing-content min-h-[2.4em] resize-none rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-[17px] font-semibold leading-snug outline-none hover:border-line focus:border-accent"
                   />
+                  {item.fullTitle && <FullTitle key={item.id} text={item.fullTitle} onUse={() => void save({ title: item.fullTitle!, fullTitle: null })} />}
                   <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-muted">
                     {active?.store && <span>{active.store}</span>}
                     {item.brand && (
@@ -686,3 +687,20 @@ function SheetMoreMenu({ item, onDelete }: { item: ItemWithSources; onDelete: ()
     </Menu>
   );
 }
+
+/** R17 B1: the store's full name under the short one — muted, two lines, a tap opens it all; "Use full name". */
+function FullTitle({ text, onUse }: { text: string; onUse: () => void }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-0.5 text-[12.5px] leading-snug text-muted" data-full-title>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className={cn("bidi block w-full text-start", !open && "line-clamp-2")} data-expandable>
+        {text}
+      </button>
+      <button type="button" onClick={onUse} className="mt-0.5 text-[12px] font-semibold text-ink underline underline-offset-2" data-use-full-title>
+        {t.item.useFullName}
+      </button>
+    </div>
+  );
+}
+

@@ -1333,6 +1333,7 @@ export const he: Dict = {
     open: "פתח את הקיים",
   },
   item: {
+    useFullName: "להשתמש בשם המלא",
     iconBadge: "אייקון",
     iconHint: "אייקון זמני — Nexus ממשיך לחפש תמונה. אפשר לקבוע תמונה בפרטים.",
     plan: "תכנון",

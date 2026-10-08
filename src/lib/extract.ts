@@ -353,7 +353,8 @@ export async function extractFromUrl(inputUrl: string): Promise<Extracted> {
     }
     if (!parsed.title && extra.title) parsed.title = extra.title;
   }
-  if (parsed.title) parsed.title = parsed.title.replace(/\s*-\s*AliExpress(\s*\d+)?\s*$/i, "").trim();
+  // R17 B1: also "… AliExpress 34" with no dash.
+  if (parsed.title) parsed.title = parsed.title.replace(/\s*(?:-\s*)?AliExpress(\s*\d+)?\s*$/i, "").trim();
   return {
     ...parsed,
     title: blocked && parsed.method === "title" ? null : parsed.title,

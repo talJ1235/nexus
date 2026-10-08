@@ -6,6 +6,9 @@
   once work too. A placeholder card appears at once and fills in (name, price, picture, store, category).
 - The same link again (still to buy) → quantity +1 (with Undo). Same product from another store → offered as another
   store for the existing item.
+- **Short names**: a long store title ("Two Pieces Car Perfume Clip … AliExpress 34") gets a short name (≤ 40
+  characters, same language); the store's full name shows under it in the item sheet — tap to read it all, or
+  **Use full name** (להשתמש בשם המלא). Search finds both. "Two Pieces …" sets the quantity to 2.
 - Manual entry: type a name instead of a link; every field can be edited in the item sheet.
 - Phone share sheet: share a product page to Nexus (installed app).
 - **Pictures**: Nexus reads what the product is (even abbreviated

@@ -1331,6 +1331,7 @@ export const en = {
     open: "Open existing",
   },
   item: {
+    useFullName: "Use full name",
     iconBadge: "icon",
     iconHint: "A placeholder icon — Nexus keeps looking for a photo. Set your own in the details.",
     plan: "Plan",

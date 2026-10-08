@@ -145,7 +145,7 @@ Acceptance: 20 switches → total duration within ± 50 ms of the chosen value, 
 
 ## Part B — names and calendar
 
-### B1. [ ] Short names for long product titles (AliExpress first)
+### B1. [x] Short names for long product titles (AliExpress first)
 Tal's example: "Two Pieces Car Perfume Clip Flower Air Outlet Decoration Bright Peach Blossom Cherry Blossom Car Air
 Refresher with Fresh Color AliExpress 34" → what it is: a flower-shaped car air-vent perfume clip.
 - New nullable column `full_title` on items (additive). On extract, when the title is long (> 50 chars) or noisy:
@@ -424,3 +424,13 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   signed-out checks):** Vercel → `ADMIN_EMERGENCY_TOKEN` (40+ random chars) and `ADMIN_EMAILS` = your address; GitHub →
   repo secrets `SMOKE_ADMIN_TOKEN` (same token) and `SMOKE_ADMIN_EMAIL`; remove `APP_PASSWORD` from Vercel and the
   `NEXUS_PASSWORD` repo secret (unused now).
+- **B1:** `lib/short-name.ts` (rules: store suffix incl. "AliExpress 34" with no dash — `extract.ts` too — store prefix
+  ("Amazon.com:"), a leading pack count → quantity, filler words, colour lists, repeats, a clause break, ≤ 40 on a word
+  boundary, the title's own language) + the add flow's existing categorize call now asks for a ≤ 40-char name and `qty`
+  (no extra AI call per link); the AI's name is used only within the limits, else the rules'. New nullable column
+  `items.full_title` (migrate-r17). Item sheet: the full name muted under the title (2 lines, tap to expand) + **Use full
+  name**; search matches both; undo snapshots keep it. Backfill: daily cron step `short-names`, items with
+  `length(title) > 50`, `full_title IS NULL` and a title that still equals the store's `raw_title` (renamed items and
+  items with no store read are skipped); 30 AI names per run from the system budget (never a person's quota), the rest
+  wait for the next run. `test:short-name`: 20 real titles (AliExpress, Amazon, Temu, Hebrew stores, IKEA) → rules
+  output, plus the AI-limit rule. Backfill counts on the prod snapshot: see the migration rehearsal below.

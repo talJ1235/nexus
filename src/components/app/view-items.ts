@@ -24,7 +24,7 @@ export function useTable() {
 
 export function matchesQuery(i: ItemWithSources, q: string) {
   if (!q.trim()) return true;
-  const hay = [i.title, i.brand, i.category, i.notes, ...(i.tags ?? []), ...i.sources.map((s) => s.store)].filter(Boolean).join(" ").toLowerCase();
+  const hay = [i.title, i.fullTitle, i.brand, i.category, i.notes, ...(i.tags ?? []), ...i.sources.map((s) => s.store)].filter(Boolean).join(" ").toLowerCase();
   return [...tokens(q)].every((t) => hay.includes(t)) || hay.includes(q.toLowerCase().trim());
 }
 

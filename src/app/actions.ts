@@ -101,6 +101,8 @@ export async function addSourceFromUrl(itemId: string, url: string): Promise<Ite
 const itemPatch = z
   .object({
     title: z.string().min(1).max(300),
+    // R17 B1: "Use full name" moves the original back into the title and clears this.
+    fullTitle: z.string().max(500).nullable(),
     brand: z.string().max(120).nullable(),
     imageUrl: z.string().max(400_000).nullable(),
     category: z.string().max(40).nullable(),
@@ -363,6 +365,7 @@ const snapItem = z
     id: Id,
     collectionId: NullableId,
     title: z.string().min(1).max(300),
+    fullTitle: z.string().max(500).nullable().optional(),
     brand: z.string().max(120).nullable(),
     imageUrl: z.string().max(400_000).nullable(),
     category: z.string().max(40).nullable(),

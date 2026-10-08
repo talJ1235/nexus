@@ -14,6 +14,7 @@ import { getProfile } from "@/lib/profile-server";
 import { repairIncomplete } from "@/lib/service";
 import { dropSpaceRows, spacesToPurge } from "@/lib/spaces";
 import { ownerPrefs, runCronChecks } from "@/lib/tracker";
+import { backfillShortNames } from "@/lib/db-scoped/short-names";
 
 export const maxDuration = 60;
 
@@ -49,6 +50,9 @@ export async function GET(req: NextRequest) {
   const repair = { tried: 0, repaired: 0 };
   const images = { tried: 0, filled: 0 };
   const pictures = { tried: 0, done: 0 };
+  // R17 B1: short names for old long titles — 30 AI names per run from the system budget; the rest wait a day.
+  const shortNames = { changed: 0, skipped: 0, viaAi: 0 };
+  const aiBudget = { left: 30 };
   // Maintenance gets what's left of the minute, shared over the spaces (oldest work is retried on later runs).
   for (const sp of spaces) {
     const left = 50_000 - (Date.now() - started);
@@ -64,6 +68,10 @@ export async function GET(req: NextRequest) {
     images.filled += i.filled;
     pictures.tried += p.tried;
     pictures.done += p.done;
+    const sn = await backfillShortNames(s, aiBudget).catch(failed("short-names", { changed: 0, skipped: 0, viaAi: 0 }));
+    shortNames.changed += sn.changed;
+    shortNames.skipped += sn.skipped;
+    shortNames.viaAi += sn.viaAi;
     // The shopping profile the assistant uses (Round 9 C3), refreshed for the space's creator.
     if (sp.ownerId) {
       const { currency } = await ownerPrefs(sp.ownerId);
@@ -74,7 +82,7 @@ export async function GET(req: NextRequest) {
   // R16 B1: change-feed tombstones are kept 30 days. C2: error samples too (counts stay).
   const tombstones = await purgeTombstones().catch(failed("tombstones", 0));
   const errorSamples = await dropOldSamples().catch(failed("error-samples", 0));
-  const summary = { at: Date.now(), spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, purged, tombstones, errorSamples };
+  const summary = { at: Date.now(), spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }

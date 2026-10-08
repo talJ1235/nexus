@@ -55,6 +55,10 @@ export type SourceDraft = {
 
 export type ItemDraft = {
   title: string;
+  /** R17 B1: the store's original title when `title` is a short name. */
+  fullTitle?: string | null;
+  /** R17 B1: a pack count read from the title ("Two Pieces …"). */
+  quantity?: number;
   brand: string | null;
   imageUrl: string | null;
   category: string | null;

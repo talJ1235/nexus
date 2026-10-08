@@ -6,6 +6,7 @@ import { schema } from "@/db";
 import { joins, type Scoped } from "@/lib/db-scoped";
 import { categorize, extractWithAi, extractWithUrlContext } from "@/lib/ai";
 import { aiUseOf } from "@/lib/ai-gate";
+import { needsShort, pickShortName } from "@/lib/short-name";
 import { getItem, recordPrice } from "@/lib/data";
 import { extractFromUrl, hintsFromUrl, type Extracted } from "@/lib/extract";
 import { reportError } from "@/lib/errors/record";
@@ -110,6 +111,8 @@ export async function buildDraft(s: Scoped, ex: Extracted, hintCollectionId: str
   let collectionId = hintCollectionId;
   const rawTitle = title ?? hints.slugTitle;
   let cleanTitle = rawTitle;
+  let aiTitle: string | null = null;
+  let aiQty: number | null = null;
 
   if (rawTitle) {
     const tagRows = await s.pick({ tags: schema.items.tags }, schema.items);
@@ -120,6 +123,8 @@ export async function buildDraft(s: Scoped, ex: Extracted, hintCollectionId: str
     const cat = left() > 4_000 ? await categorize({ title: rawTitle, description: ex.description, store: ex.store.name, url: ex.url, collections, knownTags }, aiUseOf(s, "categorize"), Math.min(15_000, left())) : null;
     if (cat) {
       cleanTitle = cat.title;
+      aiTitle = cat.title;
+      aiQty = cat.qty ?? null;
       brand ??= cat.brand;
       category = cat.category;
       tags = cat.tags;
@@ -127,6 +132,17 @@ export async function buildDraft(s: Scoped, ex: Extracted, hintCollectionId: str
     }
   }
 
+  // R17 B1: a long / noisy store title → a short name (the AI's when it fits the limits, else the rules'), the original
+  // kept as fullTitle; a pack count at the start becomes the quantity.
+  let fullTitle: string | null = null;
+  let quantity: number | undefined;
+  if (title && needsShort(title)) {
+    const short = pickShortName(title, aiTitle, ex.store.name);
+    cleanTitle = short.name;
+    fullTitle = title;
+    const q = aiQty ?? short.qty;
+    if (q && q > 1) quantity = q;
+  }
   const quality: ItemDraft["quality"] = title && price != null && image ? "full" : title || price != null ? "partial" : "failed";
   // R16 C2: a link that didn't fully read → the error log (failure stage + the store's domain only, never the link).
   if (quality !== "full") {
@@ -137,6 +153,8 @@ export async function buildDraft(s: Scoped, ex: Extracted, hintCollectionId: str
 
   return {
     title: cleanTitle || `${ex.store.name} item`,
+    fullTitle,
+    ...(quantity ? { quantity } : {}),
     brand: brand ?? null,
     imageUrl: image,
     category,
@@ -245,7 +263,7 @@ export async function refreshSourceCore(s: Scoped, sourceId: string, payload?: C
   const firstReadFailed = !src.rawTitle;
   const patch: Record<string, unknown> = { updatedAt: t };
   if (firstReadFailed && draft.source.rawTitle) {
-    if (src.extractMethod !== "import-titled") patch.title = draft.title;
+    if (src.extractMethod !== "import-titled") (patch.title = draft.title), (patch.fullTitle = draft.fullTitle ?? null);
     if (!item.tags?.length) patch.tags = draft.tags;
     if (!item.category) patch.category = draft.category;
     if (!item.brand) patch.brand = draft.brand;
@@ -319,6 +337,7 @@ export const sourceDraftSchema = z.object({
 
 export const draftSchema = z.object({
   title: z.string().min(1).max(300),
+  fullTitle: z.string().max(500).nullable().optional(),
   brand: z.string().max(120).nullable(),
   imageUrl: z.string().max(400_000).nullable(),
   category: z.string().nullable(),
@@ -340,6 +359,7 @@ export async function createItemCore(s: Scoped, input: z.input<typeof draftSchem
   await s.insert(schema.items, {
     id,
     title: d.title,
+    fullTitle: d.fullTitle && d.fullTitle !== d.title ? d.fullTitle : null,
     brand: d.brand,
     imageUrl,
     category: d.category,
