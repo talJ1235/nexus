@@ -682,6 +682,7 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
   const { swapRef, handlers: swipeHandlers, dragging } = useSwipePager({ count: sugs.length, index: i, go, rtl });
   // R17 A2: a 2× card lists the next suggestions (up to 3) under the current one instead of leaving the height empty.
   const tall = h === 2;
+  const [whyOpen, setWhyOpen] = useState(false);
   const more = tall ? Array.from({ length: Math.min(3, sugs.length - 1) }, (_, k) => ({ d: k + 1, y: sugs[(i + k + 1) % sugs.length] })) : [];
   const run = async () => {
     const a = x.action;
@@ -781,7 +782,10 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
           <b className="text-[15px] font-semibold leading-snug @min-[600px]:text-[16px]" data-sug-title>
             {ai?.title ?? tpl.title}
           </b>
-          <span className="text-[12.5px] text-muted @max-[600px]:line-clamp-1">{ai?.why || tpl.why}</span>
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- shows the rest of the line */}
+          <span className={cn("text-[12.5px] text-muted", !whyOpen && "@max-[600px]:line-clamp-1")} onClick={() => setWhyOpen((v) => !v)} data-expandable aria-expanded={whyOpen}>
+            {ai?.why || tpl.why}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           {tpl.cta && (
@@ -1170,6 +1174,8 @@ function NeedRowView({ n, model, className }: { n: NeedRow; model: HomeModel; cl
   const dismiss = useDismiss();
   const row = useSwipeAway(() => dismiss(n.key));
   const tz = model.ctx.tz;
+  // R17 A6: the title and line under it are one line each; a tap opens them out in place.
+  const [whole, setWhole] = useState(false);
   let icon: React.ReactNode, tone: keyof typeof TONE_CHIP, title: string, sub: string, act: string, actShort: string, run: () => void;
   switch (n.kind) {
     case "alert": {
@@ -1245,9 +1251,10 @@ function NeedRowView({ n, model, className }: { n: NeedRow; model: HomeModel; cl
     <div className={cn("relative overflow-hidden", className)} data-need={n.kind} data-need-key={n.key}>
       <div {...row.bind} className="group flex touch-pan-y items-center gap-3 bg-surface py-2.5 transition-transform lg:py-[11px]" style={row.style}>
         <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg [&_svg]:size-4", TONE_CHIP[tone])}>{icon}</span>
-        <div className="min-w-0 flex-1">
-          <b className="block truncate text-[13.5px] font-semibold">{title}</b>
-          <span className="block truncate text-[12.5px] text-muted">{sub}</span>
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- shows the rest of the text; the row's actions are its buttons */}
+        <div className="min-w-0 flex-1" onClick={() => setWhole((v) => !v)} data-expandable aria-expanded={whole}>
+          <b className={cn("block text-[13.5px] font-semibold", whole ? "break-words" : "truncate")}>{title}</b>
+          <span className={cn("block text-[12.5px] text-muted", whole ? "break-words" : "truncate")}>{sub}</span>
         </div>
         <button type="button" disabled={ro.ro && n.kind !== "alert"} onClick={run} className="h-8 shrink-0 rounded-full border border-card-line bg-surface px-3 text-[12.5px] font-semibold transition hover:border-ink/40 disabled:opacity-50" data-need-act>
           <span className="max-lg:hidden @max-[400px]:hidden">{act}</span>

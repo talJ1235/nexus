@@ -17,6 +17,8 @@
 .nx .li{display:flex;align-items:center;gap:12px;min-height:54px;padding:8px 16px}
 .nx .li+.li{border-top:1px solid var(--line-in)}
 .nx .li .grow{flex:1;min-width:0;line-height:1.35}
+/* R17 A6: a row's controls wrap under its text when both don't fit (never off the screen). */
+.nx .li{flex-wrap:wrap}.nx .li .grow{flex:1 1 150px}
 .nx .li .grow b{font-weight:600}
 .nx .tile4{border:1px solid var(--line);border-radius:12px;background:var(--raised);padding:18px;display:flex;flex-direction:column;gap:12px;color:var(--ink);text-align:start;cursor:pointer}
 @media (hover:hover) and (pointer:fine){.nx .tile4:hover{background:var(--s)}}

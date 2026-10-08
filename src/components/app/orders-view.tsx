@@ -34,7 +34,7 @@ export function ImportVatNotice({ items, shipping }: { items: ItemWithSources[];
       <div className="min-w-0">
         <div className="font-bold">{f(t.importVat.over, { limit: Math.round(c.limitUsd) })}</div>
         <div className="tabular">{f(t.importVat.detail, { total: Math.round(c.totalUsd), vat: formatMoney(Math.round(c.vat), s.currency, locale), remove: Math.ceil(c.removeUsd) })}</div>
-        {c.split.length > 0 && <div className="mt-0.5 truncate bidi">{f(t.importVat.split, { names: c.split.map((i) => i.title.split(/\s+/).slice(0, 4).join(" ")).join(", ") })}</div>}
+        {c.split.length > 0 && <div className="mt-0.5 break-words bidi">{f(t.importVat.split, { names: c.split.map((i) => i.title.split(/\s+/).slice(0, 4).join(" ")).join(", ") })}</div>}
       </div>
     </div>
   );
@@ -109,11 +109,11 @@ export function OrdersView({ items }: { items: ItemWithSources[] }) {
         const known = g.key !== "—";
         return (
           <section key={g.key} data-store-group={g.key} style={known ? storeVar(g.key) : undefined} className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
-            <header className={cn("flex items-center justify-between gap-3 border-b border-line px-4 py-3", known && "store-bar store-tint")}>
-              <div className="flex min-w-0 flex-1 items-center gap-3">
+            <header className={cn("flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line px-4 py-3", known && "store-bar store-tint")}>
+              <div className="flex min-w-[9rem] flex-1 items-center gap-3">
                 {known && <StoreMark store={g.store} storeKey={g.key} url={g.url} size={24} />}
                 <div className="min-w-0">
-                  <h2 className="bidi truncate text-base font-semibold">{g.store}</h2>
+                  <h2 className="bidi break-words text-base font-semibold sm:truncate">{g.store}</h2>
                   <p className="tabular text-xs text-muted">
                     {g.items.length === 1 ? t.collection.itemsCountOne : f(t.orders.items, { n: g.items.length })}
                     {g.gap.fee > 0 && <span> · {f(t.orders.fee, { amount: formatMoney(g.gap.fee, s.currency, locale) })}</span>}

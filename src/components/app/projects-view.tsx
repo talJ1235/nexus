@@ -214,6 +214,7 @@ function ProjectCard({ c, index, small }: { c: Collection; index: number; small?
       className="rise-in group relative flex flex-col overflow-hidden rounded-[26px] border border-line bg-surface shadow-card transition-[transform,box-shadow] duration-[250ms] ease-[var(--ease-out)] hover:-translate-y-[3px] hover:shadow-lift active:scale-[0.99]"
       style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
       data-project-card={c.id}
+      data-opens
     >
       <button type="button" className="absolute inset-0 z-[1] rounded-[26px]" aria-label={c.name} onClick={() => openProject(c.id, s.setView)} />
       <ProjectCover c={c} pics={st.pics} className={small ? "h-[64px] sm:h-[76px]" : "h-[84px] sm:h-[104px]"} />

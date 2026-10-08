@@ -206,7 +206,7 @@ export function ShopGroupHeader({ id, count }: { id: string; count: number }) {
   return (
     <div className="flex items-center gap-2 px-1 pb-1.5 pt-1 text-[13px] font-bold" data-shop-group={id || "none"}>
       <i className={cn("size-2 shrink-0", c?.kind === "list" ? "rounded-full" : "rounded-[3px]")} style={{ background: color }} />
-      <span className="bidi min-w-0 truncate">{c?.name ?? t.shopTab.noProject}</span>
+      <span className="bidi min-w-0 break-words">{c?.name ?? t.shopTab.noProject}</span>
       <small className="shrink-0 text-[11.5px] font-medium text-muted">{count === 1 ? t.shopTab.groupCountOne : f(t.shopTab.groupCount, { n: count })}</small>
       {pct != null && (
         <span className="ms-auto h-1 w-14 shrink-0 overflow-hidden rounded-full bg-line-in" role="img" aria-label={f(t.shopTab.boughtPct, { pct: Math.round(pct * 100) })}>

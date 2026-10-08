@@ -30,11 +30,13 @@ function Card({ title, children, className, delay = 0 }: { title?: string; child
   );
 }
 
-function Tile({ label, value, fmt, sub, delay }: { label: string; value: number; fmt: (v: number) => string; sub?: string; delay?: number }) {
+function Tile({ label, value, fmt, full, sub, delay }: { label: string; value: number; fmt: (v: number) => string; full?: string; sub?: string; delay?: number }) {
   return (
     <div className="rise-in min-w-0 rounded-[22px] border border-line bg-surface p-4 lg:rounded-[26px]" style={{ animationDelay: `${delay ?? 0}ms` }}>
-      <div className="truncate text-xs font-semibold text-muted">{label}</div>
-      <Ticker value={value} format={fmt} className="mt-1.5 block truncate text-[22px] font-black leading-none tracking-[-0.02em] sm:text-[24px] lg:text-[30px]" />
+      <div className="break-words text-xs font-semibold text-muted">{label}</div>
+      <span className="block" title={full}>
+        <Ticker value={value} format={fmt} className="mt-1.5 block truncate text-[22px] font-black leading-none tracking-[-0.02em] sm:text-[24px] lg:text-[30px]" />
+      </span>
       {sub && <div className="mt-2 text-xs text-muted">{sub}</div>}
     </div>
   );
@@ -152,7 +154,8 @@ export function SpendingView() {
   const fmt = (v: number) => formatMoney(Math.round(v), s.currency, locale);
   // Phones: big amounts compact (₪12.4K) so tiles and rows never push the screen wider.
   const phone = useMedia(PHONE);
-  const fmtK = (v: number) => (phone ? formatMoneyCompact(Math.round(v), s.currency, locale) : fmt(v));
+  // R17 A6: amounts never cut — compact on phones, and on desktop once they're too long for a quarter-width tile.
+  const fmtK = (v: number) => (phone || Math.abs(v) >= 10_000_000 ? formatMoneyCompact(Math.round(v), s.currency, locale) : fmt(v));
 
   const data = useMemo(() => {
     const spent = s.items
@@ -221,10 +224,10 @@ export function SpendingView() {
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
-            <Tile label={t.spending.thisMonth} value={data.thisMonth} fmt={fmtK} delay={60} />
-            <Tile label={t.spending.lastMonth} value={data.lastMonth} fmt={fmtK} delay={100} />
-            <Tile label={t.spending.thisYear} value={data.thisYear} fmt={fmtK} delay={140} />
-            <Tile label={t.spending.savings} value={data.savings} fmt={fmtK} sub={t.spending.savingsHint} delay={180} />
+            <Tile label={t.spending.thisMonth} value={data.thisMonth} fmt={fmtK} full={fmt(data.thisMonth)} delay={60} />
+            <Tile label={t.spending.lastMonth} value={data.lastMonth} fmt={fmtK} full={fmt(data.lastMonth)} delay={100} />
+            <Tile label={t.spending.thisYear} value={data.thisYear} fmt={fmtK} full={fmt(data.thisYear)} delay={140} />
+            <Tile label={t.spending.savings} value={data.savings} fmt={fmtK} full={fmt(data.savings)} sub={t.spending.savingsHint} delay={180} />
           </div>
           <Card title={t.spending.byMonth} delay={120}>
             <MonthBars months={data.months} fmt={fmt} locale={locale} capLabel={t.budget.capLine} />
