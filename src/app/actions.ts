@@ -6,6 +6,7 @@ import { del } from "@vercel/blob";
 import { z } from "zod";
 import { schema } from "@/db";
 import { extractWithAi, extractWithUrlContext } from "@/lib/ai";
+import { aiUseOf } from "@/lib/ai-gate";
 import { requireCtx } from "@/lib/ctx";
 import { getItem, loadItems, mustItem, recordPrice } from "@/lib/data";
 import { scoped, type Scoped } from "@/lib/db-scoped";
@@ -57,7 +58,7 @@ export async function addSourceFromUrl(itemId: string, url: string): Promise<Ite
   const ex = await extractFromUrl(url.trim());
   let { price, currency } = ex;
   if (price == null && ex.pageText && !ex.blocked) {
-    const ai = await extractWithAi(ex.url, ex.pageText);
+    const ai = await extractWithAi(ex.url, ex.pageText, aiUseOf(s, "extract"));
     if (ai?.price) {
       price = ai.price;
       currency = ai.currency ?? currency;
@@ -65,7 +66,7 @@ export async function addSourceFromUrl(itemId: string, url: string): Promise<Ite
   }
   let image = ex.image;
   if (price == null || !image) {
-    const uc = await extractWithUrlContext(url.trim());
+    const uc = await extractWithUrlContext(url.trim(), aiUseOf(s, "extract"));
     if (price == null && uc?.price != null) {
       price = uc.price;
       currency = uc.currency ?? currency;

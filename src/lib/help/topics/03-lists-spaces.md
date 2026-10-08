@@ -19,7 +19,7 @@
   and files go along; Undo in the toast). In shared spaces a small avatar on each item shows who added it.
 <!-- spec: Live shared spaces, Conflicts -->
 - **Live**: in a shared space, changes by others appear within a second, no refresh. Green dots = who's here now;
-  "Noa is shopping"; small toasts like "Noa added 3 items" (Settings → Notifications). If two people change the same
+  "Noa is shopping"; small toasts like "Noa added 3 items" (off with Account → Notifications). If two people change the same
   thing, the second sees "Noa changed this a moment ago" with **Show** or **Apply mine**; different fields just merge.
 
 ## Statuses, priorities, projects and lists

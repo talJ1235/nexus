@@ -3,17 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { calendarInfo, markCalendarSubscribed, regenerateCalendar, setCalendarKinds, type CalendarInfo } from "@/app/cal-actions";
-import { homeDiag, saveNotifyPrefs, setAiSuggestions, type HomeDiag } from "@/app/home-actions";
+import { homeDiag, setAiSuggestions, type HomeDiag } from "@/app/home-actions";
 import { pictureSearchStatus } from "@/app/picture-actions";
 import { useI18n } from "@/components/providers";
 import { usePalette } from "@/components/use-palette";
 import { exportUrl } from "@/lib/export-url";
-import { dayKeyIn, DEFAULT_NOTIFY, weekDays, type NotifyPrefs } from "@/lib/home";
+import { dayKeyIn, weekDays } from "@/lib/home";
 import { calendarEvents, googleSubscribeUrl, type CalKinds } from "@/lib/ics";
 import { CURRENCIES, type Currency } from "@/lib/money";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { liveActivityOn, setLiveActivity } from "../live-sync";
 import { MemorySection } from "../memory-section";
 import { useStore } from "../store";
 import { AskButton } from "../top-bar";
@@ -152,98 +151,6 @@ function DisplayPage() {
             data-display-motion
           />
         </Li>
-      </div>
-    </>
-  );
-}
-
-// ---------------- Notifications ----------------
-
-function NotifPage() {
-  const s = useStore();
-  const { t, f } = useI18n();
-  const n = s.homePrefs.notify ?? DEFAULT_NOTIFY;
-  const [live, setLive] = useState(() => (typeof window === "undefined" ? true : liveActivityOn()));
-  const save = (next: NotifyPrefs) => {
-    const before = s.homePrefs;
-    s.setHomePrefs({ ...before, notify: next });
-    saveNotifyPrefs(next).catch(() => {
-      s.setHomePrefs(before);
-      toast.error(t.errors.generic);
-    });
-  };
-  const pct = n.minDropPct <= 1 ? "1" : n.minDropPct <= 5 ? "5" : n.minDropPct <= 10 ? "10" : "20";
-  return (
-    <>
-      <SectionHead title={t.sx.sections.notif} />
-      <div>
-        <p className="sec">{t.sx.where}</p>
-        <div className="grid2">
-          <div className="pick on" style={{ flexDirection: "row", alignItems: "center", padding: 14, gap: 12, cursor: "default" }}>
-            <span className="ic">
-              <I d={P.screen} />
-            </span>
-            <span style={{ flex: 1, lineHeight: 1.3 }}>
-              <b>{t.sx.inApp}</b>
-              <br />
-              <span className="tiny">{t.sx.inAppSub}</span>
-            </span>
-            <Tick />
-          </div>
-          <div className="pick" aria-disabled="true" style={{ flexDirection: "row", alignItems: "center", padding: 14, gap: 12 }} data-notif-push="soon">
-            <span className="ic">
-              <I d={P.phone} />
-            </span>
-            <span style={{ flex: 1, lineHeight: 1.3 }}>
-              <b>{t.sx.onPhone}</b>
-              <br />
-              <span className="tiny">{t.sx.onPhoneSub}</span>
-            </span>
-            <span className="badge">{t.sx.soon}</span>
-          </div>
-        </div>
-      </div>
-      <div>
-        <p className="sec">{t.sx.tellMe}</p>
-        <div className="card">
-          <Li icon={P.trendDown} tone="ok" title={t.sx.nDrop}>
-            <Sel
-              label={t.sx.nDrop}
-              value={pct}
-              disabled={!n.drop}
-              onChange={(v) => save({ ...n, minDropPct: Number(v) })}
-              options={[
-                { value: "1", label: t.sx.anyDrop },
-                { value: "5", label: f(t.sx.dropPct, { n: 5 }) },
-                { value: "10", label: f(t.sx.dropPct, { n: 10 }) },
-                { value: "20", label: f(t.sx.dropPct, { n: 20 }) },
-              ]}
-              data-notif-drop-pct
-            />
-            <Toggle on={n.drop} label={t.sx.nDrop} onChange={(v) => save({ ...n, drop: v })} data-notif="drop" />
-          </Li>
-          <Li icon={P.people} title={t.sx.nShared} sub={t.sx.nSharedEg}>
-            <Toggle
-              on={live}
-              label={t.sx.nShared}
-              onChange={(v) => {
-                setLiveActivity(v);
-                setLive(v);
-              }}
-              data-notif="shared"
-            />
-          </Li>
-          <Li icon={P.budget} tone="warn" title={t.sx.nBudget}>
-            <Toggle on={n.budget} label={t.sx.nBudget} onChange={(v) => save({ ...n, budget: v })} data-notif="budget" />
-          </Li>
-          <Li icon={P.truck} tone="info" title={t.sx.nDelivery}>
-            <Toggle on={n.delivery} label={t.sx.nDelivery} onChange={(v) => save({ ...n, delivery: v })} data-notif="delivery" />
-          </Li>
-          <Li icon={P.tag} title={t.sx.nSale}>
-            <span className="badge">{t.sx.soon}</span>
-            <Toggle on={false} disabled label={t.sx.nSale} onChange={() => {}} />
-          </Li>
-        </div>
       </div>
     </>
   );
@@ -580,7 +487,6 @@ export const YOU_PAGES = {
   invites: InvitesPage,
   reports: ReportsPage,
   display: DisplayPage,
-  notif: NotifPage,
   ai: AiPage,
   calendar: CalendarPage,
   memory: MemoryPage,

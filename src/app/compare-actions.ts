@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireCtx, type Ctx } from "@/lib/ctx";
 import { scoped } from "@/lib/db-scoped";
 import { aiEnabled } from "@/lib/ai";
+import { aiUse } from "@/lib/ai-gate";
 import { mockAi } from "@/lib/assistant";
 import { cachedCompare, compareQueries, pickCandidates, readCandidates, sameProduct, saveCompare, searchCandidates, toResults, type CompareResult } from "@/lib/compare";
 import { getItem } from "@/lib/data";
@@ -39,7 +40,7 @@ export async function compareStart(raw: { itemId: string; currency: string; refr
     if (c) return { status: "ok", results: c.results, at: c.at, blocked: [] };
   }
   if (!aiEnabled() && !mockAi()) return { status: "no_ai" };
-  const queries = await compareQueries(item);
+  const queries = await compareQueries(item, aiUse(ctx, "compare"));
   if (mockAi() && !searchProvider()) {
     // Local UI tests: two fake offers, no network.
     const base = item.sources[0]?.price ?? 100;
@@ -52,7 +53,7 @@ export async function compareStart(raw: { itemId: string; currency: string; refr
   if (!searchProvider()) return { status: "browser", queries };
   const cands = pickCandidates(item, await searchCandidates(queries));
   const { read, blocked } = await readCandidates(cands);
-  const results = toResults(await sameProduct(item, read), input.currency, await getRates(), await usualStores(ctx, input.currency));
+  const results = toResults(await sameProduct(item, read, aiUse(ctx, "compare")), input.currency, await getRates(), await usualStores(ctx, input.currency));
   const at = Date.now();
   await saveCompare(s, item.id, { at, currency: input.currency, results });
   return { status: "ok", results, at, blocked };
@@ -82,7 +83,7 @@ export async function compareVerify(raw: { itemId: string; currency: string; can
     if (ex.title && ex.price != null) read.push({ url: ex.url, ex });
   }
   const rates = await getRates();
-  const fresh = toResults(await sameProduct(item, read), input.currency, rates, await usualStores(ctx, input.currency));
+  const fresh = toResults(await sameProduct(item, read, aiUse(ctx, "compare")), input.currency, rates, await usualStores(ctx, input.currency));
   const prev = input.candidates?.length ? [] : ((await cachedCompare(s, item.id, input.currency))?.results ?? []);
   const results = [...prev, ...fresh].filter((r, i, all) => all.findIndex((x) => x.url === r.url) === i).sort((a, b) => a.total - b.total);
   const at = Date.now();

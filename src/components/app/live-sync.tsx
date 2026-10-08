@@ -20,22 +20,6 @@ type TokenRes = { mode: "ably" | "fake" | "poll"; channel?: string; me: string; 
 const POLL_MS = 10_000;
 const HIDDEN_MS = 2 * 60_000;
 const TOAST_GAP_MS = 10_000;
-const ACTIVITY_KEY = "nexus.liveActivity";
-
-export function liveActivityOn() {
-  try {
-    return localStorage.getItem(ACTIVITY_KEY) !== "off";
-  } catch {
-    return true;
-  }
-}
-export function setLiveActivity(on: boolean) {
-  try {
-    localStorage.setItem(ACTIVITY_KEY, on ? "on" : "off");
-  } catch {
-    /* private mode */
-  }
-}
 
 const typing = () => {
   const el = document.activeElement as HTMLElement | null;
@@ -79,7 +63,8 @@ export function LiveSync() {
     };
     const flush = () => {
       flushTimer = undefined;
-      if (!liveActivityOn()) return pending.clear();
+      // R17 D3: off with the one Notifications switch (Account); the per-device "live activity" switch is gone.
+      if (live.current.s.homePrefs.notify?.on === false) return pending.clear();
       if (typing() || document.visibilityState !== "visible") {
         flushTimer = window.setTimeout(flush, 2000);
         return;

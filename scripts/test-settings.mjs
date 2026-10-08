@@ -67,7 +67,7 @@ const scrolls = (page) => page.evaluate(() => {
   return m ? m.scrollHeight - m.clientHeight : -1;
 });
 
-const YOU = ["account", "display", "notif", "ai", "calendar", "memory", "data"];
+const YOU = ["account", "display", "ai", "calendar", "memory", "data"];
 const SPACE_IDS = ["general", "people", "budget", "danger"];
 
 // ---- desktop 1366 × 768 ----

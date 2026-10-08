@@ -56,6 +56,8 @@ export const items = sqliteTable(
     // R16 A1: the paid price kept when the item goes back to To buy (shown as "Last paid", pre-fills the next purchase).
     lastPaidPrice: real("last_paid_price"),
     lastPaidCurrency: text("last_paid_currency"),
+    // R17 B1: the store's original title when `title` holds a short name (null = the title is the original).
+    fullTitle: text("full_title"),
     trackingNumber: text("tracking_number"),
     carrier: text("carrier"),
     eta: integer("eta"),
@@ -401,4 +403,24 @@ export const tombstone = sqliteTable(
     at: integer("at").notNull(),
   },
   (t) => [primaryKey({ columns: [t.spaceId, t.tbl, t.rowId] }), index("tombstone_space_rev_idx").on(t.spaceId, t.rev), index("tombstone_at_idx").on(t.at)],
+);
+
+/** R17 E2: one row per model call through lib/ai-gate (the daily quota counts a user's non-system rows of the day). */
+export const aiUsage = sqliteTable(
+  "ai_usage",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id"),
+    spaceId: text("space_id"),
+    feature: text("feature").notNull(),
+    provider: text("provider"),
+    model: text("model"),
+    tokens: integer("tokens"),
+    ok: integer("ok", { mode: "boolean" }).notNull().default(true),
+    ms: integer("ms"),
+    system: integer("system", { mode: "boolean" }).notNull().default(false),
+    day: text("day").notNull(),
+    at: integer("at").notNull(),
+  },
+  (t) => [index("ai_usage_user_day_idx").on(t.userId, t.day), index("ai_usage_at_idx").on(t.at)],
 );

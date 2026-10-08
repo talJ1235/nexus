@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { schema } from "@/db";
 import { generateText } from "@/lib/ai";
+import { aiUseOf } from "@/lib/ai-gate";
 import { mockAi } from "@/lib/assistant";
 import { matchConversations, searchTerms } from "@/lib/conversations";
 import { requireCtx } from "@/lib/ctx";
@@ -110,7 +111,7 @@ export async function titleConversation(raw: string, locale: "en" | "he" = "en")
   if (!mockAi()) {
     const out = await generateText(
       `Give this conversation a short title, 2–6 words, in ${locale === "he" ? "Hebrew" : "English"}, no quotes, no trailing period.\n\nUser: ${q.slice(0, 600)}\nAssistant: ${a.slice(0, 600)}\n\nTitle:`,
-      { budgetMs: 8000 },
+      { use: aiUseOf(s, "chat"), budgetMs: 8000 },
     ).catch(() => null);
     const clean = out?.replace(/^["'\s]+|["'.\s]+$/g, "").split("\n")[0].slice(0, 60);
     if (clean && clean.length >= 3) title = clean;

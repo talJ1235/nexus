@@ -6,6 +6,7 @@ import { schema } from "@/db";
 import { requireCtx } from "@/lib/ctx";
 import { scoped, type Scoped } from "@/lib/db-scoped";
 import { aiEnabled, generateJson } from "@/lib/ai";
+import { aiUse } from "@/lib/ai-gate";
 import { mockAi } from "@/lib/assistant";
 import { classifyBarcode, gtinKey, lookupChain, type BarcodeClass, type LookupHit } from "@/lib/barcode";
 import { CATEGORIES, normalizeCategory } from "@/lib/categories";
@@ -94,7 +95,7 @@ type PhotoGuess = { title: string; brand: string | null; category: string };
 
 /** No database knows the code (Israeli 729 products, weight/store codes): Gemini names the product from a photo. */
 export async function identifyProductPhoto(input: { image: string; code?: string | null }): Promise<LookupHit | null> {
-  await requireCtx("edit");
+  const ctx = await requireCtx("edit");
   const { image, code } = z.object({ image: z.string().max(6_000_000), code: z.string().max(64).nullish() }).strict().parse(input);
   const m = image.match(/^data:(image\/[\w+.-]+);base64,(.+)$/);
   if (!m) throw new Error("invalid_image");
@@ -104,7 +105,7 @@ export async function identifyProductPhoto(input: { image: string; code?: string
     guess = await generateJson<PhotoGuess>(
       `This photo shows one product someone is holding in a store${code ? ` (its barcode reads ${code})` : ""}. Name it the way a shop would list it: brand + product + size/variant, in the language printed on the package (Hebrew stays Hebrew). "category": one of ${CATEGORIES.join(", ")}.`,
       { type: "object", properties: { title: { type: "string" }, brand: { type: ["string", "null"] }, category: { type: "string", enum: [...CATEGORIES] } }, required: ["title", "brand", "category"] },
-      { file: { mimeType: m[1], data: m[2] }, budgetMs: 25_000 },
+      { use: aiUse(ctx, "barcode"), file: { mimeType: m[1], data: m[2] }, budgetMs: 25_000 },
     );
   }
   if (!guess?.title) return null;

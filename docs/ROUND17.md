@@ -224,7 +224,7 @@ Tal's test link: `https://www.cwc.co.il/product/%d7%9e%d7%9b%d7%a9%d7%99%d7%a8-%
 ### D2. [ ] Display section: cut-off and tidy
 Settings → Display: every chip and label fits at 360 en + he (Graphite chip included); covered by A6's guard.
 
-### D3. [ ] Remove the Notifications section
+### D3. [x] Remove the Notifications section
 Tal: the user shouldn't manage notification types. Remove the R16 "Notifications" section (desktop + phone, deep link
 `/settings/notifications` → Account). Keep the behaviour the toggles controlled at its default (on). Add one row in
 Account: "Notifications — On/Off" (in-app bell + future push), off = nothing is sent, the bell still collects. Palette
@@ -245,7 +245,7 @@ password move to a test-only sign-in helper (only when `NODE_ENV=test` or a CI s
 Acceptance: `test:auth`, `test:auth-flow` green; `/api/login` → 404/410; no password field anywhere; the emergency
 path works in a test and is off without the env var. SECURITY.md updated.
 
-### E2. [ ] AI quota + privacy guard
+### E2. [x] AI quota + privacy guard
 One function every model call goes through (`lib/ai.ts` `generateJson` / `generateText` are the entry points):
 - checks the user's AI switch (Settings → Assistant & AI, "AI on/off") and the **daily quota: 40 calls/user/day**
   (Tal 17א), admin unlimited, per-user override stored for the Session 2 admin panel (field + server action now, UI
@@ -377,5 +377,24 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   Turso from Vercel adds round trips — so the moment is set near the top of the range, 1800 ms, leaving ~1.5 s of
   margin over the slowest local load. Result: all 40 totals 1813–1850 ms (±50 ms of 1800), 60 fps median; reduced
   motion: fixed 600 ms cross-fade, 10/10 within 608–642 ms. A tap no longer ends it; Esc / Back do. The tile breathes once
-  in the hold so the longer moment reads as one gesture. **Tal:** run `scripts/switch-timing.mjs`'s numbers against prod
-  feel — if a switch on the phone ever shows the progress line, raise `SWITCH_MS` (max 2000) in `spaces/moment.tsx`.
+  in the hold so the longer moment reads as one gesture. **Tal:** on prod,
+  if a switch on the phone ever shows the progress line, raise `SWITCH_MS` (max 2000) in `spaces/moment.tsx`.
+- **D3 — removed toggles and their defaults:** price drop (on, threshold 5 % — a threshold someone already saved stays
+  in their alert prefs and the tracker keeps using it), shared-space activity toasts (on; the per-device
+  `nexus.liveActivity` switch is gone), budget 80 % (on), delivery due/late (on), "A sale ends" (was a disabled "Soon"),
+  the Where block (In the app / On the phone "Soon"). Now: Account → **Notifications On/Off** (`setNotificationsOn`,
+  user_pref `pref:notify` = `{ on }`); Off stops what is *sent* today — the 80 % budget toast and the live activity
+  toasts — and push later; the bell still collects. `/settings/notif` and `/settings/notifications` → Account; the
+  palette's section entry went with the section. Help updated.
+- **E2:** `lib/ai-gate.ts` + a required `use` on `generate` / `generateJson` / `generateText` / `generateTextStream` and
+  the extract/categorize helpers — TypeScript is the static guard (a call without `use` doesn't compile), plus
+  `test:ai-quota`'s scan that no file but `lib/ai.ts` talks to a model provider. The AI switch is the existing Settings →
+  Assistant & AI choice ("Rules only" now means no AI anywhere: suggestions, assistant, links, receipts; labels say
+  so). Quota 40 calls/person/day (Israel day), admin unlimited, override `ai:quota` (number / "unlimited") with
+  `setAiQuota` / `getAiAllowance` (admin) for the Session 2 panel. System work (cron, picture backfill, debug, B1's
+  backfill) is recorded but never counted. Every call through the gate counts 1 (fallback attempts inside one call
+  don't); so adding a link costs 1–3 (read + categorize), an assistant message 1, a receipt read 1 (+1 retry when the
+  first read is poor). Over quota / switched off: callers already fall back to rules (null = no AI); the assistant
+  answers with a quiet note ("AI is resting until tomorrow…"). Privacy: the person's name, email, the space's and
+  members' names/emails become `⟦P1⟧`/`⟦E1⟧` and are put back into the answer (streams hold back a split placeholder);
+  phone-looking numbers become `⟦phone⟧` and never come back. New table `ai_usage` (migrate-r17, additive).

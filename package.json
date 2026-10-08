@@ -56,7 +56,9 @@
     "test:viewport": "node scripts/test-viewport.mjs",
     "test:google-fedcm": "node scripts/test-google-fedcm.mjs",
     "test:settings": "node scripts/test-settings.mjs",
-    "test:polish": "node scripts/test-polish.mjs"
+    "test:polish": "node scripts/test-polish.mjs",
+    "test:clip": "node scripts/test-clip.mjs",
+    "test:ai-quota": "tsx --conditions=react-server scripts/test-ai-quota.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",

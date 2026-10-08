@@ -12,6 +12,7 @@ const ALLOW: [RegExp, string][] = [
   [/^src\/lib\/spaces\.ts$/, "space + membership rows (the ctx is built from these)"],
   [/^src\/lib\/kv\.ts$/, "system kv only (ai:health, pref:last_check, barcode:*, pic:* caches)"],
   [/^src\/lib\/rates\.ts$/, "system kv: currency rates"],
+  [/^src\/lib\/ai-gate\.ts$/, "R17 E2: per-person AI usage + quota (user rows; space/member names only to redact them)"],
 ];
 const RAW = /\bdb\s*\.\s*(select|insert|update|delete|query|batch|run|all|get|values|execute|transaction)\b/;
 

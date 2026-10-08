@@ -1,5 +1,5 @@
 import "server-only";
-import { generateJson, type AiFile } from "./ai";
+import { generateJson, type AiFile, type AiUse } from "./ai";
 import { mockAi } from "./assistant";
 import { linesToRecheck, pickBetter, checkReceipt, type ReceiptCheck } from "./receipt-check";
 import type { ReceiptLine } from "./receipt-match";
@@ -108,7 +108,7 @@ export function parseMockReceipt(text: string): Raw {
   };
 }
 
-type ReadInput = { files?: AiFile[]; text?: string };
+type ReadInput = { files?: AiFile[]; text?: string; use: AiUse };
 const TILES = "\nThe images are consecutive parts of ONE long receipt, top to bottom, cut with some overlap: a line that appears at the bottom of one part and the top of the next is ONE line — count it once.";
 
 /** One read: images (Gemini only — other providers can't read images/PDFs) or text (any provider). */
@@ -116,9 +116,9 @@ async function readOnce(input: ReadInput, extra = "", budgetMs = 45_000): Promis
   if (mockAi()) return normalizeReceipt(parseMockReceipt(input.text ?? "Store: Mock store\n1 x Mock receipt line @ 10"));
   if (input.files?.length) {
     const prompt = `${PROMPT}${input.files.length > 1 ? TILES : ""}${extra}`;
-    return normalizeReceipt(await generateJson<Raw>(prompt, SCHEMA, { files: input.files, mediaResolution: "medium", budgetMs }));
+    return normalizeReceipt(await generateJson<Raw>(prompt, SCHEMA, { use: input.use, files: input.files, mediaResolution: "medium", budgetMs }));
   }
-  if (input.text) return normalizeReceipt(await generateJson<Raw>(`${PROMPT}${extra}\n\nDocument text:\n${input.text.slice(0, 20_000)}`, SCHEMA, { budgetMs }));
+  if (input.text) return normalizeReceipt(await generateJson<Raw>(`${PROMPT}${extra}\n\nDocument text:\n${input.text.slice(0, 20_000)}`, SCHEMA, { use: input.use, budgetMs }));
   return null;
 }
 
@@ -127,7 +127,7 @@ async function readOnce(input: ReadInput, extra = "", budgetMs = 45_000): Promis
  * the suspicious lines; the better read is kept and lines still off are marked `check` for the review screen.
  */
 export async function extractReceipt(input: ReadInput & { file?: AiFile }): Promise<ReceiptData | null> {
-  const req: ReadInput = { files: input.files ?? (input.file ? [input.file] : undefined), text: input.text };
+  const req: ReadInput = { files: input.files ?? (input.file ? [input.file] : undefined), text: input.text, use: input.use };
   const t0 = Date.now();
   const first = await readOnce(req);
   if (!first || !first.lines.length) return first;

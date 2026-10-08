@@ -9,13 +9,13 @@ import { useStore } from "../store";
 
 /**
  * R16 D1/D2: "Budget reaches 80%" — one toast per space per month on each device, when this month's spending (paid +
- * on the way) reaches 80 % of the cap. Off when the person turned it off (Settings → Notifications) or the space did
+ * on the way) reaches 80 % of the cap. Off when the person turned notifications off (Settings → Account) or the space did
  * (Space settings → Budget → "Warn everyone at 80%").
  */
 export function BudgetWatch() {
   const s = useStore();
   const { t, f } = useI18n();
-  const on = (s.homePrefs.notify ?? DEFAULT_NOTIFY).budget && s.budgetWarn;
+  const on = (s.homePrefs.notify ?? DEFAULT_NOTIFY).on && s.budgetWarn;
   const key = monthKeyIn(s.clock.now, s.clock.tz);
   const pct = useMemo(() => {
     if (!on || s.loading) return null;

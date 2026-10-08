@@ -10,6 +10,7 @@ import { z } from "zod";
 import { schema } from "@/db";
 import { splitItem } from "@/app/actions";
 import { aiEnabled } from "@/lib/ai";
+import { aiUseOf, type AiUse } from "@/lib/ai-gate";
 import { mockAi } from "@/lib/assistant";
 import { requireCtx } from "@/lib/ctx";
 import { scoped, type Scoped } from "@/lib/db-scoped";
@@ -90,7 +91,7 @@ export async function readReceipt(id: string): Promise<ReceiptRead | { error: "n
 
   let data: ReceiptData | null = null;
   try {
-    data = await readDocument(r);
+    data = await readDocument(r, aiUseOf(s, "receipt"));
   } catch (e) {
     console.warn("[receipt] read failed:", String((e as Error)?.message ?? e).slice(0, 200));
   }
@@ -131,7 +132,7 @@ async function fetchBlob(url: string) {
  * scans and photos go to vision (all parts of a long receipt in one request). The same document is never read twice
  * (cache by content hash).
  */
-async function readDocument(r: Receipt): Promise<ReceiptData | null> {
+async function readDocument(r: Receipt, use: AiUse): Promise<ReceiptData | null> {
   const hash = createHash("sha256");
   let text = r.text;
   let files: { mimeType: string; data: string }[] = [];
@@ -155,7 +156,7 @@ async function readDocument(r: Receipt): Promise<ReceiptData | null> {
     const cached = await kvGet(key).catch(() => null);
     if (cached) return JSON.parse(cached) as ReceiptData;
   }
-  const data = text ? await extractReceipt({ text }) : files.length ? await extractReceipt({ files }) : null;
+  const data = text ? await extractReceipt({ text, use }) : files.length ? await extractReceipt({ files, use }) : null;
   if (data?.lines.length && !mockAi()) await kvSet(key, JSON.stringify(data)).catch(() => {});
   return data;
 }

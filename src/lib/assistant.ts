@@ -1,5 +1,5 @@
 import "server-only";
-import { CATEGORIES, CATEGORY_HINT, generateJson, generateText } from "./ai";
+import { CATEGORIES, CATEGORY_HINT, generateJson, generateText, type AiUse } from "./ai";
 import { normalizeCategory } from "./categories";
 import { ACTION_FENCE, MAX_ACTION_ITEMS } from "./assistant-actions";
 import { activeSource, budgetStats, lineTotal, unitPrice } from "./calc";
@@ -36,6 +36,7 @@ export async function planProject(input: {
   /** With memory on (R9 C3): the shopping profile + notes, and his usual stores (most used first). */
   habits?: string | null;
   stores?: string[];
+  use: AiUse;
 }): Promise<Plan | null> {
   if (mockAi()) return MOCK_PLAN(input.currency, input.stores?.[0] ?? null);
   const lang = input.locale === "he" ? "Hebrew" : "English";
@@ -95,7 +96,7 @@ ${input.habits}`
     },
     required: ["projectName", "summary", "parts", "tips"],
   };
-  const out = await generateJson<Omit<Plan, "currency">>(prompt, schema, { smart: true });
+  const out = await generateJson<Omit<Plan, "currency">>(prompt, schema, { use: input.use, smart: true });
   if (!out?.parts?.length) return null;
   return {
     projectName: (out.projectName || "").slice(0, 80),
@@ -184,6 +185,7 @@ export function snapshot(data: AppData, currency: string, rates: Rates) {
 }
 
 type AskInput = {
+  use: AiUse;
   question: string;
   history: { role: "user" | "assistant"; text: string }[];
   data: AppData;
@@ -225,7 +227,7 @@ function mockHelp(q: string, locale: "en" | "he") {
 
 export async function askNexus(input: AskInput) {
   const r = askPrompt(input);
-  return "mock" in r ? r.mock : generateText(r.prompt, { smart: true, system: r.system });
+  return "mock" in r ? r.mock : generateText(r.prompt, { use: input.use, smart: true, system: r.system });
 }
 
 /** The prompt for a question (or the canned mock answer). Shared by the one-shot and the streaming path. */

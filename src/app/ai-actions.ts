@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { schema } from "@/db";
 import { aiEnabled } from "@/lib/ai";
+import { aiUse } from "@/lib/ai-gate";
 import { bulkSetStatus, createCollection, deleteCollection, updateItem } from "@/app/actions";
 import { askNexus, planProject, type Plan } from "@/lib/assistant";
 import { changedKeys, isNewRef, newCollections, newRef, parseAnswer, planChanges, validateProposal, type ItemFields, type Proposal } from "@/lib/assistant-actions";
@@ -31,7 +32,7 @@ export async function planWithAi(raw: { description: string; budget: number | nu
   // With memory on: their habits and usual stores steer the plan (R9 C3).
   const habits = await memoryContext(ctx, input.currency, input.locale === "he" ? "he" : "en").catch(() => null);
   const stores = habits ? (await getProfile(ctx, input.currency).catch(() => null))?.stores.map((x) => x.store) ?? [] : [];
-  const plan = await planProject({ description: input.description, budget: input.budget, currency: input.currency, locale: input.locale, existing, habits, stores });
+  const plan = await planProject({ description: input.description, budget: input.budget, currency: input.currency, locale: input.locale, existing, habits, stores, use: aiUse(ctx, "assistant") });
   return plan ?? { error: "failed" };
 }
 
@@ -124,7 +125,7 @@ export async function ask(raw: { question: string; history: { role: "user" | "as
     .strict()
     .parse(raw);
   const data = await getAppData(scoped(ctx), ctx.user.id);
-  const answer = await askNexus({ ...input, data });
+  const answer = await askNexus({ ...input, data, use: aiUse(ctx, "assistant") });
   if (!answer) return { error: "failed" };
   const { text, proposal } = parseAnswer(answer, ownerIds(data));
   // A proposal that wouldn't change anything isn't worth a confirmation card.

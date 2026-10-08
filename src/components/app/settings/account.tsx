@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ackNewSignIn, createRecoveryCodes, getSecurityState, removePasskey, renameMyPasskey, signOutDevice, signOutOtherDevices, type SecurityState } from "@/app/security-actions";
+import { setNotificationsOn } from "@/app/home-actions";
+import { DEFAULT_NOTIFY } from "@/lib/home";
 import { loadAppData } from "@/app/data-actions";
 import { useI18n } from "@/components/providers";
 import { authClient } from "@/lib/auth/client";
@@ -14,7 +16,7 @@ import { useStore } from "../store";
 import { avatarColor } from "../spaces/space-ui";
 import { ReportsSubpage } from "../reports-sheet";
 import type { PageProps } from "./shell";
-import { Av, I, Li, P, SectionHead } from "./ui";
+import { Av, I, Li, P, SectionHead, Toggle } from "./ui";
 
 // Settings → Account & security (R16 D1, board Settings-desktop "account"; R15 A5 Security moved in): who you are,
 // a security checkup, sign-in methods (Google, passkeys), devices; sub-pages for the activity log + recovery codes,
@@ -288,6 +290,8 @@ export function AccountPage({ go, phone }: PageProps) {
         </div>
       </div>
 
+      <NotificationsRow />
+
       <div className={cn(s.admin ? "grid3" : "grid2", "sx-tiles")} style={{ marginTop: "auto" }} data-account-tiles>
         <MiniCard icon={P.history} title={t.sx.sections.activity} sub={t.sx.activitySub} action={t.sx.open} onClick={() => go("activity")} data="activity" />
         <MiniCard icon={P.inbox} title={t.sx.sections.reports} sub={t.sx.reportsSub} action={t.sx.open} onClick={() => go("reports")} data="reports" />
@@ -295,6 +299,28 @@ export function AccountPage({ go, phone }: PageProps) {
       </div>
       {stepUp && <StepUp full={!!st?.full} admin={!!st?.admin} onClose={() => setStepUp(false)} />}
     </>
+  );
+}
+
+/** R17 D3: the one Notifications switch (the per-kind section is gone; Nexus decides what and when). */
+function NotificationsRow() {
+  const s = useStore();
+  const { t } = useI18n();
+  const n = s.homePrefs.notify ?? DEFAULT_NOTIFY;
+  const set = (on: boolean) => {
+    const before = s.homePrefs;
+    s.setHomePrefs({ ...before, notify: { ...n, on } });
+    setNotificationsOn(on).catch(() => {
+      s.setHomePrefs(before);
+      toast.error(t.errors.generic);
+    });
+  };
+  return (
+    <div className="card">
+      <Li icon={P.bell} title={t.sx.notifTitle} sub={n.on ? t.sx.notifOnSub : t.sx.notifOffSub} data-notifications-row>
+        <Toggle on={n.on} label={t.sx.notifTitle} onChange={set} data-notifications-on />
+      </Li>
+    </div>
   );
 }
 

@@ -1,6 +1,7 @@
 import "server-only";
 import sharp from "sharp";
-import { generateJson, type AiFile } from "./ai";
+import { generateJson, type AiFile, type AiUse } from "./ai";
+import { aiSystem, aiUseOf } from "./ai-gate";
 import { mockAi } from "./assistant";
 import { kvGet, kvSet } from "./kv";
 import { applyRanking, cacheKey, filterImageResults, makeCache, type Candidate, type Pick, type Ranked, type RawImage } from "./picture-rank";
@@ -22,10 +23,10 @@ const UA = { "user-agent": "Nexus/1.0 (personal shopping app)" };
 // ---------- D1 ----------
 
 /** One batched model call for all lines (heuristic in mock mode or when the model is unavailable). */
-export async function understandLines(names: string[]): Promise<LineInfo[]> {
+export async function understandLines(names: string[], use: AiUse): Promise<LineInfo[]> {
   if (!names.length) return [];
   if (mockAi()) return names.map(heuristicLineInfo);
-  const raw = await generateJson<unknown>(linePrompt(names), LINE_SCHEMA, { budgetMs: 20_000 }).catch(() => null);
+  const raw = await generateJson<unknown>(linePrompt(names), LINE_SCHEMA, { use, budgetMs: 20_000 }).catch(() => null);
   return parseLineInfos(raw, names);
 }
 
@@ -176,7 +177,7 @@ const RANK_SCHEMA = {
  * One vision call ranks the candidate thumbnails of several items at once ("which picture shows <name, brand,
  * size>?"). Items with nothing to choose (no candidates, one exact barcode photo, only icons) skip the model.
  */
-export async function rankCandidates(batch: { info: LineInfo; candidates: Candidate[] }[]): Promise<Ranked[]> {
+export async function rankCandidates(batch: { info: LineInfo; candidates: Candidate[] }[], use: AiUse): Promise<Ranked[]> {
   const picks: (Pick | null)[] = batch.map(() => null);
   const need = batch.map((b, i) => ({ ...b, i })).filter((b) => b.candidates.length > 0 && !(b.candidates[0].source === "barcode") && b.candidates.some((c) => c.source !== "icon"));
   if (mockAi()) {
@@ -211,7 +212,7 @@ export async function rankCandidates(batch: { info: LineInfo; candidates: Candid
       }
       if (!files.length) continue;
       const prompt = `You see ${files.length} product photos, numbered 1..${files.length} in the order given. For each item below, pick the image that best shows that exact product (same product, brand and size when visible; a packshot rather than a logo, banner or collage). If none shows it, answer null. "confidence" 0–1 = how sure you are it is the right product.\n${lines.join("\n")}\nAnswer JSON {"items":[{"item":1,"image":<image number or null>,"confidence":0.0}]}.`;
-      const out = await generateJson<{ items?: { item: number; image: number | null; confidence: number }[] }>(prompt, RANK_SCHEMA, { files, mediaResolution: "low", budgetMs: 25_000 }).catch(() => null);
+      const out = await generateJson<{ items?: { item: number; image: number | null; confidence: number }[] }>(prompt, RANK_SCHEMA, { use, files, mediaResolution: "low", budgetMs: 25_000 }).catch(() => null);
       for (const a of out?.items ?? []) {
         const k = Math.round(a.item) - 1;
         const b = chunk[k];
@@ -230,13 +231,14 @@ export async function rankCandidates(batch: { info: LineInfo; candidates: Candid
 export async function picturesFor(entries: { name: string; info?: LineInfo | null; excludeId?: string }[], budgetMs = 40_000, s?: Scoped): Promise<{ info: LineInfo; ranked: Ranked }[]> {
   const t0 = Date.now();
   const missing = entries.filter((e) => !e.info).map((e) => e.name);
-  const understood = await understandLines(missing);
+  const use = s ? aiUseOf(s, "pictures") : aiSystem("pictures");
+  const understood = await understandLines(missing, use);
   const infos = entries.map((e) => e.info ?? understood[missing.indexOf(e.name)] ?? heuristicLineInfo(e.name));
   const cands: Candidate[][] = infos.map(() => []);
   for (let i = 0; i < infos.length && Date.now() - t0 < budgetMs; i += 4) {
     const got = await Promise.all(infos.slice(i, i + 4).map((info, k) => findCandidates(info, { excludeId: entries[i + k].excludeId, s }).catch(() => [])));
     got.forEach((g, k) => (cands[i + k] = g));
   }
-  const ranked = await rankCandidates(infos.map((info, i) => ({ info, candidates: cands[i] })));
+  const ranked = await rankCandidates(infos.map((info, i) => ({ info, candidates: cands[i] })), use);
   return infos.map((info, i) => ({ info, ranked: ranked[i] }));
 }

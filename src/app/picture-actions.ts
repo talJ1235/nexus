@@ -4,6 +4,7 @@ import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { schema } from "@/db";
 import { allows, requireCtx } from "@/lib/ctx";
+import { aiUse, aiUseOf } from "@/lib/ai-gate";
 import { scoped } from "@/lib/db-scoped";
 import { getItem } from "@/lib/data";
 import { storeThumbnail } from "@/lib/images";
@@ -34,9 +35,9 @@ export type LinePicture = { chosen: Candidate | null; candidates: Candidate[]; c
 
 /** D1 for a receipt: one call for all lines. */
 export async function understandReceiptLines(input: { names: string[] }): Promise<LineInfo[]> {
-  await requireCtx("view");
+  const ctx = await requireCtx("view");
   const { names } = z.object({ names: z.array(z.string().min(1).max(300)).max(60) }).parse(input);
-  return understandLines(names);
+  return understandLines(names, aiUse(ctx, "pictures"));
 }
 
 /** D2 + D3 for a few lines (the review calls this in chunks; nothing is saved). */
@@ -44,7 +45,7 @@ export async function findLinePictures(input: { infos: LineInfo[] }): Promise<Li
   const s = scoped(await requireCtx("view"));
   const { infos } = z.object({ infos: z.array(info).max(8) }).parse(input);
   const cands = await Promise.all(infos.map((i) => findCandidates(i, { s }).catch((): Candidate[] => [])));
-  return rankCandidates(infos.map((i, k) => ({ info: i, candidates: cands[k] })));
+  return rankCandidates(infos.map((i, k) => ({ info: i, candidates: cands[k] })), aiUseOf(s, "pictures"));
 }
 
 /** The picker's search box (Hebrew or English). */

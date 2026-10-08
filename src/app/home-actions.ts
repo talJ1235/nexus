@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { schema } from "@/db";
 import { aiEnabled, generateJson } from "@/lib/ai";
+import { aiUse } from "@/lib/ai-gate";
 import { mockAi, snapshot } from "@/lib/assistant";
 import { requireCtx } from "@/lib/ctx";
 import { scoped } from "@/lib/db-scoped";
@@ -46,13 +47,11 @@ export async function setAiSuggestions(on: boolean): Promise<boolean> {
 }
 
 /** R16 D1: Settings → Notifications (in the app). The drop threshold goes to the tracker's alert prefs. */
-export async function saveNotifyPrefs(p: NotifyPrefs): Promise<NotifyPrefs> {
+/** R17 D3: Notifications on / off (Settings → Account). Off = nothing is sent; the bell still collects. */
+export async function setNotificationsOn(on: boolean): Promise<boolean> {
   const ctx = await requireCtx("view");
-  const v = z.strictObject({ drop: z.boolean(), budget: z.boolean(), delivery: z.boolean(), minDropPct: z.number().int().min(1).max(90) }).parse(p);
-  await Promise.all([
-    userPrefSet(ctx.user.id, NOTIFY_KEY, JSON.stringify({ drop: v.drop, budget: v.budget, delivery: v.delivery })),
-    setAlertPrefs(ctx.user.id, { minDropPct: v.minDropPct }),
-  ]);
+  const v = z.boolean().parse(on);
+  await userPrefSet(ctx.user.id, NOTIFY_KEY, JSON.stringify({ on: v }));
   return v;
 }
 
@@ -129,7 +128,7 @@ export async function phraseSuggestions(raw: unknown, locale: string): Promise<P
     const res = await generateJson<{ items: { key: string; title: string; why: string }[] }>(
       prompt,
       { type: "object", properties: { items: { type: "array", items: { type: "object", properties: { key: { type: "string" }, title: { type: "string" }, why: { type: "string" } }, required: ["key", "title", "why"] } } }, required: ["items"] },
-      { budgetMs: 12_000 },
+      { use: aiUse(ctx, "suggestions"), budgetMs: 12_000 },
     ).catch(() => null);
     const known = new Set(cands.map((c) => c.key));
     for (const x of res?.items ?? []) if (known.has(x.key) && x.title?.trim()) map[x.key] = { title: x.title.trim().slice(0, 120), why: (x.why ?? "").trim().slice(0, 110) };
@@ -255,7 +254,7 @@ export async function homeLook(raw: unknown): Promise<{ ai: HomeAi | null; recei
         },
         required: ["suggestions", "insights"],
       },
-      { budgetMs: 15_000 },
+      { use: aiUse(ctx, "suggestions"), budgetMs: 15_000 },
     ).catch((e: unknown) => ((error = e instanceof Error ? e.message.slice(0, 160) : "failed"), null));
     if (rawAi == null && !error) error = "no answer";
   }

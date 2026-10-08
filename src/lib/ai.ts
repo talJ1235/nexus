@@ -2,6 +2,8 @@ import "server-only";
 import { reportError } from "@/lib/errors/record";
 import { GoogleGenAI, MediaResolution, ThinkingLevel } from "@google/genai";
 import { kvGet, kvSet } from "./kv";
+import { aiGate, recordAiUsage, type AiUse } from "./ai-gate";
+export type { AiUse } from "./ai-gate";
 
 import { CATEGORIES, normalizeCategory } from "./categories";
 export { CATEGORIES };
@@ -126,7 +128,12 @@ function parseLooseJson<T>(text: string): T | null {
 /** A document for Gemini to read (image or PDF, base64). Only Gemini can read files, so these calls never fall back. */
 export type AiFile = { mimeType: string; data: string };
 /** `files`: several images read together, in order (tiles of one long receipt). `mediaResolution`: tokens per image. */
-type GenOpts = { urlContext?: boolean; smart?: boolean; text?: boolean; system?: string; budgetMs?: number; file?: AiFile; files?: AiFile[]; mediaResolution?: "low" | "medium" | "high" };
+/** `use` (R17 E2) is required: who the call is for and which feature — the gate (lib/ai-gate) checks the switch and the
+ *  quota, keeps names out of the prompt and records the call. TypeScript makes every call site pass it. */
+type GenOpts = { use: AiUse; urlContext?: boolean; smart?: boolean; text?: boolean; system?: string; budgetMs?: number; file?: AiFile; files?: AiFile[]; mediaResolution?: "low" | "medium" | "high" };
+
+/** Why the last gated call didn't run (per process; for a quiet note — "AI is resting until tomorrow"). */
+export let lastGate: { reason: "off" | "quota"; userId: string | null; at: number } | null = null;
 
 async function callGemini(model: string, prompt: string, schema: object | null, opts: GenOpts, timeoutMs: number) {
   const c = gemini()!;
@@ -190,10 +197,19 @@ async function callOpenAiCompatible(r: Route, prompt: string, schema: object | n
   return text ? text.replace(/<think>[\s\S]*?<\/think>/g, "").trim() || null : null;
 }
 
-async function generate(prompt: string, schema: object | null, opts: GenOpts = {}): Promise<string | null> {
-  const tier = opts.smart ? "smart" : "fast";
-  const all = routes(tier, !!opts.urlContext || !!opts.file || !!opts.files?.length);
+async function generate(rawPrompt: string, schema: object | null, rawOpts: GenOpts): Promise<string | null> {
+  const tier = rawOpts.smart ? "smart" : "fast";
+  const all = routes(tier, !!rawOpts.urlContext || !!rawOpts.file || !!rawOpts.files?.length);
   if (!all.length) return null;
+  const started = Date.now();
+  const g = await aiGate(rawOpts.use);
+  if (!g.ok) {
+    lastGate = { reason: g.reason, userId: rawOpts.use.userId, at: started };
+    return null;
+  }
+  const prompt = g.redact.apply(rawPrompt);
+  const opts = rawOpts.system ? { ...rawOpts, system: g.redact.apply(rawOpts.system) } : rawOpts;
+  let used: Route | null = null;
   await loadHealth();
   const now = Date.now();
   const known = health.working[tier];
@@ -214,6 +230,7 @@ async function generate(prompt: string, schema: object | null, opts: GenOpts = {
         const timeout = Math.min(left, opts.smart || opts.urlContext || opts.file || opts.files?.length ? 22_000 : 12_000);
         try {
           const text = r.provider === "gemini" ? await callGemini(r.model, prompt, schema, opts, timeout) : await callOpenAiCompatible(r, prompt, schema, opts, timeout);
+          used = r;
           if (!text) break; // empty answer → next route
           if (health.working[tier] !== key(r)) {
             health.working[tier] = key(r);
@@ -223,7 +240,8 @@ async function generate(prompt: string, schema: object | null, opts: GenOpts = {
             delete health.cooling[key(r)];
             healthDirty = true;
           }
-          return text;
+          await recordAiUsage(rawOpts.use, { provider: r.provider, model: r.model, ok: true, ms: Date.now() - started });
+          return g.redact.restore(text);
         } catch (e) {
           const msg = String((e as Error)?.message ?? e);
           lastAiErrors[key(r)] = `${new Date().toISOString()} ${msg.slice(0, 300)}`;
@@ -247,13 +265,14 @@ async function generate(prompt: string, schema: object | null, opts: GenOpts = {
         }
       }
     }
+    await recordAiUsage(rawOpts.use, { provider: used?.provider ?? null, model: used?.model ?? null, ok: false, ms: Date.now() - started });
     return null;
   } finally {
     await saveHealth();
   }
 }
 
-export async function generateJson<T>(prompt: string, schema: object | null, opts: GenOpts = {}): Promise<T | null> {
+export async function generateJson<T>(prompt: string, schema: object | null, opts: GenOpts): Promise<T | null> {
   const text = await generate(prompt, schema, opts);
   if (!text) return null;
   if (opts.urlContext) return parseLooseJson<T>(text);
@@ -337,9 +356,30 @@ async function* streamOpenAi(r: Route, prompt: string, opts: GenOpts, signal: Ab
  * text is skipped; one that fails mid-answer hands over to the next provider, which continues from the text so far
  * (the client keeps what it already shows).
  */
-export async function* generateTextStream(prompt: string, opts: Omit<GenOpts, "text" | "urlContext"> = {}): AsyncGenerator<StreamEvent> {
-  const tier = opts.smart ? "smart" : "fast";
+export async function* generateTextStream(rawPrompt: string, rawOpts: Omit<GenOpts, "text" | "urlContext">): AsyncGenerator<StreamEvent> {
+  const tier = rawOpts.smart ? "smart" : "fast";
   const all = routes(tier, false);
+  const started = Date.now();
+  const g = await aiGate(rawOpts.use);
+  if (!g.ok) {
+    lastGate = { reason: g.reason, userId: rawOpts.use.userId, at: started };
+    return;
+  }
+  const prompt = g.redact.apply(rawPrompt);
+  const opts = rawOpts.system ? { ...rawOpts, system: g.redact.apply(rawOpts.system) } : rawOpts;
+  // Placeholders (⟦P1⟧) can arrive split across pieces: hold back an unfinished one until the next piece.
+  let held = "";
+  const out = (piece: string, flush = false) => {
+    const s = held + piece;
+    const open = flush ? -1 : s.lastIndexOf("⟦");
+    if (open >= 0 && !s.slice(open).includes("⟧")) {
+      held = s.slice(open);
+      return g.redact.restore(s.slice(0, open));
+    }
+    held = "";
+    return g.redact.restore(s);
+  };
+  let done: Route | null = null;
   await loadHealth();
   const now = Date.now();
   const known = health.working[tier];
@@ -359,13 +399,18 @@ export async function* generateTextStream(prompt: string, opts: Omit<GenOpts, "t
         const gen = r.provider === "gemini" ? streamGemini(r.model, p, opts, signal) : streamOpenAi(r, p, opts, signal);
         for await (const piece of gen) {
           sofar += piece;
-          yield { type: "delta", text: piece };
+          const text = out(piece);
+          if (text) yield { type: "delta", text };
         }
         if (!sofar) continue; // empty answer → next route
+        const rest = out("", true);
+        if (rest) yield { type: "delta", text: rest };
+        done = r;
         if (health.working[tier] !== key(r)) {
           health.working[tier] = key(r);
           healthDirty = true;
         }
+        await recordAiUsage(rawOpts.use, { provider: r.provider, model: r.model, ok: true, ms: Date.now() - started });
         return;
       } catch (e) {
         const msg = String((e as Error)?.message ?? e);
@@ -384,7 +429,7 @@ export async function* generateTextStream(prompt: string, opts: Omit<GenOpts, "t
   }
 }
 
-export async function generateText(prompt: string, opts: Omit<GenOpts, "text" | "urlContext"> = {}) {
+export async function generateText(prompt: string, opts: Omit<GenOpts, "text" | "urlContext">) {
   return generate(prompt, null, { ...opts, text: true });
 }
 
@@ -403,7 +448,7 @@ export async function categorize(input: {
   url: string;
   collections: { id: string; name: string; kind: string; description: string | null }[];
   knownTags: string[];
-}, budgetMs?: number): Promise<Categorization | null> {
+}, use: AiUse, budgetMs?: number): Promise<Categorization | null> {
   const prompt = `You organize a personal shopping/procurement list for a maker (electronics, mechatronics, 3D printing, video) who also buys for home and a startup.
 
 Product:
@@ -431,7 +476,7 @@ User's collections: ${JSON.stringify(input.collections.map((c) => ({ id: c.id, n
     },
     required: ["title", "brand", "category", "tags", "collectionId"],
   };
-  const out = await generateJson<Categorization>(prompt, schema, { budgetMs });
+  const out = await generateJson<Categorization>(prompt, schema, { use, budgetMs });
   if (!out) return null;
   const validIds = new Set(input.collections.map((c) => c.id));
   return {
@@ -443,7 +488,7 @@ User's collections: ${JSON.stringify(input.collections.map((c) => ({ id: c.id, n
   };
 }
 
-export async function extractWithAi(url: string, pageText: string, budgetMs?: number) {
+export async function extractWithAi(url: string, pageText: string, use: AiUse, budgetMs?: number) {
   const prompt = `Extract the main product on this web page. Return null fields when unsure — never guess a price.
 URL: ${url}
 Page text:
@@ -458,20 +503,20 @@ ${pageText.slice(0, 10000)}`;
     },
     required: ["title", "price", "currency", "brand"],
   };
-  return generateJson<{ title: string | null; price: number | null; currency: string | null; brand: string | null }>(prompt, schema, { budgetMs });
+  return generateJson<{ title: string | null; price: number | null; currency: string | null; brand: string | null }>(prompt, schema, { use, budgetMs });
 }
 
 export type UrlContextResult = { title: string | null; price: number | null; currency: string | null; imageUrl: string | null; brand: string | null };
 
 /** Let Gemini fetch the page itself (Google's fetcher is blocked less often than serverless IPs). */
-export async function extractWithUrlContext(url: string, budgetMs = 25_000): Promise<UrlContextResult | null> {
+export async function extractWithUrlContext(url: string, use: AiUse, budgetMs = 25_000): Promise<UrlContextResult | null> {
   const prompt = `Open this product page and read it: ${url}
 
 Return ONLY a JSON object, no prose, with these keys:
 {"title": string|null, "price": number|null, "currency": "ISO 4217 code"|null, "imageUrl": "absolute URL of the main product image"|null, "brand": string|null}
 
 Rules: "title" is the product's real name as shown on the page. "price" is the current selling price for one unit (the discounted price if on sale), as a plain number. Use null for anything you cannot see on the page — never guess.`;
-  const out = await generateJson<UrlContextResult>(prompt, null, { urlContext: true, budgetMs: Math.min(budgetMs, 25_000) });
+  const out = await generateJson<UrlContextResult>(prompt, null, { use, urlContext: true, budgetMs: Math.min(budgetMs, 25_000) });
   if (!out) return null;
   const price = typeof out.price === "number" && out.price > 0 ? out.price : null;
   const imageUrl = typeof out.imageUrl === "string" && /^https?:\/\//.test(out.imageUrl) ? out.imageUrl : null;

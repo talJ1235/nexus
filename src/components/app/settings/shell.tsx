@@ -23,7 +23,7 @@ import { YOU_PAGES } from "./you";
  * the section's page (push), Back / swipe from the edge returns to the list. Deep links: /settings/<section>.
  */
 
-export const YOU = ["account", "display", "notif", "ai", "calendar", "memory", "data"] as const;
+export const YOU = ["account", "display", "ai", "calendar", "memory", "data"] as const;
 export const SPACE = ["general", "people", "budget", "danger"] as const;
 /** Sub-pages and their parent. */
 const SUB: Record<string, string> = { activity: "account", invites: "account", reports: "account" };
@@ -53,7 +53,8 @@ function pathFor(section: string, desktop: boolean, shared: boolean): string[] {
 }
 
 /** Old addresses → sections. */
-const ALIAS: Record<string, string> = { security: "account", invites: "invites", space: "space" };
+// R17 D3: Notifications is one switch in Account now.
+const ALIAS: Record<string, string> = { security: "account", invites: "invites", space: "space", notif: "account", notifications: "account" };
 
 export function SettingsShell() {
   const s = useStore();
@@ -415,7 +416,6 @@ function PhoneList({ go }: { go: (id: SectionId) => void }) {
         <div className="card">
           {row("account")}
           {row("display", themeLabel)}
-          {row("notif", t.sx.inApp)}
           {row("ai", s.homePrefs.aiSuggestions ? t.sx.aiRules : t.sx.rulesOnly)}
           {row("calendar")}
           {row("memory")}

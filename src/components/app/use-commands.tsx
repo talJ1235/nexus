@@ -12,7 +12,7 @@ import { PALETTES } from "@/lib/palette";
 import { toast } from "@/lib/toast";
 import { PaletteSwatch } from "./settings-dialog";
 
-const SETTINGS_SECTIONS = ["account", "display", "notif", "ai", "calendar", "memory", "data", "general", "people", "budget", "danger"] as const;
+const SETTINGS_SECTIONS = ["account", "display", "ai", "calendar", "memory", "data", "general", "people", "budget", "danger"] as const;
 import { useStore } from "./store";
 import { PHONE, useMedia } from "@/components/ui/use-media";
 

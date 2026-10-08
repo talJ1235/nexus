@@ -666,6 +666,6 @@ export type HomePrefs = {
 };
 /** Which in-app notices the user wants: price drops (bell + Needs you; `minDropPct` is the tracker's threshold),
  *  budget at 80 %, deliveries due/late. Shared-list activity is the per-device "live activity" switch. */
-export type NotifyPrefs = { drop: boolean; minDropPct: number; budget: boolean; delivery: boolean };
-export const DEFAULT_NOTIFY: NotifyPrefs = { drop: true, minDropPct: 5, budget: true, delivery: true };
+export type NotifyPrefs = { drop: boolean; minDropPct: number; budget: boolean; delivery: boolean; /** R17 D3: the one switch (Account → Notifications). Off = nothing is sent (toasts now, push later); the bell still collects. */ on: boolean };
+export const DEFAULT_NOTIFY: NotifyPrefs = { drop: true, minDropPct: 5, budget: true, delivery: true, on: true };
 export const DEFAULT_HOME_PREFS: HomePrefs = { dismissed: {}, aiSuggestions: true, notify: DEFAULT_NOTIFY };

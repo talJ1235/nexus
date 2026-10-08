@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { aiEnabled, generateTextStream } from "@/lib/ai";
+import { aiAllowance, aiUse } from "@/lib/ai-gate";
 import { askPrompt, mockAi } from "@/lib/assistant";
 import { newCollections, parseAnswer, planChanges } from "@/lib/assistant-actions";
 import { accessResponse, requireCtx } from "@/lib/ctx";
@@ -58,6 +59,17 @@ export async function POST(req: Request) {
           send({ t: "error", error: "no_ai" });
           return;
         }
+        // R17 E2: AI switched off, or today's quota used → a quiet note instead of a model call.
+        const allow = await aiAllowance(ctx.user.id).catch(() => null);
+        if (allow && (!allow.on || allow.left === 0)) {
+          const he = input.locale === "he";
+          const note = !allow.on
+            ? he ? "הבינה המלאכותית כבויה אצלך (הגדרות ← עוזר ובינה מלאכותית)." : "AI is off for you (Settings → Assistant & AI)."
+            : he ? "הבינה המלאכותית נחה עד מחר — המכסה היומית נוצלה. הכול חוץ מהעוזר ממשיך לעבוד." : "AI is resting until tomorrow — today's limit is used up. Everything else keeps working.";
+          send({ t: "delta", text: note });
+          send({ t: "done", text: note, proposal: null, report: null, memory: null, route: "help" });
+          return;
+        }
         // The assistant's context is the caller's current space only (B3); writes still need the user's tap.
         const data = await getAppData(s, ctx.user.id);
         // Data question, how-to-use-the-app question, or both in front of the model (lib/help/route.ts).
@@ -69,7 +81,7 @@ export async function POST(req: Request) {
         // What Nexus knows about the user (profile + confirmed notes) when memory is on (R9 C3).
         const memoryOn = await memoryEnabled(ctx).catch(() => false);
         const memory = memoryOn && route !== "help" ? await memoryContext(ctx, input.currency, input.locale).catch(() => null) : null;
-        const p = askPrompt({ ...input, data, route, help, diag, complaint, past, memoryOn, memory });
+        const p = askPrompt({ ...input, data, route, help, diag, complaint, past, memoryOn, memory, use: aiUse(ctx, "assistant") });
         let full = "";
         if ("mock" in p) {
           send({ t: "route", provider: "mock", fallback: false });
@@ -80,7 +92,7 @@ export async function POST(req: Request) {
             await new Promise((r) => setTimeout(r, 25));
           }
         } else {
-          for await (const ev of generateTextStream(p.prompt, { smart: true, system: p.system })) {
+          for await (const ev of generateTextStream(p.prompt, { use: aiUse(ctx, "assistant"), smart: true, system: p.system })) {
             if (req.signal.aborted) return;
             if (ev.type === "route") send({ t: "route", provider: ev.provider, fallback: ev.fallback });
             else {

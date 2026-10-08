@@ -1,5 +1,5 @@
 import "server-only";
-import { generateJson } from "./ai";
+import { generateJson, type AiUse } from "./ai";
 import { mockAi } from "./assistant";
 import { extractFromUrl, type Extracted } from "./extract";
 import type { Scoped } from "./db-scoped";
@@ -41,14 +41,14 @@ export async function cachedCompare(s: Scoped, itemId: string, currency: string)
 export const saveCompare = (s: Scoped, itemId: string, c: CompareCache) => spacePrefSet(s, cacheKey(itemId), JSON.stringify(c)).catch(() => {});
 
 /** 2–3 search queries from title / brand / model / specs (and the barcode when known). */
-export async function compareQueries(item: ItemWithSources): Promise<string[]> {
+export async function compareQueries(item: ItemWithSources, use: AiUse): Promise<string[]> {
   const gtin = item.gtin ?? item.sources.find((s) => s.gtin)?.gtin ?? null;
   const base = [item.brand && !item.title.toLowerCase().includes(item.brand.toLowerCase()) ? `${item.brand} ${item.title}` : item.title];
   if (mockAi()) return [...base, ...(gtin ? [gtin] : [])].slice(0, 3);
   const out = await generateJson<{ queries: string[] }>(
     `Write 2–3 short web-shopping search queries that find THIS exact product in other online stores (any country). Use brand + model number + the key spec; drop marketing words, store names and colours unless they define the product.${gtin ? ` Its barcode (GTIN) is ${gtin}; make one query just the barcode.` : ""}\nProduct: ${item.title}${item.brand ? `\nBrand: ${item.brand}` : ""}${item.notes ? `\nNotes: ${item.notes.slice(0, 300)}` : ""}`,
     { type: "object", properties: { queries: { type: "array", items: { type: "string" }, maxItems: 3 } }, required: ["queries"] },
-    { budgetMs: 10_000 },
+    { use, budgetMs: 10_000 },
   ).catch(() => null);
   const q = (out?.queries ?? []).map((x) => x.trim()).filter(Boolean);
   return (q.length ? q : base).slice(0, 3);
@@ -101,14 +101,14 @@ export async function readCandidates(cands: Candidate[], budgetMs = 25_000): Pro
 }
 
 /** Keep only pages that are the same product (model/specs), judged by Gemini on the extracted data. */
-export async function sameProduct(item: ItemWithSources, reads: Read[]): Promise<Read[]> {
+export async function sameProduct(item: ItemWithSources, reads: Read[], use: AiUse): Promise<Read[]> {
   if (!reads.length) return [];
   if (mockAi()) return reads.filter((r) => titleSimilarity(item.title, r.ex.title ?? "") >= 0.35);
   const list = reads.map((r, i) => `${i}. ${r.ex.title}${r.ex.brand ? ` (brand ${r.ex.brand})` : ""} — ${r.ex.store.name}`).join("\n");
   const out = await generateJson<{ same: number[] }>(
     `Target product: ${item.title}${item.brand ? ` (brand ${item.brand})` : ""}.\nWhich of these store listings are the SAME product (same brand, model and key specs such as size/capacity/voltage; a different pack size or a bundle is NOT the same)? Return their numbers.\n${list}`,
     { type: "object", properties: { same: { type: "array", items: { type: "integer" } } }, required: ["same"] },
-    { budgetMs: 12_000 },
+    { use, budgetMs: 12_000 },
   ).catch(() => null);
   if (!out) return reads.filter((r) => titleSimilarity(item.title, r.ex.title ?? "") >= 0.5);
   const keep = new Set(out.same);

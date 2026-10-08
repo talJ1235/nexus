@@ -20,6 +20,8 @@ export const user = sqliteTable("user", {
   banned: integer("banned", { mode: "boolean" }).default(false),
   banReason: text("ban_reason"),
   banExpires: ts("ban_expires"),
+  // R17 E4: "Delete account" asked at (ms) — hidden at once, purged 7 days later unless the person signs in and restores.
+  deletionRequestedAt: integer("deletion_requested_at"),
 });
 
 export const session = sqliteTable(

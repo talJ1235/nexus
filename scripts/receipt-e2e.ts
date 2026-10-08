@@ -100,7 +100,7 @@ async function main() {
     if (ov >= 0.85) ok++;
     if (p.tiles.length > 1) tiled++;
     const bad = p.tiles.filter((t) => Math.max(t.w, t.h) > 2000 || t.bytes > UPLOAD_MAX || t.bytes < 1000 || t.h / t.w > 2.5 * 1.2);
-    const read = await extractReceipt({ files: p.tiles.map((t) => ({ mimeType: "image/jpeg", data: t.b64 })) });
+    const read = await extractReceipt({ files: p.tiles.map((t) => ({ mimeType: "image/jpeg", data: t.b64 })), use: { feature: "receipt", userId: null, system: true } });
     if (bad.length || !p.tiles.length || !read?.lines.length) {
       problems++;
       console.log(`FAIL ${file}: tiles ${p.tiles.map((t) => `${t.w}×${t.h}/${(t.bytes / 1024).toFixed(0)}KB`).join(" ")} read=${read?.lines.length ?? 0}`);
@@ -135,7 +135,7 @@ async function main() {
   for (const c of cases) {
     const p = await prepareIn(page, c.url);
     const t0 = Date.now();
-    const data = await extractReceipt({ files: p.tiles.map((t) => ({ mimeType: "image/jpeg", data: t.b64 })) }).catch((e) => (console.log(`  ${c.name}: ${String(e).slice(0, 120)}`), null));
+    const data = await extractReceipt({ files: p.tiles.map((t) => ({ mimeType: "image/jpeg", data: t.b64 })), use: { feature: "receipt", userId: null, system: true } }).catch((e) => (console.log(`  ${c.name}: ${String(e).slice(0, 120)}`), null));
     const secs = ((Date.now() - t0) / 1000).toFixed(1);
     if (!data) {
       console.log(`MISS ${c.name}: no read (${p.tiles.length} tiles)`);

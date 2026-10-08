@@ -9,5 +9,5 @@ export const maxDuration = 60;
 export default async function SettingsPage({ params, searchParams }: { params: Promise<{ section?: string[] }>; searchParams: Promise<{ v?: string; f?: string }> }) {
   const { section } = await params;
   const raw = (section?.[0] ?? "").slice(0, 40);
-  return Home({ searchParams, settings: raw === "security" ? "account" : raw });
+  return Home({ searchParams, settings: raw === "security" || raw === "notif" || raw === "notifications" ? "account" : raw });
 }

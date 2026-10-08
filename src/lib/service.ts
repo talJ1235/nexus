@@ -5,6 +5,7 @@ import { z } from "zod";
 import { schema } from "@/db";
 import { joins, type Scoped } from "@/lib/db-scoped";
 import { categorize, extractWithAi, extractWithUrlContext } from "@/lib/ai";
+import { aiUseOf } from "@/lib/ai-gate";
 import { getItem, recordPrice } from "@/lib/data";
 import { extractFromUrl, hintsFromUrl, type Extracted } from "@/lib/extract";
 import { reportError } from "@/lib/errors/record";
@@ -68,7 +69,7 @@ export async function buildDraft(s: Scoped, ex: Extracted, hintCollectionId: str
 
   // 1) Page was readable but thin → let the model read the page text.
   if ((!title || price == null) && ex.pageText && !ex.blocked && left() > 12_000) {
-    const ai = await extractWithAi(ex.url, ex.pageText, Math.min(12_000, left() - 8_000));
+    const ai = await extractWithAi(ex.url, ex.pageText, aiUseOf(s, "extract"), Math.min(12_000, left() - 8_000));
     if (ai) {
       if (!title && ai.title) {
         title = ai.title;
@@ -85,7 +86,7 @@ export async function buildDraft(s: Scoped, ex: Extracted, hintCollectionId: str
 
   // 2) Store blocked us or data still missing → ask Gemini to open the page itself.
   if ((ex.method === "client" ? !title || price == null : !title || price == null || !image) && left() > 14_000) {
-    const uc = await extractWithUrlContext(originalUrl ?? ex.url, left() - 8_000);
+    const uc = await extractWithUrlContext(originalUrl ?? ex.url, aiUseOf(s, "extract"), left() - 8_000);
     if (uc) {
       if (!title && uc.title) title = uc.title;
       if (price == null && uc.price != null) {
@@ -116,7 +117,7 @@ export async function buildDraft(s: Scoped, ex: Extracted, hintCollectionId: str
     for (const r of tagRows) for (const t of r.tags ?? []) counts.set(t, (counts.get(t) ?? 0) + 1);
     const knownTags = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
     // Tidy name / tags are nice-to-have: with little time left the raw title is used as is.
-    const cat = left() > 4_000 ? await categorize({ title: rawTitle, description: ex.description, store: ex.store.name, url: ex.url, collections, knownTags }, Math.min(15_000, left())) : null;
+    const cat = left() > 4_000 ? await categorize({ title: rawTitle, description: ex.description, store: ex.store.name, url: ex.url, collections, knownTags }, aiUseOf(s, "categorize"), Math.min(15_000, left())) : null;
     if (cat) {
       cleanTitle = cat.title;
       brand ??= cat.brand;

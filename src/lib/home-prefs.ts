@@ -20,7 +20,8 @@ export function parseNotify(raw: string | null | undefined, alertsRaw: string | 
     const a = JSON.parse(alertsRaw ?? "{}") as { minDropPct?: unknown };
     if (typeof a.minDropPct === "number") pct = a.minDropPct;
   } catch {}
-  return { drop: v.drop !== false, budget: v.budget !== false, delivery: v.delivery !== false, minDropPct: pct };
+  // R17 D3: the per-kind switches are gone — their behaviour is the default again (on); only the master switch is read.
+  return { ...DEFAULT_NOTIFY, minDropPct: pct, on: (v as { on?: unknown }).on !== false };
 }
 
 export function parseDismissed(raw: string | null | undefined, now = Date.now()): Record<string, number> {
