@@ -199,7 +199,7 @@ function DockBar() {
         data-dock-target="plus"
         className="grid size-[52px] place-items-center justify-self-center rounded-full bg-brand text-on-brand shadow-[0_8px_20px_color-mix(in_srgb,var(--brand)_40%,transparent)] active:scale-95"
       >
-        <Plus className={cn("size-6 transition-transform duration-[450ms] ease-[var(--ease-spring)]", plusOpen && "rotate-[135deg]")} strokeWidth={2.4} />
+        <Plus className={cn("size-6 transition-transform duration-200 ease-[var(--ease-out)]", plusOpen && "rotate-[135deg]")} strokeWidth={2.4} />
       </button>
       )}
       {DOCK.slice(2).map(item)}
@@ -211,7 +211,7 @@ const noop = () => () => {};
 /** True after hydration (portals need document.body). */
 const useMounted = () => useSyncExternalStore(noop, () => true, () => false);
 
-/** "+" menu: scrim + four action cards that rise with a spring, staggered bottom-up (portal, like the dock). */
+/** "+" menu: scrim + four action cards that rise (220 ms ease-out), staggered bottom-up (portal, like the dock). */
 export function PlusMenu() {
   const mounted = useMounted();
   if (!mounted) return null;
@@ -272,12 +272,12 @@ function PlusMenuSheet() {
             disabled={a.disabled}
             onClick={() => choose(a.run)}
             data-plus-action={a.key}
-            // Bottom row rises first, then the top row (a spring, staggered toward the +).
-            style={{ transitionDelay: open ? `${(i < 2 ? 2 : 0) * 45 + (i % 2) * 35}ms` : "0ms", backgroundColor: "var(--surface)", backgroundImage: `var(--act-${a.tone})` }}
+            // Bottom row rises first, then the top row (polish #12: 20 ms steps, settled by ~280 ms — it opens all day).
+            style={{ transitionDelay: open ? `${((i < 2 ? 2 : 0) + (i % 2)) * 20}ms` : "0ms", backgroundColor: "var(--surface)", backgroundImage: `var(--act-${a.tone})` }}
             className={cn(
               "relative flex min-h-[124px] flex-col items-start justify-between overflow-hidden rounded-[24px] border border-line p-3.5 text-start shadow-[0_14px_32px_color-mix(in_srgb,var(--ink)_16%,transparent)] transition-[opacity,transform] active:scale-[0.97] disabled:opacity-50",
-              // Open: a spring; close: the same transform/opacity pair on --ease-out, ≤ 280 ms (R16 A11).
-              open ? "translate-y-0 scale-100 opacity-100 duration-[250ms,450ms] ease-[ease,var(--ease-spring)]" : "translate-y-6 scale-[0.92] opacity-0 duration-[180ms,260ms] ease-[var(--ease-out)]",
+              // Open: 220 ms ease-out, no overshoot (polish #12); close: the same pair on --ease-out, ≤ 280 ms (R16 A11).
+              open ? "translate-y-0 scale-100 opacity-100 duration-[220ms] ease-[var(--ease-out)]" : "translate-y-6 scale-[0.92] opacity-0 duration-[180ms,260ms] ease-[var(--ease-out)]",
             )}
           >
             <span className="block h-11 w-14" style={{ color: `var(--act-${a.tone}-ink)` }} aria-hidden>
@@ -295,9 +295,8 @@ function PlusMenuSheet() {
         <div
           className={cn(
             "col-span-2 flex gap-2 transition-[opacity,transform]",
-            open ? "translate-y-0 opacity-100 duration-[250ms,450ms] ease-[ease,var(--ease-spring)]" : "translate-y-4 opacity-0 duration-[180ms,260ms] ease-[var(--ease-out)]",
+            open ? "translate-y-0 opacity-100 duration-[220ms] ease-[var(--ease-out)]" : "translate-y-4 opacity-0 duration-[180ms,260ms] ease-[var(--ease-out)]",
           )}
-          style={{ transitionDelay: open ? "150ms" : "0ms" }}
         >
           {more.map((a) => (
             <button
