@@ -370,4 +370,4 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   logout) and refreshes in place; the first time, the checkup box and this device (from the browser's UA) are there
   from the first frame with skeleton rows for the others; the tiles stack one per line under 1024 px. Smoke (phone,
   local prod build, file DB): CLS 0 cold and warm, devices answer 7 ms warm, no tile text cut at 360. Not measured
-  against Turso from here (the sandbox's prod DB is out of reach) — the batch is the part that matters there.
+  against Turso (this session doesn't touch prod) — the batch is the part that matters there.
