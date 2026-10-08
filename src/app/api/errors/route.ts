@@ -8,7 +8,7 @@ import { boundedBody, reporter, sameOrigin } from "@/lib/errors/intake";
 const Event = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("client"), code: z.enum(["error", "rejection", "toast"]), where: z.string().max(120), message: z.string().min(1).max(300) }).strict(),
   // R16 G2: a Google sign-in that failed to open (status / timeout / network only — the email never leaves the page).
-  z.object({ kind: z.literal("auth"), code: z.enum(["google_status", "google_timeout", "google_network", "google_limit"]), where: z.string().max(120), message: z.string().min(1).max(300) }).strict(),
+  z.object({ kind: z.literal("auth"), code: z.enum(["google_status", "google_timeout", "google_network", "google_limit", "google_fedcm"]), where: z.string().max(120), message: z.string().min(1).max(300) }).strict(),
   // Hotfix 2026-10-07: a phone page found at desktop layout width (boot-screen VIEWPORT_GUARD) — layout numbers, display
   // mode, navigation type and the referrer's host only; never content.
   z.object({ kind: z.literal("viewport"), code: z.literal("layout"), where: z.string().max(120), message: z.string().min(1).max(300) }).strict(),

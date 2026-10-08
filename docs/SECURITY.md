@@ -31,7 +31,10 @@ security control.
 
 ## 2. Authentication (ASVS V6 / L3 where marked)
 - Methods: **passkeys** (WebAuthn, `userVerification: "required"`, resident keys, RP ID = final domain) — phishing-
-  resistant; **Google** (OIDC with PKCE + state + nonce, only `email_verified` accounts); **email code for recovery**.
+  resistant; **Google** (OIDC with PKCE + state + nonce, only `email_verified` accounts — or, where the browser has
+  FedCM, Google's ID token from the in-app account sheet: signature / audience / issuer / expiry verified server-side,
+  its nonce must equal a server-issued, signed, httpOnly, single-use 10-minute cookie, Google only, no client-supplied
+  access token or profile); **email code for recovery**.
 - Email code: 6 digits from a CSPRNG, stored **hashed**, single use, 10-minute life, max 5 attempts then a new code is
   needed, max 3 codes per email per hour and per IP; **same response whether or not the email exists** (no account
   enumeration); only for existing accounts; after a recovery sign-in the user must add a passkey before anything else,

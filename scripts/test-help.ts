@@ -63,7 +63,7 @@ const help = readFileSync(helpPath, "utf8");
 const covered = new Set([...help.matchAll(/<!--\s*spec:\s*([^>]+?)\s*-->/g)].flatMap((m) => m[1].split(",").map((x) => x.trim().toLowerCase())));
 const spec = readFileSync("SPEC.md", "utf8");
 // Internal / engineering entries that aren't something a user does.
-const SKIP = /^(round \d|stack|environment|non-goals|core concepts|extraction pipeline \(server|research|palette "ink & teal"|one loader|add-link feedback|same link twice|cards|item sheet|dev|reading a pasted link|ai assistant\*\*$|first load|logo|phone opening animation|smoke|store identity|toasts|clicks during a slow load|motion)/i;
+const SKIP = /^(round \d|stack|environment|non-goals|core concepts|extraction pipeline \(server|research|palette "ink & teal"|one loader|add-link feedback|same link twice|cards|item sheet|dev|reading a pasted link|ai assistant\*\*$|first load|logo|phone opening animation|smoke|store identity|toasts|clicks during a slow load|motion|phone layout self-heal)/i;
 const features = [
   ...[...spec.matchAll(/^## (.+)$/gm)].map((m) => m[1].trim()),
   ...[...spec.matchAll(/^- \*\*([^*]+)\*\*/gm)].map((m) => m[1].trim()),

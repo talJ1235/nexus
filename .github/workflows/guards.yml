@@ -73,6 +73,20 @@ jobs:
           for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:3101/login && break; sleep 1; done
           BASE=http://localhost:3101 node scripts/test-google-signin.mjs
           BASE=http://localhost:3101 node scripts/test-viewport.mjs
+      - name: Google in-app sign-in (FedCM sheet via GIS, stubbed) + redirect fallback + ID-token nonce guard (hotfix 2026-10-07)
+        env:
+          CI_DB: file:ci-fedcm.db
+          ADMIN_EMAIL: ci-admin@example.com
+          BETTER_AUTH_SECRET: ci-secret-0123456789abcdef0123456789abcdef
+          BETTER_AUTH_URL: http://localhost:3102
+          GOOGLE_CLIENT_ID: ci-dummy.apps.googleusercontent.com
+          GOOGLE_CLIENT_SECRET: ci-dummy
+          AUTH_FULL_LOCAL: "0"
+        run: |
+          TURSO_DATABASE_URL=$CI_DB npx tsx src/db/migrate.ts
+          TURSO_DATABASE_URL=$CI_DB nohup npx next start -p 3102 > fedcm-server.log 2>&1 &
+          for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:3102/login && break; sleep 1; done
+          BASE=http://localhost:3102 node scripts/test-google-fedcm.mjs
       - name: error log — limits, redaction, overflow, onRequestError (R16 C2; starts the built app itself)
         run: npm run -s test:errors
       - name: live shared spaces — fake transport + polling, conflicts, presence (R16 B; starts next dev itself)
@@ -92,4 +106,4 @@ jobs:
           for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:3107/login && break; sleep 1; done
           BASE=http://localhost:3107 TURSO_DATABASE_URL=$CI_DB node scripts/test-settings.mjs
       - if: failure()
-        run: tail -40 headers-server.log 2>/dev/null || true; tail -40 google-server.log 2>/dev/null || true; tail -40 settings-server.log 2>/dev/null || true
+        run: tail -40 headers-server.log 2>/dev/null || true; tail -40 google-server.log 2>/dev/null || true; tail -40 fedcm-server.log 2>/dev/null || true; tail -40 settings-server.log 2>/dev/null || true

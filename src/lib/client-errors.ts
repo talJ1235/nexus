@@ -67,8 +67,12 @@ function queueReport(code: ClientError["kind"], message: string, where?: string)
   flushTimer = idle(() => flushReports(false), { timeout: 5000 }) as unknown as number;
 }
 
-/** R16 G2: a sign-in that didn't open (status / timeout / network — never the email). Sent right away. */
-export function reportAuthFailure(code: "google_status" | "google_timeout" | "google_network" | "google_limit", message: string) {
+/**
+ * R16 G2: a sign-in that didn't open (status / timeout / network — never the email). Sent right away.
+ * Hotfix 2026-10-07: `google_fedcm` = Google's account sheet gave no token and the redirect took over (the reason only:
+ * skipped / dismissed / not displayed + Google's reason code, script, nonce).
+ */
+export function reportAuthFailure(code: "google_status" | "google_timeout" | "google_network" | "google_limit" | "google_fedcm", message: string) {
   if (typeof window === "undefined") return;
   const where = window.location.pathname.slice(0, 120);
   const k = keyOf(code, where, message);

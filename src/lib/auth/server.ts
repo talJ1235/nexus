@@ -8,6 +8,7 @@ import { nextCookies } from "better-auth/next-js";
 import { admin, captcha, emailOTP, genericOAuth, organization } from "better-auth/plugins";
 import { createAccessControl } from "better-auth/plugins/access";
 import { and, eq, ne } from "drizzle-orm";
+import { randomBytes } from "node:crypto";
 import { after } from "next/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -60,6 +61,7 @@ const ALLOWED: Gate[] = [
   { re: /^\/get-session$/ },
   { re: /^\/sign-out$/ },
   { re: /^\/sign-in\/social$/ },
+  { re: /^\/google\/nonce$/, when: () => !!process.env.GOOGLE_CLIENT_ID },
   { re: /^\/callback\/google$/ },
   { re: /^\/callback\/test-idp$/, when: () => testIdpEnabled() },
   { re: /^\/passkey\/(generate-register-options|verify-registration|generate-authenticate-options|verify-authentication)$/, when: full },
@@ -71,6 +73,14 @@ const ALLOWED: Gate[] = [
   { re: /^\/error$/ },
 ];
 
+// Hotfix 2026-10-07 — Google sign-in without leaving the app (FedCM account sheet via Google Identity Services): the
+// page sends Google's ID token to /sign-in/social, where Better Auth verifies signature, audience, issuer, expiry and
+// nonce. The nonce is ours: /google/nonce puts a random one in a signed, httpOnly, 10-minute cookie, the token's nonce
+// must equal it (a token issued for another browser / page can't be replayed here), and the cookie goes after one try.
+const GOOGLE_NONCE_COOKIE = "nexus_gnonce";
+const NONCE_COOKIE = { httpOnly: true, secure: https, sameSite: "lax" as const, path: "/api/auth" };
+const idTokenSignIn = (ctx: { path?: string; body?: unknown }) => ctx.path === "/sign-in/social" && !!(ctx.body as { idToken?: unknown } | undefined)?.idToken;
+
 const nexusGuard = {
   id: "nexus-guard",
   async onRequest(request: Request) {
@@ -80,6 +90,19 @@ const nexusGuard = {
   },
   hooks: {
     before: [
+      {
+        // ID-token sign-in: Google only, the token + our nonce only (no client-supplied access token / profile).
+        matcher: idTokenSignIn,
+        handler: createAuthMiddleware(async (ctx) => {
+          const b = ctx.body as { provider?: unknown; idToken?: Record<string, unknown> };
+          const t = b.idToken ?? {};
+          if (b.provider !== "google" || typeof t.token !== "string" || typeof t.nonce !== "string" || Object.keys(t).some((k) => k !== "token" && k !== "nonce")) {
+            throw new APIError("BAD_REQUEST", { code: "invalid_id_token_request", message: "invalid_id_token_request" });
+          }
+          const expected = await ctx.getSignedCookie(GOOGLE_NONCE_COOKIE, ctx.context.secret);
+          if (!expected || !safeEqualStr(expected, t.nonce)) throw new APIError("UNAUTHORIZED", { code: "INVALID_TOKEN", message: "invalid nonce" });
+        }),
+      },
       {
         // Step-up (SECURITY.md §2): adding a passkey needs a sign-in within the last 10 minutes.
         matcher: (ctx) => ctx.path === "/passkey/generate-register-options",
@@ -106,6 +129,15 @@ const nexusGuard = {
         }),
       },
     ],
+    after: [
+      {
+        // The Google nonce is single-use: gone after the attempt, whatever its outcome.
+        matcher: idTokenSignIn,
+        handler: createAuthMiddleware(async (ctx) => {
+          ctx.setCookie(GOOGLE_NONCE_COOKIE, "", { ...NONCE_COOKIE, maxAge: 0 });
+        }),
+      },
+    ],
   },
   rateLimit: [
     { pathMatcher: (p: string) => p === "/fallback/sign-in", window: 60, max: 5 },
@@ -117,6 +149,13 @@ const nexusGuard = {
 const nexusFallback = {
   id: "nexus-fallback",
   endpoints: {
+    // Hotfix 2026-10-07: the nonce for Google's ID token (see GOOGLE_NONCE_COOKIE). No DB work.
+    googleNonce: createAuthEndpoint("/google/nonce", { method: "POST" }, async (ctx) => {
+      if (!process.env.GOOGLE_CLIENT_ID) throw new APIError("NOT_FOUND");
+      const nonce = randomBytes(24).toString("base64url");
+      await ctx.setSignedCookie(GOOGLE_NONCE_COOKIE, nonce, ctx.context.secret, { ...NONCE_COOKIE, maxAge: 600 });
+      return ctx.json({ nonce });
+    }),
     fallbackSignIn: createAuthEndpoint("/fallback/sign-in", { method: "POST", body: z.object({ password: z.string().max(200) }).strict() }, async (ctx) => {
       const headers = ctx.request?.headers ?? ctx.headers;
       const mode = authMode(requestHost(headers));
@@ -159,6 +198,8 @@ const nexusFallback = {
 function sessionMethod(path: string | undefined) {
   if (!path) return null;
   if (path.startsWith("/callback/google")) return "google";
+  // Only the ID-token branch creates a session here (Google only — the before-hook refuses other providers).
+  if (path === "/sign-in/social") return "google";
   if (path.startsWith("/callback/test-idp")) return "test-idp";
   if (path.startsWith("/passkey/")) return "passkey";
   if (path.startsWith("/sign-in/email-otp")) return "email-otp";
@@ -307,7 +348,7 @@ export const auth = betterAuth({
   },
   // R16 G2/G3: one atomic DB statement per check (authRateLimitStorage). Google: 30/min per IP — a household behind one
   // IP (NAT) retrying can't reach it; past it the button says so ("limit") instead of hanging.
-  rateLimit: { enabled: true, window: 60, max: 100, customStorage: authRateLimitStorage, customRules: { "/sign-in/email-otp": { window: 60, max: 5 }, "/sign-in/social": { window: 60, max: 30 } } },
+  rateLimit: { enabled: true, window: 60, max: 100, customStorage: authRateLimitStorage, customRules: { "/sign-in/email-otp": { window: 60, max: 5 }, "/sign-in/social": { window: 60, max: 30 }, "/google/nonce": { window: 60, max: 30 } } },
   advanced: {
     useSecureCookies: false, // the names below carry their own prefix; Secure is set from the URL
     cookiePrefix: "nexus",
