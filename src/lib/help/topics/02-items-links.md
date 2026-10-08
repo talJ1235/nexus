@@ -1,7 +1,7 @@
 <!-- topic: Items and links -->
 
 ## Adding products
-<!-- spec: Adding items, Extraction pipeline, Product pictures, Real product pictures, Categories -->
+<!-- spec: Adding items, Extraction pipeline, Product pictures, Real product pictures, Categories, Short names, Blocked stores -->
 - Paste a product link anywhere (Ctrl/⌘+V) or into the paste bar; on phones **+ → Paste a link**. Several links at
   once work too. A placeholder card appears at once and fills in (name, price, picture, store, category).
 - The same link again (still to buy) → quantity +1 (with Undo). Same product from another store → offered as another
@@ -9,6 +9,9 @@
 - **Short names**: a long store title ("Two Pieces Car Perfume Clip … AliExpress 34") gets a short name (≤ 40
   characters, same language); the store's full name shows under it in the item sheet — tap to read it all, or
   **Use full name** (להשתמש בשם המלא). Search finds both. "Two Pieces …" sets the quantity to 2.
+- **Stores that block automatic reading** (some Israeli stores refuse Nexus's server): Nexus tries the store's own
+  product data and a helper service; if nothing works, the item is saved with its link and name and says "Store blocks
+  automatic reading — add the price by hand" (החנות חוסמת קריאה אוטומטית) — type the price in the item sheet.
 - Manual entry: type a name instead of a link; every field can be edited in the item sheet.
 - Phone share sheet: share a product page to Nexus (installed app).
 - **Pictures**: Nexus reads what the product is (even abbreviated

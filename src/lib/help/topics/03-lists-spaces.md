@@ -1,7 +1,9 @@
 <!-- topic: Lists and spaces -->
 
 ## Spaces and people
-<!-- spec: Spaces, Switcher, Create a space, Space settings, Viewer, Move to space…, Space look, Space switch moment -->
+<!-- spec: Spaces, Switcher, Create a space, Space settings, Viewer, Move to space…, Space look, Space switch moment, Space switch -->
+- Switching spaces always shows a short moment (about 2 seconds: the space's picture, name and faces) so you notice
+  you moved; Esc or Back cancels it. Space settings opened from the switcher close back to where you were.
 - Everything lives in a **space** (מרחב): your **personal** space (only you) and **shared** spaces (a household, a
   workshop…), each with its own lists, projects, items and budget. Assistant chats and memory stay personal.
 - **Switch**: desktop — the button under the logo (or Ctrl/⌘+1…9); phone — tap the space chip in the top bar. Its tile

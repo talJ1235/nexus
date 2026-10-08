@@ -19,7 +19,9 @@
 - Settings → **Display** (תצוגה): theme Light / Dark / Match device, colour **Graphite** (default) or **Plum** (שזיף),
   language (English / עברית, full right-to-left), currency, Motion (Match device / Reduced). Per device, instant.
   **Reduced** keeps soft fades (sheets and menus fade in and out) but nothing moves or slides.
-<!-- spec: Polish fixes -->
+<!-- spec: Polish fixes, No cut-off text -->
+- Text that doesn't fit ends with "…": hover it (computer) to read it all, or tap the row/card to open it; long
+  notices open in place when tapped.
 - In Settings, tapping anywhere on a row with a switch flips the switch.
 - A very big amount may be shortened (e.g. ₪62.2B) when it doesn't fit; hover it (computer) or long-press it (phone)
   for the exact figure.

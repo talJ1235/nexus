@@ -1,7 +1,11 @@
 <!-- topic: Money and budget -->
 
 ## Calendar
-<!-- spec: Month view, Calendar sync -->
+<!-- spec: Month view, Calendar sync, Calendar -->
+- Nothing in Google Calendar? Settings → Calendar shows how many events the feed has right now — only orders with an
+  expected delivery date and reorder dates go there. Google updates subscribed calendars a few times a day. On a
+  phone, Google's app can't subscribe to a link: copy it and add it on a computer at calendar.google.com → Other
+  calendars → From URL.
 - **Month view**: Home → This week → **Month** (חודש): ‹ › between months, dots for arrivals, late packages, reorder
   dates, price drops and the budget; tap a day for its events.
 - **Calendar sync**: Settings → **Calendar** (לוח שנה) → **Add to Google Calendar**, **Apple / Outlook** (webcal) or

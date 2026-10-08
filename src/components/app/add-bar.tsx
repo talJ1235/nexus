@@ -136,7 +136,7 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
         // R16 C1: a link that didn't fully read can be reported (the link goes along unless unticked).
         const rep = reportAction("link", { code: preview.draft.quality === "failed" ? "failed" : "partial", link: preview.draft.source.url });
         // R17 C2: a store that refuses automatic reading isn't an error — a plain note, the item is saved as read.
-        if (preview.draft.blocked) toast(t.add.blocked, { description: item.title, action: { label: t.item.edit, onClick: () => s.openItem(item.id) } });
+        if (preview.draft.blocked) toast(t.add.blocked, { description: item.title, action: { label: t.item.edit, onClick: () => s.openItem(item.id) }, cancel: rep });
         else if (preview.draft.quality === "failed") toast.warning(t.add.failed, { action: { label: t.item.edit, onClick: () => s.openItem(item.id) }, cancel: rep });
         else if (partial && interactive) toast(t.add.partial, { description: item.title, action: { label: t.item.edit, onClick: () => s.openItem(item.id) }, cancel: rep });
         else if (!visible) toast.success(t.add.added, { description: item.title, action: { label: t.dup.open, onClick: () => s.openItem(item.id) } });

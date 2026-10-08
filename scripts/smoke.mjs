@@ -21,7 +21,8 @@
 //     `bash scripts/serve-fresh.sh`), Round 13 A7.
 //   SMOKE_VISUAL=/?v=projects screenshots that view in Graphite + Plum × light + dark (phone: at 360 and 390 px)
 //     into $SMOKE_OUT/visual/, for judging a visual change by screenshot. SMOKE_VISUAL_FULL=1 takes full-page shots.
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { canSignIn, signIn as signInAs } from "./lib/sign-in.mjs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
@@ -30,21 +31,10 @@ import sharp from "sharp";
 // Service-worker fetches only see context.setOffline() with this flag (the offline check needs the SW fallback).
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS ??= "1";
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
-// R17 E1 — sign-in without a password: locally the session serve-smoke.sh seeded (SMOKE_SESSION or
-// .next/smoke-session.txt); elsewhere the admin emergency path (POST /api/emergency, CI secrets).
-const LOCAL = /localhost|127\.0\.0\.1/.test(BASE);
-const SESSION = process.env.SMOKE_SESSION || (LOCAL ? (() => { try { return readFileSync(".next/smoke-session.txt", "utf8").trim(); } catch { return ""; } })() : "");
-const EMERGENCY = process.env.SMOKE_ADMIN_TOKEN && process.env.SMOKE_ADMIN_EMAIL ? { token: process.env.SMOKE_ADMIN_TOKEN, email: process.env.SMOKE_ADMIN_EMAIL } : null;
-const CAN_SIGN_IN = !!SESSION || !!EMERGENCY;
-async function signIn(p, base = BASE) {
-  if (SESSION && /localhost|127\.0\.0\.1/.test(base)) await p.context().addCookies([{ name: "nexus_session_dev", value: SESSION, url: base }]);
-  else if (EMERGENCY) {
-    const r = await p.request.post(`${base}/api/emergency`, { data: EMERGENCY });
-    if (!r.ok()) throw new Error(`emergency sign-in: ${r.status()}`);
-  } else throw new Error("no way to sign in (SMOKE_SESSION / SMOKE_ADMIN_TOKEN)");
-  await p.goto(`${base}/`);
-  await p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 });
-}
+// R17 E1 — sign-in without a password (scripts/lib/sign-in.mjs): locally a fresh session row in smoke.db per sign-in;
+// elsewhere the admin emergency path (POST /api/emergency, CI secrets).
+const CAN_SIGN_IN = canSignIn(BASE);
+const signIn = (p, base = BASE) => signInAs(p, base);
 const MOBILE = !!process.env.SMOKE_MOBILE;
 // R17 0.3: prod (or SMOKE_REAL=1) has real data, not the demo seed — steps that need demo ids / demo dates are skipped.
 const REAL = process.env.SMOKE_REAL ? process.env.SMOKE_REAL !== "0" : !/localhost|127\.0\.0\.1/.test(BASE);

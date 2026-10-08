@@ -74,6 +74,7 @@ ci-*.db
 # Polish fixes: worst-case test DB (scripts/test-polish.mjs)
 /polish-test.db*
 /smoke.db*
+/snapshots/rehearsal-r17.db*
 /clip-test.db*
 /switch-test.db*
 /ai-quota-test.db*

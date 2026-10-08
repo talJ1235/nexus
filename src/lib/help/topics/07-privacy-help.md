@@ -1,7 +1,13 @@
 <!-- topic: Assistant, privacy and problems -->
 
 ## The assistant (Ask Nexus)
-<!-- spec: AI assistant, Assistant actions, Assistant v2, Assistant suggestions, Assistant, One chat, Conversation history, Memory, Smarter suggestions -->
+<!-- spec: AI assistant, Assistant actions, Assistant v2, Assistant suggestions, Assistant, One chat, Conversation history, Memory, Smarter suggestions, AI gate, Privacy & terms, Help -->
+- **AI limits and privacy**: each person has up to 40 AI uses a day (reading a link, a receipt, an assistant answer…);
+  after that "AI is resting until tomorrow" and everything else keeps working. Settings → Assistant & AI → **Rules
+  only** turns AI off for you everywhere. Names, emails and phone numbers are removed before anything goes to an AI
+  provider. **Privacy** and **Terms**: links at the bottom of the sign-in page, in Settings → Account and in the Me
+  sheet. **Download my data** (JSON / Excel) and **Delete account** (7 days to change your mind) are in Settings →
+  Account; the page /delete-account explains it without signing in.
 - Ask about your data ("how much is left for Railcam?") or how to use Nexus. Tap a suggested question to ask it.
 - Ask it to change things ("mark the NEMA motors as ordered", "move these to a new project Drone"): it proposes the
   change and nothing happens until you press **Apply** (Undo after). It never deletes.
