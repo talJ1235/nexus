@@ -15,8 +15,9 @@ const variants: Record<Variant, string> = {
 const sizes: Record<Size, string> = {
   sm: "h-8 px-3.5 text-[13px] gap-1.5 rounded-full",
   md: "h-10 px-4 text-sm gap-2 rounded-full",
-  icon: "size-9 rounded-full",
-  "icon-sm": "size-7 rounded-full",
+  // Polish #4: 36 / 28 px to the eye, ≥ 44 px to a finger (.hit).
+  icon: "hit size-9 rounded-full",
+  "icon-sm": "hit size-7 rounded-full",
 };
 
 export const Button = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size }>(

@@ -97,7 +97,7 @@ export function PhoneTopBar() {
         <button
           type="button"
           onClick={() => s.setMeOpen(true)}
-          className={cn(circle, "ms-0.5 size-8 bg-ink text-xs font-bold text-bg")}
+          className={cn(circle, "ms-0.5 size-8 bg-ink text-xs font-bold text-bg after:-inset-1")}
           aria-label={unread ? `${t.me.open} · ${t.alerts.title} (${unread})` : t.me.open}
           data-me-open
         >

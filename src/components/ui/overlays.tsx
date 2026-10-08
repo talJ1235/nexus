@@ -73,7 +73,7 @@ export function Modal({
           <SheetHandle className="-mt-3 mb-1" />
           <div className="mb-4 flex items-start justify-between gap-4" data-sheet-grip>
             {onBack && (
-              <button type="button" onClick={onBack} className="-m-1 -me-2 grid size-8 shrink-0 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label={backLabel} data-modal-back>
+              <button type="button" onClick={onBack} className="hit -m-1 -me-2 grid size-8 shrink-0 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label={backLabel} data-modal-back>
                 <ArrowLeft className="size-4 rtl:-scale-x-100" />
               </button>
             )}
@@ -81,7 +81,7 @@ export function Modal({
               <D.Title className="text-base font-semibold">{title}</D.Title>
               {description ? <D.Description className="mt-1 text-sm text-muted">{description}</D.Description> : <D.Description className="sr-only">{title}</D.Description>}
             </div>
-            <D.Close className="-m-1 rounded-md p-1 text-muted hover:bg-sunken hover:text-fg" aria-label="Close">
+            <D.Close className="hit -m-1 rounded-md p-1 text-muted hover:bg-sunken hover:text-fg" aria-label="Close" data-modal-close>
               <X className="size-4" />
             </D.Close>
           </div>

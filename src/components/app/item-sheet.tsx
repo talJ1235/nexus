@@ -425,7 +425,7 @@ export function ItemSheet() {
             </fieldset>
             <div className="flex items-center gap-1">
               <SheetMoreMenu item={item} onDelete={() => void remove()} />
-              <SheetClose className="grid size-8 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label="Close">
+              <SheetClose className="hit grid size-8 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label="Close" data-sheet-close>
                 <X className="size-4" />
               </SheetClose>
             </div>
@@ -533,7 +533,7 @@ export function ItemSheet() {
                         role="radio"
                         aria-checked={item.priority === p}
                         onClick={() => save({ priority: p })}
-                        className={cn("rounded-md px-2.5 transition", item.priority === p ? (p === "urgent" ? "bg-danger text-white" : "bg-fg text-bg") : "text-muted hover:text-fg")}
+                        className={cn("hit rounded-md px-2.5 transition", item.priority === p ? (p === "urgent" ? "bg-danger text-white" : "bg-fg text-bg") : "text-muted hover:text-fg")}
                       >
                         {t.item[p]}
                       </button>
@@ -648,7 +648,7 @@ function SheetMoreMenu({ item, onDelete }: { item: ItemWithSources; onDelete: ()
   return (
     <Menu>
       <MenuTrigger asChild>
-        <button type="button" className="grid size-8 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label={t.quick.more} title={t.quick.more} data-sheet-more>
+        <button type="button" className="hit grid size-8 place-items-center rounded-md text-muted hover:bg-sunken hover:text-fg" aria-label={t.quick.more} title={t.quick.more} data-sheet-more>
           <Ellipsis className="size-4" />
         </button>
       </MenuTrigger>

@@ -372,6 +372,15 @@ body {
   }
 }
 
+/* Polish #4: a small control's tap area grows to at least 44 × 44 on touch without moving or resizing anything — an
+   invisible box centred on it. Positioned controls keep their own position (utilities outrank this layer). */
+@layer components {
+  .hit { position: relative; }
+}
+@media (pointer: coarse) {
+  .hit::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }
+}
+
 /* Polish #1: iOS Safari zooms into any field under 16px and never zooms back. On touch every text field is at least
    16px — one rule instead of per-field sizes (the shared Input/Textarea are text-sm, the .nx kit 13–15px). Fields
    that are already bigger opt out with data-big (the item sheet's name, the alt sheet's price) or keep their own

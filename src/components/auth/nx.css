@@ -30,6 +30,8 @@ background:var(--bg);color:var(--ink);font-family:inherit;font-size:14px;line-he
 .nx .num{font-variant-numeric:tabular-nums}
 .nx .mono{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace}
 .nx .link{color:var(--ink);font-weight:600;text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
+/* Polish #4: inline links (Terms, Privacy, Not you?, Lost access?) take a 40px-tall tap without moving the text. */
+@media (pointer:coarse){.nx .link{position:relative}.nx .link::after{content:"";position:absolute;inset:max(-11px,calc((100% - 40px)/2)) -4px}}
 .nx b{font-weight:600}
 .nx svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .nx svg.i.sm{width:16px;height:16px}

@@ -1427,9 +1427,9 @@ function NoticedCard({ list, className, style }: { list: Insight[]; className?: 
   };
   const swipe = useRef<{ x: number; id: number } | null>(null);
   const dots = list.length > 1 && (
-    <span className="-me-1.5 ms-auto flex lg:hidden" role="tablist">
+    <span className="-me-3 ms-auto flex lg:hidden" role="tablist">
       {list.map((x, k) => (
-        <button key={x.key} type="button" role="tab" aria-selected={k === i} aria-label={f(t.dash.insightN, { i: k + 1, n: list.length })} onClick={() => setIdx(k)} className="relative grid h-6 w-5 place-items-center after:absolute after:inset-x-0 after:-inset-y-2 after:content-['']">
+        <button key={x.key} type="button" role="tab" aria-selected={k === i} aria-label={f(t.dash.insightN, { i: k + 1, n: list.length })} onClick={() => setIdx(k)} className="relative grid h-6 w-8 place-items-center after:absolute after:inset-x-0 after:-inset-y-2 after:content-['']">
           <i className={cn("block h-1.5 rounded-full transition-[width,background-color] duration-300", k === i ? "w-4 bg-ai" : "w-1.5 bg-card-line")} />
         </button>
       ))}

@@ -136,6 +136,32 @@ for (const variant of [{}, { phone: true, he: true }]) {
   await page.waitForSelector('[data-settings-section="display"]');
   small.push(...(await smallFields()));
   ok(small.length === 0, "#1 every text field is ≥ 16px on a coarse pointer (paste bar, search, item sheet, settings)", small.join(", "));
+  // #4: the tap area (box ∪ ::after) of the shared small controls is ≥ 40 × 40 on touch.
+  const tapArea = (sel) => page.$$eval(sel, (els) => els.filter((el) => el.getBoundingClientRect().width > 0).map((el) => {
+    const b = el.getBoundingClientRect();
+    const a = getComputedStyle(el, "::after");
+    const pw = a.content !== "none" && a.position === "absolute" ? parseFloat(a.width) || 0 : 0;
+    const ph = a.content !== "none" && a.position === "absolute" ? parseFloat(a.height) || 0 : 0;
+    return { what: el.getAttribute("aria-label") || el.textContent.trim().slice(0, 16), w: Math.round(Math.max(b.width, pw)), h: Math.round(Math.max(b.height, ph)) };
+  }));
+  const tooSmall = [];
+  const collect = async (sel) => tooSmall.push(...(await tapArea(sel)).filter((x) => x.w < 40 || x.h < 40).map((x) => `${sel} ${x.what} ${x.w}×${x.h}`));
+  await page.goto(`${BASE}/?v=to_buy`);
+  await ready(page);
+  await page.locator("[data-item-card]").first().click();
+  await page.waitForSelector("[data-sheet-close]");
+  await collect("[data-sheet-close]");
+  await collect("[data-sheet-more]");
+  await collect('[role="dialog"] [role="radio"]');
+  await page.locator("[data-sheet-close]").click();
+  await page.waitForTimeout(500);
+  await page.locator("[data-plus]").click();
+  await page.locator('[data-plus-action="list"]').click();
+  await page.waitForSelector("[data-modal-close]");
+  await collect("[data-modal-close]");
+  await collect("button.hit");
+  await page.keyboard.press("Escape");
+  ok(tooSmall.length === 0, "#4 sheet ✕ / more / segments, Modal ✕ and the icon Buttons have a ≥ 40 × 40 tap area on touch", tooSmall.join(", "));
   // #2: delete → the toast's Undo is a 40px target (then Undo, so the data stays as seeded).
   await page.goto(`${BASE}/?v=to_buy`);
   await ready(page);

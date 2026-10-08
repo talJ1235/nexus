@@ -65,7 +65,7 @@ export function StatusControl({ item }: { item: ItemWithSources }) {
           aria-checked={item.status === st.value}
           onClick={() => item.status !== st.value && void flow.setTo(item, st.value)}
           className={cn(
-            "relative h-8 rounded-md px-3 font-medium transition",
+            "hit h-8 rounded-md px-3 font-medium transition",
             item.status === st.value
               ? st.value === "ordered"
                 ? "bg-info text-white"
