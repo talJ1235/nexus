@@ -6,7 +6,7 @@
 import { createClient } from "@libsql/client";
 import { execFileSync, spawn } from "node:child_process";
 import { createHmac, randomBytes } from "node:crypto";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { chromium } from "playwright";
 
 const PORT = Number(process.env.PORT || 3108);
@@ -36,6 +36,8 @@ const ENV = {
   REALTIME_FAKE: "1",
   NEXT_DIST_DIR: undefined,
 };
+// POLISH_ONLY=A1,A2 runs only those sections (tags: 6, phone, 23, reduced, desktop, A1, A2, 29).
+const want = (tag) => !process.env.POLISH_ONLY || process.env.POLISH_ONLY.split(",").includes(tag);
 let fails = 0;
 const ok = (c, m, d = "") => {
   if (!c) fails++;
@@ -122,7 +124,7 @@ const ROUTES = ["/", "/?v=to_buy", "/?v=ordered", "/?v=history", "/?v=spending",
 const HYDRATION = /hydrat|#418|#423|#425|did not match|server rendered (text|html)/i;
 
 // ---------- #6: 0 hydration errors on every main route of the worst-case space ----------
-for (const variant of [{}, { phone: true, he: true }]) {
+if (want("6")) for (const variant of [{}, { phone: true, he: true }]) {
   const { ctx, page } = await open(variant);
   const errors = [];
   page.on("console", (m) => m.type() === "error" && HYDRATION.test(m.text()) && errors.push(`${page.url().replace(BASE, "")}: ${m.text().slice(-1500)}`));
@@ -136,7 +138,7 @@ for (const variant of [{}, { phone: true, he: true }]) {
 }
 
 // ---------- phone guards (390, touch) in the demo space ----------
-{
+if (want("phone")) {
   const { ctx, page } = await open({ phone: true, space: personal });
   /** Text fields on screen whose computed font size is under 16px (iOS zooms into them). */
   const smallFields = () => page.evaluate(() => [...document.querySelectorAll("input, textarea, select")]
@@ -212,7 +214,7 @@ for (const variant of [{}, { phone: true, he: true }]) {
 }
 
 // ---------- #23: big amounts never end in an ellipsis (worst-case space, Hebrew, 360) ----------
-{
+if (want("23")) {
   const { ctx, page } = await open({ phone: true, he: true });
   await page.setViewportSize({ width: 360, height: 780 });
   const cut = [];
@@ -236,7 +238,7 @@ for (const variant of [{}, { phone: true, he: true }]) {
 }
 
 // ---------- reduced motion (phone, OS setting) ----------
-{
+if (want("reduced")) {
   const { ctx, page } = await open({ phone: true, space: personal, reduce: true });
   await page.goto(`${BASE}/?v=to_buy`);
   await ready(page);
@@ -249,7 +251,7 @@ for (const variant of [{}, { phone: true, he: true }]) {
 }
 
 // ---------- desktop guards (1366) in the demo space ----------
-{
+if (want("desktop")) {
   const { ctx, page } = await open({ space: personal });
   await page.goto(`${BASE}/?v=to_buy`);
   await ready(page);
@@ -270,8 +272,150 @@ for (const variant of [{}, { phone: true, he: true }]) {
   await ctx.close();
 }
 
+// ---------- R17 A1: the loops fade out at the end of their cycle (no frozen frame, no jump) ----------
+// Jump each loop to 400 ms before its cycle ends (no AI work in flight), then sample its moving layer's opacity on every
+// frame through the boundary: a continuous ramp to 0 (no single-frame change > 0.1), then the loop is paused.
+if (want("A1")) {
+  const { ctx, page } = await open({ space: personal });
+  for (const [route, sel, name] of [["/", ".r13-sug", "r13-sheen"], ["/?v=to_buy", ".flow-border", "flow-border"]]) {
+    await page.goto(BASE + route);
+    await page.waitForFunction(() => !!window.__nexusTest, null, { timeout: 180_000 });
+    await page.waitForSelector(sel);
+    await page.waitForFunction(() => !document.documentElement.hasAttribute("data-ai-busy"), null, { timeout: 30_000 }).catch(() => {});
+    const r = await page.evaluate(
+      async ([sel, name]) => {
+        const el = document.querySelector(sel);
+        const a = document.getAnimations().find((x) => x.animationName === name && x.effect?.target === el);
+        if (!a) return { error: "no animation" };
+        const d = Number(a.effect.getTiming().duration);
+        el.removeAttribute("data-loop-rest");
+        if (a.playState === "paused") a.play();
+        await new Promise((r) => setTimeout(r, 350)); // a resumed layer fades back in (300 ms)
+        a.currentTime = Math.ceil(Number(a.currentTime) / d) * d - 400;
+        const op = [];
+        const t0 = performance.now();
+        await new Promise((done) => {
+          const tick = () => {
+            op.push(Number(getComputedStyle(el, "::before").opacity));
+            if (performance.now() - t0 < 1400) requestAnimationFrame(tick);
+            else done();
+          };
+          requestAnimationFrame(tick);
+        });
+        await new Promise((r) => setTimeout(r, 200));
+        const jumps = op.slice(1).map((v, k) => Math.abs(v - op[k]));
+        return { frames: op.length, start: op[0], end: op.at(-1), maxJump: Math.max(...jumps), paused: a.playState === "paused" };
+      },
+      [sel, name],
+    );
+    ok(!r.error && r.start > 0.95 && r.end < 0.02 && r.maxJump <= 0.1 && r.paused, `A1 ${name}: fades out at the cycle end (continuous ramp, then paused)`, JSON.stringify(r));
+  }
+  await ctx.close();
+}
+
+// ---------- R17 A2: every widget at every size uses its height (desktop S/M/L × 1×/2×, phone half/full × 1×/2×) ----------
+// All 17 widgets in one layout per size, on the demo data and the 500-item space. Per widget: its content (the lowest
+// visible leaf under the header) reaches ≥ 70 % of the inner height, or it shows its empty state centred; nothing
+// overflows the card. PARITY=1 also saves the grids at 2× into docs/design/parity-r17/.
+if (want("A2")) {
+  const ALL = ["left", "budget", "way", "saved", "suggest", "week", "needs", "ontheway", "pace", "projects", "noticed", "drops", "vslast", "nextdel", "bycat", "most", "activity"];
+  const setLayout = async (space, items) =>
+    db.execute({
+      sql: `INSERT INTO user_pref (user_id, key, value, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value`,
+      args: [admin, `pref:home:layout:${space}`, JSON.stringify({ v: 2, preset: null, items }), Date.now()],
+    });
+  const measure = () =>
+    [...document.querySelectorAll("[data-home-grid] .hw")].map((hw) => {
+      const card = hw.firstElementChild;
+      const cr = card.getBoundingClientRect();
+      const head = card.querySelector(":scope > [data-card-head], :scope > div:first-child.border-b");
+      const top = head ? head.getBoundingClientRect().bottom : cr.top;
+      let low = top;
+      let maxRight = cr.left;
+      let minLeft = cr.right;
+      let ovEl = null;
+      for (const e of card.querySelectorAll("*")) {
+        if (head?.contains(e) || e.childElementCount > 0 && e.tagName !== "svg" && e.tagName !== "BUTTON") continue;
+        if (e.closest("svg") && e.tagName !== "svg") continue;
+        const br = e.getBoundingClientRect();
+        const cs = getComputedStyle(e);
+        if (!br.width || !br.height || cs.visibility === "hidden" || e.closest("[hidden],[aria-hidden=true][inert]")) continue;
+        // What's visible of it: clipped by its own overflow-hidden ancestors below the card (an ellipsis line, a folded
+        // section), not by the card itself — a leaf the card cuts off is exactly what this looks for.
+        const r = { left: br.left, right: br.right, top: br.top, bottom: br.bottom };
+        for (let p = e.parentElement; p && p !== card; p = p.parentElement) {
+          const pc = getComputedStyle(p);
+          if (pc.overflowX === "visible" && pc.overflowY === "visible") continue;
+          const pr = p.getBoundingClientRect();
+          if (pc.overflowX !== "visible") (r.left = Math.max(r.left, pr.left)), (r.right = Math.min(r.right, pr.right));
+          if (pc.overflowY !== "visible") (r.top = Math.max(r.top, pr.top)), (r.bottom = Math.min(r.bottom, pr.bottom));
+        }
+        if (r.right <= r.left || r.bottom <= r.top) continue;
+        low = Math.max(low, r.bottom);
+        if (!ovEl && (r.bottom > cr.bottom + 1 || r.right > cr.right + 1 || r.left < cr.left - 1)) ovEl = `${e.tagName.toLowerCase()}.${String(e.className?.baseVal ?? e.className).slice(0, 60)} "${(e.textContent || '').trim().slice(0, 24)}" [${Math.round(r.left - cr.left)},${Math.round(r.right - cr.right)},${Math.round(r.bottom - cr.bottom)}]`;
+        maxRight = Math.max(maxRight, r.right);
+        minLeft = Math.min(minLeft, r.left);
+      }
+      const empty = card.querySelector("[data-widget-empty],[data-saved-empty]");
+      const more = Number(card.getAttribute("data-more") ?? 0);
+      let centred = false;
+      if (empty) {
+        const er = empty.getBoundingClientRect();
+        const mid = (top + cr.bottom) / 2;
+        centred = Math.abs((er.top + er.bottom) / 2 - mid) < (cr.bottom - top) * 0.2;
+      }
+      return {
+        id: hw.dataset.widget,
+        h: Number(hw.dataset.h),
+        fill: Math.round(((low - top) / Math.max(1, cr.bottom - top)) * 100) / 100,
+        empty: !!empty,
+        more,
+        ovEl,
+        centred,
+        // Geometry, not scroll sizes (the invisible ::after tap areas extend scrollWidth/Height on purpose): a visible
+        // leaf outside the card, or the card past its grid cell.
+        overflow: low > cr.bottom + 1 || maxRight > cr.right + 1 || minLeft < cr.left - 1 || cr.bottom > hw.getBoundingClientRect().bottom + 1,
+      };
+    });
+  const SIZES = [
+    ...["S", "M", "L"].flatMap((w) => [1, 2].map((h) => ({ phone: false, w, h, items: ALL.map((id) => ({ id, w, h })) }))),
+    ...["half", "full"].flatMap((p) => [1, 2].map((h) => ({ phone: true, w: p, h, items: ALL.map((id) => ({ id, w: "M", h, p })) }))),
+  ];
+  const bad = [];
+  const low = [];
+  let checked = 0;
+  for (const space of [personal, "pa_big"]) {
+    for (const phone of [false, true]) {
+      const { ctx, page } = await open({ phone, space });
+      for (const z of SIZES.filter((z) => z.phone === phone)) {
+        await setLayout(space, z.items);
+        await page.goto(`${BASE}/`);
+        await page.waitForSelector("[data-home-grid] .hw");
+        await page.waitForTimeout(900);
+        const rows = await page.evaluate(measure);
+        for (const r of rows) {
+          checked++;
+          const tag = `${space === personal ? "demo" : "big"} ${phone ? "phone" : "desk"} ${z.w}×${z.h} ${r.id}`;
+          if (r.overflow) bad.push(`${tag}: overflows${r.ovEl ? ` — ${r.ovEl}` : " its cell"}`);
+          // Under 70 % is a failure only while the widget has more to show (data-more): one that shows everything it
+          // has (or sits in a row a taller neighbour sets) is data-bound and only reported.
+          else if (r.empty ? !r.centred : r.fill < 0.7) (r.empty || r.more > 0 ? bad : low).push(`${tag}: ${r.empty ? "empty state not centred" : `fills ${Math.round(r.fill * 100)} % (${r.more} more not shown)`}`);
+        }
+        if (process.env.PARITY && z.h === 2 && (space === personal || z.w === "M")) {
+          mkdirSync("docs/design/parity-r17", { recursive: true });
+          await page.locator("[data-home-grid]").screenshot({ path: `docs/design/parity-r17/widgets-2x-${space === personal ? "demo" : "big"}-${phone ? "phone" : "desk"}-${z.w}.png` });
+        }
+      }
+      await ctx.close();
+    }
+  }
+  if (low.length) console.log(`INFO A2 ${low.length} widgets under 70 % that show all their data:\n  ${low.join("\n  ")}`);
+  ok(bad.length === 0, `A2 ${checked} widget × size checks: content fills ≥ 70 % (or a centred empty state), nothing overflows`, bad.join("\n  "));
+  await db.execute({ sql: `DELETE FROM user_pref WHERE user_id = ? AND key LIKE 'pref:home:layout%'`, args: [admin] });
+}
+
 // ---------- #29: 30 navigations in 30 s across 3 spaces → 0 × 429 ----------
-{
+if (want("29")) {
   const { ctx, page } = await open();
   const limited = [];
   let tokens = 0;

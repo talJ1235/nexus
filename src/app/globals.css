@@ -829,7 +829,11 @@ html[data-boot="full"]:not([data-booted]) .r13-rise { animation-play-state: paus
 /* Paste capsule: 2px two-tone border that slowly flows (5.5 s). */
 /* The flow is a transformed pseudo-element (compositor only — a background-position animation would restyle and
    repaint the capsule on the main thread every frame). */
-.flow-border { position: relative; padding: 2px; overflow: hidden; isolation: isolate; }
+/* R17 A1: the element itself carries the resting border (the same gradient, still); the moving layer fades out over
+   it after a cycle (lib/ai-work.ts sets data-loop-rest) instead of freezing on a frame. */
+.flow-border { position: relative; padding: 2px; overflow: hidden; isolation: isolate; background: linear-gradient(90deg, var(--brand), var(--spark), var(--brand)); }
+.flow-border::before, .r13-sug::before { transition: opacity 300ms var(--ease-out); }
+.flow-border[data-loop-rest]::before, .r13-sug[data-loop-rest]::before { opacity: 0; transition: opacity 600ms ease-in-out; }
 .flow-border::before {
   content: "";
   position: absolute;
@@ -1021,6 +1025,7 @@ html[data-vt="sidebar"]::view-transition-new(root) { animation: fade 180ms ease-
    with transform; nothing repaints or lays out per frame), a soft tinted inside, a gradient orb that twinkles. */
 .r13-sug {
   border-radius: 14px; padding: 1.5px; overflow: hidden; isolation: isolate;
+  background: linear-gradient(100deg, var(--ai), var(--spark), var(--ai)); /* R17 A1: the resting border */
   box-shadow: 0 6px 24px color-mix(in srgb, var(--ai) 16%, transparent);
 }
 .r13-sug::before {
