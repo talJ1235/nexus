@@ -129,3 +129,4 @@ html[data-motion=reduce] .nx .sx-page,html[data-motion=reduce] .nx .sx-in{animat
 .nx .tgl{cursor:pointer}
 .nx .tgl:disabled{opacity:.45;cursor:default}
 .nx .tgl:focus-visible{outline:none;box-shadow:var(--focus)}
+.nx .li-sw{cursor:pointer}

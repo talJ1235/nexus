@@ -60,10 +60,12 @@ background:var(--bg);color:var(--ink);font-family:inherit;font-size:14px;line-he
 .nx .otp span{height:52px;border-radius:10px;border:1px solid var(--line);background:var(--raised);display:grid;place-items:center;font-size:22px;font-weight:600}
 .nx .otp span.on{border-color:var(--ink);box-shadow:var(--focus)}
 .nx .sel{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 8px 0 10px;border-radius:8px;border:1px solid var(--line);background:var(--raised);font-size:13px;font-weight:500}
-.nx .tgl{width:36px;height:20px;border-radius:999px;background:var(--s3);position:relative;flex-shrink:0;border:0}
-.nx .tgl::after{content:"";position:absolute;top:2px;inset-inline-start:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.nx .tgl{width:36px;height:20px;border-radius:999px;background:var(--s3);position:relative;flex-shrink:0;border:0;transition:background-color 160ms var(--ease-out)}
+.nx .tgl::after{content:"";position:absolute;top:2px;inset-inline-start:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform 160ms var(--ease-out)}
 .nx .tgl.on{background:var(--ink)}
-.nx .tgl.on::after{inset-inline-start:18px}
+/* Polish #3: the knob slides (transform, compositor only) instead of jumping between two insets. */
+.nx .tgl.on::after{transform:translateX(16px)}
+[dir=rtl] .nx .tgl.on::after{transform:translateX(-16px)}
 .dark .nx .tgl.on::after{background:#111}
 .nx .chk{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line-strong);display:grid;place-items:center;flex-shrink:0}
 .nx .chk.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}

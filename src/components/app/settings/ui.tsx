@@ -1,5 +1,6 @@
 "use client";
 
+import { Children, isValidElement } from "react";
 import { cn } from "@/lib/utils";
 import { initialOf } from "@/lib/initial";
 
@@ -95,9 +96,18 @@ export function Tick() {
 }
 
 /** A row in a card list (`.li`): icon, title + sub, trailing control. */
+/** Polish #3: a tap anywhere on a row that holds a switch flips it (the 36 × 20 switch alone is too small a target);
+ *  taps on the row's other controls (a select, a button) stay theirs. The switch stays the keyboard / screen-reader target. */
+function tapRowSwitch(e: React.MouseEvent<HTMLDivElement>) {
+  if ((e.target as Element).closest("button, a, select, input, textarea, label")) return;
+  e.currentTarget.querySelector<HTMLButtonElement>('[role="switch"]:not(:disabled)')?.click();
+}
+
 export function Li({ icon, tone, title, sub, children, className, ...rest }: { icon?: React.ReactNode; tone?: "ok" | "warn" | "info" | "dng"; title: React.ReactNode; sub?: React.ReactNode; children?: React.ReactNode; className?: string } & Record<`data-${string}`, string | boolean | undefined>) {
+  const sw = Children.toArray(children).some((c) => isValidElement(c) && c.type === Toggle);
   return (
-    <div className={cn("li", className)} {...rest}>
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- a larger pointer target for the switch inside, which keeps its own keyboard handling
+    <div className={cn("li", sw && "li-sw", className)} onClick={sw ? tapRowSwitch : undefined} {...rest}>
       {icon != null && <span className={cn("ic", tone)}>{typeof icon === "string" ? <I d={icon} /> : icon}</span>}
       <span className="grow">
         <b>{title}</b>

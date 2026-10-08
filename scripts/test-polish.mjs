@@ -148,6 +148,19 @@ for (const variant of [{}, { phone: true, he: true }]) {
   const ub = await undo.boundingBox();
   ok(ub && ub.height >= 40 && ub.width >= 40, "#2 the toast's Undo is ≥ 40 × 40 on touch", JSON.stringify(ub));
   await undo.click();
+  // #3: a settings switch row is a ≥ 40px target — tapping its title flips the switch (and the knob slides).
+  await page.goto(`${BASE}/settings/notif`);
+  await page.waitForSelector('[data-settings-section="notif"]');
+  const sw = page.locator('[data-notif="budget"]');
+  const row = page.locator(".li", { has: sw });
+  const before = await sw.getAttribute("aria-checked");
+  await row.locator("b").first().click();
+  await page.waitForTimeout(250);
+  const after = await sw.getAttribute("aria-checked");
+  const rb = await row.boundingBox();
+  const knob = await sw.evaluate((el) => getComputedStyle(el, "::after").transitionProperty);
+  ok(before !== after && rb && rb.height >= 40 && /transform/.test(knob), "#3 tapping a switch row's title flips it; row ≥ 40px; the knob transitions transform", `${before}→${after} ${JSON.stringify(rb)} ${knob}`);
+  await row.locator("b").first().click();
   await ctx.close();
 }
 
