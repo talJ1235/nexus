@@ -6,7 +6,18 @@ writes the round briefs. Everything durable lives in this repo, not in chat hist
 Setup of this chat (network, GitHub connector, rebuilding it on a new account): `docs/ENVIRONMENT.md` — any change
 to setup, tooling or workflow is recorded there in the same session.
 
-## Current state & handoff (updated 2026-10-07, account A → read this first on any account)
+## Current state & handoff (updated 2026-10-08 → read this first on any account)
+- **2026-10-08:** R16 done and live (Sessions 1, 2, G + Android PWA hotfixes 1–4: viewport guard, FedCM Google sheet,
+  dismiss stays on /login). Polish audit + all 30 fixes live (`docs/POLISH-AUDIT.md`). **Next: R17 Session 1** —
+  brief `docs/ROUND17.md` (no mockups). Then the planner makes mockups for R17 Session 2 (admin + onboarding, 2–3
+  onboarding directions) and Session 3 (inbox + permission moment). Roadmap + notification decisions are in ROUND17.
+- Tal's decisions 2026-10-07/08 (full list in ROUND17): family after price comparison (R19); R20 = Google Play closed
+  testing for Android + Home-Screen install for the one iPhone; notifications automatic, one on/off switch; AI quota
+  40/day (admin can change per user); dedicated privacy email; delete account with 7-day undo; admin emergency sign-in
+  only; QR login → R20; blocked stores: server-side ladder + Cloudflare Worker (Tal opens a free account); short names
+  for long titles incl. existing items; Google Calendar stays ICS for now, faster sync researched later.
+
+### Earlier (2026-10-07)
 - **Prod:** R16 Session 1 (Parts 0, A, B, C — fixes, live sync, error reporting) released 2026-10-07 (`f203591`); results
   in `docs/ROUND16.md` "## Open". `ABLY_API_KEY` is set in Vercel (Production) and Tal checked live sync on prod.
 - **In progress:** R16 Session 2 (Parts D, E, F) — **waits for mockups**. Tal chose (2026-10-07) the split:
