@@ -280,7 +280,7 @@ Acceptance: `test:delete-account` (request → hidden → restore within 7 days;
 fake clock → no rows left for that user except "Former member" attributions; sole-owner block), export contains only
 the user's data (tenancy test).
 
-### E5. [ ] Error-log hygiene
+### E5. [x] Error-log hygiene
 Retention 30 days for the error log and `viewport` diagnostics (purge in the daily cron); `/admin/errors` groups the
 new kinds (`viewport`, `google_fedcm`, `extract · blocked` by host). If C2 fixes a host, its blocked entries get
 marked fixed automatically.
@@ -490,3 +490,9 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   user id); items they added to others' shared spaces stay and show a "?" chip "Added by Former member". Public
   `/delete-account` explains it (for Google Play). `test:delete-account` (block, hide, restore, 7-day purge with a fake
   clock, export tenancy) passes.
+- **E5:** the daily cron deletes error-log rows not seen for 30 days (`viewport` diagnostics included; samples were
+  already dropped at 30 days). `/admin/errors` groups viewport diagnostics, Google sign-in (`google_*`) and blocked stores
+  per host into one collapsible line each (total count, entries). A host that reads again through the fetch ladder marks
+  its open `extract · blocked/fetch/no_price/parse` entries fixed (C2). The CSP entries still have no blocked host in
+  the sample (the CSP report intake keeps only the directive) — left as is; when one repeats, the browser's own report
+  is the next step.

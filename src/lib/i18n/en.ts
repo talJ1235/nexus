@@ -306,6 +306,10 @@ export const en = {
     recoveryCode: "Recovery code",
   },
   errorsAdmin: {
+    gViewport: "Viewport diagnostics",
+    gGoogle: "Google sign-in (sheet / status)",
+    gBlocked: "Blocked store · {host}",
+    gCount: "{n}× in {r} entries",
     title: "Error log",
     intro: "What failed, grouped — counts only, never who. Samples are redacted and dropped after 30 days.",
     all: "All",

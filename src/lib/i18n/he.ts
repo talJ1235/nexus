@@ -308,6 +308,10 @@ export const he: Dict = {
     recoveryCode: "קוד שחזור",
   },
   errorsAdmin: {
+    gViewport: "אבחון תצוגה (viewport)",
+    gGoogle: "כניסה עם Google (חלון / סטטוס)",
+    gBlocked: "חנות חוסמת · {host}",
+    gCount: "{n}× ב-{r} רשומות",
     title: "יומן שגיאות",
     intro: "מה נכשל, מקובץ — רק ספירות, אף פעם לא מי. הדוגמאות מושחרות ונמחקות אחרי 30 יום.",
     all: "הכל",

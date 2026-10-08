@@ -31,6 +31,19 @@ export function ErrorsAdmin() {
     await load();
   };
   const tone: Record<Status, string> = { new: "badge dng", known: "badge warn", fixed: "badge ok" };
+  type Row = NonNullable<typeof data>["rows"][number];
+  // R17 E5: the noisy kinds are grouped — viewport diagnostics, Google sign-in (FedCM sheet / status), and blocked stores
+  // per host — so one store or one browser quirk is one line with its rows inside.
+  const groupOf = (r: Row): string | null =>
+    r.kind === "viewport" ? v.gViewport : r.kind === "auth" && /^google_/.test(r.code) ? v.gGoogle : r.kind === "extract" && /^(blocked|fetch|blocked_host)$/.test(r.code) ? f(v.gBlocked, { host: r.where.replace(/^extract:/, "") }) : null;
+  const groups = new Map<string, Row[]>();
+  const single: Row[] = [];
+  for (const r of data?.rows ?? []) {
+    const g = groupOf(r);
+    if (!g) single.push(r);
+    else groups.set(g, [...(groups.get(g) ?? []), r]);
+  }
+  const grouped = [...groups.entries()].map(([label, rows]) => ({ label, rows, count: rows.reduce((a, r) => a + r.count, 0) })).sort((a, b) => b.count - a.count);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }} data-errors-admin>
@@ -61,7 +74,30 @@ export function ErrorsAdmin() {
         </div>
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-          {data.rows.map((r) => (
+          {grouped.map((g) => (
+            <li key={g.label} className="card" style={{ padding: 0 }} data-error-group={g.label}>
+              <details>
+                <summary style={{ padding: 14, cursor: "pointer", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <b>{g.label}</b>
+                  <span className="sub" style={{ marginInlineStart: "auto", fontSize: 12 }}>
+                    {f(v.gCount, { n: g.count, r: g.rows.length })}
+                  </span>
+                </summary>
+                <ul style={{ listStyle: "none", margin: 0, padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  {g.rows.map((r) => row(r))}
+                </ul>
+              </details>
+            </li>
+          ))}
+          {single.map((r) => row(r))}
+        </ul>
+      )}
+      {data && data.overflow > 0 && <div className="alert warn">{f(v.overflow, { n: data.overflow })}</div>}
+    </div>
+  );
+
+  function row(r: Row) {
+    return (
             <li key={r.fingerprint} className="card" style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8 }} data-error-row={r.fingerprint}>
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
                 <span className={tone[r.status]}>{v[r.status]}</span>
@@ -99,7 +135,7 @@ export function ErrorsAdmin() {
                       {v.reopen}
                     </button>
                   )}
-                  {data.issues && (
+                  {data?.issues && (
                     <button type="button" className="btn sm" onClick={() => void issue(r.fingerprint)}>
                       {v.issue}
                     </button>
@@ -107,10 +143,6 @@ export function ErrorsAdmin() {
                 </span>
               </div>
             </li>
-          ))}
-        </ul>
-      )}
-      {data && data.overflow > 0 && <div className="alert warn">{f(v.overflow, { n: data.overflow })}</div>}
-    </div>
-  );
+    );
+  }
 }
