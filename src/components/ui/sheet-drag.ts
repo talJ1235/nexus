@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { sheetRelease, velocity } from "@/lib/gestures";
+import { sheetExitMs, sheetRelease, velocity } from "@/lib/gestures";
 
 const PHONE = "(max-width: 639px)";
 const NO_DRAG = "button, a, input, textarea, select, [contenteditable=true], [role=slider], [data-no-sheet-drag]";
@@ -64,11 +64,14 @@ export function useSheetDrag(onClose: () => void) {
       const h = el.offsetHeight;
       const s = scrim();
       d.samples.push({ t: performance.now(), v: d.dy }); // a finger that stopped before lifting is not a fling
-      if (sheetRelease(d.dy, h, velocity(d.samples)) === "close") {
-        el.style.transition = "transform 220ms cubic-bezier(0.3, 0, 0.8, 0.15)";
+      const vy = velocity(d.samples);
+      if (sheetRelease(d.dy, h, vy) === "close") {
+        // Polish #14: it leaves at the finger's speed on the drawer curve (it starts fast), never easing in from rest.
+        const ms = sheetExitMs(h - d.dy, vy);
+        el.style.transition = `transform ${ms}ms var(--ease-drawer)`;
         el.style.transform = "translate3d(0, 100%, 0)";
         if (s) {
-          s.style.transition = "opacity 220ms ease-out";
+          s.style.transition = `opacity ${ms}ms ease-out`;
           s.style.opacity = "0";
         }
         setTimeout(() => {
@@ -79,7 +82,7 @@ export function useSheetDrag(onClose: () => void) {
             el.style.transition = el.style.transform = "";
             if (s) s.style.opacity = s.style.transition = "";
           }, 60);
-        }, 200);
+        }, Math.max(100, ms - 20));
       } else {
         el.style.transition = "transform 420ms var(--ease-spring)";
         el.style.transform = "";

@@ -16,6 +16,15 @@ export function sheetRelease(dy: number, height: number, vy: number): "close" | 
   return vy >= FLING && dy >= 16 ? "close" : "stay";
 }
 
+/**
+ * Polish #14: how long a released sheet takes to leave — the rest of the way at the finger's own speed (velocity
+ * handoff), kept within 120–260 ms (a slow release still leaves briskly; a hard fling never snaps out in 1 frame).
+ */
+export function sheetExitMs(remaining: number, vy: number): number {
+  const v = Math.abs(vy);
+  return Math.round(Math.min(260, Math.max(120, v > 0 ? Math.max(0, remaining) / v : 260)));
+}
+
 /** Share of an action group's width a row must be dragged to reveal it (both directions use the same rule). */
 export const REVEAL_SHARE = 0.4;
 /** Distance (px) at which a side's actions are revealed — the haptic tick fires here too. */
