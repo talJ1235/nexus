@@ -3,7 +3,7 @@
 
 .nx.sx-root{background:transparent}
 .nx .sx-nav{height:34px;border-radius:8px;display:flex;align-items:center;gap:10px;padding:0 10px;font-size:13.5px;font-weight:500;color:var(--ink2);position:relative;border:0;background:transparent;width:100%;text-align:start;cursor:pointer}
-.nx .sx-nav:hover{background:var(--hover)}
+@media (hover:hover) and (pointer:fine){.nx .sx-nav:hover{background:var(--hover)}}
 .nx .sx-nav:focus-visible{outline:none;box-shadow:var(--focus)}
 .nx .sx-nav svg{color:var(--muted);flex-shrink:0}
 .nx .sx-nav.on{background:var(--sel);color:var(--ink);font-weight:600}
@@ -19,7 +19,7 @@
 .nx .li .grow{flex:1;min-width:0;line-height:1.35}
 .nx .li .grow b{font-weight:600}
 .nx .tile4{border:1px solid var(--line);border-radius:12px;background:var(--raised);padding:18px;display:flex;flex-direction:column;gap:12px;color:var(--ink);text-align:start;cursor:pointer}
-.nx .tile4:hover{background:var(--s)}
+@media (hover:hover) and (pointer:fine){.nx .tile4:hover{background:var(--s)}}
 .nx .tile4:disabled{opacity:.55;cursor:default}
 .nx .wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .nx .wk>div{border-radius:8px;background:var(--s);border:1px solid var(--line-in);height:74px;padding:6px;display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--faint);min-width:0}
@@ -51,7 +51,7 @@
 .nx .sw.on{box-shadow:0 0 0 2px var(--raised),0 0 0 4px var(--ink)}
 [data-palette=plum] .nx .sw.on{box-shadow:0 0 0 2px var(--raised),0 0 0 4px var(--brand)}
 .nx .icp{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;color:var(--ink2);border:0;background:transparent;cursor:pointer}
-.nx .icp:hover{background:var(--hover)}
+@media (hover:hover) and (pointer:fine){.nx .icp:hover{background:var(--hover)}}
 .nx .icp svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 .nx .icp.on{background:var(--sel);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
 [data-palette=plum] .nx .icp.on{box-shadow:inset 0 0 0 1.5px var(--brand);color:var(--brand)}
@@ -66,7 +66,7 @@
 .nx .cover::before{content:"";position:absolute;inset:0;opacity:.22;z-index:-1;background-image:linear-gradient(30deg,rgba(255,255,255,.55) 1px,transparent 1px),linear-gradient(150deg,rgba(255,255,255,.55) 1px,transparent 1px);background-size:28px 16px}
 .nx .cover::after{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(60% 90% at 85% 10%,rgba(255,255,255,.28),transparent 60%)}
 .nx .cover .btn{background:rgba(255,255,255,.9);color:#171717;border-color:transparent}
-.nx .cover .btn:hover{background:#fff}
+@media (hover:hover) and (pointer:fine){.nx .cover .btn:hover{background:#fff}}
 
 /* big stat number */
 .nx .big{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
