@@ -4,6 +4,9 @@
 # R15: the smoke signs in through the admin fallback (/login?admin=1, the prod APP_PASSWORD ≥ 20 chars) — the same
 # secret, updated on release day together with Vercel's APP_PASSWORD (ROUND15 Part G step 1).
 name: smoke
+# A deployment_status run gets its "branch" from the deployment's ref — Vercel deploys a commit SHA, so GitHub files the
+# run under whichever branch holds that commit (e.g. round16, not main): filter by name / SHA, not by branch.
+run-name: "prod smoke · ${{ github.event_name == 'deployment_status' && format('{0} deploy {1}', github.event.deployment.environment, github.event.deployment.sha) || format('manual {0}', github.sha) }}"
 on:
   deployment_status:
   workflow_dispatch:

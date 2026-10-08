@@ -769,3 +769,23 @@ Separate from Session 2 (worktree `../nexus-pwafix`, branch `hotfix-pwa-viewport
   3. If you still get the Google page: check `/admin/errors` for `google_fedcm` (the reason) and `viewport` events
      (`iw` / `ow` / `vv` numbers, `soft=yes|no` = whether the guard fixed it without a reload).
   4. iPhone: unchanged (redirect) — check it still signs in.
+
+### Cleanup (2026-10-08)
+- **Smoke viewport step** (`smoke: viewport step follows hotfix.1`): it still asserted the R16 A8 guard
+  (`nexus.vpfix = "1"` + an immediate reload). Rewritten for hotfix.1, same three contexts: the wide phone (an emulated
+  1100 px layout on a 390 px screen — the meta can't fix that, so it exercises the reload path) reloads exactly once,
+  the flag is a recent timestamp, and visibility / resize / pageshow afterwards don't reload again; a normal phone and a
+  desktop never reload or set the flag. Kept, not deleted: `test:viewport` breaks the page through the viewport meta
+  (soft fix, sticky, always-broken, reports, landscape), this step covers the emulated-viewport case; the comment
+  points to `test:viewport`. PASS 2/2 locally.
+- **"Prod smoke didn't start for b7f9157 / df3c052" — it did.** Both ran (`37739896072` for df3c052, `37741726403` for
+  b7f9157, triggered by the `deployment_status` success events from vercel[bot], environment Production). They were
+  missing from `gh run list --branch main` because a `deployment_status` run takes its branch from the deployment's
+  ref: Vercel deploys a commit SHA and GitHub filed both runs under `round16` (the branch that held that commit when it
+  was pushed). Not a GitHub/Vercel fault and not our trigger. `ci: prod smoke runs on every deploy` adds a `run-name`
+  ("prod smoke · Production deploy <sha>" / "manual <sha>") so the runs are found by name/SHA, with a comment on why the
+  branch column can't be trusted.
+- Results of those two runs: 45 PASS / 9 FAIL each — the 8 older data-shaped / hotfix-side steps (month view,
+  calendar arrival, demo-id layouts, To-buy summary on demo pages, category filter, checkboxes, offline, the old viewport
+  step) + "home section order" (`suggest,needs,week,ontheway`): your saved prod layout is still the "Custom" one the
+  smoke left (Needs you moved up) — **Tal:** Home → Customize → Reset → Done fixes it, and the step passes again.
