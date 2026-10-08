@@ -73,7 +73,12 @@ export const AXIS_LOCK = 8;
 export function pagerOffset(dx: number, dir: 1 | -1, canPrev: boolean, canNext: boolean): number {
   const toNext = dx * dir < 0;
   if ((toNext && canNext) || (!toNext && canPrev)) return dx;
-  return Math.sign(dx) * 60 * (1 - Math.exp(-Math.abs(dx) / 150));
+  return rubberBand(dx);
+}
+
+/** Past a natural edge the surface follows the finger at a falling rate, easing toward 60 px (pager, sheets). */
+export function rubberBand(d: number): number {
+  return Math.sign(d) * 60 * (1 - Math.exp(-Math.abs(d) / 150));
 }
 
 /**

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { sheetExitMs, sheetRelease, velocity } from "@/lib/gestures";
+import { rubberBand, sheetExitMs, sheetRelease, velocity } from "@/lib/gestures";
 
 const PHONE = "(max-width: 639px)";
 const NO_DRAG = "button, a, input, textarea, select, [contenteditable=true], [role=slider], [data-no-sheet-drag]";
@@ -36,13 +36,14 @@ export function useSheetDrag(onClose: () => void) {
     };
     const move = (y: number) => {
       if (!g) return;
-      g.dy = Math.max(0, y - g.y0);
+      g.dy = y - g.y0;
       g.samples.push({ t: performance.now(), v: g.dy });
       if (g.samples.length > 8) g.samples.shift();
       // The open animation (fill-mode both on some sheets) would override an inline transform.
       el.style.animation = "none";
       el.style.transition = "none";
-      el.style.transform = `translate3d(0, ${g.dy}px, 0)`;
+      // Polish #26: upward, the sheet gives a little (rubber band, like the pager) instead of hitting a wall.
+      el.style.transform = `translate3d(0, ${g.dy >= 0 ? g.dy : rubberBand(g.dy)}px, 0)`;
       const s = scrim();
       if (s) {
         s.style.animation = "none";

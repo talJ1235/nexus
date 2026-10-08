@@ -1,6 +1,6 @@
 // Unit test for src/lib/gestures.ts (sheet swipe-down, row swipe decisions).  npx tsx scripts/test-gestures.ts
 import assert from "node:assert/strict";
-import { pagerOffset, pagerRelease, revealAt, sheetExitMs, sheetRelease, swipeRelease, velocity } from "../src/lib/gestures";
+import { pagerOffset, pagerRelease, revealAt, rubberBand, sheetExitMs, sheetRelease, swipeRelease, velocity } from "../src/lib/gestures";
 
 // Sheet: 30 % of the height or a downward fling closes; otherwise springs back.
 assert.equal(sheetRelease(119, 400, 0.1), "stay");
@@ -14,6 +14,8 @@ assert.equal(sheetExitMs(300, 1.5), 200);
 assert.equal(sheetExitMs(300, 5), 120); // a hard fling never snaps out
 assert.equal(sheetExitMs(300, 0.2), 260); // a slow release still leaves briskly
 assert.equal(sheetExitMs(300, 0), 260);
+// Polish #26: a sheet dragged up gives a little, never more than 60 px.
+assert.ok(rubberBand(-100) < 0 && rubberBand(-100) > -60 && rubberBand(-1000) > -60.01 && rubberBand(0) === 0);
 
 // Rows: status 2 × 84 px (reveal at 67.2), Delete 92 px (reveal at 36.8), row 360 px.
 const base = { statusW: 168, deleteW: 92, rowW: 360 };
