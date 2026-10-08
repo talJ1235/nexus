@@ -274,7 +274,11 @@ for (const variant of [{}, { phone: true, he: true }]) {
 {
   const { ctx, page } = await open();
   const limited = [];
-  page.on("response", (r) => r.status() === 429 && limited.push(r.url().replace(BASE, "")));
+  let tokens = 0;
+  page.on("response", (r) => {
+    if (r.status() === 429) limited.push(r.url().replace(BASE, ""));
+    if (r.url().includes("/api/realtime/token")) tokens++;
+  });
   const spaces = [personal, "pa_big", "pa_one"];
   // Warm the dev compiler first so the timed run is page speed, not compile speed.
   for (const r of ROUTES.slice(0, 4)) await page.goto(BASE + r, { waitUntil: "load" });
@@ -286,7 +290,9 @@ for (const variant of [{}, { phone: true, he: true }]) {
     if (left > 0) await page.waitForTimeout(left);
   }
   await page.waitForTimeout(6000); // idle-time reporters (error log) flush late
-  ok(limited.length === 0, `#29 30 navigations in ${Math.round((Date.now() - t0) / 1000)} s across 3 spaces → 0 × 429`, limited.join(", "));
+  // One per second at most (next dev's loads are slower, so the run takes a little over 30 s); every load asks for a
+  // realtime token — the route that answered 429 in the audit (30/min before polish #29).
+  ok(limited.length === 0 && tokens >= 30, `#29 30 navigations in ${Math.round((Date.now() - t0) / 1000)} s across 3 spaces (${tokens} token requests) → 0 × 429`, limited.join(", "));
   await ctx.close();
 }
 
