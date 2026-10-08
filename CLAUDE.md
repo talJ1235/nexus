@@ -16,7 +16,7 @@
 - Checks before commit: `npm run typecheck && npm run lint && npm run build`.
 
 ## Map (read this instead of exploring)
-- Prod: https://nexus-ashen-beta.vercel.app (auto-deploys from `main`). Local: `npx next start -p 3100`, password in `.env.local`.
+- Prod: https://nexus-ashen-beta.vercel.app (auto-deploys from `main`). Local: `bash scripts/serve-smoke.sh` (signed-in test session, no password).
 - Server actions: `src/app/*-actions.ts` — every action and route starts with `requireCtx(need)` / `routeCtx` (`src/lib/ctx.ts`:
   user + current space from the `nexus_space` cookie, checked against memberships; `test:authz-coverage` enforces it).
   Data goes through the scoped layer `src/lib/db-scoped/` (`scoped(ctx)` adds `space_id`; raw `db` only there, in
