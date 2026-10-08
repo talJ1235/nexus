@@ -577,7 +577,7 @@ body {
 @media (max-width: 639px) {
   .sheet-phone { top: max(10px, env(safe-area-inset-top)); max-width: none; border: 0; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; overflow: hidden; }
   .sheet-phone[data-state="open"], [dir="rtl"] .sheet-phone[data-state="open"] { animation: sheet-up 380ms var(--ease-out); }
-  .modal-phone { top: auto; bottom: 0; width: 100%; max-width: none; max-height: 90vh; border-width: 1px 0 0; border-radius: 26px 26px 0 0; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+  .modal-phone { top: auto; bottom: 0; width: 100%; max-width: none; max-height: 90dvh; border-width: 1px 0 0; border-radius: 26px 26px 0 0; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
   .modal-phone[data-state="open"] { animation: sheet-up 320ms var(--ease-out); }
 }
 /* Polish #5: closing leaves along the path it came in by (✕, Esc, the scrim and Back, like the swipe already did).

@@ -200,7 +200,7 @@ export function ItemActionSheet() {
         <D.Overlay className="fixed inset-0 z-50 bg-black/40 overlay-in" data-sheet-scrim />
         <D.Content
           ref={drag}
-          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80vh] w-full max-w-md flex-col rounded-t-[26px] border border-line bg-surface pb-[max(12px,env(safe-area-inset-bottom))] shadow-pop outline-none actions-sheet sm:inset-x-0 sm:bottom-auto sm:top-[14vh] sm:w-[calc(100vw-24px)] sm:rounded-2xl sm:pb-2"
+          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80dvh] w-full max-w-md flex-col rounded-t-[26px] border border-line bg-surface pb-[max(12px,env(safe-area-inset-bottom))] shadow-pop outline-none actions-sheet sm:inset-x-0 sm:bottom-auto sm:top-[14vh] sm:w-[calc(100vw-24px)] sm:rounded-2xl sm:pb-2"
           aria-describedby={undefined}
           data-item-actions={page}
           onEscapeKeyDown={(e) => {
