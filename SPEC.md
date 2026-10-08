@@ -575,8 +575,11 @@ with Tal (merging deploys and runs the migration on the real database).
   used to come back from the redirect's Custom Tab at desktop width. The sheet's ID token goes to
   `/api/auth/sign-in/social` (Better Auth verifies it; the nonce comes from `POST /api/auth/google/nonce` in a signed
   httpOnly single-use cookie). Same invite rules (InviteOnly screen), errors, busy state and Try again; a new account goes
-  to the first-run path. Sheet skipped / dismissed / GIS blocked / no FedCM / iOS → the redirect above (reported as
-  `auth`/`google_fedcm`); after a failure the page uses the redirect. Guard: `scripts/test-google-fedcm.mjs`.
+  to the first-run path. Closing the sheet yourself (`user_cancel` / `tap_outside`, or a reasonless skip ≥ 1 s after it
+  showed — hotfix.3) keeps you on the login screen: no redirect, no error, no report, the button works again and the next
+  tap asks the sheet again. The sheet couldn't show (an immediate skip: FedCM cooldown, no Google session, origin not
+  allowed) / GIS blocked / no FedCM / iOS → the redirect above (reported as `auth`/`google_fedcm`); after a failure the
+  page uses the redirect. Guard: `scripts/test-google-fedcm.mjs`.
 - **Phone layout self-heal** (hotfix 2026-10-07): `VIEWPORT_GUARD` (boot screen) catches a phone page laid out at
   desktop width (coarse pointer, short side < 600, `innerWidth` ≥ 1.4 × the screen width in the current orientation),
   re-inserts the viewport meta, and reloads at most once per 30 s per tab if that didn't help; each case goes to the

@@ -789,3 +789,17 @@ Separate from Session 2 (worktree `../nexus-pwafix`, branch `hotfix-pwa-viewport
   calendar arrival, demo-id layouts, To-buy summary on demo pages, category filter, checkboxes, offline, the old viewport
   step) + "home section order" (`suggest,needs,week,ontheway`): your saved prod layout is still the "Custom" one the
   smoke left (Needs you moved up) — **Tal:** Home → Customize → Reset → Done fixes it, and the step passes again.
+- **Prod smoke after the cleanup:** the deploy of `14c71b3` started it by itself (run 37745134065, title "prod smoke ·
+  Production deploy 14c71b3…" — the new run-name) and a manual run (`gh workflow run smoke`, 37745777357, "prod smoke ·
+  manual 14c71b3…") gave the same: **49 PASS / 5 FAIL** (was 45/9). Gone: the viewport step (now matches hotfix.1),
+  category filter, checkboxes, offline. Left: month view, calendar arrival, demo-id layouts, To-buy summary on demo
+  pages — the old demo-data steps (the smoke needs a "real data" mode; R17) — and "home section order", which waits for
+  Tal's Reset of the Custom layout the smoke left (see above).
+- **hotfix.3 (2026-10-08): closing the Google sheet stays on the login screen.** hotfix.2 sent every non-token outcome
+  to the full-page redirect — also the person closing the sheet, i.e. the Custom Tab trip the sheet exists to avoid.
+  Now `user_cancel` / `tap_outside`, or a skip with no reason (FedCM often gives none) ≥ 1 s after the prompt (the sheet
+  had shown), = cancelled: the button works again with focus on it, no error, no `google_fedcm` report, and the next tap
+  asks the sheet again. An immediate skip (cooldown after a close, no Google session, origin not allowed) still takes
+  the redirect, so a tap never does nothing. `test:google-fedcm` + 2 cases (user_cancel; reasonless after 1.5 s) PASS
+  2/2 on a CI-like server, `test:google-signin` OK. **Tal:** on the Android app, tap Google, close the sheet → you stay
+  on the login screen; tap again → the sheet comes back (or, if Chrome holds it back right after a close, Google's page).

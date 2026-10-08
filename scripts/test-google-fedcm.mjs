@@ -4,7 +4,10 @@
 //   sheet      tap → busy < 100 ms; GIS gets our client id, FedCM on, a server nonce (signed httpOnly cookie); the token
 //              goes to /sign-in/social with that nonce; existing account → next, new account → /welcome, no invite →
 //              the InviteOnly screen, 401 → error + Try again (which uses the redirect), 429 → limit
-//   fallback   sheet skipped / dismissed, GIS script blocked, no FedCM, iOS → the full-page redirect (+ `google_fedcm` report)
+//   cancel     (hotfix.3) the person closes the sheet (user_cancel, or a reasonless skip after it showed) → stays on the
+//              login screen: no redirect, no error, no report, focus back; the next tap asks the sheet again
+//   fallback   sheet couldn't show (immediate skip) / dismissed by us, GIS script blocked, no FedCM, iOS → the full-page
+//              redirect (+ `google_fedcm` report)
 //   server     the nonce endpoint; ID tokens without / with a wrong nonce, for another provider or with extra fields are
 //              refused; the nonce is single-use
 //   csp        no violations while GIS loads
@@ -30,7 +33,9 @@ prompt:function(cb){window.__gis.prompts++;setTimeout(function(){var m=mode();
 if(m==="credential"){cfg.callback({credential:"stub-token-for-"+cfg.nonce});cb&&cb({isSkippedMoment:function(){return false},isDismissedMoment:function(){return true},getDismissedReason:function(){return"credential_returned"}})}
 else if(m==="skipped"){cb&&cb({isSkippedMoment:function(){return true},getSkippedReason:function(){return"unknown_reason"}})}
 else if(m==="dismissed"){cb&&cb({isSkippedMoment:function(){return false},isDismissedMoment:function(){return true},getDismissedReason:function(){return"cancel_called"}})}
-},120)},
+else if(m==="user_cancel"){cb&&cb({isSkippedMoment:function(){return true},getSkippedReason:function(){return"user_cancel"}})}
+else if(m==="closed_late"){cb&&cb({isSkippedMoment:function(){return true},getSkippedReason:function(){throw new Error("not supported with FedCM")}})}
+},mode()==="closed_late"?1500:120)},
 cancel:function(){window.__gis.cancelled=true}}}}})();`;
 
 const browser = await chromium.launch();
@@ -143,6 +148,27 @@ try {
     await page.click(BTN);
     await page.waitForSelector("[data-auth=error]", { timeout: 8000 }).catch(() => {});
     ok(/too many|יותר מדי|נסיונות|tries/i.test((await page.locator("[data-auth=error]").textContent().catch(() => "")) ?? "") && (await page.locator(BTN).isEnabled()), "sheet: 429 → 'too many tries', button enabled");
+    await ctx.close();
+  }
+  // ---- hotfix.3: the person closes the sheet → stays on the login screen (no redirect, no error, no report); the next
+  // tap asks the sheet again
+  for (const [name, gis] of [
+    ["closed by the person (user_cancel)", "user_cancel"],
+    ["closed after it showed, no reason given (FedCM)", "closed_late"],
+  ]) {
+    const { ctx, page, seen } = await open({ gis, social: () => [200, user("2020-01-01T00:00:00.000Z")] });
+    const google = navTo(page, (u) => isGoogle(u) && u.pathname !== "/gsi/client", 4000);
+    await page.click(BTN);
+    const left = await google;
+    await page.waitForTimeout(300);
+    const st = { left: String(left), path: new URL(page.url()).pathname, enabled: await page.locator(BTN).isEnabled(), busy: await page.locator(BTN).getAttribute("aria-busy"), error: await errorShown(page), focused: await page.evaluate((s) => document.activeElement === document.querySelector(s), BTN), reports: seen.reports.filter((b) => /google_fedcm|google_timeout/.test(b)).length };
+    ok(!left && st.path === "/login" && st.enabled && st.busy !== "true" && !st.error && st.reports === 0, `cancel — ${name}: stays on the login screen, button enabled, no error, no report`, JSON.stringify(st));
+    ok(st.focused, `cancel — ${name}: focus back on the Google button`);
+    await page.evaluate(() => (window.__gisMode = "credential"));
+    const went = navTo(page, (u) => u.origin === BASE && u.pathname === "/");
+    await page.click(BTN);
+    const dest = await went;
+    ok(!!dest && (seen.gis?.inits.length ?? 0) >= 2, `cancel — ${name}: the next tap uses the sheet again and signs in`, JSON.stringify({ dest: String(dest), inits: seen.gis?.inits.length }));
     await ctx.close();
   }
   // ---- fallbacks to the redirect

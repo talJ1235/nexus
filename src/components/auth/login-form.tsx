@@ -27,8 +27,9 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
   const attempt = useRef(0);
   const timer = useRef<number | undefined>(undefined);
   const navigating = useRef(false);
-  // Hotfix 2026-10-07: Google's account sheet (FedCM) first where the browser has it; once it didn't give a token on
-  // this page (skipped, dismissed, blocked, too slow) the redirect is used from then on.
+  // Hotfix 2026-10-07: Google's account sheet (FedCM) first where the browser has it; once it couldn't give a token on
+  // this page (couldn't show, blocked, too slow) the redirect is used from then on. Closing it yourself (hotfix.3)
+  // just keeps you on this screen.
   const redirectOnly = useRef(false);
   const sheet = () => !!props.googleClientId && !redirectOnly.current && fedcmAvailable();
   // Full mode: a new account adds a passkey once (skippable) before the first-run screen.
@@ -142,6 +143,15 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
       const r = await googleIdToken({ clientId: props.googleClientId!, hint, signal: abort.signal });
       if (attempt.current !== mine) return;
       if ("token" in r) return idTokenSignIn(r, invite, abort, mine);
+      // Hotfix.3: the person closed the sheet — that's a "no", not a failure: stay here, the button works again (the next
+      // tap asks the sheet again; if Chrome won't show it so soon, that tap gets the redirect). No error, no report.
+      if ("cancelled" in r) {
+        abort.abort();
+        reset();
+        // After the re-render: the button is still disabled (busy) in this tick.
+        requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(`[data-auth="${which}"]`)?.focus({ preventScroll: true }));
+        return;
+      }
       redirectOnly.current = true;
       reportAuthFailure("google_fedcm", r.fallback);
       window.clearTimeout(timer.current);

@@ -56,7 +56,28 @@ export function loadGis(timeoutMs = 5000): Promise<boolean> {
   return Promise.race([p, new Promise<boolean>((r) => window.setTimeout(() => r(false), timeoutMs))]);
 }
 
-export type IdTokenResult = { token: string; nonce: string } | { fallback: string };
+/** token = signed in; cancelled = the person closed the sheet (stay on the login screen); fallback = use the redirect. */
+export type IdTokenResult = { token: string; nonce: string } | { cancelled: string } | { fallback: string };
+
+/** Hotfix.3: the person closing the sheet themselves. GIS names it (user_cancel / tap_outside); over FedCM it often gives
+ *  no reason at all — then a skip that comes after the sheet had time to show counts as closed by the person, while an
+ *  immediate one (FedCM cooldown after an earlier close, no Google session, origin not allowed) still means "couldn't
+ *  show" → the redirect, so a tap never does nothing. */
+export const SHOWN_MS = 1000;
+const USER_CLOSED = new Set(["user_cancel", "tap_outside"]);
+const NOT_USER = new Set(["auto_cancel", "issuing_failed"]);
+const safe = (f?: () => string) => {
+  try {
+    return f?.() ?? "";
+  } catch {
+    return "";
+  }
+};
+export function closedByPerson(reason: string, elapsedMs: number) {
+  if (USER_CLOSED.has(reason)) return true;
+  if (NOT_USER.has(reason)) return false;
+  return (reason === "" || reason === "unknown_reason") && elapsedMs >= SHOWN_MS;
+}
 
 /** Ask for an account through the sheet. Resolves with the token, or with why the redirect should be used instead. */
 export async function googleIdToken(opts: { clientId: string; hint?: string; signal: AbortSignal }): Promise<IdTokenResult> {
@@ -100,11 +121,15 @@ export async function googleIdToken(opts: { clientId: string; hint?: string; sig
         ...(opts.hint ? { login_hint: opts.hint } : {}),
         callback: (r: { credential?: string }) => (r.credential ? finish({ token: r.credential, nonce }) : finish({ fallback: "no_credential" })),
       });
+      const t0 = performance.now();
       id.prompt((n) => {
-        if (n.isSkippedMoment?.()) finish({ fallback: `skipped:${n.getSkippedReason?.() ?? "?"}` });
-        else if (n.isNotDisplayed?.()) finish({ fallback: `not_displayed:${n.getNotDisplayedReason?.() ?? "?"}` });
+        if (n.isSkippedMoment?.()) {
+          const why = safe(n.getSkippedReason);
+          finish(closedByPerson(why, performance.now() - t0) ? { cancelled: why || "closed" } : { fallback: `skipped:${why || "?"}` });
+        }
+        else if (n.isNotDisplayed?.()) finish({ fallback: `not_displayed:${safe(n.getNotDisplayedReason) || "?"}` });
         else if (n.isDismissedMoment?.()) {
-          const why = n.getDismissedReason?.() ?? "?";
+          const why = safe(n.getDismissedReason) || "?";
           // "credential_returned": the callback above has (or is about to) run.
           if (why !== "credential_returned") finish({ fallback: `dismissed:${why}` });
         }
