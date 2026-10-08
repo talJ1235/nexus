@@ -70,7 +70,7 @@ budget, settings & account, privacy) loaded by the same help route/assistant, ea
 checks every SPEC feature appears in one topic and every file is under its limit. Then add the missing lines (Google
 sign-in sheet + "Use another Google account", daily opening, everything in POLISH-AUDIT "Fixes" marked help-worthy).
 
-### 0.3 [ ] Test debt
+### 0.3 [x] Test debt
 - A reseeded smoke DB (fresh each run, not the grown 362-item `local.db` copy) so "partial move splits the item" stops
   flaking; reuse `scripts/seed-worst.mjs` for the worst-case space.
 - Prod smoke "real data" mode: skip the demo-id steps (Needs-you count, month view, calendar arrival, demo-id layouts,
@@ -314,3 +314,17 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   to Tal; the Notifications-switch line there is moot after D3). R16 Open leftovers: the reseeded smoke DB + looser
   camera budget (→ 0.3), the prod smoke "real data" mode (→ 0.3), the viewport-guard smoke step that saw 3 documents
   locally (→ 0.3).
+- **0.3 — test debt.** `scripts/serve-smoke.sh [--build]` serves the build on a **fresh `smoke.db` every run** (migrate →
+  `seed-local` → `seed-worst`, mock AI); the smoke's DB reads default to it (one step still read the old
+  `r16-smoke.db` and compared against a stale report row). On it "partial move splits the item" passes (desktop + phone).
+  The fresh data exposed a race in the phone quick-actions step (a swipe right after a reload landed before the row's
+  touch handlers) — the step now waits for the row and retries the swipe once (3/3 green). Prod smoke "real data" mode:
+  `SMOKE_REAL=1` (default whenever BASE isn't localhost; set explicitly in `smoke.yml`) skips the 5 demo-shaped steps
+  (Needs-you count, month view, calendar arrival, demo-id layouts, demo project summary) with a `SKIP` line.
+  **Timing checks — decision:** both are MOBILE-only, so they never run in CI (prod smoke is desktop); they fail on
+  this PC on `main` too. Strict budgets (camera 400/800 ms, boot ≤ 2 dropped frames) only with `SMOKE_TIMING=1` on a
+  quiet machine; by default a loose budget (camera < 2.5 s / decoder < 3 s, boot ≤ 10 dropped) that still catches a
+  multi-second stall. Why: a check that fails on unchanged code teaches everyone to ignore FAIL lines. Actions:
+  `checkout` v7.0.1, `setup-node` v7.0.0, `upload-artifact` v7.0.1, `gitleaks-action` v3.0.0 (all node24, SHA-pinned,
+  each release ≥ 2 weeks old except gitleaks v3 = its only node24 release), `runs-on: ubuntu-24.04` in both workflows.
+  Smoke at this point (fresh DB, local build): desktop 80/80, phone 93/93.
