@@ -38,7 +38,7 @@ export function PhoneTopBar() {
   const unread = useUnreadAlerts();
   const meName = useMeName();
   // 36 px circles; the ::after grows each tap area to 40 px without moving anything.
-  const circle = "relative grid size-9 shrink-0 place-items-center rounded-full active:scale-95 after:absolute after:-inset-0.5 after:content-['']";
+  const circle = "relative grid size-9 shrink-0 place-items-center rounded-full transition-transform duration-[120ms] ease-[var(--ease-out)] active:scale-95 after:absolute after:-inset-0.5 after:content-['']";
 
   return (
     <div className="flex h-10 items-center gap-2" data-phone-top>
