@@ -440,8 +440,11 @@ body {
   to { opacity: 1; }
 }
 /* Directional: views later in the sidebar come in from the end side, earlier ones from the start side. */
-.view-in.view-fwd { animation: view-fwd 320ms var(--ease-out) both; }
-.view-in.view-back { animation: view-back 320ms var(--ease-out) both; }
+.view-in.view-fwd { animation: view-fwd 200ms var(--ease-out) both; }
+.view-in.view-back { animation: view-back 200ms var(--ease-out) both; }
+/* Polish #13: the first-paint motion (cards rising, bars growing) plays once per page load, not on every view switch
+   (.view-in only wraps views reached by switching) — switches happen tens of times a day; the slide is enough. */
+.view-in :is(.rise-in, .grow-x, .grow-y, .r13-rise), .view-in .load-in-stagger > * > * { animation: none; }
 [dir="rtl"] .view-in.view-fwd { animation-name: view-back; }
 [dir="rtl"] .view-in.view-back { animation-name: view-fwd; }
 @keyframes view-fwd { from { opacity: 0.2; transform: translateX(24px); } to { opacity: 1; transform: none; } }
