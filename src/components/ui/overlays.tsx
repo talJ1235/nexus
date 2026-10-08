@@ -176,7 +176,7 @@ export function MenuContent({ children, align = "end", className, onCloseAutoFoc
         align={align}
         onCloseAutoFocus={onCloseAutoFocus}
         sideOffset={6}
-        className={cn("z-50 min-w-[200px] animate-pop-in rounded-xl border border-line bg-raised p-1 shadow-pop", className)}
+        className={cn("z-50 min-w-[200px] origin-(--radix-dropdown-menu-content-transform-origin) animate-pop-in rounded-xl border border-line bg-raised p-1 shadow-pop", className)}
       >
         {children}
       </M.Content>
@@ -222,7 +222,7 @@ export const PopTrigger = P.Trigger;
 export function PopContent({ children, className, align = "start", onCloseAutoFocus }: { children: React.ReactNode; className?: string; align?: "start" | "end" | "center"; onCloseAutoFocus?: (e: Event) => void }) {
   return (
     <P.Portal>
-      <P.Content align={align} sideOffset={6} onCloseAutoFocus={onCloseAutoFocus} className={cn("z-50 animate-pop-in rounded-xl border border-line bg-raised p-3 shadow-pop outline-none", className)}>
+      <P.Content align={align} sideOffset={6} onCloseAutoFocus={onCloseAutoFocus} className={cn("z-50 origin-(--radix-popover-content-transform-origin) animate-pop-in rounded-xl border border-line bg-raised p-3 shadow-pop outline-none", className)}>
         {children}
       </P.Content>
     </P.Portal>
