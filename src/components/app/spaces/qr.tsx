@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { tileColor } from "./space-ui";
+import { initialOf } from "@/lib/initial";
 
 // R15 C2: the invite QR, drawn on the device (no third-party QR service): zxing-wasm's writer (already a dependency
 // for the barcode scanner; its .wasm is self-hosted under /vendor), error correction H so the space tile can sit in
@@ -48,7 +49,7 @@ export function InviteQr({ value, name, color, size = 200, className }: { value:
         {mod ? <path d={rects.join("")} fill="#111" /> : <rect width={n} height={n} fill="#f2f2f0" rx={1} />}
         <rect x={h0 + 0.5} y={h0 + 0.5} width={hole - 1} height={hole - 1} rx={(hole - 1) / 4} fill={tileColor(color)} />
         <text x={n / 2} y={n / 2} dominantBaseline="central" textAnchor="middle" fill="#fff" fontWeight={700} fontSize={(hole - 1) * 0.5} fontFamily="inherit">
-          {(name.trim()[0] ?? "").toUpperCase()}
+          {initialOf(name, "")}
         </text>
       </svg>
     </div>

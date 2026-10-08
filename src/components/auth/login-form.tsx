@@ -7,6 +7,7 @@ import { fedcmAvailable, googleIdToken, loadGis } from "@/lib/auth/google-fedcm"
 import { installClientErrorCapture, reportAuthFailure } from "@/lib/client-errors";
 import { useI18n } from "@/components/providers";
 import { GoogleMark, PasskeyIcon } from "./brand-art";
+import { initialOf } from "@/lib/initial";
 
 export type LoginError = "cancelled" | "noAccess" | "unverified" | "generic" | "passkeyFailed" | "badCode" | "expired" | "usedUp" | "revoked" | "limit" | "password" | "fallbackOff" | "slow" | "offline";
 type Which = "google" | "returning" | "test-idp";
@@ -244,7 +245,7 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
         {props.returning && !verifying && (
           <>
             <button type="button" className="acct" onClick={() => google(props.returning!.email, "google", "returning")} onPointerEnter={warm} onTouchStart={warm} disabled={!!busy} aria-busy={busy === "returning"} data-auth="returning">
-              <span className="av lg c1">{busy === "returning" ? <span className="spinner" style={{ width: 18, height: 18 }} aria-hidden="true" /> : props.returning.name.slice(0, 1).toUpperCase()}</span>
+              <span className="av lg c1">{busy === "returning" ? <span className="spinner" style={{ width: 18, height: 18 }} aria-hidden="true" /> : initialOf(props.returning.name, "")}</span>
               <span style={{ flex: 1, lineHeight: 1.3 }}>
                 <b>{busy === "returning" ? a.openingGoogle : f(a.continueAs, { name: props.returning.name })}</b>
                 <br />

@@ -13,6 +13,7 @@ import { NavRowsSkeleton, Skel } from "./skeletons";
 import { DRAG_TYPE, useMoveItems } from "./buy-filters";
 import { SpaceSwitcher } from "./spaces/switcher";
 import { useMeName } from "./spaces/space-ui";
+import { initialOf } from "@/lib/initial";
 
 function sameView(a: View, b: View) {
   if (a.type !== b.type) return false;
@@ -251,7 +252,7 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
           tabIndex={c ? 0 : -1}
           className="grid size-7 shrink-0 place-items-center rounded-full bg-ink text-xs font-bold text-bg"
         >
-          {meName.slice(0, 1).toUpperCase()}
+          {initialOf(meName, "")}
         </button>
         {!c && (
           <>

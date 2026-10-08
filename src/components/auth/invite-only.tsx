@@ -5,6 +5,7 @@ import { useI18n } from "@/components/providers";
 import { authClient } from "@/lib/auth/client";
 import { BoxMark } from "./brand-art";
 import type { LoginError } from "./login-form";
+import { initialOf } from "@/lib/initial";
 
 /** InviteOnly-phone (R15 A3): Google said who you are, but there's no valid invite → code, waitlist, or switch account. */
 export function InviteOnly(props: { email: string | null; pendingRef: string | null; error: LoginError | null; app: string; next: string; provider?: string; turnstileSiteKey?: string | null }) {
@@ -58,7 +59,7 @@ export function InviteOnly(props: { email: string | null; pendingRef: string | n
           <BoxMark size={22} />
           {props.app}
         </span>
-        {props.email && <span className="av sm c6">{props.email.slice(0, 1).toUpperCase()}</span>}
+        {props.email && <span className="av sm c6">{initialOf(props.email, "")}</span>}
       </div>
       {listed ? (
         <>

@@ -2,8 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import { gradientOf, isSpacePhoto, SPACE_ICONS } from "./look";
+import { initialOf } from "@/lib/initial";
 
-const initial = (name: string) => (name.trim()[0] ?? "?").toUpperCase();
+const initial = (name: string) => initialOf(name);
 
 /**
  * The space tile (R16 D5, board SpaceIdentity): its photo, or its icon on the colour's gradient (the initial when it

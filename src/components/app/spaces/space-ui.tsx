@@ -17,9 +17,10 @@ export { avatarColor, TILE, tileColor } from "./colors";
 import { avatarColor } from "./colors";
 import { SpaceTile } from "./tile";
 import { startMoment } from "./moment";
+import { initialOf } from "@/lib/initial";
 export { SpaceTile };
 
-const initial = (name: string) => (name.trim()[0] ?? "?").toUpperCase();
+const initial = (name: string) => initialOf(name);
 
 /** SpaceTile for a space record (current space, switcher cards, join preview). */
 export function SpaceLook({ space, size = 28, className, style }: { space: { name: string; color: string; icon?: string | null; photo?: string | null }; size?: number; className?: string; style?: React.CSSProperties }) {

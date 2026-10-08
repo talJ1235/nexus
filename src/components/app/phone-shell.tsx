@@ -15,6 +15,7 @@ import { useAddActions } from "./add-actions";
 import { AskButton } from "./top-bar";
 import { PhoneSearchResults, rememberSearch } from "./phone-search";
 import { SpaceLook, useMeName } from "./spaces/space-ui";
+import { initialOf } from "@/lib/initial";
 
 /** Phone / tablet (<1024 px) top bar = home-v4 (R14 B2): Box + "Nexus", then the search circle, the Ask circle and the
  *  avatar (Me; a dot when price alerts are unread), 36 px controls with ≥ 40 px tap areas. Search expands in place. */
@@ -100,7 +101,7 @@ export function PhoneTopBar() {
           aria-label={unread ? `${t.me.open} · ${t.alerts.title} (${unread})` : t.me.open}
           data-me-open
         >
-          {meName.slice(0, 1).toUpperCase()}
+          {initialOf(meName, "")}
           {unread > 0 && <span className="absolute -end-px -top-px size-2.5 rounded-full bg-spark ring-2 ring-bg" data-unread={unread} />}
         </button>
       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { initialOf } from "@/lib/initial";
 
 // R16 D1–D3: small pieces of the settings shell in the boards' kit (.nx, components/auth/nx.css + ./nx16.css).
 
@@ -138,7 +139,7 @@ export function SectionHead({ title, children }: { title: React.ReactNode; child
 export function Av({ name, color, size, online }: { name: string; color: string; size?: "xs" | "sm" | "lg" | "xl"; online?: boolean }) {
   return (
     <span className={cn("av", size)} style={{ background: color }} aria-hidden>
-      {(name.trim()[0] ?? "?").toUpperCase()}
+      {initialOf(name)}
       {online && <span className="on" />}
     </span>
   );

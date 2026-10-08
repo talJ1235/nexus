@@ -9,6 +9,7 @@ import { SpaceTile } from "@/components/app/spaces/tile";
 import { authClient } from "@/lib/auth/client";
 import type { InvitePreview } from "@/lib/spaces";
 import { BoxMark } from "./brand-art";
+import { initialOf } from "@/lib/initial";
 
 type State = "preview" | "joining" | "joined" | "dead";
 
@@ -86,7 +87,7 @@ export function JoinFlow({ token, preview, days, signedIn, auto, app, provider }
               <div className="pile">
                 {preview.faces.map((p) => (
                   <span key={p.id} className="av xs" style={{ background: avatarColor(p.id) }}>
-                    {p.name.trim()[0]?.toUpperCase()}
+                    {initialOf(p.name, "")}
                   </span>
                 ))}
               </div>

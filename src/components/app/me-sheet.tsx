@@ -12,6 +12,7 @@ import { useStore } from "./store";
 import { useUnreadAlerts } from "./alerts-panel";
 import { useMeName } from "./spaces/space-ui";
 import { SpaceRows } from "./spaces/switcher";
+import { initialOf } from "@/lib/initial";
 
 /** Phone "Me" sheet (Round 9 A1), from the avatar in the phone top bar: everything that lives in the sidebar's owner
  * card and Settings on desktop, within thumb reach. Rows are ≥ 52 px. */
@@ -35,7 +36,7 @@ export function MeSheet() {
   return (
     <Sheet open={open} onOpenChange={s.setMeOpen} title={t.me.open} side="start">
       <div className="flex items-center gap-3 border-b border-line px-4 pb-4 pt-2 sm:pt-4" data-sheet-grip data-me>
-        <span className="grid size-14 shrink-0 place-items-center rounded-full bg-ink text-[22px] font-extrabold text-bg">{meName.slice(0, 1).toUpperCase()}</span>
+        <span className="grid size-14 shrink-0 place-items-center rounded-full bg-ink text-[22px] font-extrabold text-bg">{initialOf(meName, "")}</span>
         <div className="min-w-0 flex-1">
           <b className="block truncate text-[18px] font-extrabold">{s.me?.name || meName}</b>
           {s.me && <span className="block truncate text-[13px] text-muted">{s.me.email}</span>}

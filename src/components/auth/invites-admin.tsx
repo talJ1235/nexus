@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { createInviteCode, getInviteAdmin, inviteFromWaitlist, revokeInviteCode, type InviteAdminState } from "@/app/invite-admin-actions";
 import { useI18n } from "@/components/providers";
+import { initialOf } from "@/lib/initial";
 
 // Settings → Invite codes (R15 A3, admin only) — mockup InvitesAdmin-desktop: tabs Codes / Waitlist, a codes table
 // with usage meters, copy / revoke, and a one-tap Invite from the waitlist.
@@ -158,7 +159,7 @@ export function InvitesAdmin() {
           {st.waitlist.length === 0 && <div className="row sub">{v.noWaitlist}</div>}
           {st.waitlist.map((w) => (
             <div className="row" key={w.email}>
-              <span className="av sm c3">{w.email.slice(0, 1).toUpperCase()}</span>
+              <span className="av sm c3">{initialOf(w.email, "")}</span>
               <span className="grow">
                 {w.email}
                 <br />
