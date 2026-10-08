@@ -115,3 +115,110 @@ Effort: **S** < 1 h, **M** a few hours, **L** a day or more.
 | `06-one-item-home.png` | The one-item space: plurals right, the hint cut off (#24) |
 | `07-item-sheet-inputs.png` | The item sheet fields that zoom on iOS (#1), 32px header controls (#4) |
 | `08-empty-space-held-up.png` | The empty-space Home, which held up |
+
+## Fixes (2026-10-08)
+
+Branch `polish-fixes` (from `main` at `714a1a9`), one commit per row (`polish.<n>: …`), pushed after each priority
+group, then fast-forwarded into `main`. Order as asked: #29, P1, P2, P3, except that **#28 (motion tokens) went first
+among the motion rows** (before #5). The exits, the drawer curve (#5, #14, #27) and the `+` menu (#12) all needed
+`--ease-drawer` and the stronger `--ease-out`, so defining them once first made every later row one token instead of
+another hand-typed curve. No DB schema change. The help file was not touched (see "Help-worthy" below).
+
+### Per row: what was done, and where it differs from the one-line fix
+
+| # | Done | Notes / why |
+|---|---|---|
+| 29 | `/api/realtime/token` 30 → **120 per minute per user** | That was the limiter. Every page load asks for one token (an Ably TokenRequest for the current space), so about 30 loads a minute (fast space switches, a few tabs) hit 429. Reproduced: 14 × 429 in 30 navigations. Signing is local (no Ably call), a refused tab falls back to polling, and 120/min still stops a loop. Auth (Better Auth rules, OTP, recovery, invite/join/waitlist), AI, writes (space create/invite/join, space photo) and the error intake keep their limits. `test:tenancy` now expects 429 on the 121st call. |
+| 1 | One `@media (pointer: coarse)` rule: text fields 16px (`!important`, so the `.nx` kit and `text-sm` both lose) | Fields that are already bigger opt out with `data-big` (item sheet name 17px, compare-group name 20px). The sign-in code boxes keep 22px. Every field was re-measured at 360/390: **no height changed** (paste capsule 58/62, Qty 34, Price/Currency/Shipping 32, Notes 80, searches 38). Selects got wider (Currency 57 → 65, Motion 118 → 136), with no overflow anywhere. |
+| 2 | As the row | Undo is 40px tall, with 14px text and 14px side padding, on touch only. |
+| 3 | A tap anywhere on a switch row flips it; the knob moves with `translateX(16px)` over 160 ms | Done in `Li` (the row's `onClick` forwards to its switch), not by wrapping the row in a `<label>`. Some rows also hold a select (Price drop %), and a label would steal its taps. Taps on the row's own select or button stay theirs. The switch stays the keyboard and screen-reader target. |
+| 4 | `.hit` utility: on touch, an invisible box of at least 44 × 44 centred on the control | Applied to the shared `icon`/`icon-sm` Button sizes, the Modal ✕/back, and the item sheet's ✕, more, status and priority segments. The top-bar circles were already 40 via `::after`, except the avatar (36 → 40). The card text links ("Month", "All", "Track all") already had a −12px `::after`; the audit measured the element box. Login links get a 40px-tall `::after` on touch. Pager dots are 32 × 40, not 40 wide, because a 40px pitch would spread the dots visibly. |
+| 5 | `[data-state=closed]` exits | Phone sheets, modals and quick actions go down in 200 ms on `--ease-drawer`. Desktop side sheets go to their end edge in 180 ms. Desktop modals, dropdowns and popovers pop out in 150 ms. The scrim fades in 150 ms. The card-morphed sheet fades while the picture flies back. The keyframes are `to`-only, so an exit starts wherever the surface is. **Extra:** the item sheet keeps showing its item while it leaves (it used to go blank the moment the store cleared it). The smoke's `openPalette` helper now waits for the palette itself, because a closing sheet is still a dialog for 200 ms. |
+| 6 | Real cause: avatar/tile **initials** took `name[0]` | For "👩🏽‍💻 Priya" that is half a surrogate pair. The server streamed U+FFFD and the client rendered the lone surrogate, so #418 fired on every route that showed that member. Fixed at the source with `initialOf()` (first grapheme, `Intl.Segmenter`) in all 11 places that cut a first letter. No `suppressHydrationWarning`. Repeatable: `scripts/seed-worst.mjs` (Empty, One and a 500-item space, like the audit's DB) plus `npm run test:polish`, which loads 10 main routes (desktop English, phone Hebrew) with **0 hydration errors**. |
+| 7 | Tal's rule | Phones now also play the full opening only on the first app open of the day (shared key `nexus.bootDay`). Every other open, reload and back/forward shows the small mark. The comment in `lib/boot.ts` now states the daily rule instead of "no skip". Reduced motion is unchanged. The smoke's boot steps follow the new rule. |
+| 8 | `.bidi` on store names (rows/cards, compare sheet, orders) | Toasts get one CSS rule (`unicode-bidi: plaintext` on `.nx-toast-title/.nx-toast-desc`) instead of wrapping each call's strings in `<span dir="auto">`. It covers every `toast()` call site (about 60) without touching them. |
+| 9 | As the row | The title keeps 1 line; the description gets 2 (`-webkit-line-clamp`, `overflow-wrap: anywhere`). |
+| 10 | As the row | The palette's product thumbnails no longer fade in either (they were 48 running animations on open). |
+| 11 | As the row | `duration-150 ease-[var(--ease-out)]`, `active:scale-[0.96]` kept. |
+| 12 | As the row | Tiles and chips 220 ms on `--ease-out`, stagger in 20 ms steps (60 ms at most), no chip delay. The icon turns in 200 ms ease-out. |
+| 13 | Rise-in, bar growth and card stagger are off inside a switched view; the slide is 200 ms | This is "once per page load" rather than once per session. `.view-in` only wraps views reached by switching, so the first view of a load keeps its first-paint motion and no switch after it replays it. Insights' `grow-y` is included. |
+| 14 | As the row | `sheetExitMs(remaining, v)` = remaining / velocity, clamped to 120–260 ms, on `--ease-drawer`. Unit-tested in `test:gestures`. |
+| 15 | As the row | |
+| 16 | Gentler, not zero | Movement stops: keyframes jump to their end and transform/size transitions snap. `transition-property` keeps opacity and colours. Sheets, modals, menus, view switches, sub-pages and toasts **fade in and out in 150 ms**. The OS setting and Settings → Motion = Reduced behave the same. |
+| 17 | Tal's rule | The loops stay `infinite` in CSS. `lib/ai-work.ts` pauses each one at its next cycle boundary unless AI work is in flight, and resumes them when work starts. AI work means a link being read, the assistant answering, or Home suggestions loading. The boundary is the loop's start pose, so resting is seamless. It isn't done by switching `animation-iteration-count`, because Chrome doesn't restart a finished CSS animation when its count changes (measured). Reduced motion: no loops at all. |
+| 18 | No layout-property animation is left in the listed places | Single bars (shipping gap, import) grow with `scaleX` from the inline start. The budget segments (a stacked flex bar) snap when the data changes; their entrance is still `grow-x`. The desktop sidebar collapse snaps its columns inside a **180 ms cross-fade view transition** (opacity only). Morphing three moving pieces with transforms was more code than this row is worth. The add bar and its fade no longer animate their inset; they move with the cross-fade. `LogoPill` (the `width,padding` one) turned out to be unused; its transition is gone anyway. |
+| 19 | `90dvh` | The quick-action sheet too (`80vh` → `80dvh`). |
+| 20 | As the row, in the kit itself (`nx.css`) | The sign-in screens get press feedback too, not only Settings. |
+| 21 | As the row | In the Tailwind v4 form `origin-(--radix-…-transform-origin)`. |
+| 22 | As the row | `ThemedToaster` sits inside the ThemeProvider (verified: `data-sonner-theme="dark"`). |
+| 23 | Tal's rule: `FitMoney` | It measures its own line with a ResizeObserver: it swaps the full figure in for one layout read, with no digit threshold. It shows `Intl` compact notation (`notation: "compact"`, currency kept, locale-aware) only when the full figure doesn't fit. A long-press on touch shows the full value in a toast. Used in the Home stat tiles and the phone To buy tile. **Deviation:** the full value is in `title` and in screen-reader text inside the number, not in `aria-label`. ARIA forbids naming a plain `<span>`, and screen readers ignore the label there. In Hebrew, Chromium's ICU writes the compact form as "₪62.2B". |
+| 24 | As the row | |
+| 25 | As the row | |
+| 26 | As the row | The pager's band is now the shared `rubberBand()` in `lib/gestures.ts`, unit-tested. |
+| 27 | As the row | |
+| 28 | Done first (see above) | `--ease-out: cubic-bezier(0.23,1,0.32,1)`, `--ease-in-out` and `--ease-drawer` are defined once in `:root` (the `@theme` duplicate is gone), with a JS mirror in `lib/motion.ts` for WAAPI. Every hand-typed UI curve now uses them. The opening keeps its choreographed curves: the gravity drop's ease-in fall is physics, not UI. |
+| 30 | As the row | `max-sm:active:bg-surface-2`, 100 ms. |
+
+### Guards (kept)
+
+- **`npm run test:polish`** is new and runs in `guards.yml` after `test:live`. It starts `next dev` on a throwaway DB
+  seeded by `seed-local` and `seed-worst`, and checks:
+  - 0 hydration errors on 10 routes of the 500-item space (desktop English, phone Hebrew)
+  - text fields are at least 16px on a coarse pointer (paste bar, search, item sheet, settings)
+  - a tap area of at least 40 × 40 for the icon Button sizes (`button.hit`), the Modal ✕ and the sheet's ✕, more and
+    segments
+  - the toast's Undo is at least 40 × 40
+  - a switch row flips from its title and is at least 40px tall
+  - the item sheet (✕) and a modal (Esc) on the phone, and the side sheet (Esc) on desktop, run an exit animation
+    before unmounting
+  - reduced motion: the sheet fades in 150 ms both ways
+  - the palette opens with 0 animations
+  - no amount in the Home stat tiles or the To buy tile is cut (Hebrew, 360)
+  - 30 navigations across 3 spaces get 0 × 429
+- `test:gestures` covers `sheetExitMs` and `rubberBand`. `test:tenancy` checks that the token limit is 120/min.
+
+### Verification
+
+- `npm run -s check` is green. These are all green: `test:polish`, `test:settings`, `test:home`, `test:google-signin`,
+  `test:google-fedcm`, `test:viewport`, `test:live`, `test:errors`, `test:tenancy` and `test:gestures`. The server
+  tests ran as in `guards.yml`, on a local production build.
+- `smoke` on desktop (`SMOKE_WRITE=1`): **all passed**.
+- `smoke` on the phone (`SMOKE_MOBILE=1 SMOKE_WRITE=1`): all passed except two timing steps. Both **also fail on
+  `main` on this PC**, checked on a `main` build in a separate worktree against the same DB:
+  - "camera opens fast": the first frame takes about 1.0–1.9 s under CPU ×4 on both builds.
+  - "boot screen: frame trace": over 5 runs each, `main` dropped 0/0/0/1/6 frames and this branch 3/0/0/3/0, with the
+    same ~230 ms hydration stalls.
+
+  These are not regressions; they need CI or a calmer machine.
+- Matrix sweep (scratch script, production build): 360 / 390 / 1366 × light / dark × Graphite / Plum × English /
+  Hebrew, plus reduced motion. That is 144 page loads across Home, To buy, History, Projects, Insights and Settings →
+  Display, with an item sheet opened and closed in each. Result: **0 horizontal overflow, 0 fields under 16px on
+  phones, 0 page or console errors**.
+- The 8 audit screenshots were retaken after the fixes into `docs/design/polish/after/` (same names).
+  `01-boot-phone.png` is a second open on the same day: the app is already there, and the small mark is gone by
+  350 ms.
+
+### Found in passing (not fixed, not in the audit)
+
+- Settings → Display at 360px: the Colour chips sit beside Language, and the first chip's label is cut ("Gra|phite"
+  under the Plum chip). This is pre-existing and is a layout call for R17.
+- The camera and boot frame-trace smoke steps are machine-sensitive on this PC (see Verification).
+
+### Help-worthy for R17 part 0 (the help file is at its 25 KB limit, so it was not edited)
+
+- The full opening now plays once a day on phones too; every other open shows the small mark.
+- A big amount may show as ₪62.2B when it doesn't fit. A long-press (phone) or hover (desktop) shows the exact figure.
+- Settings: a tap anywhere on a row with a switch flips it.
+- Motion → Reduced keeps soft fades (no movement) instead of switching everything off.
+
+### Tal — check on a real phone
+
+- [ ] **iOS input zoom (#1):** focus Price, Notes and Add tag in the item sheet, the paste bar, Search and a Settings
+  select. The page must not zoom.
+- [ ] **Undo tap (#2):** delete an item, then tap Undo just above the dock. It should hit every time, never the ✕.
+- [ ] **Switches (#3):** in Settings → Notifications, tap the row text. The switch should flip and the knob slide, and
+  the Price-drop % select should still open.
+- [ ] **Sheet close (#5):** close an item sheet with the ✕, the scrim and the Back gesture. It should slide down (or
+  fade, if it opened from a card picture) and never vanish. A fling down should leave at the finger's speed.
+- [ ] **The daily opening (#7):** the first open of the day should play the full opening. Opening again (a new tab, a
+  PWA relaunch, a reload) should show the small mark.

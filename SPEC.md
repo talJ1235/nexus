@@ -666,6 +666,23 @@ Brief: `docs/ROUND16.md` (decisions and numbers under its "Open"). Built on bran
   pace, Projects, Nexus noticed, and new — Price drops (this week), Vs last month (same days), Next delivery, Budget by
   category, Most bought, Space today. Saved per person per space (`user_pref`), the last layout as the fallback.
 
+
+## Polish fixes (2026-10-08) — shipped
+All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" section):
+- Touch: text fields are at least 16px (no iOS zoom), small controls have tap areas of at least 40px (`.hit`), switch
+  rows flip from anywhere on the row, and the `.nx` kit and phone rows show press feedback.
+- Sheets and modals animate out the way they came in. The item sheet keeps its item on screen while it leaves.
+- Hydration is fixed for emoji-first names (`initialOf`). The realtime token limit (120/min) fits normal browsing.
+- The full opening plays once a day on phones too.
+- Toasts read correctly in RTL, with a 2-line description, a 40px Undo and the app's theme. The command palette opens
+  instantly.
+- Motion is calmer and faster:
+  - shared tokens `--ease-out` / `--ease-in-out` / `--ease-drawer`, mirrored in `lib/motion.ts`
+  - 200 ms view switches that no longer replay the first-paint motion
+  - sheet flings that leave at the finger's speed, and a rubber-banded upward sheet drag
+- Reduced motion uses 150 ms fades. Ambient loops rest unless the AI is working (`lib/ai-work.ts`).
+- Big amounts switch to compact notation instead of getting an ellipsis (`FitMoney`).
+- Guards: `npm run test:polish` (worst-case seed `scripts/seed-worst.mjs`), also in `guards.yml`.
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
