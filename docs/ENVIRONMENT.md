@@ -147,3 +147,4 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   runs `test:errors`, `test:live` and `test:settings` (CI seeds `ci-settings.db`; timeout 60 min). The local smoke reads
   `NEXUS_PASSWORD` — set it from `.env.local`'s `APP_PASSWORD`. Space photos need `BLOB_READ_WRITE_TOKEN` on Vercel
   (already set for item pictures); without it (local only) they're kept inline. No new env names.
+- 2026-10-08 (PC, polish audit): project skills added under `.claude/skills/` — 9 design/motion skills copied (raw files, no installer, no scripts) from `emilkowalski/skills@e8a175d` (MIT, licence in `.claude/skills/LICENSE-emilkowalski-skills`): emil-design-eng, review-animations, improve-animations, find-animation-opportunities, mobile-native, break-ui, apple-design, animation-vocabulary, ask-sonner. Findings: `docs/POLISH-AUDIT.md`.
