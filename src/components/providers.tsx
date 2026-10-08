@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider, useTheme } from "next-themes";
 import { Toaster } from "sonner";
 import { markBooted } from "@/lib/boot";
 import { dictionaries, fmt, LOCALE_COOKIE, type Dict, type Locale } from "@/lib/i18n";
@@ -17,6 +17,13 @@ export function useI18n() {
   const v = useContext(I18nContext);
   if (!v) throw new Error("useI18n outside provider");
   return v;
+}
+
+/** Polish #22: Sonner defaults to its light theme; give it the resolved one (inside ThemeProvider) so its own parts
+ *  (loading / rich icons, anything classNames don't override) follow dark mode. */
+function ThemedToaster(props: React.ComponentProps<typeof Toaster>) {
+  const { resolvedTheme } = useTheme();
+  return <Toaster theme={resolvedTheme === "dark" ? "dark" : "light"} {...props} />;
 }
 
 const PHONE = "(max-width: 768px)";
@@ -45,7 +52,7 @@ export function Providers({ locale, nonce, children }: { locale: Locale; nonce?:
       <I18nContext.Provider value={value}>
         {children}
         {/* Look + motion overrides live in globals.css ("Toasts"). Normal 4 s, with an action (Undo) 7 s; hover pauses. */}
-        <Toaster
+        <ThemedToaster
           position={phone ? "bottom-center" : locale === "he" ? "bottom-left" : "bottom-right"}
           dir={value.dir}
           closeButton
