@@ -1,8 +1,9 @@
 # Free production smoke test: runs on GitHub's servers after every successful Vercel production deploy
 # (and on demand). Read-only. GitHub emails the repo owner when it fails; screenshots are attached to the run.
-# Setup once: repo Settings → Secrets and variables → Actions → New secret NEXUS_PASSWORD (the site password).
-# R15: the smoke signs in through the admin fallback (/login?admin=1, the prod APP_PASSWORD ≥ 20 chars) — the same
-# secret, updated on release day together with Vercel's APP_PASSWORD (ROUND15 Part G step 1).
+# R17 E1: no password sign-in any more — the smoke signs in through the admin emergency path (POST /api/emergency).
+# Setup once (repo Settings → Secrets and variables → Actions): SMOKE_ADMIN_TOKEN = the same value as Vercel's
+# ADMIN_EMERGENCY_TOKEN, SMOKE_ADMIN_EMAIL = an address in Vercel's ADMIN_EMAILS / ADMIN_EMAIL. Without them the smoke
+# runs its signed-out checks only.
 name: smoke
 # A deployment_status run gets its "branch" from the deployment's ref — Vercel deploys a commit SHA, so GitHub files the
 # run under whichever branch holds that commit (e.g. round16, not main): filter by name / SHA, not by branch.
@@ -25,7 +26,8 @@ jobs:
       - run: node scripts/smoke.mjs
         env:
           BASE: https://nexus-ashen-beta.vercel.app
-          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+          SMOKE_ADMIN_TOKEN: ${{ secrets.SMOKE_ADMIN_TOKEN }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
           SMOKE_AI: "1"
           SMOKE_REAL: "1"
           SMOKE_OUT: smoke-shots

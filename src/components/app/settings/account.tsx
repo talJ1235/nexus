@@ -463,7 +463,7 @@ function StepUp({ full, admin, onClose }: { full: boolean; admin: boolean; onClo
           <button type="button" className="btn" onClick={onClose}>
             {x.cancel}
           </button>
-          <a className="btn pri" href={`/login?reauth=1${!full && admin ? "&admin=1" : ""}&next=${encodeURIComponent(window.location.pathname)}`}>
+          <a className="btn pri" href={`/login?reauth=1&next=${encodeURIComponent(window.location.pathname)}`}>
             {x.stepUpGo}
           </a>
         </div>

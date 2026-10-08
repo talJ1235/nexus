@@ -1,10 +1,10 @@
 // R15 B4: security headers on every page response, an enforced nonce CSP, and no CSP violations while the app is
 // used (Playwright listens to `securitypolicyviolation`). Run against a local server in closed mode:
-//   BASE=http://localhost:3100 NEXUS_PASSWORD=... node scripts/test-headers.mjs
+//   BASE=http://localhost:3100 SMOKE_ADMIN_TOKEN=… SMOKE_ADMIN_EMAIL=… node scripts/test-headers.mjs   (R17 E1: no password)
 import { chromium } from "playwright";
+import { canSignIn, signIn } from "./lib/sign-in.mjs";
 
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
-const PASSWORD = process.env.NEXUS_PASSWORD;
 const REQUIRED = {
   "content-security-policy": (v) => /script-src[^;]*'nonce-[A-Za-z0-9+/=]{16,}'/.test(v) && /object-src 'none'/.test(v) && /frame-ancestors 'none'/.test(v) && /base-uri 'none'/.test(v) && !/script-src[^;]*'unsafe-inline'/.test(v),
   "strict-transport-security": (v) => /max-age=63072000/.test(v),
@@ -39,17 +39,18 @@ const check = async (path) => {
 };
 
 await check("/login");
-await check("/login?admin=1");
-if (PASSWORD) {
-  await page.fill("#password", PASSWORD);
-  await Promise.all([page.waitForURL((u) => !u.pathname.startsWith("/login")), page.click("button[type=submit]")]);
+await check("/login?reauth=1");
+// R17 E1: the old password sign-in answers 410.
+ok((await page.request.post(`${BASE}/api/login`, { form: { password: "x" }, maxRedirects: 0 })).status() === 410, "/api/login is gone (410)");
+if (canSignIn(BASE)) {
+  await signIn(page, BASE);
   for (const p of ["/", "/?v=to_buy", "/?v=history", "/?v=spending", "/add", "/offline"]) await check(p);
   // Open a few panels so their scripts run under the policy.
   await page.goto(`${BASE}/?v=to_buy`, { waitUntil: "networkidle" });
   await page.keyboard.press("Control+k").catch(() => {});
   await page.waitForTimeout(800);
   violations.push(...(await page.evaluate(() => window.__csp ?? [])).map((v) => `panels: ${v}`));
-} else console.log("SKIP signed-in pages (NEXUS_PASSWORD not set)");
+} else console.log("SKIP signed-in pages (no test sign-in)");
 await check("/s/does-not-exist-000000");
 ok(nonces.size >= 3 && !nonces.has(undefined), "a fresh nonce per response", [...nonces].join(","));
 ok(violations.length === 0, "no CSP violations", violations.slice(0, 6).join(" | "));

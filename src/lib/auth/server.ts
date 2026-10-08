@@ -16,7 +16,7 @@ import { db, schema } from "@/db";
 import { APP_NAME } from "@/lib/brand";
 import { timed } from "@/lib/timing";
 import { addMember, ensurePersonalSpace, firstName, personalSpaceId } from "@/lib/spaces";
-import { adminEmail, authMode, fallbackEnabled, isAdminEmail, SESSION_IDLE_S, sessionCookieName, STEP_UP_MS, testIdpEnabled } from "./config";
+import { adminEmail, authMode, emergencyEmails, emergencyEnabled, isAdminEmail, SESSION_IDLE_S, sessionCookieName, STEP_UP_MS, testIdpEnabled } from "./config";
 import { safeEqualStr } from "./crypto";
 import { useRecoveryCode } from "./security";
 import { codeEmail, sendEmail } from "./email";
@@ -67,7 +67,7 @@ const ALLOWED: Gate[] = [
   { re: /^\/passkey\/(generate-register-options|verify-registration|generate-authenticate-options|verify-authentication)$/, when: full },
   { re: /^\/email-otp\/send-verification-otp$/, when: full },
   { re: /^\/sign-in\/email-otp$/, when: full },
-  { re: /^\/fallback\/sign-in$/, when: (req) => fallbackEnabled(authMode(requestHost(req.headers))) },
+  { re: /^\/emergency\/sign-in$/, when: () => emergencyEnabled() },
   { re: /^\/recovery-code\/sign-in$/, when: full },
   { re: /^\/ok$/ },
   { re: /^\/error$/ },
@@ -140,12 +140,12 @@ const nexusGuard = {
     ],
   },
   rateLimit: [
-    { pathMatcher: (p: string) => p === "/fallback/sign-in", window: 60, max: 5 },
+    { pathMatcher: (p: string) => p === "/emergency/sign-in", window: 60, max: 10 }, // backstop; the rule is 3/h/IP (hitLimit)
     { pathMatcher: (p: string) => p === "/recovery-code/sign-in", window: 60, max: 5 },
   ],
 } satisfies BetterAuthPlugin;
 
-// ---- admin password fallback (closed-circle mode only) ----
+// ---- R17 E1: the admin-only emergency sign-in (no password sign-in for anyone) ----
 const nexusFallback = {
   id: "nexus-fallback",
   endpoints: {
@@ -156,25 +156,26 @@ const nexusFallback = {
       await ctx.setSignedCookie(GOOGLE_NONCE_COOKIE, nonce, ctx.context.secret, { ...NONCE_COOKIE, maxAge: 600 });
       return ctx.json({ nonce });
     }),
-    fallbackSignIn: createAuthEndpoint("/fallback/sign-in", { method: "POST", body: z.object({ password: z.string().max(200) }).strict() }, async (ctx) => {
+    // POST { token, email }: ADMIN_EMERGENCY_TOKEN + an email in ADMIN_EMAILS / ADMIN_EMAIL → a normal session for that
+    // admin. Off without the env var (404). 3 attempts per hour per IP (every attempt counts), each logged. Never linked
+    // from the UI; reached through POST /api/emergency.
+    emergencySignIn: createAuthEndpoint("/emergency/sign-in", { method: "POST", body: z.object({ token: z.string().max(400), email: z.string().max(254) }).strict() }, async (ctx) => {
       const headers = ctx.request?.headers ?? ctx.headers;
-      const mode = authMode(requestHost(headers));
-      const expected = process.env.APP_PASSWORD ?? "";
-      if (!fallbackEnabled(mode) || !expected) throw new APIError("NOT_FOUND");
-      const email = adminEmail()!;
+      const expected = process.env.ADMIN_EMERGENCY_TOKEN ?? "";
+      if (!emergencyEnabled()) throw new APIError("NOT_FOUND");
       const ip = headers?.get("x-real-ip") ?? headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
-      // 5 attempts/min per IP via rateLimit above; 20 failed attempts/day per IP here (then it's closed for the day).
-      if ((await peekLimit(`fallback:fail:${ip}`, DAY)) >= 20) throw new APIError("TOO_MANY_REQUESTS");
-      const found = await ctx.context.internalAdapter.findUserByEmail(email);
-      if (!safeEqualStr(ctx.body.password, expected) || !found?.user) {
-        await hitLimit(`fallback:fail:${ip}`, 20, DAY);
-        if (found?.user) await logSecurityEvent(found.user.id, "fallback_failed", null, headers);
+      if (!(await hitLimit(`emergency:${ip}`, 3, HOUR))) throw new APIError("TOO_MANY_REQUESTS");
+      const email = ctx.body.email.trim().toLowerCase();
+      const allowed = emergencyEmails().includes(email);
+      const found = allowed ? await ctx.context.internalAdapter.findUserByEmail(email) : null;
+      if (!safeEqualStr(ctx.body.token, expected) || !allowed || !found?.user) {
+        if (found?.user) await logSecurityEvent(found.user.id, "emergency_failed", null, headers);
         await new Promise((r) => setTimeout(r, 600));
-        throw new APIError("UNAUTHORIZED", { code: "bad_password", message: "bad_password" });
+        throw new APIError("UNAUTHORIZED", { code: "denied", message: "denied" });
       }
-      // Only ever the ADMIN_EMAIL user — there is no input that could choose anyone else.
       const session = await ctx.context.internalAdapter.createSession(found.user.id);
       await setSessionCookie(ctx, { session, user: found.user });
+      await logSecurityEvent(found.user.id, "emergency_sign_in", null, headers);
       return ctx.json({ ok: true });
     }),
     // Admin recovery (SECURITY.md §2, L3): a printed one-time code instead of an email code. Same answer for every failure.
@@ -203,7 +204,7 @@ function sessionMethod(path: string | undefined) {
   if (path.startsWith("/callback/test-idp")) return "test-idp";
   if (path.startsWith("/passkey/")) return "passkey";
   if (path.startsWith("/sign-in/email-otp")) return "email-otp";
-  if (path.startsWith("/fallback/")) return "fallback";
+  if (path.startsWith("/emergency/")) return "emergency";
   if (path.startsWith("/recovery-code/")) return "recovery-code";
   return null;
 }
@@ -417,7 +418,7 @@ export const auth = betterAuth({
               .select({ ua: schema.session.userAgent })
               .from(schema.session)
               .where(and(eq(schema.session.userId, s.userId), ne(schema.session.id, s.id)));
-            const kind = method === "fallback" ? "fallback_sign_in" : method === "email-otp" ? "recovery" : method === "recovery-code" ? null : "sign_in";
+            const kind = method === "emergency" ? null : method === "email-otp" ? "recovery" : method === "recovery-code" ? null : "sign_in";
             if (kind) await logSecurityEvent(s.userId, kind, { method }, headers);
             if (others.length && !others.some((o) => o.ua === ua)) await logSecurityEvent(s.userId, "new_device", { method }, headers);
           });
@@ -431,6 +432,6 @@ export const auth = betterAuth({
 export type Auth = typeof auth;
 
 /** The fallback endpoint, typed (the plugin list is built conditionally, so `auth.api` can't infer it). */
-export function fallbackSignIn(opts: { body: { password: string }; headers: Headers; returnHeaders: true }): Promise<{ headers: Headers; response: unknown }> {
-  return (auth.api as unknown as Record<string, (o: unknown) => Promise<{ headers: Headers; response: unknown }>>).fallbackSignIn(opts);
+export function emergencySignIn(opts: { body: { token: string; email: string }; headers: Headers; returnHeaders: true }): Promise<{ headers: Headers; response: unknown }> {
+  return (auth.api as unknown as Record<string, (o: unknown) => Promise<{ headers: Headers; response: unknown }>>).emergencySignIn(opts);
 }

@@ -49,6 +49,15 @@ security control.
 - New-device sign-in → notification (inbox + push + email) with "Sign out that device".
 - Waitlist and email-code request protected by **Cloudflare Turnstile** (free, privacy-friendly CAPTCHA) — invisible
   for normal users.
+- **No password sign-in (R17 E1).** The R15 admin password fallback (`/login?admin=1`, `/api/login`, `APP_PASSWORD`)
+  is gone: `/api/login` answers 410, there is no password field anywhere. **Admin emergency sign-in**: `POST
+  /api/emergency` with `{ token, email }` — exists only while `ADMIN_EMERGENCY_TOKEN` (≥ 32 chars) is set; the email
+  must be in `ADMIN_EMAILS` (comma-separated) or `ADMIN_EMAIL`; constant-time compare; **3 attempts per hour per
+  IP** (every attempt counts) plus a 10/min backstop; success and refusal are written to the security log
+  (`emergency_sign_in` / `emergency_failed`); never linked from the UI. It makes a normal session (the same 90-day
+  absolute age, step-up rules, device list). Tests sign in with a seeded session row + Better Auth's cookie signature
+  (`scripts/lib/test-app.mjs`, `scripts/serve-smoke.sh`) — local file databases only; the prod smoke uses the emergency
+  path with CI secrets. Remove the env var to turn it off.
 
 ## 3. Sessions (ASVS V7)
 - Random 256-bit session tokens, stored **hashed** in the DB; cookie `__Host-nexus_session`: `Secure; HttpOnly;
@@ -112,6 +121,12 @@ security control.
   test it); actions run with the caller's `ctx`, so injection can't cross spaces.
 - Store-page text, receipts and product titles are wrapped as untrusted data in prompts; the model never gets names,
   emails or member lists; output is rendered through the sanitiser.
+- **R17 E2 — one gate for every model call** (`lib/ai-gate.ts`; `lib/ai.ts` requires a `use` on every entry point, so a
+  call without it doesn't compile; `test:ai-quota` also checks nothing else talks to a provider): the person's AI switch,
+  a daily quota (40/person/day, admin unlimited, per-person override), and **redaction** — the person's name/email, the
+  space's name, members' names/emails become placeholders (put back only in the answer shown to the same person),
+  phone-looking numbers become `⟦phone⟧` and never leave. Each call is a row in `ai_usage` (who, feature, model,
+  ok, ms — no prompt, no answer). Free-tier providers may use prompts to improve their models (privacy page says so).
 
 ## 10. Data protection & privacy
 - Minimise: store only name, email, picture from Google; no analytics trackers; essential cookies only.

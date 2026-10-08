@@ -6,7 +6,7 @@ import { InviteOnly } from "@/components/auth/invite-only";
 import { LangSwitch, LegalLine, LoginForm, type LoginError } from "@/components/auth/login-form";
 import "@/components/auth/nx.css";
 import { ClearOffline } from "@/components/clear-offline";
-import { authMode, fallbackEnabled, safeNext, testIdpEnabled } from "@/lib/auth/config";
+import { authMode, safeNext, testIdpEnabled } from "@/lib/auth/config";
 import { LAST_ACCOUNT_COOKIE, readLastAccount } from "@/lib/auth/device";
 import { pendingSignupEmail } from "@/lib/auth/invites";
 import { requestHost } from "@/lib/auth/server";
@@ -17,7 +17,7 @@ import { dictionaries, isLocale, LOCALE_COOKIE } from "@/lib/i18n";
 export const metadata: Metadata = { title: `Sign in · ${APP_NAME}`, robots: { index: false, follow: false } };
 
 // R15 A2 — mockups SignIn-desktop / SignIn-phone / SignIn-he; InviteOnly-phone for refused sign-ups (A3).
-// Error codes arrive from the Google callback (Better Auth errorCallbackURL) or from the admin fallback route.
+// Error codes arrive from the Google callback (Better Auth errorCallbackURL).
 const ERRORS: Record<string, LoginError> = {
   access_denied: "cancelled",
   email_not_verified: "unverified",
@@ -28,11 +28,9 @@ const ERRORS: Record<string, LoginError> = {
   invite_used_up: "usedUp",
   invite_revoked: "revoked",
   limit: "limit",
-  off: "fallbackOff",
-  "1": "password",
 };
 
-type SP = { error?: string; error_description?: string; next?: string; admin?: string; reauth?: string };
+type SP = { error?: string; error_description?: string; next?: string; reauth?: string };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -44,7 +42,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const raw = jar.get(LOCALE_COOKIE)?.value;
   const t = dictionaries[isLocale(raw) ? raw : "en"];
   const mode = authMode(requestHost(h));
-  const fallback = fallbackEnabled(mode);
 
   // No invite for this Google account → InviteOnly (code / waitlist / switch account).
   if (sp.error === "invite_required" || sp.error?.startsWith("invite_")) {
@@ -60,7 +57,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   const error = sp.error ? (ERRORS[sp.error] ?? "generic") : null;
   const returning = readLastAccount(jar.get(LAST_ACCOUNT_COOKIE)?.value);
-  const admin = sp.admin === "1" && fallback;
 
   return (
     <div className="nx">
@@ -72,33 +68,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <LangSwitch />
           </div>
           <div className="auth-center">
-            {admin ? (
-              <form action="/api/login" method="post" className="auth-col fade" data-auth="admin">
-                <h1 className="t-title">{t.auth.admin.title}</h1>
-                {error && (
-                  <div className="alert dng" role="alert">
-                    <span>{t.auth.errors[error]}</span>
-                  </div>
-                )}
-                <div className="field">
-                  <label className="label" htmlFor="password">
-                    {t.auth.admin.password}
-                  </label>
-                  <div className="input">
-                    <input id="password" name="password" type="password" required autoFocus autoComplete="current-password" />
-                  </div>
-                </div>
-                <input type="hidden" name="next" value={next} />
-                <button type="submit" className="btn lg pri block">
-                  {t.auth.admin.submit}
-                </button>
-                <a className="sub link" href="/login" style={{ textAlign: "center" }}>
-                  {t.auth.admin.back}
-                </a>
-              </form>
-            ) : (
-              <LoginForm full={mode === "full"} next={next} error={error} returning={returning} app={APP_NAME} testIdp={testIdpEnabled()} googleClientId={testIdpEnabled() ? null : (process.env.GOOGLE_CLIENT_ID ?? null)} />
-            )}
+            <LoginForm full={mode === "full"} next={next} error={error} returning={returning} app={APP_NAME} testIdp={testIdpEnabled()} googleClientId={testIdpEnabled() ? null : (process.env.GOOGLE_CLIENT_ID ?? null)} />
           </div>
           <LegalLine />
         </section>

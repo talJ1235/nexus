@@ -13,6 +13,7 @@ const PORT = Number(process.env.PORT || 3104);
 const BASE = `http://localhost:${PORT}`;
 const DB = "auth-flow-test.db";
 const ADMIN = "admin@auth.test";
+const EMERGENCY = "e".repeat(20) + "mergency-token-for-tests-only";
 const ENV = {
   ...process.env,
   NODE_ENV: "development",
@@ -27,6 +28,8 @@ const ENV = {
   ADMIN_NAME: "Admin",
   APP_PASSWORD: "",
   GOOGLE_CLIENT_ID: "",
+  // R17 E1: the admin emergency sign-in (on only while this is set).
+  ADMIN_EMERGENCY_TOKEN: EMERGENCY,
   NEXT_DIST_DIR: undefined,
 };
 let fails = 0;
@@ -261,8 +264,30 @@ try {
   if (lastPage) console.log("  at " + lastPage.url() + ": " + (await lastPage.innerText("body").catch(() => "")).slice(0, 400).replace(/\s+/g, " "));
   console.log(log.split("\n").filter((l) => /error|⨯/i.test(l)).slice(-12).join("\n"));
 }
+// ---- R17 E1: no password sign-in; the admin emergency path works with the token + an admin address, and only so ----
+try {
+  const post = (body, ip) => fetch(`${BASE}/api/emergency`, { method: "POST", headers: { "content-type": "application/json", "x-real-ip": ip }, body: JSON.stringify(body) });
+  ok((await fetch(`${BASE}/api/login`, { method: "POST", redirect: "manual" })).status === 410, "E1 /api/login → 410");
+  const login = await (await fetch(`${BASE}/login`)).text();
+  ok(!/type="password"/.test(login), "E1 no password field on /login");
+  ok((await post({ token: "wrong".repeat(10), email: ADMIN }, "10.0.0.1")).status === 401, "E1 wrong token → 401");
+  ok((await post({ token: EMERGENCY, email: "someone@else.test" }, "10.0.0.2")).status === 401, "E1 right token, not an admin → 401");
+  const good = await post({ token: EMERGENCY, email: ADMIN }, "10.0.0.3");
+  const cookie = good.headers.getSetCookie().find((c) => c.startsWith("nexus_session"))?.split(";")[0];
+  ok(good.status === 200 && !!cookie, "E1 token + admin email → a session", String(good.status));
+  const home = await fetch(`${BASE}/`, { headers: { cookie: cookie ?? "" }, redirect: "manual" });
+  ok(home.status === 200, "E1 that session opens the app", String(home.status));
+  const ev = await q(`SELECT kind FROM security_event WHERE kind LIKE 'emergency%' ORDER BY created_at`);
+  ok(ev.some((r) => r.kind === "emergency_sign_in"), "E1 logged to the security log", JSON.stringify(ev));
+  const codes = [];
+  for (let k = 0; k < 4; k++) codes.push((await post({ token: "x".repeat(40), email: ADMIN }, "10.0.0.9")).status);
+  ok(codes.slice(0, 3).every((c) => c === 401) && codes[3] === 429, "E1 3 attempts per hour per IP, then 429", codes.join(","));
+} catch (e) {
+  fails++;
+  console.log(`FAIL E1 emergency checks crashed — ${String(e?.message || e).split("\n")[0]}`);
+}
 await browser.close();
 stop();
 db.close();
-console.log(fails ? `FAIL auth flow: ${fails}` : "OK auth flow (A1 / A3 / A5)");
+console.log(fails ? `FAIL auth flow: ${fails}` : "OK auth flow (A1 / A3 / A5, E1)");
 process.exit(fails ? 1 : 0);

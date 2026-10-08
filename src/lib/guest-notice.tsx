@@ -11,7 +11,7 @@ export async function GuestNoticePage({ token }: { token?: string }) {
   const raw = (await cookies()).get(LOCALE_COOKIE)?.value;
   const t = dictionaries[isLocale(raw) ? raw : "en"];
   const ok = token && /^[\w-]{10,100}$/.test(token);
-  const owner = await legacyShareOwnerName(ok ? sha256(token) : null, process.env.ADMIN_EMAIL ?? null).catch(() => null);
+  const owner = await legacyShareOwnerName(process.env.ADMIN_EMAIL ?? null).catch(() => null);
   return (
     <div className="nx">
       <GuestNotice app={APP_NAME} title={t.guest.title} body={owner ? fmt(t.guest.body, { name: owner }) : t.guest.bodyAnon} login={t.guest.login} />

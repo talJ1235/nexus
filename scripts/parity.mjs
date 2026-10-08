@@ -1,12 +1,12 @@
 // Design parity proof (Round 14): the approved mockup (left) next to the app (right), same viewport, light + dark.
 // Mockups (docs/design/home-v4/*.dc.html) render as plain HTML: `{{cls}}` / `{{colCls}}` are filled in for dark /
 // collapsed, other `{{…}}` holes stay as text. Writes PNGs (≤ 400 KB each) to docs/design/parity-r14/.
-//   BASE=http://localhost:3100 NEXUS_PASSWORD=... node scripts/parity.mjs [only]
+//   bash scripts/serve-smoke.sh, then node scripts/parity.mjs [only]   (R17 E1: signs in via scripts/lib/sign-in.mjs)
+import { signIn } from "./lib/sign-in.mjs";
 import { readFileSync, statSync } from "node:fs";
 import { chromium } from "playwright";
 
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
-const PASSWORD = process.env.NEXUS_PASSWORD;
 const OUT = "docs/design/parity-r14";
 const ONLY = process.argv[2];
 const MOCK = "docs/design/home-v4";
@@ -40,9 +40,7 @@ async function appContext(viewport, mode, cookies = {}, opening = false, dpr = 1
     [mode, dayKey, opening],
   );
   const p = await ctx.newPage();
-  await p.goto(`${BASE}/login`);
-  await p.fill("#password", PASSWORD);
-  await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login")), p.click("button[type=submit]")]);
+  await signIn(p, BASE); // R17 E1: scripts/lib/sign-in.mjs
   await ctx.addCookies([{ name: "nexus_palette", value: "graphite", url: BASE }, { name: "nexus_locale", value: "en", url: BASE }, ...Object.entries(cookies).map(([name, value]) => ({ name, value, url: BASE }))]);
   return { ctx, p };
 }

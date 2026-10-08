@@ -11,7 +11,8 @@ const APP = join(ROOT, "src", "app");
 /** Route files that authenticate another way. Each needs a reason. */
 const ROUTE_ALLOW: Record<string, string> = {
   "src/app/api/auth/[...all]/route.ts": "Better Auth itself (HTTP surface allow-listed in lib/auth/server.ts)",
-  "src/app/api/login/route.ts": "admin password fallback = a sign-in endpoint",
+  "src/app/api/login/route.ts": "R17 E1: 410 Gone (the password sign-in is removed)",
+  "src/app/api/emergency/route.ts": "R17 E1: admin emergency sign-in = a sign-in endpoint (token + admin email, 3/h/IP)",
   "src/app/api/logout/route.ts": "sign-out (works with or without a session)",
   "src/app/api/cron/prices/route.ts": "CRON_SECRET",
   "src/app/api/cal/[token]/route.ts": "calendar feed token (per user)",

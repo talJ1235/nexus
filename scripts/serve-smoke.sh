@@ -19,6 +19,19 @@ export TURSO_DATABASE_URL="file:$DB"
 npx tsx src/db/migrate.ts > /dev/null || { echo "FAIL migrate"; exit 1; }
 node scripts/seed-local.mjs > /dev/null || { echo "FAIL seed-local"; exit 1; }
 node scripts/seed-worst.mjs > /dev/null || { echo "FAIL seed-worst"; exit 1; }
+# R17 E1 — the test-only sign-in: a session row for the admin, signed with this server's BETTER_AUTH_SECRET; smoke.mjs
+# reads the cookie from .next/smoke-session.txt (localhost only). No password involved.
+mkdir -p .next
+node --env-file-if-exists=.env.local -e '
+const { createClient } = require("@libsql/client"); const { createHmac, randomBytes } = require("node:crypto");
+(async () => {
+  const db = createClient({ url: process.env.TURSO_DATABASE_URL });
+  const u = (await db.execute({ sql: "SELECT id FROM \"user\" WHERE lower(email) = ?", args: [(process.env.ADMIN_EMAIL || "").toLowerCase()] })).rows[0];
+  if (!u) throw new Error("no admin user (ADMIN_EMAIL)");
+  const token = randomBytes(24).toString("base64url"), now = Date.now();
+  await db.execute({ sql: "INSERT INTO session (id, expires_at, token, created_at, updated_at, user_id) VALUES (?, ?, ?, ?, ?, ?)", args: ["smoke_" + token.slice(0, 10), now + 7 * 86400000, token, now, now, u.id] });
+  require("node:fs").writeFileSync(".next/smoke-session.txt", encodeURIComponent(token + "." + createHmac("sha256", process.env.BETTER_AUTH_SECRET).update(token).digest("base64")));
+})().catch((e) => { console.error(e.message); process.exit(1); });' || { echo "FAIL smoke session"; exit 1; }
 mkdir -p .next
 if [ -n "$WIN" ]; then
   powershell.exe -NoProfile -Command "Start-Process cmd -ArgumentList '/c set TURSO_DATABASE_URL=file:$DB&& set NEXUS_AI_MOCK=1&& set AUTH_FULL_LOCAL=0&& ${EXTRA_ENV:-} npx next start -p $PORT > .next\serve.log 2>&1' -WindowStyle Hidden" < /dev/null

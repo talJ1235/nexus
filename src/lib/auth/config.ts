@@ -7,7 +7,6 @@ export const SESSION_IDLE_S = 30 * 24 * 60 * 60; // sliding: every use within 30
 export const SESSION_ABSOLUTE_MS = 90 * 24 * 60 * 60 * 1000; // never older than 90 days, however active
 export const SESSION_CACHE_MS = 60_000; // per-instance cache of a DB session check (≤ 60 s, SECURITY.md §3)
 export const STEP_UP_MS = 10 * 60 * 1000; // sensitive actions need a sign-in within the last 10 minutes
-export const FALLBACK_MIN_PASSWORD = 20;
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
@@ -40,9 +39,15 @@ export function authMode(host: string | null | undefined, env: Env = process.env
   return host && host.trim().toLowerCase() === appHost ? "full" : "closed";
 }
 
-/** The admin password fallback exists only in closed-circle mode, with a long password and a configured admin. */
-export function fallbackEnabled(mode: "full" | "closed", env: Env = process.env) {
-  return mode === "closed" && (env.APP_PASSWORD?.length ?? 0) >= FALLBACK_MIN_PASSWORD && !!adminEmail(env);
+/** R17 E1: the admin-only emergency sign-in exists only while ADMIN_EMERGENCY_TOKEN is set (≥ 32 characters). There is
+ *  no password sign-in for anyone any more. */
+export const EMERGENCY_MIN_TOKEN = 32;
+export function emergencyEnabled(env: Env = process.env) {
+  return (env.ADMIN_EMERGENCY_TOKEN?.length ?? 0) >= EMERGENCY_MIN_TOKEN && emergencyEmails(env).length > 0;
+}
+/** Who may use it: ADMIN_EMAILS (comma-separated) plus ADMIN_EMAIL. */
+export function emergencyEmails(env: Env = process.env) {
+  return [...new Set([...(env.ADMIN_EMAILS ?? "").split(","), env.ADMIN_EMAIL ?? ""].map((e) => e.trim().toLowerCase()).filter((e) => /^[^@\s]+@[^@\s]+$/.test(e)))];
 }
 
 export function adminEmail(env: Env = process.env) {

@@ -4,6 +4,7 @@
 //   SHOTS_OUT=dir (default $TMP/nexus-shots) SHOTS_THEMES="graphite:light,plum:dark" SHOTS_SIZES=desktop,phone,phone360
 //   SHOTS_LOCALE=he; SHOTS_WAIT=ms extra settle time; SHOTS_CLICK="css selector" clicks it before the shot; SHOTS_FULL=1 full page;
 //   SHOTS_SCROLL=px scrolls down first (sticky headers).
+import { signIn } from "./lib/sign-in.mjs";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -35,9 +36,7 @@ for (const size of sizes) {
     await ctx.addInitScript(() => { try { localStorage.setItem("theme", "system"); sessionStorage.setItem("nexus.booted", "1"); } catch {} });
     const page = await ctx.newPage();
     if (!session) {
-      await page.goto(`${BASE}/login`);
-      await page.fill("#password", process.env.APP_PASSWORD || process.env.NEXUS_PASSWORD || "");
-      await Promise.all([page.waitForURL((u) => !u.pathname.startsWith("/login")), page.click("button[type=submit]")]);
+      await signIn(page, BASE); // R17 E1: scripts/lib/sign-in.mjs
       session = (await ctx.cookies()).find((c) => c.name !== "nexus_palette" && c.httpOnly);
     }
     for (const p of paths) {

@@ -5,22 +5,22 @@ import { getSessionUser } from "@/lib/auth/session";
 // R15 A1: everything needs a valid DB session (checked here, cached ≤ 60 s), except these public paths — each of
 // them authenticates inside the route/page instead:
 //   /login, /join/* (sign-in and invite screens) · /api/auth/* (Better Auth, allow-listed in lib/auth/server.ts)
-//   /api/auth-flow/* (invite code + waitlist before sign-in) · /api/login (admin password fallback) · /s/* (public read-only list token) · /api/cal/* (calendar feed token)
+//   /api/auth-flow/* (invite code + waitlist before sign-in) · /api/login (410, R17) · /api/emergency (admin emergency sign-in, R17 E1) · /s/* (public read-only list token) · /api/cal/* (calendar feed token)
 //   /api/cron/* (CRON_SECRET) · /api/reports/export (REPORTS_TOKEN) · /privacy, /terms (static)
-//   /g, /i/*, /api/invite/*, /api/ext/*, /api/telegram (retired: notice pages / 410) · /api/csp-report (counts only) · /api/errors (R16 C2: error reports, rate-limited; /export needs REPORTS_TOKEN)
+//   /i/*, /api/invite/*, /api/ext/*, /api/telegram (retired: notice pages / 410) · /api/csp-report (counts only) · /api/errors (R16 C2: error reports, rate-limited; /export needs REPORTS_TOKEN)
 const PUBLIC_PREFIXES = [
   "/login",
   "/join/",
   "/api/auth/",
   "/api/auth-flow/",
   "/api/login",
+  "/api/emergency",
   "/s/",
   "/api/cal/",
   "/api/cron/",
   "/api/reports/export",
   "/privacy",
   "/terms",
-  "/g",
   "/i/",
   "/api/invite/",
   "/api/ext/",

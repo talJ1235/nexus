@@ -45,11 +45,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: tenancy (users A, B, viewer V on a fresh server; seeded sessions stand in for the IdP)
         run: node scripts/test-tenancy.mjs
-      - name: security headers + no CSP violations (closed mode, admin fallback)
+      - name: security headers + no CSP violations (closed mode, admin emergency sign-in — R17 E1)
         env:
           CI_DB: file:ci-headers.db
           ADMIN_EMAIL: ci-admin@example.com
-          APP_PASSWORD: ci-admin-password-0123456789ab
+          ADMIN_EMERGENCY_TOKEN: ci-emergency-token-0123456789abcdef0123
           BETTER_AUTH_SECRET: ci-secret-0123456789abcdef0123456789abcdef
           BETTER_AUTH_URL: http://localhost:3100
           AUTH_FULL_LOCAL: "0"
@@ -57,7 +57,7 @@ jobs:
           TURSO_DATABASE_URL=$CI_DB npx tsx src/db/migrate.ts
           TURSO_DATABASE_URL=$CI_DB nohup npx next start -p 3100 > headers-server.log 2>&1 &
           for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:3100/login && break; sleep 1; done
-          BASE=http://localhost:3100 NEXUS_PASSWORD=$APP_PASSWORD node scripts/test-headers.mjs
+          BASE=http://localhost:3100 SMOKE_ADMIN_TOKEN=$ADMIN_EMERGENCY_TOKEN SMOKE_ADMIN_EMAIL=$ADMIN_EMAIL node scripts/test-headers.mjs
       - name: Google sign-in — instant feedback, forced 500 / 429 / timeout / offline, Back (R16 G4; Google is stubbed)
         env:
           CI_DB: file:ci-google.db

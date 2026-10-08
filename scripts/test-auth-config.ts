@@ -1,7 +1,7 @@
 // R15 A1 unit tests: authMode(), the admin-fallback guard, the 90-day absolute session age, ?next= safety, cookie
 // names, invite-code normalisation.   npx tsx scripts/test-auth-config.ts
 import assert from "node:assert/strict";
-import { adminEmail, authMode, fallbackEnabled, isAdminEmail, safeNext, SESSION_ABSOLUTE_MS, sessionCookieName, sessionTooOld, testIdpEnabled } from "../src/lib/auth/config";
+import { adminEmail, authMode, emergencyEmails, emergencyEnabled, isAdminEmail, safeNext, SESSION_ABSOLUTE_MS, sessionCookieName, sessionTooOld, testIdpEnabled } from "../src/lib/auth/config";
 import { newInviteCode, normalizeInviteCode } from "../src/lib/auth/crypto";
 
 const FULL = { NEXT_PUBLIC_APP_URL: "https://karto.app", RESEND_API_KEY: "re_x" };
@@ -21,14 +21,16 @@ assert.equal(authMode("localhost.evil.com", { AUTH_FULL_LOCAL: "1" }), "closed")
 assert.equal(authMode(null, FULL), "closed");
 assert.equal(authMode("karto.app", { ...FULL, NEXT_PUBLIC_APP_URL: "not a url" }), "closed");
 
-// Fallback guard: closed mode + ≥ 20-char password + a configured admin.
-const long = "x".repeat(20);
-assert.equal(fallbackEnabled("closed", { APP_PASSWORD: long, ADMIN_EMAIL: "a@b.c" }), true);
-assert.equal(fallbackEnabled("closed", { APP_PASSWORD: "x".repeat(19), ADMIN_EMAIL: "a@b.c" }), false, "short password → off");
-assert.equal(fallbackEnabled("closed", { APP_PASSWORD: long }), false, "no admin → off");
-assert.equal(fallbackEnabled("full", { APP_PASSWORD: long, ADMIN_EMAIL: "a@b.c" }), false, "gone in full mode");
-assert.equal(fallbackEnabled("closed", { APP_PASSWORD: long, ADMIN_EMAIL: "not-an-email" }), false);
-// Wrong user impossible: the fallback has no user input — it signs in as adminEmail() only.
+// R17 E1: no password sign-in; the admin emergency path is on only with a long ADMIN_EMERGENCY_TOKEN and an admin address.
+const tok = "t".repeat(32);
+assert.equal(emergencyEnabled({ ADMIN_EMERGENCY_TOKEN: tok, ADMIN_EMAIL: "a@b.c" }), true);
+assert.equal(emergencyEnabled({ ADMIN_EMERGENCY_TOKEN: "t".repeat(31), ADMIN_EMAIL: "a@b.c" }), false, "short token → off");
+assert.equal(emergencyEnabled({ ADMIN_EMAIL: "a@b.c" }), false, "no token → off");
+assert.equal(emergencyEnabled({ ADMIN_EMERGENCY_TOKEN: tok }), false, "no admin → off");
+assert.equal(emergencyEnabled({ APP_PASSWORD: "x".repeat(40), ADMIN_EMAIL: "a@b.c" }), false, "the old APP_PASSWORD does nothing");
+assert.deepEqual(emergencyEmails({ ADMIN_EMAILS: " A@b.c, x@y.z ,bad", ADMIN_EMAIL: "a@b.c" }), ["a@b.c", "x@y.z"]);
+assert.equal(emergencyEnabled({ ADMIN_EMERGENCY_TOKEN: tok, ADMIN_EMAIL: "not-an-email" }), false);
+// The emergency path signs in only an address on the admin list (lib/auth/server.ts emergencySignIn).
 assert.equal(adminEmail({ ADMIN_EMAIL: " Tal@Example.COM " }), "tal@example.com");
 assert.equal(isAdminEmail("tal@example.com", { ADMIN_EMAIL: "TAL@example.com" }), true);
 assert.equal(isAdminEmail("other@example.com", { ADMIN_EMAIL: "tal@example.com" }), false);

@@ -1,10 +1,11 @@
 // R16 frame timings for motion items (A7, A11, A12/D4): measure before and after a change, numbers go into the brief.
-//   NEXUS_PASSWORD=... node scripts/perf-frames.mjs plus [--cpu 6] [--runs 5]
+//   bash scripts/serve-smoke.sh, then node scripts/perf-frames.mjs plus [--cpu 6] [--runs 5]
 // Scenarios:
 //   plus    — phone 390×844: open the "+" sheet, then close it (tap the scrim); frame gaps during each 450 ms window.
 //   switch  — desktop 1366×768: switch spaces from the sidebar switcher; sidebar box per frame + frame gaps.
 //   suggest — phone 390: swipe the Nexus suggests carousel; desktop: drag it. Frame gaps during the gesture.
 // Frame gaps come from requestAnimationFrame deltas in the page (CPU throttled via CDP). Prints JSON per run + a summary.
+import { signIn } from "./lib/sign-in.mjs";
 import { chromium } from "playwright";
 
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
@@ -18,9 +19,7 @@ const phone = scenario === "plus" || (scenario === "suggest" && !args.includes("
 const browser = await chromium.launch();
 const ctx = await browser.newContext(phone ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : { viewport: { width: 1366, height: 768 } });
 const page = await ctx.newPage();
-await page.goto(`${BASE}/login?admin=1`);
-await page.fill("#password", process.env.NEXUS_PASSWORD);
-await Promise.all([page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), page.click("button[type=submit]")]);
+await signIn(page, BASE); // R17 E1: scripts/lib/sign-in.mjs
 await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 30000 });
 await page.waitForSelector("#boot", { state: "hidden", timeout: 10000 }).catch(() => {});
 await page.waitForTimeout(1500);

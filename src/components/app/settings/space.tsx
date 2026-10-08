@@ -689,7 +689,7 @@ function SpaceConfirms({ confirm, setConfirm, count, adminReauth, onDone }: { co
   const [busy, setBusy] = useState(false);
   const sp = s.space!;
   if (!confirm) return null;
-  const reauthHref = `/login?reauth=1${adminReauth ? "&admin=1" : ""}&next=${encodeURIComponent(window.location.pathname)}`;
+  const reauthHref = `/login?reauth=1&next=${encodeURIComponent(window.location.pathname)}`;
   const close = () => setConfirm(null);
   const name = confirm.kind === "remove" || confirm.kind === "transfer" ? confirm.p.name || confirm.p.email : "";
   const title =

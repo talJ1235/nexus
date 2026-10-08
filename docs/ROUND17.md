@@ -122,7 +122,7 @@ load fast (measure the query; one round trip; render the current device instantl
 their full labels at 360 (wrap to 2 lines or stack — never cut).
 Acceptance: no layout shift (CLS 0 for that page in Playwright), devices list < 500 ms warm on the local prod build.
 
-### A6. [ ] Cut-off text, buttons and frames — everywhere, and a guard so it stays fixed
+### A6. [x] Cut-off text, buttons and frames — everywhere, and a guard so it stays fixed
 Tal saw cut-off text in Settings → Display, the Account tiles, and elsewhere (POLISH-AUDIT: Graphite chip at 360).
 Sweep **every screen, dialog, sheet, menu and toast** on phone 360/390 and desktop 1366/1280×720, en + he, light +
 dark, seeded + worst-case data. Fix every element whose text is clipped without an intended ellipsis, any button
@@ -219,9 +219,9 @@ Tal's test link: `https://www.cwc.co.il/product/%d7%9e%d7%9b%d7%a9%d7%99%d7%a8-%
 
 ## Part D — settings clean-up
 
-### D1. [ ] (merged into A3/A4/A5/A6)
+### D1. [x] (merged into A3/A4/A5/A6)
 
-### D2. [ ] Display section: cut-off and tidy
+### D2. [x] Display section: cut-off and tidy
 Settings → Display: every chip and label fits at 360 en + he (Graphite chip included); covered by A6's guard.
 
 ### D3. [x] Remove the Notifications section
@@ -234,7 +234,7 @@ entry updated. Note in Open which toggles were removed and what they defaulted t
 
 ## Part E — technical base of the product layer (no new screens beyond small settings rows)
 
-### E1. [ ] Remove the password sign-in
+### E1. [x] Remove the password sign-in
 Today a password path still exists (`/api/login`, `proxy.ts`, `lib/auth/config.ts`, `NEXUS_PASSWORD`). Remove it for
 users. Keep an **admin-only emergency sign-in** (Tal 20ב): enabled only when env `ADMIN_EMERGENCY_TOKEN` is set,
 a POST with that token + an email in `ADMIN_EMAILS` creates a normal session for that admin, rate-limited hard (3 / h
@@ -398,3 +398,29 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   answers with a quiet note ("AI is resting until tomorrow…"). Privacy: the person's name, email, the space's and
   members' names/emails become `⟦P1⟧`/`⟦E1⟧` and are put back into the answer (streams hold back a split placeholder);
   phone-looking numbers become `⟦phone⟧` and never come back. New table `ai_usage` (migrate-r17, additive).
+- **A6 / D2:** `npm run test:clip` (new; `scripts/test-clip.mjs` on a production build via `scripts/lib/test-app.mjs`) walks
+  9 views, every Settings section (+ the phone list), the item sheet, the palette (desktop) and the Me sheet (phone) at
+  360×740 / 390×844 / 1366×768 / 1280×720 × en/he × light/dark × the demo data and the 500-item space = 752 screens. It
+  measures each text container's own glyph boxes (a DOM Range, so the invisible `::after` tap areas don't count),
+  clips them by `overflow: hidden/clip` ancestors (scroll containers aren't cuts; a whole line out of view is a cut,
+  a glyph poking past a tight line-height isn't) and fails on: a cut without ellipsis/line-clamp, a truncation with no
+  way to read the whole text, any truncated number, text off the screen. First run (quick subset): 558 → grouped 330
+  places. Fixes: one global helper (`lib/trunc-title.ts`) gives any ellipsized/clamped text a `title` with its full
+  text on hover/focus (the guard dispatches the hover and checks); on touch, truncation is allowed inside rows/cards
+  that open the item (`[data-item-card]`, `[data-item-row]`, `[data-opens]`); Settings rows wrap their controls under
+  the text when they don't fit (Danger zone's Transfer / Delete ran off a 390 screen); Needs-you rows and Suggests'
+  reason line expand on tap; To-buy group names, Orders store names (phones) and the import-VAT "split off" line wrap;
+  Orders headers wrap their totals under the name; Spending tiles go compact once an amount can't fit (and the label
+  wraps); project cards are marked as opening. Final full run: **752 screens, 0 cut text**. The Graphite chip at 360
+  (POLISH-AUDIT) didn't show as cut in any run (the label wraps rather than clips in today's layout).
+- **E1:** password sign-in removed (`/api/login` → 410, the `/login?admin=1` form and `&admin=1` re-auth links gone);
+  admin emergency sign-in `POST /api/emergency` (see SECURITY.md §2). **Old guest tables left in place for a later
+  cleanup round (not read or written any more): `members`, `grants`, `invites`** (+ the `items.added_by_member_id`
+  column); `/g` and the guest actions/app are deleted, `/i/<token>` still shows the "ask for a new invite" notice
+  without reading `invites`. `public/nexus-extension.zip` deleted. Tests: `test:auth` (emergency guard), `test:auth-flow`
+  (410, no password field, wrong token / non-admin 401, token+admin → session that opens the app, security log, 3/h/IP →
+  429), `test:headers` and the prod smoke sign in through the emergency path; local smoke/parity/perf scripts through
+  the seeded session (`scripts/lib/sign-in.mjs`). **Tal (before the deploy — otherwise the prod smoke can only run its
+  signed-out checks):** Vercel → `ADMIN_EMERGENCY_TOKEN` (40+ random chars) and `ADMIN_EMAILS` = your address; GitHub →
+  repo secrets `SMOKE_ADMIN_TOKEN` (same token) and `SMOKE_ADMIN_EMAIL`; remove `APP_PASSWORD` from Vercel and the
+  `NEXUS_PASSWORD` repo secret (unused now).

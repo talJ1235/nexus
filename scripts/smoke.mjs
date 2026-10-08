@@ -1,7 +1,9 @@
 // Read-only end-to-end smoke test. Prints one PASS/FAIL line per check and exits non-zero on failure.
 // Safe against production: it never creates, edits or deletes data.
 //
-//   BASE=http://localhost:3100 NEXUS_PASSWORD=... node scripts/smoke.mjs
+//   bash scripts/serve-smoke.sh && node scripts/smoke.mjs        (local: signs in with the session serve-smoke seeded)
+//   BASE=https://… SMOKE_ADMIN_TOKEN=… SMOKE_ADMIN_EMAIL=… node scripts/smoke.mjs   (prod: the admin emergency sign-in)
+//   R17 E1: there is no password sign-in any more.
 //   SMOKE_AI=1 also calls the (owner-only) AI health endpoint. SMOKE_OUT=dir saves screenshots.
 //   SMOKE_SLOW=1 (server started with NEXUS_TRACE_DELAY_MS) checks that a click in the loading shell carries over.
 //   SMOKE_WRITE=1 (localhost only) also exercises adding: placeholder card, same link → +1 (+ its toast's close
@@ -19,7 +21,7 @@
 //     `bash scripts/serve-fresh.sh`), Round 13 A7.
 //   SMOKE_VISUAL=/?v=projects screenshots that view in Graphite + Plum × light + dark (phone: at 360 and 390 px)
 //     into $SMOKE_OUT/visual/, for judging a visual change by screenshot. SMOKE_VISUAL_FULL=1 takes full-page shots.
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
@@ -28,7 +30,21 @@ import sharp from "sharp";
 // Service-worker fetches only see context.setOffline() with this flag (the offline check needs the SW fallback).
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS ??= "1";
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
-const PASSWORD = process.env.NEXUS_PASSWORD;
+// R17 E1 — sign-in without a password: locally the session serve-smoke.sh seeded (SMOKE_SESSION or
+// .next/smoke-session.txt); elsewhere the admin emergency path (POST /api/emergency, CI secrets).
+const LOCAL = /localhost|127\.0\.0\.1/.test(BASE);
+const SESSION = process.env.SMOKE_SESSION || (LOCAL ? (() => { try { return readFileSync(".next/smoke-session.txt", "utf8").trim(); } catch { return ""; } })() : "");
+const EMERGENCY = process.env.SMOKE_ADMIN_TOKEN && process.env.SMOKE_ADMIN_EMAIL ? { token: process.env.SMOKE_ADMIN_TOKEN, email: process.env.SMOKE_ADMIN_EMAIL } : null;
+const CAN_SIGN_IN = !!SESSION || !!EMERGENCY;
+async function signIn(p, base = BASE) {
+  if (SESSION && /localhost|127\.0\.0\.1/.test(base)) await p.context().addCookies([{ name: "nexus_session_dev", value: SESSION, url: base }]);
+  else if (EMERGENCY) {
+    const r = await p.request.post(`${base}/api/emergency`, { data: EMERGENCY });
+    if (!r.ok()) throw new Error(`emergency sign-in: ${r.status()}`);
+  } else throw new Error("no way to sign in (SMOKE_SESSION / SMOKE_ADMIN_TOKEN)");
+  await p.goto(`${base}/`);
+  await p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 });
+}
 const MOBILE = !!process.env.SMOKE_MOBILE;
 // R17 0.3: prod (or SMOKE_REAL=1) has real data, not the demo seed — steps that need demo ids / demo dates are skipped.
 const REAL = process.env.SMOKE_REAL ? process.env.SMOKE_REAL !== "0" : !/localhost|127\.0\.0\.1/.test(BASE);
@@ -411,8 +427,8 @@ try {
   }
   await anon.close();
 
-  if (!PASSWORD) {
-    console.log("SKIP owner checks (NEXUS_PASSWORD not set)");
+  if (!CAN_SIGN_IN) {
+    console.log("SKIP owner checks (no SMOKE_SESSION / SMOKE_ADMIN_TOKEN)");
   } else {
     const ctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, colorScheme: "dark", permissions: ["camera"] });
     const page = await ctx.newPage();
@@ -422,9 +438,7 @@ try {
     page.on("console", (m) => m.type() === "error" && !/Failed to load resource|favicon|net::ERR/.test(m.text()) && errors.push(`console: ${m.text().slice(0, 160)}`));
 
     await step("owner login", async () => {
-      await page.goto(`${BASE}/login?admin=1`);
-      await page.fill("#password", PASSWORD);
-      await Promise.all([page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), page.click("button[type=submit]")]);
+      await signIn(page);
       ok(true, "owner login");
     });
 
@@ -3159,9 +3173,7 @@ try {
       const oc = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, colorScheme: "dark" });
       try {
         const p = await oc.newPage();
-        await p.goto(`${BASE}/login?admin=1`);
-        await p.fill("#password", PASSWORD);
-        await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), p.click("button[type=submit]")]);
+        await signIn(p);
         await p.waitForSelector(READY, { timeout: 15000 });
         // Login lands on Home (Round 13); count the list's cards.
         await p.goto(`${BASE}/?v=to_buy`);
@@ -3353,9 +3365,7 @@ try {
         const FRESH = process.env.SMOKE_FRESH.replace(/\/$/, "");
         const fctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE });
         const p = await fctx.newPage();
-        await p.goto(`${FRESH}/login?admin=1`);
-        await p.fill("#password", PASSWORD);
-        await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), p.click("button[type=submit]")]);
+        await signIn(p, FRESH);
         await p.waitForSelector("[data-home-empty]", { timeout: 15000 });
         const actions = await p.locator("[data-home-empty-action]").count();
         const sections = await p.locator("[data-home-section], [data-home-stats], [data-home-status]").count();
@@ -3371,9 +3381,7 @@ try {
         const SPARSE = process.env.SMOKE_SPARSE.replace(/\/$/, "");
         const fctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE });
         const p = await fctx.newPage();
-        await p.goto(`${SPARSE}/login`);
-        await p.fill("#password", PASSWORD);
-        await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 15000 }), p.click("button[type=submit]")]);
+        await signIn(p, SPARSE);
         const read = async (wantAi) => {
           await p.waitForSelector("[data-home]", { timeout: 15000 });
           const sug = p.locator("[data-home-section=suggest]");

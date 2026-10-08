@@ -18,6 +18,9 @@ export const SECURITY_EVENT_KINDS = [
   "fallback_failed",
   "recovery_codes_created",
   "recovery_code_used",
+  // R17 E1: the admin emergency sign-in (the fallback_* kinds stay for old rows).
+  "emergency_sign_in",
+  "emergency_failed",
 ] as const;
 export type SecurityEventKind = (typeof SECURITY_EVENT_KINDS)[number];
 
