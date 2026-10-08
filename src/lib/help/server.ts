@@ -1,16 +1,21 @@
 import "server-only";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { aiHealth, aiProviders, lastAiErrors } from "../ai";
 import { telegramStatus } from "../telegram";
 import type { ClientDiag } from "../client-diag";
 
 let cached: string | null = null;
-/** The help knowledge file (traced into the server bundle by next.config's outputFileTracingIncludes). */
+export const HELP_DIR = "src/lib/help/topics";
+
+/** The help knowledge, one file per topic (`topics/NN-name.md`, read in name order), joined for the assistant. Traced
+ *  into the server bundle by next.config's outputFileTracingIncludes. */
 export function helpText(): string {
   if (cached == null) {
     try {
-      cached = readFileSync(join(process.cwd(), "src/lib/help/nexus-help.md"), "utf8");
+      const dir = join(process.cwd(), HELP_DIR);
+      const files = readdirSync(dir).filter((f) => f.endsWith(".md")).sort();
+      cached = files.map((f) => readFileSync(join(dir, f), "utf8").trim()).join("\n\n");
     } catch {
       cached = "";
     }

@@ -58,12 +58,12 @@ Free tier: 100 000 requests/day — far beyond our use.
 ---
 
 ## Part 0 — start
-### 0.1 [ ] Read and record
+### 0.1 [x] Read and record
 Read `docs/POLISH-AUDIT.md` "## Fixes" (open items: Graphite chip cut at 360, help-worthy notes), `docs/ROUND16.md`
 "## Open" (hotfix sections), open reports, the error log (`viewport`, `google_fedcm`, `extract · blocked` entries).
 Record anything relevant in Open.
 
-### 0.2 [ ] Help file: split it
+### 0.2 [x] Help file: split it
 `src/lib/help/nexus-help.md` is at 24,992 of 25,000 bytes; R16 hotfixes and the polish fixes couldn't be documented.
 Split it into topic files (e.g. `help/topics/*.md`: getting started, items & links, lists & spaces, shopping, money &
 budget, settings & account, privacy) loaded by the same help route/assistant, each with its own limit; `test:help`
@@ -306,7 +306,7 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   start, watched in A4. Error log (10 open): `viewport · layout` /login 8× + 8× at 390×844 with `iw=1100 dm=browser
   mobile=no` (desktop DevTools emulation without a device-width meta pass — `mobile=no`, `dpr=1`: a desktop browser, not
   a phone; no action) and 1× `/` in the installed app (`dm=standalone`, `iw=980`, `ref=accounts.google.com` — the
-  hotfix.1 self-heal case, it reloaded once); `extract · blocked` cwc.co.il 3× (`title+gemini-url`) → Part C;
+  hotfix.1 self-heal case); `extract · blocked` cwc.co.il 3× (`title+gemini-url`) → Part C;
   `csp · connect-src` 2× and `csp · manifest-src` 2× (no blocked URI kept in the sample — E5 adds the directive's host
   to the sample so these can be acted on); `auth · google_fedcm skipped:unknown_reason` 1× and `auth · google_status
   403` 1× (hotfix.2–4 territory; E5 groups them). POLISH-AUDIT "Fixes" open items: the Graphite chip cut at 360 (→ D2/A6),

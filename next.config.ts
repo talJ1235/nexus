@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   // Product images captured by the browser extension travel as small data URLs.
   experimental: { serverActions: { bodySizeLimit: "2mb" } },
   // The assistant's help knowledge is read from disk at runtime (lib/help/server.ts).
-  outputFileTracingIncludes: { "/api/ask": ["./src/lib/help/nexus-help.md"] },
+  outputFileTracingIncludes: { "/api/ask": ["./src/lib/help/topics/*.md"] },
   // R15 B4: security headers on every response (the CSP with its per-request nonce is set in src/proxy.ts).
   async headers() {
     return [

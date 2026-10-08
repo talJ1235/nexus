@@ -339,7 +339,7 @@ Brief and checklist: `docs/ROUND8.md`. Shipped (merged to `main` 2026-10-01):
   default with a cards/rows switch (cookie `nexus_phone_layout`, server-read; Tailwind variants `prow:` / `pcard:`
   keyed on `data-phone-layout` on the app shell); at 390×844 the first row of products is above the fold (smoke).
 - **Assistant**: suggestions/follow-ups as a vertical list of full-width chips (4 + "More suggestions"), mini cards in a
-  2-column grid on phones (4 + "Show all"). **Help with the app**: `lib/help/nexus-help.md` (< 25 KB, `npm run test:help`
+  2-column grid on phones (4 + "Show all"). **Help with the app**: `lib/help/topics/*.md` (one file per topic, each < 9 KB, `npm run test:help`
   checks size and that every SPEC feature has a `<!-- spec: … -->` marker), routing `lib/help/route.ts` (keywords en/he
   + project names → help / data / unsure; unsure = data prompt + help, the model decides), action buttons from
   `[label](nexus:…)` links (whitelist `lib/help/links.ts`), diagnostics (client: view, device, theme, locale, online,

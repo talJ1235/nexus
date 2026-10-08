@@ -1,7 +1,7 @@
 // Unit test for the assistant's app help (Round 8 D2): question routing, action links, and the help file itself —
 // under 25 KB and mentioning every top-level SPEC feature.  npx tsx scripts/test-help.ts
 import assert from "node:assert/strict";
-import { readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { extractActions } from "../src/lib/help/links";
 import { classifyQuestion } from "../src/lib/help/route";
 
@@ -55,11 +55,20 @@ assert.equal(extractActions("[Urgent](nexus:view/urgent)").actions.length, 0);
 assert.equal(a.actions.length, 3);
 assert.equal(a.text, "");
 
-// The help file: small, and every top-level SPEC feature is covered by a <!-- spec: … --> marker.
-const helpPath = "src/lib/help/nexus-help.md";
-const size = statSync(helpPath).size;
-assert.ok(size < 25_000, `help is ${size} bytes (max 25,000)`);
-const help = readFileSync(helpPath, "utf8");
+// The help topics (R17 0.2): each file small, and every top-level SPEC feature is covered by a <!-- spec: … --> marker
+// in one of them.
+const helpPath = "src/lib/help/topics";
+const topicFiles = readdirSync(helpPath).filter((f) => f.endsWith(".md")).sort();
+assert.ok(topicFiles.length >= 7, `expected the topic files in ${helpPath}`);
+const TOPIC_MAX = 9_000;
+let size = 0;
+for (const f of topicFiles) {
+  const s = statSync(`${helpPath}/${f}`).size;
+  assert.ok(s < TOPIC_MAX, `${f} is ${s} bytes (max ${TOPIC_MAX}) — split the topic`);
+  size += s;
+}
+assert.ok(size < 60_000, `help is ${size} bytes in all (max 60,000)`);
+const help = topicFiles.map((f) => readFileSync(`${helpPath}/${f}`, "utf8")).join("\n\n");
 const covered = new Set([...help.matchAll(/<!--\s*spec:\s*([^>]+?)\s*-->/g)].flatMap((m) => m[1].split(",").map((x) => x.trim().toLowerCase())));
 const spec = readFileSync("SPEC.md", "utf8");
 // Internal / engineering entries that aren't something a user does.
@@ -69,9 +78,10 @@ const features = [
   ...[...spec.matchAll(/^- \*\*([^*]+)\*\*/gm)].map((m) => m[1].trim()),
 ]
   // "Telegram bot input (shipped)" → "Telegram bot input"; "Offline, read-only v1" → "Offline" (markers are comma-separated).
-  .map((f) => f.replace(/\s*\(shipped\)$/i, "").split(",")[0].trim())
+  // "Polish fixes (2026-10-08) — shipped" → "Polish fixes".
+  .map((f) => f.replace(/\s*(\(shipped\)|— shipped)$/i, "").replace(/\s*\(\d{4}-\d\d-\d\d\)$/, "").split(",")[0].trim())
   .filter((f) => !SKIP.test(f));
 const missing = features.filter((f) => !covered.has(f.toLowerCase()));
 assert.deepEqual(missing, [], `SPEC features not mentioned in ${helpPath}: ${missing.join(", ")}`);
 
-console.log(`OK help (${features.length} SPEC features covered, ${(size / 1024).toFixed(1)} KB)`);
+console.log(`OK help (${features.length} SPEC features covered, ${topicFiles.length} topics, ${(size / 1024).toFixed(1)} KB)`);

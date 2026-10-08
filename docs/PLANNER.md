@@ -197,7 +197,7 @@ to setup, tooling or workflow is recorded there in the same session.
 ## Where things are
 - Repo `talJ1235/nexus`; prod https://nexus-ashen-beta.vercel.app (auto-deploys from `main`).
 - `SPEC.md` (shipped features per round), `CLAUDE.md` (builder rules + map), `docs/ROUND*.md` (briefs + results),
-  `docs/UI-V2.md` (design history + motion plan), `docs/design/` (static mockups), `src/lib/help/nexus-help.md`.
+  `docs/UI-V2.md` (design history + motion plan), `docs/design/` (static mockups), `src/lib/help/topics/*.md`.
 - Design canvas "Nexus Style Directions" is a private claude.ai artifact on each account (A: original; B: rebuilt 2026-10-04 with Home v4); the exported mockups in
   `docs/design/` are the shareable copy. New design exploration: make a new canvas in your own account.
 - Optional env not yet set (as of Round 10): `REPORTS_TOKEN` (read in-app reports), `GITHUB_ISSUES_TOKEN`; check
