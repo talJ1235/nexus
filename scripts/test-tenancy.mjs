@@ -246,10 +246,10 @@ ok(leaks.length === 0, "no response to B contained A's or S's content", leaks.sl
   const t1 = await tok(SP.A);
   const t2 = await tok(SP.S);
   ok(t1.status === 200 && !t1.body.includes(SP.A) && !t2.body.includes(SP.S) && (t1.body.includes("poll") || t1.body.includes(`space:${SP.B}`)), "B5: B's realtime token (forging A's / S's space) is only ever for B's own space", t1.body.slice(0, 160));
-  // 30 tokens per minute per user, then 429 (V asks 31 times).
+  // 120 tokens per minute per user (polish #29: above any browsing pace), then 429 (V asks 121 times).
   let last = 0;
-  for (let k = 0; k < 31; k++) last = (await fetch(`${BASE}/api/realtime/token`, { headers: { Cookie: cookieOf.V } })).status;
-  ok(last === 429, "B5: the token route is limited to 30 per minute per user", String(last));
+  for (let k = 0; k < 121; k++) last = (await fetch(`${BASE}/api/realtime/token`, { headers: { Cookie: cookieOf.V } })).status;
+  ok(last === 429, "B5: the token route is limited to 120 per minute per user", String(last));
   const fake = await fetch(`${BASE}/api/realtime/fake`, { headers: { Cookie: cookieOf.B } });
   ok(fake.status === 404, "B5: the fake realtime stream is 404 in production", String(fake.status));
   const feed = actions.find((a) => a.name === "data-actions.ts#changesSince");

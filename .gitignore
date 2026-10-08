@@ -70,3 +70,6 @@ query-plans-test.db*
 # R16: CI-only databases, local smoke output
 ci-*.db
 .smoke-r16/
+
+# Polish fixes: worst-case test DB (scripts/test-polish.mjs)
+/polish-test.db*

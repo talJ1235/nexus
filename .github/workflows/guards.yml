@@ -91,6 +91,8 @@ jobs:
         run: npm run -s test:errors
       - name: live shared spaces — fake transport + polling, conflicts, presence (R16 B; starts next dev itself)
         run: npm run -s test:live
+      - name: polish — worst-case space (seed-worst) has 0 hydration errors; 30 navigations / 30 s → 0 × 429 (starts next dev itself)
+        run: npm run -s test:polish
       - name: settings shell, space look, switch moment, Home customise (R16 D1–D5, E1)
         env:
           CI_DB: file:ci-settings.db

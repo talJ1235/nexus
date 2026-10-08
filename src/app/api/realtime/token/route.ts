@@ -1,6 +1,8 @@
 // R16 B2: how this tab gets live updates for the CURRENT space — an Ably TokenRequest (one channel: subscribe +
 // presence, 15 min, clientId = the user), the local fake (dev/test only), or "poll" (no key). Re-asked on a space switch;
-// a removed member gets nothing (requireCtx checks the membership on every call). 30 per minute per user.
+// a removed member gets nothing (requireCtx checks the membership on every call). Polish #29: every page load asks once,
+// so the cap sits above any browsing pace (fast space switches, several tabs) — 120 per minute per user — and still
+// stops a loop. Signing is local (no call to Ably); a refused tab falls back to polling.
 import { hitLimit, MINUTE } from "@/lib/auth/limits";
 import { routeCtx } from "@/lib/ctx";
 import { fakeTransport } from "@/lib/realtime/fake";
@@ -12,7 +14,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const ctx = await routeCtx("view");
   if (ctx instanceof Response) return ctx;
-  if (!(await hitLimit(`rt-token:${ctx.user.id}`, 30, MINUTE))) return Response.json({ error: "limit" }, { status: 429 });
+  if (!(await hitLimit(`rt-token:${ctx.user.id}`, 120, MINUTE))) return Response.json({ error: "limit" }, { status: 429 });
   const channel = channelOf(ctx.space.id);
   const headers = { "cache-control": "no-store" };
   if (fakeTransport()) return Response.json({ mode: "fake", channel, me: ctx.user.id }, { headers });
