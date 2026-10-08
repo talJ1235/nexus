@@ -691,6 +691,13 @@ Commits `R16.G1`–`R16.G4` on `round16` (no DB change; `rate_limit` gets `ba:` 
   saved on the server, not in a cookie) and one run stopped half-way, so your Home is probably "Custom" with **Next
   delivery hidden and Needs you moved up**. Home → Customize → **Reset** → Done puts Household back. The step is now
   local-only (`SMOKE_WRITE` on localhost), so it won't happen again.
+- **Dependency (2026-10-08):** `next` + `eslint-config-next` **16.3.6 → 16.3.8** (exact) — new high advisories for
+  Next 16.0.0–16.3.7 (Image Optimization SSRF, SSG/ISR cache poisoning, metadata-route disclosure…) failed the CI audit;
+  16.3.8 (patch line, published 2026-10-08) is outside the range; 16.4.0 not needed. After the bump: check, 11 unit
+  guards, `test:tenancy` 46/46, `test:errors`, `test:auth-flow`, `test:settings`, `test:viewport` OK; desktop smoke 79/80.
+- **Hotfix side, not touched here:** the smoke step "viewport guard: a phone at desktop width reloads once, never loops"
+  fails locally (`wide` saw 3 documents) and failed on the hotfix-only prod run too, while `test:viewport` passes —
+  for the hotfix session to look at.
 
 ### Hotfix — Android PWA viewport (2026-10-07)
 Separate from Session 2 (worktree `../nexus-pwafix`, branch `hotfix-pwa-viewport` off `origin/main`).
