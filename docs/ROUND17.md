@@ -504,9 +504,10 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   Spending: compact amounts now switch only after hydration — Node and Chromium write compact Hebrew differently).
   `test:tenancy` 46/46, `test:errors`, `test:live`, `test:settings`, `test:headers` (emergency sign-in, CI-style),
   `test:google-signin`, `test:viewport`, `test:google-fedcm` (one focus check failed once, passed on the rerun),
-  `test:auth-flow` OK. Smoke on a fresh seeded DB: desktop 81/81; phone 92/93 — "item sheet morph" fails about 2 in 7
-  runs alone (a ~1 300 px page-scroll jump on open, seen only when the tapped card is a smoke-created item), recorded as
-  a flake, not fixed. Space switch 1 813–1 850 ms over 40 switches. Visual pass (screenshots): Display at 360 he/Graphite
+  `test:auth-flow` OK. Smoke on a fresh seeded DB: desktop 81/81; phone 95/95 on a fresh DB (an earlier 92/93 run, on a
+  smoke DB grown over several write runs, had "item sheet morph" fail 2 in 7 — a ~1 300 px scroll jump when tapping a
+  smoke-created item; under equal conditions — fresh DB, one phone write run, then the step 7× — it passes 7/7 on both
+  `main` and `round17`). Space switch 1 813–1 850 ms over 40 switches. Visual pass (screenshots): Display at 360 he/Graphite
   and en/Plum dark, Account phone he dark (Notifications on by default) + the delete flow, Calendar phone, Privacy he,
   Home 1280×720 dark and 390 he Plum, the item sheet with a full title.
 - **Migration rehearsal** (`node --env-file=.env.local scripts/r17-rehearsal.mjs --base origin/main`, copy of
@@ -515,3 +516,8 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   To buy 8 / On the way 1 / History 10 unchanged; 499 ms. B1 backfill (rules only) on the copy: 5 items with a title over
   50 characters, 1 changed (its title still matched the store's original), 4 skipped as possibly renamed (their title
   differs from the store's read); only `title` / `full_title` changed; counts unchanged.
+- **Merged** `round17` → `main` (fast-forward) after the checks above; prod deploys from `main`. **Before relying on the
+  prod smoke, Tal:** set `ADMIN_EMERGENCY_TOKEN` + `ADMIN_EMAILS` in Vercel and `SMOKE_ADMIN_TOKEN` + `SMOKE_ADMIN_EMAIL`
+  in GitHub secrets (without them the prod smoke runs its signed-out checks only), remove `APP_PASSWORD` /
+  `NEXUS_PASSWORD`; optionally the Cloudflare Worker (`scripts/cf-worker/README.md`) for cwc.co.il; then run
+  `scripts/blocked-probe.mjs` against prod for the before/after table; mark the Suggests-animation report fixed.
