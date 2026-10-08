@@ -77,8 +77,8 @@ for (let i = 0; ; i++) {
 }
 
 const browser = await chromium.launch();
-async function open({ phone = false, he = false, space = "pa_big" } = {}) {
-  const ctx = await browser.newContext({ viewport: phone ? { width: 390, height: 844 } : { width: 1366, height: 860 }, ...(phone ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) });
+async function open({ phone = false, he = false, space = "pa_big", reduce = false } = {}) {
+  const ctx = await browser.newContext({ reducedMotion: reduce ? "reduce" : "no-preference", viewport: phone ? { width: 390, height: 844 } : { width: 1366, height: 860 }, ...(phone ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) });
   ctx.setDefaultTimeout(180_000);
   await ctx.addCookies([
     { name: "nexus_session_dev", value: cookie, url: BASE },
@@ -208,6 +208,19 @@ for (const variant of [{}, { phone: true, he: true }]) {
   const knob = await sw.evaluate((el) => getComputedStyle(el, "::after").transitionProperty);
   ok(before !== after && rb && rb.height >= 40 && /transform/.test(knob), "#3 tapping a switch row's title flips it; row ≥ 40px; the knob transitions transform", `${before}→${after} ${JSON.stringify(rb)} ${knob}`);
   await row.locator("b").first().click();
+  await ctx.close();
+}
+
+// ---------- reduced motion (phone, OS setting) ----------
+{
+  const { ctx, page } = await open({ phone: true, space: personal, reduce: true });
+  await page.goto(`${BASE}/?v=to_buy`);
+  await ready(page);
+  await page.locator("[data-item-card]").first().click();
+  await page.waitForSelector("[data-sheet-close]");
+  const names = await page.evaluate(() => document.querySelector('[role="dialog"]').getAnimations().map((a) => `${a.animationName}:${a.effect.getTiming().duration}`));
+  const out = await exitAnimates(page, '[role="dialog"]', () => page.locator("[data-sheet-close]").click());
+  ok(names.length > 0 && names.every((n) => /^fade:150$/.test(n)) && out.ok, "#16 reduced motion: the sheet fades in (150 ms, no slide) and fades out", `${names.join(",")} ${out.detail}`);
   await ctx.close();
 }
 

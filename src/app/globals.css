@@ -550,9 +550,11 @@ body {
 * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Polish #16: movement stops (keyframes jump to their end; transform / size / position transitions snap), but
+     opacity and colour transitions stay — and surfaces fade (the "gentler, not zero" block at the end of this file). */
   *, *::before, *::after {
     animation-duration: 1ms !important;
-    transition-duration: 1ms !important;
+    transition-property: opacity, color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, box-shadow !important;
   }
   /* Loaders must still read as "working", just calmer. */
   .spinner { animation-duration: 2.4s !important; }
@@ -1072,7 +1074,7 @@ html[data-motion="reduce"] *::before,
 html[data-motion="reduce"] *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
+  transition-property: opacity, color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, box-shadow !important;
   scroll-behavior: auto !important;
 }
 
@@ -1092,3 +1094,18 @@ html[data-motion="reduce"] *::after {
 /* Customise: the widget sits in its dashed frame without its own card chrome or title (the frame's bar has it). */
 [data-editing] .hw-body > * { border: 0 !important; box-shadow: none !important; background: transparent !important; border-radius: 0 !important; }
 [data-editing] [data-card-head], [data-editing] [data-stat-label] { display: none !important; }
+
+/* ---------- Polish #16: reduced motion = gentler, not zero ----------
+   With the OS setting or Settings → Motion = Reduced, sheets, modals, menus, view switches, sub-pages and toasts
+   still fade in and out (150 ms, opacity only) instead of blinking; nothing slides, rises or scales. Last in the file
+   so it outranks each surface's own reduced-motion rule. */
+@media (prefers-reduced-motion: reduce) {
+  :is(.sheet-in-end, .sheet-in-start, .sheet-phone, .modal-phone, .assistant-sheet, .animate-pop-in, .actions-sheet, .overlay-in)[data-state="open"],
+  .actions-sheet:not([data-state]), .view-in.view-fwd, .view-in.view-back, .subpage-in, .subpage-back, .nx .sx-page { animation: fade 150ms ease-out both !important; }
+  :is(.sheet-in-end, .sheet-in-start, .sheet-phone, .modal-phone, .assistant-sheet, .animate-pop-in, .actions-sheet, .overlay-in)[data-state="closed"] { animation: fade-out 150ms ease-out both !important; }
+  :root [data-sonner-toaster] [data-sonner-toast] { transition: opacity 150ms ease-out !important; }
+}
+html[data-motion="reduce"] :is(.sheet-in-end, .sheet-in-start, .sheet-phone, .modal-phone, .assistant-sheet, .animate-pop-in, .actions-sheet, .overlay-in)[data-state="open"],
+html[data-motion="reduce"] :is(.actions-sheet:not([data-state]), .view-in.view-fwd, .view-in.view-back, .subpage-in, .subpage-back, .nx .sx-page) { animation: fade 150ms ease-out both !important; }
+html[data-motion="reduce"] :is(.sheet-in-end, .sheet-in-start, .sheet-phone, .modal-phone, .assistant-sheet, .animate-pop-in, .actions-sheet, .overlay-in)[data-state="closed"] { animation: fade-out 150ms ease-out both !important; }
+html[data-motion="reduce"] [data-sonner-toaster] [data-sonner-toast] { transition: opacity 150ms ease-out !important; }
