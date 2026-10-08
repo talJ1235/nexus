@@ -136,6 +136,18 @@ for (const variant of [{}, { phone: true, he: true }]) {
   await page.waitForSelector('[data-settings-section="display"]');
   small.push(...(await smallFields()));
   ok(small.length === 0, "#1 every text field is ≥ 16px on a coarse pointer (paste bar, search, item sheet, settings)", small.join(", "));
+  // #2: delete → the toast's Undo is a 40px target (then Undo, so the data stays as seeded).
+  await page.goto(`${BASE}/?v=to_buy`);
+  await ready(page);
+  await page.locator("[data-item-card]").first().click();
+  await page.locator("[data-sheet-more]").click();
+  await page.locator("[data-sheet-delete]").click();
+  const undo = page.locator("[data-sonner-toast] [data-button]").first();
+  await undo.waitFor();
+  await page.waitForTimeout(300);
+  const ub = await undo.boundingBox();
+  ok(ub && ub.height >= 40 && ub.width >= 40, "#2 the toast's Undo is ≥ 40 × 40 on touch", JSON.stringify(ub));
+  await undo.click();
   await ctx.close();
 }
 
