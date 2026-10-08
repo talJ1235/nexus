@@ -361,10 +361,10 @@ export function ItemCard({ item, order }: { item: ItemWithSources; order: string
       style={g.dx ? { transform: `translateX(${g.dx}px)`, transition: g.dragging ? "none" : "transform 260ms var(--ease-out)" } : undefined}
       data-item-card={item.id}
       className={cn(
-        "group relative flex flex-1 flex-col rounded-[var(--radius-card)] border bg-surface p-1.5 prow:touch-pan-y transition-[border-color,box-shadow,transform] duration-[250ms] ease-[var(--ease-out)] prow:flex-row prow:items-center prow:gap-[11px] prow:rounded-[12px] prow:px-3 prow:py-2.5 pcard:overflow-hidden pcard:rounded-[12px] pcard:p-0",
+        "group relative flex flex-1 flex-col rounded-[var(--radius-card)] border bg-surface p-1.5 prow:touch-pan-y transition-[border-color,box-shadow,transform,background-color] duration-[250ms] ease-[var(--ease-out)] prow:flex-row prow:items-center prow:gap-[11px] prow:rounded-[12px] prow:px-3 prow:py-2.5 pcard:overflow-hidden pcard:rounded-[12px] pcard:p-0",
         isSelected
           ? "border-brand shadow-[0_0_0_1px_var(--brand)]"
-          : "border-line shadow-card hover:-translate-y-[3px] hover:border-line-strong hover:shadow-lift active:shadow-lift max-sm:border-card-line max-sm:shadow-[var(--card-shadow)]",
+          : "border-line shadow-card hover:-translate-y-[3px] hover:border-line-strong hover:shadow-lift active:shadow-lift max-sm:border-card-line max-sm:shadow-[var(--card-shadow)] max-sm:active:bg-surface-2 max-sm:active:duration-100",
         fresh === "new" && "fill-in",
         fresh === "bump" && "bump",
       )}
