@@ -35,12 +35,21 @@
 - Auth (Better Auth): `src/lib/auth/` (`server.ts` config + hooks, `session.ts`, `invites.ts`, `security.ts`, `limits.ts`),
   screens `src/components/auth/`, pages `/login`, `/welcome`, `/passkey`; account/security/invite codes are Settings sections.
 - Client state: `src/components/app/store.tsx`; shell: `nexus-app.tsx`; panels: `assistant-panel`, `alerts-panel`, `share-dialog`, `import-dialog`, `settings/shell`, `command-palette`.
-- Domain libs in `src/lib/`: `extract` (link → product), `tracker` (prices/alerts), `ai` + `assistant` (Gemini, model fallback), `spaces` (spaces, people, invite links), `safe-fetch` (SSRF guard), `backup`, `importer`. Retired in R15 (code kept): `telegram`, `guest`, the extension.
+- Domain libs in `src/lib/`: `extract` (link → product), `tracker` (prices/alerts), `ai` + `assistant` (Gemini, model fallback; through `ai-gate`), `spaces` (spaces, people, invite links), `safe-fetch` (SSRF guard), `backup`, `importer`. Retired: `telegram` (code kept), the guest app and the extension (removed in R17).
+- R17: help = `src/lib/help/topics/*.md` (one file per topic, `test:help` limits). AI gate = `src/lib/ai-gate.ts` — every
+  model call passes `use` (feature, user, space): switch, 40/day quota, redaction, `ai_usage`. Fetch ladder for blocked
+  stores = `extractFromUrl` in `lib/extract.ts` (direct → `lib/store-apis.ts` Woo/Shopify → Cloudflare Worker
+  `scripts/cf-worker/`), probe `/api/debug/blocked`. Short names = `lib/short-name.ts` + backfill
+  `lib/db-scoped/short-names.ts` (cron). Delete account / export = `lib/db-scoped/account.ts`, `app/account-actions.ts`,
+  `/restore-account`, `/delete-account`, `/api/my-data`; the purge runs in the daily cron. Sign-in has no password: admin
+  emergency `POST /api/emergency` (`ADMIN_EMERGENCY_TOKEN`). Truncated text reads in full via `lib/trunc-title.ts`.
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)
 - Local server: `bash scripts/serve.sh [--build]` (restarts cleanly, waits until ready). Demo data: `node --env-file=.env.local scripts/seed-local.mjs`.
-- Write-path UI checks (localhost only): `SMOKE_WRITE=1 NEXUS_PASSWORD=... npm run smoke`.
+- Smoke: `bash scripts/serve-smoke.sh [--build]` (fresh seeded `smoke.db`, signs the smoke in — no password), then
+  `SMOKE_WRITE=1 npm run smoke` (add `SMOKE_MOBILE=1` for the phone). Browser tests with data: `scripts/lib/test-app.mjs`.
+- Cut-off text guard: `npm run test:clip` (needs a build; `CLIP_QUICK=1` for 390 + 1366 only).
 - Verify with `npm run -s check` (quiet: prints one OK line or only the errors). Never paste full build logs.
 - UI verification: `npm run smoke` (Playwright, PASS/FAIL lines, screenshots to `$SMOKE_OUT`). Extend
   `scripts/smoke.mjs` for new features instead of writing throwaway scripts or clicking through a browser.

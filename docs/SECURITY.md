@@ -158,3 +158,12 @@ security control.
   clear action.
 - Screens are designed first on the design canvas (sign-in, invite/join, add passkey, recovery, devices, security
   activity, QR approve with number matching) — phone + desktop, both palettes, light + dark.
+
+## R17 additions
+- **Cloudflare fetch worker** (`scripts/cf-worker/fetch-worker.js`, optional): reads store pages that block Vercel. It
+  needs the shared secret header (constant-time compare), takes only http(s), refuses localhost / private / link-local /
+  metadata hosts and IP literals, follows ≤ 5 redirects (each re-checked), caps 2.5 MB and 9 s, sends and returns no
+  cookies. Nexus checks the target with its own SSRF guard first and reaches the worker through `safeFetch`. Secrets:
+  `FETCH_SECRET` in the worker = `CF_FETCH_SECRET` in Vercel (40+ random chars). Off = remove `CF_FETCH_URL`.
+- **Delete account** needs step-up (signed in within 10 minutes) and the typed email; it revokes every session at once.
+- **Admin probe** `/api/debug/blocked` is admin-only (404 otherwise) and saves nothing.

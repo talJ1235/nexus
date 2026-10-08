@@ -17,7 +17,7 @@ env:
 jobs:
   guards:
     runs-on: ubuntu-24.04 # pinned: ubuntu-latest moves to 26.04 on 2026-10-19
-    timeout-minutes: 60
+    timeout-minutes: 90 # R17: + test:clip (752 screens) and test:auth-flow
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0 }
@@ -30,7 +30,7 @@ jobs:
         run: npx eslint --quiet .
       - name: unit tests
         run: |
-          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles status feed assistant-context; do
+          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles status feed assistant-context short-name ai-quota blocked delete-account; do
             echo "::group::test:$t"; npm run -s test:$t; echo "::endgroup::"
           done
       - name: authz coverage · data scope · SSRF · query plans
@@ -91,8 +91,12 @@ jobs:
         run: npm run -s test:errors
       - name: live shared spaces — fake transport + polling, conflicts, presence (R16 B; starts next dev itself)
         run: npm run -s test:live
-      - name: polish — worst-case space (seed-worst) has 0 hydration errors; 30 navigations / 30 s → 0 × 429 (starts next dev itself)
+      - name: polish — worst-case space 0 hydration errors, 0 × 429; R17 A1 loop fade, A2 widgets at every size, A3 Settings from the first frame (starts next dev itself)
         run: npm run -s test:polish
+      - name: no cut-off text — every view, Settings section and sheet at 360/390/1366/1280×720, en/he, light/dark, demo + worst-case data (R17 A6; built app)
+        run: npm run -s test:clip
+      - name: sign-in without a password — emergency path, 410, rate limit (R17 E1; starts next dev itself)
+        run: npm run -s test:auth-flow
       - name: settings shell, space look, switch moment, Home customise (R16 D1–D5, E1)
         env:
           CI_DB: file:ci-settings.db

@@ -683,6 +683,39 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
 - Reduced motion uses 150 ms fades. Ambient loops rest unless the AI is working (`lib/ai-work.ts`).
 - Big amounts switch to compact notation instead of getting an ellipsis (`FitMoney`).
 - Guards: `npm run test:polish` (worst-case seed `scripts/seed-worst.mjs`), also in `guards.yml`.
+
+## Round 17 — Session 1: bugs from use, cut-off text, blocked stores, short names, product-layer base
+(details and measurements: `docs/ROUND17.md` "## Open")
+- **Home**: the Suggests sheen and the paste border fade out at the end of their cycle (no frozen frame). Every widget
+  uses its height at 2× (more suggestions, rows, the pace chart, breakdowns; vs last month as bars; the deliveries after
+  the next one); empty states are centred.
+- **Settings** open in the first frame (cold `/settings/…` deep links too); Space settings opened from the switcher closes
+  back to where you were (✕, Esc, Android Back, swipe). Account & security opens in its final layout (one DB round trip,
+  last answer cached per device, skeleton rows the first time); its tiles stack on phones.
+- **Notifications**: one switch in Account (on = Nexus decides what and when; off = nothing is sent, the bell still
+  collects). The per-kind section is gone.
+- **No cut-off text**: any ellipsized text shows its full text on hover/focus (`lib/trunc-title.ts`); rows that don't
+  fit wrap; numbers never truncate. Guard `npm run test:clip` (752 screens).
+- **Space switch**: a fixed 1.8 s moment (600 ms with reduced motion); a tap doesn't end it, Esc/Back do.
+- **Short names**: long store titles become ≤ 40-character names (rules + the existing categorize AI call); the original
+  stays in `items.full_title` (item sheet: shown under the name, "Use full name"; search matches both); a daily backfill
+  for old long titles (never renamed items).
+- **Calendar**: Settings → Calendar shows how many events the feed holds (or why it's empty), explains Google's refresh
+  and the phone route; the feed's rate limit is per IP + feed.
+- **Blocked stores**: a fetch ladder — our fetch → WooCommerce/Shopify JSON → a Cloudflare Worker
+  (`CF_FETCH_URL`/`CF_FETCH_SECRET`, `scripts/cf-worker/`) — with per-host memory; still refused → saved, "add the price by
+  hand". Admin probe `/api/debug/blocked`.
+- **Sign-in**: no password sign-in; admin-only emergency sign-in (`ADMIN_EMERGENCY_TOKEN`, `POST /api/emergency`). Guest
+  routes removed (old tables left for a cleanup round).
+- **AI gate** (`lib/ai-gate.ts`): every model call — the AI switch, 40 calls/person/day (admin unlimited, per-person
+  override), names/emails/phones redacted, `ai_usage` rows.
+- **Privacy & terms** pages (en/he); **Delete account** (7 days to undo, then purged; shared items stay as "Former
+  member") and **Download my data** (JSON / Excel); public `/delete-account`.
+- **Error log**: 30-day retention; `/admin/errors` groups viewport, Google sign-in and blocked stores per host.
+- **Help** is split into topic files (`lib/help/topics/*.md`).
+- Guards: `test:clip`, `test:short-name`, `test:ai-quota`, `test:blocked`, `test:delete-account`, `test:polish` (A1–A3),
+  `test:auth-flow` (E1) in `guards.yml`; the smoke runs on a fresh seeded DB (`scripts/serve-smoke.sh`) and in
+  "real data" mode on prod.
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
@@ -713,7 +746,10 @@ Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 | `GEMINI_MODEL` | optional override, default tries `gemini-3.5-flash-lite` then fallbacks |
 | `GROQ_API_KEY` | optional second free AI provider (console.groq.com), used when Gemini is busy |
 | `OPENROUTER_API_KEY` | optional third free AI provider (`openrouter/free`) |
-| `APP_PASSWORD` | R15: the admin fallback password (≥ 20 chars; also the GitHub prod smoke's `NEXUS_PASSWORD`) |
+| `APP_PASSWORD` | R15–16 admin password fallback — **removed in R17** (delete it from Vercel) |
+| `ADMIN_EMERGENCY_TOKEN` | R17 E1: admin-only emergency sign-in (≥ 32 chars; unset = off); the prod smoke uses it as `SMOKE_ADMIN_TOKEN` |
+| `ADMIN_EMAILS` | R17 E1: comma-separated admin addresses allowed to use the emergency sign-in (plus `ADMIN_EMAIL`) |
+| `CF_FETCH_URL` / `CF_FETCH_SECRET` | R17 C2: the Cloudflare fetch worker for stores that block Vercel (optional) |
 | `SESSION_SECRET` | ≥32 random chars (pre-R15 sessions; still used by retired guest/Telegram code) |
 | `BETTER_AUTH_SECRET` | R15: 32+ random bytes — signs session cookies, encrypts invite codes |
 | `BETTER_AUTH_URL` | R15: the app's URL (prod `https://nexus-ashen-beta.vercel.app`, local `http://localhost:3100`) |

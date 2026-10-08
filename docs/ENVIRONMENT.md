@@ -149,3 +149,13 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   (already set for item pictures); without it (local only) they're kept inline. No new env names.
 - 2026-10-08 (PC, polish audit): project skills added under `.claude/skills/` — 9 design/motion skills copied (raw files, no installer, no scripts) from `emilkowalski/skills@e8a175d` (MIT, licence in `.claude/skills/LICENSE-emilkowalski-skills`): emil-design-eng, review-animations, improve-animations, find-animation-opportunities, mobile-native, break-ui, apple-design, animation-vocabulary, ask-sonner. Findings: `docs/POLISH-AUDIT.md`.
 - 2026-10-08 (PC, polish fixes): added `scripts/seed-worst.mjs` (the audit's worst-case spaces as a repeatable seed, file DBs only) and `npm run test:polish`, which is also a `guards.yml` step. `test:polish` starts `next dev` on :3108 with `polish-test.db` and sets `REALTIME_FAKE=1`: Next fills *empty* env values from `.env.local`, so blanking `ABLY_API_KEY` alone isn't enough. A bench build of `main` in a worktree needs its own `npm ci`, because Turbopack refuses a `node_modules` junction that points outside the worktree.
+- 2026-10-08 (PC, R17 session 1): **env** — new `ADMIN_EMERGENCY_TOKEN` (≥ 32 chars) + `ADMIN_EMAILS` (admin emergency
+  sign-in; the password fallback and `APP_PASSWORD` are gone), optional `CF_FETCH_URL` + `CF_FETCH_SECRET` (Cloudflare
+  fetch worker, setup in `scripts/cf-worker/README.md`). GitHub secrets for the prod smoke: `SMOKE_ADMIN_TOKEN` (=
+  `ADMIN_EMERGENCY_TOKEN`) and `SMOKE_ADMIN_EMAIL`; `NEXUS_PASSWORD` is unused. **Scripts/tests** — `scripts/serve-smoke.sh
+  [--build]` serves the build on a fresh seeded `smoke.db` and writes a test session cookie to `.next/smoke-session.txt`
+  (local smoke/parity/perf scripts sign in with it through `scripts/lib/sign-in.mjs`; no password); `scripts/lib/
+  test-app.mjs` = fresh seeded DB + signed session + server for browser tests; new `test:clip` (cut-off text, ~13 min on
+  this PC), `test:short-name`, `test:ai-quota`, `test:blocked`, `test:delete-account`; `scripts/switch-timing.mjs` (space
+  switch timing), `scripts/blocked-probe.mjs` (fetch-ladder table via `/api/debug/blocked`); `POLISH_ONLY=A1,A2` runs
+  parts of `test:polish`. Actions moved to node24 releases and `ubuntu-24.04`.

@@ -307,8 +307,7 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   mobile=no` (desktop DevTools emulation without a device-width meta pass — `mobile=no`, `dpr=1`: a desktop browser, not
   a phone; no action) and 1× `/` in the installed app (`dm=standalone`, `iw=980`, `ref=accounts.google.com` — the
   hotfix.1 self-heal case); `extract · blocked` cwc.co.il 3× (`title+gemini-url`) → Part C;
-  `csp · connect-src` 2× and `csp · manifest-src` 2× (no blocked URI kept in the sample — E5 adds the directive's host
-  to the sample so these can be acted on); `auth · google_fedcm skipped:unknown_reason` 1× and `auth · google_status
+  `csp · connect-src` 2× and `csp · manifest-src` 2× (no blocked URI kept in the sample; see E5); `auth · google_fedcm skipped:unknown_reason` 1× and `auth · google_status
   403` 1× (hotfix.2–4 territory; E5 groups them). POLISH-AUDIT "Fixes" open items: the Graphite chip cut at 360 (→ D2/A6),
   4 help-worthy notes (→ 0.2), the two machine-sensitive smoke timing steps (→ 0.3), Tal's real-phone checklist (left
   to Tal; the Notifications-switch line there is moot after D3). R16 Open leftovers: the reseeded smoke DB + looser
