@@ -75,6 +75,17 @@ assert.ok(ics.includes("SUMMARY:📦 Hub\\, 7-in-1\\; USB-C arrives"));
 assert.ok(!/₪|\$|price|amazon/i.test(ics), "no prices or store names");
 const parsed = new ICAL.Component(ICAL.parse(ics));
 const vevents = parsed.getAllSubcomponents("vevent").map((v) => new ICAL.Event(v));
+// R17 B2 — RFC 5545 essentials, read back by the external parser: PRODID + VERSION on the calendar; every event has
+// UID, DTSTAMP (UTC date-time) and an all-day DTSTART/DTEND (VALUE=DATE); lines ≤ 75 octets, CRLF.
+assert.ok(parsed.getFirstPropertyValue("prodid"), "PRODID");
+assert.equal(parsed.getFirstPropertyValue("version"), "2.0");
+for (const v of parsed.getAllSubcomponents("vevent")) {
+  assert.ok(v.getFirstPropertyValue("uid"), "UID");
+  const stamp = v.getFirstPropertyValue("dtstamp") as { isDate: boolean; zone?: { tzid: string } } | null;
+  assert.ok(stamp && !stamp.isDate && stamp.zone?.tzid === "UTC", "DTSTAMP is a UTC date-time");
+  for (const p of ["dtstart", "dtend"]) assert.equal((v.getFirstPropertyValue(p) as { isDate: boolean }).isDate, true, `${p} is VALUE=DATE`);
+}
+assert.ok(ics.split("\r\n").every((l) => new TextEncoder().encode(l).length <= 75), "every line ≤ 75 octets");
 assert.equal(vevents.length, 2);
 const hub = vevents.find((e) => e.uid === `${arriving.id}-eta@nexus`)!;
 assert.equal(hub.summary, "📦 Hub, 7-in-1; USB-C arrives");

@@ -17,7 +17,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
   const raw = (await params).token;
   const token = raw.replace(/\.ics$/i, "");
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  if (rateLimited(ip)) return new Response("Too many requests", { status: 429, headers: { "retry-after": "600" } });
+  // R17 B2: per IP *and* feed — Google fetches every subscriber's feed from a few shared IPs.
+  if (rateLimited(`${ip}|${token.slice(0, 16)}`)) return new Response("Too many requests", { status: 429, headers: { "retry-after": "600" } });
   const userId = /^[\w-]{16,64}$/.test(token) ? await calendarUser(token) : null;
   if (!userId) return new Response("Not found", { status: 404 });
 

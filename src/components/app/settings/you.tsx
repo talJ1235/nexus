@@ -7,6 +7,7 @@ import { homeDiag, setAiSuggestions, type HomeDiag } from "@/app/home-actions";
 import { pictureSearchStatus } from "@/app/picture-actions";
 import { useI18n } from "@/components/providers";
 import { usePalette } from "@/components/use-palette";
+import { useMedia } from "@/components/ui/use-media";
 import { exportUrl } from "@/lib/export-url";
 import { dayKeyIn, weekDays } from "@/lib/home";
 import { calendarEvents, googleSubscribeUrl, type CalKinds } from "@/lib/ics";
@@ -240,7 +241,7 @@ function AiPage({ go, close }: PageProps) {
 
 function CalendarPage() {
   const s = useStore();
-  const { t, locale } = useI18n();
+  const { t, f, locale } = useI18n();
   const [cal, setCal] = useState<CalendarInfo | null>(null);
   useEffect(() => {
     let alive = true;
@@ -268,6 +269,10 @@ function CalendarPage() {
     const evs = calendarEvents(s.items, now, s.clock.tz, { arrives: t.cal.arrives, late: t.cal.late, reorder: t.cal.reorder }, kinds);
     return days.map((d) => ({ d, today: d === today, evs: evs.filter((e) => e.day === d) }));
   }, [s.items, s.clock, t, kinds]);
+  // R17 B2: how many events the feed carries right now (the whole window, not just this week) — an empty feed is the
+  // usual reason "nothing shows in Google".
+  const feedSize = useMemo(() => calendarEvents(s.items, s.clock.now, s.clock.tz, { arrives: t.cal.arrives, late: t.cal.late, reorder: t.cal.reorder }, kinds).length, [s.items, s.clock, t, kinds]);
+  const phone = useMedia("(max-width: 1023px)");
   const wd = (key: string) => new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { weekday: "short", timeZone: "UTC" }).format(new Date(`${key}T12:00:00Z`));
   return (
     <>
@@ -332,6 +337,14 @@ function CalendarPage() {
       <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <span className="sub" style={{ flex: 1, minWidth: 200 }}>
           {t.cal.note}
+          <br />
+          <span data-cal-feed-size={feedSize}>{feedSize ? f(t.cal.feedCount, { n: feedSize }) : t.cal.feedEmpty}</span>
+          {phone && (
+            <>
+              <br />
+              <span data-cal-phone-google>{t.cal.phoneGoogle}</span>
+            </>
+          )}
         </span>
         <button
           type="button"

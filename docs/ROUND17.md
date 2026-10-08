@@ -164,7 +164,7 @@ Refresher with Fresh Color AliExpress 34" → what it is: a flower-shaped car ai
 Acceptance: unit tests with 20 real long titles (AliExpress, Amazon, Temu, Hebrew stores) → short names a human would
 write; rehearsal shows the backfill only fills `full_title` and changes `title` for long ones.
 
-### B2. [ ] Google Calendar doesn't get the events
+### B2. [x] Google Calendar doesn't get the events
 Tal connected it (Settings → Calendar → Google) and nothing appears. Today it's an ICS subscription
 (`/api/cal/<token>.ics`, R14 C2) — Google fetches it from its own servers, every ~12–24 h (Google's schedule).
 Find the actual cause first, write it in Open:
@@ -434,3 +434,25 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   items with no store read are skipped); 30 AI names per run from the system budget (never a person's quota), the rest
   wait for the next run. `test:short-name`: 20 real titles (AliExpress, Amazon, Temu, Hebrew stores, IKEA) → rules
   output, plus the AI-limit rule. Backfill counts on the prod snapshot: see the migration rehearsal below.
+- **B2 — cause (as far as this session can see):** (1) the feed was close to empty: on the 2026-10-06 prod snapshot
+  Tal's data has 1 ordered item with an expected date (arriving 2026-10-07) and no reorder cadence yet (10 purchases,
+  none repeated) — so after the 7th the feed had nothing to show; (2) on a phone the "Subscribe in Google Calendar"
+  button opens Google's app, which can't subscribe to a URL at all (only calendar.google.com on a computer can); (3)
+  Google refreshes subscribed calendars on its own schedule (hours to a day). Not the cause, checked: the route answers
+  Google's user agent from here (404 for a bad token, no firewall page — Google's own IPs can't be reproduced from this
+  PC, and Vercel's runtime logs for `Google-Calendar-Importer` weren't reachable from this session); the ICS passes the
+  RFC 5545 checks in `test:ics` read back by `ical.js` (PRODID/VERSION, UID, UTC DTSTAMP, all-day VALUE=DATE, CRLF,
+  ≤ 75-octet folding). Fixed: Settings → Calendar says how many events the feed holds right now (or why it's empty),
+  says plainly "Google updates subscribed calendars a few times a day", and on phones explains the computer route
+  (calendar.google.com → Other calendars → From URL); the feed's rate limit is per IP + feed (Google's shared fetcher
+  IPs no longer count every subscriber together). `ical.js` pinned to 2.2.1 (was `^2.2.1`, dev only). The subscribe
+  link keeps `cid=webcal://…` (what Google's desktop web accepts). **Useful events elsewhere:** "bought on" days and
+  price-drop days aren't in the feed; for a household, upcoming deliveries (with ETAs) and reorder dates are the useful
+  ones — the empty-feed line nudges toward adding ETAs.
+- **B2 later — faster sync (for the planner):** (a) **Google Calendar API** with the `calendar.events` (or
+  `calendar.app.created`) scope: Nexus writes events into a calendar it creates — instant, reliable, edits/deletes
+  propagate at once; costs: an extra Google consent screen + OAuth verification for a sensitive scope (Google review,
+  weeks), refresh-token storage, a sync job. `calendar.app.created` (only calendars the app made) is the least
+  sensitive. (b) **Keep ICS, nudge Google**: no API exists to force a refresh; changing the feed URL forces a re-fetch
+  but breaks the subscription — not usable. (c) **Apple/Outlook** already refresh more often (Apple honours
+  `REFRESH-INTERVAL` ~hourly). Recommendation: (a) with `calendar.app.created`, opt-in per user, in a later round.
