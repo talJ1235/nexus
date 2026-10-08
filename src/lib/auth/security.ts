@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, isNull, ne } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, ne } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { randomBytes } from "node:crypto";
 import { db, schema } from "@/db";
@@ -12,15 +12,19 @@ import { describeUa } from "./ua";
 
 export const isFresh = (sessionCreatedAt: Date) => Date.now() - sessionCreatedAt.getTime() <= STEP_UP_MS;
 
-export async function securityData(userId: string, currentSessionId: string) {
-  const [sessions, passkeys, accounts, events, codes] = await Promise.all([
-    db.select().from(schema.session).where(eq(schema.session.userId, userId)).orderBy(desc(schema.session.updatedAt)),
+/** R17 A5: one batch = one round trip to the database (was five parallel requests, then one more for the
+ *  "was this you" acknowledgement). Only live sessions are devices. `prefKey` reads one user_pref in the same batch. */
+export async function securityData(userId: string, currentSessionId: string, prefKey?: string) {
+  const [sessions, passkeys, accounts, events, codes, pref] = await db.batch([
+    db.select().from(schema.session).where(and(eq(schema.session.userId, userId), gt(schema.session.expiresAt, new Date()))).orderBy(desc(schema.session.updatedAt)),
     db.select().from(schema.passkey).where(eq(schema.passkey.userId, userId)),
     db.select({ providerId: schema.account.providerId }).from(schema.account).where(eq(schema.account.userId, userId)),
     db.select().from(schema.securityEvent).where(eq(schema.securityEvent.userId, userId)).orderBy(desc(schema.securityEvent.createdAt)).limit(30),
     db.select({ id: schema.recoveryCode.id }).from(schema.recoveryCode).where(and(eq(schema.recoveryCode.userId, userId), isNull(schema.recoveryCode.usedAt))),
+    db.select({ value: schema.userPref.value }).from(schema.userPref).where(and(eq(schema.userPref.userId, userId), eq(schema.userPref.key, prefKey ?? ""))),
   ]);
   return {
+    pref: pref[0]?.value ?? null,
     devices: sessions.map((s) => ({
       id: s.id,
       current: s.id === currentSessionId,

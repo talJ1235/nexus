@@ -46,8 +46,13 @@ export async function loadSnapshot(): Promise<Snapshot | null> {
   }
 }
 
-/** Forget everything kept for offline use (snapshot + cached shell). */
+/** Forget everything kept for offline use (snapshot + cached shell), and the Account page's last answer (R17 A5). */
 export async function clearOffline() {
+  try {
+    for (const k of Object.keys(localStorage)) if (k.startsWith("nexus.sec:")) localStorage.removeItem(k);
+  } catch {
+    /* no storage */
+  }
   try {
     await new Promise<void>((resolve) => {
       const req = indexedDB.deleteDatabase(DB);

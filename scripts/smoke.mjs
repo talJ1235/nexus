@@ -1641,6 +1641,49 @@ try {
       ok(Object.values(r).every(Boolean), "space settings: from the switcher → closes to Home (every close); from Settings → back to Settings", JSON.stringify(r));
     });
 
+    // R17 A5: Account & security opens in its final layout (no swap: CLS 0 on a warm visit), the devices answer is one
+    // fast request (< 500 ms warm), and the three tiles show their whole labels at 360 (phone).
+    if (MOBILE)
+      await step("account & security (phone): one layout (CLS 0 warm), devices < 500 ms, tiles not cut at 360", async () => {
+        const r = {};
+        const visit = async () => {
+          const times = [];
+          const sent = new Map();
+          const onReq = (q) => q.method() === "POST" && q.headers()["next-action"] && sent.set(q, Date.now());
+          const onRes = async (res) => {
+            const q = res.request();
+            if (!sent.has(q)) return;
+            const body = await res.text().catch(() => "");
+            if (body.includes('"devices"')) times.push(Date.now() - sent.get(q));
+          };
+          page.on("request", onReq);
+          page.on("response", onRes);
+          await page.goto(`${BASE}/settings/account`);
+          await page.evaluate(() => {
+            window.__cls = 0;
+            new PerformanceObserver((l) => l.getEntries().forEach((e) => !e.hadRecentInput && (window.__cls += e.value))).observe({ type: "layout-shift", buffered: true });
+          });
+          await page.locator("[data-device=current]").first().waitFor({ timeout: 10000 });
+          await page.waitForTimeout(2500);
+          page.off("request", onReq);
+          page.off("response", onRes);
+          return { cls: Math.round((await page.evaluate(() => window.__cls)) * 1000) / 1000, ms: times.at(-1) ?? null };
+        };
+        r.cold = await visit();
+        r.warm = await visit();
+        await page.setViewportSize({ width: 360, height: VIEWPORT.height });
+        await page.waitForTimeout(300);
+        r.tilesCut = await page.evaluate(() =>
+          [...document.querySelectorAll("[data-account-tiles] b, [data-account-tiles] .tiny, [data-account-tiles] button")]
+            .filter((e) => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > innerWidth + 1)
+            .map((e) => e.textContent.trim()),
+        );
+        await page.setViewportSize(VIEWPORT);
+        ok(r.warm.cls === 0 && r.warm.ms != null && r.warm.ms < 500 && r.tilesCut.length === 0, "account & security (phone): one layout (CLS 0 warm), devices < 500 ms, tiles not cut at 360", JSON.stringify(r));
+        console.log(`INFO account & security: ${JSON.stringify(r)}`);
+        await page.keyboard.press("Escape");
+      });
+
     await step("Esc opens command palette with quick settings", async () => {
       await openPalette();
       const dialog = page.getByRole("dialog");

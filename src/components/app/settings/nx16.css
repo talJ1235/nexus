@@ -117,7 +117,7 @@ html[data-motion=reduce] .nx .sx-page,html[data-motion=reduce] .nx .sx-in{animat
 .nx .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .nx .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .nx .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-@media (max-width:1023px){.nx .grid2,.nx .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}.nx .sx-pscroll .grid2.stack{grid-template-columns:1fr}}
+@media (max-width:1023px){.nx .sx-tiles{grid-template-columns:1fr!important;gap:10px}.nx .grid2,.nx .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}.nx .sx-pscroll .grid2.stack{grid-template-columns:1fr}}
 @media (max-width:420px){.nx .grid3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.nx .sx-pscroll .grid2.stack{grid-template-columns:1fr}.nx .sx-pscroll .grid2 .grid2{gap:8px}}
 /* Phones: the bar above already names the section. */
 .nx .sx-pscroll .sx-h{min-height:0}

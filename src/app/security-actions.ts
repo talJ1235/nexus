@@ -19,8 +19,7 @@ const Id = z.string().min(1).max(64);
 
 export async function getSecurityState() {
   const ctx = await requireCtx("view");
-  const data = await securityData(ctx.user.id, ctx.session.id);
-  const ack = await userPrefGet(ctx.user.id, ACK_KEY);
+  const { pref: ack, ...data } = await securityData(ctx.user.id, ctx.session.id, ACK_KEY);
   // "Was this you?" — the newest new-device sign-in that isn't this device and wasn't answered yet.
   const fresh = data.events.find((e) => e.kind === "new_device");
   const alert = fresh && fresh.id !== ack && Date.now() - fresh.at < 14 * 86_400_000 ? fresh : null;

@@ -114,7 +114,7 @@ Same as A3 when opening Space settings from the space switcher. Back/close: **op
 where you were (Home)**; opened from Settings → back to Settings. Works with ✕, Esc, Android Back, swipe-back.
 Acceptance: smoke covers both entry points × all close methods.
 
-### A5. [ ] Account & security (phone): slow load, layout jump, cut-off tiles
+### A5. [x] Account & security (phone): slow load, layout jump, cut-off tiles
 Tal: entering Account & security on the phone shows something, it disappears, then a different layout loads; the
 devices list takes long; the three tiles at the bottom (activity & recovery, my reports, invite codes) have their
 text cut off. Expected: one layout from the first frame (skeleton rows in the final positions, no swap), devices
@@ -362,3 +362,12 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   "space settings: from the switcher …" desktop + phone (6/6 phone after the fix). The `/settings/people` failure toast
   in Tal's report (and the one `server · Error` members query at 07:47) was not investigated further — a single
   prod query failure with no repeat in the log; left open.
+- **A5 causes:** the page rendered without the checkup block and with one empty device row, then swapped in the ring and
+  N device rows when `getSecurityState` answered; that action made 5 parallel DB requests and then a 6th (the "was this
+  you" acknowledgement) — two round trips to Turso from Vercel; the three tiles were a 3-column grid at 360 (≈ 100 px
+  each). Now: one `db.batch` (one round trip; only unexpired sessions count as devices); the page shows its last answer
+  from this device at once (localStorage `nexus.sec:<user>`, no activity log in it, cleared with the offline copy on
+  logout) and refreshes in place; the first time, the checkup box and this device (from the browser's UA) are there
+  from the first frame with skeleton rows for the others; the tiles stack one per line under 1024 px. Smoke (phone,
+  local prod build, file DB): CLS 0 cold and warm, devices answer 7 ms warm, no tile text cut at 360. Not measured
+  against Turso from here (the sandbox's prod DB is out of reach) — the batch is the part that matters there.
