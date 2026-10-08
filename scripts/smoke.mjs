@@ -424,7 +424,8 @@ try {
     openPalette = async () => {
       for (let k = 0; k < 6; k++) {
         await page.keyboard.press("Escape");
-        if (await page.getByRole("dialog").waitFor({ timeout: 1000 }).then(() => true, () => false)) return;
+        // The palette itself (polish #5: a closing sheet stays mounted for its 200 ms exit, so "any dialog" isn't it).
+        if (await page.locator("[cmdk-input]").waitFor({ timeout: 1000 }).then(() => true, () => false)) return;
       }
     };
 
@@ -3100,8 +3101,9 @@ try {
     });
 
     await step("boot screen", async () => {
-      // Phones: the full intro when the app is opened (a new tab), the small Box-in-a-circle loader on reloads,
-      // pull-to-refresh and later loads in the session (Round 11 A1); both hand off to the app.
+      // Phones (polish #7, Tal 2026-10-08): the full intro on the first app open of the day (localStorage
+      // nexus.bootDay, as desktop), the small Box-in-a-circle loader on every other open, reloads, pull-to-refresh and
+      // later loads in the session (Round 11 A1); both hand off to the app.
       // Round 13 D1: the full opening lasts 3.0 s (ends ≥ 2,950 ms after it starts, by its own animation clock);
       // desktop plays it on the first open of the day, then the small loader.
       const bootMs = (pg) =>
@@ -3119,7 +3121,9 @@ try {
               setTimeout(() => res(-2), 12000);
             }),
         );
-      const p = await ctx.newPage();
+      // A browser with no record of today's opening (fresh storage, same session cookie).
+      const bctx = MOBILE ? await browser.newContext({ viewport: VIEWPORT, ...DEVICE, storageState: { cookies: await ctx.cookies(), origins: [] } }) : ctx;
+      const p = await bctx.newPage();
       const mode = () => p.evaluate(() => document.documentElement.dataset.boot);
       await p.goto(`${BASE}/?v=to_buy`, { waitUntil: "commit" });
       await p.waitForSelector("#boot", { state: "attached", timeout: 10000 });
@@ -3127,7 +3131,7 @@ try {
         const shown = await p.locator("#boot .boot-mark").isVisible();
         const first = await mode();
         const fullMs = await bootMs(p);
-        ok(shown && first === "full" && fullMs >= 2950 && fullMs < 3400 && (await p.locator(READY).isVisible()), "boot screen: full 3.0 s intro when the app is opened, hands off to the app", `mode=${first} ends at ${fullMs} ms`);
+        ok(shown && first === "full" && fullMs >= 2950 && fullMs < 3400 && (await p.locator(READY).isVisible()), "boot screen: full 3.0 s intro on the first app open of the day, hands off to the app", `mode=${first} ends at ${fullMs} ms`);
         const again = [];
         for (let k = 0; k < 2; k++) {
           await p.reload({ waitUntil: "commit" });
@@ -3143,7 +3147,7 @@ try {
         await p.waitForSelector(READY, { timeout: 15000 });
         // Our pull-to-refresh replaces Chrome's: pull down at the top → the Box mark → release → reload → small loader.
         const overscroll = await p.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY);
-        const cdp = await ctx.newCDPSession(p);
+        const cdp = await bctx.newCDPSession(p);
         const touch = (type, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x: 195, y }] });
         await p.evaluate(() => window.scrollTo(0, 0));
         // The pull listener attaches just after the app is ready; nobody pulls within those milliseconds.
@@ -3164,12 +3168,20 @@ try {
           "boot screen: small loader on reload / later loads; pull-to-refresh shows the Box mark and reloads into it",
           `loads=${again} overscroll=${overscroll} indicator=${ind} reloaded=${reloaded} afterPull=${afterPull}`,
         );
-        // A new tab is a new app open → the full intro again.
-        const p2 = await ctx.newPage();
+        // A new tab the same day → the small mark; the first open on another day → the full intro again.
+        const p2 = await bctx.newPage();
         await p2.goto(`${BASE}/?v=to_buy`, { waitUntil: "commit" });
         await p2.waitForSelector("#boot", { state: "attached", timeout: 10000 });
-        ok((await p2.evaluate(() => document.documentElement.dataset.boot)) === "full", "boot screen: a new tab opens with the full intro");
-        await p2.close();
+        const sameDay = await p2.evaluate(() => document.documentElement.dataset.boot);
+        await p2.evaluate(() => localStorage.setItem("nexus.bootDay", "2000-1-1"));
+        const p3 = await bctx.newPage();
+        await p3.goto(`${BASE}/?v=to_buy`, { waitUntil: "commit" });
+        await p3.waitForSelector("#boot", { state: "attached", timeout: 10000 });
+        const nextDay = await p3.evaluate(() => document.documentElement.dataset.boot);
+        ok(sameDay === "small" && nextDay === "full", "boot screen: another open the same day is small; the first open of a new day is full", `sameDay=${sameDay} nextDay=${nextDay}`);
+        await p3.waitForSelector("#boot.boot-gone", { state: "attached", timeout: 10000 }).catch(() => {});
+        await bctx.close();
+        return;
       } else {
         await p.close();
         // A browser with no record of today's opening (fresh storage, same session cookie): full first, then small.
