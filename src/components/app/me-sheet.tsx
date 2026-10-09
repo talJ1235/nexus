@@ -10,7 +10,7 @@ import { download, exportUrl } from "@/lib/export-url";
 import { cn } from "@/lib/utils";
 import { PaletteSwatch, Segmented } from "./settings-dialog";
 import { useStore } from "./store";
-import { useUnreadAlerts } from "./alerts-panel";
+import { useNotifyUnread } from "../notify/inbox";
 import { useMeName } from "./spaces/space-ui";
 import { SpaceRows } from "./spaces/switcher";
 import { initialOf } from "@/lib/initial";
@@ -23,7 +23,7 @@ export function MeSheet() {
   const { theme, setTheme } = useTheme();
   const [palette, setPalette] = usePalette();
   const open = s.meOpen;
-  const unread = useUnreadAlerts();
+  const unread = useNotifyUnread();
   const meName = useMeName();
 
 
@@ -90,9 +90,9 @@ export function MeSheet() {
           <button type="button" className={row} onClick={go(() => s.setView({ type: "history" }))} data-me-history>
             <History /> <span className="flex-1">{t.insights.history}</span> <ChevronRight className="size-4 text-faint rtl:-scale-x-100" />
           </button>
-          {/* R14 B2: the phone top bar has no bell (home-v4) — alerts live here, the avatar shows the unread dot. */}
+          {/* R17 S3: the inbox (the phone header has its bell again); kept here as a second way in. */}
           <button type="button" className={row} onClick={go(() => s.setPanel("alerts"))} data-me-alerts>
-            <Bell /> <span className="flex-1">{t.alerts.title}</span>
+            <Bell /> <span className="flex-1">{t.nt.title}</span>
             {unread > 0 && <span className="tabular grid h-5 min-w-5 place-items-center rounded-full bg-spark px-1.5 text-[11px] font-bold text-white">{unread}</span>}
           </button>
           <button type="button" className={row} onClick={go(() => s.setReportsOpen(true))} data-me-reports>

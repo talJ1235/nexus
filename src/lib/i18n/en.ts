@@ -5,6 +5,7 @@ export const en = {
   nt: {
     title: "Notifications",
     markAll: "Mark all read",
+    close: "Close",
     back: "Back",
     newN: "{n} new",
     today: "Today",

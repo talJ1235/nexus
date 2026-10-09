@@ -24,7 +24,7 @@ import { historyMonthOf } from "./view-items";
 import { MeSheet } from "./me-sheet";
 import { SpacesLayer } from "./spaces/layer";
 import { ImportDialog } from "./import-dialog";
-import { AlertsPanel } from "./alerts-panel";
+import { InboxLayer, NotifyRuntime } from "../notify/inbox";
 import { TopBar } from "./top-bar";
 import { Dock, PhoneTopBar, PlusMenu } from "./phone-shell";
 import { FiltersRow, HomeSummary, SUMMARY_VIEWS } from "./home-summary";
@@ -124,8 +124,9 @@ function Shell({ incoming }: { incoming?: Incoming }) {
     >
       <div
         className={cn(
-          "lg:grid lg:grid-cols-[var(--sw)_minmax(0,1fr)] lg:gap-2 lg:pe-[26px] lg:ps-1",
+          "nt-under lg:grid lg:grid-cols-[var(--sw)_minmax(0,1fr)] lg:gap-2 lg:pe-[26px] lg:ps-1",
         )}
+        data-nt-under
       >
         <aside className="sticky top-0 hidden h-dvh min-w-0 lg:block" data-sidebar-w={sw}>
           {size !== "phone" && <Sidebar collapsed={liveW != null ? liveW < (SIDEBAR_MIN + SIDEBAR_MAX) / 2 : collapsed} onToggle={() => s.setSidebarCollapsed(!collapsed)} />}
@@ -215,7 +216,8 @@ function Shell({ incoming }: { incoming?: Incoming }) {
         <ImportDialog />
       </PanelBoundary>
       <PanelBoundary label="Alerts">
-        <AlertsPanel />
+        <InboxLayer />
+        <NotifyRuntime />
       </PanelBoundary>
       <PanelBoundary label="Assistant">
         <AssistantPanel />

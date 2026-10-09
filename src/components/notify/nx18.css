@@ -1,0 +1,175 @@
+/* R17 Session 3 — inbox (popover + phone page), rows, swipe to delete, the permission card. Ported from
+   docs/design/r17/nx18.css (approved boards v2), scoped under .nx (auth/nx.css + settings/nx16.css + admin/nx17.css load
+   first: tokens, .btn, .av, motion easings). dark = html.dark, Plum = html[data-palette=plum].
+   Changes from the board: keyframes carry an `nt-` prefix (globals.css owns `pop-in`); the phone sheet, push previews and
+   the drawn browser prompts are board-only; positions come from the bell at run time. */
+
+.nx.nt-root{background:transparent;color:var(--ink)}
+
+/* bell + badge (the app's header keeps its own round button; this is the count + the ring) */
+.nt-bd{position:absolute;top:2px;inset-inline-end:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--spark,#f59e0b);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px var(--surface,#fff);font-variant-numeric:tabular-nums;line-height:1;pointer-events:none}
+.nt-bell-dot{position:absolute;top:9px;inset-inline-end:9px;width:8px;height:8px;border-radius:50%;background:var(--spark,#f59e0b);box-shadow:0 0 0 2px var(--surface,#fff);pointer-events:none}
+.nt-ring svg{animation:nt-ring 700ms cubic-bezier(.23,1,.32,1) 1;transform-origin:50% 4px}
+@keyframes nt-ring{0%{transform:rotate(0)}15%{transform:rotate(14deg)}30%{transform:rotate(-12deg)}45%{transform:rotate(8deg)}60%{transform:rotate(-5deg)}75%{transform:rotate(2deg)}100%{transform:rotate(0)}}
+
+/* desktop popover — scales out of the bell (origin = its trigger), 200 ms ease-out */
+.nx .ibx{position:fixed;z-index:70;width:420px;max-width:calc(100vw - 24px);background:var(--raised);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh3);display:flex;flex-direction:column;overflow:hidden;
+ transform-origin:top right;animation:nt-pop 200ms var(--ease-out) both}
+[dir=rtl] .nx .ibx{transform-origin:top left}
+.nx .ibx.out{animation:nt-pop-out 140ms var(--ease-out) both}
+@keyframes nt-pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes nt-pop-out{from{opacity:1;transform:none}to{opacity:0;transform:scale(.97)}}
+
+.nx .ihd{display:flex;align-items:center;gap:10px;padding:14px 16px 10px 20px}
+.nx .ihd h2{font-size:17px;font-weight:700;letter-spacing:-.015em;margin:0;flex:1}
+.nx .igrp{font-size:12.5px;font-weight:600;color:var(--muted);padding:12px 20px 6px}
+.nx .ilist{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-bottom:8px}
+
+/* a notification row. The media column is a fixed 40×40 block (board v2 fix): badges and the second face sit inside it. */
+.nx .nt{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:flex-start;padding:12px 16px 12px 20px;width:100%;border:0;background:transparent;text-align:start;color:var(--ink);transition:background-color 150ms ease}
+@media (hover:hover) and (pointer:fine){.nx .nt:hover{background:var(--hover)}}
+.nx .nt.unread{background:color-mix(in srgb,var(--spark) 5%,transparent)}
+[data-palette=plum] .nx .nt.unread{background:color-mix(in srgb,var(--brand) 6%,transparent)}
+.nx .nt>.media{display:block;position:relative;width:40px;height:40px;margin-top:1px}
+.nx .nt .tx{min-width:0;line-height:1.38;font-size:14px;overflow-wrap:anywhere}
+.nx .nt .tx b{font-weight:650}
+.nx .nt .tx .s{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.nx .nt .meta{display:flex;flex-direction:column;align-items:flex-end;gap:8px;font-size:12px;color:var(--faint);white-space:nowrap;font-variant-numeric:tabular-nums}
+.nx .udot{width:8px;height:8px;border-radius:50%;background:var(--spark);transition:opacity 200ms ease,transform 200ms var(--ease-out)}
+[data-palette=plum] .nx .udot{background:var(--brand)}
+.nx .udot.off{opacity:0;transform:scale(.5)}
+.nx .nic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;position:relative}
+.nx .nic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nx .nic.k-budget{background:var(--warn-t);color:var(--warn)}
+.nx .nic.k-week{background:var(--s2);color:var(--ink2)}
+.nx .thumb{display:block;width:40px;height:40px;border-radius:12px;flex-shrink:0;position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);background:var(--s2) center/cover no-repeat}
+.nx .thumb>img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:block}
+.nx .thumb .kb{position:absolute;bottom:-3px;inset-inline-end:-3px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 0 2px var(--raised)}
+.nx .thumb .kb svg{width:11px;height:11px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.nx .kb.ok{background:var(--ok)}.nx .kb.info{background:var(--info)}
+.nx .was{color:var(--faint);text-decoration:line-through;text-decoration-thickness:1px}
+.nx .chg{display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;background:var(--ok-t);color:var(--ok);font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.nx .nt .act{margin-top:8px;display:flex;gap:6px}
+.nx .nt .act .btn{height:36px}
+.nx .donechip{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 10px;border-radius:9px;background:var(--ok-t);color:var(--ok);font-size:13px;font-weight:600}
+.nx .donechip svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.nx .pile-n{display:block;position:relative;width:40px;height:40px}
+.nx .pile-n .av{position:absolute;margin:0}
+.nx .pile-n .av:first-child{top:0;inset-inline-start:0}
+.nx .pile-n .av:last-child{bottom:0;inset-inline-end:0;box-shadow:0 0 0 2px var(--raised)}
+.nx .ring-shop{box-shadow:0 0 0 2px var(--raised),0 0 0 4px var(--spark)}
+.nx .shopping{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink2);font-variant-numeric:tabular-nums}
+.nx .ping{position:relative;width:8px;height:8px;border-radius:50%;background:var(--spark)}
+.nx .ping::after{content:"";position:absolute;inset:0;border-radius:50%;background:inherit;animation:nt-ping 1.6s cubic-bezier(0,0,.2,1) infinite}
+@keyframes nt-ping{75%,100%{transform:scale(2.2);opacity:0}}
+.nx .meter{display:block;height:6px;border-radius:3px;background:var(--s3);overflow:hidden}
+.nx .meter>i{display:block;height:100%;border-radius:3px;background:var(--warn)}
+/* in-place update: blur bridges the old and new text */
+.nx .swap{animation:nt-swap 320ms ease both}
+@keyframes nt-swap{from{opacity:.2;filter:blur(3px)}to{opacity:1;filter:none}}
+.nx .newrow{animation:rise-s 380ms ease both}
+.nx .ifoot{border-top:1px solid var(--line-in);padding:10px 20px;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--faint)}
+.nx .ifoot a,.nx .ifoot button{color:var(--muted);font-weight:600;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line-strong);background:none;border:0;padding:0}
+.nx .banner{margin:4px 12px 6px;padding:12px 14px;border-radius:14px;display:flex;align-items:center;gap:12px;font-size:13.5px;line-height:1.35}
+.nx .banner.off{background:var(--s2)}
+.nx .banner.blocked{background:var(--warn-t);color:var(--ink)}
+.nx .banner .grow{flex:1;min-width:0}
+.nx .banner svg{width:20px;height:20px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nx .ibx-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;animation:rise-s 380ms ease both}
+.nx .ibx-empty .ic{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:var(--s2);color:var(--ink2)}
+.nx .ibx-empty .ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+.nx .nt-hit{position:absolute;inset:0;border:0;background:transparent;padding:0;border-radius:0;cursor:pointer;z-index:0}
+.nx .nt-hit:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+.nx .nt>.media,.nx .nt>.tx,.nx .nt>.meta{position:relative;pointer-events:none}
+.nx .nt .act .btn,.nx .nt .act .donechip{pointer-events:auto;position:relative;z-index:1}
+
+/* swipe to delete (phone) — the row follows the finger 1:1; release snaps on the drawer curve */
+.nx .sw-wrap{position:relative;overflow:hidden}
+.nx .sw-under{position:absolute;inset:0;background:var(--danger);display:flex;justify-content:flex-end;align-items:center;padding-inline-end:22px;color:#fff;font-weight:700;font-size:13px}
+.nx .sw-under button{border:0;background:transparent;color:#fff;font:inherit;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:100%;min-width:56px;padding:0 6px}
+.nx .sw-under svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.nx .sw-row{position:relative;background:var(--raised);touch-action:pan-y;will-change:transform}
+.nx .sw-row.settle{transition:transform 360ms var(--ease-drawer)}
+.nx .collapse{animation:nt-collapse 220ms var(--ease-out) forwards;overflow:hidden}
+@keyframes nt-collapse{from{max-height:160px;opacity:1}to{max-height:0;opacity:0}}
+
+/* phone inbox = a full page pushed in from the inline-end over Home (Home shifts 22 % back and dims) */
+.nt-under{transition:transform 380ms cubic-bezier(.32,.72,0,1),filter 380ms cubic-bezier(.32,.72,0,1)}
+@media (max-width:1023px){html[data-inbox=open] .nt-under{transform:translateX(-22%);filter:brightness(.92)}
+[dir=rtl][data-inbox=open] .nt-under{transform:translateX(22%)}}
+.nx.ibx-page{position:fixed;inset:0;z-index:65;background:var(--raised);display:flex;flex-direction:column;box-shadow:-12px 0 40px -18px rgba(0,0,0,.35);
+ animation:nt-page-in 380ms var(--ease-drawer) both}
+[dir=rtl] .nx.ibx-page{animation-name:nt-page-in-r;box-shadow:12px 0 40px -18px rgba(0,0,0,.35)}
+.nx.ibx-page.out{animation:nt-page-out 300ms var(--ease-drawer) both}
+[dir=rtl] .nx.ibx-page.out{animation-name:nt-page-out-r}
+.nx.ibx-page.dragging{animation:none;transition:none}
+.nx.ibx-page.snap{animation:none;transition:transform 300ms var(--ease-drawer)}
+@keyframes nt-page-in{from{transform:translateX(100%)}to{transform:none}}
+@keyframes nt-page-in-r{from{transform:translateX(-100%)}to{transform:none}}
+@keyframes nt-page-out{from{transform:none}to{transform:translateX(100%)}}
+@keyframes nt-page-out-r{from{transform:none}to{transform:translateX(-100%)}}
+.nx .pg-top{min-height:52px;display:flex;align-items:center;gap:4px;padding:0 8px;padding-top:env(safe-area-inset-top,0px);flex-shrink:0}
+.nx .pg-top .sp{flex:1}
+.nx .pg-top .btn.icon{width:44px;height:44px;padding:0}
+.nx .pg-top .btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+[dir=rtl] .nx .pg-top .flip{transform:scaleX(-1)}
+.nx .pg-title{display:flex;align-items:baseline;gap:10px;padding:2px 20px 10px}
+.nx .pg-title h1{font-size:28px;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1.1}
+.nx .pg-title .newc{font-size:13px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.nx.ibx-page .ilist{padding-bottom:0}
+.nx.ibx-page .igrp{position:sticky;top:0;z-index:2;background:var(--raised);padding:14px 20px 6px}
+.nx.ibx-page .sw-wrap+.sw-wrap .nt::before{content:"";position:absolute;top:0;inset-inline:72px 0;height:1px;background:var(--line-in)}
+.nx.ibx-page .nt{padding:14px 16px 14px 20px;gap:14px}
+.nx.ibx-page .nt .tx{font-size:15px}
+.nx.ibx-page .nt .tx .s{font-size:13px}
+.nx .pg-foot{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 20px calc(28px + env(safe-area-inset-bottom,0px));font-size:12.5px;color:var(--faint);text-align:center}
+.nx .pg-foot a,.nx .pg-foot button{color:var(--muted);font-weight:600;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line-strong);background:none;border:0;padding:4px}
+
+/* ---- the permission card (no item context: the same card wherever it appears) ---- */
+.nx .nudge{background:var(--raised);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh3);padding:14px;display:flex;flex-direction:column;gap:12px}
+.nx .nudge .row{display:flex;gap:12px;align-items:flex-start;padding:0;min-height:0}
+.nx .nudge .tx{flex:1;min-width:0;line-height:1.35}
+.nx .nudge .tx b{display:block;font-size:15px;font-weight:700;letter-spacing:-.01em}
+.nx .nudge .tx span{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.nx .nudge .bt{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.nx .nudge .bt .btn{height:44px}
+.nx .nudge .x{margin:-6px -6px 0 0;flex-shrink:0;width:40px;height:40px;padding:0}
+[dir=rtl] .nx .nudge .x{margin:-6px 0 0 -6px}
+.nx .nudge .x svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.nx .kinds{position:relative;width:48px;height:48px;flex-shrink:0}
+.nx .kinds .b{position:absolute;inset:4px;border-radius:14px;background:var(--s2);color:var(--ink);display:grid;place-items:center}
+.nx .kinds .b svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transform-origin:50% 3px;animation:nt-ring 700ms var(--ease-out) 700ms 1}
+.nx .kinds .k{position:absolute;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 0 2px var(--raised)}
+.nx .kinds .k svg{width:10px;height:10px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.nx .kinds .k1{top:-2px;inset-inline-end:-3px;background:var(--ok)}
+.nx .kinds .k2{bottom:-2px;inset-inline-end:-3px;background:var(--info)}
+.nx .kinds .k3{bottom:-2px;inset-inline-start:-3px;background:#7c5ad9}
+.nx .kinds.ok .b{background:var(--ok-t);color:var(--ok)}
+.nx .kinds.ok .b svg,.nx .kinds.warn .b svg,.nx .kinds.ios .b svg{animation:none}
+.nx .kinds.warn .b{background:var(--warn-t);color:var(--warn)}
+/* phone: rises from above the dock (same path in and out); desktop: scales out of the bell */
+.nx.nudge-ph{position:fixed;inset-inline:12px;bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:60;background:transparent;transition:transform 400ms ease,opacity 400ms ease;animation:nt-nudge-up 400ms ease both;touch-action:pan-x}
+.nx.nudge-ph.gone{animation:none;transform:translateY(24px);opacity:0;pointer-events:none}
+.nx.nudge-ph.dragging{transition:none;animation:none}
+@keyframes nt-nudge-up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.nx.nudge-pc{position:fixed;width:360px;z-index:60;background:transparent;transform-origin:top right;animation:nt-pop 200ms var(--ease-out) both;transition:transform 200ms var(--ease-out),opacity 200ms var(--ease-out)}
+[dir=rtl] .nx.nudge-pc{transform-origin:top left}
+.nx.nudge-pc.gone{animation:none;transform:scale(.9);opacity:0;pointer-events:none}
+.nx.nudge-pc .tip{position:absolute;top:-6px;inset-inline-end:var(--tip,22px);width:12px;height:12px;background:var(--raised);border-top:1px solid var(--line);border-inline-start:1px solid var(--line);transform:rotate(45deg);z-index:1}
+[dir=rtl] .nx.nudge-pc .tip{transform:rotate(-45deg)}
+.nx .nudge .grow-in{animation:in-up 260ms var(--ease-out) both}
+.nx .steps{display:flex;flex-direction:column;border:1px solid var(--line-in);border-radius:12px;background:var(--s)}
+.nx .steps>div{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 14px;font-size:13.5px}
+.nx .steps>div+div{border-top:1px solid var(--line-in)}
+.nx .steps .n{width:24px;height:24px;border-radius:50%;background:var(--s2);display:grid;place-items:center;font-size:12px;font-weight:700;flex-shrink:0}
+.nx .nudge .btn.wait{opacity:.6}
+
+@media (prefers-reduced-motion:reduce){
+ .nx .ibx,.nx .ibx.out,.nx .newrow,.nx .swap,.nx .ibx-empty,.nx.ibx-page,.nx.ibx-page.out,.nx.nudge-ph,.nx.nudge-pc,.nx .nudge .grow-in{animation:fade-o 180ms ease both !important}
+ .nx.ibx-page.out,.nx .ibx.out{animation-direction:reverse !important}
+ .nt-ring svg,.nx .kinds .b svg,.nx .ping::after{animation:none}
+ .nx .sw-row.settle,.nx.ibx-page.snap{transition:none}
+ .nt-under{transition:filter 200ms ease}html[data-inbox=open] .nt-under,[dir=rtl][data-inbox=open] .nt-under{transform:none}
+ .nx.nudge-ph,.nx.nudge-pc{transition:opacity 180ms ease}.nx.nudge-ph.gone,.nx.nudge-pc.gone{transform:none}
+}

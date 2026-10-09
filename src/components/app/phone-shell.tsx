@@ -8,7 +8,7 @@ import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { useBackClose } from "@/components/ui/sheet-drag";
 import { prewarmScanners } from "@/lib/barcode-reader";
-import { useUnreadAlerts } from "./alerts-panel";
+import { NotifyBell } from "../notify/inbox";
 import { useReadOnly } from "./offline-banner";
 import { usePlusOpen, useStore, type View } from "./store";
 import { useAddActions } from "./add-actions";
@@ -18,7 +18,7 @@ import { SpaceLook, useMeName } from "./spaces/space-ui";
 import { initialOf } from "@/lib/initial";
 
 /** Phone / tablet (<1024 px) top bar = home-v4 (R14 B2): Box + "Nexus", then the search circle, the Ask circle and the
- *  avatar (Me; a dot when price alerts are unread), 36 px controls with ≥ 40 px tap areas. Search expands in place. */
+ *  bell (the inbox, R17 S3), avatar (Me), 36 px controls with ≥ 40 px tap areas. Search expands in place. */
 export function PhoneTopBar() {
   const s = useStore();
   const { t } = useI18n();
@@ -35,7 +35,6 @@ export function PhoneTopBar() {
     setSearching(false);
   };
   useBackClose(open, close, "(max-width: 1023px)");
-  const unread = useUnreadAlerts();
   const meName = useMeName();
   // 36 px circles; the ::after grows each tap area to 40 px without moving anything.
   const circle = "relative grid size-9 shrink-0 place-items-center rounded-full transition-transform duration-[120ms] ease-[var(--ease-out)] active:scale-95 after:absolute after:-inset-0.5 after:content-['']";
@@ -92,17 +91,18 @@ export function PhoneTopBar() {
         </>
       )}
       {s.aiEnabled && !open && <AskButton iconOnly className="size-9 [&_svg]:size-4 [&_svg]:text-spark" />}
+      {/* R17 S3 K2: the bell is back in the phone header — it opens the inbox page. */}
+      {!open && <NotifyBell variant="phone" className={cn(circle, "border border-line bg-surface text-ink [&_svg]:!size-[18px]")} />}
       {!open && (
         // Settings, look, alerts, reports, extension, Telegram, export and log out (Round 9 A1).
         <button
           type="button"
           onClick={() => s.setMeOpen(true)}
           className={cn(circle, "ms-0.5 size-8 bg-ink text-xs font-bold text-bg after:-inset-1")}
-          aria-label={unread ? `${t.me.open} · ${t.alerts.title} (${unread})` : t.me.open}
+          aria-label={t.me.open}
           data-me-open
         >
           {initialOf(meName, "")}
-          {unread > 0 && <span className="absolute -end-px -top-px size-2.5 rounded-full bg-spark ring-2 ring-bg" data-unread={unread} />}
         </button>
       )}
       {open && <PhoneSearchResults q={q} onClose={close} onPick={setQ} />}

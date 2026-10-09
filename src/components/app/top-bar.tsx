@@ -5,7 +5,7 @@ import { ChevronRight, Search, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { matchCommands } from "@/lib/commands";
 import { cn } from "@/lib/utils";
-import { AlertsBell } from "./alerts-panel";
+import { NotifyBell } from "../notify/inbox";
 import { useStore } from "./store";
 import { useCommands } from "./use-commands";
 
@@ -83,7 +83,7 @@ export function TopBar() {
       )}
       </div>
       {s.aiEnabled && <AskButton />}
-      <AlertsBell />
+      <NotifyBell variant="desk" className="relative grid size-[50px] shrink-0 place-items-center rounded-full border border-line bg-surface text-ink transition hover:bg-surface-2 active:scale-[0.96] aria-expanded:bg-surface-2" />
     </div>
   );
 }

@@ -31,12 +31,15 @@ export async function upsertNotification(r: { userId: string; spaceId: string | 
     .onConflictDoUpdate({ target: [schema.notification.userId, schema.notification.groupKey], set: { data, updatedAt: r.now, readAt: null, deletedAt: null, ...send } });
 }
 
-/** Update only the data (live "6 of 15 left" while a trip runs) — no new push, read state kept. */
-export async function patchNotificationData(userIds: string[], groupKey: string, data: unknown, now: number) {
+/**
+ * Update only the data (live "6 of 15 left" while a trip runs, "Marked received") — no new push, read state, time and
+ * place in the list kept.
+ */
+export async function patchNotificationData(userIds: string[], groupKey: string, data: unknown) {
   if (!userIds.length) return;
   await db
     .update(schema.notification)
-    .set({ data: JSON.stringify(data ?? {}), updatedAt: now })
+    .set({ data: JSON.stringify(data ?? {}) })
     .where(and(inArray(schema.notification.userId, userIds), eq(schema.notification.groupKey, groupKey)));
 }
 

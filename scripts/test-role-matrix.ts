@@ -45,8 +45,8 @@ assert.equal(pickSpace(mine("viewer"), "A")?.role, "viewer");
 const VIEW_OK = new Set([
   "actions.ts#reloadAll",
   "ai-actions.ts#ask",
-  "alert-actions.ts#getAlertsState", "alert-actions.ts#saveAlertPrefs", "alert-actions.ts#gone",
-  "alert-actions.ts#tgSaveToken", "alert-actions.ts#tgFinishLink", "alert-actions.ts#tgDisconnect", "alert-actions.ts#tgTest",
+  // R17 S3: the inbox, its count and the permission card's memory — the caller's own rows only (everyone has one).
+  "notify-actions.ts#*",
   "barcode-actions.ts#lookupBarcode",
   "cal-actions.ts#calendarInfo", "cal-actions.ts#regenerateCalendar", "cal-actions.ts#markCalendarSubscribed", "cal-actions.ts#calendarSubscribed", "cal-actions.ts#setCalendarKinds",
   "chat-actions.ts#me",

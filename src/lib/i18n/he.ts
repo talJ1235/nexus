@@ -6,6 +6,7 @@ export const he: Dict = {
   nt: {
     title: "התראות",
     markAll: "סימון הכול כנקרא",
+    close: "סגירה",
     back: "חזרה",
     newN: "{n} חדשות",
     today: "היום",

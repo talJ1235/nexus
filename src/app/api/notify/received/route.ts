@@ -33,6 +33,6 @@ export async function POST(req: Request) {
   }, undefined).catch(() => ({ by: null }));
   if (c) return new Response(null, { status: 409 });
   if (moved) noteActivity({ userId: ctx.user.id, spaceId: row.spaceId }, "delivery_received");
-  await patchNotificationData([ctx.user.id], row.groupKey, { ...data, received: true }, Date.now());
+  await patchNotificationData([ctx.user.id], row.groupKey, { ...data, received: true });
   return Response.json({ ok: true, moved });
 }

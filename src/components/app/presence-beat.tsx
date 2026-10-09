@@ -48,7 +48,7 @@ export function useBeat(screen: ScreenKey | null, shoppingLeft: number | null = 
 }
 
 /** The app's screen right now, as a fixed key. */
-function useScreen(): ScreenKey | null {
+export function useScreen(): ScreenKey | null {
   const s = useStore();
   const openItem = useOpenItemId();
   if (s.loading) return null;

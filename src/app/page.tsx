@@ -24,7 +24,7 @@ import { getCurrencyPref, getUiPrefs } from "@/lib/server-prefs";
  * The shell streams at once (same component, empty store, skeleton content); the data-dependent app replaces it
  * in the same response when `getAppData` resolves — no blank page and no whole-page loading swap.
  */
-export default async function Home({ searchParams, settings }: { searchParams: Promise<{ v?: string; f?: string }>; settings?: string }) {
+export default async function Home({ searchParams, settings, inbox }: { searchParams: Promise<{ v?: string; f?: string }>; settings?: string; inbox?: boolean }) {
   const ctx = await currentCtx();
   if (!ctx) redirect("/login");
   if (await needsRecoveryPasskey(ctx.user.id, ctx.session)) redirect("/passkey?forced=1");
@@ -37,7 +37,7 @@ export default async function Home({ searchParams, settings }: { searchParams: P
   const tz = decodeURIComponent(jar.get("nexus_tz")?.value ?? "").slice(0, 60) || null;
   // `now` + `tz`: Home's first paint matches on server and client (store.tsx Clock). A server component renders once.
   // eslint-disable-next-line react-hooks/purity
-  const boot: AppBoot = { currency, ...prefs, settings: settings ?? null, view: typeof v === "string" ? v : null, filter: typeof f === "string" ? f : null, aiEnabled: aiEnabled(), now: Date.now(), tz: tz && isTimeZone(tz) ? tz : null };
+  const boot: AppBoot = { currency, ...prefs, settings: settings ?? null, inbox: !!inbox, view: typeof v === "string" ? v : null, filter: typeof f === "string" ? f : null, aiEnabled: aiEnabled(), now: Date.now(), tz: tz && isTimeZone(tz) ? tz : null };
   // The user's language and currency for what the cron writes (it has no cookies).
   const locale = jar.get(LOCALE_COOKIE)?.value === "he" ? "he" : "en";
   after(() => rememberOwner(ctx.user.id, locale, currency).catch(() => {}));

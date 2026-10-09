@@ -787,11 +787,11 @@ try {
             search: size("[data-phone-search]"),
             ask: size("[data-ask]"),
             avatar: size("[data-me-open]"),
-            bell: !!top.querySelector("[data-carry='panel:alerts']"),
+            bell: size("[data-nt-bell=phone]"),
           };
         });
         await shot(page, "phone-shell-v4");
-        ok(r.labels.length === 4 && r.labels.every(Boolean) && r.font === "10.5px" && r.activeInk && r.logo === "Nexus" && r.search === 36 && (r.ask === 36 || r.ask === 0) && r.avatar === 32 && !r.bell, "phone shell: dock labels, active ink, v4 top bar (36 px, avatar, no bell)", JSON.stringify(r));
+        ok(r.labels.length === 4 && r.labels.every(Boolean) && r.font === "10.5px" && r.activeInk && r.logo === "Nexus" && r.search === 36 && (r.ask === 36 || r.ask === 0) && r.avatar === 32 && r.bell === 36, "phone shell: dock labels, active ink, v4 top bar (36 px, bell, avatar)", JSON.stringify(r));
       });
 
       await step("phone: dock + '+' menu opens the add list (4 cards + 3 compact) and closes on the scrim", async () => {
@@ -2217,14 +2217,19 @@ try {
       await page.keyboard.press("Escape");
     });
 
-    await step("alerts panel: in-app only (Telegram + weekly digest retired, R15 D2)", async () => {
-      await page.goto(`${BASE}/?panel=alerts`);
-      const note = page.locator("[data-alerts-inapp]");
-      await note.waitFor({ timeout: 15000 });
-      await note.scrollIntoViewIfNeeded();
-      await shot(page, "alerts-inapp");
-      ok((await page.locator("[data-weekly-pref]").count()) === 0 && (await page.getByText("Telegram", { exact: true }).count()) === 0, "alerts panel: no Telegram or weekly digest controls");
+    await step("inbox popover (R17 S3): opens from the bell, no Telegram, Esc closes and focus returns", async () => {
+      await page.goto(BASE);
+      await page.waitForSelector("[data-nt-bell=desk]", { timeout: 15000 });
+      await page.click("[data-nt-bell=desk]");
+      const pop = page.locator("[data-nt-popover]");
+      await pop.waitFor({ timeout: 10000 });
+      await page.waitForTimeout(300);
+      await shot(page, "inbox-popover");
+      const tg = await page.getByText("Telegram", { exact: true }).count();
       await page.keyboard.press("Escape");
+      await pop.waitFor({ state: "detached", timeout: 5000 });
+      const focus = await page.evaluate(() => document.activeElement?.getAttribute("data-nt-bell"));
+      ok(tg === 0 && focus === "desk", "inbox popover: no Telegram controls, Esc closes, focus back on the bell", JSON.stringify({ tg, focus }));
     });
 
     await step("owner backup endpoint", async () => {

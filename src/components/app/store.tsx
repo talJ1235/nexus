@@ -43,7 +43,7 @@ export type SortKey = "newest" | "price" | "priority" | "name";
 type Editor = { mode: "create"; kind: "project" | "list" } | { mode: "edit"; collection: Collection } | null;
 
 /** Server-known state for the first paint: prefs from cookies, `?v=` from the URL. */
-export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; filter?: string | null; /** R17 A3: /settings[/<section>] — Settings is open from the first paint ("" = the section list). */ settings?: string | null; sidebarCollapsed?: boolean; phoneLayout?: PhoneLayout | null; homeLayout?: string | null; now?: number; tz?: string | null };
+export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; filter?: string | null; /** R17 A3: /settings[/<section>] — Settings is open from the first paint ("" = the section list). */ settings?: string | null; /** R17 S3: /inbox — the inbox is open from the first paint. */ inbox?: boolean; sidebarCollapsed?: boolean; phoneLayout?: PhoneLayout | null; homeLayout?: string | null; now?: number; tz?: string | null };
 
 /** Home's clock: the first paint uses the server's time + the saved time zone (same HTML on both sides), then the
  *  device's. weekStartsOn from the browser locale (Monday-first where it says so). */
@@ -426,7 +426,7 @@ export function StoreProvider({
   const closeReport = useCallback(() => setReportDraft(null), []);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [meOpen, setMeOpen] = useState(false);
-  const [panel, setPanel] = useState<Panel>(null);
+  const [panel, setPanel] = useState<Panel>(ui.inbox ? "alerts" : null);
   const [askSeed, setAskSeed] = useState<string | null>(null);
   const askAssistant = useCallback((q: string) => {
     // Suffix keeps repeated identical questions distinct.
