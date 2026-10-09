@@ -1,0 +1,225 @@
+/* Nexus R17 S3 additions — inbox, permission moment, push previews. Loaded after nx.css, nx16.css, nx17.css.
+   Motion per .claude/skills (emil-design-eng, apple-design, animate RECIPES, mobile-native). */
+
+/* bell + badge */
+.bell{position:relative;width:40px;height:40px;border-radius:12px;border:0;background:transparent;display:grid;place-items:center;color:var(--ink2)}
+.bell svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transform-origin:50% 4px}
+.bell.open{background:var(--sel);color:var(--ink)}
+.bell .bd{position:absolute;top:4px;inset-inline-end:3px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--spark);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px var(--screen);font-variant-numeric:tabular-nums}
+.bell.ring svg{animation:ring 700ms var(--ease-out) 1}
+@keyframes ring{0%{transform:rotate(0)}15%{transform:rotate(14deg)}30%{transform:rotate(-12deg)}45%{transform:rotate(8deg)}60%{transform:rotate(-5deg)}75%{transform:rotate(2deg)}100%{transform:rotate(0)}}
+
+/* desktop popover — scales out of the bell (origin = its trigger), 200 ms ease-out */
+.ibx{position:absolute;width:420px;background:var(--raised);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh3);display:flex;flex-direction:column;overflow:hidden;
+ transform-origin:top right;animation:pop-in 200ms var(--ease-out) both}
+[dir=rtl] .ibx{transform-origin:top left}
+@keyframes pop-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+/* phone sheet — slides up on the drawer curve */
+.ibx-sheet{position:absolute;inset-inline:0;bottom:0;top:44px;background:var(--raised);border-radius:22px 22px 0 0;box-shadow:0 -10px 40px -12px rgba(0,0,0,.3);display:flex;flex-direction:column;overflow:hidden;animation:sheet-up 420ms var(--ease-drawer) both}
+@keyframes sheet-up{from{transform:translateY(100%)}to{transform:none}}
+
+.ihd{display:flex;align-items:center;gap:10px;padding:14px 16px 10px 20px}
+.ihd h2{font-size:17px;font-weight:700;letter-spacing:-.015em;margin:0;flex:1}
+.igrp{font-size:12.5px;font-weight:600;color:var(--muted);padding:12px 20px 6px}
+.ilist{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-bottom:8px}
+/* v2 fix: the media column was an inline <span>, so it collapsed to 0 px wide — the kind badge and the second face hung
+   outside the row and the product picture vanished. It is a fixed 40×40 block now; badges sit inside its corner. */
+.nt>.media{display:block;position:relative;width:40px;height:40px;margin-top:1px}
+.thumb,.pile-n{display:block}
+.pile-n .av{margin:0}
+.thumb .kb{bottom:-3px;inset-inline-end:-3px}
+
+/* a notification row */
+.nt{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:flex-start;padding:12px 16px 12px 20px;width:100%;border:0;background:transparent;text-align:start;color:var(--ink);transition:background-color 150ms ease}
+@media (hover:hover) and (pointer:fine){.nt:hover{background:var(--hover)}}
+.nt.unread{background:color-mix(in srgb,var(--spark) 5%,transparent)}
+.nx.plum .nt.unread{background:color-mix(in srgb,var(--brand) 6%,transparent)}
+.nt .tx{min-width:0;line-height:1.38;font-size:14px}
+.nt .tx b{font-weight:650}
+.nt .tx .s{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.nt .meta{display:flex;flex-direction:column;align-items:flex-end;gap:8px;font-size:12px;color:var(--faint);white-space:nowrap;font-variant-numeric:tabular-nums}
+.udot{width:8px;height:8px;border-radius:50%;background:var(--spark);transition:opacity 200ms ease,transform 200ms var(--ease-out)}
+.nx.plum .udot{background:var(--brand)}
+.udot.off{opacity:0;transform:scale(.5)}
+.nic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;position:relative}
+.nic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nic.k-price{background:var(--ok-t);color:var(--ok)}
+.nic.k-del{background:var(--info-t);color:var(--info)}
+.nic.k-budget{background:var(--warn-t);color:var(--warn)}
+.nic.k-week{background:var(--s2);color:var(--ink2)}
+.thumb{width:40px;height:40px;border-radius:12px;flex-shrink:0;position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.thumb.t1{background:radial-gradient(40% 40% at 35% 35%,#fff 0,transparent 70%),linear-gradient(140deg,#d9e4ec,#9fb3c2)}
+.thumb.t2{background:radial-gradient(40% 40% at 60% 30%,#fff6 0,transparent 70%),linear-gradient(160deg,#f6c7c7,#d77a8a)}
+.thumb.t3{background:radial-gradient(35% 35% at 40% 40%,#fff 0,transparent 70%),linear-gradient(140deg,#ece3cf,#c7b28a)}
+.thumb .kb{position:absolute;bottom:-4px;inset-inline-end:-4px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 0 2px var(--raised)}
+.thumb .kb svg{width:11px;height:11px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.kb.ok{background:var(--ok)}.kb.info{background:var(--info)}
+.was{color:var(--faint);text-decoration:line-through;text-decoration-thickness:1px}
+.chg{display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;background:var(--ok-t);color:var(--ok);font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.nt .act{margin-top:8px;display:flex;gap:6px}
+.nt .act .btn{height:32px}
+.donechip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:9px;background:var(--ok-t);color:var(--ok);font-size:13px;font-weight:600}
+.donechip svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.pile-n{position:relative;width:40px;height:40px}
+.pile-n .av{position:absolute}
+.pile-n .av:first-child{top:0;inset-inline-start:0}
+.pile-n .av:last-child{bottom:0;inset-inline-end:0;box-shadow:0 0 0 2px var(--raised)}
+.ring-shop{box-shadow:0 0 0 2px var(--raised),0 0 0 4px var(--spark)}
+/* in-place update: blur bridges the old and new text (emil: "use blur to mask imperfect transitions") */
+.swap-a{animation:swap-a 320ms ease both}.swap-b{animation:swap-b 320ms ease both}
+@keyframes swap-a{from{opacity:.2;filter:blur(3px)}to{opacity:1;filter:none}}
+@keyframes swap-b{from{opacity:.2;filter:blur(3px)}to{opacity:1;filter:none}}
+.newrow{animation:rise-s 380ms ease both}
+.ifoot{border-top:1px solid var(--line-in);padding:10px 20px;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--faint)}
+.banner{margin:4px 12px 6px;padding:12px 14px;border-radius:14px;display:flex;align-items:center;gap:12px;font-size:13.5px;line-height:1.35}
+.banner.off{background:var(--s2)}
+.banner.blocked{background:var(--warn-t);color:var(--ink)}
+.banner .grow{flex:1;min-width:0}
+
+.nt-hit{position:absolute;inset:0;border:0;background:transparent;padding:0;border-radius:0;cursor:pointer}
+.nt-hit:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+.nt .act .btn,.nt .act .donechip{position:relative;z-index:1}
+/* swipe to delete (phone) — the row follows the finger 1:1; release snaps on the drawer curve */
+.sw-wrap{position:relative;overflow:hidden}
+.sw-under{position:absolute;inset:0;background:var(--danger);display:flex;justify-content:flex-end;align-items:center;padding-inline-end:22px;color:#fff;font-weight:700;font-size:13px}
+[dir=rtl] .sw-under{justify-content:flex-start;padding-inline-start:22px;padding-inline-end:0}
+.sw-under button{border:0;background:transparent;color:#fff;font:inherit;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;padding:0 6px}
+.sw-under svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.sw-row{position:relative;background:var(--raised);touch-action:pan-y;will-change:transform}
+.sw-row.settle{transition:transform 360ms var(--ease-drawer)}
+.collapse{animation:collapse 220ms var(--ease-out) forwards;overflow:hidden}
+@keyframes collapse{from{max-height:120px;opacity:1}to{max-height:0;opacity:0}}
+
+/* permission moment */
+.pv{position:relative;overflow:hidden;border-radius:18px}
+.pv .notif{position:absolute;inset-inline:14px;top:16px;animation:drop-in 460ms var(--ease-out) 250ms both}
+@keyframes drop-in{from{opacity:0;transform:translateY(-28px) scale(.98)}to{opacity:1;transform:none}}
+.sysask{border-radius:16px;background:var(--raised);box-shadow:var(--sh3);padding:16px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--line)}
+.sysask .tag{font-size:11px;font-weight:700;color:var(--faint);letter-spacing:.02em}
+.steps{display:flex;flex-direction:column}
+.steps>div{display:flex;align-items:center;gap:12px;min-height:50px;padding:0 14px;font-size:14px}
+.steps>div+div{border-top:1px solid var(--line-in)}
+.steps .n{width:24px;height:24px;border-radius:50%;background:var(--s2);display:grid;place-items:center;font-size:12px;font-weight:700;flex-shrink:0}
+.anchor{position:absolute;width:14px;height:14px;background:var(--raised);border-inline-start:1px solid var(--line);border-top:1px solid var(--line);transform:rotate(45deg)}
+
+/* push previews */
+.dev-frame{border-radius:34px;overflow:hidden;position:relative;box-shadow:0 30px 60px -30px rgba(0,0,0,.45),0 0 0 8px #1b1b1b}
+.wall-a{background:radial-gradient(70% 50% at 30% 20%,#7b8fd6 0,transparent 70%),radial-gradient(60% 50% at 80% 80%,#e59a7a 0,transparent 70%),linear-gradient(170deg,#2d3561,#1b1d2e)}
+.wall-i{background:radial-gradient(60% 45% at 70% 25%,#f3c38a 0,transparent 70%),radial-gradient(70% 60% at 20% 85%,#6d8f7a 0,transparent 70%),linear-gradient(170deg,#3a4a5a,#1a2228)}
+.wall-w{background:radial-gradient(60% 60% at 30% 30%,#9cc3e8 0,transparent 70%),linear-gradient(160deg,#4b77a8,#22344d)}
+.an{background:rgba(250,250,250,.94);color:#141414;border-radius:24px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.an+.an{margin-top:6px}
+.an .h{display:flex;align-items:center;gap:8px;font-size:12px;color:#5a5a5a}
+.an .h .ai{width:18px;height:18px;border-radius:5px;background:#171717;display:grid;place-items:center}
+.an .h .ai svg{width:12px;height:12px}
+.an b{font-size:14px}
+.an .bt{display:flex;gap:18px;padding-top:6px;font-size:13px;font-weight:700;color:#1d5fa8}
+.in{background:rgba(245,245,245,.72);color:#111;border-radius:20px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%)}
+.in .ai{width:34px;height:34px;border-radius:9px;background:#171717;display:grid;place-items:center;flex-shrink:0}
+.in .ai svg{width:20px;height:20px}
+.in .t{flex:1;min-width:0;font-size:14px;line-height:1.3}
+.in .t b{display:block}
+.in .w{font-size:12px;color:#555}
+.wt{background:#f3f3f3;color:#1a1a1a;border-radius:10px;width:364px;box-shadow:0 16px 40px -10px rgba(0,0,0,.5);overflow:hidden;font-size:13px}
+.wt .h{display:flex;align-items:center;gap:8px;padding:10px 14px 0;font-size:12px;color:#555}
+.wt .b{display:flex;gap:12px;padding:10px 14px 12px}
+.wt .bt{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px 14px}
+.wt .bt span{height:32px;border-radius:6px;background:#e3e3e3;display:grid;place-items:center;font-weight:600}
+@media (prefers-reduced-motion:reduce){.ibx,.ibx-sheet,.pv .notif,.newrow,.swap-a,.swap-b{animation:fade-o 180ms ease both !important}.bell.ring svg{animation:none}.sw-row.settle{transition:none}}
+
+/* ===== v2 (Tal 2026-10-09) ===== */
+
+/* phone inbox = a full page pushed in from the inline-end (like Settings → a section). Home slides a little the
+   other way and dims, so the page reads as "on top of" Home; Back / edge swipe reverses the same path. */
+.home-l{position:absolute;inset:0;transition:transform 380ms var(--ease-drawer),filter 380ms var(--ease-drawer)}
+.home-l.under{transform:translateX(-22%);filter:brightness(.92)}
+[dir=rtl] .home-l.under{transform:translateX(22%)}
+.ibx-page{position:absolute;inset:0;background:var(--raised);display:flex;flex-direction:column;z-index:2;box-shadow:-12px 0 40px -18px rgba(0,0,0,.35);
+ animation:page-in 380ms var(--ease-drawer) both}
+[dir=rtl] .ibx-page{animation-name:page-in-r;box-shadow:12px 0 40px -18px rgba(0,0,0,.35)}
+.ibx-page.out{animation:page-out 300ms var(--ease-drawer) both}
+[dir=rtl] .ibx-page.out{animation-name:page-out-r}
+@keyframes page-in{from{transform:translateX(100%)}to{transform:none}}
+@keyframes page-in-r{from{transform:translateX(-100%)}to{transform:none}}
+@keyframes page-out{from{transform:none}to{transform:translateX(100%)}}
+@keyframes page-out-r{from{transform:none}to{transform:translateX(-100%)}}
+.pg-top{height:52px;display:flex;align-items:center;gap:4px;padding:0 8px;padding-top:env(safe-area-inset-top,0px);flex-shrink:0}
+.pg-top .sp{flex:1}
+.pg-title{display:flex;align-items:baseline;gap:10px;padding:2px 20px 10px}
+.pg-title h1{font-size:28px;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1.1}
+.pg-title .newc{font-size:13px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.ibx-page .igrp{position:sticky;top:0;z-index:1;background:var(--raised);padding:14px 20px 6px}
+.ibx-page .sw-wrap+.sw-wrap .nt::before{content:"";position:absolute;top:0;inset-inline:72px 0;height:1px;background:var(--line-in)}
+.ibx-page .nt{padding:14px 16px 14px 20px;grid-template-columns:40px minmax(0,1fr) auto;gap:14px}
+.ibx-page .nt .tx{font-size:15px}
+.ibx-page .nt .tx .s{font-size:13px}
+.pg-foot{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 20px calc(28px + env(safe-area-inset-bottom,0px));font-size:12.5px;color:var(--faint);text-align:center}
+.pg-foot a{color:var(--muted);font-weight:600;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line-strong)}
+
+/* phone Home behind (header, widgets, dock) */
+.ph-head{height:56px;display:flex;align-items:center;gap:6px;padding:0 10px 0 16px}
+.dock5{position:absolute;inset-inline:0;bottom:0;height:76px;padding:6px 8px calc(10px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(5,1fr);align-items:center;
+ background:color-mix(in srgb,var(--screen) 86%,transparent);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border-top:1px solid var(--line-in);z-index:1}
+.dock5 .plus{width:48px;height:48px;border-radius:50%;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;justify-self:center;border:0}
+.dock5 .plus svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+@media (prefers-reduced-transparency:reduce){.dock5{background:var(--screen);backdrop-filter:none}}
+
+/* ---- permission nudge (no item context: the same card wherever it appears) ---- */
+.nudge{background:var(--raised);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh3);padding:14px;display:flex;flex-direction:column;gap:12px}
+.nudge .row{display:flex;gap:12px;align-items:flex-start}
+.nudge .tx{flex:1;min-width:0;line-height:1.35}
+.nudge .tx b{display:block;font-size:15px;font-weight:700;letter-spacing:-.01em}
+.nudge .tx span{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.nudge .bt{display:flex;gap:8px;justify-content:flex-end}
+.nudge .bt .btn{height:40px}
+.nudge .x{margin:-6px -6px 0 0;flex-shrink:0}
+[dir=rtl] .nudge .x{margin:-6px 0 0 -6px}
+/* the mark: a bell with the three kinds around it — kinds, never a specific item */
+.kinds{position:relative;width:48px;height:48px;flex-shrink:0}
+.kinds .b{position:absolute;inset:4px;border-radius:14px;background:var(--s2);color:var(--ink);display:grid;place-items:center}
+.kinds .b svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transform-origin:50% 3px;animation:ring 700ms var(--ease-out) 700ms 1}
+.kinds .k{position:absolute;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 0 2px var(--raised)}
+.kinds .k svg{width:10px;height:10px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.kinds .k1{top:-2px;inset-inline-end:-3px;background:var(--ok)}
+.kinds .k2{bottom:-2px;inset-inline-end:-3px;background:var(--info)}
+.kinds .k3{bottom:-2px;inset-inline-start:-3px;background:#7c5ad9}
+.kinds.ok .b{background:var(--ok-t);color:var(--ok)}
+.kinds.ok .b svg{animation:none}
+.kinds.warn .b{background:var(--warn-t);color:var(--warn)}
+.kinds.warn .b svg,.kinds.ios .b svg{animation:none}
+/* phone: rises from the dock like a toast (same path in and out); desktop: scales out of the bell */
+.nudge.ph{position:absolute;inset-inline:12px;z-index:3;transition:transform 400ms ease,opacity 400ms ease}
+.nudge.ph.at-dock{bottom:86px;animation:nudge-up 400ms ease 600ms both}
+.nudge.ph.at-top{top:62px;animation:nudge-down 400ms ease 600ms both}
+.nudge.ph.gone,.nudge.pc.gone{animation:none}
+.nudge.ph.gone.at-dock{transform:translateY(24px);opacity:0;pointer-events:none}
+.nudge.ph.gone.at-top{transform:translateY(-24px);opacity:0;pointer-events:none}
+@keyframes nudge-up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes nudge-down{from{opacity:0;transform:translateY(-24px)}to{opacity:1;transform:none}}
+.nudge.pc{position:absolute;width:360px;z-index:3;transform-origin:top right;animation:pop-in 200ms var(--ease-out) 500ms both;transition:transform 200ms var(--ease-out),opacity 200ms var(--ease-out)}
+[dir=rtl] .nudge.pc{transform-origin:top left}
+.nudge.pc.gone{transform:scale(.9);opacity:0;pointer-events:none}
+.nudge.pc .tip{position:absolute;top:-7px;inset-inline-end:22px;width:12px;height:12px;background:var(--raised);border-top:1px solid var(--line);border-inline-start:1px solid var(--line);transform:rotate(45deg)}
+[dir=rtl] .nudge.pc .tip{transform:rotate(-45deg)}
+.bell .dot{position:absolute;top:8px;inset-inline-end:8px;width:8px;height:8px;border-radius:50%;background:var(--spark);box-shadow:0 0 0 2px var(--screen)}
+.nudge .grow-in{animation:in-up 260ms var(--ease-out) both}
+.nudge .steps{border:1px solid var(--line-in);border-radius:12px;background:var(--s)}
+.nudge .steps>div{min-height:44px;font-size:13.5px}
+.nudge .bt .btn.wait{opacity:.6}
+/* the browser's own prompt (drawn for context: Chrome on a computer = under the address bar; Android = a system sheet) */
+.bask{position:absolute;z-index:4;width:340px;background:#fff;color:#1f1f1f;border-radius:12px;box-shadow:0 12px 36px -8px rgba(0,0,0,.35),0 0 0 1px rgba(0,0,0,.08);padding:14px 16px;display:flex;flex-direction:column;gap:12px;font-size:13.5px;animation:pop-in 160ms var(--ease-out) both;transform-origin:top left}
+[dir=rtl] .bask{transform-origin:top right}
+.bask .tag{font-size:11px;font-weight:700;color:#6b6b6b}
+.bask .q{display:flex;gap:10px;align-items:flex-start;line-height:1.35}
+.bask .q svg{width:18px;height:18px;flex-shrink:0;fill:none;stroke:#444;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-top:1px}
+.bask .b2{display:flex;gap:8px;justify-content:flex-end}
+.bask .b2 button{height:34px;padding:0 16px;border-radius:17px;border:1px solid #c7c7c7;background:#fff;color:#0b57d0;font:inherit;font-weight:600}
+.bask .b2 button.p{background:#0b57d0;border-color:#0b57d0;color:#fff}
+.bask.android{inset-inline:16px;width:auto;bottom:24px;border-radius:24px;padding:20px;transform-origin:bottom center;animation:nudge-up 260ms var(--ease-out) both}
+.scrim-a{position:absolute;inset:0;background:rgba(0,0,0,.32);z-index:3;animation:fade-o 200ms ease both}
+@media (prefers-reduced-motion:reduce){
+ .ibx-page,.ibx-page.out,.nudge.ph.at-dock,.nudge.ph.at-top,.nudge.pc,.bask,.bask.android{animation:fade-o 180ms ease both !important}
+ .home-l{transition:filter 200ms ease}.home-l.under{transform:none}
+ .nudge.ph,.nudge.pc{transition:opacity 180ms ease}.nudge.ph.gone,.nudge.pc.gone{transform:none}
+ .kinds .b svg{animation:none}
+}
