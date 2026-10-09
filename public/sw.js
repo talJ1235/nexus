@@ -72,3 +72,67 @@ self.addEventListener("fetch", (e) => {
     );
   }
 });
+
+// ---- R17 S3 J2: web push ----
+// The payload is { id, title, body, url, tag, actions, lang, dir, renotify } (lib/notify/push.ts). `tag` = the group
+// key, so a later message of the same group replaces the earlier one ("Noa is shopping" → "Noa finished shopping").
+// Open windows are told (postMessage) so the bell's count updates without a reload.
+const tell = async (msg) => {
+  for (const c of await self.clients.matchAll({ type: "window", includeUncontrolled: true })) c.postMessage(msg);
+};
+const samePath = (u) => (typeof u === "string" && u.startsWith("/") && !u.startsWith("//") ? u : "/");
+
+self.addEventListener("push", (e) => {
+  let p = null;
+  try {
+    p = e.data ? e.data.json() : null;
+  } catch {
+    p = null;
+  }
+  const title = (p && p.title) || "Nexus";
+  const opts = {
+    body: (p && p.body) || "",
+    icon: "/icons/icon-192.png?v=3",
+    badge: "/icons/badge-96.png",
+    tag: (p && p.tag) || "nexus",
+    renotify: !!(p && p.renotify),
+    dir: p && p.dir === "rtl" ? "rtl" : "ltr",
+    lang: (p && p.lang) || "en",
+    data: { id: (p && p.id) || null, url: samePath(p && p.url) },
+    actions: Array.isArray(p && p.actions) ? p.actions.slice(0, 2) : [],
+  };
+  e.waitUntil(Promise.all([self.registration.showNotification(title, opts), tell({ type: "nexus-notify", id: opts.data.id })]));
+});
+
+self.addEventListener("notificationclick", (e) => {
+  const n = e.notification;
+  const data = n.data || {};
+  n.close();
+  if (e.action === "received") {
+    // Marks the item received with the session cookie (the route refuses without one); shows nothing more.
+    e.waitUntil(
+      fetch("/api/notify/received", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: data.id }) })
+        .catch(() => null)
+        .then(() => tell({ type: "nexus-notify", id: data.id, received: true })),
+    );
+    return;
+  }
+  const url = new URL(samePath(data.url), self.location.origin).href;
+  e.waitUntil(
+    (async () => {
+      const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      const win = wins.find((w) => new URL(w.url).origin === self.location.origin);
+      if (win) {
+        await win.focus().catch(() => {});
+        if ("navigate" in win) return win.navigate(url).catch(() => self.clients.openWindow(url));
+        return win.postMessage({ type: "nexus-open", url });
+      }
+      return self.clients.openWindow(url);
+    })(),
+  );
+});
+
+// The browser rotated this device's push address: subscribe again with the same key and save it.
+self.addEventListener("pushsubscriptionchange", (e) => {
+  e.waitUntil(tell({ type: "nexus-resubscribe" }));
+});

@@ -95,6 +95,7 @@
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
     "unpdf": "^1.8.1",
+    "web-push": "3.6.7",
     "zod": "^4.6.5",
     "zxing-wasm": "^3.1.4"
   },
@@ -103,6 +104,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "3.6.4",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",

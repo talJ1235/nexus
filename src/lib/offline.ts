@@ -66,6 +66,14 @@ export async function clearOffline() {
   } catch {
     /* no Cache Storage */
   }
+  // R17 S3 J2: signed out → this browser stops getting the account's pushes (the server row dies on its next 410).
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    await (await reg?.pushManager.getSubscription())?.unsubscribe();
+    localStorage.removeItem("nexus.push");
+  } catch {
+    /* no push here */
+  }
 }
 
 /** Ask the service worker to (re)cache the offline shell. Owner app only, after an online load. */
