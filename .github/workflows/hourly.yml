@@ -1,0 +1,28 @@
+# R17 S3 J3 — hourly, free: sends the notifications that are due (/api/cron/notify) and checks a slice of the watched
+# prices (/api/cron/prices?scope=hourly). The Vercel daily cron (vercel.json) keeps the heavy clean-up steps.
+# Setup once (repo Settings → Secrets and variables → Actions): CRON_SECRET = the same value as Vercel's CRON_SECRET.
+# Without it the job says so and exits green (nothing to call).
+name: hourly
+on:
+  schedule:
+    - cron: "5 * * * *"
+  workflow_dispatch:
+concurrency: { group: hourly, cancel-in-progress: false }
+permissions: {}
+jobs:
+  tick:
+    runs-on: ubuntu-24.04 # pinned: ubuntu-latest moves to 26.04 on 2026-10-19
+    timeout-minutes: 5
+    env:
+      BASE: https://nexus-ashen-beta.vercel.app
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: notifications due
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET secret not set — skipping"; exit 0; fi
+          curl -fsS --max-time 70 -H "Authorization: Bearer $CRON_SECRET" "$BASE/api/cron/notify" | head -c 600; echo
+      - name: hourly price slice
+        if: always()
+        run: |
+          if [ -z "$CRON_SECRET" ]; then exit 0; fi
+          curl -fsS --max-time 70 -H "Authorization: Bearer $CRON_SECRET" "$BASE/api/cron/prices?scope=hourly" | head -c 600; echo

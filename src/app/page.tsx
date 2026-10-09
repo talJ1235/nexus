@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { LOCALE_COOKIE } from "@/lib/i18n";
 import { rememberOwner } from "@/lib/tracker";
+import { rememberTz } from "@/lib/notify/enqueue";
 import { NexusApp, type AppBoot } from "@/components/app/nexus-app";
 import { aiEnabled } from "@/lib/ai";
 import { currentCtx, meInfo, spaceInfo, type Ctx } from "@/lib/ctx";
@@ -40,6 +41,8 @@ export default async function Home({ searchParams, settings }: { searchParams: P
   // The user's language and currency for what the cron writes (it has no cookies).
   const locale = jar.get(LOCALE_COOKIE)?.value === "he" ? "he" : "en";
   after(() => rememberOwner(ctx.user.id, locale, currency).catch(() => {}));
+  // R17 S3 J3: the time zone notifications are timed in (quiet hours, the active hour).
+  after(() => rememberTz(ctx.user.id, tz).catch(() => {}));
   return (
     <>
       {/* The loading shell below is static HTML until the data streams in: remember its last [data-carry] click

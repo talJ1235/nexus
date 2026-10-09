@@ -15,6 +15,7 @@ const ROUTE_ALLOW: Record<string, string> = {
   "src/app/api/emergency/route.ts": "R17 E1: admin emergency sign-in = a sign-in endpoint (token + admin email, 3/h/IP)",
   "src/app/api/logout/route.ts": "sign-out (works with or without a session)",
   "src/app/api/cron/prices/route.ts": "CRON_SECRET",
+  "src/app/api/cron/notify/route.ts": "CRON_SECRET (R17 S3: the hourly notification dispatcher)",
   "src/app/api/cal/[token]/route.ts": "calendar feed token (per user)",
   "src/app/api/reports/export/route.ts": "REPORTS_TOKEN",
   "src/app/api/csp-report/route.ts": "CSP violation counter (no data read, counts only)",
