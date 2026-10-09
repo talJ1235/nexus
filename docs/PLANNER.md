@@ -7,6 +7,12 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-09 → read this first on any account)
+- **2026-10-09 (evening):** **R17 Session 2 merged and live** (`f9482a1`): `/admin` with Live, onboarding A at `/welcome`,
+  5 new guards, parity PNGs in `docs/design/parity-r17/` (planner spot-checked Live + onboarding 1–2: match the boards).
+  Open for Tal (ROUND17 Open): top Skip leaves to Home (kept); desktop install QR only where the computer can install
+  (planner recommends: always show the QR card on desktop); unchecked "if paid" prices + 2 store search links.
+  **Next:** Tal tests on phone + PC → notes → small fix round if needed; Session 3 boards (inbox + permission moment) in
+  a new chat.
 - **2026-10-09:** R17 Session 1 merged and live. **R17 Session 2 boards approved** by Tal and committed to
   `docs/design/r17/` (`Admin-desktop`, `Admin-phone`, `Onboarding-phone`, `Onboarding-desktop`, `nx17.css`; canvas
   "Nexus R17 — Admin & Onboarding" is a private Design artifact on this account). Brief written: `docs/ROUND17.md`
