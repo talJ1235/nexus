@@ -216,6 +216,15 @@ to setup, tooling or workflow is recorded there in the same session.
   break-ui, review-animations) plus the frontend-design guidance — easing tokens, press feedback, gated hover, reduced
   motion, safe areas, worst-case text. Goal in Tal's words: super professional, super intuitive, UX above everything.
 
+- **R17 Session 3 — notifications (Tal 2026-10-09):** (1) ask for permission again only after a meaningful moment
+  (first price watch, first delivery on the way, first time someone else adds to a shared list), at most twice, 14 days
+  apart; (2) "someone is shopping" = one push per trip to the other members, updated in place when they finish ("bought
+  12, 3 left"); (3) no Shabbat/holiday quiet for now — night quiet 22:00–07:00 only; (4) weekly summary on Thursday at
+  the person's active hour; (5) budget alerts go to the space owner + the members the owner picks (Space settings →
+  Budget); (6) action buttons: price drop → Open, delivery today → Received; (7) inbox keeps 30 days, no filters, Today /
+  Earlier groups, unread dot; (8) price alerts on **any** drop and/or reaching the target (batched, not one per check);
+  (9) admin gets notification numbers (System row + a Live stat). Boards: new canvas "Nexus R17 — Notifications".
+
 ## Product direction (discussed 2026-10-03, not started)
 - Toward a multi-user product: sign-up on web or app, short onboarding questionnaire (habits, stores), Google sign-in,
   desktop login by QR from the phone, per-user data (schema already owner-aware), privacy policy.
