@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Inbox · desktop</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.ph-bar{display:block;height:10px;border-radius:5px;background:var(--s3)}
+.ask{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line-strong);background:var(--raised);font-weight:600;font-size:13.5px;color:var(--ink)}
+.ask i{width:8px;height:8px;border-radius:50%;background:var(--spark)}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:1366px;height:768px;display:flex;background:var(--screen);overflow:hidden;position:relative">
+
+  <aside style="width:232px;flex-shrink:0;border-inline-end:1px solid var(--line-in);background:var(--s);padding:16px 10px;display:flex;flex-direction:column;gap:2px">
+    <span class="logo" style="padding:2px 10px 14px"><svg class="i lg" viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg>Nexus</span>
+    <a class="nav on" href="#"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Home</a>
+    <a class="nav" href="#"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21 7H6"></path></svg>Shopping</a>
+    <a class="nav" href="#"><svg class="i sm" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"></path></svg>Projects</a>
+    <a class="nav" href="#"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg>Insights</a>
+  </aside>
+
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <div style="height:64px;display:flex;align-items:center;gap:12px;padding:0 24px">
+      <div class="input" style="height:38px;width:320px"><svg class="i sm" viewBox="0 0 24 24"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.3-4.3"></path></svg><span class="ph" style="font-size:14px">Search or paste a link</span></div>
+      <span style="flex:1"></span>
+      <span class="ask"><i></i>Ask Nexus</span>
+      <button class="{{bellCls}}" onClick="{{toggle}}" aria-label="Notifications" aria-expanded="{{open}}"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><sc-if value="{{hasBadge}}" hint-placeholder-val="{{ true }}"><span class="bd">{{unread}}</span></sc-if></button>
+      <span class="av c1">T</span>
+    </div>
+    <div style="flex:1;padding:8px 24px 24px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-content:start;opacity:.55">
+      <div class="wg" style="height:150px"><span class="ph-bar" style="width:40%"></span><span class="ph-bar" style="width:70%;height:22px;margin-top:10px"></span></div>
+      <div class="wg" style="height:150px"><span class="ph-bar" style="width:50%"></span><span class="ph-bar" style="width:60%;height:22px;margin-top:10px"></span></div>
+      <div class="wg" style="height:150px"><span class="ph-bar" style="width:35%"></span><span class="ph-bar" style="width:55%;height:22px;margin-top:10px"></span></div>
+      <div class="wg" style="height:260px;grid-column:span 2"><span class="ph-bar" style="width:30%"></span></div>
+      <div class="wg" style="height:260px"><span class="ph-bar" style="width:45%"></span></div>
+    </div>
+  </main>
+
+  <sc-if value="{{open}}" hint-placeholder-val="{{ true }}">
+    <section class="ibx" style="top:58px;inset-inline-end:68px;height:640px" aria-label="Notifications">
+      <div class="ihd"><h2>Notifications</h2><sc-if value="{{hasUnread}}" hint-placeholder-val="{{ true }}"><button class="btn sm ghost" onClick="{{markAll}}">Mark all read</button></sc-if><button class="btn sm icon ghost" onClick="{{toggle}}" aria-label="Close"><svg class="i sm" viewBox="0 0 24 24"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button></div>
+
+      <sc-if value="{{isOff}}" hint-placeholder-val="{{ false }}"><div class="banner off"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M3 3l18 18"></path></svg><span class="grow">Off on this computer. They still collect here.</span><button class="btn sm pri">Turn on</button></div></sc-if>
+      <sc-if value="{{isBlocked}}" hint-placeholder-val="{{ false }}"><div class="banner blocked"><svg class="i" viewBox="0 0 24 24" style="color:var(--warn)"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 8v4 M12 16h.01"></path></svg><span class="grow">Blocked in this browser.</span><button class="btn sm">How to allow</button></div></sc-if>
+
+      <sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center" class="rise">
+          <span class="ic" style="width:56px;height:56px;border-radius:16px"><svg class="i lg" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg></span>
+          <b style="font-size:16px">Nothing new</b>
+          <span class="sub" style="max-width:260px">Price drops, deliveries and what your household adds show up here.</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{hasRows}}" hint-placeholder-val="{{ true }}">
+        <div class="ilist">
+          <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+            <div class="igrp">{{g.label}}</div>
+            <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3">
+              <div class="{{r.cls}}"><button class="nt-hit" onClick="{{r.read}}" aria-label="{{r.t}}"></button>
+                <span class="media">
+                  <sc-if value="{{r.isShop}}" hint-placeholder-val="{{ false }}"><span class="av lg c2 ring-shop">N</span></sc-if>
+                  <sc-if value="{{r.isPile}}" hint-placeholder-val="{{ false }}"><span class="pile-n"><span class="av sm c2">N</span><span class="av sm c4">Y</span></span></sc-if>
+                  <sc-if value="{{r.isThumb}}" hint-placeholder-val="{{ false }}"><span class="{{r.thumb}}"><span class="{{r.kb}}"><svg viewBox="0 0 24 24"><path d="{{r.kd}}"></path></svg></span></span></sc-if>
+                  <sc-if value="{{r.isIcon}}" hint-placeholder-val="{{ false }}"><span class="{{r.nic}}"><svg viewBox="0 0 24 24"><path d="{{r.d}}"></path></svg></span></sc-if>
+                </span>
+                <span class="{{r.txCls}}">
+                  <b>{{r.t}}</b>
+                  <span class="s">{{r.s}}</span>
+                  <sc-if value="{{r.hasPrice}}" hint-placeholder-val="{{ false }}"><span style="display:flex;gap:8px;align-items:center;margin-top:6px;font-size:13px"><b class="num">{{r.now}}</b><span class="was num">{{r.was}}</span><span class="chg">{{r.chg}}</span></span></sc-if>
+                  <sc-if value="{{r.hasMeter}}" hint-placeholder-val="{{ false }}"><span class="meter" style="display:block;height:6px;margin-top:8px;max-width:220px"><i style="width:80%;background:var(--warn)"></i></span></sc-if>
+                  <sc-if value="{{r.hasLive}}" hint-placeholder-val="{{ false }}"><span class="shopping" style="margin-top:8px"><span class="ping amber"></span>{{r.live}}</span></sc-if>
+                  <sc-if value="{{r.hasAct}}" hint-placeholder-val="{{ false }}"><span class="act"><sc-if value="{{r.actDone}}" hint-placeholder-val="{{ false }}"><span class="donechip"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>{{r.doneLabel}}</span></sc-if><sc-if value="{{r.actOpen}}" hint-placeholder-val="{{ true }}"><button class="btn sm" onClick="{{r.act}}">{{r.actLabel}}</button></sc-if></span></sc-if>
+                </span>
+                <span class="meta"><span>{{r.when}}</span><span class="{{r.dot}}"></span></span>
+              </div>
+            </sc-for>
+          </sc-for>
+        </div>
+      </sc-if>
+      <div class="ifoot"><span style="flex:1">Kept for 30 days</span><a class="link" href="#" style="font-size:12.5px;color:var(--muted)">Notification settings</a></div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["full","empty","off on this device","blocked"],"default":"full"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":1366,"height":768}}'>
+class Component extends DCLogic {
+  componentDidMount() { this._t = setTimeout(() => this.setState({ finished: true }), 6000); }
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const st = p.state || 'full';
+    const open = s.open ?? true;
+    const read = s.read || {};
+    const setRead = (id) => () => this.setState({ read: { ...read, [id]: true } });
+    const TAG = 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01';
+    const TRUCK = 'M1 3h15v13H1z M16 8h4l3 3v5h-7z M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z M18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z';
+    const fin = !!s.finished;
+    const R = [
+      { id:'shop', g:0, kind:'shop', t: fin ? 'Noa finished shopping' : 'Noa is shopping', s: fin ? 'Jacoby Home · bought 12, 3 left on the list' : 'Jacoby Home · Groceries', live: '6 of 15 left', when: fin ? 'now' : '2 min', txCls: 'tx ' + (fin ? 'swap-b' : 'swap-a') },
+      { id:'drop', g:0, kind:'price', t:'Steam cleaner dropped', s:'KSP', now:'₪899', was:'₪999', chg:'−10%', when:'09:00', thumb:'thumb t1', act:'Open' },
+      { id:'del', g:0, kind:'delivery', t:'Arrives today', s:'Car vent clip · AliExpress', when:'08:12', thumb:'thumb t2', act:'Received' },
+      { id:'add', g:0, kind:'pile', t:'Noa and Yoav added 7 items', s:'Groceries · Jacoby Home', when:'Yesterday' },
+      { id:'bud', g:1, kind:'budget', t:'80% of October’s budget', s:'Jacoby Home · ₪2,000 of ₪2,500', when:'Tue' },
+      { id:'week', g:1, kind:'week', t:'Your week', s:'23 bought · ₪612 spent · 2 price drops', when:'Thu' },
+      { id:'tgt', g:1, kind:'price', t:'Desk lamp reached your target', s:'IKEA', now:'₪149', was:'₪179', chg:'target', when:'Mon', thumb:'thumb t3', readDefault:true }
+    ];
+    const isRead = (r) => !!read[r.id] || !!r.readDefault || !!s.allRead;
+    const rows = R.map(r => {
+      const done = r.id === 'del' && s.received;
+      return {
+        ...r,
+        cls: 'nt' + (isRead(r) ? '' : ' unread') + (r.id === 'shop' && fin ? ' newrow' : ''),
+        txCls: r.txCls || 'tx',
+        dot: 'udot' + (isRead(r) ? ' off' : ''),
+        read: setRead(r.id),
+        isShop: r.kind === 'shop', isPile: r.kind === 'pile', isThumb: !!r.thumb,
+        isIcon: r.kind === 'budget' || r.kind === 'week',
+        nic: 'nic ' + (r.kind === 'budget' ? 'k-budget' : 'k-week'),
+        d: r.kind === 'budget' ? 'M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z M16 14h.01' : 'M3 3v18h18 M7 15l4-4 3 3 5-6',
+        kb: 'kb ' + (r.kind === 'price' ? 'ok' : 'info'), kd: r.kind === 'price' ? TAG : TRUCK,
+        hasPrice: r.kind === 'price', hasMeter: r.kind === 'budget', hasLive: r.kind === 'shop' && !fin,
+        hasAct: !!r.act, actLabel: r.act, actOpen: !done, actDone: done, doneLabel: 'Marked received',
+        act: r.id === 'del' ? () => this.setState({ received: true, read: { ...read, del: true } }) : setRead(r.id)
+      };
+    });
+    const empty = st === 'empty';
+    const unread = empty ? 0 : rows.filter(r => r.cls.indexOf('unread') >= 0).length;
+    const groups = [{ label:'Today', rows: rows.filter(r => r.g === 0) }, { label:'Earlier', rows: rows.filter(r => r.g === 1) }];
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      open, toggle: () => this.setState({ open: !open }),
+      bellCls: 'bell' + (open ? ' open' : '') + (fin && !open ? ' ring' : ''),
+      unread, hasBadge: unread > 0, hasUnread: unread > 0,
+      markAll: () => this.setState({ allRead: true }),
+      groups, isEmpty: empty, hasRows: !empty,
+      isOff: st === 'off on this device', isBlocked: st === 'blocked'
+    };
+  }
+}
+</script>
+</body>
+</html>

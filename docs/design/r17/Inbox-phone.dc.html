@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Inbox · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.ph-bar{display:block;height:10px;border-radius:5px;background:var(--s3)}
+.flip{transform:none}[dir=rtl] .flip{transform:scaleX(-1)}
+</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;background:var(--screen);overflow:hidden;position:relative">
+
+  <div class="{{homeCls}}">
+    <div class="ph-head">
+      <span class="logo" style="font-size:15px;flex:1"><svg class="i" viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg>Nexus</span>
+      <button class="{{bellCls}}" onClick="{{openPage}}" aria-label="{{t.title}}"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><sc-if value="{{hasBadge}}" hint-placeholder-val="{{ true }}"><span class="bd">{{unread}}</span></sc-if></button>
+    </div>
+    <div style="padding:8px 16px;display:flex;flex-direction:column;gap:12px;opacity:.6">
+      <div class="wg" style="height:120px"><span class="ph-bar" style="width:40%"></span></div>
+      <div class="wg" style="height:180px"><span class="ph-bar" style="width:55%"></span></div>
+      <div class="wg" style="height:150px"><span class="ph-bar" style="width:35%"></span></div>
+    </div>
+    <nav class="dock5" aria-label="{{t.nav}}">
+      <button class="tab-b on"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>{{t.home}}</button>
+      <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21 7H6"></path></svg>{{t.shop}}</button>
+      <button class="plus" aria-label="{{t.add}}"><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button>
+      <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"></path></svg>{{t.proj}}</button>
+      <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg>{{t.ins}}</button>
+    </nav>
+  </div>
+
+  <sc-if value="{{open}}" hint-placeholder-val="{{ true }}">
+    <section class="{{pageCls}}" aria-label="{{t.title}}">
+      <div class="pg-top">
+        <button class="btn icon ghost" onClick="{{closePage}}" aria-label="{{t.back}}"><svg class="i flip" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button>
+        <span class="sp"></span>
+        <sc-if value="{{hasUnread}}" hint-placeholder-val="{{ true }}"><button class="btn ghost" style="height:40px;font-size:14px" onClick="{{markAll}}">{{t.markAll}}</button></sc-if>
+      </div>
+      <div class="pg-title"><h1>{{t.title}}</h1><sc-if value="{{hasUnread}}" hint-placeholder-val="{{ true }}"><span class="newc">{{newLabel}}</span></sc-if></div>
+
+      <sc-if value="{{isOff}}" hint-placeholder-val="{{ false }}"><div class="banner off"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M3 3l18 18"></path></svg><span class="grow">{{t.off}}</span><button class="btn sm pri" style="height:36px">{{t.turnOn}}</button></div></sc-if>
+      <sc-if value="{{isBlocked}}" hint-placeholder-val="{{ false }}"><div class="banner blocked"><svg class="i" viewBox="0 0 24 24" style="color:var(--warn)"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 8v4 M12 16h.01"></path></svg><span class="grow">{{t.blocked}}</span><button class="btn sm" style="height:36px">{{t.how}}</button></div></sc-if>
+
+      <sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px 24px 120px;text-align:center" class="rise">
+          <span class="ic" style="width:60px;height:60px;border-radius:18px"><svg class="i lg" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg></span>
+          <b style="font-size:17px">{{t.emptyT}}</b>
+          <span class="sub" style="max-width:260px">{{t.emptyS}}</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{hasRows}}" hint-placeholder-val="{{ true }}">
+        <div class="ilist">
+          <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+            <div class="igrp">{{g.label}}</div>
+            <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3">
+              <div class="{{r.wrapCls}}">
+                <div class="sw-under"><button onClick="{{r.del}}"><svg viewBox="0 0 24 24"><path d="M3 6h18 M8 6V4h8v2 M19 6l-1 14H6L5 6"></path></svg>{{t.del}}</button></div>
+                <div class="{{r.rowCls}}" style="{{r.tf}}" onPointerDown="{{r.down}}" onPointerMove="{{r.move}}" onPointerUp="{{r.up}}" onPointerCancel="{{r.up}}">
+                  <div class="{{r.cls}}">
+                    <button class="nt-hit" onClick="{{r.read}}" aria-label="{{r.t}}"></button>
+                    <span class="media">
+                      <sc-if value="{{r.isShop}}" hint-placeholder-val="{{ false }}"><span class="av lg c2 ring-shop">{{r.ini}}</span></sc-if>
+                      <sc-if value="{{r.isPile}}" hint-placeholder-val="{{ false }}"><span class="pile-n"><span class="av sm c2">{{r.ini}}</span><span class="av sm c4">{{r.ini2}}</span></span></sc-if>
+                      <sc-if value="{{r.isThumb}}" hint-placeholder-val="{{ false }}"><span class="{{r.thumb}}"><span class="{{r.kb}}"><svg viewBox="0 0 24 24"><path d="{{r.kd}}"></path></svg></span></span></sc-if>
+                      <sc-if value="{{r.isIcon}}" hint-placeholder-val="{{ false }}"><span class="{{r.nic}}"><svg viewBox="0 0 24 24"><path d="{{r.d}}"></path></svg></span></sc-if>
+                    </span>
+                    <span class="{{r.txCls}}">
+                      <b>{{r.t}}</b>
+                      <span class="s">{{r.s}}</span>
+                      <sc-if value="{{r.hasPrice}}" hint-placeholder-val="{{ false }}"><span style="display:flex;gap:8px;align-items:center;margin-top:6px;font-size:13px"><b class="num">{{r.now}}</b><span class="was num">{{r.was}}</span><span class="chg">{{r.chg}}</span></span></sc-if>
+                      <sc-if value="{{r.hasMeter}}" hint-placeholder-val="{{ false }}"><span class="meter" style="display:block;height:6px;margin-top:8px"><i style="width:80%;background:var(--warn)"></i></span></sc-if>
+                      <sc-if value="{{r.hasLive}}" hint-placeholder-val="{{ false }}"><span class="shopping" style="margin-top:8px"><span class="ping amber"></span>{{r.live}}</span></sc-if>
+                      <sc-if value="{{r.hasAct}}" hint-placeholder-val="{{ false }}"><span class="act"><sc-if value="{{r.actDone}}" hint-placeholder-val="{{ false }}"><span class="donechip"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>{{t.done}}</span></sc-if><sc-if value="{{r.actOpen}}" hint-placeholder-val="{{ true }}"><button class="btn sm" style="height:36px" onClick="{{r.act}}">{{r.actLabel}}</button></sc-if></span></sc-if>
+                    </span>
+                    <span class="meta"><span>{{r.when}}</span><span class="{{r.dot}}"></span></span>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </sc-for>
+          <div class="pg-foot"><span>{{t.kept}}</span><a href="#">{{t.settings}}</a></div>
+        </div>
+      </sc-if>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["English","עברית"],"default":"English"},"state":{"editor":"enum","options":["full","empty","off on this device","blocked"],"default":"full"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() { this._t = setTimeout(() => this.setState({ finished: true }), 6000); }
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._d); clearTimeout(this._c); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = p.language === 'עברית';
+    const L = (en, h) => he ? h : en;
+    const sgn = he ? -1 : 1;
+    const st = p.state || 'full';
+    const open = s.open ?? true;
+    const read = s.read || {};
+    const off = s.off || {};
+    const gone = s.gone || {};
+    const t = { title: L('Notifications','התראות'), markAll: L('Mark all read','סימון הכול כנקרא'), back: L('Back','חזרה'),
+      nav: L('Main','ראשי'), home: L('Home','בית'), shop: L('Shopping','קניות'), add: L('Add','הוספה'), proj: L('Projects','פרויקטים'), ins: L('Insights','תובנות'),
+      off: L('Off on this phone. They still collect here.','כבויות בטלפון הזה. עדיין נאספות כאן.'), turnOn: L('Turn on','הפעלה'),
+      blocked: L('Blocked in this browser.','חסומות בדפדפן.'), how: L('How to allow','איך לאפשר'),
+      emptyT: L('Nothing new','אין חדש'), emptyS: L('Price drops, deliveries and what your household adds show up here.','ירידות מחיר, משלוחים ומה שהבית מוסיף יופיעו כאן.'),
+      del: L('Delete','מחיקה'), done: L('Marked received','סומן שהגיע'), kept: L('Kept for 30 days','נשמר 30 יום'), settings: L('Notification settings','הגדרות התראות') };
+    const TAG = 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01';
+    const TRUCK = 'M1 3h15v13H1z M16 8h4l3 3v5h-7z M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z M18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z';
+    const fin = !!s.finished;
+    const R = [
+      { id:'shop', g:0, kind:'shop', t: fin ? L('Noa finished shopping','נועה סיימה קניות') : L('Noa is shopping','נועה בקניות'), s: fin ? L('Jacoby Home · bought 12, 3 left','Jacoby Home · קנתה 12, נשארו 3') : L('Jacoby Home · Groceries','Jacoby Home · מצרכים'), live: L('6 of 15 left','נשארו 6 מתוך 15'), when: fin ? L('now','עכשיו') : L('2 min','2 דק׳'), txCls: 'tx ' + (fin ? 'swap-b' : 'swap-a') },
+      { id:'drop', g:0, kind:'price', t: L('Steam cleaner dropped','מנקה הקיטור ירד במחיר'), s:'KSP', now:'₪899', was:'₪999', chg:'−10%', when:'09:00', thumb:'thumb t1', act: L('Open','פתיחה') },
+      { id:'del', g:0, kind:'delivery', t: L('Arrives today','מגיע היום'), s: L('Car vent clip · AliExpress','קליפס לפתח מיזוג · AliExpress'), when:'08:12', thumb:'thumb t2', act: L('Received','הגיע') },
+      { id:'add', g:0, kind:'pile', t: L('Noa and Yoav added 7 items','נועה ויואב הוסיפו 7 פריטים'), s: L('Groceries · Jacoby Home','מצרכים · Jacoby Home'), when: L('Yesterday','אתמול') },
+      { id:'bud', g:1, kind:'budget', t: L('80% of October’s budget','80% מתקציב אוקטובר'), s: L('Jacoby Home · ₪2,000 of ₪2,500','Jacoby Home · ₪2,000 מתוך ₪2,500'), when: L('Tue','ג׳') },
+      { id:'week', g:1, kind:'week', t: L('Your week','השבוע שלך'), s: L('23 bought · ₪612 spent · 2 price drops','23 נקנו · ₪612 הוצאה · 2 ירידות מחיר'), when: L('Thu','ה׳') },
+      { id:'tgt', g:1, kind:'price', t: L('Desk lamp reached your target','מנורת השולחן הגיעה למחיר היעד'), s: L('IKEA','איקאה'), now:'₪149', was:'₪179', chg: L('target','יעד'), when: L('Mon','ב׳'), thumb:'thumb t3', readDefault:true }
+    ].filter(r => !gone[r.id]);
+    const isRead = (r) => !!read[r.id] || !!r.readDefault || !!s.allRead;
+    const drag = (id) => ({
+      down: (e) => { this._drag = { id, x0: e.clientX, base: off[id] || 0, t0: Date.now(), moved: false }; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} },
+      move: (e) => { const d = this._drag; if (!d || d.id !== id) return; const dx = (e.clientX - d.x0) * sgn; if (Math.abs(dx) > 8) d.moved = true; if (!d.moved) return;
+        let v = d.base + dx; if (v > 0) v = v * 0.25; if (v < -240) v = -240 + (v + 240) * 0.3; this.setState({ off: { ...off, [id]: v }, dragging: id }); },
+      up: (e) => { const d = this._drag; this._drag = null; if (!d || d.id !== id) return; const cur = (this.state.off || {})[id] || 0; const vel = ((e.clientX - d.x0) * sgn) / Math.max(1, Date.now() - d.t0);
+        if (cur < -200 || (vel < -0.6 && cur < -40)) { this.setState({ dying: id, dragging: null }); this._d = setTimeout(() => this.setState({ gone: { ...(this.state.gone || {}), [id]: true }, dying: null }), 220); }
+        else this.setState({ off: { ...(this.state.off || {}), [id]: (cur < -48 || vel < -0.3) ? -96 : 0 }, dragging: null, justDragged: d.moved ? id : null }); }
+    });
+    const rows = R.map(r => {
+      const done = r.id === 'del' && s.received;
+      const o = off[r.id] || 0;
+      const g = drag(r.id);
+      return { ...r, ...g, ini: he ? 'נ' : 'N', ini2: he ? 'י' : 'Y',
+        wrapCls: 'sw-wrap' + (s.dying === r.id ? ' collapse' : ''),
+        rowCls: 'sw-row' + (s.dragging === r.id ? '' : ' settle'),
+        tf: 'transform:translateX(' + (s.dying === r.id ? -400 * sgn : o * sgn) + 'px)',
+        cls: 'nt' + (isRead(r) ? '' : ' unread'), txCls: r.txCls || 'tx', dot: 'udot' + (isRead(r) ? ' off' : ''),
+        read: () => { if (this.state && this.state.justDragged === r.id) { this.setState({ justDragged: null }); return; } if ((this.state.off || {})[r.id]) { this.setState({ off: { ...(this.state.off || {}), [r.id]: 0 } }); return; } this.setState({ read: { ...read, [r.id]: true } }); },
+        del: () => { this.setState({ dying: r.id }); this._d = setTimeout(() => this.setState({ gone: { ...(this.state.gone || {}), [r.id]: true }, dying: null }), 220); },
+        isShop: r.kind === 'shop', isPile: r.kind === 'pile', isThumb: !!r.thumb, isIcon: r.kind === 'budget' || r.kind === 'week',
+        nic: 'nic ' + (r.kind === 'budget' ? 'k-budget' : 'k-week'),
+        d: r.kind === 'budget' ? 'M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z M16 14h.01' : 'M3 3v18h18 M7 15l4-4 3 3 5-6',
+        kb: 'kb ' + (r.kind === 'price' ? 'ok' : 'info'), kd: r.kind === 'price' ? TAG : TRUCK,
+        hasPrice: r.kind === 'price', hasMeter: r.kind === 'budget', hasLive: r.kind === 'shop' && !fin,
+        hasAct: !!r.act, actLabel: r.act, actOpen: !done, actDone: done,
+        act: r.id === 'del' ? () => this.setState({ received: true, read: { ...read, del: true } }) : () => this.setState({ read: { ...read, [r.id]: true } }) };
+    });
+    const empty = st === 'empty' || rows.length === 0;
+    const unread = empty ? 0 : rows.filter(r => r.cls.indexOf('unread') >= 0).length;
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      open, newLabel: L(unread + ' new', unread + ' חדשות'),
+      homeCls: 'home-l' + (open && !s.closing ? ' under' : ''), pageCls: 'ibx-page' + (s.closing ? ' out' : ''),
+      openPage: () => this.setState({ open: true, closing: false }),
+      closePage: () => { this.setState({ closing: true }); this._c = setTimeout(() => this.setState({ open: false, closing: false }), 300); },
+      bellCls: 'bell' + (fin && !open ? ' ring' : ''), unread, hasBadge: unread > 0, hasUnread: unread > 0,
+      markAll: () => this.setState({ allRead: true }),
+      groups: [{ label: L('Today','היום'), rows: rows.filter(r => r.g === 0) }, { label: L('Earlier','קודם'), rows: rows.filter(r => r.g === 1) }].filter(g => g.rows.length),
+      isEmpty: empty, hasRows: !empty, isOff: st === 'off on this device', isBlocked: st === 'blocked'
+    };
+  }
+}
+</script>
+</body>
+</html>
