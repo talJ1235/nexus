@@ -195,6 +195,15 @@ try {
   ok(new URL(p2.url()).pathname === "/login", "A5 the signed-out device gets /login on its next request", `${r?.status()} ${p2.url()}`);
   ok((await q(`SELECT count(*) n FROM security_event e JOIN "user" u ON u.id = e.user_id WHERE u.email = 'newbie@auth.test' AND e.kind = 'sign_out_device'`))[0].n === 1, "A5 security event logged");
 
+  // ---- R17 G2: an account the admin banned can't sign in — a plain message on /login, no session.
+  await q(`UPDATE "user" SET banned = 1 WHERE email = 'newbie@auth.test'`);
+  const bannedCtx = await browser.newContext();
+  const pb = await signIn(bannedCtx, "newbie@auth.test").catch(() => lastPage);
+  const shownBan = await pb.waitForSelector("text=This account is blocked", { timeout: 30_000 }).then(() => true, () => false);
+  ok(shownBan && new URL(pb.url()).pathname === "/login", "G2 a banned account's sign-in is refused with a plain message", pb.url());
+  await q(`UPDATE "user" SET banned = 0 WHERE email = 'newbie@auth.test'`);
+  await bannedCtx.close();
+
   // ---- A2 (full mode): passkey with a virtual authenticator, passkey sign-in, email-code recovery → forced passkey.
   const auth = async (page) => {
     const cdp = await page.context().newCDPSession(page);

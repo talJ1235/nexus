@@ -676,6 +676,7 @@ export const en = {
     other: "עברית",
     errors: {
       cancelled: "Sign-in was cancelled.",
+      banned: "This account is blocked. If you think that's a mistake, write to the admin.",
       noAccess: "This account doesn't have access yet.",
       unverified: "Your Google email isn't verified.",
       generic: "Sign-in didn't work. Try again.",

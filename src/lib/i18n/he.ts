@@ -678,6 +678,7 @@ export const he: Dict = {
     other: "English",
     errors: {
       cancelled: "הכניסה בוטלה.",
+      banned: "החשבון הזה חסום. אם זו טעות, כתבו למנהל.",
       noAccess: "לחשבון הזה עדיין אין גישה.",
       unverified: "כתובת המייל ב־Google לא מאומתת.",
       generic: "הכניסה לא הצליחה. נסו שוב.",

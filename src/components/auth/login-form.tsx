@@ -9,7 +9,7 @@ import { useI18n } from "@/components/providers";
 import { GoogleMark, PasskeyIcon } from "./brand-art";
 import { initialOf } from "@/lib/initial";
 
-export type LoginError = "cancelled" | "noAccess" | "unverified" | "generic" | "passkeyFailed" | "badCode" | "expired" | "usedUp" | "revoked" | "limit" | "password" | "fallbackOff" | "slow" | "offline";
+export type LoginError = "banned" | "cancelled" | "noAccess" | "unverified" | "generic" | "passkeyFailed" | "badCode" | "expired" | "usedUp" | "revoked" | "limit" | "password" | "fallbackOff" | "slow" | "offline";
 type Which = "google" | "returning" | "test-idp";
 
 /** Google, passkey, the invite code (kept through the Google redirect in a signed cookie) and "Lost access?". */
@@ -110,6 +110,7 @@ export function LoginForm(props: { full: boolean; next: string; error: LoginErro
           return window.location.assign(`/login?error=${encodeURIComponent(kind)}&error_description=${encodeURIComponent(msg)}`);
         }
         if (kind === "email_not_verified") return fail("unverified");
+        if (kind === "banned_user") return fail("banned");
         if (kind === "admin_must_link" || /account not linked/i.test(msg)) return fail("noAccess");
         if (status === 429) return fail("limit", "google_limit", "status 429");
         return fail("generic", "google_status", `id token: status ${status}${kind ? ` ${kind}` : ""}`);

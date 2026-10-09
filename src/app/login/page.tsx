@@ -28,6 +28,10 @@ const ERRORS: Record<string, LoginError> = {
   invite_used_up: "usedUp",
   invite_revoked: "revoked",
   limit: "limit",
+  // R17 G2: an account the admin blocked (Better Auth admin plugin, session create refused).
+  BANNED_USER: "banned",
+  banned_user: "banned",
+  banned: "banned",
 };
 
 type SP = { error?: string; error_description?: string; next?: string; reauth?: string };
