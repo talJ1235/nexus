@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Permission · desktop</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.ph-bar{display:block;height:10px;border-radius:5px;background:var(--s3)}
+.ask{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line-strong);background:var(--raised);font-weight:600;font-size:13.5px;color:var(--ink)}
+.ask i{width:8px;height:8px;border-radius:50%;background:var(--spark)}
+</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:1366px;height:768px;display:flex;background:var(--screen);overflow:hidden;position:relative">
+
+  <aside style="width:232px;flex-shrink:0;border-inline-end:1px solid var(--line-in);background:var(--s);padding:16px 10px;display:flex;flex-direction:column;gap:2px">
+    <span class="logo" style="padding:2px 10px 14px"><svg class="i lg" viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg>Nexus</span>
+    <a class="nav on" href="#"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>{{t.home}}</a>
+    <a class="nav" href="#"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21 7H6"></path></svg>{{t.shop}}</a>
+    <a class="nav" href="#"><svg class="i sm" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"></path></svg>{{t.proj}}</a>
+    <a class="nav" href="#"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg>{{t.ins}}</a>
+  </aside>
+
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <div style="height:64px;display:flex;align-items:center;gap:12px;padding:0 24px">
+      <div class="input" style="height:38px;width:320px"><svg class="i sm" viewBox="0 0 24 24"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.3-4.3"></path></svg><span class="ph" style="font-size:14px">{{t.search}}</span></div>
+      <span style="flex:1"></span>
+      <span class="ask"><i></i>{{t.askNexus}}</span>
+      <button class="{{bellCls}}" aria-label="{{t.inbox}}"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><sc-if value="{{showDot}}" hint-placeholder-val="{{ true }}"><span class="dot"></span></sc-if></button>
+      <span class="av c1">{{t.me}}</span>
+    </div>
+    <div style="flex:1;padding:8px 24px 24px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-content:start;opacity:.55">
+      <div class="wg" style="height:150px"><span class="ph-bar" style="width:40%"></span><span class="ph-bar" style="width:70%;height:22px;margin-top:10px"></span></div>
+      <div class="wg" style="height:150px"><span class="ph-bar" style="width:50%"></span><span class="ph-bar" style="width:60%;height:22px;margin-top:10px"></span></div>
+      <div class="wg" style="height:150px"><span class="ph-bar" style="width:35%"></span><span class="ph-bar" style="width:55%;height:22px;margin-top:10px"></span></div>
+      <div class="wg" style="height:260px;grid-column:span 2"><span class="ph-bar" style="width:30%"></span></div>
+      <div class="wg" style="height:260px"><span class="ph-bar" style="width:45%"></span></div>
+    </div>
+  </main>
+
+  <section class="{{cardCls}}" style="top:60px;inset-inline-end:60px" aria-label="{{t.aria}}" aria-live="polite">
+    <span class="tip" aria-hidden="true"></span>
+    <div class="row">
+      <span class="{{markCls}}">
+        <span class="b"><svg viewBox="0 0 24 24"><path d="{{markD}}"></path></svg></span>
+        <sc-if value="{{showKinds}}" hint-placeholder-val="{{ true }}">
+          <span class="k k1" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"></path></svg></span>
+          <span class="k k2" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M1 3h15v13H1z M16 8h4l3 3v5h-7z"></path></svg></span>
+          <span class="k k3" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path></svg></span>
+        </sc-if>
+      </span>
+      <span class="tx"><b>{{title}}</b><span>{{line}}</span></span>
+      <sc-if value="{{showX}}" hint-placeholder-val="{{ true }}"><button class="btn sm icon ghost x" onClick="{{later}}" aria-label="{{t.close}}"><svg class="i sm" viewBox="0 0 24 24"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button></sc-if>
+    </div>
+    <sc-if value="{{showSteps}}" hint-placeholder-val="{{ false }}">
+      <div class="steps grow-in">
+        <div><span class="n">1</span><span>{{s1}}</span></div>
+        <div><span class="n">2</span><span>{{s2}}</span></div>
+        <div><span class="n">3</span><span>{{s3}}</span></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{showBtns}}" hint-placeholder-val="{{ true }}">
+      <div class="bt">
+        <sc-if value="{{showLater}}" hint-placeholder-val="{{ true }}"><button class="btn ghost" onClick="{{later}}">{{t.notNow}}</button></sc-if>
+        <button class="{{priCls}}" onClick="{{primary}}" disabled="{{priDisabled}}">{{cta}}</button>
+      </div>
+    </sc-if>
+  </section>
+
+  <sc-if value="{{isAsking}}" hint-placeholder-val="{{ false }}">
+    <div class="bask" style="top:8px;inset-inline-start:16px" role="dialog" aria-label="{{t.sysQ}}">
+      <span class="tag">{{t.browserAsks}}</span>
+      <div class="q"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><span>{{t.sysQ}}</span></div>
+      <div class="b2"><button onClick="{{block}}">{{t.block}}</button><button class="p" onClick="{{allow}}">{{t.allow}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["English","עברית"],"default":"English"},"state":{"editor":"enum","options":["reminder","browser asks","on","blocked in browser"],"default":"reminder"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":1366,"height":768}}'>
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this._g); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = p.language === 'עברית';
+    const L = (en, h) => he ? h : en;
+    const map = { 'reminder':'offer', 'browser asks':'asking', 'on':'on', 'blocked in browser':'blocked' };
+    const pst = p.state || 'reminder';
+    const state = (s.forProp === pst && s.st) ? s.st : (map[pst] || 'offer');
+    const go = (x) => () => { clearTimeout(this._g); this.setState({ forProp: pst, st: x });
+      if (x === 'on') this._g = setTimeout(() => this.setState({ forProp: pst, st: 'gone' }), 2600); };
+    const t = {
+      home: L('Home','בית'), shop: L('Shopping','קניות'), proj: L('Projects','פרויקטים'), ins: L('Insights','תובנות'),
+      search: L('Search or paste a link','חיפוש או הדבקת קישור'), askNexus: L('Ask Nexus','לשאול את Nexus'), inbox: L('Notifications','התראות'), me: he ? 'ט' : 'T',
+      aria: L('Turn on notifications','הפעלת התראות'), close: L('Close','סגירה'), notNow: L('Not now','לא עכשיו'),
+      browserAsks: L('Your browser asks','הדפדפן שואל'), sysQ: L('nexus-ashen-beta.vercel.app wants to show notifications','האתר nexus-ashen-beta.vercel.app רוצה להציג התראות'),
+      block: L('Block','חסימה'), allow: L('Allow','אישור')
+    };
+    let title = L('Turn on notifications?','להפעיל התראות?');
+    let line = L('Price drops, deliveries and what your household adds. Never at night.','ירידות מחיר, משלוחים ומה שהבית מוסיף. אף פעם לא בלילה.');
+    let cta = L('Turn on','הפעלה'), primary = go('asking'), showLater = true, priDisabled = false, showSteps = false, showBtns = true, showX = false;
+    let markD = 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0', mark = '', showKinds = true, s1 = '', s2 = '', s3 = '';
+    if (state === 'asking') { cta = L('Waiting…','ממתינים…'); priDisabled = true; showLater = false; line = L('Answer your browser’s question, top of the window.','עונים לשאלה של הדפדפן, בראש החלון.'); }
+    if (state === 'on' || state === 'gone') { title = L('Notifications are on','ההתראות פועלות'); line = L('Turn them off any time in Settings.','אפשר לכבות בכל רגע בהגדרות.'); showBtns = false; markD = 'M20 6 9 17l-5-5'; mark = ' ok'; showKinds = false; }
+    if (state === 'blocked' || state === 'blockedHow') { title = L('Blocked in this browser','חסומות בדפדפן הזה'); line = L('Three clicks bring them back.','שלוש לחיצות מחזירות אותן.'); markD = 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 8v4 M12 16h.01'; mark = ' warn'; showKinds = false; showX = true; showLater = false;
+      s1 = L('Click the icon next to the address','לוחצים על הסמל ליד הכתובת'); s2 = L('Site settings → Notifications','הגדרות אתר ← התראות'); s3 = L('Choose Allow, then reload','בוחרים "אישור" ומרעננים');
+      if (state === 'blocked') { cta = L('How to allow','איך לאפשר'); primary = go('blockedHow'); } else { showSteps = true; cta = L('I allowed it','אישרתי'); primary = go('on'); } }
+    const hidden = state === 'gone' || state === 'later';
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      cardCls: 'nudge pc' + (hidden ? ' gone' : ''), bellCls: 'bell' + (hidden ? '' : ' open'), showDot: !hidden && state !== 'on',
+      markCls: 'kinds' + mark, markD, showKinds, title, line, cta, primary, showLater, priDisabled, showSteps, showBtns, showX, s1, s2, s3,
+      priCls: 'btn pri' + (priDisabled ? ' wait' : ''),
+      later: go('later'), allow: go('on'), block: go('blocked'), isAsking: state === 'asking'
+    };
+  }
+}
+</script>
+</body>
+</html>

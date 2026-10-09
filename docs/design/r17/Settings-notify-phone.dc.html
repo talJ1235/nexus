@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings · notifications · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.top{height:56px;display:flex;align-items:center;gap:4px;padding:0 8px;border-bottom:1px solid var(--line-in)}
+.page{padding:8px 16px 24px;display:flex;flex-direction:column}
+.gh{font-size:13px;font-weight:600;color:var(--muted);padding:18px 4px 8px}
+.li{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 14px;width:100%;border:0;background:transparent;text-align:start;color:var(--ink);font-size:15px}
+.li+.li{border-top:1px solid var(--line-in)}
+.li .grow{flex:1;min-width:0;line-height:1.3}
+.li .grow span{display:block;font-size:12.5px;color:var(--faint);margin-top:2px}
+.tgl{transition:background-color 200ms ease}
+.tgl::after{transition:inset-inline-start 220ms var(--ease-out)}
+.tgl[disabled]{opacity:.5}
+.flip{transform:none}[dir=rtl] .flip{transform:scaleX(-1)}
+.stat-ok{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ok)}
+.stat-warn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--warn)}
+</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;background:var(--screen);overflow:hidden">
+
+  <sc-if value="{{isAccount}}" hint-placeholder-val="{{ true }}">
+    <div class="top"><button class="btn icon ghost" aria-label="{{t.back}}"><svg class="i flip" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><b style="font-size:17px">{{t.account}}</b></div>
+    <div class="page">
+      <div class="gh">{{t.notifications}}</div>
+      <div class="card">
+        <div class="li"><span class="ic" style="width:34px;height:34px"><svg class="i sm" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg></span><span class="grow">{{t.notifications}}<span>{{t.allDevices}}</span></span><button class="{{masterCls}}" onClick="{{toggleMaster}}" aria-pressed="{{master}}" aria-label="{{t.notifications}}"></button></div>
+        <sc-if value="{{master}}" hint-placeholder-val="{{ true }}">
+          <div class="li"><span class="ic" style="width:34px;height:34px"><svg class="i sm" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"></rect><path d="M11 18h2"></path></svg></span><span class="grow">{{t.thisPhone}}<span>{{devLine}}</span></span>
+            <sc-if value="{{devOk}}" hint-placeholder-val="{{ true }}"><span class="stat-ok"><span class="dot ok"></span>{{t.allowed}}</span></sc-if>
+            <sc-if value="{{devBlocked}}" hint-placeholder-val="{{ false }}"><button class="btn sm">{{t.how}}</button></sc-if>
+            <sc-if value="{{devNotSet}}" hint-placeholder-val="{{ false }}"><button class="btn sm pri">{{t.turnOn}}</button></sc-if>
+          </div>
+          <div class="li"><span class="ic" style="width:34px;height:34px"><svg class="i sm" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg></span><span class="grow">{{t.quiet}}<span>{{t.quietLine}}</span></span></div>
+        </sc-if>
+      </div>
+      <p class="tiny" style="padding:10px 4px 0;margin:0;line-height:1.5">{{t.footnote}}</p>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isBudget}}" hint-placeholder-val="{{ false }}">
+    <div class="top"><button class="btn icon ghost" aria-label="{{t.back}}"><svg class="i flip" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><b style="font-size:17px">{{t.budget}}</b></div>
+    <div class="page">
+      <div class="cover gr-green" style="height:84px;margin-top:8px;display:flex;align-items:center;gap:12px;padding:0 16px;color:#fff"><span class="tile t40" style="background:rgba(255,255,255,.18)"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg></span><span style="line-height:1.25"><b style="font-size:16px">Jacoby Home</b><br><span style="font-size:13px;opacity:.85">{{t.monthly}} ₪2,500</span></span></div>
+      <div class="gh">{{t.whoGets}}</div>
+      <div class="card">
+        <sc-for list="{{people}}" as="m" hint-placeholder-count="4">
+          <div class="li"><span class="{{m.avc}}">{{m.av}}</span><span class="grow">{{m.n}}<span>{{m.role}}</span></span><button class="{{m.tcls}}" onClick="{{m.toggle}}" aria-pressed="{{m.on}}" aria-label="{{m.n}}" disabled="{{m.locked}}"></button></div>
+        </sc-for>
+      </div>
+      <p class="tiny" style="padding:10px 4px 0;margin:0;line-height:1.5">{{t.budgetNote}}</p>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["English","עברית"],"default":"English"},"page":{"editor":"enum","options":["account","space budget"],"default":"account"},"thisDevice":{"editor":"enum","options":["allowed","blocked","not set"],"default":"allowed"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = p.language === 'עברית';
+    const L = (en, h) => he ? h : en;
+    const master = s.master ?? true;
+    const dev = p.thisDevice || 'allowed';
+    const t = {
+      back: L('Back','חזרה'), account: L('Account','חשבון'), notifications: L('Notifications','התראות'), allDevices: L('On all your devices','בכל המכשירים שלך'),
+      thisPhone: L('This phone','הטלפון הזה'), allowed: L('Allowed','מאושר'), how: L('How to allow','איך לאפשר'), turnOn: L('Turn on','הפעלה'),
+      quiet: L('Quiet at night','שקט בלילה'), quietLine: L('22:00–07:00. Held until morning.','‏22:00–07:00. נשמר עד הבוקר.'),
+      footnote: L('Nexus decides what is worth a notification and when. Everything still collects in the bell.','Nexus מחליט מה שווה התראה ומתי. הכול נאסף גם בפעמון.'),
+      budget: L('Budget','תקציב'), monthly: L('Monthly','חודשי'), whoGets: L('Budget alerts go to','התראות תקציב נשלחות אל'),
+      budgetNote: L('At 80% and 100% of the month. Only the owner can change this.','ב־80% וב־100% מהחודש. רק הבעלים יכולים לשנות.')
+    };
+    const devLine = dev === 'allowed' ? L('Notifications show on this phone','התראות מופיעות בטלפון הזה') : dev === 'blocked' ? L('Blocked in the browser','חסום בדפדפן') : L('Not turned on yet','עוד לא הופעל');
+    const sel = s.sel || { noa: true };
+    const P = [['tal','T','ט','c1',L('Tal (you)','טל (את/ה)'),L('Owner · always','בעלים · תמיד'),true],['noa','N','נ','c2',L('Noa','נועה'),L('Member','חבר/ה'),false],['yoav','Y','י','c4',L('Yoav','יואב'),L('Member','חבר/ה'),false],['maya','M','מ','c3',L('Maya','מאיה'),L('Viewer','צופה'),false]];
+    const people = P.map(([id,av,avh,c,n,role,locked]) => { const on = locked || !!sel[id]; return { av: he ? avh : av, n, role, locked, on, avc: 'av ' + c, tcls: 'tgl' + (on ? ' on' : ''), toggle: () => locked ? null : this.setState({ sel: { ...sel, [id]: !sel[id] } }) }; });
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t, devLine, people,
+      master, masterCls: 'tgl' + (master ? ' on' : ''), toggleMaster: () => this.setState({ master: !master }),
+      devOk: dev === 'allowed', devBlocked: dev === 'blocked', devNotSet: dev === 'not set',
+      isAccount: (p.page || 'account') === 'account', isBudget: p.page === 'space budget'
+    };
+  }
+}
+</script>
+</body>
+</html>

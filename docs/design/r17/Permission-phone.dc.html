@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Permission · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.ph-bar{display:block;height:10px;border-radius:5px;background:var(--s3)}
+</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;background:var(--screen);overflow:hidden;position:relative">
+
+  <div class="ph-head">
+    <span class="logo" style="font-size:15px;flex:1"><svg class="i" viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg>Nexus</span>
+    <button class="bell" aria-label="{{t.inbox}}"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg></button>
+  </div>
+  <div style="padding:8px 16px;display:flex;flex-direction:column;gap:12px;opacity:.6">
+    <div class="wg" style="height:120px"><span class="ph-bar" style="width:40%"></span></div>
+    <div class="wg" style="height:180px"><span class="ph-bar" style="width:55%"></span></div>
+    <div class="wg" style="height:160px"><span class="ph-bar" style="width:35%"></span></div>
+    <div class="wg" style="height:140px"><span class="ph-bar" style="width:45%"></span></div>
+  </div>
+  <nav class="dock5" aria-label="{{t.nav}}">
+    <button class="tab-b on"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>{{t.home}}</button>
+    <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21 7H6"></path></svg>{{t.shop}}</button>
+    <button class="plus" aria-label="{{t.add}}"><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button>
+    <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"></path></svg>{{t.proj}}</button>
+    <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg>{{t.ins}}</button>
+  </nav>
+
+  <section class="{{cardCls}}" aria-label="{{t.aria}}" aria-live="polite">
+    <div class="row">
+      <span class="{{markCls}}">
+        <span class="b"><svg viewBox="0 0 24 24"><path d="{{markD}}"></path></svg></span>
+        <sc-if value="{{showKinds}}" hint-placeholder-val="{{ true }}">
+          <span class="k k1" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"></path></svg></span>
+          <span class="k k2" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M1 3h15v13H1z M16 8h4l3 3v5h-7z"></path></svg></span>
+          <span class="k k3" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path></svg></span>
+        </sc-if>
+      </span>
+      <span class="tx"><b>{{title}}</b><span>{{line}}</span></span>
+    </div>
+    <sc-if value="{{showSteps}}" hint-placeholder-val="{{ false }}">
+      <div class="steps grow-in">
+        <div><span class="n">1</span><span>{{s1}}</span></div>
+        <div><span class="n">2</span><span>{{s2}}</span></div>
+        <div><span class="n">3</span><span>{{s3}}</span></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{showBtns}}" hint-placeholder-val="{{ true }}">
+      <div class="bt">
+        <sc-if value="{{showLater}}" hint-placeholder-val="{{ true }}"><button class="btn ghost" onClick="{{later}}">{{t.notNow}}</button></sc-if>
+        <button class="{{priCls}}" onClick="{{primary}}" disabled="{{priDisabled}}">{{cta}}</button>
+      </div>
+    </sc-if>
+  </section>
+
+  <sc-if value="{{isAsking}}" hint-placeholder-val="{{ false }}">
+    <div class="scrim-a"></div>
+    <div class="bask android" role="dialog" aria-label="{{t.sysQ}}">
+      <span class="tag">{{t.browserAsks}}</span>
+      <div class="q"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><span>{{t.sysQ}}</span></div>
+      <div class="b2"><button onClick="{{block}}">{{t.block}}</button><button class="p" onClick="{{allow}}">{{t.allow}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["English","עברית"],"default":"English"},"place":{"editor":"enum","options":["above the dock","top of Home"],"default":"above the dock"},"state":{"editor":"enum","options":["reminder","browser asks","on","blocked in browser","iPhone, not installed"],"default":"reminder"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this._g); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = p.language === 'עברית';
+    const L = (en, h) => he ? h : en;
+    const map = { 'reminder':'offer', 'browser asks':'asking', 'on':'on', 'blocked in browser':'blocked', 'iPhone, not installed':'iphone' };
+    const pst = p.state || 'reminder';
+    const state = (s.forProp === pst && s.st) ? s.st : (map[pst] || 'offer');
+    const go = (x) => () => { clearTimeout(this._g); this.setState({ forProp: pst, st: x });
+      if (x === 'on') this._g = setTimeout(() => this.setState({ forProp: pst, st: 'gone' }), 2600); };
+    const t = {
+      inbox: L('Notifications','התראות'), nav: L('Main','ראשי'), home: L('Home','בית'), shop: L('Shopping','קניות'), add: L('Add','הוספה'), proj: L('Projects','פרויקטים'), ins: L('Insights','תובנות'),
+      aria: L('Turn on notifications','הפעלת התראות'), notNow: L('Not now','לא עכשיו'),
+      browserAsks: L('Your browser asks','הדפדפן שואל'), sysQ: L('nexus-ashen-beta.vercel.app wants to show notifications','האתר nexus-ashen-beta.vercel.app רוצה להציג התראות'),
+      block: L('Block','חסימה'), allow: L('Allow','אישור')
+    };
+    const BELL = 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0';
+    let title = L('Turn on notifications?','להפעיל התראות?');
+    let line = L('Price drops, deliveries and what your household adds. Never at night.','ירידות מחיר, משלוחים ומה שהבית מוסיף. אף פעם לא בלילה.');
+    let cta = L('Turn on','הפעלה'), primary = go('asking'), showLater = true, priDisabled = false, showSteps = false, showBtns = true;
+    let markD = BELL, mark = '', showKinds = true, s1 = '', s2 = '', s3 = '';
+    if (state === 'asking') { cta = L('Waiting…','ממתינים…'); priDisabled = true; showLater = false; line = L('Answer your browser’s question.','עונים לשאלה של הדפדפן.'); }
+    if (state === 'on' || state === 'gone') { title = L('Notifications are on','ההתראות פועלות'); line = L('Turn them off any time in Settings.','אפשר לכבות בכל רגע בהגדרות.'); showBtns = false; markD = 'M20 6 9 17l-5-5'; mark = ' ok'; showKinds = false; }
+    if (state === 'blocked' || state === 'blockedHow') { title = L('Blocked in this browser','חסומות בדפדפן הזה'); line = L('Three taps bring them back.','שלוש לחיצות מחזירות אותן.'); markD = 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 8v4 M12 16h.01'; mark = ' warn'; showKinds = false;
+      s1 = L('Tap the icon next to the address','לוחצים על הסמל ליד הכתובת'); s2 = L('Permissions → Notifications','הרשאות ← התראות'); s3 = L('Choose Allow, then come back','בוחרים "אישור" וחוזרים');
+      if (state === 'blocked') { cta = L('How to allow','איך לאפשר'); primary = go('blockedHow'); } else { showSteps = true; cta = L('I allowed it','אישרתי'); primary = go('on'); } }
+    if (state === 'iphone' || state === 'iphoneHow') { title = L('Notifications on iPhone','התראות באייפון'); line = L('Add Nexus to your Home Screen first.','קודם מוסיפים את Nexus למסך הבית.'); markD = 'M12 3v12 M8 7l4-4 4 4 M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7'; mark = ' ios'; showKinds = false;
+      s1 = L('In Safari, tap Share','ב־Safari לוחצים על שיתוף'); s2 = L('Add to Home Screen','הוספה למסך הבית'); s3 = L('Open Nexus from there','פותחים את Nexus משם');
+      if (state === 'iphone') { cta = L('Show me how','להראות לי איך'); primary = go('iphoneHow'); } else { showSteps = true; cta = L('I added it','הוספתי'); primary = go('gone'); } }
+    const atTop = (p.place || 'above the dock') === 'top of Home';
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      cardCls: 'nudge ph ' + (atTop ? 'at-top' : 'at-dock') + (state === 'gone' || state === 'later' ? ' gone' : ''),
+      markCls: 'kinds' + mark, markD, showKinds, title, line, cta, primary, showLater, priDisabled, showSteps, showBtns, s1, s2, s3,
+      priCls: 'btn pri' + (priDisabled ? ' wait' : ''),
+      later: go('later'), allow: go('on'), block: go('blocked'), isAsking: state === 'asking'
+    };
+  }
+}
+</script>
+</body>
+</html>

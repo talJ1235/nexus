@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Push previews</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.cap{font-size:13px;font-weight:600;color:var(--muted);text-align:center}
+</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:1366px;height:768px;background:var(--screen);overflow:hidden;display:grid;grid-template-columns:320px 320px minmax(0,1fr);gap:48px;padding:40px 56px;box-sizing:border-box;align-items:start">
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="dev-frame wall-a" style="height:640px;padding:56px 12px 12px;display:flex;flex-direction:column">
+      <div class="an">
+        <div class="h"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg></span>Nexus · {{t.now}}</div>
+        <b>{{t.shopT}}</b><span style="font-size:13px">{{t.shopS}}</span>
+      </div>
+      <div class="an">
+        <div class="h"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg></span>Nexus · 09:00</div>
+        <div style="display:flex;gap:10px;align-items:center"><span style="flex:1"><b>{{t.dropT}}</b><br><span style="font-size:13px">{{t.dropS}}</span></span><span class="thumb t1" style="width:44px;height:44px;border-radius:10px"></span></div>
+        <div class="bt"><span>{{t.open}}</span></div>
+      </div>
+      <div class="an">
+        <div class="h"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg></span>Nexus · 08:12</div>
+        <b>{{t.delT}}</b><span style="font-size:13px">{{t.delS}}</span>
+        <div class="bt"><span>{{t.received}}</span></div>
+      </div>
+    </div>
+    <div class="cap">Android</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="dev-frame wall-i" style="height:640px;padding:150px 12px 12px;display:flex;flex-direction:column;gap:8px">
+      <div style="position:absolute;top:56px;inset-inline:0;text-align:center;color:#fff;font-size:56px;font-weight:300;letter-spacing:-.03em">9:41</div>
+      <div class="in"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg></span><span class="t"><b>{{t.addT}}</b>{{t.addS}}</span><span class="w">{{t.now}}</span></div>
+      <div class="in"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg></span><span class="t"><b>{{t.weekT}}</b>{{t.weekS}}</span><span class="w">{{t.thu}}</span></div>
+      <div class="in" style="opacity:.85"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg></span><span class="t"><b>{{t.budT}}</b>{{t.budS}}</span><span class="w">{{t.tue}}</span></div>
+    </div>
+    <div class="cap">{{t.iphoneCap}}</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="wall-w" style="height:640px;border-radius:14px;position:relative;overflow:hidden;box-shadow:0 30px 60px -30px rgba(0,0,0,.45)">
+      <div class="wt" style="position:absolute;bottom:24px;inset-inline-end:20px">
+        <div class="h"><span style="width:16px;height:16px;border-radius:4px;background:#171717;display:grid;place-items:center"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" style="width:11px;height:11px"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg></span>Nexus</div>
+        <div class="b"><span class="thumb t1" style="width:48px;height:48px;border-radius:8px"></span><span style="flex:1;line-height:1.35"><b>{{t.dropT}}</b><br>{{t.dropS}}</span></div>
+        <div class="bt"><span>{{t.open}}</span><span>{{t.dismiss}}</span></div>
+      </div>
+    </div>
+    <div class="cap">{{t.pcCap}}</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["English","עברית"],"default":"English"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":1366,"height":768}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, he = p.language === 'עברית';
+    const L = (en, h) => he ? h : en;
+    const t = {
+      now: L('now','עכשיו'), thu: L('Thu','ה׳'), tue: L('Tue','ג׳'),
+      shopT: L('Noa finished shopping','נועה סיימה קניות'), shopS: L('Bought 12, 3 left · Jacoby Home','קנתה 12, נשארו 3 · Jacoby Home'),
+      dropT: L('Steam cleaner dropped to ₪899','מנקה הקיטור ירד ל־₪899'), dropS: L('Was ₪999 at KSP','היה ₪999 ב־KSP'),
+      delT: L('Arrives today','מגיע היום'), delS: L('Car vent clip · AliExpress','קליפס לפתח מיזוג · AliExpress'),
+      addT: L('Noa added 5 items','נועה הוסיפה 5 פריטים'), addS: L('Groceries · Jacoby Home','מצרכים · Jacoby Home'),
+      weekT: L('Your week','השבוע שלך'), weekS: L('23 bought · ₪612 spent · 2 price drops','23 נקנו · ₪612 הוצאה · 2 ירידות מחיר'),
+      budT: L('80% of October’s budget','80% מתקציב אוקטובר'), budS: L('Jacoby Home · ₪2,000 of ₪2,500','Jacoby Home · ₪2,000 מתוך ₪2,500'),
+      open: L('Open','פתיחה'), received: L('Received','הגיע'), dismiss: L('Dismiss','סגירה'),
+      iphoneCap: L('iPhone (installed on the Home Screen)','אייפון (מותקן במסך הבית)'), pcCap: L('Computer (Chrome / Edge)','מחשב (Chrome / Edge)')
+    };
+    return { cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''), dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t };
+  }
+}
+</script>
+</body>
+</html>
