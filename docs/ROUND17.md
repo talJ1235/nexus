@@ -521,3 +521,87 @@ scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI reda
   in GitHub secrets (without them the prod smoke runs its signed-out checks only), remove `APP_PASSWORD` /
   `NEXUS_PASSWORD`; optionally the Cloudflare Worker (`scripts/cf-worker/README.md`) for cwc.co.il; then run
   `scripts/blocked-probe.mjs` against prod for the before/after table; mark the Suggests-animation report fixed.
+
+### C1 — prod probe (after the Cloudflare Worker)
+2026-10-09, `BASE=https://nexus-ashen-beta.vercel.app node scripts/blocked-probe.mjs` against prod at `472bfac`
+(build id read from the served JS; includes `b820ac4`), signed in through the admin emergency path (worked first try).
+Worker rung is configured on Vercel (it reads several stores). Before the run three probe URLs 404'd and were replaced
+with real product pages: ivory (`catalog.php?id=116647`), bug (JBL Flip 7 page), Shufersal (`P_3029815`). The other
+placeholders (home pages, made-up ids for Amazon/Temu/eBay/Shein/Walmart/AliExpress) did not 404 and were left as is,
+so "✓ but no T/P/I" on those rows means "not refused, nothing product-like on that page", not a parser miss.
+Cells: ✓/✗ = not blocked/blocked, T P I = title/price/picture found, ms. **9/30 read** (title + price or picture).
+
+| store | direct | woo | shopify | worker | ladder |
+|---|---|---|---|---|---|
+| cwc.co.il | ✗ ··· 26ms | ✗ ··· 21ms | ✗ ··· 0ms | ✗ ··· 34ms | ✗ |
+| ksp.co.il | ✗ ··· 64ms | ✗ ··· 0ms | ✗ ··· 0ms | ✗ ··· 42ms | ✗ |
+| ivory.co.il | ✓ TPI 377ms | ✗ ··· 1ms | ✗ ··· 0ms | ✓ TPI 218ms | ✓ direct |
+| bug.co.il | ✓ TPI 384ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ TPI 1057ms | ✓ direct |
+| zap.co.il | ✓ TPI 204ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ TPI 182ms | ✓ direct |
+| shufersal.co.il | ✓ ··· 17ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ ··· 718ms | ✗ |
+| rami-levy.co.il | ✗ ··· 24ms | ✗ ··· 0ms | ✗ ··· 0ms | ✗ ··· 29ms | ✗ |
+| ikea.com | ✓ TPI 408ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ TPI 568ms | ✓ direct |
+| amazon.com | ✓ ··· 217ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ T·· 393ms | ✗ |
+| aliexpress.com | ✗ ··· 70ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ ··· 183ms | ✗ |
+| temu.com | ✓ ··· 24ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ ··· 30ms | ✗ |
+| ebay.com | ✗ ··· 44ms | ✗ ··· 0ms | ✗ ··· 0ms | ✗ ··· 274ms | ✗ |
+| il.shein.com | ✓ T·· 1200ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ T·· 1356ms | ✗ |
+| office-depot.co.il | ✗ ··· 4ms | ✗ ··· 0ms | ✗ ··· 0ms | ✗ ··· 265ms | ✗ |
+| mashbir.co.il | ✓ T·I 741ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ T·I 902ms | ✓ direct |
+| ace.co.il | ✓ T·· 353ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ T·· 480ms | ✗ |
+| homecenter.co.il | ✓ T·I 2097ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ T·I 1736ms | ✓ direct |
+| max-stock.co.il | ✗ ··· 5ms | ✗ ··· 0ms | ✗ ··· 1ms | ✗ ··· 202ms | ✗ |
+| terminalx.com | ✓ T·I 433ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ T·I 642ms | ✓ direct |
+| next.co.il | ✓ T·· 609ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ T·· 902ms | ✗ |
+| lastprice.co.il | ✗ ··· 23ms | ✗ ··· 0ms | ✗ ··· 0ms | ✗ ··· 29ms | ✗ |
+| payngo.co.il | ✗ ··· 28ms | ✗ ··· 0ms | ✗ ··· 0ms | ✗ ··· 30ms | ✗ |
+| machsanei-hashmal.co.il | ✗ ··· 5ms | ✗ ··· 0ms | ✗ ··· 0ms | ✗ ··· 273ms | ✗ |
+| electricshop.co.il | ✓ T·I 1040ms | ✗ ··· 0ms | ✗ ··· 0ms | ✗ ··· 221ms | ✓ direct |
+| tms.co.il | ✗ ··· 22ms | ✗ ··· 0ms | ✗ ··· 0ms | ✗ ··· 27ms | ✗ |
+| kravitz.co.il | ✓ T·I 180ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ T·I 633ms | ✓ direct |
+| super-pharm.co.il | ✓ ··· 153ms | ✗ ··· 0ms | ✗ ··· 0ms | ✓ ··· 372ms | ✗ |
+| walmart.com | ✓ T·· 431ms | ✗ ··· 0ms | ✗ ··· 0ms | ✗ ··· 637ms | ✗ |
+| bestbuy.com | ✗ ··· 9009ms | ✗ ··· 0ms | ✗ ··· 0ms | ✗ ··· 172ms | ✗ |
+| raspberrypi.com | ✗ ··· 26ms | ✗ ··· 0ms | ✗ ··· 85ms | ✗ ··· 163ms | ✗ |
+
+Per store (which rung read it, or blocked):
+- **cwc.co.il — blocked on every rung, worker included.** Direct from Vercel: 403 "Just a moment..." (Cloudflare
+  managed challenge, `challenges.cloudflare.com` in the page; `/api/debug/extract`). Woo Store API: blocked. **Worker:
+  blocked too** — it gets back only the same `<title>` page in ~35 ms (`/api/debug/blocked`: `method: "title"`,
+  `blocked: true`, no price/picture), i.e. the Cloudflare challenge, not the product page. cwc's Cloudflare zone
+  challenges requests from Cloudflare Workers as well, so the Worker does not fix cwc; the C2 acceptance ("cwc returns
+  title + price + image on prod") is **not met**. From a home IP the page still loads normally.
+- ksp.co.il — blocked on every rung (direct and worker).
+- ivory.co.il — direct (worker also reads it).
+- bug.co.il — direct (worker also reads it).
+- zap.co.il — direct (worker also reads it).
+- shufersal.co.il — not refused on direct or worker, but nothing read (page is client-rendered; no title/price/picture in the HTML).
+- rami-levy.co.il — blocked on every rung (probe URL is a category page).
+- ikea.com (IL) — direct (worker also reads it).
+- amazon.com — not refused; title only via worker (no price/picture) → not counted as read.
+- aliexpress.com — direct blocked; worker not refused but nothing read (placeholder item id).
+- temu.com — not refused on direct/worker, nothing read (placeholder goods id).
+- ebay.com — blocked on every rung (also 403 from a home IP).
+- il.shein.com — not refused, title only (placeholder product id).
+- office-depot.co.il — blocked on every rung (home page; also no answer from a home IP).
+- mashbir.co.il — direct (worker also reads it; home page).
+- ace.co.il — not refused, title only (home page).
+- homecenter.co.il — direct (worker also reads it; home page).
+- max-stock.co.il — blocked on every rung (home page; also no answer from a home IP).
+- terminalx.com — direct (worker also reads it; home page).
+- next.co.il — not refused, title only (home page).
+- lastprice.co.il — blocked on every rung (home page answers 500 from a home IP too).
+- payngo.co.il — blocked on every rung (403 from a home IP too).
+- machsanei-hashmal.co.il — blocked on every rung (home page; also no answer from a home IP).
+- electricshop.co.il — direct (worker is blocked there).
+- tms.co.il — blocked on every rung.
+- kravitz.co.il — direct (worker also reads it; home page).
+- super-pharm.co.il — not refused, nothing read (home page).
+- walmart.com — direct not refused, title only; worker blocked (placeholder item id).
+- bestbuy.com — blocked on every rung (direct times out at 9 s).
+- raspberrypi.com — blocked on every rung.
+
+Net: the Worker never read a store that direct couldn't (its only extra "not refused" is AliExpress, with nothing
+read), and it is itself refused by electricshop and Walmart. The Woo and Shopify rungs read nothing in this list.
+Next step for the planner: real product URLs for the home-page rows before judging those stores, and a different
+route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare egress is challenged the same way).

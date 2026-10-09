@@ -11,10 +11,10 @@ const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
 const URLS = [
   "https://www.cwc.co.il/product/%d7%9e%d7%9b%d7%a9%d7%99%d7%a8-%d7%9c%d7%a0%d7%99%d7%a7%d7%95%d7%99-%d7%9b%d7%aa%d7%9e%d7%99%d7%9d-%d7%9e%d7%a1%d7%a4%d7%95%d7%aa-%d7%a2%d7%9d-%d7%a7%d7%99%d7%98%d7%95%d7%a8-y100-steam-%d7%99%d7%95/",
   "https://ksp.co.il/web/item/292537",
-  "https://www.ivory.co.il/catalog.php?id=61254",
-  "https://www.bug.co.il/item/123456",
+  "https://www.ivory.co.il/catalog.php?id=116647",
+  "https://www.bug.co.il/brand/jbl/bluetooth/speakers/flip/7/special/edition/tomorrowland",
   "https://www.zap.co.il/model.aspx?modelid=1234567",
-  "https://www.shufersal.co.il/online/he/p/P_7290000066318",
+  "https://www.shufersal.co.il/online/he/p/P_3029815",
   "https://www.rami-levy.co.il/he/online/market/%D7%97%D7%9C%D7%91",
   "https://www.ikea.com/il/he/p/kallax-shelving-unit-white-80275887/",
   "https://www.amazon.com/dp/B0BSHF7WHW",
