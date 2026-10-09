@@ -61,7 +61,12 @@
     "test:ai-quota": "tsx --conditions=react-server scripts/test-ai-quota.ts",
     "test:short-name": "tsx scripts/test-short-name.ts",
     "test:blocked": "tsx --conditions=react-server scripts/test-blocked.ts",
-    "test:delete-account": "tsx --conditions=react-server scripts/test-delete-account.ts"
+    "test:delete-account": "tsx --conditions=react-server scripts/test-delete-account.ts",
+    "test:admin-access": "node scripts/test-admin-access.mjs",
+    "test:admin-privacy": "node scripts/test-admin-privacy.mjs",
+    "test:admin-live": "node scripts/test-admin-live.mjs",
+    "test:admin-people": "node scripts/test-admin-people.mjs",
+    "test:onboarding": "node scripts/test-onboarding.mjs"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",

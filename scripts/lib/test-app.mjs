@@ -75,5 +75,13 @@ export async function startApp({ db: file, port, dev = false, env: extra = {} })
     ...(space ? [{ name: "nexus_space", value: space, url: base }] : []),
     { name: "nexus_locale", value: locale, url: base },
   ];
-  return { base, db, admin, personal, adminEmail, cookies, stop, log: () => log };
+  /** R17: a signed session for any user (a session row + Better Auth's cookie signature), as cookies. */
+  const sessionFor = async (userId, { ua = null, space = null, locale = "en" } = {}) => {
+    const tok = randomBytes(24).toString("base64url");
+    const t = Date.now();
+    await db.execute({ sql: `INSERT INTO session (id, expires_at, token, created_at, updated_at, user_id, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?)`, args: [`ts_${tok.slice(0, 10)}`, t + 86_400_000, tok, t, t, userId, ua] });
+    const value = encodeURIComponent(`${tok}.${createHmac("sha256", secret).update(tok).digest("base64")}`);
+    return { id: `ts_${tok.slice(0, 10)}`, cookies: [{ name: "nexus_session_dev", value, url: base }, ...(space ? [{ name: "nexus_space", value: space, url: base }] : []), { name: "nexus_locale", value: locale, url: base }], header: `nexus_session_dev=${value}; nexus_locale=${locale}${space ? `; nexus_space=${space}` : ""}` };
+  };
+  return { base, db, admin, personal, adminEmail, cookies, sessionFor, cookieHeader: `nexus_session_dev=${session}`, stop, log: () => log };
 }
