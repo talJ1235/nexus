@@ -94,3 +94,6 @@
 /* The settings kit's .stat is a bordered card (nx16); the admin strip's stats are cells of one strip (board nx17). */
 .nx.adm .stat{border:0;border-radius:0;padding:0;gap:2px}
 .nx.adm .strip>.stat{padding:14px 18px}
+/* Scrolling bodies: their panels keep their height (a flex column bounded by the viewport would squeeze them on top of
+   each other); only the Live desktop body (.fill) shares the height on purpose. */
+.nx.adm .page>*,.nx.adm .ad-body:not(.fill)>*{flex-shrink:0}

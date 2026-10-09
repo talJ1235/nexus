@@ -139,7 +139,7 @@ export function AiTab({ phone, go }: { phone: boolean; go: Go }) {
               </div>
               <div className="xaxis">
                 <span>{date(Date.parse(data.days[0].day))}</span>
-                {days === 30 && <span>{date(Date.parse(data.days[14].day))}</span>}
+                {days === 30 && !phone && <span>{date(Date.parse(data.days[14].day))}</span>}
                 <span>{t.adm.ago.today}</span>
               </div>
             </>

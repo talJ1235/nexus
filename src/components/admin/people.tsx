@@ -194,13 +194,13 @@ export function PeopleTab({ phone, go, me, person }: { phone: boolean; go: Go; m
                 <span className="who-c">
                   <Av id={r.id} name={r.name} ring={r.online ? "on" : null} />
                   <span className="nm">
-                    <b>{r.name}</b>
-                    <span>{r.email}</span>
+                    <b title={r.name}>{r.name}</b>
+                    <span title={r.email}>{r.email}</span>
                   </span>
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                   {r.online && <DevChip device={r.online.device} />}
-                  <span className="sub" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span className="sub" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={seen(r)}>
                     {seen(r)}
                   </span>
                 </span>
@@ -210,12 +210,12 @@ export function PeopleTab({ phone, go, me, person }: { phone: boolean; go: Go; m
                   <span className={`qbar${a.full ? " full" : ""}`}>
                     <i style={{ width: `${a.pct}%` }} />
                   </span>
-                  <span className="tiny num" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span className="tiny num" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={a.text}>
                     {a.text}
                   </span>
                 </span>
                 <span style={{ minWidth: 0 }}>
-                  <span className={cls} style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "inline-block" }} data-person-status>
+                  <span className={cls} style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "inline-block" }} title={st} data-person-status>
                     {st}
                   </span>
                 </span>
@@ -431,7 +431,14 @@ function PersonView({ id, me, phone, onBack, onChanged }: { id: string; me: stri
         {p.devices.map((d) => (
           <div key={d.id} className="hl" style={{ padding: "8px 12px", minHeight: phone ? 52 : 40 }} data-person-device={d.id}>
             <DevChip device={d.kind === "phone" ? "phone" : "computer"} />
-            <span className="grow">{d.installed ? (d.os ? f(P.appOn, { os: d.os }) : P.app) : [d.browser, d.os].filter(Boolean).join(", ") || "—"}</span>
+            {(() => {
+              const label = d.installed ? (d.os ? f(P.appOn, { os: d.os }) : P.app) : [d.browser, d.os].filter(Boolean).join(", ") || "—";
+              return (
+                <span className="grow" title={label}>
+                  {label}
+                </span>
+              );
+            })()}
             <span className="r" style={d.online ? { color: "var(--ok)" } : undefined}>
               {d.online ? P.activeNow : ago(d.lastActive, now)}
             </span>

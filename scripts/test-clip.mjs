@@ -11,6 +11,7 @@
 // Usage: npm run build, then `npm run test:clip` (PORT=3109). CLIP_ONLY=settings,views,sheets  CLIP_QUICK=1 (390 + 1366,
 // one theme, English + Hebrew).
 import { chromium } from "playwright";
+import { seedAdmin } from "./lib/seed-admin.mjs";
 import { startApp } from "./lib/test-app.mjs";
 
 const PORT = Number(process.env.PORT || 3109);
@@ -19,6 +20,15 @@ const ONLY = (process.env.CLIP_ONLY || "").split(",").filter(Boolean);
 const want = (g) => !ONLY.length || ONLY.includes(g);
 const app = await startApp({ db: "clip-test.db", port: PORT });
 const BASE = app.base;
+// R17 S2: the admin panel's demo people (presence put back to "now" before each admin screen) and the onboarding steps.
+await seedAdmin(app.db, { adminId: app.admin, personal: app.personal });
+const freshen = () => app.db.execute({ sql: "UPDATE presence SET updated_at = ? WHERE session_id IN ('ads_noa_p', 'ads_yoav', 'ads_maya')", args: [Date.now() - 8000] });
+const ADMIN = ["/admin", "/admin/people", "/admin/people/ad_noa", "/admin/invites", "/admin/ai", "/admin/reports", "/admin/reports/r_admin_demo", "/admin/errors", "/admin/system", "/admin/more"];
+const obAt = (step) =>
+  app.db.execute({
+    sql: "INSERT INTO user_pref (user_id, key, value, updated_at) VALUES (?, 'pref:onboarding', ?, ?) ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value",
+    args: [app.admin, JSON.stringify({ v: 1, status: "active", step, why: ["home", "super"], stores: ["shufersal", "yochananof", "super-pharm", "home-center", "custom:Makolet Shalom HaGadol"], custom: ["Makolet Shalom HaGadol"], budget: 12500, currency: "ILS", who: "family", sharedSpaceId: null, notif: null, installed: false, at: Date.now() }), Date.now()],
+  });
 
 const VIEWS = ["/", "/?v=to_buy", "/?v=ordered", "/?v=history", "/?v=orders", "/?v=spending", "/?v=projects", "/?v=collection&id=pa_big_c0", "/?v=store&key=ksp"];
 const YOU = ["account", "display", "ai", "calendar", "memory", "data", "activity", "reports"];
@@ -189,6 +199,12 @@ for (const space of [app.personal, "pa_big"])
         ctx.setDefaultTimeout(30_000);
         await ctx.addCookies(app.cookies(space, locale));
         await ctx.addInitScript(() => {
+          // Headless Chromium never offers an install: a stand-in beforeinstallprompt so onboarding step 5 shows.
+          const add = window.addEventListener.bind(window);
+          window.addEventListener = (type, fn, o) => {
+            add(type, fn, o);
+            if (type === "beforeinstallprompt") setTimeout(() => fn(Object.assign(new Event("beforeinstallprompt"), { prompt: async () => {}, userChoice: Promise.resolve({ outcome: "dismissed" }) })), 0);
+          };
           try {
             sessionStorage.setItem("nexus.opened", "1");
             const d = new Date();
@@ -240,6 +256,27 @@ for (const space of [app.personal, "pa_big"])
             await page.keyboard.press("Escape");
           }
         }
+        if (space === app.personal && want("admin") && (z.w !== 1280 || scheme === "light"))
+          for (const r of ADMIN) {
+            if (!z.phone && r === "/admin/more") continue;
+            await freshen();
+            await page.goto(BASE + r);
+            await page.waitForSelector("[data-live], [data-people], [data-person], [data-invites], [data-ai], [data-report], [data-reports], [data-errors], [data-system-page], [data-admin-more]", { timeout: 30_000 });
+            await page.waitForSelector("html[data-booted]", { timeout: 10_000 }).catch(() => {});
+            await page.waitForTimeout(900);
+            // A person / report opened over the list: only that layer (the list under the scrim is meant to be covered).
+            record(`${tag} ${r}`, await page.evaluate(scan, /\/people\/./.test(r) ? "[data-person]" : ".nx.adm"));
+          }
+        if (space === app.personal && want("onboarding") && z.w !== 1280)
+          for (let step = 1; step <= 7; step++) {
+            await obAt(step);
+            await page.goto(`${BASE}/welcome`);
+            await page.waitForSelector("[data-ob-step]", { timeout: 30_000 });
+            await page.waitForSelector("html[data-booted]", { timeout: 10_000 }).catch(() => {});
+            await page.waitForTimeout(500);
+            record(`${tag} /welcome step ${step}`, await page.evaluate(scan, ".nx.ob"));
+          }
+        if (space === app.personal && want("onboarding")) await app.db.execute({ sql: "DELETE FROM user_pref WHERE user_id = ? AND key = 'pref:onboarding'", args: [app.admin] });
         await ctx.close();
       }
 await browser.close();

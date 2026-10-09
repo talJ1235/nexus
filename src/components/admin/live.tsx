@@ -188,8 +188,8 @@ function LiveDesktop({ data, title, fresh, go }: { data: Data; title: React.Reac
                     <span className="who-c">
                       <Av id={u.userId} name={u.name} ring="on" />
                       <span className="nm">
-                        <b>{u.name}</b>
-                        <span>{where(u.space, u.personal)}</span>
+                        <b title={u.name}>{u.name}</b>
+                        <span title={where(u.space, u.personal)}>{where(u.space, u.personal)}</span>
                       </span>
                     </span>
                     <span>
@@ -202,7 +202,9 @@ function LiveDesktop({ data, title, fresh, go }: { data: Data; title: React.Reac
                           {f(t.adm.live.shoppingLeft, { n: u.shoppingLeft ?? 0 })}
                         </span>
                       ) : (
-                        <span className="scr">{screen(u.screen)}</span>
+                        <span className="scr" title={screen(u.screen)}>
+                          {screen(u.screen)}
+                        </span>
                       )}
                     </span>
                     <span className="sub num">{dur(data.now - u.since)}</span>
