@@ -26,7 +26,7 @@ Example: `[Open settings → Palette](nexus:settings)`.
   offers the invite link), installing the app (iPhone: Share → Add to Home Screen), and notifications.
 - **Skip** leaves at any point; a reload continues where you were. Every answer can be changed later: Home →
   Customize, Space settings → Budget, the space switcher, Settings → Account → Notifications — or run the questions
-  again from Settings → Account → **Getting started**.
+  again from Settings → Display → **Getting started**.
 
 ## Where things are
 <!-- spec: UI, Desktop shell, Phone shell, Collections, Phone fit, Home hierarchy, Phone shell v2, Home, Shopping tab, Sidebar collapse, Customize, Insights -->

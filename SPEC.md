@@ -738,7 +738,7 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
   budget + currency (personal space) · 4 who → partner/family makes the shared "Home" + invite · 5 install (prompt /
   iPhone guide / desktop QR) · 6 notifications (permission asked only on the tap, stored for Session 3) · 7 done. Skips:
   joined by invite → 4; installed or can't install → 5; iPhone not on the Home Screen → 6. Saved as answered, reload
-  resumes, Skip → Home with the "Try it" hint. Settings → Account → Getting started runs it again.
+  resumes, Skip → Home with the "Try it" hint. Settings → Display → Getting started runs it again.
 - Guards: `test:admin-access`, `test:admin-privacy`, `test:admin-live`, `test:admin-people`, `test:onboarding`;
   `test:clip` walks the admin tabs and every onboarding step; `test:auth-flow` checks a banned sign-in.
 
