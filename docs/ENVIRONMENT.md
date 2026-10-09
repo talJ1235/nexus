@@ -97,7 +97,7 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
 - 2026-10-04 (chat): Vercel Function Storage hit 10 GB; `vercel.json` now builds `main` only (branch `chore/vercel-main-only`).
 - 2026-10-04 (chat, account B): design canvas recreated in this account as a claude.ai Design artifact from Tal's HTML export of
   account A's canvas (the export is a self-unpacking bundle; the page sources inside match `docs/design/home-v3/`). Canvas
-  boards are `.dc.html` files; copies of each approved round go to `docs/design/<name>/` so the builder can read them.
+  boards are `.dc.html` files; copies of each approved round go to `docs/design/<n>/` so the builder can read them.
   Chat has no git push credentials (`GH_TOKEN` invalid) — docs are pushed with the GitHub connector.
 - 2026-10-04 (Claude Code, Round 13): smoke tooling — `SMOKE_ONLY=a|b`, failure screenshots with `SMOKE_OUT`, `SMOKE_FRESH` + `scripts/serve-fresh.sh` (a second local server on an empty DB, :3101, files `fresh-smoke.db/.log` gitignored); `npm run test:home`.
 - 2026-10-04 (chat, account B): documented what making the repo private changes (Vercel, chat clone, Actions minutes, CodeQL/secret scanning → gitleaks + Semgrep). Security plan `docs/SECURITY.md` adds CI tools (Semgrep CE, OWASP ZAP baseline) and Cloudflare Turnstile keys for R15.
@@ -166,3 +166,4 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   `scripts/lib/test-app.mjs` adds `sessionFor(userId)` and sets `busy_timeout` on its DB handle; admin demo people in
   `scripts/lib/seed-admin.mjs`; `node scripts/parity-r17.mjs [prefix]` (boards vs app, own server on `parity-r17.db`).
   `.claude/settings.local.json` allows the round17-s2 push/merge commands.
+- 2026-10-09 (planning chat): a Design canvas made on the other Claude account opens here only as a read-only copy ("belongs to another organization") — `read` works, `publish` with its `url` doesn't. To continue it: read it, publish a new canvas from the Design type on this account with the same `project/*` files, and treat the new one as current (record its name in `PLANNER.md`).
