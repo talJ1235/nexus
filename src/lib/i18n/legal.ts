@@ -45,6 +45,12 @@ const en = {
         ],
       },
       {
+        h: "What the admin sees",
+        p: [
+          "The person who runs Nexus has an admin view to keep it working: who is online right now, on which kind of device (phone or computer, installed or in a browser), which part of the app (for example Home or the shopping list, and how many items are left while shopping) and counts of what happened (for example \"added 3 items\"). Never the content: not the names of your items, notes, links, chats, memory, receipts or what's in your spaces. Presence is kept 7 days, the activity counts 30 days. A problem report you send is read by the admin, with the screen details it carries.",
+        ],
+      },
+      {
         h: "How long it's kept",
         p: [
           "Your content: until you delete it or your account. Sessions end after at most 90 days; the security log keeps 90 days; the error log 30 days; backups up to 30 days. A deleted account is gone for good 7 days after you ask (you can undo within those days).",
@@ -76,6 +82,7 @@ const en = {
       { h: "Your account", p: ["Keep your sign-in to yourself. You're responsible for what's done in your account and in the spaces you own. You can delete your account at any time (Settings → Account)."] },
       { h: "Your content", p: ["What you add stays yours. You let Nexus store and process it only to run the app for you and for the members of the spaces you share it with."] },
       { h: "Prices, stores and AI", p: ["Prices, pictures and names are read from stores and may be wrong or out of date — check the store before you buy. AI suggestions and answers can be mistaken; the assistant only changes things after you confirm."] },
+      { h: "The admin", p: ["The admin can see who is online, on what kind of device and in which part of the app, plus activity counts — never your content (see Privacy). The admin can change your daily AI limit, sign you out, block an account that breaks these terms, or delete an account; a deleted account can be restored for 7 days by signing in again."] },
       { h: "Fair use", p: ["Don't use Nexus to break the law, to reach other people's data, to overload it, or to read stores in ways they forbid. Accounts that do may be closed."] },
       { h: "Liability", p: ["To the extent the law allows, Nexus is not liable for indirect losses, lost data or purchase decisions made with it."] },
       { h: "Law", p: [`Israeli law applies; the courts of Tel Aviv-Yafo have jurisdiction. Questions: ${PRIVACY_CONTACT}.`] },
@@ -115,6 +122,7 @@ const he: typeof en = {
         h: "מי עוד מטפל במידע",
         p: ["Vercel (אירוח ואחסון קבצים), Turso (מסד הנתונים), Resend (מיילים של כניסה ושחזור), Ably (עדכונים חיים בין חברי מרחב משותף), Google (כניסה ובינה מלאכותית), Groq ו-OpenRouter (גיבוי לבינה מלאכותית), ו-Cloudflare כשמשתמשים בה לקריאת דפי חנויות שחוסמות את Nexus. הם מעבדים מידע רק כדי להפעיל את השירות שלהם עבור Nexus. חלקם מחוץ לישראל (בעיקר בארה״ב ובאיחוד האירופי)."],
       },
+      { h: "מה המנהל רואה", p: ["למי שמפעיל את Nexus יש תצוגת ניהול כדי לשמור שהיא עובדת: מי מחובר עכשיו, באיזה סוג מכשיר (טלפון או מחשב, מותקנת או בדפדפן), באיזה חלק של האפליקציה (למשל דף הבית או רשימת הקניות, וכמה פריטים נשארו בזמן קנייה) וספירה של מה שקרה (למשל \"הוסיף/ה 3 פריטים\"). אף פעם לא את התוכן: לא שמות הפריטים, הערות, קישורים, שיחות, זיכרון, קבלות או מה שיש במרחבים שלך. הנוכחות נשמרת 7 ימים, ספירת הפעילות 30 יום. דיווח על בעיה שנשלח נקרא על ידי המנהל, יחד עם פרטי המסך שמצורפים אליו."] },
       { h: "כמה זמן זה נשמר", p: ["התוכן שלך: עד שמוחקים אותו או את החשבון. כניסות מסתיימות אחרי 90 יום לכל היותר; יומן האבטחה נשמר 90 יום; יומן השגיאות 30 יום; גיבויים עד 30 יום. חשבון שנמחק נעלם לגמרי 7 ימים אחרי הבקשה (אפשר לבטל בימים האלה)."] },
       { h: "הזכויות שלך", p: ["אפשר לראות ולהוריד את המידע (הגדרות ← חשבון ← הורדת המידע שלי), לתקן אותו באפליקציה ולמחוק את החשבון (הגדרות ← חשבון ← מחיקת חשבון). אפשר גם לכתוב לכתובת למעלה; נענה תוך 30 יום. אפשר גם להתלונן לרשות להגנת הפרטיות."] },
       { h: "מחיקת החשבון", p: ["מחיקת החשבון מוציאה אותך מכל המכשירים ומסתירה את החשבון מיד. במשך 7 ימים, כניסה מחדש מציעה לשחזר אותו. אחרי זה נמחקים המרחב האישי, הקבצים שלו, השיחות והזיכרון, והחשבון. פריטים שהוספת למרחבים משותפים עם אחרים נשארים שם, כ״נוסף על ידי חבר/ה לשעבר״. אם את/ה הבעלים היחיד/ה של מרחב משותף עם חברים נוספים, קודם מעבירים אותו או מוחקים אותו."] },
@@ -132,6 +140,7 @@ const he: typeof en = {
       { h: "החשבון שלך", p: ["שמרו את הכניסה לעצמכם. את/ה אחראי/ת למה שנעשה בחשבון ובמרחבים שבבעלותך. אפשר למחוק את החשבון בכל זמן (הגדרות ← חשבון)."] },
       { h: "התוכן שלך", p: ["מה שמוסיפים נשאר שלך. את/ה מאפשר/ת ל-Nexus לשמור ולעבד אותו רק כדי להפעיל את האפליקציה בשבילך ובשביל חברי המרחבים שאיתם את/ה משתף/ת."] },
       { h: "מחירים, חנויות ובינה מלאכותית", p: ["מחירים, תמונות ושמות נקראים מחנויות ויכולים להיות שגויים או ישנים — בדקו בחנות לפני קנייה. הצעות ותשובות של בינה מלאכותית יכולות לטעות; העוזר משנה דברים רק אחרי שאישרתם."] },
+      { h: "המנהל", p: ["המנהל רואה מי מחובר, באיזה סוג מכשיר ובאיזה חלק של האפליקציה, וספירות של פעילות — אף פעם לא את התוכן שלך (ראו פרטיות). המנהל יכול לשנות את מגבלת ה־AI היומית, לנתק, לחסום חשבון שעובר על התנאים האלה או למחוק חשבון; חשבון שנמחק אפשר לשחזר במשך 7 ימים בהתחברות מחדש."] },
       { h: "שימוש הוגן", p: ["אין להשתמש ב-Nexus כדי לעבור על החוק, להגיע למידע של אחרים, להעמיס עליה, או לקרוא חנויות בדרכים שהן אוסרות. חשבון שעושה זאת עלול להיסגר."] },
       { h: "אחריות", p: ["ככל שהחוק מאפשר, Nexus לא אחראית לנזקים עקיפים, למידע שאבד או להחלטות קנייה שנעשו בעזרתה."] },
       { h: "דין", p: [`חל הדין הישראלי; לבתי המשפט בתל אביב-יפו הסמכות. שאלות: ${PRIVACY_CONTACT}.`] },

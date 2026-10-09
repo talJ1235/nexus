@@ -41,7 +41,7 @@ export function useCommands(): AppCommand[] {
     // Actions
     { id: "add", group: "actions", label: t.cmd.addLink, keywords: "add link url paste הוספה קישור", icon: <Link2 />, run: () => (window.matchMedia("(max-width: 1023px)").matches ? s.setPasteOpen(true) : s.focusAdd()) },
     { id: "receipt", group: "actions", label: t.scan.title, keywords: "receipt invoice order confirmation purchased קבלה חשבונית", icon: <ReceiptText />, run: () => s.openReceipt() },
-    { id: "shop", group: "actions", label: t.shop.title, keywords: "shopping mode store supermarket list קנייה סופר", icon: <ShoppingCart />, run: () => s.setShop("pick") },
+    { id: "shop", group: "actions", label: t.shop.title, keywords: "shopping mode store supermarket list קנייה סופר", icon: <ShoppingCart />, run: () => s.setShop("pick"), testId: "shop" },
     { id: "barcode", group: "actions", label: t.barcode.title, keywords: "scan barcode ean upc ברקוד סריקה", icon: <ScanBarcode />, run: () => s.setScanner("barcode") },
     ...(s.aiEnabled ? [{ id: "plan", group: "actions" as const, label: t.ai.planTab, keywords: "plan project ai parts bom תכנון", icon: <Wand2 />, run: () => s.setPanel("planner") }] : []),
     { id: "new-project", group: "actions", label: t.nav.newProject, keywords: "project new פרויקט חדש", icon: <FolderPlus />, run: () => s.setEditor({ mode: "create", kind: "project" }) },

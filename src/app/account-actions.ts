@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { z } from "zod";
+import { noteActivity } from "@/lib/activity";
 import { isFresh } from "@/lib/auth/security";
 import { logSecurityEvent } from "@/lib/auth/events";
 import { requireCtx } from "@/lib/ctx";
@@ -27,6 +28,7 @@ export async function requestAccountDeletion(typed: string): Promise<DeleteResul
   if (blocked.length) return { blocked };
   await logSecurityEvent(ctx.user.id, "account_deletion_requested", null, await headers());
   await markAccountDeletion(ctx.user.id);
+  noteActivity({ userId: ctx.user.id }, "deletion_requested");
   return { ok: true };
 }
 

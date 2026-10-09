@@ -12,7 +12,7 @@ export type Beat = { device: Device; app: "installed" | "browser"; platform: str
 
 /** A session's beat. A session that was away (no beat within ONLINE_MS) starts a new "online since" and logs `opened`. */
 export async function recordBeat(who: { userId: string; sessionId: string; spaceId: string | null }, b: Beat, now = Date.now()) {
-  const [prev] = await db.select({ since: schema.presence.since, updatedAt: schema.presence.updatedAt }).from(schema.presence).where(eq(schema.presence.sessionId, who.sessionId));
+  const [prev] = await db.select({ since: schema.presence.since, updatedAt: schema.presence.updatedAt, screen: schema.presence.screen }).from(schema.presence).where(eq(schema.presence.sessionId, who.sessionId));
   const fresh = !prev || now - prev.updatedAt > ONLINE_MS;
   const row = { userId: who.userId, device: b.device, app: b.app, platform: b.platform.slice(0, 40), screen: b.screen, shoppingLeft: b.screen === "shopping-mode" ? b.shoppingLeft : null, spaceId: who.spaceId, since: fresh ? now : prev.since, updatedAt: now };
   await db
@@ -21,6 +21,10 @@ export async function recordBeat(who: { userId: string; sessionId: string; space
     .onConflictDoUpdate({ target: schema.presence.sessionId, set: row });
   // "Opened Nexus" once per return (away ≥ 30 min), and one `hour` mark per person per hour for the by-hour chart.
   if (!prev || now - prev.updatedAt > 30 * 60_000) await logActivity(who.userId, who.spaceId, "opened", 1, now);
+  // Shopping mode entered / left (the beat goes out at once on a screen change).
+  const was = prev && now - prev.updatedAt <= 30 * 60_000 && prev.screen === "shopping-mode";
+  if (b.screen === "shopping-mode" && !was) await logActivity(who.userId, who.spaceId, "shopping_started", 1, now);
+  if (b.screen !== "shopping-mode" && was) await logActivity(who.userId, who.spaceId, "shopping_finished", 1, now);
   await markHour(who.userId, now);
 }
 

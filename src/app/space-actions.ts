@@ -2,6 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { z } from "zod";
+import { noteActivity } from "@/lib/activity";
 import { ICON_KEYS } from "@/components/app/spaces/look";
 import { logSecurityEvent } from "@/lib/auth/events";
 import { checkJoinToken, consumeJoinToken } from "@/lib/auth/invites";
@@ -194,6 +195,7 @@ export async function joinSpace(token: string): Promise<{ ok: true; spaceId: str
   if (!used) return { ok: false, problem: "used_up" };
   await addMember(used.spaceId, ctx.user.id, used.role);
   await logSecurityEvent(ctx.user.id, "invite_used", { kind: "join", space: used.spaceId }, await headers());
+  noteActivity({ userId: ctx.user.id, spaceId: used.spaceId }, "joined_space");
   await setSpaceCookie(used.spaceId);
   return { ok: true, spaceId: used.spaceId, already: false };
 }

@@ -4,6 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { del } from "@vercel/blob";
 import { z } from "zod";
+import { noteActivity } from "@/lib/activity";
 import { schema } from "@/db";
 import { extractWithAi, extractWithUrlContext } from "@/lib/ai";
 import { aiUseOf } from "@/lib/ai-gate";
@@ -42,12 +43,17 @@ export async function previewFromClient(payload: ClientPayload, hintCollectionId
 
 export async function createItem(input: z.input<typeof draftSchema>): Promise<ItemWithSources> {
   const s = await edit();
-  return createItemCore(s, input);
+  const item = await createItemCore(s, input);
+  noteActivity({ userId: s.scope.userId, spaceId: s.scope.spaceId }, "items_added");
+  if (input.source?.url) noteActivity({ userId: s.scope.userId, spaceId: s.scope.spaceId }, "link_added");
+  return item;
 }
 
 export async function addSource(itemId: string, source: SourceDraft, imageUrl?: string | null): Promise<ItemWithSources> {
   const s = await edit();
-  return addSourceCore(s, Id.parse(itemId), sourceDraftSchema.parse(source), z.string().max(400_000).nullish().parse(imageUrl));
+  const item = await addSourceCore(s, Id.parse(itemId), sourceDraftSchema.parse(source), z.string().max(400_000).nullish().parse(imageUrl));
+  noteActivity({ userId: s.scope.userId, spaceId: s.scope.spaceId }, "link_added");
+  return item;
 }
 
 /** Add a store link to an existing item: extracts price from the page. */
@@ -55,6 +61,7 @@ export async function addSourceFromUrl(itemId: string, url: string): Promise<Ite
   const s = await edit();
   await s.mustGet(schema.items, Id.parse(itemId));
   if (typeof url !== "string" || !isHttpUrl(url)) throw new Error("invalid_url");
+  noteActivity({ userId: s.scope.userId, spaceId: s.scope.spaceId }, "link_added");
   const ex = await extractFromUrl(url.trim());
   let { price, currency } = ex;
   if (price == null && ex.pageText && !ex.blocked) {
@@ -155,8 +162,12 @@ export async function setStatus(id: string, status: Status, paid?: Paid, base?: 
   StatusZ.parse(status);
   const pd = PaidZ.parse(paid ?? null);
   const b = base === undefined ? undefined : BaseZ.parse(base);
-  const c = await guardedUpdate(s, schema.items, Id.parse(id), (cur) => statusPatch(status, pd, cur), b);
+  let from: Status | null = null;
+  const c = await guardedUpdate(s, schema.items, Id.parse(id), (cur) => ((from = cur.status as Status), statusPatch(status, pd, cur)), b);
   if (c) return { conflict: true, row: await mustItem(s, id), by: c.by };
+  // R17 G1: To buy → bought = checked off (shopping); On the way → received = a delivery.
+  if (status === "purchased" && from === "to_buy") noteActivity({ userId: s.scope.userId, spaceId: s.scope.spaceId }, "checked_off");
+  if (status === "purchased" && from === "ordered") noteActivity({ userId: s.scope.userId, spaceId: s.scope.spaceId }, "delivery_received");
   return mustItem(s, id);
 }
 

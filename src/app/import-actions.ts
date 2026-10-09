@@ -3,6 +3,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { noteActivity } from "@/lib/activity";
 import { schema } from "@/db";
 import { requireCtx } from "@/lib/ctx";
 import { loadItems, recordPrice } from "@/lib/data";
@@ -137,6 +138,7 @@ export async function importRows(raw: z.input<typeof input>): Promise<{ items: I
   }
 
   const items = await loadItems(s, ids);
+  noteActivity({ userId: s.scope.userId, spaceId: s.scope.spaceId }, "items_added", items.length);
   return { items, collections: createdCollections, skipped };
 }
 

@@ -13,6 +13,7 @@ import { activeSource, countable, unitPrice } from "@/lib/calc";
 import { CATEGORIES, normalizeCategory } from "@/lib/categories";
 import { gtinKey } from "@/lib/barcode";
 import { formatMoney } from "@/lib/money";
+import { setShoppingLeft } from "@/lib/presence-client";
 import { flushOutbox, loadOutbox, loadTrip, saveOutbox, saveTrip, type ShopEdit, type ShopScope, type ShopTrip } from "@/lib/shop-outbox";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -263,6 +264,11 @@ function Trip({ scope }: { scope: ShopScope }) {
   };
 
   const progress = items.length ? cart.length / items.length : 0;
+  // R17 G1: the admin's Live view shows "Shopping, N left".
+  useEffect(() => {
+    setShoppingLeft(items.length - cart.length);
+    return () => setShoppingLeft(null);
+  }, [items.length, cart.length]);
   const editItem = editing ? items.find((i) => i.id === editing) : null;
 
   return (

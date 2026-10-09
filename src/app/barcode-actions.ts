@@ -2,6 +2,7 @@
 
 import { eq, isNotNull } from "drizzle-orm";
 import { z } from "zod";
+import { noteActivity } from "@/lib/activity";
 import { schema } from "@/db";
 import { requireCtx } from "@/lib/ctx";
 import { scoped, type Scoped } from "@/lib/db-scoped";
@@ -138,6 +139,7 @@ export async function addScannedItem(raw: z.input<typeof addSchema>): Promise<It
     source: null,
     gtin: cls?.kind === "gtin" ? cls.code : null,
   });
+  noteActivity({ userId: s.scope.userId, spaceId: s.scope.spaceId }, "items_added");
   if (d.status === "purchased") {
     const t = Date.now();
     await s.update(schema.items, { status: "purchased", purchasedAt: t, updatedAt: t }, eq(schema.items.id, item.id));

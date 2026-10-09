@@ -13,6 +13,7 @@ import { after } from "next/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db, schema } from "@/db";
+import { logActivity } from "@/lib/db-scoped/presence";
 import { APP_NAME } from "@/lib/brand";
 import { timed } from "@/lib/timing";
 import { addMember, ensurePersonalSpace, firstName, personalSpaceId } from "@/lib/spaces";
@@ -386,6 +387,8 @@ export const auth = betterAuth({
             if (used) await addMember(used.spaceId, u.id, used.role);
           }
           if (check.ok) await logSecurityEvent(u.id, "invite_used", { kind: check.kind }, headers);
+          // R17 G1: the admin's Live stream (a kind, never which code or space).
+          if (check.ok) await logActivity(u.id, null, check.kind === "code" ? "joined_code" : "joined_space");
         }),
       },
     },

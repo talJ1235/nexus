@@ -3,6 +3,7 @@
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { noteActivity } from "@/lib/activity";
 import { schema } from "@/db";
 import { generateText } from "@/lib/ai";
 import { aiUseOf } from "@/lib/ai-gate";
@@ -95,6 +96,7 @@ export async function saveExchange(raw: { conversationId: string | null; mode: "
     { id: `m_${nanoid(12)}`, conversationId: c.id, role: "assistant", text: input.assistant.text, data: input.assistant.data ?? null, createdAt: now + 1 },
   ]);
   await s.update(C, { updatedAt: now, modes, links: { items: [...new Set([...(links.items ?? []), ...itemIds])].slice(0, 200), reports: [...new Set([...(links.reports ?? []), ...reportId])] } }, s.mine(C, eq(C.id, c.id)));
+  noteActivity({ userId: s.scope.userId, spaceId: s.scope.spaceId }, "assistant_asked");
   return { conversation: view(await mustOwn(s, c.id)), created };
 }
 
