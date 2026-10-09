@@ -83,6 +83,7 @@
   write anything left open (bugs, skipped parts, questions for Tal) under "## Open" at the end of the brief,
   `git pull --rebase`, push to `main` (auto-deploys), and reply with: items done, commits, anything left open.
 - Docs-only pushes (`docs/`, `*.md`, `.claude/`) don't trigger a Vercel build (`vercel.json` ignoreCommand diffs against the last deployed commit, `VERCEL_GIT_PREVIOUS_SHA`, so a push that ends with a docs commit still deploys its code).
+  A manual "Redeploy" in Vercel (same commit as the last deploy) always builds — use it after changing env vars.
 
 # Compact instructions
 Keep: files changed, decisions made, open bugs, test results. Drop: tool output, screenshots, logs.
