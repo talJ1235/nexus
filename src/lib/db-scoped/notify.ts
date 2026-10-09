@@ -252,3 +252,75 @@ export async function openTimes(userId: string, since: number) {
     .limit(24 * 15);
   return rows.map((r) => r.at);
 }
+
+// ---------- senders (M): small system reads ----------
+
+export async function spaceBrief(spaceId: string) {
+  const [r] = await db
+    .select({ id: schema.space.id, name: schema.space.name, kind: schema.space.kind, ownerId: schema.space.createdBy, currency: schema.space.currency, deletedAt: schema.space.deletedAt })
+    .from(schema.space)
+    .where(eq(schema.space.id, spaceId))
+    .limit(1);
+  return r && r.deletedAt == null ? r : null;
+}
+
+/** How many of `kind` this person logged in this space since `since` (activity rows: kinds + counts only). */
+export async function countActivity(userId: string, spaceId: string, kind: string, since: number) {
+  const [r] = await db
+    .select({ n: sql<number>`coalesce(sum(${schema.activity.n}), 0)` })
+    .from(schema.activity)
+    .where(and(eq(schema.activity.userId, userId), eq(schema.activity.spaceId, spaceId), eq(schema.activity.kind, kind), gte(schema.activity.at, since)));
+  return Number(r?.n ?? 0);
+}
+
+/** Every person's value of one pref key (open shopping trips). */
+export async function prefRows(key: string) {
+  return db.select({ userId: schema.userPref.userId, value: schema.userPref.value }).from(schema.userPref).where(eq(schema.userPref.key, key));
+}
+
+/** The latest presence beat of a person (idle trips end after 30 min without one on the shopping screen). */
+export async function lastBeat(userId: string) {
+  const [r] = await db.select({ at: schema.presence.updatedAt, screen: schema.presence.screen }).from(schema.presence).where(eq(schema.presence.userId, userId)).orderBy(desc(schema.presence.updatedAt)).limit(1);
+  return r ?? null;
+}
+
+/** On-the-way items whose arrival date falls in [from, to) — the delivery sender. */
+export async function deliveriesBetween(from: number, to: number) {
+  const rows = await db
+    .select({ id: schema.items.id, spaceId: schema.items.spaceId, title: schema.items.title, imageUrl: schema.items.imageUrl, eta: schema.items.eta, chosen: schema.items.chosenSourceId })
+    .from(schema.items)
+    .innerJoin(schema.space, eq(schema.space.id, schema.items.spaceId))
+    .where(and(eq(schema.items.status, "ordered"), gte(schema.items.eta, from), lt(schema.items.eta, to), isNull(schema.space.deletedAt)));
+  if (!rows.length) return [];
+  const srcs = await db.select({ itemId: schema.sources.itemId, id: schema.sources.id, store: schema.sources.store }).from(schema.sources).where(inArray(schema.sources.itemId, rows.map((r) => r.id)));
+  return rows.map((r) => ({ ...r, store: (srcs.find((s) => s.id === r.chosen) ?? srcs.find((s) => s.itemId === r.id))?.store ?? null }));
+}
+
+/** People who opened the app in the last `days` days and still have an account (the weekly summary's audience). */
+export async function activePeople(since: number) {
+  const rows = await db
+    .selectDistinct({ userId: schema.activity.userId })
+    .from(schema.activity)
+    .innerJoin(schema.user, eq(schema.user.id, schema.activity.userId))
+    .where(and(eq(schema.activity.kind, "opened"), gte(schema.activity.at, since), isNull(schema.user.deletionRequestedAt)));
+  return rows.map((r) => r.userId);
+}
+
+/** The spaces a person belongs to (live ones). */
+export async function spacesOf(userId: string) {
+  return db
+    .select({ id: schema.space.id, name: schema.space.name, kind: schema.space.kind, role: schema.member.role })
+    .from(schema.member)
+    .innerJoin(schema.space, eq(schema.space.id, schema.member.organizationId))
+    .where(and(eq(schema.member.userId, userId), isNull(schema.space.deletedAt)));
+}
+
+/** Spaces with a monthly budget set (any month) — the budget sender's work list. */
+export async function spacesWithBudget() {
+  const rows = await db
+    .selectDistinct({ spaceId: schema.spacePref.spaceId })
+    .from(schema.spacePref)
+    .innerJoin(schema.space, eq(schema.space.id, schema.spacePref.spaceId))
+    .where(and(sql`${schema.spacePref.key} like 'pref:budget:%'`, isNull(schema.space.deletedAt)));
+  return rows.map((r) => r.spaceId);
+}

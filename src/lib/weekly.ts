@@ -106,3 +106,12 @@ export function weeklySummary(input: WeeklyInput): string | null {
 
   return [`<b>${t.title}</b>`, ...sections, budget, `<a href="${origin}/">${t.open}</a>`].filter(Boolean).join("\n\n");
 }
+
+/** R17 S3 M4: the Thursday notification's numbers — bought and spent over the last 7 days, price drops / targets hit. */
+export function weekNumbers(input: { items: ItemWithSources[]; alerts: Alert[]; rates: Rates; currency: string; now: number }) {
+  const { items, rates, currency, now } = input;
+  const bought = items.filter((i) => i.status === "purchased" && i.purchasedAt != null && i.purchasedAt >= now - 7 * DAY && i.purchasedAt <= now);
+  const spent = bought.reduce((n, i) => n + (lineTotal(i, rates, currency) ?? 0), 0);
+  const drops = new Set(input.alerts.filter((a) => (a.kind === "drop" || a.kind === "target") && a.createdAt >= now - 7 * DAY).map((a) => a.itemId)).size;
+  return { bought: bought.length, spent, drops };
+}

@@ -99,7 +99,17 @@ async function unit() {
   assert.match(t.pushText("price", { itemId: "i", title: "Steam cleaner", store: "KSP", now: 899, was: 999, currency: "ILS", run: "r" }, en, "en").title, /Steam cleaner dropped to ₪899/);
   assert.equal(t.groupedPushText(["price", "price", "price"], en).title, "3 price drops");
   assert.equal(t.groupedPushText(["price", "activity"], en).title, "2 updates");
-  console.log("ok unit: quiet hours, active hour, week, ask schedule, texts");
+  // The Thursday numbers: bought + spent over 7 days, drops / targets per item.
+  const { weekNumbers } = await import("../src/lib/weekly");
+  const { FALLBACK_RATES } = await import("../src/lib/money");
+  const it = (id: string, status: string, purchasedAt: number | null, price: number) =>
+    ({ id, status, purchasedAt, quantity: 1, priority: "normal", sources: [{ id: `s${id}`, price, currency: "ILS", url: "", store: "", storeKey: "" }], chosenSourceId: `s${id}`, purchasedPrice: price, purchasedCurrency: "ILS", lastPaidPrice: price, lastPaidCurrency: "ILS" }) as never;
+  const now = IL(8, 12);
+  const w = weekNumbers({ items: [it("a", "purchased", now - DAY, 100), it("b", "purchased", now - 8 * DAY, 50), it("c", "to_buy", null, 70)], alerts: [{ kind: "drop", itemId: "c", createdAt: now - DAY }, { kind: "target", itemId: "c", createdAt: now - 2 * DAY }, { kind: "drop", itemId: "x", createdAt: now - 9 * DAY }] as never, rates: FALLBACK_RATES, currency: "ILS", now });
+  assert.equal(w.bought, 1);
+  assert.equal(Math.round(w.spent), 100);
+  assert.equal(w.drops, 1, "one per item, last 7 days");
+  console.log("ok unit: quiet hours, active hour, week, ask schedule, texts, week numbers");
 }
 
 async function withDb() {
@@ -167,8 +177,87 @@ async function withDb() {
   console.log("ok db: actor excluded, in-place update, switch off, one push per check, ≤1 activity push per space per hour, 30-day purge");
 }
 
+/** M: the senders — a shared space with Noa (owner), Yoav (member), Maya (viewer). */
+async function senders() {
+  const { db, schema } = await import("../src/db");
+  const { and, eq } = await import("drizzle-orm");
+  const S = await import("../src/lib/notify/senders");
+  const d = new Date(IL(8, 12));
+  for (const [id, name] of [["noa", "Noa Levi"], ["yoav", "Yoav"], ["maya", "Maya"]]) await db.insert(schema.user).values({ id, name, email: `${id}@test.example`, emailVerified: true, createdAt: d, updatedAt: d });
+  await db.insert(schema.space).values({ id: "home", name: "Jacoby Home", slug: "home", kind: "shared", createdBy: "noa", createdAt: d } as never);
+  await db.insert(schema.space).values({ id: "solo", name: "Noa", slug: "solo", kind: "personal", createdBy: "noa", createdAt: d } as never);
+  let mid = 0;
+  for (const [u, r] of [["noa", "owner"], ["yoav", "member"], ["maya", "viewer"]]) await db.insert(schema.member).values({ id: `mm${mid++}`, organizationId: "home", userId: u, role: r, createdAt: d } as never);
+  const rows = (u: string, kind?: string) => db.select().from(schema.notification).where(kind ? and(eq(schema.notification.userId, u), eq(schema.notification.kind, kind as never)) : eq(schema.notification.userId, u));
+
+  // M1: a trip — started (urgent, to the others, never the shopper), live count, finished in place.
+  const t0 = IL(8, 17);
+  await S.tripStarted("noa", "home", 15, t0);
+  assert.equal((await rows("noa", "shop")).length, 0, "the shopper is not notified");
+  const [y1] = await rows("yoav", "shop");
+  const [m1] = await rows("maya", "shop");
+  assert.ok(y1 && m1, "every other member (viewers too) hears about the trip");
+  assert.equal(JSON.parse(y1.data).who, "Noa");
+  await S.tripStarted("noa", "home", 15, t0 + 60_000);
+  assert.equal((await rows("yoav", "shop")).length, 1, "a reload mid-trip is the same trip");
+  await S.tripProgress("noa", 6);
+  assert.equal(JSON.parse((await rows("yoav", "shop"))[0].data).left, 6, "the live count updates in place");
+  await db.insert(schema.activity).values({ userId: "noa", spaceId: "home", kind: "checked_off", n: 12, at: t0 + 5 * 60_000 });
+  // A check-off during the trip is the trip's news, not activity.
+  await S.sharedActivity("noa", "home", "checked_off", 1, t0 + 6 * 60_000);
+  assert.equal((await rows("yoav", "activity")).length, 0);
+  await S.tripFinished("noa", 3, t0 + 20 * 60_000);
+  const y2 = await rows("yoav", "shop");
+  assert.equal(y2.length, 1, "finishing updates the same row");
+  const dd = JSON.parse(y2[0].data);
+  assert.equal(dd.done, true);
+  assert.equal(dd.bought, 12);
+  assert.equal(dd.left, 3);
+  // Personal space: nobody to tell.
+  await S.tripStarted("noa", "solo", 4, t0);
+  assert.equal((await rows("yoav", "shop")).length, 1);
+
+  // M2: activity — one grouped row per space per hour, names merged.
+  const a0 = IL(9, 10, 5);
+  await S.sharedActivity("noa", "home", "items_added", 3, a0);
+  await S.sharedActivity("yoav", "home", "items_added", 2, a0 + 60_000);
+  const [ma] = await rows("maya", "activity");
+  const ad = JSON.parse(ma.data);
+  assert.deepEqual(ad.names, ["Noa", "Yoav"]);
+  assert.equal(ad.added, 5);
+  assert.equal((await rows("maya", "activity")).length, 1, "one row per space per hour");
+  const [na] = await rows("noa", "activity");
+  assert.deepEqual(JSON.parse(na.data).names, ["Yoav"], "Noa only hears about Yoav");
+
+  // M3: price alerts of one run → one row per item for every member.
+  await db.insert(schema.items).values({ id: "it1", spaceId: "home", title: "Steam cleaner", status: "to_buy", createdAt: t0, updatedAt: t0 } as never);
+  await db.insert(schema.items).values({ id: "it2", spaceId: "home", title: "Desk lamp", status: "to_buy", createdAt: t0, updatedAt: t0 } as never);
+  const al = (id: string, itemId: string, kind: "drop" | "target") => ({ id, spaceId: "home", rev: 0, revBy: null, itemId, sourceId: null, kind, oldPrice: 999, newPrice: 899, currency: "ILS", sentAt: null, readAt: null, createdAt: t0 });
+  const n = await S.priceAlerts([al("a1", "it1", "drop"), al("a2", "it2", "target"), { ...al("a3", "it2", "drop"), kind: "back_in_stock" as never }], "run9", IL(9, 12));
+  assert.equal(n, 2, "drops and targets only");
+  const yp = await rows("yoav", "price");
+  assert.equal(yp.length, 2);
+  assert.ok(yp.every((r) => r.sendAfter === yp[0].sendAfter), "one run shares one send time (one push)");
+
+  // M4: a delivery due today → 08:00 local, once.
+  await db.insert(schema.items).values({ id: "it3", spaceId: "home", title: "Car vent clip", status: "ordered", eta: IL(10, 14), createdAt: t0, updatedAt: t0 } as never);
+  await S.deliveriesToday(IL(10, 3));
+  const [yd] = await rows("yoav", "delivery");
+  assert.equal(yd.sendAfter, IL(10, 8), "delivery today at 08:00 local");
+  await S.deliveriesToday(IL(10, 4));
+  assert.equal((await rows("yoav", "delivery")).length, 1, "once per item per day");
+  assert.equal(yd.sentAt, null);
+
+  // N2: budget recipients — the owner always, picked members, never viewers.
+  assert.deepEqual(await S.budgetRecipients("home", "noa"), ["noa"]);
+  await db.insert(schema.spacePref).values({ spaceId: "home", key: S.BUDGET_TO_KEY, value: JSON.stringify(["yoav", "maya"]), updatedAt: t0 } as never);
+  assert.deepEqual((await S.budgetRecipients("home", "noa")).sort(), ["noa", "yoav"], "a viewer is never a budget recipient");
+  console.log("ok senders: trip start / live / finish in place, activity grouped per hour, one price row per item per run, delivery at 08:00 once, budget recipients");
+}
+
 unit()
   .then(withDb)
+  .then(senders)
   .then(() => process.exit(0))
   .catch((e) => {
     console.error(e);

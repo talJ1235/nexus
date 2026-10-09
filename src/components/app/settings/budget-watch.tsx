@@ -6,16 +6,21 @@ import { capFor, monthForecast, monthKeyIn, monthStartIn, nextMonthKey } from "@
 import { DEFAULT_NOTIFY } from "@/lib/home";
 import { toast } from "@/lib/toast";
 import { useStore } from "../store";
+import { useInbox } from "../../notify/inbox-state";
+import { permState } from "@/lib/notify/client";
 
 /**
- * R16 D1/D2: "Budget reaches 80%" — one toast per space per month on each device, when this month's spending (paid +
+ * R16 D1/D2: "Budget reaches 80%" — one toast per space per month on each device (R17 S3: only where push is off), when this month's spending (paid +
  * on the way) reaches 80 % of the cap. Off when the person turned notifications off (Settings → Account) or the space did
  * (Space settings → Budget → "Warn everyone at 80%").
  */
 export function BudgetWatch() {
   const s = useStore();
   const { t, f } = useI18n();
-  const on = (s.homePrefs.notify ?? DEFAULT_NOTIFY).on && s.budgetWarn;
+  // R17 S3 M4: the budget push (owner + picked members) replaces this toast wherever push really works on this device.
+  const { boot } = useInbox();
+  const pushHere = !!boot?.configured && boot.on && typeof window !== "undefined" && permState() === "granted";
+  const on = (s.homePrefs.notify ?? DEFAULT_NOTIFY).on && s.budgetWarn && !pushHere;
   const key = monthKeyIn(s.clock.now, s.clock.tz);
   const pct = useMemo(() => {
     if (!on || s.loading) return null;

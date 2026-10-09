@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { routeCtx } from "@/lib/ctx";
 import { recordAway, recordBeat } from "@/lib/db-scoped/presence";
 import { parseBeat, platformOf } from "@/lib/presence-keys";
@@ -25,9 +26,16 @@ export async function POST(req: Request) {
   }
   const beat = parseBeat(b?.beat);
   if (!beat) return new Response(null, { status: 400 });
-  await recordBeat(
+  const tr = await recordBeat(
     { userId: ctx.user.id, sessionId: ctx.session.id, spaceId: ctx.space.id },
     { ...beat, platform: platformOf(req.headers.get("user-agent") ?? "", req.headers.get("sec-ch-ua-platform")?.replace(/"/g, "")) },
   );
+  // R17 S3 M1: a shopping trip in a shared space → the other members (started at once, live count, finished in place).
+  after(async () => {
+    const { tripFinished, tripProgress, tripStarted } = await import("@/lib/notify/senders");
+    if (tr.started) await tripStarted(ctx.user.id, ctx.space.id, beat.shoppingLeft).catch(() => {});
+    else if (tr.finished) await tripFinished(ctx.user.id, beat.shoppingLeft).catch(() => {});
+    else if (tr.shopping) await tripProgress(ctx.user.id, beat.shoppingLeft).catch(() => {});
+  });
   return new Response(null, { status: 204 });
 }

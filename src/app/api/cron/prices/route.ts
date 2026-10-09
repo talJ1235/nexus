@@ -18,6 +18,8 @@ import { backfillShortNames } from "@/lib/db-scoped/short-names";
 import { accountsToPurge, purgeAccount } from "@/lib/db-scoped/account";
 import { purgePresence } from "@/lib/db-scoped/presence";
 import { purgeNotifications } from "@/lib/db-scoped/notify";
+import { priceAlerts } from "@/lib/notify/senders";
+import type { Alert } from "@/lib/types";
 
 export const maxDuration = 60;
 
@@ -48,7 +50,18 @@ export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret || !safeEqualStr(req.headers.get("authorization") ?? "", `Bearer ${secret}`)) return new Response("Unauthorized", { status: 401 });
   const started = Date.now();
-  const result = await runCronChecks(26_000).catch(failed("price-checks", { fetched: 0, checked: 0, blocked: 0, remaining: 0, alerts: [] as unknown[] }));
+  const hourly = req.nextUrl.searchParams.get("scope") === "hourly";
+  // R17 S3 M3: hourly (GitHub Actions) = a slice of the links, oldest check first, and nothing else; the daily run
+  // (Vercel cron) checks with the full budget and does the maintenance below.
+  const result = await runCronChecks(hourly ? 20_000 : 26_000).catch(failed("price-checks", { fetched: 0, checked: 0, blocked: 0, remaining: 0, alerts: [] as Alert[] }));
+  // One run = one batch: its drops / targets become one push per person ("3 price drops").
+  const runId = `${hourly ? "h" : "d"}${started.toString(36)}`;
+  const notified = await priceAlerts(result.alerts, runId).catch(failed("price-notify", 0));
+  if (hourly) {
+    const summary = { at: Date.now(), ms: Date.now() - started, scope: "hourly", fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, notified };
+    await kvSet("pref:last_hourly_check", JSON.stringify(summary));
+    return Response.json(summary);
+  }
   const spaces = await systemSpaces();
   const repair = { tried: 0, repaired: 0 };
   const images = { tried: 0, filled: 0 };
@@ -98,7 +111,7 @@ export async function GET(req: NextRequest) {
   const presence = await purgePresence().catch(failed("presence-purge", { presence: 0, activity: 0 }));
   // R17 S3: inbox rows older than 30 days, push addresses that failed 5 times in a row.
   const notifyPurged = await purgeNotifications().catch(failed("notify-purge", { notifications: 0, subscriptions: 0 }));
-  const summary = { at: Date.now(), ms: Date.now() - started, presence: presence.presence + presence.activity, notifyPurged, spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
+  const summary = { at: Date.now(), ms: Date.now() - started, presence: presence.presence + presence.activity, notifyPurged, notified, spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }

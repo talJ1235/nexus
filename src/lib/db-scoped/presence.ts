@@ -23,9 +23,13 @@ export async function recordBeat(who: { userId: string; sessionId: string; space
   if (!prev || now - prev.updatedAt > 30 * 60_000) await logActivity(who.userId, who.spaceId, "opened", 1, now);
   // Shopping mode entered / left (the beat goes out at once on a screen change).
   const was = prev && now - prev.updatedAt <= 30 * 60_000 && prev.screen === "shopping-mode";
-  if (b.screen === "shopping-mode" && !was) await logActivity(who.userId, who.spaceId, "shopping_started", 1, now);
-  if (b.screen !== "shopping-mode" && was) await logActivity(who.userId, who.spaceId, "shopping_finished", 1, now);
+  const started = b.screen === "shopping-mode" && !was;
+  const finished = b.screen !== "shopping-mode" && !!was;
+  if (started) await logActivity(who.userId, who.spaceId, "shopping_started", 1, now);
+  if (finished) await logActivity(who.userId, who.spaceId, "shopping_finished", 1, now);
   await markHour(who.userId, now);
+  // R17 S3 M1: the trip's transitions for the "someone is shopping" notification (the caller sends it).
+  return { started, finished, shopping: b.screen === "shopping-mode" };
 }
 
 /** pagehide / hidden: the session is away now (its row stays for "Earlier today"). */

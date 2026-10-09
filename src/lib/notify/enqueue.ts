@@ -38,7 +38,7 @@ export type NotifyOpts = {
   silent?: boolean;
 };
 
-type DataOf = unknown | ((prev: unknown | null) => unknown);
+type DataOf = object | ((prev: unknown) => unknown);
 
 export async function notify(userIds: string[], kind: NotifyKind, groupKey: string, data: DataOf, o: NotifyOpts) {
   const now = o.now ?? Date.now();
