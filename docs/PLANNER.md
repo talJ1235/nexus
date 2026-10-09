@@ -17,6 +17,12 @@ to setup, tooling or workflow is recorded there in the same session.
   only; QR login → R20; blocked stores: server-side ladder + Cloudflare Worker (Tal opens a free account); short names
   for long titles incl. existing items; Google Calendar stays ICS for now, faster sync researched later.
 
+- **Blocked stores — parked by Tal (2026-10-09), come back later.** Prod probe (ROUND17 Open "C1 — prod probe"):
+  cwc/ksp/rami-levy/payngo etc. run Cloudflare bot management that challenges every datacenter IP, the CF Worker too.
+  Free server-side fetching can't pass it. Options offered (not decided): (1) product name from the URL slug,
+  (2) price + image from Google results via the existing Serper search, (3) screenshot → share to the app → AI reads it;
+  or a paid scraping service. Probe list still has home pages / fake ids — ask Tal for real product links first.
+
 ### Earlier (2026-10-07)
 - **Prod:** R16 Session 1 (Parts 0, A, B, C — fixes, live sync, error reporting) released 2026-10-07 (`f203591`); results
   in `docs/ROUND16.md` "## Open". `ABLY_API_KEY` is set in Vercel (Production) and Tal checked live sync on prod.
