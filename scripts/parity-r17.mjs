@@ -93,8 +93,7 @@ const holdHalf = async (p) => {
   await p.waitForTimeout(900);
 };
 const SHOTS = [
-  ["g1-live-desktop", [["board · live", "Admin-desktop", { tab: "live" }, DESK], ["app", "/admin", DESK, { wait: W.live }]], 640],
-  ["g1-live-desktop-plum-dark-he", [["board · plum dark", "Admin-desktop", { tab: "live", dark: true, palette: "plum" }, DESK], ["app · plum dark he", "/admin", DESK, { wait: W.live, dark: true, plum: true, he: true }]], 640],
+  ["g1-live-desktop", [["board · live", "Admin-desktop", { tab: "live" }, DESK], ["app", "/admin", DESK, { wait: W.live }], ["board · plum dark", "Admin-desktop", { tab: "live", dark: true, palette: "plum" }, DESK], ["app · plum dark he", "/admin", DESK, { wait: W.live, dark: true, plum: true, he: true }]], 520],
   ["g2-people-drawer", [["board · people + drawer", "Admin-desktop", { tab: "people", drawer: true }, DESK], ["app", "/admin/people/ad_noa", DESK, { wait: W.person, act: holdHalf }]], 640],
   ["g3-invites-g4-ai", [["board · invites", "Admin-desktop", { tab: "invites" }, DESK], ["app", "/admin/invites", DESK, { wait: W.invites }], ["board · AI", "Admin-desktop", { tab: "ai" }, DESK], ["app", "/admin/ai", DESK, { wait: W.ai }]], 520],
   ["g5-reports-g6-errors", [["board · reports", "Admin-desktop", { tab: "reports" }, DESK], ["app", "/admin/reports", DESK, { wait: W.reports }], ["board · errors", "Admin-desktop", { tab: "errors" }, DESK], ["app", "/admin/errors", DESK, { wait: W.errors }]], 520],
@@ -112,8 +111,7 @@ SHOTS.push(
   ["h-phone-5-6-7", [["board · 5 install", "Onboarding-phone", { step: "5 install" }, PHONE], ["app", "/welcome", PHONE, ob(5)], ["board · 6 notifications", "Onboarding-phone", { step: "6 notifications" }, PHONE], ["app", "/welcome", PHONE, ob(6)], ["board · 7 done", "Onboarding-phone", { step: "7 done" }, PHONE], ["app", "/welcome", PHONE, ob(7)]], 240],
   ["h-phone-iphone-he-dark", [["board · 5 iPhone (he)", "Onboarding-phone", { step: "5 install", device: "iphone", language: "עברית" }, PHONE], ["app · iPhone he", "/welcome", PHONE, { ...ob(5), installable: false, he: true, ua: IPHONE }], ["board · 1 why (he, dark)", "Onboarding-phone", { step: "1 why", language: "עברית", dark: true }, PHONE], ["app · he dark", "/welcome", PHONE, ob(1, { he: true, dark: true })]], 300],
   ["h-desktop-1-3", [["board · 1 why", "Onboarding-desktop", { step: "1 why" }, DESK], ["app", "/welcome", DESK, ob(1)], ["board · 3 budget", "Onboarding-desktop", { step: "3 budget" }, DESK], ["app", "/welcome", DESK, ob(3)]], 520],
-  ["h-desktop-5-7", [["board · 5 install", "Onboarding-desktop", { step: "5 install" }, DESK], ["app", "/welcome", DESK, ob(5)], ["board · 7 done", "Onboarding-desktop", { step: "7 done" }, DESK], ["app", "/welcome", DESK, ob(7)]], 520],
-  ["h-desktop-plum-dark-he", [["board · 4 who (plum dark he)", "Onboarding-desktop", { step: "4 who", palette: "plum", dark: true, language: "עברית" }, DESK], ["app", "/welcome", DESK, ob(4, { plum: true, dark: true, he: true })]], 640],
+  ["h-desktop-4-5-7", [["board · 4 who (plum dark he)", "Onboarding-desktop", { step: "4 who", palette: "plum", dark: true, language: "עברית" }, DESK], ["app", "/welcome", DESK, ob(4, { plum: true, dark: true, he: true })], ["board · 5 install", "Onboarding-desktop", { step: "5 install" }, DESK], ["app", "/welcome", DESK, ob(5)], ["board · 7 done", "Onboarding-desktop", { step: "7 done" }, DESK], ["app", "/welcome", DESK, ob(7)]], 420],
 );
 
 try {

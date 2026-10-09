@@ -330,7 +330,7 @@ selectable, `touch-action: manipulation`; inputs ≥ 16 px on phones; safe-area 
 
 ## Part G — admin panel `/admin`
 
-### G0. [ ] Shell, access, navigation
+### G0. [x] Shell, access, navigation
 `/admin` (and `/admin/<tab>` deep links: `live`, `people`, `people/<id>`, `invites`, `ai`, `reports`, `errors`,
 `system`) for admins only (`isAdmin(ctx)`), 404 for everyone else, `robots: noindex`. Desktop = the board's sidebar
 (groups: Live · Manage: People, Invites, AI usage · Health: Reports, Errors, System; Live shows the online count with a
@@ -343,7 +343,7 @@ receipts or space contents. Acceptance: `test:admin-access` (non-admin → 404 o
 refuses), `test:admin-privacy` (call every admin action on the seeded DB and assert none of the seed's item titles,
 notes, chat or memory strings appear anywhere in the JSON).
 
-### G1. [ ] Live: presence + activity
+### G1. [x] Live: presence + activity
 - **Presence** (new table `presence`: `session_id` PK, `user_id`, `device` phone|computer, `app` installed|browser,
   `platform` (OS family + browser from UA-CH / UA, coarse: "Android", "iPhone", "Windows", "Chrome"…), `screen` (a fixed
   enum key, never free text: home, to-buy, on-the-way, shopping-mode, projects, insights, item, settings, assistant,
@@ -370,7 +370,7 @@ right device and screen; entering shopping mode shows the chip with the count; n
 "Earlier today"; an added item shows one activity row with a count and no title), CPU/network: a visible admin tab
 makes ≤ 1 request per 5 s, a hidden one 0.
 
-### G2. [ ] People + person drawer, quota, ban, delete
+### G2. [x] People + person drawer, quota, ban, delete
 People table/list per the boards (presence ring + "Now" column, spaces, items, AI today bar, status; filters All /
 Online / Quiet 30 days / Deleting; search name/email). Person = desktop right drawer (432 px, `--ease-drawer`,
 scrim, Esc / ✕ close, focus trapped and returned) and a pushed page on the phone: presence banner, counts (spaces,
@@ -385,32 +385,32 @@ Acceptance: `test:admin-people` (quota change reflected in E2's gate; reset; ban
 nothing, ≥ 2 s starts deletion; self-delete refused), `break-ui` pass on the people list (long names/emails, 0 / 1 /
 500 people) with fixes in Open.
 
-### G3. [ ] Invites
+### G3. [x] Invites
 The existing invite codes + waitlist (`invite-admin-actions.ts`) in the panel per the board: codes with usage meter,
 for (note), expires, copy, revoke; "who used it" avatars; waitlist with Invite.
 
-### G4. [ ] AI usage
+### G4. [x] AI usage
 From `ai_usage`: calls today, 30 days (+ change vs previous 30), failure rate (all fell back), "if it were paid" (a
 small price table constant per provider/model, with its source + date in a comment); calls per day stacked by
 provider + failed; by feature; closest to the limit today.
 
-### G5. [ ] Reports
+### G5. [x] Reports
 List (Open / In progress / Fixed) + detail per the board: reporter, space name, screen, viewport/theme/language,
 installed or browser, build, screenshot, the client errors from the 10 minutes before; In progress / Mark fixed;
 "Open issue on GitHub" when `GITHUB_ISSUES_TOKEN` is set (else hidden). A report's own text is shown — the person sent
 it to the admin.
 
-### G6. [ ] Errors
+### G6. [x] Errors
 The E5 grouped error log inside the panel (kinds as badges, collapsible groups, blocked stores per host, mark fixed).
 
-### G7. [ ] System
+### G7. [x] System
 Services (DB ping ms, last AI success per provider, Ably, price checks in the last hour, store reader on/off), the
 daily job's last run (steps + counts; store a run summary in `kv` if it isn't kept yet), DB size + rows per table,
 keys **set / missing only** (names, never values).
 
 ## Part H — onboarding (direction A)
 
-### H1. [ ] Flow, routing, resume
+### H1. [x] Flow, routing, resume
 First sign-in without `pref:onboarding` → `/welcome` runs the 7 steps (replaces `WelcomeChoice`): 1 why · 2 stores ·
 3 budget · 4 who · 5 install · 6 notifications · 7 done. Six progress segments (fill animates), Back top-start (hidden on
 step 1 and 7), Skip top-end on steps 1–6, one large primary button at the bottom (52 px, safe area), "Not now" under it
@@ -418,7 +418,7 @@ on 5 and 6. The current step is saved (reload resumes). Joined through a space i
 shared). Already installed (standalone) or a browser that can't install → step 5 skipped. Finishing or skipping out
 → Home with the "Try it: paste a link or scan a barcode" hint. Every answer is editable later in Settings.
 
-### H2. [ ] What each step sets
+### H2. [x] What each step sets
 1. Why (multi): home shopping / supermarket / projects & hobbies / price tracking → `pref:onboarding.why`, picks the
    Home preset (R16 E1 presets; supermarket → the shopping-first preset, etc.) — the done screen says what Home starts with.
 2. Stores (multi + search + free-text add): Israeli supermarkets and common online stores as monogram tiles (no
@@ -435,13 +435,13 @@ shared). Already installed (standalone) or a browser that can't install → step
    not on the Home Screen → this step is skipped (push only works installed). Never at night is already the rule.
 7. Done: summary of the four answers + a one-time confetti burst (≈ 12 pieces, 1.4 s, none with reduced motion).
 
-### H3. [ ] The picture reacts (the board's hero scenes)
+### H3. [x] The picture reacts (the board's hero scenes)
 1 the four tiles light up / dim (saturation + scale .9) with the choices; 2 the picked stores fan out (up to 5,
 rotated, 40 ms stagger); 3 the gauge fills with the amount; 4 faces appear around the house tile (1 / 2 / 4); 5 the
 app icon lands in the empty slot on a phone (desktop: a window) after Install; 6 the notification stack; 7 the check
 tile + confetti. Step content enters from the direction of travel (280 ms, `--ease-out`, 2 px blur), mirrored in RTL.
 
-### H4. [ ] Hebrew + RTL
+### H4. [x] Hebrew + RTL
 All strings in `lib/i18n` (en + he, the boards' `language` tweak has the Hebrew copy); RTL mirrors the back chevron,
 slide direction, progress fill origin and the hold-to-delete fill. Store monograms in Hebrew letters for Hebrew names.
 
@@ -449,7 +449,7 @@ Acceptance (H): `test:onboarding` (new user → all 7 steps → prefs saved, sha
 Skip from step 1 → Home; reload on step 3 resumes; space-invite user skips 4; iPhone UA shows the guide and skips 6
 when not standalone; standalone skips 5); reduced-motion run; `test:clip` walks every step en + he × 360/390/1366.
 
-## Part I — guards and docs
+## Part I — guards and docs [x]
 `test:admin-access`, `test:admin-privacy`, `test:admin-live`, `test:admin-people`, `test:onboarding` in `guards.yml`;
 `SPEC.md` Round 17 section (edit), help topic for getting started (onboarding answers live in Settings), `CLAUDE.md`
 map (admin panel, presence/activity, onboarding), `SECURITY.md` (admin delete/ban, presence data, retention),
@@ -764,3 +764,47 @@ Net: the Worker never read a store that direct couldn't (its only extra "not ref
 read), and it is itself refused by electricshop and Walmart. The Woo and Shopify rungs read nothing in this list.
 Next step for the planner: real product URLs for the home-page rows before judging those stores, and a different
 route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare egress is challenged the same way).
+
+### Session 2 (2026-10-09)
+- **At start.** Open reports: 1 (Tal's "Suggests border cut" from 7 Oct — fixed in Session 1 A1, still `open` in the
+  table; mark it fixed from the new Reports tab). Error log: the same 10 known groups (viewport diagnostics on /login,
+  cwc.co.il blocked, CSP connect/manifest, Google FedCM) — nothing new.
+- **Done:** G0–G7, H1–H4, I. Commits: `R17.G0` (shell + every tab's screen — they share one shell, one action file and
+  the board kit, so they landed together; each item then got its own commit for its behaviour/tests), `R17.G0` tests,
+  `R17.G1`, `R17.G2`, `R17.H1–H4`, `R17.I` (clip walk), `R17.I` (guards + docs).
+- **Tests (local, built app):** test:admin-access 64/64, test:admin-privacy (every admin action × the seed's titles,
+  notes, links, chats, memory; + a positive control), test:admin-live 12/12, test:admin-people 26/26 (incl. the
+  break-ui pass: long names/emails, 0 / 1 / 500 people at 360 and 1366 — 500 rows render in ~1.4 s, no sideways scroll,
+  names ellipsize with a title; no other fixes needed), test:onboarding (all paths), test:auth-flow (+ G2 banned
+  sign-in, + G0 redirect), test:clip with the 218 new screens (admin tabs + every onboarding step, en + he, 360 / 390 /
+  1366 / 1280) → 0 cut text after the fixes in `R17.I`; all unit tests and authz / scope / SSRF / query-plan guards.
+  test:onboarding timed out once in ~8 runs (a click waiting for the primary button); it now prints the page when that
+  happens.
+- **Migration rehearsal** (`node --env-file=.env.local scripts/r17-rehearsal.mjs --source snapshots/prod-2026-10-09.db
+  --base origin/main`, a fresh read-only prod snapshot): new tables `presence`, `activity`; no new columns; nothing
+  dropped; row counts equal in all 40 tables; integrity ok; second run a no-op; To buy 13 / On the way 8 / History 11 and
+  this month's budget unchanged; 495 ms. (`db-snapshot.mjs` needed one fix: the local copy now checks foreign keys at
+  the end — tables are copied in name order.) Existing people have no `pref:onboarding`, so nobody is sent to /welcome.
+- **Parity:** 14 new PNGs in `docs/design/parity-r17/` (g1–g7 + phone + he/dark/plum; h phone 1–7, iPhone he, desktop
+  1/3/4/5/7) — with Session 1's 6 that's the 20 allowed.
+- **Decisions (no stopping to ask):**
+  - Onboarding **Skip** (top-end) leaves to Home (the brief's "Skip from step 1 → Home"); the board's prototype wired it
+    to the next step. "Not now" (5, 6) is the per-step skip.
+  - Step 5 on a desktop browser that offers no install is skipped (brief rule), so its "On your phone" QR is only seen
+    where the computer can install. If Tal wants the QR always, show step 5 on desktop with only the QR card.
+  - Changing "who" back to "Just me" after the shared Home was made leaves that space (it can be deleted in its
+    settings); the done screen then says "Your personal space".
+  - Step 3 untouched saves the board's default 2,500 as this month's budget (it's on screen as the answer).
+  - Stores with a plain search page that's known (Shufersal, IKEA) are offered first in "find it in"; the others are
+    stored only. Their search URLs weren't checked live from here.
+  - "If it were paid" uses approximate list prices remembered at build time (the table + source pages are in
+    `components/admin/ai.tsx`) — not checked live.
+  - Live shows one row per person (their latest session); the phone/computer split counts people. Charts' time axes run
+    left to right in Hebrew too.
+  - People → Items = items that person added (any space); Chats = their conversations.
+  - Reports show the person's text and diagnostics, not the assistant exchange (chat). Reports carry the space name and
+    installed/browser from now on; older reports show "—".
+  - Admin "Reset today" keeps the AI rows (stats) and offsets today's count (`ai:reset` pref).
+  - The admin page's own presence rides on its polls (so a visible Live tab is one request per 5 s); the phone boot
+    animation shows on /admin the first open of the day like on any page (dismissed when the panel mounts).
+- **For Tal:** nothing new to set. `GITHUB_ISSUES_TOKEN` (optional) turns on "Open issue on GitHub" in Reports.
