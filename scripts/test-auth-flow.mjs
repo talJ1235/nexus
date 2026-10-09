@@ -41,6 +41,8 @@ const ok = (c, m, d = "") => {
 for (const f of [DB, `${DB}-journal`]) if (existsSync(f)) rmSync(f);
 execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", "src/db/migrate.ts"], { env: ENV, stdio: "ignore" });
 const db = createClient({ url: `file:${DB}` });
+// The server writes too (R17 presence beats): wait for the lock instead of failing.
+await db.execute("PRAGMA busy_timeout = 10000");
 const q = async (sql, args = []) => (await db.execute({ sql, args })).rows;
 
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "-p", String(PORT)], { env: ENV, stdio: ["ignore", "pipe", "pipe"] });

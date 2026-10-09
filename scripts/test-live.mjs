@@ -44,6 +44,8 @@ const id = () => randomBytes(12).toString("base64url");
 for (const f of [DB, `${DB}-journal`, `${DB}-wal`, `${DB}-shm`]) if (existsSync(f)) rmSync(f);
 execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", "src/db/migrate.ts"], { env: ENV, stdio: "ignore" });
 const db = createClient({ url: `file:${DB}` });
+// The server writes too (R17 presence beats): wait for the lock instead of failing.
+await db.execute("PRAGMA busy_timeout = 10000");
 await db.execute("PRAGMA journal_mode = WAL");
 const now = Date.now();
 const U = { A: "uA_" + id(), B: "uB_" + id(), V: "uV_" + id() };

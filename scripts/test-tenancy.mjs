@@ -46,6 +46,8 @@ const ok = (cond, msg, detail = "") => {
 for (const f of [DB, `${DB}-journal`]) if (existsSync(f)) rmSync(f);
 execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", "src/db/migrate.ts"], { env: ENV, stdio: "ignore" });
 const db = createClient({ url: `file:${DB}` });
+// The server writes too (R17 presence beats): wait for the lock instead of failing.
+await db.execute("PRAGMA busy_timeout = 10000");
 // The server writes to the same file. WAL lets this script read while the server writes; writes that still meet a
 // lock are retried (fast CI runners hit SQLITE_BUSY otherwise).
 await db.execute("PRAGMA journal_mode = WAL");

@@ -51,6 +51,8 @@ tsx("src/db/migrate.ts");
 execFileSync(process.execPath, ["scripts/seed-local.mjs"], { env: ENV, stdio: "ignore" });
 execFileSync(process.execPath, ["scripts/seed-worst.mjs"], { env: ENV, stdio: "ignore" });
 const db = createClient({ url: `file:${DB}` });
+// The server writes too (R17 presence beats): wait for the lock instead of failing.
+await db.execute("PRAGMA busy_timeout = 10000");
 const admin = (await db.execute({ sql: `SELECT id FROM "user" WHERE email = ?`, args: [ADMIN] })).rows[0].id;
 const personal = (await db.execute({ sql: `SELECT id FROM space WHERE kind = 'personal' AND created_by = ?`, args: [admin] })).rows[0].id;
 const token = randomBytes(24).toString("base64url");
