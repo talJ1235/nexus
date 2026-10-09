@@ -808,3 +808,7 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
   - The admin page's own presence rides on its polls (so a visible Live tab is one request per 5 s); the phone boot
     animation shows on /admin the first open of the day like on any page (dismissed when the panel mounts).
 - **For Tal:** nothing new to set. `GITHUB_ISSUES_TOKEN` (optional) turns on "Open issue on GitHub" in Reports.
+- **CI** (guards on `round17-s2`): green at `4b721ef` after two fixes it found — the Account section scrolled at
+  1366×768 with a 4th tile ("Getting started" moved to Settings → Display), and the server-backed tests hit
+  `SQLITE_BUSY` now that presence beats write while they run (`busy_timeout` on their DB handles).
+- **Merged** `round17-s2` → `main` (fast-forward) after the checks above; prod deploys from `main`.
