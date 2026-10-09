@@ -79,3 +79,6 @@ ci-*.db
 /switch-test.db*
 /ai-quota-test.db*
 /delete-account-test.db*
+/parity-r17.db*
+/admin-*-test.db*
+/onboarding-test.db*
