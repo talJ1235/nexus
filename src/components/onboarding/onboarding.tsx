@@ -14,6 +14,7 @@ import { useI18n } from "@/components/providers";
 import { useMedia } from "@/components/ui/use-media";
 import { monogram, presetFor, STORES, type Onboarding, type Who, type Why } from "@/lib/onboarding";
 import type { ScreenKey } from "@/lib/presence-keys";
+import { notifyAsk } from "@/app/notify-actions";
 
 // R17 H1–H4 — onboarding, direction A (boards Onboarding-phone / -desktop): one question per screen, the picture above
 // (phone) / beside (desktop) reacts to the answer. Steps 1 why · 2 stores · 3 budget · 4 who · 5 install ·
@@ -197,6 +198,13 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
   const notify = async () => {
     const res = await Notification.requestPermission().catch(() => "default" as const);
     void save({ notif: res });
+    // R17 S3 L1: granted → no reminder cards later (this device subscribes when the app starts).
+    if (res === "granted") void notifyAsk("yes").catch(() => {});
+  };
+  // R17 S3 L1: "Not now" on the notifications step is the first "no" (the reminder card comes back after 3 days).
+  const later_ = () => {
+    if (idx === 5) void notifyAsk("no").catch(() => {});
+    void next();
   };
 
   // ---- the step's texts and the primary button
@@ -751,7 +759,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
               {showBack && backBtn("btn lg")}
               <span style={{ flex: 1 }} />
               {later && (
-                <button type="button" className="btn lg ghost" onClick={() => void next()} data-ob-later>
+                <button type="button" className="btn lg ghost" onClick={later_} data-ob-later>
                   {O.notNow}
                 </button>
               )}
@@ -791,7 +799,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
           {cta}
         </button>
         {later && (
-          <button type="button" className="btn lg ghost block" style={{ height: 44 }} onClick={() => void next()} data-ob-later>
+          <button type="button" className="btn lg ghost block" style={{ height: 44 }} onClick={later_} data-ob-later>
             {O.notNow}
           </button>
         )}

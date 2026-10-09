@@ -62,6 +62,8 @@ function useOpenRow(close: () => void) {
       inboxStore.read(r.id);
       const d = r.data as { itemId?: string };
       if (r.spaceId && s.space && r.spaceId !== s.space.id) {
+        // A route handler (marks read, switches the space cookie, redirects) — a full navigation on purpose.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.href = `/api/notify/open?id=${encodeURIComponent(r.id)}`;
         return;
       }
@@ -445,7 +447,7 @@ export function InboxLayer() {
 export function NotifyBell({ variant, className }: { variant: "desk" | "phone"; className?: string }) {
   const s = useStore();
   const { t } = useI18n();
-  const { unread, ring } = useInbox();
+  const { unread, ring, ask } = useInbox();
   const [ringing, setRinging] = useState(false);
   useEffect(() => {
     if (!ring) return;
@@ -471,6 +473,7 @@ export function NotifyBell({ variant, className }: { variant: "desk" | "phone"; 
       <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d={ICONS.BELL} />
       </svg>
+      {ask && !unread && <span className="nt-bell-dot" aria-hidden data-nt-ask-dot />}
       {unread > 0 && (
         <span className="nt-bd" data-unread={unread}>
           {unread > 99 ? "99+" : unread}

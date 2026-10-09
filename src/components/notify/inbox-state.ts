@@ -6,9 +6,9 @@
 import { useSyncExternalStore } from "react";
 import { inbox, markAllRead, markRead, removeNotification, unread, type InboxRow, type NotifyBoot } from "@/app/notify-actions";
 
-type State = { rows: InboxRow[] | null; unread: number; now: number; boot: NotifyBoot | null; ring: number; received: Record<string, true> };
+type State = { rows: InboxRow[] | null; unread: number; now: number; boot: NotifyBoot | null; ring: number; received: Record<string, true>; /** L2: the reminder card is out of the bell (it shows a dot). */ ask: boolean };
 
-let state: State = { rows: null, unread: 0, now: Date.now(), boot: null, ring: 0, received: {} };
+let state: State = { rows: null, unread: 0, now: Date.now(), boot: null, ring: 0, received: {}, ask: false };
 const subs = new Set<() => void>();
 const set = (p: Partial<State>) => {
   state = { ...state, ...p };
@@ -28,6 +28,9 @@ let loading: Promise<void> | null = null;
 
 export const inboxStore = {
   get: () => state,
+  setAsk(ask: boolean) {
+    if (state.ask !== ask) set({ ask });
+  },
   setBoot(boot: NotifyBoot) {
     set({ boot, unread: boot.unread });
   },

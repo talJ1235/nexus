@@ -93,8 +93,7 @@ function useSwapKey(v: string) {
   useEffect(() => {
     if (prev.current !== v) {
       prev.current = v;
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- re-key the text so the crossfade replays
-      setK((x) => x + 1);
+      setK((x) => x + 1); // re-key the text so the crossfade replays
     }
   }, [v]);
   return k;

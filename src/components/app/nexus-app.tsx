@@ -25,6 +25,7 @@ import { MeSheet } from "./me-sheet";
 import { SpacesLayer } from "./spaces/layer";
 import { ImportDialog } from "./import-dialog";
 import { InboxLayer, NotifyRuntime } from "../notify/inbox";
+import { AskCard } from "../notify/ask-card";
 import { TopBar } from "./top-bar";
 import { Dock, PhoneTopBar, PlusMenu } from "./phone-shell";
 import { FiltersRow, HomeSummary, SUMMARY_VIEWS } from "./home-summary";
@@ -218,6 +219,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <PanelBoundary label="Alerts">
         <InboxLayer />
         <NotifyRuntime />
+        <AskCard />
       </PanelBoundary>
       <PanelBoundary label="Assistant">
         <AssistantPanel />
