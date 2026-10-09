@@ -1,0 +1,42 @@
+/* R17 H — onboarding A (boards docs/design/r17/Onboarding-phone / -desktop): their <helmet> styles on a real viewport.
+   Phone: the brand band on top (scene), the question, the answers (scroll if needed), one big button at the bottom
+   (safe area). Desktop ≥ 1024 px: the band on the start side (560 px, scene ×1.45, "Step n of 6"), the question on the
+   other with Back / Not now / the primary (Enter) at the bottom. */
+.nx.ob{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--screen);color:var(--ink);overflow:hidden}
+.nx.ob .band{height:min(286px,36dvh);flex-shrink:0;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.nx.ob .band .top{height:56px;display:flex;align-items:center;gap:8px;padding:0 8px;flex-shrink:0}
+.nx.ob .band .stage{flex:1;min-height:0;display:grid;place-items:center;overflow:hidden}
+.nx.ob .hd{padding:22px 24px 0}
+.nx.ob .hd h1{font-size:27px;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1.12;overflow-wrap:anywhere}
+.nx.ob .hd p{margin:8px 0 0;font-size:15px;color:var(--muted);line-height:1.4}
+.nx.ob .body{flex:1;min-height:0;padding:20px 24px 4px;overflow-y:auto;overscroll-behavior:contain}
+.nx.ob .foot{padding:12px 24px calc(18px + max(16px,env(safe-area-inset-bottom,0px)));display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.nx.ob .foot .btn.pri{height:52px;border-radius:14px;font-size:16px}
+.nx.ob .flip{transform:none}[dir=rtl] .nx.ob .flip{transform:scaleX(-1)}
+.nx.ob .sumr{display:flex;align-items:center;gap:12px;padding:0 14px;min-height:54px;font-size:14.5px}
+.nx.ob .sumr+.sumr{border-top:1px solid var(--line-in)}
+.nx.ob .stores{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.nx.ob .st{min-width:0}
+.nx.ob .st .nm{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx.ob input{font-size:16px}
+.nx.ob .scene-wrap{display:grid;place-items:center}
+.nx.ob .conf-box{position:relative;width:120px;height:120px;display:grid;place-items:center}
+.nx.ob .face{position:absolute}
+.nx.ob .qr-box{flex-shrink:0}
+@media (max-width:359px){.nx.ob .stores{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-height:700px) and (max-width:1023px){.nx.ob .band{height:min(220px,32dvh)}.nx.ob .stage .scene,.nx.ob .stage>*{transform:scale(.82)}}
+
+@media (min-width:1024px){
+ .nx.ob{flex-direction:row}
+ .nx.ob .band{width:min(560px,41vw);height:auto;padding:36px 44px}
+ .nx.ob .band .stage{transform:none}
+ .nx.ob .big-scene{transform:scale(1.45)}
+ .nx.ob .main{flex:1;min-width:0;display:flex;flex-direction:column;padding:36px 72px 40px}
+ .nx.ob .qt{font-size:34px;font-weight:800;letter-spacing:-.035em;margin:0;line-height:1.1}
+ .nx.ob .ql{margin:10px 0 0;font-size:16px;color:var(--muted)}
+ .nx.ob .col{max-width:560px;width:100%;margin-top:min(64px,6vh);display:flex;flex-direction:column;flex:1;min-height:0}
+ .nx.ob .col .content{margin-top:32px;min-height:0;overflow-y:auto;padding:2px}
+ .nx.ob .actions{margin-top:auto;padding-top:16px;display:flex;gap:10px;align-items:center}
+ .nx.ob input{font-size:14px}
+}
+@media (min-width:1024px) and (max-height:760px){.nx.ob .col{margin-top:28px}.nx.ob .col .content{margin-top:20px}.nx.ob .big-scene{transform:scale(1.25)}}

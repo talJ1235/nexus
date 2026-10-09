@@ -15,6 +15,8 @@ import { scoped } from "@/lib/db-scoped";
 import { needsRecoveryPasskey } from "@/lib/auth/security";
 import { deletionRequestedAt } from "@/lib/db-scoped/account";
 import { spaceShell } from "@/lib/spaces";
+import { userPrefGet } from "@/lib/db-scoped/prefs";
+import { ONBOARDING_KEY, parseOnboarding } from "@/lib/onboarding";
 import { getCurrencyPref, getUiPrefs } from "@/lib/server-prefs";
 
 /**
@@ -27,6 +29,8 @@ export default async function Home({ searchParams, settings }: { searchParams: P
   if (await needsRecoveryPasskey(ctx.user.id, ctx.session)) redirect("/passkey?forced=1");
   // R17 E4: signed in again during the 7 days after "Delete account" → offer to restore it first.
   if ((await deletionRequestedAt(ctx.user.id)) != null) redirect("/restore-account");
+  // R17 H1: an onboarding that was started and not finished or skipped resumes first.
+  if (parseOnboarding(await userPrefGet(ctx.user.id, ONBOARDING_KEY))?.status === "active") redirect("/welcome");
   const [{ v, f }, currency, prefs] = await Promise.all([searchParams, getCurrencyPref(), getUiPrefs()]);
   const jar = await cookies();
   const tz = decodeURIComponent(jar.get("nexus_tz")?.value ?? "").slice(0, 60) || null;

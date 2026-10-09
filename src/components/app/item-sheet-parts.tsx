@@ -455,7 +455,8 @@ export function PriceWatch({ item, save }: { item: ItemWithSources; save: (p: { 
 
 /** For items without a store link yet: jump to store searches, then paste the link into the item. */
 export function FindIt({ query }: { query: string }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const s = useStore();
   return (
     <section>
       <div className="rounded-2xl border border-dashed border-accent/50 bg-accent-soft/30 p-4">
@@ -465,7 +466,7 @@ export function FindIt({ query }: { query: string }) {
         </div>
         <p className="mt-0.5 text-xs text-muted">{t.ai.findHint}</p>
         <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {storeSearches(query).map((st) => (
+          {storeSearches(query, s.homePrefs.stores, locale === "he").map((st) => (
             <a
               key={st.name}
               href={st.url}

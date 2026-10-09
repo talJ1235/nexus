@@ -295,9 +295,11 @@ export function AccountPage({ go, phone }: PageProps) {
       <NotificationsRow />
       <MyDataRows onStepUp={() => setStepUp(true)} go={go} />
 
-      <div className={cn(s.admin ? "grid3" : "grid2", "sx-tiles")} style={{ marginTop: "auto" }} data-account-tiles>
+      <div className={cn(s.admin ? "grid4" : "grid3", "sx-tiles")} style={{ marginTop: "auto" }} data-account-tiles>
         <MiniCard icon={P.history} title={t.sx.sections.activity} sub={t.sx.activitySub} action={t.sx.open} onClick={() => go("activity")} data="activity" />
         <MiniCard icon={P.inbox} title={t.sx.sections.reports} sub={t.sx.reportsSub} action={t.sx.open} onClick={() => go("reports")} data="reports" />
+        {/* R17 H: every onboarding answer can be changed again. */}
+        <MiniCard icon={P.history} title={t.ob.again} sub={t.ob.againSub} action={t.sx.open} onClick={() => router.push("/welcome")} data="onboarding" />
         {s.admin && <MiniCard icon={P.box} title={t.adm.entry} sub={t.adm.entrySub} action={t.sx.open} onClick={() => router.push("/admin")} data="admin" badge="Admin" />}
       </div>
       {stepUp && <StepUp full={!!st?.full} admin={!!st?.admin} onClose={() => setStepUp(false)} />}

@@ -52,7 +52,7 @@ import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
 import { SIDEBAR_MAX, SIDEBAR_MIN, SidebarEdge } from "./sidebar-edge";
 import { StoreProvider, useOpenItemId, useStore, type PendingAdd, type UiInit } from "./store";
-import { PresenceBeat } from "./presence-beat";
+import { PresenceBeat, TryHint } from "./presence-beat";
 import { LiveSync } from "./live-sync";
 import { TestBridge } from "./test-bridge";
 import { ContentSkeleton, ProjectHeaderSkeleton, Skel } from "./skeletons";
@@ -208,6 +208,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       <PanelBoundary label="Live">
         <LiveSync />
         <PresenceBeat />
+        <TryHint />
       </PanelBoundary>
       {process.env.NODE_ENV !== "production" && <TestBridge />}
       <PanelBoundary label="Import">

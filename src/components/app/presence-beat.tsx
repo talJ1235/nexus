@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { useI18n } from "@/components/providers";
 import { getShoppingLeft, onShoppingLeft } from "@/lib/presence-client";
 import { BEAT_MS, deviceOf, type BeatInput, type ScreenKey } from "@/lib/presence-keys";
 import { useOpenItemId, useStore } from "./store";
@@ -80,5 +82,21 @@ export function PresenceBeat() {
   const [left, setLeft] = useState<number | null>(getShoppingLeft);
   useEffect(() => onShoppingLeft(() => setLeft(getShoppingLeft())), []);
   useBeat(screen, screen === "shopping-mode" ? left : null);
+  return null;
+}
+
+/** R17 H1: after onboarding (finished or skipped) Home opens once with the "Try it" hint (/?hint=try). */
+export function TryHint() {
+  const { t } = useI18n();
+  const s = useStore();
+  useEffect(() => {
+    if (s.loading) return;
+    const u = new URL(window.location.href);
+    if (u.searchParams.get("hint") !== "try") return;
+    u.searchParams.delete("hint");
+    window.history.replaceState(window.history.state, "", u);
+    const phone = window.matchMedia("(pointer: coarse)").matches;
+    toast(phone ? t.ob.tryItPhone : t.ob.tryIt, { duration: 8000, id: "try-hint" });
+  }, [s.loading, t]);
   return null;
 }

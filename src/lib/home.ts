@@ -655,6 +655,8 @@ export function mergeHome<T extends { key: string }>(rules: T[], ai: T[], fallba
 export const HIDE_MS = 7 * DAY;
 
 export type HomePrefs = {
+  /** R17 H2: the stores picked in onboarding (ids from lib/onboarding STORES) — suggested first where to look. */
+  stores?: string[];
   /** Row / suggestion key ("sug:…") → hidden until (ms). kv `pref:home:dismissed`. */
   dismissed: Record<string, number>;
   /** Phrase "Nexus suggests" with the AI once a day (on by default); off = templates only. kv `pref:home:ai`. */

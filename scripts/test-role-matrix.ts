@@ -70,6 +70,8 @@ const VIEW_OK = new Set([
   "error-actions.ts#admin",
   "admin-actions.ts#admin", // R17 E2: admin-only (isAdmin), the AI quota
   // R17 E4: personal account actions (delete / restore your own account) — any role, about the caller only.
+  // R17 H: onboarding — the caller's own answers and personal space (a shared Home they create is theirs).
+  "onboarding-actions.ts#me",
   "account-actions.ts#deletionBlocks", "account-actions.ts#requestAccountDeletion", "account-actions.ts#restoreMyAccount",
 ]);
 const dir = join(__dirname, "..", "src", "app");

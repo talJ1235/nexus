@@ -26,6 +26,11 @@ async function freshen() {
   await app.db.execute({ sql: "UPDATE presence SET updated_at = ? WHERE session_id = 'ads_ron'", args: [now - 18 * 60_000] });
 }
 
+/** The admin's onboarding at a step, with the board's default answers. */
+async function obAt(step, patch = {}) {
+  const v = { v: 1, status: "active", step, why: ["home", "super"], stores: ["shufersal", "rami-levy", "ikea", "aliexpress"], custom: [], budget: 2500, currency: "ILS", who: "family", sharedSpaceId: null, notif: null, installed: false, at: Date.now(), ...patch };
+  await app.db.execute({ sql: "INSERT INTO user_pref (user_id, key, value, updated_at) VALUES (?, 'pref:onboarding', ?, ?) ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value", args: [app.admin, JSON.stringify(v), Date.now()] });
+}
 const browser = await chromium.launch();
 async function mockShot(name, props, viewport) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1 });
@@ -38,7 +43,7 @@ async function mockShot(name, props, viewport) {
 async function appShot(path, viewport, opts = {}) {
   await freshen();
   const phone = viewport.width < 640;
-  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, ...(phone ? { isMobile: true, hasTouch: true } : {}), colorScheme: opts.dark ? "dark" : "light", reducedMotion: "reduce" });
+  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, ...(phone ? { isMobile: true, hasTouch: true } : {}), ...(opts.ua ? { userAgent: opts.ua } : {}), colorScheme: opts.dark ? "dark" : "light", reducedMotion: "reduce" });
   await ctx.addInitScript((m) => {
     localStorage.setItem("theme", m);
     const d = new Date();
@@ -46,6 +51,16 @@ async function appShot(path, viewport, opts = {}) {
     sessionStorage.setItem("nexus.opened", "1");
   }, opts.dark ? "dark" : "light");
   await ctx.addCookies([...app.cookies(app.personal, opts.he ? "he" : "en"), { name: "nexus_palette", value: opts.plum ? "plum" : "graphite", url: BASE }]);
+  if (opts.ob) await obAt(opts.ob.step, opts.ob.patch);
+  // Headless Chromium never offers an install: hand the page a stand-in beforeinstallprompt (the step under test).
+  if (opts.installable)
+    await ctx.addInitScript(() => {
+      const add = window.addEventListener.bind(window);
+      window.addEventListener = (type, fn, o) => {
+        add(type, fn, o);
+        if (type === "beforeinstallprompt") setTimeout(() => fn(Object.assign(new Event("beforeinstallprompt"), { prompt: async () => {}, userChoice: Promise.resolve({ outcome: "accepted" }) })), 0);
+      };
+    });
   const page = await ctx.newPage();
   await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" }).catch(() => {});
   if (opts.wait) await page.waitForSelector(opts.wait, { timeout: 30000 }).catch(() => console.log(`  (no ${opts.wait} on ${path})`));
@@ -88,6 +103,18 @@ const SHOTS = [
   ["g-phone-person-reports-more", [["board · person", "Admin-phone", { page: "person" }, PHONE], ["app", "/admin/people/ad_noa", PHONE, { wait: W.person }], ["board · reports", "Admin-phone", { page: "reports" }, PHONE], ["app", "/admin/reports", PHONE, { wait: "[data-report-row]" }], ["board · more", "Admin-phone", { page: "more" }, PHONE], ["app", "/admin/more", PHONE, { wait: "[data-admin-more]" }]], 260],
   ["g-phone-he-dark-plum", [["app · live he dark", "/admin", PHONE, { wait: W.live, he: true, dark: true }], ["app · person he plum", "/admin/people/ad_noa", PHONE, { wait: W.person, he: true, plum: true }], ["app · people 360", "/admin/people", { width: 360, height: 740 }, { wait: W.people }]], 300],
 ];
+const OB = "[data-ob-step]";
+const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
+const ob = (step, extra = {}) => ({ wait: OB, ob: { step, patch: extra.patch }, installable: step === 5, ...extra });
+SHOTS.push(
+  ["h-phone-1-2", [["board · 1 why", "Onboarding-phone", { step: "1 why" }, PHONE], ["app", "/welcome", PHONE, ob(1)], ["board · 2 stores", "Onboarding-phone", { step: "2 stores" }, PHONE], ["app", "/welcome", PHONE, ob(2)]], 300],
+  ["h-phone-3-4", [["board · 3 budget", "Onboarding-phone", { step: "3 budget" }, PHONE], ["app", "/welcome", PHONE, ob(3)], ["board · 4 who", "Onboarding-phone", { step: "4 who" }, PHONE], ["app", "/welcome", PHONE, ob(4)]], 300],
+  ["h-phone-5-6-7", [["board · 5 install", "Onboarding-phone", { step: "5 install" }, PHONE], ["app", "/welcome", PHONE, ob(5)], ["board · 6 notifications", "Onboarding-phone", { step: "6 notifications" }, PHONE], ["app", "/welcome", PHONE, ob(6)], ["board · 7 done", "Onboarding-phone", { step: "7 done" }, PHONE], ["app", "/welcome", PHONE, ob(7)]], 240],
+  ["h-phone-iphone-he-dark", [["board · 5 iPhone (he)", "Onboarding-phone", { step: "5 install", device: "iphone", language: "עברית" }, PHONE], ["app · iPhone he", "/welcome", PHONE, { ...ob(5), installable: false, he: true, ua: IPHONE }], ["board · 1 why (he, dark)", "Onboarding-phone", { step: "1 why", language: "עברית", dark: true }, PHONE], ["app · he dark", "/welcome", PHONE, ob(1, { he: true, dark: true })]], 300],
+  ["h-desktop-1-3", [["board · 1 why", "Onboarding-desktop", { step: "1 why" }, DESK], ["app", "/welcome", DESK, ob(1)], ["board · 3 budget", "Onboarding-desktop", { step: "3 budget" }, DESK], ["app", "/welcome", DESK, ob(3)]], 520],
+  ["h-desktop-5-7", [["board · 5 install", "Onboarding-desktop", { step: "5 install" }, DESK], ["app", "/welcome", DESK, ob(5)], ["board · 7 done", "Onboarding-desktop", { step: "7 done" }, DESK], ["app", "/welcome", DESK, ob(7)]], 520],
+  ["h-desktop-plum-dark-he", [["board · 4 who (plum dark he)", "Onboarding-desktop", { step: "4 who", palette: "plum", dark: true, language: "עברית" }, DESK], ["app", "/welcome", DESK, ob(4, { plum: true, dark: true, he: true })]], 640],
+);
 
 try {
   for (const [file, cells, w] of SHOTS) {
