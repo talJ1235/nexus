@@ -27,6 +27,8 @@ export type ClientDiag = {
   sw?: string | null;
   /** Rough device class (deviceMemory GB, CPU cores). */
   hw?: { memory?: number; cores?: number };
+  /** R17 G5: installed (standalone) or in a browser tab. */
+  standalone?: boolean;
 };
 
 // The last 10 views visited on this page (Round 9 D1).
@@ -59,6 +61,7 @@ export function collectDiag(view: string, locale: string, extension: string | nu
     failed: failedRequests(),
     sw: sw ? (new URL(sw).searchParams.get("v") ?? "active") : null,
     hw: { memory: n.deviceMemory, cores: navigator.hardwareConcurrency },
+    standalone: matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true,
   };
 }
 

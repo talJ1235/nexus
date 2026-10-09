@@ -21,4 +21,6 @@ export const clientDiagSchema = z.object({
   failed: z.array(z.object({ at: z.number(), path: z.string().max(80), status: z.number().int().min(0).max(999) })).max(10).optional(),
   sw: z.string().max(40).nullable().optional(),
   hw: z.object({ memory: z.number().max(1024).optional(), cores: z.number().int().max(512).optional() }).optional(),
+  // R17 G5: installed (standalone display mode) or in a browser tab.
+  standalone: z.boolean().optional(),
 });

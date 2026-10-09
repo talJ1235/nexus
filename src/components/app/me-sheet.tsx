@@ -1,6 +1,7 @@
 "use client";
 
-import { Bell, ChevronRight, Download, FileSpreadsheet, History, Inbox, LogOut, MessageSquareWarning, Monitor, Moon, Settings, Sun, X } from "lucide-react";
+import { Bell, ChevronRight, Download, FileSpreadsheet, History, Inbox, LogOut, MessageSquareWarning, Monitor, Moon, Settings, ShieldCheck, Sun, X } from "lucide-react";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { usePalette } from "@/components/use-palette";
@@ -80,6 +81,12 @@ export function MeSheet() {
           <button type="button" className={row} onClick={() => (s.setSettingsOpen(true), s.setMeOpen(false))} data-me-settings>
             <Settings /> <span className="flex-1">{t.nav.settings}</span> <ChevronRight className="size-4 text-faint rtl:-scale-x-100" />
           </button>
+          {/* R17 G0: the admin panel — the admin only. */}
+          {s.admin && (
+            <Link className={row} href="/admin" prefetch={false} data-me-admin>
+              <ShieldCheck /> <span className="flex-1">{t.adm.entry}</span> <ChevronRight className="size-4 text-faint rtl:-scale-x-100" />
+            </Link>
+          )}
           <button type="button" className={row} onClick={go(() => s.setView({ type: "history" }))} data-me-history>
             <History /> <span className="flex-1">{t.insights.history}</span> <ChevronRight className="size-4 text-faint rtl:-scale-x-100" />
           </button>

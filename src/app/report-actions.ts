@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 import { after } from "next/server";
 import { z } from "zod";
 import { schema } from "@/db";
-import { isAdmin, requireCtx } from "@/lib/ctx";
+import { AccessError, isAdmin, requireCtx } from "@/lib/ctx";
 import { insertReport, listReportsFor, setReportIssue, setReportStatusAdmin } from "@/lib/db-scoped/reports";
 import { clientDiagSchema } from "@/lib/diag-schema";
 import { serverDiag } from "@/lib/help/server";
@@ -54,6 +54,7 @@ export async function createReport(raw: z.input<typeof input>): Promise<ReportVi
     assistant: f.assistant ?? null,
     screenshot: !!f.screenshot,
     failure: f.failure ? { ...f.failure, link: linkDomainPath(f.failure.link) } : null,
+    space: { id: ctx.space.id, name: ctx.space.name },
   };
   const now = Date.now();
   const row = await insertReport(ctx.user.id, { id: `r_${nanoid(10)}`, type: f.type, title: f.title, body: reportBody(f), diagnostics, screenshot: f.screenshot ?? null, status: "open", createdAt: now, updatedAt: now });
@@ -74,10 +75,24 @@ export async function listReports(): Promise<ReportView[]> {
 
 export async function setReportStatus(id: string, status: (typeof REPORT_STATUSES)[number]): Promise<ReportView | null> {
   const ctx = await requireCtx("view");
-  if (!isAdmin(ctx)) throw new Error("forbidden");
+  if (!isAdmin(ctx)) throw new AccessError("not_found");
   const s = z.enum(REPORT_STATUSES).parse(status);
   const row = await setReportStatusAdmin(z.string().min(1).max(40).parse(id), s);
   return row ? view(row) : null;
+}
+
+/** R17 G5: "Open issue on GitHub" from the admin panel (only when GITHUB_ISSUES_TOKEN is set; an existing issue is kept). */
+export async function openReportIssue(id: string): Promise<number | null> {
+  const ctx = await requireCtx("view");
+  if (!isAdmin(ctx)) throw new AccessError("not_found");
+  const rid = z.string().min(1).max(40).parse(id);
+  const row = (await listReportsFor(ctx.user.id, true)).find((r) => r.id === rid);
+  if (!row) return null;
+  if (row.githubIssue) return row.githubIssue;
+  const report = view(row);
+  const issue = await openGithubIssue(report, reportMarkdown(report)).catch(() => null);
+  if (issue) await setReportIssue(rid, issue);
+  return issue;
 }
 
 /** Optional: a GitHub issue labelled from-app (fine-grained token, Issues read/write on the repo). */

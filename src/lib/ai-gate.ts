@@ -15,6 +15,8 @@ import { HOME_AI_KEY } from "./home-prefs";
 
 export const DAILY_QUOTA = 40;
 export const QUOTA_KEY = "ai:quota";
+/** R17 G2: "Reset today" (admin) — `<day>:<calls so far>`; today's count starts again from there (rows stay for stats). */
+export const RESET_KEY = "ai:reset";
 const TZ = "Asia/Jerusalem";
 
 export type AiFeature =
@@ -49,7 +51,8 @@ export async function aiAllowance(userId: string, now = Date.now()): Promise<All
   const admin = u?.role === "admin";
   const over = pref(QUOTA_KEY);
   const limit = admin || over === "unlimited" ? null : over != null && /^\d+$/.test(over) ? Number(over) : DAILY_QUOTA;
-  const used = Number(n ?? 0);
+  const [rDay, rN] = (pref(RESET_KEY) ?? "").split(":");
+  const used = Math.max(0, Number(n ?? 0) - (rDay === aiDay(now) ? Number(rN) || 0 : 0));
   return { on: pref(HOME_AI_KEY) !== "off", admin, limit, used, left: limit == null ? null : Math.max(0, limit - used) };
 }
 
@@ -164,6 +167,19 @@ export async function writeAiQuota(userId: string, limit: number | "unlimited" |
       .insert(schema.userPref)
       .values({ userId, key: QUOTA_KEY, value: String(limit), updatedAt: Date.now() })
       .onConflictDoUpdate({ target: [schema.userPref.userId, schema.userPref.key], set: { value: String(limit), updatedAt: Date.now() } });
+}
+
+/** Admin only (the Session 2 panel): today's count starts again from zero for this person. */
+export async function resetAiToday(userId: string, now = Date.now()) {
+  const [{ n }] = await db
+    .select({ n: count() })
+    .from(schema.aiUsage)
+    .where(and(eq(schema.aiUsage.userId, userId), eq(schema.aiUsage.day, aiDay(now)), eq(schema.aiUsage.system, false)));
+  const value = `${aiDay(now)}:${Number(n ?? 0)}`;
+  await db
+    .insert(schema.userPref)
+    .values({ userId, key: RESET_KEY, value, updatedAt: now })
+    .onConflictDoUpdate({ target: [schema.userPref.userId, schema.userPref.key], set: { value, updatedAt: now } });
 }
 
 /** The `use` for a request's context (a signed-in person in their current space). */

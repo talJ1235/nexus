@@ -21,7 +21,7 @@ const app = await startApp({ db: "clip-test.db", port: PORT });
 const BASE = app.base;
 
 const VIEWS = ["/", "/?v=to_buy", "/?v=ordered", "/?v=history", "/?v=orders", "/?v=spending", "/?v=projects", "/?v=collection&id=pa_big_c0", "/?v=store&key=ksp"];
-const YOU = ["account", "display", "ai", "calendar", "memory", "data", "activity", "reports", "invites"];
+const YOU = ["account", "display", "ai", "calendar", "memory", "data", "activity", "reports"];
 const SPACE = ["general", "people", "budget", "danger"];
 const SIZES = QUICK
   ? [{ w: 390, h: 844, phone: true }, { w: 1366, h: 768 }]

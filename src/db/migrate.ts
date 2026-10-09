@@ -4,7 +4,7 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 import { LEGACY_CATEGORIES } from "../lib/categories";
 import { migrateR15 } from "./migrate-r15";
 import { migrateR16 } from "./migrate-r16";
-import { migrateR17 } from "./migrate-r17";
+import { migrateR17, migrateR17s2 } from "./migrate-r17";
 
 async function main() {
   const url = process.env.TURSO_DATABASE_URL ?? "file:local.db";
@@ -103,6 +103,8 @@ async function main() {
   await migrateR16(client, (m) => console.log(`[migrate-r16] ${m}`));
   // Round 17: additive only (short names, AI usage, account deletion).
   await migrateR17(client, (m) => console.log(`[migrate-r17] ${m}`));
+  // Round 17 Session 2: presence + activity counts for the admin panel's Live view.
+  await migrateR17s2(client);
   console.log("[migrate] done:", url.replace(/\/\/.*@/, "//***@").split("?")[0]);
   client.close();
 }

@@ -1,0 +1,96 @@
+/* R17 G — the admin panel's own layout: the boards' (Admin-desktop / Admin-phone) <helmet> styles, scoped under
+   .nx .adm, on a real viewport (the boards are fixed 1366×768 / 390×844 frames: here the bodies scroll). Plus the
+   three board-kit pieces the app's kit doesn't carry yet (space gradients, tiles, filter chips). */
+
+/* ---------- board kit additions (docs/design/r17/nx16.css) ---------- */
+.nx .gr-green{background:linear-gradient(140deg,#3fbf8c,#16785a)}
+.nx .gr-blue{background:linear-gradient(140deg,#5b9bf0,#2459b8)}
+.nx .gr-violet{background:linear-gradient(140deg,#9f80f2,#5d3cc4)}
+.nx .gr-amber{background:linear-gradient(140deg,#f2b33d,#c27408)}
+.nx .gr-rose{background:linear-gradient(140deg,#ef7a9e,#b4335f)}
+.nx .gr-slate{background:linear-gradient(140deg,#8f8e89,#4d4c48)}
+.nx .tile{display:grid;place-items:center;color:#fff;flex-shrink:0;position:relative;overflow:hidden}
+.nx .tile svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nx .tile.t28{width:28px;height:28px;border-radius:7px}.nx .tile.t28 svg{width:16px;height:16px}
+.nx .tile.t40{width:40px;height:40px;border-radius:10px}.nx .tile.t40 svg{width:22px;height:22px}
+.nx .tile::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.nx .chipb{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--raised);font-size:13px;font-weight:500;white-space:nowrap;color:var(--ink2)}
+.nx .chipb.on{background:var(--ink);border-color:var(--ink);color:var(--bg);font-weight:600}
+[data-palette=plum] .nx .chipb.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.nx .chipb svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- shell ---------- */
+.nx.adm{position:fixed;inset:0;display:flex;background:var(--screen);color:var(--ink);overflow:hidden}
+.nx.adm .ad-side .logo{font-weight:800}
+.nx.adm .ad-body{overflow-y:auto;overscroll-behavior:contain}
+.nx.adm .ad-body.fill{overflow:hidden}
+.nx.adm .navb{display:flex;align-items:center;gap:10px;padding:0 10px;font-size:14px;font-weight:500}
+.nx.adm .navb.on{background:var(--sel);color:var(--ink);font-weight:600}
+.nx.adm .navb svg{flex-shrink:0}
+.nx.adm .ad-side .navlabel{padding:14px 10px 6px}
+@media (max-width:1023px){
+ .nx.adm{display:block}
+ .nx.adm .ad-side{display:none}
+ .nx.adm .ad-main{height:100%}
+}
+@media (min-width:1024px){.nx.adm .tabbar{display:none}}
+
+/* desktop tables (board helmet) */
+.nx.adm .live-cols{grid-template-columns:minmax(0,1.5fr) 150px minmax(0,1fr) 70px}
+.nx.adm .ppl-cols{grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) 70px 70px 130px 120px}
+.nx.adm .code-cols{grid-template-columns:150px minmax(0,1fr) 120px 100px 150px}
+.nx.adm .lgd{display:flex;gap:14px;font-size:12px;color:var(--muted);align-items:center}
+.nx.adm .lgd span{display:inline-flex;align-items:center;gap:6px}
+.nx.adm .lgd i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.nx.adm .xaxis{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);margin-top:6px;font-variant-numeric:tabular-nums}
+.nx.adm .evr{display:flex;gap:10px;align-items:flex-start;padding:10px 0;font-size:13.5px;line-height:1.4}
+.nx.adm .evr+.evr{border-top:1px solid var(--line-in)}
+.nx.adm .evr .r{margin-inline-start:auto;color:var(--faint);font-size:12px;white-space:nowrap;padding-top:1px;font-variant-numeric:tabular-nums}
+.nx.adm .rep{display:flex;gap:10px;padding:14px 18px;border:0;border-bottom:1px solid var(--line-in);align-items:flex-start;text-align:start;width:100%;background:transparent;color:var(--ink)}
+.nx.adm .rep.on{background:var(--sel)}
+@media (hover:hover) and (pointer:fine){.nx.adm .rep:not(.on):hover{background:var(--hover)}}
+.nx.adm .kv{display:grid;grid-template-columns:100px minmax(0,1fr);gap:6px 12px;font-size:13px;margin:0}
+.nx.adm .kv dt{color:var(--muted)}.nx.adm .kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.nx.adm .code{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:13px}
+.nx.adm .stream{flex:1;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 75%,transparent);mask-image:linear-gradient(180deg,#000 75%,transparent)}
+.nx.adm .empty{padding:18px;color:var(--muted);font-size:13.5px}
+.nx.adm .row-t>*{min-width:0}
+.nx.adm .drawer .body{flex:1;min-height:0;overflow-y:auto;padding:0 20px 16px;display:flex;flex-direction:column;gap:16px}
+.nx.adm .drawer:focus{outline:none}
+.nx.adm .scrim-s{z-index:4}.nx.adm .drawer{z-index:5}
+.nx.adm .grp{width:100%;border:0;background:transparent;text-align:start;color:var(--ink)}
+
+/* hold to delete: the fill runs while held (pointer or Space/Enter), snaps back in 200 ms on release */
+.nx.adm .hold.holding .fill{clip-path:inset(0 0 0 0);transition:clip-path 2s linear}
+.nx.adm .hold.holding{color:#fff}
+@media (prefers-reduced-motion:reduce){.nx.adm .hold.holding .fill{transition:clip-path 2s steps(4)}}
+
+/* ---------- phone (board Admin-phone helmet) ---------- */
+@media (max-width:1023px){
+ .nx.adm .lt{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1.1;min-width:0;overflow-wrap:anywhere}
+ .nx.adm .page{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:calc(env(safe-area-inset-top,0px) + 52px) 16px calc(env(safe-area-inset-bottom,0px) + 110px);display:flex;flex-direction:column;gap:14px}
+ .nx.adm .page.under-bar{padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
+ .nx.adm .bar{height:calc(env(safe-area-inset-top,0px) + 52px);padding-top:env(safe-area-inset-top,0px);display:flex;align-items:center;gap:4px;padding-inline:4px;position:absolute;top:0;inset-inline:0;background:color-mix(in srgb,var(--screen) 80%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);z-index:2}
+ .nx.adm .li{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 14px;width:100%;border:0;background:transparent;text-align:start;color:var(--ink);font-size:15px}
+ .nx.adm .li+.li{border-top:1px solid var(--line-in)}
+ .nx.adm .li .grow{flex:1;min-width:0;line-height:1.3}
+ .nx.adm .li .grow b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .nx.adm .li .grow span{display:block;font-size:12.5px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .nx.adm .push{animation:push 300ms var(--ease-drawer) both}
+ .nx.adm .uc{display:flex;gap:12px;align-items:center;padding:12px 14px;border:0;background:transparent;width:100%;text-align:start;color:var(--ink)}
+ .nx.adm .uc+.uc{border-top:1px solid var(--line-in)}
+ .nx.adm .evr{padding:10px 14px;font-size:14px}
+ .nx.adm .tabbar{position:fixed;z-index:3}
+ .nx.adm .kv{grid-template-columns:90px minmax(0,1fr)}
+ .nx.adm .panel>.ph{flex-wrap:wrap}
+}
+.nx.adm .chev{width:16px;height:16px;color:var(--faint);fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+[dir=rtl] .nx.adm .chev,[dir=rtl] .nx.adm .flip{transform:scaleX(-1)}
+@keyframes push{from{transform:translateX(30%);opacity:.4}to{transform:none;opacity:1}}
+[dir=rtl] .nx.adm .push{animation-name:push-r}
+@keyframes push-r{from{transform:translateX(-30%);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.nx.adm .push{animation:fade-o 180ms ease both}}
+
+/* The settings kit's .stat is a bordered card (nx16); the admin strip's stats are cells of one strip (board nx17). */
+.nx.adm .stat{border:0;border-radius:0;padding:0;gap:2px}
+.nx.adm .strip>.stat{padding:14px 18px}

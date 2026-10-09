@@ -424,3 +424,35 @@ export const aiUsage = sqliteTable(
   },
   (t) => [index("ai_usage_user_day_idx").on(t.userId, t.day), index("ai_usage_at_idx").on(t.at)],
 );
+
+/** R17 G1: one row per signed-in browser session (admin Live view). `screen` is a fixed key, never free text. */
+export const presence = sqliteTable(
+  "presence",
+  {
+    sessionId: text("session_id").primaryKey(),
+    userId: text("user_id").notNull(),
+    device: text("device", { enum: ["phone", "computer"] }).notNull(),
+    app: text("app", { enum: ["installed", "browser"] }).notNull(),
+    platform: text("platform"),
+    screen: text("screen").notNull(),
+    shoppingLeft: integer("shopping_left"),
+    spaceId: text("space_id"),
+    since: integer("since").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (t) => [index("presence_updated_idx").on(t.updatedAt), index("presence_user_idx").on(t.userId)],
+);
+
+/** R17 G1: what happened — kinds + counts only (never item names). 30 days. */
+export const activity = sqliteTable(
+  "activity",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    spaceId: text("space_id"),
+    kind: text("kind").notNull(),
+    n: integer("n").notNull().default(1),
+    at: integer("at").notNull(),
+  },
+  (t) => [index("activity_at_idx").on(t.at), index("activity_user_at_idx").on(t.userId, t.at)],
+);

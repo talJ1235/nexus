@@ -23,3 +23,18 @@ export async function migrateR17(client: Client, log: (s: string) => void = cons
   // E4: delete account — requested at (hidden at once, purged 7 days later unless restored).
   await addColumn(client, "user", "deletion_requested_at", "integer", log);
 }
+
+/** R17 Session 2 — the admin panel's Live view (presence + activity counts). Additive; re-running is a no-op. */
+export async function migrateR17s2(client: Client) {
+  // G1: one row per signed-in browser session — device kind, coarse platform, which screen (a fixed key), shopping count.
+  await client.execute(`CREATE TABLE IF NOT EXISTS presence (
+    session_id text PRIMARY KEY NOT NULL, user_id text NOT NULL, device text NOT NULL, app text NOT NULL, platform text,
+    screen text NOT NULL, shopping_left integer, space_id text, since integer NOT NULL, updated_at integer NOT NULL)`);
+  await client.execute("CREATE INDEX IF NOT EXISTS presence_updated_idx ON presence (updated_at)");
+  await client.execute("CREATE INDEX IF NOT EXISTS presence_user_idx ON presence (user_id)");
+  // G1: what happened, as kinds + counts (never item names). 30 days.
+  await client.execute(`CREATE TABLE IF NOT EXISTS activity (
+    id integer PRIMARY KEY AUTOINCREMENT NOT NULL, user_id text NOT NULL, space_id text, kind text NOT NULL, n integer DEFAULT 1 NOT NULL, at integer NOT NULL)`);
+  await client.execute("CREATE INDEX IF NOT EXISTS activity_at_idx ON activity (at)");
+  await client.execute("CREATE INDEX IF NOT EXISTS activity_user_at_idx ON activity (user_id, at)");
+}

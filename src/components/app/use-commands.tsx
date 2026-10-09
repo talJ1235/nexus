@@ -1,6 +1,7 @@
 "use client";
 
-import { Bell, ChartColumn, Coins, Download, FileSpreadsheet, FolderPlus, History, House, Inbox, Languages, LayoutGrid, Link2, ListPlus, LogOut, MessageSquareWarning, Monitor, Moon, Puzzle, ReceiptText, Rows3, ScanBarcode, Settings2, ShoppingBag, ShoppingCart, Sparkles, Store, Sun, Truck, Wand2 } from "lucide-react";
+import { Bell, ChartColumn, Coins, Download, FileSpreadsheet, FolderPlus, History, House, Inbox, Languages, LayoutGrid, Link2, ListPlus, LogOut, MessageSquareWarning, Monitor, Moon, Puzzle, ReceiptText, Rows3, ScanBarcode, Settings2, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Store, Sun, Truck, Wand2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { usePalette } from "@/components/use-palette";
@@ -30,6 +31,7 @@ function postForm(action: string) {
  */
 export function useCommands(): AppCommand[] {
   const s = useStore();
+  const router = useRouter();
   const phone = useMedia(PHONE);
   const { t, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
@@ -50,6 +52,8 @@ export function useCommands(): AppCommand[] {
       : { id: "layout", group: "actions", label: s.layout === "cards" ? t.view.table : t.view.cards, keywords: `layout ${t.view.cards} ${t.view.table}`, icon: s.layout === "cards" ? <Rows3 /> : <LayoutGrid />, run: () => s.setLayout(s.layout === "cards" ? "table" : "cards") },
     // Settings
     { id: "settings", group: "settings", label: t.settings.open, keywords: "settings preferences הגדרות", icon: <Settings2 />, run: () => s.setSettingsOpen(true), testId: "open-settings" },
+    // R17 G0: the admin panel (admin only).
+    ...(s.admin ? [{ id: "admin", group: "settings" as const, label: t.adm.entry, keywords: "admin panel people live reports system ניהול אדמין", icon: <ShieldCheck />, run: () => router.push("/admin"), testId: "open-admin" }] : []),
     // R16 D1: one entry per section (deep link /settings/<section>).
     ...SETTINGS_SECTIONS.filter((id) => s.space?.kind === "shared" || (id !== "people" && id !== "danger")).map((id) => ({
       id: `settings-${id}`,

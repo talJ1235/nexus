@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { MemorySection } from "../memory-section";
 import { useStore } from "../store";
 import { AskButton } from "../top-bar";
-import { AccountPage, ActivityPage, InvitesPage, ReportsPage } from "./account";
+import { AccountPage, ActivityPage, ReportsPage } from "./account";
 import type { PageProps } from "./shell";
 import { I, Li, P, SectionHead, Sel, Seg, Tick, Toggle } from "./ui";
 
@@ -498,7 +498,6 @@ function DataPage({ close }: PageProps) {
 export const YOU_PAGES = {
   account: AccountPage,
   activity: ActivityPage,
-  invites: InvitesPage,
   reports: ReportsPage,
   display: DisplayPage,
   ai: AiPage,

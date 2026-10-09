@@ -40,7 +40,11 @@ export async function deletionRequestedAt(userId: string): Promise<number | null
 
 /** Hide the account now: the request time, and every session (this device too) ends. */
 export async function markAccountDeletion(userId: string, now = Date.now()) {
-  await db.batch([db.update(schema.user).set({ deletionRequestedAt: now }).where(eq(schema.user.id, userId)), db.delete(schema.session).where(eq(schema.session.userId, userId))]);
+  await db.batch([
+    db.update(schema.user).set({ deletionRequestedAt: now }).where(eq(schema.user.id, userId)),
+    db.delete(schema.session).where(eq(schema.session.userId, userId)),
+    db.delete(schema.presence).where(eq(schema.presence.userId, userId)),
+  ]);
 }
 
 /** Undo within the 7 days (the restore screen after signing in again). */
@@ -78,6 +82,9 @@ export async function purgeAccount(userId: string): Promise<string[]> {
     db.delete(schema.memories).where(eq(schema.memories.userId, userId)),
     db.delete(schema.userPref).where(eq(schema.userPref.userId, userId)),
     db.delete(schema.aiUsage).where(eq(schema.aiUsage.userId, userId)),
+    // R17 G1: their presence rows and activity counts.
+    db.delete(schema.presence).where(eq(schema.presence.userId, userId)),
+    db.delete(schema.activity).where(eq(schema.activity.userId, userId)),
     db.delete(schema.securityEvent).where(eq(schema.securityEvent.userId, userId)),
     db.delete(schema.recoveryCode).where(eq(schema.recoveryCode.userId, userId)),
     db.update(schema.reports).set({ userId: null }).where(eq(schema.reports.userId, userId)),

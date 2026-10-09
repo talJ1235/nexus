@@ -24,6 +24,12 @@ export const SECURITY_EVENT_KINDS = [
   // R17 E4: delete account (requested / restored within the 7 days).
   "account_deletion_requested",
   "account_restored",
+  // R17 G2: what the admin did to this account (meta.by = the admin's id).
+  "admin_ai_limit",
+  "admin_ai_reset",
+  "admin_sign_out",
+  "admin_ban",
+  "admin_unban",
 ] as const;
 export type SecurityEventKind = (typeof SECURITY_EVENT_KINDS)[number];
 

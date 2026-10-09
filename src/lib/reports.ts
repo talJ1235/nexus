@@ -18,6 +18,8 @@ export type ReportDiag = {
   screenshot?: boolean;
   /** R16 C1: reported from a failure toast — what failed, its code, and (when the user kept it) the link's domain + path. */
   failure?: { code: string; what: string; link: string | null } | null;
+  /** R17 G5: the space the report was sent from (its name — shown to the admin). */
+  space?: { id: string; name: string } | null;
 };
 
 export type ReportRow = {

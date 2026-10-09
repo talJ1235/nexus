@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ackNewSignIn, createRecoveryCodes, getSecurityState, removePasskey, renameMyPasskey, signOutDevice, signOutOtherDevices, type SecurityState } from "@/app/security-actions";
@@ -12,7 +13,6 @@ import { authClient } from "@/lib/auth/client";
 import { describeUa } from "@/lib/auth/ua";
 import { cn } from "@/lib/utils";
 import { GoogleMark, PasskeyIcon } from "@/components/auth/brand-art";
-import { InvitesAdmin } from "@/components/auth/invites-admin";
 import { useStore } from "../store";
 import { avatarColor } from "../spaces/space-ui";
 import { ReportsSubpage } from "../reports-sheet";
@@ -83,6 +83,7 @@ const devIcon = (k: Dev["kind"]) => (k === "desktop" ? P.desktop : k === "tablet
 
 export function AccountPage({ go, phone }: PageProps) {
   const s = useStore();
+  const router = useRouter();
   const { t, f } = useI18n();
   const x = t.security;
   const { st, load, stepUp, setStepUp, now: loadedAt } = useSecurity(s.me?.id);
@@ -297,7 +298,7 @@ export function AccountPage({ go, phone }: PageProps) {
       <div className={cn(s.admin ? "grid3" : "grid2", "sx-tiles")} style={{ marginTop: "auto" }} data-account-tiles>
         <MiniCard icon={P.history} title={t.sx.sections.activity} sub={t.sx.activitySub} action={t.sx.open} onClick={() => go("activity")} data="activity" />
         <MiniCard icon={P.inbox} title={t.sx.sections.reports} sub={t.sx.reportsSub} action={t.sx.open} onClick={() => go("reports")} data="reports" />
-        {s.admin && <MiniCard icon={P.box} title={t.sx.sections.invites} sub={t.sx.invitesSub} action={t.sx.manage} onClick={() => go("invites")} data="invites" badge="Admin" />}
+        {s.admin && <MiniCard icon={P.box} title={t.adm.entry} sub={t.adm.entrySub} action={t.sx.open} onClick={() => router.push("/admin")} data="admin" badge="Admin" />}
       </div>
       {stepUp && <StepUp full={!!st?.full} admin={!!st?.admin} onClose={() => setStepUp(false)} />}
     </>
@@ -509,16 +510,6 @@ export function ActivityPage() {
         </div>
       </section>
       {stepUp && <StepUp full={!!st?.full} admin={!!st?.admin} onClose={() => setStepUp(false)} />}
-    </>
-  );
-}
-
-export function InvitesPage() {
-  const { t } = useI18n();
-  return (
-    <>
-      <SectionHead title={t.sx.sections.invites} />
-      <InvitesAdmin />
     </>
   );
 }

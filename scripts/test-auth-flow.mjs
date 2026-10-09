@@ -117,8 +117,9 @@ try {
     await phone.close();
   }
 
-  // ---- A3: admin creates codes.
+  // ---- A3: admin creates codes (R17 G3: Admin → Invites; /settings/invites redirects there).
   await pa.goto(`${BASE}/settings/invites`, { timeout: 120_000 });
+  ok(new URL(pa.url()).pathname === "/admin/invites", "G0 /settings/invites redirects to /admin/invites", pa.url());
   lastPage = pa;
   pa.on("console", (m) => m.type() === "error" && console.log("  console:", m.text().slice(0, 300)));
   pa.on("response", (r) => r.status() >= 400 && console.log("  http:", r.status(), r.url().slice(0, 120)));

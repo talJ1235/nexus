@@ -16,6 +16,7 @@ import { dropSpaceRows, spacesToPurge } from "@/lib/spaces";
 import { ownerPrefs, runCronChecks } from "@/lib/tracker";
 import { backfillShortNames } from "@/lib/db-scoped/short-names";
 import { accountsToPurge, purgeAccount } from "@/lib/db-scoped/account";
+import { purgePresence } from "@/lib/db-scoped/presence";
 
 export const maxDuration = 60;
 
@@ -92,7 +93,9 @@ export async function GET(req: NextRequest) {
     if (urls.length && process.env.BLOB_READ_WRITE_TOKEN) await del(urls).catch(() => {});
     accountsPurged++;
   }
-  const summary = { at: Date.now(), spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
+  // R17 G1: presence older than 7 days, activity counts older than 30 days.
+  const presence = await purgePresence().catch(failed("presence-purge", { presence: 0, activity: 0 }));
+  const summary = { at: Date.now(), ms: Date.now() - started, presence: presence.presence + presence.activity, spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }

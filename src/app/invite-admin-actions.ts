@@ -3,13 +3,13 @@
 import { z } from "zod";
 import { adminInvitesData, inviteWaitlisted } from "@/lib/auth/invite-admin";
 import { createSignupCode, revokeSignupCode } from "@/lib/auth/invites";
-import { isAdmin, requireCtx } from "@/lib/ctx";
+import { AccessError, isAdmin, requireCtx } from "@/lib/ctx";
 
-// Settings → Invite codes (R15 A3): ADMIN_EMAIL's user only. Codes are shown once at creation (only a hash is kept).
+// Admin → Invites (R15 A3; R17 G3 moved it from Settings into the admin panel): ADMIN_EMAIL's user only. Codes are shown once at creation (only a hash is kept).
 
 async function admin() {
   const ctx = await requireCtx("view");
-  if (!isAdmin(ctx)) throw new Error("forbidden");
+  if (!isAdmin(ctx)) throw new AccessError("not_found");
   return ctx;
 }
 

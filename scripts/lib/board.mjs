@@ -9,7 +9,7 @@ export function boardHtml(dir, name) {
   let tpl = src.match(/<x-dc>([\s\S]*?)<\/x-dc>/)[1];
   const helmet = (tpl.match(/<helmet>([\s\S]*?)<\/helmet>/) ?? [, ""])[1];
   tpl = tpl.replace(/<helmet>[\s\S]*?<\/helmet>/, "");
-  const css = ["nx.css", "nx16.css"].map((f) => { try { return readFileSync(`${dir}/${f}`, "utf8"); } catch { return ""; } }).join("\n");
+  const css = ["nx.css", "nx16.css", "nx17.css"].map((f) => { try { return readFileSync(`${dir}/${f}`, "utf8"); } catch { return ""; } }).join("\n");
   const rtl = /<html[^>]*dir="rtl"/.test(src);
   return { script, tpl, helmet, css, rtl };
 }
