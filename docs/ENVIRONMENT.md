@@ -160,3 +160,9 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   switch timing), `scripts/blocked-probe.mjs` (fetch-ladder table via `/api/debug/blocked`); `POLISH_ONLY=A1,A2` runs
   parts of `test:polish`. Actions moved to node24 releases and `ubuntu-24.04`.
 - 2026-10-09 (planning chat, account B): `.claude/skills/animate/` (SKILL.md + RECIPES.md) added from `emilkowalski/skills@e8a175d` (same MIT licence file); push from the chat sandbox worked after attaching the repo with push access (`add_repo` access "push", clone at `/home/claude/nexus`).
+- 2026-10-09 (Claude Code, R17 Session 2): new tests `test:admin-access`, `test:admin-privacy`, `test:admin-live`,
+  `test:admin-people`, `test:onboarding` (each starts the built app on its own throwaway DB, ports 3121–3125) — they call
+  server actions over HTTP from `.next/server/server-reference-manifest.json` (`scripts/lib/actions.mjs`);
+  `scripts/lib/test-app.mjs` adds `sessionFor(userId)` and sets `busy_timeout` on its DB handle; admin demo people in
+  `scripts/lib/seed-admin.mjs`; `node scripts/parity-r17.mjs [prefix]` (boards vs app, own server on `parity-r17.db`).
+  `.claude/settings.local.json` allows the round17-s2 push/merge commands.

@@ -41,3 +41,12 @@
 - **Totals look wrong** → alternatives count only the winner/cheapest; someday items are left out of store orders;
   check the display currency.
 - **Something is broken or you have an idea** → offer `[Report a problem](nexus:report)`.
+
+## What the admin sees
+<!-- spec: Admin panel -->
+- The person who runs Nexus has an admin panel to keep it working: who is online, on a phone or a computer, which part
+  of the app (for example Home, or the shopping list and how many items are left), and counts of what happened ("added
+  3 items"). Never the content — not item names, notes, links, chats, memory or receipts. A problem report you send is
+  read there.
+- The admin can change your daily AI limit, sign you out, block an account that breaks the terms, or delete an account
+  (it can be restored for 7 days by signing in again). Presence is kept 7 days, activity counts 30 days.

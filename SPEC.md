@@ -716,6 +716,32 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
 - Guards: `test:clip`, `test:short-name`, `test:ai-quota`, `test:blocked`, `test:delete-account`, `test:polish` (A1–A3),
   `test:auth-flow` (E1) in `guards.yml`; the smoke runs on a fresh seeded DB (`scripts/serve-smoke.sh`) and in
   "real data" mode on prod.
+## Round 17 — Session 2: admin panel (with Live) + onboarding
+(boards `docs/design/r17/`, parity `docs/design/parity-r17/`, notes: `docs/ROUND17.md` "## Open")
+- **Admin panel** `/admin` (admin only, 404 otherwise; `/admin/<tab>[/<id>]` deep links). Desktop: sidebar Live ·
+  Manage (People, Invites, AI usage) · Health (Reports, Errors, System); phone: large titles + a translucent tab bar
+  (Live · People · Reports · More), person / report pushed. Entry: Me sheet, the palette, Settings → Account.
+  - **Live**: online now (device, where — a fixed screen key — or "Shopping, N left", for how long), earlier today, people
+    online by hour, the activity stream (kinds + counts). Polls every 5 s while visible, nothing while hidden.
+  - **People**: filters, search, presence ring; person drawer / page: counts, AI today + daily limit (20/40/80/none) +
+    Reset today, devices (sign out one), sign out everywhere, ban, hold to delete (2 s → the E4 deletion, 7-day undo).
+  - **Invites** (codes + waitlist, moved from Settings; `/settings/invites` redirects), **AI usage** (today, 7/30 days
+    + change, failures, "if it were paid", per day by provider, by feature, closest to the limit), **Reports** (status,
+    the report's text, screen / app / build, screenshot, client errors from the 10 minutes before, GitHub issue when
+    configured), **Errors** (the E5 grouped log, `/admin/errors` is this tab), **System** (services, the daily job's
+    last run, DB size + rows, keys set / missing).
+  - **Presence + activity** (`presence`, `activity`): the app beats every 30 s while visible and at once on a screen
+    change (`/api/presence`), "away" on pagehide; activity is written by the existing actions (items added, links,
+    check-offs, deliveries received, shopping started / finished, joins, onboarding steps, assistant asked, deletion
+    requested). 7 / 30 days. /privacy and /terms say what the admin sees.
+- **Onboarding** `/welcome` (first sign-in; direction A): 1 why → Home preset · 2 stores → store suggestions · 3 monthly
+  budget + currency (personal space) · 4 who → partner/family makes the shared "Home" + invite · 5 install (prompt /
+  iPhone guide / desktop QR) · 6 notifications (permission asked only on the tap, stored for Session 3) · 7 done. Skips:
+  joined by invite → 4; installed or can't install → 5; iPhone not on the Home Screen → 6. Saved as answered, reload
+  resumes, Skip → Home with the "Try it" hint. Settings → Account → Getting started runs it again.
+- Guards: `test:admin-access`, `test:admin-privacy`, `test:admin-live`, `test:admin-people`, `test:onboarding`;
+  `test:clip` walks the admin tabs and every onboarding step; `test:auth-flow` checks a banned sign-in.
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
@@ -731,7 +757,7 @@ same product from another store → added as another source). `#name` in the mes
 linked chat. The webhook is (re)set after linking, whenever the alerts state loads, and by the daily cron.
 
 ## Non-goals (for now)
-Carrier API tracking sync. (Multi-user accounts arrived in Round 15; push + inbox, onboarding and the admin panel are Round 17.)
+Carrier API tracking sync. (Multi-user accounts arrived in Round 15; onboarding and the admin panel shipped in R17 Session 2; push + inbox is Session 3.)
 
 ## Stack (all free tier)
 Next.js 16 (App Router) on Vercel · Turso (libSQL) + Drizzle · Gemini Flash-Lite (+ optional Groq/OpenRouter) ·

@@ -17,7 +17,7 @@ env:
 jobs:
   guards:
     runs-on: ubuntu-24.04 # pinned: ubuntu-latest moves to 26.04 on 2026-10-19
-    timeout-minutes: 90 # R17: + test:clip (752 screens) and test:auth-flow
+    timeout-minutes: 110 # R17: + test:clip (752 + 218 screens), test:auth-flow; S2: admin + onboarding tests
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0 }
@@ -95,8 +95,16 @@ jobs:
         run: npm run -s test:polish
       - name: no cut-off text — every view, Settings section and sheet at 360/390/1366/1280×720, en/he, light/dark, demo + worst-case data (R17 A6; built app)
         run: npm run -s test:clip
-      - name: sign-in without a password — emergency path, 410, rate limit (R17 E1; starts next dev itself)
+      - name: sign-in without a password — emergency path, 410, rate limit (R17 E1, G2 banned sign-in; starts next dev itself)
         run: npm run -s test:auth-flow
+      - name: admin panel — 404 for everyone else + every admin action refuses, counts never content (R17 G0; built app)
+        run: npm run -s test:admin-access && npm run -s test:admin-privacy
+      - name: admin Live — presence on phone + desktop, shopping chip, 75 s, activity counts, requests per 5 s (R17 G1; built app)
+        run: npm run -s test:admin-live
+      - name: admin People — quota ↔ AI gate, reset, ban, hold to delete, 500 people (R17 G2; built app)
+        run: npm run -s test:admin-people
+      - name: onboarding — 7 steps, skips, resume, invite / iPhone / standalone (R17 H; built app)
+        run: npm run -s test:onboarding
       - name: settings shell, space look, switch moment, Home customise (R16 D1–D5, E1)
         env:
           CI_DB: file:ci-settings.db

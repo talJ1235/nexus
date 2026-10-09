@@ -167,3 +167,23 @@ security control.
   `FETCH_SECRET` in the worker = `CF_FETCH_SECRET` in Vercel (40+ random chars). Off = remove `CF_FETCH_URL`.
 - **Delete account** needs step-up (signed in within 10 minutes) and the typed email; it revokes every session at once.
 - **Admin probe** `/api/debug/blocked` is admin-only (404 otherwise) and saves nothing.
+
+## R17 Session 2 additions (admin panel, presence, onboarding)
+- **Admin panel** `/admin/*` is the admin's only (`isAdmin(ctx)`): every route is a 404 for anyone else, `noindex`;
+  every action in `admin-actions.ts` / `invite-admin-actions.ts` / `error-actions.ts` starts with the `admin()` gate
+  (`test:admin-access` checks the source and calls each action over HTTP as a non-admin).
+- **Counts only, never content** (MULTIUSER §1): the panel's reads (`lib/db-scoped/admin.ts`, `admin-health.ts`)
+  return names, emails, space names, devices, fixed screen keys, activity kinds + counts, AI call counts — never item
+  titles, notes, links, chat text, memory or receipts (`test:admin-privacy` greps every action's answer). A report's
+  own text is shown (the person sent it); its assistant exchange is not.
+- **Admin delete / ban**: delete = the E4 deletion (hidden at once, 7-day undo by signing in, sole-owner refusal),
+  started by a 2 s hold (screen readers: a confirm dialog). Ban = the Better Auth admin plugin's `banned` column — all
+  sessions revoked, sign-in refused with a plain message, existing session cookies refused by `getSessionUser`. Never
+  yourself. Every admin action on a person (limit, reset, sign out, ban, unban, delete) goes to that person's
+  security log with `by` = the admin.
+- **Presence** (`presence`, one row per session): device kind, installed/browser, OS family + browser, a fixed screen
+  key, the shopping count, the space id — written by the person's own beat (`/api/presence`, same origin, ≤ 1 KB),
+  read only by the admin. Purged after 7 days and with the account. No Ably presence set carries it.
+- **Activity** (`activity`): kinds + counts only, 30 days, purged with the account.
+- **Onboarding** answers (`pref:onboarding`) are the person's own prefs; the notification permission is asked only on
+  the "Turn on" tap.

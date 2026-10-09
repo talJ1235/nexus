@@ -43,6 +43,12 @@
   `lib/db-scoped/short-names.ts` (cron). Delete account / export = `lib/db-scoped/account.ts`, `app/account-actions.ts`,
   `/restore-account`, `/delete-account`, `/api/my-data`; the purge runs in the daily cron. Sign-in has no password: admin
   emergency `POST /api/emergency` (`ADMIN_EMERGENCY_TOKEN`). Truncated text reads in full via `lib/trunc-title.ts`.
+- R17 S2: admin panel = `/admin/[[...path]]` + `components/admin/` (shell `admin-app.tsx`, a file per tab, kit `nx17.css` +
+  `admin.css`), actions `app/admin-actions.ts` (all behind `admin()`), reads `lib/db-scoped/admin.ts` + `admin-health.ts`.
+  Presence/activity = `lib/presence-keys.ts` (screen keys, kinds), `lib/db-scoped/presence.ts`, `/api/presence`, client
+  beat `components/app/presence-beat.tsx`, `lib/activity.ts` (`noteActivity`). Onboarding = `/welcome`,
+  `components/onboarding/`, `app/onboarding-actions.ts`, `lib/onboarding.ts` (`pref:onboarding`, stores, presets).
+  Tests that call actions over HTTP: `scripts/lib/actions.mjs`; admin demo data: `scripts/lib/seed-admin.mjs`.
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)

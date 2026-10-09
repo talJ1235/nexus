@@ -18,6 +18,16 @@ turns them into buttons; only these addresses work:
   `nexus:view/spending`, `nexus:view/projects`
 Example: `[Open settings → Palette](nexus:settings)`.
 
+## First questions (getting started)
+<!-- spec: Onboarding -->
+- The first time you sign in, Nexus asks a few questions, one per screen (צעדים ראשונים): what you use it for (Home
+  starts with a matching layout), where you shop (suggested first when you look for an item), a monthly budget (a
+  target for your personal space, ₪ / $ / €), who you shop with (partner or family makes a shared space "Home" and
+  offers the invite link), installing the app (iPhone: Share → Add to Home Screen), and notifications.
+- **Skip** leaves at any point; a reload continues where you were. Every answer can be changed later: Home →
+  Customize, Space settings → Budget, the space switcher, Settings → Account → Notifications — or run the questions
+  again from Settings → Account → **Getting started**.
+
 ## Where things are
 <!-- spec: UI, Desktop shell, Phone shell, Collections, Phone fit, Home hierarchy, Phone shell v2, Home, Shopping tab, Sidebar collapse, Customize, Insights -->
 - **Desktop**: sidebar with Home (בית), To buy (לקנות), On the way (בדרך), Order by store

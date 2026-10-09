@@ -44,6 +44,8 @@ export async function startApp({ db: file, port, dev = false, env: extra = {} })
   execFileSync(process.execPath, ["scripts/seed-local.mjs"], { env, stdio: "ignore" });
   execFileSync(process.execPath, ["scripts/seed-worst.mjs"], { env, stdio: "ignore" });
   const db = createClient({ url: `file:${file}` });
+  // The test writes while the server writes (presence beats): wait for the lock instead of failing.
+  await db.execute("PRAGMA busy_timeout = 10000");
   const admin = (await db.execute({ sql: `SELECT id FROM "user" WHERE email = ?`, args: [adminEmail] })).rows[0].id;
   const personal = (await db.execute({ sql: `SELECT id FROM space WHERE kind = 'personal' AND created_by = ?`, args: [admin] })).rows[0].id;
   const token = randomBytes(24).toString("base64url");

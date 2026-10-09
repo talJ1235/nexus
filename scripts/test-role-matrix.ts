@@ -56,7 +56,7 @@ const VIEW_OK = new Set([
   "memory-actions.ts#getMemoryState", "memory-actions.ts#setMemoryEnabled", "memory-actions.ts#saveMemoryNote", "memory-actions.ts#updateMemoryNote", "memory-actions.ts#deleteMemoryNote",
   "picture-actions.ts#understandReceiptLines", "picture-actions.ts#findLinePictures", "picture-actions.ts#searchPictures", "picture-actions.ts#pictureIcons", "picture-actions.ts#itemPictureChoices", "picture-actions.ts#pictureSearchStatus",
   "receipt-actions.ts#listReceipts",
-  "report-actions.ts#createReport", "report-actions.ts#listReports", "report-actions.ts#setReportStatus",
+  "report-actions.ts#createReport", "report-actions.ts#listReports", "report-actions.ts#setReportStatus", "report-actions.ts#openReportIssue", // R17 G5: admin only (isAdmin right after)
   "share-actions.ts#getSharing",
   "security-actions.ts#*", "invite-admin-actions.ts#*",
   // Spaces: switching, creating your own, reading people, leaving, restoring, joining by link; moving back checks

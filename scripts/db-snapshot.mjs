@@ -33,6 +33,8 @@ async function readOnly(sql, args = []) {
 mkdirSync(out.replace(/[\\/][^\\/]+$/, "") || ".", { recursive: true });
 if (existsSync(out)) rmSync(out);
 const dst = createClient({ url: `file:${out}` });
+// Tables are copied in name order (account before user): the local copy checks foreign keys only at the end.
+await dst.execute("PRAGMA foreign_keys = OFF");
 
 const objects = (
   await readOnly("SELECT type, name, tbl_name, sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY type = 'table' DESC, name")
@@ -65,6 +67,8 @@ for (const t of tables) {
 for (const o of objects.filter((o) => o.type !== "table")) await dst.execute(String(o.sql));
 
 const integrity = String((await dst.execute("PRAGMA integrity_check")).rows[0][0]);
+const fkProblems = (await dst.execute("PRAGMA foreign_key_check")).rows.length;
+if (fkProblems) console.log(`note: ${fkProblems} foreign-key mismatches in the source data (copied as they are)`);
 dst.close();
 src.close();
 
