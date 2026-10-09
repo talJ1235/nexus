@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { calendarInfo, markCalendarSubscribed, regenerateCalendar, setCalendarKinds, type CalendarInfo } from "@/app/cal-actions";
@@ -74,6 +75,7 @@ function Mini({ kind }: { kind: "light" | "dark" | "system" }) {
 
 function DisplayPage() {
   const s = useStore();
+  const router = useRouter();
   const { t, f, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
   const [palette, setPalette] = usePalette();
@@ -152,6 +154,12 @@ function DisplayPage() {
             ]}
             data-display-motion
           />
+        </Li>
+        {/* R17 H: go through the first questions again (every answer can be changed). */}
+        <Li icon={P.history} title={t.ob.again} sub={t.ob.againSub}>
+          <button type="button" className="btn sm" onClick={() => router.push("/welcome")} data-display-onboarding>
+            {t.sx.open}
+          </button>
         </Li>
       </div>
     </>

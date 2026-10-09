@@ -15,6 +15,8 @@ const SECRET = process.env.BETTER_AUTH_SECRET;
 const DBURL = process.env.TURSO_DATABASE_URL ?? "file:local.db";
 if (!DBURL.startsWith("file:")) throw new Error("test-settings only writes a local file DB");
 const db = createClient({ url: DBURL });
+// The server writes too (presence beats): wait for the lock instead of failing.
+await db.execute("PRAGMA busy_timeout = 10000");
 let fails = 0;
 const ok = (cond, name, detail = "") => {
   console.log(`${cond ? "PASS" : "FAIL"} ${name}${detail && !cond ? ` — ${detail}` : ""}`);
