@@ -5,6 +5,7 @@ import { buildBackup } from "./backup";
 import { Scoped } from "./index";
 import { purgeSpaceData } from "./spaces";
 import { dropSpaceRows } from "../spaces";
+import { exportInbox, purgeNotifyRows } from "./notify";
 
 // R17 E4 — "Delete account": hidden at once (every session revoked, left out of people lists), 7 days to undo (signing
 // in again offers "Restore your account?"), then the daily cron purges: personal spaces (+ their files), shared spaces
@@ -44,6 +45,8 @@ export async function markAccountDeletion(userId: string, now = Date.now()) {
     db.update(schema.user).set({ deletionRequestedAt: now }).where(eq(schema.user.id, userId)),
     db.delete(schema.session).where(eq(schema.session.userId, userId)),
     db.delete(schema.presence).where(eq(schema.presence.userId, userId)),
+    // R17 S3: no pushes to a hidden account (it subscribes again after a restore + sign-in).
+    db.delete(schema.pushSubscription).where(eq(schema.pushSubscription.userId, userId)),
   ]);
 }
 
@@ -85,6 +88,8 @@ export async function purgeAccount(userId: string): Promise<string[]> {
     // R17 G1: their presence rows and activity counts.
     db.delete(schema.presence).where(eq(schema.presence.userId, userId)),
     db.delete(schema.activity).where(eq(schema.activity.userId, userId)),
+    // R17 S3: their inbox and push addresses.
+    ...purgeNotifyRows(userId),
     db.delete(schema.securityEvent).where(eq(schema.securityEvent.userId, userId)),
     db.delete(schema.recoveryCode).where(eq(schema.recoveryCode.userId, userId)),
     db.update(schema.reports).set({ userId: null }).where(eq(schema.reports.userId, userId)),
@@ -110,5 +115,7 @@ export async function exportMyData(userId: string) {
   const convs = await db.select().from(schema.conversations).where(eq(schema.conversations.userId, userId));
   const msgs = convs.length ? await db.select().from(schema.conversationMessages).where(inArray(schema.conversationMessages.conversationId, convs.map((c) => c.id))) : [];
   const memories = await db.select().from(schema.memories).where(eq(schema.memories.userId, userId));
-  return { exportedAt: Date.now(), user: u ?? null, spaces, chats: convs.map((c) => ({ ...c, messages: msgs.filter((m) => m.conversationId === c.id) })), memories };
+  // R17 S3: their inbox (30 days) and how many devices get push.
+  const inbox = await exportInbox(userId);
+  return { exportedAt: Date.now(), user: u ?? null, spaces, chats: convs.map((c) => ({ ...c, messages: msgs.filter((m) => m.conversationId === c.id) })), memories, inbox };
 }

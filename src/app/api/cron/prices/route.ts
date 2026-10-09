@@ -17,6 +17,7 @@ import { ownerPrefs, runCronChecks } from "@/lib/tracker";
 import { backfillShortNames } from "@/lib/db-scoped/short-names";
 import { accountsToPurge, purgeAccount } from "@/lib/db-scoped/account";
 import { purgePresence } from "@/lib/db-scoped/presence";
+import { purgeNotifications } from "@/lib/db-scoped/notify";
 
 export const maxDuration = 60;
 
@@ -95,7 +96,9 @@ export async function GET(req: NextRequest) {
   }
   // R17 G1: presence older than 7 days, activity counts older than 30 days.
   const presence = await purgePresence().catch(failed("presence-purge", { presence: 0, activity: 0 }));
-  const summary = { at: Date.now(), ms: Date.now() - started, presence: presence.presence + presence.activity, spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
+  // R17 S3: inbox rows older than 30 days, push addresses that failed 5 times in a row.
+  const notifyPurged = await purgeNotifications().catch(failed("notify-purge", { notifications: 0, subscriptions: 0 }));
+  const summary = { at: Date.now(), ms: Date.now() - started, presence: presence.presence + presence.activity, notifyPurged, spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }

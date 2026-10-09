@@ -38,3 +38,18 @@ export async function migrateR17s2(client: Client) {
   await client.execute("CREATE INDEX IF NOT EXISTS activity_at_idx ON activity (at)");
   await client.execute("CREATE INDEX IF NOT EXISTS activity_user_at_idx ON activity (user_id, at)");
 }
+
+/** R17 Session 3 — notifications: the inbox and the browsers' push addresses. Additive; re-running is a no-op. */
+export async function migrateR17s3(client: Client) {
+  await client.execute(`CREATE TABLE IF NOT EXISTS notification (
+    id text PRIMARY KEY NOT NULL, user_id text NOT NULL, space_id text, kind text NOT NULL, group_key text NOT NULL,
+    data text DEFAULT '{}' NOT NULL, created_at integer NOT NULL, updated_at integer NOT NULL, read_at integer, deleted_at integer,
+    send_after integer, sent_at integer, push_state text)`);
+  await client.execute("CREATE INDEX IF NOT EXISTS notification_user_created_idx ON notification (user_id, created_at)");
+  await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS notification_user_group_idx ON notification (user_id, group_key)");
+  await client.execute("CREATE INDEX IF NOT EXISTS notification_due_idx ON notification (send_after)");
+  await client.execute(`CREATE TABLE IF NOT EXISTS push_subscription (
+    id text PRIMARY KEY NOT NULL, user_id text NOT NULL, endpoint text NOT NULL UNIQUE, p256dh text NOT NULL, auth text NOT NULL,
+    device text NOT NULL, label text, created_at integer NOT NULL, last_ok_at integer, fail_count integer DEFAULT 0 NOT NULL)`);
+  await client.execute("CREATE INDEX IF NOT EXISTS push_subscription_user_idx ON push_subscription (user_id)");
+}

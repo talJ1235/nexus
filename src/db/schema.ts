@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import type { Candidate } from "@/lib/picture-rank";
 import type { LineInfo } from "@/lib/product-lines";
-import { integer, real, sqliteTable, text, index, primaryKey } from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text, index, primaryKey, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 
 export const collections = sqliteTable(
@@ -456,3 +456,50 @@ export const activity = sqliteTable(
   },
   (t) => [index("activity_at_idx").on(t.at), index("activity_user_at_idx").on(t.userId, t.at)],
 );
+
+/**
+ * R17 S3 J1: a person's inbox. One row per (user, group_key): a later event with the same key updates the row in place
+ * ("Noa is shopping" → "Noa finished shopping", "Noa added 5" → "Noa and Yoav added 7"). `data` holds what the row needs
+ * to render (names, counts, item ids, prices) — the text is built from data + i18n at read time, in the reader's language.
+ * `send_after` null = inbox only; `sent_at` is set in the same write that claims the row for sending. 30 days.
+ */
+export const notification = sqliteTable(
+  "notification",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    spaceId: text("space_id"),
+    kind: text("kind", { enum: ["shop", "activity", "week", "price", "delivery", "budget"] }).notNull(),
+    groupKey: text("group_key").notNull(),
+    data: text("data").notNull().default("{}"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+    readAt: integer("read_at"),
+    deletedAt: integer("deleted_at"),
+    sendAfter: integer("send_after"),
+    sentAt: integer("sent_at"),
+    pushState: text("push_state", { enum: ["due", "sent", "failed", "skipped", "off"] }),
+  },
+  (t) => [index("notification_user_created_idx").on(t.userId, t.createdAt), uniqueIndex("notification_user_group_idx").on(t.userId, t.groupKey), index("notification_due_idx").on(t.sendAfter)],
+);
+
+/** R17 S3 J1: one browser push address per device. `label` = browser + OS words only (no fingerprinting). */
+export const pushSubscription = sqliteTable(
+  "push_subscription",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    device: text("device", { enum: ["phone", "computer"] }).notNull(),
+    label: text("label"),
+    createdAt: integer("created_at").notNull(),
+    lastOkAt: integer("last_ok_at"),
+    failCount: integer("fail_count").notNull().default(0),
+  },
+  (t) => [index("push_subscription_user_idx").on(t.userId)],
+);
+
+export type Notification = typeof notification.$inferSelect;
+export type PushSubscriptionRow = typeof pushSubscription.$inferSelect;
