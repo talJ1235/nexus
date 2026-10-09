@@ -9,12 +9,12 @@ to setup, tooling or workflow is recorded there in the same session.
 ## Current state & handoff (updated 2026-10-09 → read this first on any account)
 - **2026-10-09 (late):** **R17 Session 3 boards v2 approved** (canvas "Nexus R17 — Notifications v2", private Design
   artifact on the account that made it) and copied to `docs/design/r17/` (`Main` → `Inbox-desktop`, `Inbox-phone`,
-  `Permission-*`, `Push-previews`, `Settings-notify-phone`, `nx18.css`). Brief written: `docs/ROUND17.md` "Session 3"
-  (Parts J plumbing, K inbox, L permission, M senders, N settings/admin, O guards). **Next:** Tal runs Session 3 with
+  `Permission-*`, `Push-previews`, `Settings-notify-phone`, `nx18.css`). Brief written: `docs/ROUND17-S3.md` (own file;
+  results still go to ROUND17 "## Open") (Parts J plumbing, K inbox, L permission, M senders, N settings/admin, O guards). **Next:** Tal runs Session 3 with
   the prompt below; after the run Tal copies the VAPID keys to Vercel + adds GitHub secret `CRON_SECRET`; then the
   S2+S3 fix round from Tal's phone/PC notes.
   ```
-  Round 17, session 3 (docs/ROUND17.md "Session 3") — Parts J, K, L, M, N, O, unattended, on branch round17-s3. Boards
+  Round 17, session 3 (docs/ROUND17-S3.md) — Parts J, K, L, M, N, O, unattended, on branch round17-s3. Boards
   are in docs/design/r17/ (interactive — use their Tweaks). Step 0, now while I'm here: make sure
   .claude/settings.local.json allows "Bash(git push origin round17-s3)", "Bash(git push -u origin round17-s3)",
   "Bash(git merge --ff-only round17-s3)", and generate the VAPID keys into .env.local (never the repo). Then go
@@ -274,7 +274,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
-- 2026-10-09 · other account (v1 canvas not editable here) · R17 S3 boards v2 on new canvas "Nexus R17 — Notifications v2": phone inbox → full page, icon clipping fixed (media column was an inline span → 0 px wide), permission boards redrawn without item context as a recurring reminder (desktop from the bell, phone above the dock). Skills used: emil-design-eng, apple-design, mobile-native, animate RECIPES + frontend-design. Tal approved (reminders 3/7/14/30 days then stop; phone card above the dock) → boards in `docs/design/r17/`, brief `docs/ROUND17.md` "Session 3".
+- 2026-10-09 · other account (v1 canvas not editable here) · R17 S3 boards v2 on new canvas "Nexus R17 — Notifications v2": phone inbox → full page, icon clipping fixed (media column was an inline span → 0 px wide), permission boards redrawn without item context as a recurring reminder (desktop from the bell, phone above the dock). Skills used: emil-design-eng, apple-design, mobile-native, animate RECIPES + frontend-design. Tal approved (reminders 3/7/14/30 days then stop; phone card above the dock) → boards in `docs/design/r17/`, brief `docs/ROUND17-S3.md`.
 - 2026-10-09 · B · R17 S2 boards: first pass with 3 onboarding directions; Tal chose A, asked for a Live admin view, admin delete, and the emilkowalski skills bar on every mockup → boards redesigned (Live tab + activity stream, hold-to-delete, reactive onboarding scenes, Hebrew tweak). Approved → `docs/design/r17/`, `.claude/skills/animate/` added, brief Session 2 written in `docs/ROUND17.md`.
 - 2026-10-07 · A · Tal approved the R16 boards (after widening the settings dialog to 1220 and fixing the People table). Copied to `docs/design/r16/` (`Main` → `Settings-desktop`), ticked the list in `docs/ROUND16.md` Part D, gave Tal the Session 2 prompt.
 - 2026-10-07 · A · R16 Session 2 boards made on a new canvas "Nexus R16 — Settings, Spaces & Home" (8 interactive boards, R15 look, 1366×768 desktop / 390 phone, dark + Plum as tweaks). Tal chose: settings as a large dialog, Home widget height 1×/2×, Notifications as its own section → boards + brief D1/E1 updated. Waiting for Tal's final approval → then copy to `docs/design/r16/` and give the Session 2 prompt (see "Current state & handoff").
