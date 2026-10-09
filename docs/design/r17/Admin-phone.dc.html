@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.lt{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1.1}
+.page{position:absolute;inset:0;bottom:0;overflow:hidden;padding:52px 16px 110px;display:flex;flex-direction:column;gap:14px}
+.bar{height:52px;display:flex;align-items:center;gap:4px;padding:0 4px;position:absolute;top:0;inset-inline:0;background:color-mix(in srgb,var(--screen) 80%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);z-index:2}
+.li{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 14px;width:100%;border:0;background:transparent;text-align:start;color:var(--ink);font-size:15px}
+.li+.li{border-top:1px solid var(--line-in)}
+.li .grow{flex:1;min-width:0;line-height:1.3}
+.li .grow span{display:block;font-size:12.5px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chev{width:16px;height:16px;color:var(--faint);fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.push{animation:push 300ms var(--ease-drawer) both}
+@keyframes push{from{transform:translateX(30%);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.push{animation:fade-o 180ms ease both}}
+.uc{display:flex;gap:12px;align-items:center;padding:12px 14px;border:0;background:transparent;width:100%;text-align:start;color:var(--ink)}
+.uc+.uc{border-top:1px solid var(--line-in)}
+.evr{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;font-size:14px;line-height:1.4}
+.evr+.evr{border-top:1px solid var(--line-in)}
+.evr .r{margin-inline-start:auto;color:var(--faint);font-size:12px;white-space:nowrap}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:390px;height:844px;background:var(--screen);overflow:hidden;position:relative">
+
+  <sc-if value="{{isLive}}" hint-placeholder-val="{{ true }}">
+    <div class="page">
+      <div style="display:flex;align-items:flex-end;gap:10px"><h1 class="lt" style="flex:1">Live</h1><span style="display:inline-flex;align-items:center;gap:8px;color:var(--ok);font-weight:700;font-size:15px;padding-bottom:4px"><span class="ping"></span>4 online</span></div>
+      <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div class="split"><i class="c-phone" style="flex-grow:3"></i><i class="c-desk" style="flex-grow:1"></i></div>
+        <div style="display:flex;gap:14px;font-size:12.5px;color:var(--muted)"><span style="display:inline-flex;gap:6px;align-items:center"><i class="c-phone" style="width:9px;height:9px;border-radius:3px;display:inline-block"></i>3 on phone</span><span style="display:inline-flex;gap:6px;align-items:center"><i class="c-desk" style="width:9px;height:9px;border-radius:3px;display:inline-block"></i>1 on computer</span><span style="margin-inline-start:auto">6 today</span></div>
+      </div>
+      <div class="card stg">
+        <sc-for list="{{live}}" as="u" hint-placeholder-count="4">
+          <button class="uc tap" onClick="{{toPerson}}"><span class="{{u.avc}}">{{u.av}}</span><span style="flex:1;min-width:0;line-height:1.3"><b>{{u.n}}</b><span style="display:flex;align-items:center;gap:6px;margin-top:3px;min-width:0"><span class="dev" style="height:20px;font-size:11px"><svg viewBox="0 0 24 24"><path d="{{u.dd}}"></path></svg>{{u.dev}}</span><sc-if value="{{u.shop}}" hint-placeholder-val="{{ false }}"><span class="shopping" style="height:20px;font-size:11px"><span class="ping amber" style="width:7px;height:7px"></span>Shopping, 6 left</span></sc-if><sc-if value="{{u.noShop}}" hint-placeholder-val="{{ true }}"><span class="tiny" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{u.where}}</span></sc-if></span></span><span class="tiny num">{{u.dur}}</span></button>
+        </sc-for>
+      </div>
+      <div class="label" style="padding:4px 2px 0">Activity</div>
+      <div class="card" style="flex:1;min-height:0;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 70%,transparent);mask-image:linear-gradient(180deg,#000 70%,transparent)">
+        <sc-for list="{{events}}" as="e" hint-placeholder-count="5">
+          <div class="{{e.cls}}"><span class="{{e.avc}}">{{e.av}}</span><span style="min-width:0"><b>{{e.n}}</b> {{e.t}}</span><span class="r">{{e.when}}</span></div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isPeople}}" hint-placeholder-val="{{ false }}">
+    <div class="page">
+      <div style="display:flex;align-items:flex-end;gap:10px"><h1 class="lt" style="flex:1">People</h1><button class="btn sm pri">Invite</button></div>
+      <label class="input"><svg class="i sm" viewBox="0 0 24 24"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.3-4.3"></path></svg><input placeholder="Search" aria-label="Search people" style="font-size:16px"></label>
+      <div class="card">
+        <sc-for list="{{people}}" as="x" hint-placeholder-count="7">
+          <button class="li tap" onClick="{{toPerson}}"><span class="{{x.avc}}">{{x.av}}</span><span class="grow"><b>{{x.n}}</b><span>{{x.seen}}</span></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="{{x.qcls}}" style="width:48px"><i style="{{x.qw}}"></i></span><span class="tiny num">{{x.ai}}</span></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isPerson}}" hint-placeholder-val="{{ false }}">
+    <div class="bar"><button class="btn icon ghost" onClick="{{toPeople}}" aria-label="Back to people"><svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><span class="sub">People</span></div>
+    <div class="page push" style="gap:16px;padding-bottom:30px">
+      <div style="display:flex;gap:14px;align-items:center"><span class="av xl c2 ring-on">N</span><span style="flex:1;line-height:1.3;min-width:0"><b style="font-size:20px;letter-spacing:-.01em">Noa</b><br><span class="sub" style="overflow-wrap:anywhere">noa.levi@gmail.com</span></span></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:var(--ok-t);color:var(--ok);font-size:14px;font-weight:600"><span class="ping"></span><span style="flex:1">Shopping now on her phone</span><span class="num" style="font-weight:500">14 min</span></div>
+      <div class="stat3"><div><span class="tiny">Spaces</span><b>2</b></div><div><span class="tiny">Items</span><b>24</b></div><div><span class="tiny">Chats</span><b>3</b></div></div>
+      <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:baseline"><span class="label" style="flex:1">AI today</span><b class="num">{{aiShow}}</b></div>
+        <div class="meter" style="height:8px"><i style="{{aiW}}"></i></div>
+        <div class="seg" style="display:flex;margin-top:4px"><sc-for list="{{quotas}}" as="q" hint-placeholder-count="4"><button class="{{q.cls}}" style="flex:1;justify-content:center;height:40px" onClick="{{q.pick}}">{{q.label}}</button></sc-for></div>
+        <span class="tiny">Daily limit. Default is 40.</span>
+      </div>
+      <div class="card">
+        <div class="li" style="min-height:52px"><span class="dev"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"></rect><path d="M11 18h2"></path></svg>Phone</span><span class="grow">Nexus app</span><span class="tiny" style="color:var(--ok)">Now</span></div>
+        <div class="li" style="min-height:52px"><span class="dev"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg>Computer</span><span class="grow">Chrome</span><span class="tiny">Yesterday</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto">
+        <button class="btn">Sign out all</button><button class="btn">Ban</button>
+        <button class="btn dng-o hold" style="grid-column:span 2;height:46px"><span class="fill"></span>Hold to delete account</button>
+      </div>
+      <span class="tiny" style="text-align:center;margin-top:-8px">Can be undone for 7 days</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isReports}}" hint-placeholder-val="{{ false }}">
+    <div class="page">
+      <h1 class="lt">Reports</h1>
+      <div class="seg" style="display:flex"><button class="on" style="flex:1;justify-content:center">Open 1</button><button style="flex:1;justify-content:center">Fixed 12</button></div>
+      <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:10px;align-items:center"><span class="av c2">N</span><span style="flex:1;line-height:1.3"><b>Noa</b><br><span class="tiny">Home screen, 5 h ago</span></span><span class="badge warn">Open</span></div>
+        <div style="font-size:15px;line-height:1.5">The animation around the suggestions card ends suddenly instead of fading.</div>
+        <div class="shot" style="height:200px">Screenshot</div>
+        <div style="display:flex;gap:8px"><button class="btn block">In progress</button><button class="btn block pri">Mark fixed</button></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isMore}}" hint-placeholder-val="{{ false }}">
+    <div class="page">
+      <h1 class="lt">More</h1>
+      <div class="card">
+        <a class="li" href="#"><span class="ic" style="width:34px;height:34px"><svg class="i sm" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z"></path></svg></span><span class="grow">Invites<span>2 waiting</span></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+        <a class="li" href="#"><span class="ic" style="width:34px;height:34px"><svg class="i sm" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path></svg></span><span class="grow">AI usage<span>37 calls today</span></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+        <a class="li" href="#"><span class="ic" style="width:34px;height:34px"><svg class="i sm" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z M12 9v4 M12 17h.01"></path></svg></span><span class="grow">Errors<span>6 open</span></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+        <a class="li" href="#"><span class="ic ok" style="width:34px;height:34px"><svg class="i sm" viewBox="0 0 24 24"><path d="M2 4h20v6H2z M2 14h20v6H2z"></path></svg></span><span class="grow">System<span>Healthy</span></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+      </div>
+      <span class="lock" style="align-self:center"><svg class="i" viewBox="0 0 24 24"><path d="M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Counts only, never content</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{showTabs}}" hint-placeholder-val="{{ true }}">
+    <nav class="tabbar" aria-label="Admin">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+        <button class="{{t.cls}}" onClick="{{t.go}}"><svg viewBox="0 0 24 24"><path d="{{t.d}}"></path></svg>{{t.label}}<sc-if value="{{t.hasB}}" hint-placeholder-val="{{ false }}"><span class="bd">{{t.b}}</span></sc-if></button>
+      </sc-for>
+    </nav>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"page":{"editor":"enum","options":["live","people","person","reports","more"],"default":"live"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() { this._t = setInterval(() => this.setState({ tick: ((this.state && this.state.tick) || 0) + 1 }), 4500); }
+  componentWillUnmount() { clearInterval(this._t); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const page = s.page || p.page || 'live';
+    const to = (x) => () => this.setState({ page: x });
+    const PH = 'M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M11 18h2';
+    const PC = 'M2 4h20v13H2z M8 21h8 M12 17v4';
+    const live = [['Noa','N','c2','Phone',PH,'',true,'14 min'],['Yoav','Y','c4','Computer',PC,'Home',false,'3 min'],['Maya','M','c3','Phone',PH,'Getting started, 2 of 6',false,'1 min'],['Tal','T','c1','Phone',PH,'Admin',false,'Now']]
+      .map(([n,av,c,dev,dd,where,shop,dur]) => ({ n, av, dev, dd, where, shop, noShop: !shop, dur, avc: 'av lg ' + c + ' ring-on' }));
+    const tick = s.tick || 0;
+    const POOL = [['N','c2','Noa','checked off 2 items'],['Y','c4','Yoav','added a link'],['M','c3','Maya','picked 3 stores'],['N','c2','Noa','added 1 item']];
+    const BASE = [['N','c2','Noa','started shopping','12 min'],['Y','c4','Yoav','opened Nexus','3 min'],['M','c3','Maya','joined with a code','1 min'],['R','c5','Ron','marked a delivery received','18 min']];
+    const fresh = Array.from({ length: Math.min(tick, 4) }, (_, i) => { const e = POOL[(tick - 1 - i) % POOL.length]; return { av: e[0], avc: 'av sm ' + e[1], n: e[2], t: e[3], when: i === 0 ? 'now' : (i * 5) + ' s', cls: 'evr' + (i === 0 ? (tick % 2 ? ' ev' : ' ev2') : '') }; });
+    const events = fresh.concat(BASE.map(e => ({ av: e[0], avc: 'av sm ' + e[1], n: e[2], t: e[3], when: e[4], cls: 'evr' }))).slice(0, 6);
+    const P = [['Noa','N','c2','Shopping now',18,40,true],['Yoav','Y','c4','On Home, computer',40,40,true],['Maya','M','c3','Getting started',0,40,true],['Tal','T','c1','In Admin',12,'unl',true],['Ron','R','c5','18 min ago',0,20,false],['Gal','G','c6','Deleting, 5 days left',0,40,false],['Eden','E','c3','34 days ago',0,40,false]];
+    const people = P.map(([n,av,c,seen,ai,lim,on]) => ({ n, av, seen, avc: 'av lg ' + c + (on ? ' ring-on' : ''), qcls: 'qbar' + (lim !== 'unl' && ai >= lim ? ' full' : ''), qw: 'width:' + (lim === 'unl' ? ai/40*100 : ai/lim*100) + '%', ai: lim === 'unl' ? ai + ', no limit' : ai + ' of ' + lim }));
+    const q = s.q ?? 40;
+    const quotas = [['20',20],['40',40],['80',80],['No limit','unl']].map(([label,v]) => ({ label, cls: q === v ? 'on' : '', pick: () => this.setState({ q: v }) }));
+    const T = [['live','Live','M2 12h4l3-8 4 16 3-8h6',''],['people','People','M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',''],['reports','Reports','M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z M4 22v-7','1'],['more','More','M5 12h.01 M12 12h.01 M19 12h.01','']];
+    const cur = page === 'person' ? 'people' : page;
+    const tabs = T.map(([id,label,d,b]) => ({ label, d, b, hasB: !!b, cls: 'tab-b' + (cur === id ? ' on' : ''), go: to(id) }));
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      live, events, people, quotas, tabs,
+      aiShow: q === 'unl' ? '18, no limit' : '18 of ' + q, aiW: 'width:' + (q === 'unl' ? 45 : Math.min(100, 18 / q * 100)) + '%',
+      toPerson: to('person'), toPeople: to('people'),
+      isLive: page === 'live', isPeople: page === 'people', isPerson: page === 'person', isReports: page === 'reports', isMore: page === 'more', showTabs: page !== 'person'
+    };
+  }
+}
+</script>
+</body>
+</html>

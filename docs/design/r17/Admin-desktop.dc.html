@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin · desktop</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.live-cols{grid-template-columns:minmax(0,1.5fr) 150px minmax(0,1fr) 70px}
+.ppl-cols{grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) 70px 70px 130px 120px}
+.lg{display:flex;gap:14px;font-size:12px;color:var(--muted);align-items:center}
+.lg span{display:inline-flex;align-items:center;gap:6px}
+.lg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.xaxis{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);margin-top:6px;font-variant-numeric:tabular-nums}
+.evr{display:flex;gap:10px;align-items:flex-start;padding:10px 0;font-size:13.5px;line-height:1.4}
+.evr+.evr{border-top:1px solid var(--line-in)}
+.evr .r{margin-inline-start:auto;color:var(--faint);font-size:12px;white-space:nowrap;padding-top:1px}
+.rep{display:flex;gap:10px;padding:14px 18px;border:0;border-bottom:1px solid var(--line-in);align-items:flex-start;text-align:start;width:100%;background:transparent;color:var(--ink)}
+.rep.on{background:var(--sel)}
+.kv{display:grid;grid-template-columns:100px minmax(0,1fr);gap:6px 12px;font-size:13px;margin:0}
+.kv dt{color:var(--muted)}.kv dd{margin:0}
+.code{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:13px}
+</style>
+</helmet>
+<div class="{{cls}}" style="width:1366px;height:768px;display:flex;background:var(--screen);overflow:hidden">
+
+  <aside class="ad-side">
+    <div style="display:flex;align-items:center;gap:10px;padding:2px 10px 14px">
+      <span class="logo"><svg class="i lg" viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg>Nexus</span>
+      <span class="badge" style="margin-inline-start:auto">Admin</span>
+    </div>
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="7">
+      <sc-if value="{{t.label0}}" hint-placeholder-val="{{ false }}"><div class="navlabel">{{t.group}}</div></sc-if>
+      <button class="{{t.cls}}" onClick="{{t.go}}"><svg class="i sm" viewBox="0 0 24 24"><path d="{{t.d}}"></path></svg>{{t.label}}<sc-if value="{{t.live}}" hint-placeholder-val="{{ false }}"><span style="margin-inline-start:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--ok)"><span class="ping"></span>{{online}}</span></sc-if><sc-if value="{{t.hasC}}" hint-placeholder-val="{{ false }}"><span class="{{t.ccls}}">{{t.c}}</span></sc-if></button>
+    </sc-for>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px">
+      <span class="lock" style="align-self:flex-start;margin-inline-start:6px"><svg class="i" viewBox="0 0 24 24"><path d="M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Counts only, never content</span>
+      <a class="nav" href="#"><svg class="i sm" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>Back to Nexus</a>
+    </div>
+  </aside>
+
+  <main class="ad-main">
+
+    <!-- LIVE -->
+    <sc-if value="{{isLive}}" hint-placeholder-val="{{ true }}">
+      <div class="ad-top"><h1>Live</h1><span style="display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--ok);font-weight:600"><span class="ping"></span>{{online}} online now</span>
+        <span class="sub" style="margin-inline-start:auto">Updates by itself</span></div>
+      <div class="ad-body">
+        <div class="strip stg">
+          <div class="stat"><span class="v">{{online}}</span><span class="k">Online now</span><div class="split" style="margin-top:8px"><i class="c-phone" style="flex-grow:3"></i><i class="c-desk" style="flex-grow:1"></i></div><span class="tiny" style="margin-top:4px">3 phone, 1 computer</span></div>
+          <div class="stat"><span class="v">1</span><span class="k">Shopping right now</span></div>
+          <div class="stat"><span class="v">6 <span class="tiny" style="font-size:13px;letter-spacing:0">of 7</span></span><span class="k">Active today</span></div>
+          <div class="stat"><span class="v">37</span><span class="k">AI calls today</span></div>
+          <div class="stat"><span class="v warnv">1</span><span class="k">Report waiting</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;flex:1;min-height:0">
+          <div style="display:flex;flex-direction:column;gap:16px;min-height:0">
+            <section class="panel">
+              <div class="ph"><h2>Online now</h2><div class="lg"><span><i class="c-phone"></i>Phone</span><span><i class="c-desk"></i>Computer</span></div></div>
+              <div class="th-t live-cols"><span>Person</span><span>Device</span><span>Where</span><span>For</span></div>
+              <sc-for list="{{live}}" as="u" hint-placeholder-count="4">
+                <button class="{{u.rowCls}}" onClick="{{u.open}}">
+                  <span class="who-c"><span class="{{u.avc}}">{{u.av}}</span><span class="nm"><b>{{u.n}}</b><span>{{u.space}}</span></span></span>
+                  <span><span class="dev"><svg viewBox="0 0 24 24"><path d="{{u.dd}}"></path></svg>{{u.dev}}</span></span>
+                  <span style="display:flex;align-items:center;gap:8px;min-width:0"><sc-if value="{{u.shop}}" hint-placeholder-val="{{ false }}"><span class="shopping"><span class="ping amber"></span>Shopping, {{u.left}} left</span></sc-if><sc-if value="{{u.noShop}}" hint-placeholder-val="{{ true }}"><span class="scr">{{u.where}}</span></sc-if></span>
+                  <span class="sub num">{{u.dur}}</span>
+                </button>
+              </sc-for>
+              <div class="th-t" style="padding-top:12px;border-top:1px solid var(--line-in)"><span>Earlier today</span></div>
+              <div style="display:flex;gap:18px;padding:0 18px 14px;align-items:center">
+                <span style="display:inline-flex;gap:8px;align-items:center" class="sub"><span class="av sm c5 ring-idle">R</span>Ron, 18 min ago</span>
+                <span style="display:inline-flex;gap:8px;align-items:center" class="sub"><span class="av sm c6 ring-idle">G</span>Gal, 2 h ago</span>
+              </div>
+            </section>
+            <section class="panel" style="flex:1;min-height:0">
+              <div class="ph"><h2>People online, by hour</h2><span class="tiny">Today</span></div>
+              <div class="pb" style="flex:1;display:flex;flex-direction:column">
+                <div class="cols" style="flex:1;height:auto;min-height:60px"><sc-for list="{{hours}}" as="b" hint-placeholder-count="24"><i class="{{b.c}}" style="{{b.s}}"></i></sc-for></div>
+                <div class="xaxis"><span>00:00</span><span>06:00</span><span>12:00</span><span>Now</span><span>23:00</span></div>
+              </div>
+            </section>
+          </div>
+          <section class="panel" style="min-height:0;overflow:hidden">
+            <div class="ph"><h2>Activity</h2><span class="tiny">Counts only</span></div>
+            <div class="pb" style="flex:1;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 75%,transparent);mask-image:linear-gradient(180deg,#000 75%,transparent)">
+              <sc-for list="{{events}}" as="e" hint-placeholder-count="8">
+                <div class="{{e.cls}}"><span class="{{e.avc}}">{{e.av}}</span><span style="min-width:0"><b>{{e.n}}</b> {{e.t}}<br><span class="tiny">{{e.where}}</span></span><span class="r">{{e.when}}</span></div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- PEOPLE -->
+    <sc-if value="{{isPeople}}" hint-placeholder-val="{{ false }}">
+      <div class="ad-top"><h1>People</h1><span class="sub num">7</span>
+        <div style="margin-inline-start:auto;display:flex;gap:8px;align-items:center">
+          <label class="input" style="height:38px;width:260px"><svg class="i sm" viewBox="0 0 24 24"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.3-4.3"></path></svg><input placeholder="Search name or email" aria-label="Search people" style="font-size:14px"></label>
+          <button class="btn pri" style="height:38px" onClick="{{goInvites}}"><svg class="i sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Invite</button>
+        </div>
+      </div>
+      <div class="ad-body">
+        <div style="display:flex;gap:8px"><button class="chipb on">All 7</button><button class="chipb"><span class="ping" style="width:7px;height:7px"></span>Online 4</button><button class="chipb">Quiet 30 days 1</button><button class="chipb">Deleting 1</button></div>
+        <section class="panel" style="padding-top:12px">
+          <div class="th-t ppl-cols"><span>Person</span><span>Now</span><span>Spaces</span><span>Items</span><span>AI today</span><span>Status</span></div>
+          <sc-for list="{{people}}" as="p" hint-placeholder-count="7">
+            <button class="{{p.rowCls}}" onClick="{{p.open}}">
+              <span class="who-c"><span class="{{p.avc}}">{{p.av}}</span><span class="nm"><b>{{p.n}}</b><span>{{p.e}}</span></span></span>
+              <span style="display:flex;align-items:center;gap:8px;min-width:0"><sc-if value="{{p.on}}" hint-placeholder-val="{{ false }}"><span class="dev"><svg viewBox="0 0 24 24"><path d="{{p.dd}}"></path></svg>{{p.dev}}</span></sc-if><span class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{p.seen}}</span></span>
+              <span class="num">{{p.spaces}}</span><span class="num">{{p.items}}</span>
+              <span style="display:flex;align-items:center;gap:8px"><span class="{{p.qcls}}"><i style="{{p.qw}}"></i></span><span class="tiny num">{{p.ai}}</span></span>
+              <span><span class="{{p.bcls}}">{{p.status}}</span></span>
+            </button>
+          </sc-for>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{hasPerson}}" hint-placeholder-val="{{ false }}">
+      <div class="scrim-s"></div>
+      <aside class="drawer" aria-label="Person details">
+        <div style="display:flex;align-items:center;gap:14px;padding:18px 18px 14px 20px">
+          <span class="{{pp.avl}}">{{pp.av}}</span>
+          <span style="flex:1;min-width:0;line-height:1.3"><b style="font-size:17px">{{pp.n}}</b><br><span class="sub" style="overflow-wrap:anywhere">{{pp.e}}</span></span>
+          <button class="btn icon ghost" onClick="{{close}}" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
+        </div>
+        <div style="flex:1;min-height:0;overflow:hidden;padding:0 20px 16px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:var(--ok-t);color:var(--ok);font-size:13.5px;font-weight:600"><span class="ping"></span><span style="flex:1">{{pp.now}}</span><span class="num" style="font-weight:500">{{pp.dur}}</span></div>
+          <div class="stat3"><div><span class="tiny">Spaces</span><b>{{pp.spaces}}</b></div><div><span class="tiny">Items</span><b>{{pp.items}}</b></div><div><span class="tiny">Chats</span><b>{{pp.chats}}</b></div></div>
+          <div>
+            <div style="display:flex;align-items:baseline;gap:8px"><span class="label" style="flex:1">AI today</span><b class="num" style="font-size:15px">{{aiShow}}</b></div>
+            <div class="meter" style="margin-top:8px;height:8px"><i style="{{aiW}}"></i></div>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+              <div class="seg" style="flex:1;display:flex"><sc-for list="{{quotas}}" as="q" hint-placeholder-count="4"><button class="{{q.cls}}" style="flex:1;justify-content:center" onClick="{{q.pick}}">{{q.label}}</button></sc-for></div>
+              <button class="btn sm" onClick="{{resetAi}}">Reset today</button>
+            </div>
+            <div class="tiny" style="margin-top:6px">Daily limit. Default is 40.</div>
+          </div>
+          <div>
+            <div class="label" style="margin-bottom:6px">Devices</div>
+            <div class="card">
+              <div class="hl" style="padding:8px 12px"><span class="dev"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"></rect><path d="M11 18h2"></path></svg>Phone</span><span class="grow">Nexus app, Android</span><span class="r" style="color:var(--ok)">Active now</span></div>
+              <div class="hl" style="padding:8px 12px"><span class="dev"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg>Computer</span><span class="grow">Chrome, Windows</span><span class="r">Yesterday</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--line-in);align-items:center">
+          <button class="btn sm">Sign out everywhere</button>
+          <button class="btn sm">Ban</button>
+          <span style="flex:1"></span>
+          <button class="btn sm dng-o hold" aria-label="Hold to delete account"><span class="fill"></span>Hold to delete</button>
+        </div>
+        <div class="tiny" style="padding:0 20px 14px;text-align:end">Deleting can be undone for 7 days</div>
+      </aside>
+    </sc-if>
+
+    <!-- INVITES -->
+    <sc-if value="{{isInvites}}" hint-placeholder-val="{{ false }}">
+      <div class="ad-top"><h1>Invites</h1><span class="sub">Sign-up needs a code or a space invite</span><button class="btn pri" style="margin-inline-start:auto;height:38px"><svg class="i sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>New code</button></div>
+      <div class="ad-body">
+        <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start">
+          <section class="panel">
+            <div class="ph"><h2>Sign-up codes</h2><span class="seg"><button class="on">Active 3</button><button>Used up 2</button><button>Revoked 1</button></span></div>
+            <div class="th-t" style="grid-template-columns:150px minmax(0,1fr) 120px 100px 150px"><span>Code</span><span>For</span><span>Used</span><span>Expires</span><span></span></div>
+            <sc-for list="{{codes}}" as="c" hint-placeholder-count="3">
+              <div class="row-t" style="grid-template-columns:150px minmax(0,1fr) 120px 100px 150px"><span class="code">{{c.code}}</span><span>{{c.note}}</span><span style="display:flex;align-items:center;gap:8px"><span class="qbar" style="width:48px"><i style="{{c.w}}"></i></span><span class="tiny num">{{c.used}}</span></span><span class="sub">{{c.exp}}</span><span style="display:flex;gap:4px;justify-content:flex-end"><button class="btn sm ghost">Copy</button><button class="btn sm ghost dng-o">Revoke</button></span></div>
+            </sc-for>
+          </section>
+          <section class="panel">
+            <div class="ph"><h2>Waiting for an invite</h2><span class="cnt">2</span></div>
+            <div class="pb">
+              <div class="hl"><span class="av sm c5">D</span><span class="grow">daniel.a…@gmail.com<br><span class="tiny">3 days ago</span></span><button class="btn sm">Invite</button></div>
+              <div class="hl"><span class="av sm c6">S</span><span class="grow">shira.k…@walla.co.il<br><span class="tiny">1 week ago</span></span><button class="btn sm">Invite</button></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- AI -->
+    <sc-if value="{{isAi}}" hint-placeholder-val="{{ false }}">
+      <div class="ad-top"><h1>AI usage</h1><span class="seg" style="margin-inline-start:auto"><button>7 days</button><button class="on">30 days</button></span></div>
+      <div class="ad-body">
+        <div class="strip" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+          <div class="stat"><span class="v">37</span><span class="k">Calls today</span></div>
+          <div class="stat"><span class="v">812</span><span class="k">Calls in 30 days, up 18%</span></div>
+          <div class="stat"><span class="v">2.1%</span><span class="k">Failed, all fell back to rules</span></div>
+          <div class="stat"><span class="v">≈ $0.94</span><span class="k">A month, if it were paid</span></div>
+        </div>
+        <section class="panel">
+          <div class="ph"><h2>Calls per day</h2><div class="lg"><span><i class="p-gem"></i>Gemini</span><span><i class="p-groq"></i>Groq</span><span><i class="p-or"></i>OpenRouter</span><span><i class="p-fail"></i>Failed</span></div></div>
+          <div class="pb">
+            <div style="display:flex;align-items:flex-end;gap:4px;height:130px"><sc-for list="{{aiDays}}" as="d" hint-placeholder-count="30"><div class="stack" style="{{d.h}}"><i class="p-gem" style="{{d.g}}"></i><i class="p-groq" style="{{d.q}}"></i><i class="p-or" style="{{d.o}}"></i><i class="p-fail" style="{{d.f}}"></i></div></sc-for></div>
+            <div class="xaxis"><span>10 Sep</span><span>24 Sep</span><span>Today</span></div>
+          </div>
+        </section>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px">
+          <section class="panel"><div class="ph"><h2>By feature</h2></div><div class="pb" style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{features}}" as="f" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:130px minmax(0,1fr) 40px;gap:10px;align-items:center;font-size:13px"><span>{{f.n}}</span><div class="hbar"><i style="{{f.w}}"></i></div><span class="num tiny" style="text-align:end">{{f.v}}</span></div></sc-for>
+          </div></section>
+          <section class="panel"><div class="ph"><h2>Closest to the limit today</h2></div><div class="pb">
+            <div class="hl"><span class="av sm c4">Y</span><span class="grow">Yoav</span><span class="qbar full"><i style="width:100%"></i></span><span class="r">40 of 40</span></div>
+            <div class="hl"><span class="av sm c2">N</span><span class="grow">Noa</span><span class="qbar"><i style="width:45%"></i></span><span class="r">18 of 40</span></div>
+            <div class="hl"><span class="av sm c1">T</span><span class="grow">Tal</span><span class="qbar"><i style="width:30%"></i></span><span class="r">12, no limit</span></div>
+          </div></section>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- REPORTS -->
+    <sc-if value="{{isReports}}" hint-placeholder-val="{{ false }}">
+      <div class="ad-top"><h1>Reports</h1><span class="seg" style="margin-inline-start:12px"><button class="on">Open 1</button><button>In progress 0</button><button>Fixed 12</button></span></div>
+      <div style="flex:1;min-height:0;display:flex;padding:0 28px 24px;gap:16px">
+        <section class="panel" style="width:360px;overflow:hidden">
+          <button class="rep on"><span class="av sm c2">N</span><span style="flex:1;min-width:0;line-height:1.35"><b>Suggestions border stops abruptly</b><br><span class="tiny">Noa, Home screen, 5 h ago</span></span><span class="badge warn">Open</span></button>
+          <button class="rep"><span class="av sm c1">T</span><span style="flex:1;min-width:0;line-height:1.35"><b>Account tiles cut at 360</b><br><span class="tiny">Tal, Settings, 2 days ago</span></span><span class="badge ok">Fixed</span></button>
+          <button class="rep"><span class="av sm c4">Y</span><span style="flex:1;min-width:0;line-height:1.35"><b>Receipt price wiped after move</b><br><span class="tiny">Yoav, To buy, 4 days ago</span></span><span class="badge ok">Fixed</span></button>
+        </section>
+        <section class="panel" style="flex:1;padding:20px 24px;gap:16px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:12px"><span class="av lg c2">N</span><span style="flex:1;line-height:1.3"><b style="font-size:17px">Suggestions border stops abruptly</b><br><span class="sub">Noa, 5 hours ago</span></span><button class="btn sm">In progress</button><button class="btn sm pri">Mark fixed</button></div>
+          <div style="font-size:15px;line-height:1.55;max-width:60ch">The animation around the suggestions card ends suddenly instead of fading.</div>
+          <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:20px">
+            <div class="shot" style="height:240px">Screenshot</div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <dl class="kv"><dt>Space</dt><dd>Jacoby Home</dd><dt>Screen</dt><dd>Home, 384×784, dark, Hebrew</dd><dt>App</dt><dd>Installed on Android, build a41c9e2</dd><dt>Errors</dt><dd>None in the 10 minutes before</dd></dl>
+              <div style="display:flex;gap:8px"><button class="btn sm">Open issue on GitHub</button><button class="btn sm ghost">Reply in the app</button></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ERRORS -->
+    <sc-if value="{{isErrors}}" hint-placeholder-val="{{ false }}">
+      <div class="ad-top"><h1>Errors</h1><span class="sub">Kept for 30 days</span><span class="seg" style="margin-inline-start:auto"><button class="on">Open 6</button><button>Fixed 21</button></span></div>
+      <div class="ad-body">
+        <section class="panel" style="padding:6px 0">
+          <div class="grp"><svg class="i sm" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg><span class="badge dng">Server</span><span class="grow"><b>Members query failed</b> <span class="tiny">on Space settings, People</span></span><span class="tiny">8 Oct, 07:47</span><span class="cnt">1</span><button class="btn sm ghost">Mark fixed</button></div>
+          <div class="grp"><svg class="i sm" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg><span class="badge">App</span><span class="grow"><b>Failure toast</b> <span class="tiny">on Space settings, People</span></span><span class="tiny">8 Oct, 19:08</span><span class="cnt">3</span><button class="btn sm ghost">Mark fixed</button></div>
+          <div class="grp"><svg class="i sm" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg><span class="badge warn">Stores</span><span class="grow"><b>Stores that block reading</b></span><span class="tiny">Today, 10:12</span><span class="cnt">4</span><span style="width:100px"></span></div>
+          <div class="ent"><span>cwc.co.il, blocked even through the store API</span><span>3, today</span></div>
+          <div class="ent"><span>ivory.co.il, no price found</span><span>1, yesterday</span></div>
+          <div class="grp"><svg class="i sm" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg><span class="badge info">Sign-in</span><span class="grow"><b>Google sign-in</b></span><span class="tiny">7 Oct</span><span class="cnt">2</span><button class="btn sm ghost">Mark fixed</button></div>
+          <div class="grp"><svg class="i sm" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg><span class="badge">Layout</span><span class="grow"><b>Screen size checks</b> <span class="tiny">desktop emulation on the sign-in page</span></span><span class="tiny">6 Oct</span><span class="cnt">17</span><button class="btn sm ghost">Mark fixed</button></div>
+        </section>
+        <div class="hint">A store that reads again marks its group fixed by itself.</div>
+      </div>
+    </sc-if>
+
+    <!-- SYSTEM -->
+    <sc-if value="{{isSystem}}" hint-placeholder-val="{{ false }}">
+      <div class="ad-top"><h1>System</h1><span class="badge ok">Healthy</span></div>
+      <div class="ad-body">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start">
+          <section class="panel"><div class="ph"><h2>Services</h2></div><div class="pb">
+            <div class="hl"><span class="dot ok"></span><span class="grow">Database</span><span class="r">41 ms</span></div>
+            <div class="hl"><span class="dot ok"></span><span class="grow">AI, Gemini</span><span class="r">1.2 s</span></div>
+            <div class="hl"><span class="dot ok"></span><span class="grow">AI backup, Groq</span><span class="r">Standing by</span></div>
+            <div class="hl"><span class="dot ok"></span><span class="grow">Live sync</span><span class="r">2 rooms open</span></div>
+            <div class="hl"><span class="dot ok"></span><span class="grow">Price checks</span><span class="r">42 links this hour</span></div>
+            <div class="hl"><span class="dot off"></span><span class="grow">Store reader</span><span class="r">Not set up</span></div>
+          </div></section>
+          <section class="panel"><div class="ph"><h2>Daily job</h2><span class="tiny">06:00, 14 s</span></div><div class="pb">
+            <div class="hl"><span class="dot ok"></span><span class="grow">Short names</span><span class="r">1 renamed</span></div>
+            <div class="hl"><span class="dot ok"></span><span class="grow">Deleted accounts</span><span class="r">1 waiting</span></div>
+            <div class="hl"><span class="dot ok"></span><span class="grow">Error log clean-up</span><span class="r">4 removed</span></div>
+            <div class="hl"><span class="dot ok"></span><span class="grow">Backup</span><span class="r">2.1 MB</span></div>
+          </div></section>
+          <section class="panel"><div class="ph"><h2>Database</h2><span class="tiny">8.4 MB of 5 GB</span></div><div class="pb" style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{tables}}" as="t" hint-placeholder-count="6"><div style="display:grid;grid-template-columns:100px minmax(0,1fr) 44px;gap:8px;align-items:center;font-size:12.5px"><span>{{t.n}}</span><div class="hbar"><i style="{{t.w}}"></i></div><span class="num tiny" style="text-align:end">{{t.v}}</span></div></sc-for>
+          </div></section>
+        </div>
+      </div>
+    </sc-if>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"tab":{"editor":"enum","options":["live","people","invites","ai","reports","errors","system"],"default":"live"},"drawer":{"editor":"boolean","default":false},"$preview":{"width":1366,"height":768}}'>
+class Component extends DCLogic {
+  componentDidMount() { this._t = setInterval(() => this.setState({ tick: ((this.state && this.state.tick) || 0) + 1 }), 4500); }
+  componentWillUnmount() { clearInterval(this._t); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const tab = s.tab || p.tab || 'live';
+    const go = (t) => () => this.setState({ tab: t, person: null });
+    const PH = 'M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M11 18h2';
+    const PC = 'M2 4h20v13H2z M8 21h8 M12 17v4';
+    const T = [
+      ['live','Live','M2 12h4l3-8 4 16 3-8h6','',''],
+      ['people','People','M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75','7','Manage'],
+      ['invites','Invites','M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z M13 5v2 M13 11v2 M13 17v2','2',''],
+      ['ai','AI usage','M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z','',''],
+      ['reports','Reports','M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z M4 22v-7','1','Health'],
+      ['errors','Errors','M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z M12 9v4 M12 17h.01','6',''],
+      ['system','System','M2 4h20v6H2z M2 14h20v6H2z M6 7h.01 M6 17h.01','','']
+    ];
+    const tabs = T.map(([id,label,d,c,group]) => ({ label, d, c, group, label0: !!group, live: id === 'live', hasC: !!c, ccls: 'cnt' + (id === 'reports' ? ' hot' : ''), cls: 'nav navb' + (tab === id ? ' on' : ''), go: go(id) }));
+
+    const P = {
+      noa:  { n:'Noa',  e:'noa.levi@gmail.com', av:'N', c:'c2', on:true, dev:'Phone', dd:PH, where:'Shopping list', shop:true, left:6, space:'Jacoby Home', dur:'14 min', now:'Shopping now on her phone, 6 left', spaces:2, items:24, chats:3, ai:18, lim:40, seen:'Shopping list', status:'Active', b:'badge ok' },
+      yoav: { n:'Yoav', e:'yoav.cohen@gmail.com', av:'Y', c:'c4', on:true, dev:'Computer', dd:PC, where:'Home', space:'Jacoby Home', dur:'3 min', now:'Online on his computer, on Home', spaces:2, items:11, chats:6, ai:40, lim:40, seen:'Home', status:'At AI limit', b:'badge warn' },
+      maya: { n:'Maya', e:'maya.bendavid@gmail.com', av:'M', c:'c3', on:true, dev:'Phone', dd:PH, where:'Getting started, step 2 of 6', space:'Personal', dur:'1 min', now:'Online on her phone, getting started', spaces:1, items:0, chats:0, ai:0, lim:40, seen:'Getting started', status:'New today', b:'badge info' },
+      tal:  { n:'Tal Jacoby', e:'tal.jacoby1235@gmail.com', av:'T', c:'c1', on:true, dev:'Phone', dd:PH, where:'Admin', space:'Personal', dur:'Now', now:'Online on his phone, in Admin', spaces:2, items:63, chats:9, ai:12, lim:'unl', seen:'Admin', status:'Admin', b:'badge' },
+      ron:  { n:'Ron', e:'ron.shalev@gmail.com', av:'R', c:'c5', on:false, seen:'18 min ago', spaces:1, items:7, chats:1, ai:0, lim:20, status:'Active', b:'badge ok', now:'Last seen 18 min ago', dur:'' },
+      gal:  { n:'Gal', e:'gal.rosen@gmail.com', av:'G', c:'c6', on:false, seen:'2 h ago', spaces:1, items:4, chats:0, ai:0, lim:40, status:'Deleting, 5 days left', b:'badge dng', now:'Last seen 2 h ago', dur:'' },
+      eden: { n:'Eden', e:'eden.m@gmail.com', av:'E', c:'c3', on:false, seen:'34 days ago', spaces:1, items:2, chats:0, ai:0, lim:40, status:'Quiet', b:'badge', now:'Last seen 34 days ago', dur:'' }
+    };
+    const order = ['noa','yoav','maya','tal','ron','gal','eden'];
+    const def = p.drawer ? 'noa' : null;
+    const personId = s.person === undefined ? def : s.person;
+    const open = (id) => () => this.setState({ person: id });
+    const live = ['noa','yoav','maya','tal'].map(id => { const u = P[id]; return { ...u, noShop: !u.shop, avc: 'av ' + u.c + ' ring-on', rowCls: 'row-t live-cols' + (personId === id ? ' sel' : ''), open: open(id) }; });
+    const quota = (id) => (s.quota && s.quota[id] !== undefined) ? s.quota[id] : P[id].lim;
+    const aiOf = (id) => (s.reset && s.reset[id]) ? 0 : P[id].ai;
+    const fmt = (x, lim) => lim === 'unl' ? x + ', no limit' : x + ' of ' + lim;
+    const pct = (x, lim) => Math.min(100, lim === 'unl' ? x / 40 * 100 : (lim ? x / lim * 100 : 100));
+    const people = order.map(id => { const u = P[id], lim = quota(id), ai = aiOf(id); return { ...u, avc: 'av ' + u.c + (u.on ? ' ring-on' : ''), rowCls: 'row-t ppl-cols' + (personId === id ? ' sel' : ''), qcls: 'qbar' + (lim !== 'unl' && ai >= lim ? ' full' : ''), qw: 'width:' + pct(ai, lim) + '%', ai: fmt(ai, lim), bcls: u.b, open: open(id) }; });
+    const sel = personId ? P[personId] : null;
+    const curQ = personId ? quota(personId) : 40;
+    const setQ = (v) => this.setState({ quota: { ...(s.quota || {}), [personId]: v } });
+    const quotas = [['20',20],['40',40],['80',80],['No limit','unl']].map(([label,v]) => ({ label, cls: curQ === v ? 'on' : '', pick: () => setQ(v) }));
+    const pp = sel ? { ...sel, avl: 'av xl ' + sel.c + (sel.on ? ' ring-on' : '') } : {};
+
+    const tick = s.tick || 0;
+    const POOL = [['N','c2','Noa','checked off 2 items','Shopping list, Jacoby Home'],['Y','c4','Yoav','added a link','To buy, Jacoby Home'],['M','c3','Maya','answered a question','Getting started'],['N','c2','Noa','checked off 1 item','Shopping list, Jacoby Home'],['Y','c4','Yoav','asked the assistant','Assistant'],['N','c2','Noa','added 1 item','Shopping list, Jacoby Home'],['M','c3','Maya','picked 3 stores','Getting started']];
+    const BASE = [['N','c2','Noa','started shopping','Shopping list, 15 items','12 min'],['Y','c4','Yoav','opened Nexus on his computer','Chrome, Windows','3 min'],['M','c3','Maya','joined with the code for Family','Getting started','1 min'],['R','c5','Ron','marked a delivery received','On the way, Personal','18 min'],['G','c6','Gal','asked to delete the account','5 days left to undo','2 h']];
+    const fresh = Array.from({ length: Math.min(tick, 6) }, (_, i) => { const k = tick - 1 - i; const e = POOL[k % POOL.length]; return { av: e[0], avc: 'av sm ' + e[1], n: e[2], t: e[3], where: e[4], when: i === 0 ? 'now' : (i * 5) + ' s', cls: 'evr' + (i === 0 ? (tick % 2 ? ' ev' : ' ev2') : '') }; });
+    const events = fresh.concat(BASE.map(e => ({ av: e[0], avc: 'av sm ' + e[1], n: e[2], t: e[3], where: e[4], when: e[5], cls: 'evr' }))).slice(0, 9);
+
+    const hv = [0,0,0,0,0,1,2,3,3,2,2,3,4,3,2,2,3,4,5,4,4,0,0,0];
+    const hours = hv.map((v,i) => ({ c: i === 19 ? 'hi' : (i < 19 ? '' : ''), s: 'height:' + (i > 19 ? 0 : Math.max(4, v / 6 * 100)) + '%' }));
+
+    const aiDays = Array.from({ length: 30 }, (_, i) => { const tot = 14 + ((i * 7) % 13) + Math.round(i * 0.7); const f = i % 7 === 3 ? 2 : 0; const q = i % 5 === 2 ? 4 : 1; const o = i % 9 === 4 ? 2 : 0; const g = tot - f - q - o; const pc = (v) => 'height:' + (v / tot * 100) + '%'; return { h: 'height:' + (tot / 50 * 100) + '%', g: pc(g), q: pc(q), o: pc(o), f: pc(f) }; });
+    const features = [['Adding links',344],['Assistant',236],['Receipts',98],['Short names',84],['Suggestions',30]].map(([n,v]) => ({ n, v, w: 'width:' + (v/344*100) + '%' }));
+    const tables = [['Items',412],['Store links',688],['Price history',3120],['AI calls',812],['Error log',58],['Sessions',14]].map(([n,v]) => ({ n, v: v.toLocaleString('en-US'), w: 'width:' + (v/3120*100) + '%' }));
+    const codes = [['NX-••••-7K2Q','Family','3 of 5',60,'in 12 days'],['NX-••••-P4MD','Friends from FRC','1 of 10',10,'in 26 days'],['NX-••••-X9AB','Testers','0 of 3',0,'in 5 days']].map(([code,note,used,w,exp]) => ({ code, note, used, exp, w: 'width:' + w + '%' }));
+
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      tabs, online: 4, live, people, events, hours, aiDays, features, tables, codes, pp, quotas,
+      aiShow: personId ? fmt(aiOf(personId), curQ) : '', aiW: personId ? 'width:' + pct(aiOf(personId), curQ) + '%' : 'width:0',
+      resetAi: () => this.setState({ reset: { ...(s.reset || {}), [personId]: true } }),
+      hasPerson: !!sel, close: () => this.setState({ person: null }), goInvites: go('invites'),
+      isLive: tab === 'live', isPeople: tab === 'people', isInvites: tab === 'invites', isAi: tab === 'ai', isReports: tab === 'reports', isErrors: tab === 'errors', isSystem: tab === 'system'
+    };
+  }
+}
+</script>
+</body>
+</html>

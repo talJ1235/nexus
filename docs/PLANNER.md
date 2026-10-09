@@ -6,7 +6,18 @@ writes the round briefs. Everything durable lives in this repo, not in chat hist
 Setup of this chat (network, GitHub connector, rebuilding it on a new account): `docs/ENVIRONMENT.md` — any change
 to setup, tooling or workflow is recorded there in the same session.
 
-## Current state & handoff (updated 2026-10-08 → read this first on any account)
+## Current state & handoff (updated 2026-10-09 → read this first on any account)
+- **2026-10-09:** R17 Session 1 merged and live. **R17 Session 2 boards approved** by Tal and committed to
+  `docs/design/r17/` (`Admin-desktop`, `Admin-phone`, `Onboarding-phone`, `Onboarding-desktop`, `nx17.css`; canvas
+  "Nexus R17 — Admin & Onboarding" is a private Design artifact on this account). Brief written: `docs/ROUND17.md`
+  "Session 2" (Parts G admin incl. Live presence/activity, H onboarding, I guards/docs). **Next:** Tal runs Session 2
+  with the prompt below; then the planner makes Session 3 boards (inbox + permission moment), same skills bar.
+  ```
+  Round 17, session 2 (docs/ROUND17.md "Session 2") — Parts G, H, I, unattended, on branch round17-s2. Boards are in
+  docs/design/r17/ (interactive — use their Tweaks). Step 0, now while I'm here: make sure .claude/settings.local.json
+  allows "Bash(git push origin round17-s2)", "Bash(git push -u origin round17-s2)", "Bash(git merge --ff-only round17-s2)".
+  Then go through all parts without stopping. Merge to main only if everything is green and the migration rehearsal passes.
+  ```
 - **2026-10-08:** R16 done and live (Sessions 1, 2, G + Android PWA hotfixes 1–4: viewport guard, FedCM Google sheet,
   dismiss stays on /login). Polish audit + all 30 fixes live (`docs/POLISH-AUDIT.md`). **Next: R17 Session 1** —
   brief `docs/ROUND17.md` (no mockups). Then the planner makes mockups for R17 Session 2 (admin + onboarding, 2–3
@@ -190,6 +201,15 @@ to setup, tooling or workflow is recorded there in the same session.
   native changes (icon, permissions, plugins) need a new Play release. Do it when moving from the family circle to the
   Play closed test (12 testers × 14 days).
 
+- **R17 Session 2 design (Tal 2026-10-09):** onboarding = direction **A** (one question per screen, the picture above
+  reacts to the answer; B "live build" and C "chat" rejected); admin panel gets a **Live** view (who is online, phone or
+  computer, where in the app, who is shopping, activity counts — never content; privacy page says so); admin **can delete
+  an account** (hold-to-delete, 7-day undo); boards carry an English/עברית tweak.
+- **Mockup standard (Tal 2026-10-09, all future boards):** always design with the relevant skills from
+  `emilkowalski/skills` (copies in `.claude/skills/`: emil-design-eng, apple-design, mobile-native, animate + RECIPES,
+  break-ui, review-animations) plus the frontend-design guidance — easing tokens, press feedback, gated hover, reduced
+  motion, safe areas, worst-case text. Goal in Tal's words: super professional, super intuitive, UX above everything.
+
 ## Product direction (discussed 2026-10-03, not started)
 - Toward a multi-user product: sign-up on web or app, short onboarding questionnaire (habits, stores), Google sign-in,
   desktop login by QR from the phone, per-user data (schema already owner-aware), privacy policy.
@@ -219,6 +239,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-09 · B · R17 S2 boards: first pass with 3 onboarding directions; Tal chose A, asked for a Live admin view, admin delete, and the emilkowalski skills bar on every mockup → boards redesigned (Live tab + activity stream, hold-to-delete, reactive onboarding scenes, Hebrew tweak). Approved → `docs/design/r17/`, `.claude/skills/animate/` added, brief Session 2 written in `docs/ROUND17.md`.
 - 2026-10-07 · A · Tal approved the R16 boards (after widening the settings dialog to 1220 and fixing the People table). Copied to `docs/design/r16/` (`Main` → `Settings-desktop`), ticked the list in `docs/ROUND16.md` Part D, gave Tal the Session 2 prompt.
 - 2026-10-07 · A · R16 Session 2 boards made on a new canvas "Nexus R16 — Settings, Spaces & Home" (8 interactive boards, R15 look, 1366×768 desktop / 390 phone, dark + Plum as tweaks). Tal chose: settings as a large dialog, Home widget height 1×/2×, Notifications as its own section → boards + brief D1/E1 updated. Waiting for Tal's final approval → then copy to `docs/design/r16/` and give the Session 2 prompt (see "Current state & handoff").
 - 2026-10-07 · A · Caught up after R16 Session 1 release. Tal: Ably key in Vercel, live sync checked on prod; A8 was the installed PWA; report `r_rWtP3XmuRl` left for later. Chose mockups for Settings / Space settings / Identity / HomeCustomize only (D4 + E2 from text); boards made in a new chat. Advised: Android wrapper after R17, web updates flow without store releases. Updated "Current state & handoff".

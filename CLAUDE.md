@@ -77,6 +77,8 @@
 - Per item: implement → `npm run -s check` → smoke for UI (add `SMOKE_MOBILE=1` for anything visible on phones) →
   one commit per item (`R5.3: …`) → tick `[x]` in the brief. Run `/compact` between items on long sessions.
 - Every UI change must work on a phone (390 px wide, touch targets ≥40 px, safe-area insets), not only desktop.
+- Visual and motion work: the skills in `.claude/skills/` (emil-design-eng, apple-design, mobile-native, animate +
+  RECIPES, break-ui, review-animations) are the bar; boards from `docs/design/r17/` on carry their motion tokens in `nx17.css`.
 - Brief says "confirm with the trace/frames first" → measure before changing. If the brief is wrong or a choice needs
   Tal, stop and ask in one short question instead of guessing.
 - End: update SPEC.md by **editing** the round's section (never append a second copy — Round 4 was duplicated once),

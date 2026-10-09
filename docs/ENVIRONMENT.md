@@ -159,3 +159,4 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   this PC), `test:short-name`, `test:ai-quota`, `test:blocked`, `test:delete-account`; `scripts/switch-timing.mjs` (space
   switch timing), `scripts/blocked-probe.mjs` (fetch-ladder table via `/api/debug/blocked`); `POLISH_ONLY=A1,A2` runs
   parts of `test:polish`. Actions moved to node24 releases and `ubuntu-24.04`.
+- 2026-10-09 (planning chat, account B): `.claude/skills/animate/` (SKILL.md + RECIPES.md) added from `emilkowalski/skills@e8a175d` (same MIT licence file); push from the chat sandbox worked after attaching the repo with push access (`add_repo` access "push", clone at `/home/claude/nexus`).

@@ -13,7 +13,8 @@ account, blocked stores) is done once, properly.
 - **R17 Session 1 (this brief)** — no mockups needed: Parts 0, A, B, C, D, E, F below.
 - **R17 Session 2** — admin panel (users, usage without content, AI usage + per-user quota editing, all reports, the C2
   error log, system health) + onboarding (4 questions + "install the app" + notification permission at the end).
-  Needs mockups first (planner, separate chat; onboarding in 2–3 directions for Tal to choose).
+  Boards approved 2026-10-09 (`docs/design/r17/`, onboarding direction A, admin with a Live view) — brief:
+  "Session 2" below.
 - **R17 Session 3** — web push + in-app inbox with automatic timing (see "Notifications — decisions" below). Mockups
   for the inbox and the permission moment.
 - R18 supermarket mode v2 → R19 price comparison → **R20** real apps: Android via Google Play (closed testing with the
@@ -295,6 +296,164 @@ marked fixed automatically.
 `SPEC.md` Round 17 section (edit, don't append twice), help topics (0.2), `CLAUDE.md` map (help topics, AI gate,
 fetch ladder, delete-account job), `ENVIRONMENT.md` (`CF_FETCH_URL`, `CF_FETCH_SECRET`, `ADMIN_EMERGENCY_TOKEN`, new
 scripts/tests), `SECURITY.md` (password removal, emergency path, worker, AI redaction).
+
+---
+
+# Session 2 — admin panel (with Live) + onboarding (from Tal, 2026-10-09)
+
+Boards (approved by Tal 2026-10-09): `docs/design/r17/` — `Admin-desktop`, `Admin-phone`, `Onboarding-phone`,
+`Onboarding-desktop` (+ `nx.css` / `nx16.css` unchanged from R16, `nx17.css` = R17 additions incl. the motion tokens).
+They are interactive: open them with Playwright at 1366×768 / 390×844 and use the Tweaks (`dark`, `palette`, `tab` /
+`page`, `step`, `device`, `language` English/עברית). **The boards are the source of truth for look and motion**; this
+text is the source of truth for behaviour and data. Tal's decisions: onboarding direction **A** (one question per
+screen, the picture above it reacts to the answer); the admin panel gets a **Live** view (who is online now, phone or
+computer, where in the app, who is shopping) and looks "the next level"; the admin **can delete an account**
+(hold-to-delete, same 7-day undo as E4); every string in en + he.
+
+**Design bar (Tal 2026-10-09):** the skills in `.claude/skills/` (emil-design-eng, apple-design, mobile-native,
+animate + RECIPES, break-ui, review-animations) are the bar for every screen in this session. Concretely, from the
+boards: one easing set (`--ease-out: cubic-bezier(.23,1,.32,1)`, `--ease-io: cubic-bezier(.77,0,.175,1)`,
+`--ease-drawer: cubic-bezier(.32,.72,0,1)`); every pressable scales to .97 on `:active` (160 ms); hover styles only
+under `@media (hover:hover) and (pointer:fine)`; UI animations ≤ 300 ms (the drawer 320 ms on the drawer curve);
+nothing animates from `scale(0)`; reduced motion = short opacity fades, no movement; tap highlight off, controls not
+selectable, `touch-action: manipulation`; inputs ≥ 16 px on phones; safe-area insets on bottom bars and sheets.
+
+## How to run (Session 2)
+- Branch **`round17-s2`** from `main`. Commit per item `R17.<part><k>: …` (`R17.G1: …`). Push the branch after each part.
+- Unattended, same rules as Session 1 (no stopping to ask → decisions in "## Open", don't touch power settings, read
+  open reports + the error log first). Plan mode (≤ 10 lines) for G1 (presence + activity), G2 (admin delete) and H1.
+- DB changes additive only. Migration rehearsed on a copy of the latest prod snapshot (idempotent, row counts equal,
+  Tal's To buy / On the way / History unchanged) before `git merge --ff-only round17-s2` into `main` + push.
+- Verify phone 360/390 + desktop 1366 and 1280×720, light + dark, Graphite + Plum, en + he, reduced motion, touch +
+  keyboard. `test:clip` must stay at 0 cut text with the new routes added to its walk.
+- Parity PNGs (board vs app) for every board × its main states into `docs/design/parity-r17/` (≤ 20 files).
+
+## Part G — admin panel `/admin`
+
+### G0. [ ] Shell, access, navigation
+`/admin` (and `/admin/<tab>` deep links: `live`, `people`, `people/<id>`, `invites`, `ai`, `reports`, `errors`,
+`system`) for admins only (`isAdmin(ctx)`), 404 for everyone else, `robots: noindex`. Desktop = the board's sidebar
+(groups: Live · Manage: People, Invites, AI usage · Health: Reports, Errors, System; Live shows the online count with a
+pulsing dot; Reports' count in amber when > 0) + "Back to Nexus". Phone = large titles + a translucent bottom tab bar
+(Live · People · Reports · More; More lists Invites, AI usage, Errors, System), person page pushed with Back /
+Android Back / edge swipe. Entry: an "Admin" row in the Me sheet / avatar menu and the palette, admins only. The
+existing `/admin/errors` page and the Settings "Invite codes" section move into the panel (old URLs redirect).
+**Counts only, never content** (MULTIUSER §1): no admin action returns item titles, notes, links, chat text, memory,
+receipts or space contents. Acceptance: `test:admin-access` (non-admin → 404 on every route + every admin action
+refuses), `test:admin-privacy` (call every admin action on the seeded DB and assert none of the seed's item titles,
+notes, chat or memory strings appear anywhere in the JSON).
+
+### G1. [ ] Live: presence + activity
+- **Presence** (new table `presence`: `session_id` PK, `user_id`, `device` phone|computer, `app` installed|browser,
+  `platform` (OS family + browser from UA-CH / UA, coarse: "Android", "iPhone", "Windows", "Chrome"…), `screen` (a fixed
+  enum key, never free text: home, to-buy, on-the-way, shopping-mode, projects, insights, item, settings, assistant,
+  onboarding-<n>, admin…), `shopping_left` (int, only in shopping mode), `space_id`, `updated_at`). The client beats
+  every 30 s while the page is visible, at once on a screen change, and sends an "away" beacon on `pagehide` /
+  hidden. Device = `(pointer: coarse)` + width < 1024 → phone, else computer. Online = beat ≤ 75 s old; "Earlier
+  today" = beat today but older. Rows older than 7 days are purged by the daily cron. No Ably for this (no presence set
+  leaks to non-admins); the admin view polls `getLive()` every 5 s while visible.
+- **Activity** (new table `activity`: id, `user_id`, `space_id` nullable, `kind` enum, `n` int, `at`): written by the
+  existing server actions for: app opened, items added (n), items checked off in shopping mode (batched per 10 s, n),
+  link added, shopping started / finished, delivery marked received, joined (code / space invite), onboarding step
+  answered, assistant asked (no text), account deletion requested. Kinds + counts only — never names of items.
+  Retention 30 days (daily cron).
+- **Screen** = the `Admin-desktop` board's Live tab: the stat strip (online now with a phone/computer split bar, shopping
+  right now, active today of all, AI calls today, reports waiting), "Online now" rows (avatar with green ring, name,
+  space, device chip, where — or the amber "Shopping, N left" chip with its own pulse — and for how long), "Earlier
+  today", people online by hour (today, 24 columns), and the Activity stream (newest first; a new event enters with the
+  board's 380 ms `rise` — not on first paint; reduced motion = fade; the stream fades out at the bottom, no scrollbar
+  fight). Clicking a row opens the person (G2). Phone = the `Admin-phone` Live page.
+- **Privacy:** add to `/privacy` + `/terms` (en + he, E3 texts): the admin sees who is online, on which kind of device,
+  which part of the app and activity counts — never the content.
+Acceptance: `test:admin-live` (two signed sessions, phone + desktop viewport → both online within one poll with the
+right device and screen; entering shopping mode shows the chip with the count; no beats for 75 s with a fake clock →
+"Earlier today"; an added item shows one activity row with a count and no title), CPU/network: a visible admin tab
+makes ≤ 1 request per 5 s, a hidden one 0.
+
+### G2. [ ] People + person drawer, quota, ban, delete
+People table/list per the boards (presence ring + "Now" column, spaces, items, AI today bar, status; filters All /
+Online / Quiet 30 days / Deleting; search name/email). Person = desktop right drawer (432 px, `--ease-drawer`,
+scrim, Esc / ✕ close, focus trapped and returned) and a pushed page on the phone: presence banner, counts (spaces,
+items, chats), AI today meter + daily limit 20 / 40 / 80 / No limit (E2's `setAiQuota` / `getAiAllowance`) + "Reset
+today", devices from sessions (device, browser/OS, last active, sign out one), "Sign out everywhere", "Ban" (Better
+Auth admin ban if the pinned plugin has it, else an additive `user.banned_at`; banned = all sessions revoked, sign-in
+refused with a plain message), **"Hold to delete"**: 2 s press-and-hold (clip-path fill, `linear`; release snaps
+back in 200 ms; keyboard: hold Space/Enter 2 s; screen readers get a confirm dialog instead) → the E4 deletion for
+that user (7-day undo by them signing in; sole owner of shared spaces with members → refused with the list, same as
+E4). Admin can't ban/delete themselves. All logged to the security log.
+Acceptance: `test:admin-people` (quota change reflected in E2's gate; reset; ban blocks sign-in; hold < 2 s does
+nothing, ≥ 2 s starts deletion; self-delete refused), `break-ui` pass on the people list (long names/emails, 0 / 1 /
+500 people) with fixes in Open.
+
+### G3. [ ] Invites
+The existing invite codes + waitlist (`invite-admin-actions.ts`) in the panel per the board: codes with usage meter,
+for (note), expires, copy, revoke; "who used it" avatars; waitlist with Invite.
+
+### G4. [ ] AI usage
+From `ai_usage`: calls today, 30 days (+ change vs previous 30), failure rate (all fell back), "if it were paid" (a
+small price table constant per provider/model, with its source + date in a comment); calls per day stacked by
+provider + failed; by feature; closest to the limit today.
+
+### G5. [ ] Reports
+List (Open / In progress / Fixed) + detail per the board: reporter, space name, screen, viewport/theme/language,
+installed or browser, build, screenshot, the client errors from the 10 minutes before; In progress / Mark fixed;
+"Open issue on GitHub" when `GITHUB_ISSUES_TOKEN` is set (else hidden). A report's own text is shown — the person sent
+it to the admin.
+
+### G6. [ ] Errors
+The E5 grouped error log inside the panel (kinds as badges, collapsible groups, blocked stores per host, mark fixed).
+
+### G7. [ ] System
+Services (DB ping ms, last AI success per provider, Ably, price checks in the last hour, store reader on/off), the
+daily job's last run (steps + counts; store a run summary in `kv` if it isn't kept yet), DB size + rows per table,
+keys **set / missing only** (names, never values).
+
+## Part H — onboarding (direction A)
+
+### H1. [ ] Flow, routing, resume
+First sign-in without `pref:onboarding` → `/welcome` runs the 7 steps (replaces `WelcomeChoice`): 1 why · 2 stores ·
+3 budget · 4 who · 5 install · 6 notifications · 7 done. Six progress segments (fill animates), Back top-start (hidden on
+step 1 and 7), Skip top-end on steps 1–6, one large primary button at the bottom (52 px, safe area), "Not now" under it
+on 5 and 6. The current step is saved (reload resumes). Joined through a space invite → step 4 is skipped (already
+shared). Already installed (standalone) or a browser that can't install → step 5 skipped. Finishing or skipping out
+→ Home with the "Try it: paste a link or scan a barcode" hint. Every answer is editable later in Settings.
+
+### H2. [ ] What each step sets
+1. Why (multi): home shopping / supermarket / projects & hobbies / price tracking → `pref:onboarding.why`, picks the
+   Home preset (R16 E1 presets; supermarket → the shopping-first preset, etc.) — the done screen says what Home starts with.
+2. Stores (multi + search + free-text add): Israeli supermarkets and common online stores as monogram tiles (no
+   third-party logos), Hebrew names in Hebrew → seeds store suggestions.
+3. Budget: stepper (±250) + quick chips 1,500 / 2,500 / 4,000 + currency ₪ / $ / € → the personal space's monthly
+   budget + currency. The picture is a gauge with the amount.
+4. Who: Just me / With a partner / With family. Partner or family → creates the shared space "Home" / "הבית" (green
+   house tile) and offers the invite (phone: WhatsApp first, desktop: copy link) without leaving the step.
+5. Install: Android Chrome / desktop Chrome+Edge = the deferred `beforeinstallprompt` behind "Install"; iPhone Safari =
+   the 3-step guide (Share → Add to Home Screen → open from there), button "I added it"; desktop also shows a QR of the
+   site URL "On your phone" (not a login QR — that's R20).
+6. Notifications: three kinds as rows + the two sample notifications in the picture; "Turn on notifications" calls
+   `Notification.requestPermission()` **only on that tap**; the result is stored for Session 3 (push itself is S3). iPhone
+   not on the Home Screen → this step is skipped (push only works installed). Never at night is already the rule.
+7. Done: summary of the four answers + a one-time confetti burst (≈ 12 pieces, 1.4 s, none with reduced motion).
+
+### H3. [ ] The picture reacts (the board's hero scenes)
+1 the four tiles light up / dim (saturation + scale .9) with the choices; 2 the picked stores fan out (up to 5,
+rotated, 40 ms stagger); 3 the gauge fills with the amount; 4 faces appear around the house tile (1 / 2 / 4); 5 the
+app icon lands in the empty slot on a phone (desktop: a window) after Install; 6 the notification stack; 7 the check
+tile + confetti. Step content enters from the direction of travel (280 ms, `--ease-out`, 2 px blur), mirrored in RTL.
+
+### H4. [ ] Hebrew + RTL
+All strings in `lib/i18n` (en + he, the boards' `language` tweak has the Hebrew copy); RTL mirrors the back chevron,
+slide direction, progress fill origin and the hold-to-delete fill. Store monograms in Hebrew letters for Hebrew names.
+
+Acceptance (H): `test:onboarding` (new user → all 7 steps → prefs saved, shared space created for family, budget set;
+Skip from step 1 → Home; reload on step 3 resumes; space-invite user skips 4; iPhone UA shows the guide and skips 6
+when not standalone; standalone skips 5); reduced-motion run; `test:clip` walks every step en + he × 360/390/1366.
+
+## Part I — guards and docs
+`test:admin-access`, `test:admin-privacy`, `test:admin-live`, `test:admin-people`, `test:onboarding` in `guards.yml`;
+`SPEC.md` Round 17 section (edit), help topic for getting started (onboarding answers live in Settings), `CLAUDE.md`
+map (admin panel, presence/activity, onboarding), `SECURITY.md` (admin delete/ban, presence data, retention),
+`ENVIRONMENT.md` log line for new scripts/tests.
 
 ## Open
 
