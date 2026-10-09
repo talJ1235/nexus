@@ -82,3 +82,7 @@ ci-*.db
 /parity-r17.db*
 /admin-*-test.db*
 /onboarding-test.db*
+# R17 S3: notifications test DBs
+/notify-test.db*
+/push-test.db*
+/inbox-test.db*
