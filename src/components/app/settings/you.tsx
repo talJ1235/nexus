@@ -19,6 +19,7 @@ import { MemorySection } from "../memory-section";
 import { useStore } from "../store";
 import { AskButton } from "../top-bar";
 import { AccountPage, ActivityPage, ReportsPage } from "./account";
+import { NotificationsPage } from "./notifications";
 import type { PageProps } from "./shell";
 import { I, Li, P, SectionHead, Sel, Seg, Tick, Toggle } from "./ui";
 
@@ -507,6 +508,7 @@ export const YOU_PAGES = {
   account: AccountPage,
   activity: ActivityPage,
   reports: ReportsPage,
+  notifications: NotificationsPage,
   display: DisplayPage,
   ai: AiPage,
   calendar: CalendarPage,

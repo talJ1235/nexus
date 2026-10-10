@@ -173,3 +173,7 @@
  .nt-under{transition:filter 200ms ease}html[data-inbox=open] .nt-under,[dir=rtl][data-inbox=open] .nt-under{transform:none}
  .nx.nudge-ph,.nx.nudge-pc{transition:opacity 180ms ease}.nx.nudge-ph.gone,.nx.nudge-pc.gone{transform:none}
 }
+
+/* Settings → Notifications (board Settings-notify-phone) */
+.nx .stat-ok{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ok);white-space:nowrap}
+.nx .stat-ok .sdot{width:8px;height:8px;border-radius:50%;background:var(--ok)}

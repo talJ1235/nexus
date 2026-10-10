@@ -12,5 +12,5 @@ export default async function SettingsPage({ params, searchParams }: { params: P
   const raw = (section?.[0] ?? "").slice(0, 40);
   // R17 G0: invite codes live in the admin panel now.
   if (raw === "invites") redirect("/admin/invites");
-  return Home({ searchParams, settings: raw === "security" || raw === "notif" || raw === "notifications" ? "account" : raw });
+  return Home({ searchParams, settings: raw === "security" ? "account" : raw === "notif" ? "notifications" : raw });
 }

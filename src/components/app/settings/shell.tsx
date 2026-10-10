@@ -26,8 +26,8 @@ import { YOU_PAGES } from "./you";
 export const YOU = ["account", "display", "ai", "calendar", "memory", "data"] as const;
 export const SPACE = ["general", "people", "budget", "danger"] as const;
 /** Sub-pages and their parent. */
-const SUB: Record<string, string> = { activity: "account", reports: "account" };
-export type SectionId = (typeof YOU)[number] | (typeof SPACE)[number] | "activity" | "reports";
+const SUB: Record<string, string> = { activity: "account", reports: "account", notifications: "account" };
+export type SectionId = (typeof YOU)[number] | (typeof SPACE)[number] | "activity" | "reports" | "notifications";
 const ALL = new Set<string>([...YOU, ...SPACE, ...Object.keys(SUB)]);
 export const isSection = (v: string | null | undefined): v is SectionId => !!v && ALL.has(v);
 
@@ -53,8 +53,8 @@ function pathFor(section: string, desktop: boolean, shared: boolean): string[] {
 }
 
 /** Old addresses → sections. */
-// R17 D3: Notifications is one switch in Account now.
-const ALIAS: Record<string, string> = { security: "account", space: "space", notif: "account", notifications: "account" };
+// R17 S3 N1: Notifications is a small page under Account (the one switch + this device + quiet hours).
+const ALIAS: Record<string, string> = { security: "account", space: "space", notif: "notifications" };
 
 export function SettingsShell() {
   const s = useStore();
