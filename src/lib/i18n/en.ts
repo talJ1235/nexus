@@ -1,6 +1,17 @@
 export const en = {
   appName: "Nexus",
   tagline: "Everything you plan to buy, in one place",
+  // R17 S5 S1: the crash screen (error boundaries for the app and the admin panel).
+  crash: {
+    title: "Something went wrong",
+    body: "This page stopped working. Reloading usually fixes it — we already logged what happened.",
+    reload: "Reload",
+    report: "Report",
+    sending: "Sending…",
+    sent: "Thanks — report sent",
+    failed: "Couldn't send — try again",
+    happened: "The page crashed ({where}): {message}",
+  },
   // R17 Session 3: notifications — inbox, push texts, the permission card, Settings → Notifications (boards docs/design/r17).
   nt: {
     title: "Notifications",

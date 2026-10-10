@@ -1,12 +1,26 @@
 import { after } from "next/server";
 import { routeCtx } from "@/lib/ctx";
+import { reportError } from "@/lib/errors/record";
 import { recordAway, recordBeat } from "@/lib/db-scoped/presence";
 import { parseBeat, platformOf } from "@/lib/presence-keys";
 
 // R17 G1 — the signed-in app's presence beat (every 30 s while visible, at once on a screen change) and the "away"
 // beacon (pagehide / hidden, via sendBeacon → text/plain). Same origin only. Stored: device kind, installed or browser,
 // OS family + browser, a fixed screen key, the shopping count — read only by the admin panel's Live view.
+// R17 S5 S1: a beat is best-effort — when the DB is down it answers 503 (and is logged), never a 500.
 export async function POST(req: Request) {
+  try {
+    return await beat(req);
+  } catch (e) {
+    const err = e as { name?: string; message?: string; cause?: { message?: string } };
+    const message = String(err?.message ?? e);
+    const cause = err?.cause?.message ? `cause: ${String(err.cause.message).slice(0, 200)}\n` : "";
+    reportError({ kind: "server", code: (err?.name ?? "Error").slice(0, 40), where: "route:/api/presence", message: message.slice(0, 200), sample: cause + message });
+    return new Response(null, { status: 503, headers: { "retry-after": "30" } });
+  }
+}
+
+async function beat(req: Request) {
   const ctx = await routeCtx("view");
   if (ctx instanceof Response) return ctx;
   const origin = req.headers.get("origin");

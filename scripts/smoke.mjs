@@ -24,6 +24,7 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { canSignIn, signIn as signInAs } from "./lib/sign-in.mjs";
 import { actionTable } from "./lib/actions.mjs";
+import { walkAdmin } from "./lib/admin-walk.mjs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
@@ -431,6 +432,20 @@ try {
     await step("owner login", async () => {
       await signIn(page);
       ok(true, "owner login");
+    });
+
+    // R17 S5 S1: the admin panel, every tab, en + he — no console error, hydration warning, 5xx or blank page.
+    await step("admin panel: every tab clean (en + he)", async () => {
+      const p = await ctx.newPage();
+      try {
+        for (const locale of ["en", "he"]) {
+          const r = await walkAdmin(p, BASE, { locale });
+          ok(r.problems.length === 0, `admin panel ${locale}: ${r.tabs} tabs clean`, r.problems.slice(0, 4).join(" | "));
+        }
+      } finally {
+        await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }]);
+        await p.close();
+      }
     });
 
     openPalette = async () => {

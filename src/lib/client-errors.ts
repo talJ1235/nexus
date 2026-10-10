@@ -102,6 +102,10 @@ let installed = false;
 export function installClientErrorCapture() {
   if (installed || typeof window === "undefined") return;
   installed = true;
+  // R17 S5 S1: what the inline boot script caught before hydration (boot-screen.tsx EARLY_ERRORS).
+  const early = (window as { __nxEarly?: [string, string][] | null }).__nxEarly;
+  (window as { __nxEarly?: unknown }).__nxEarly = null;
+  for (const [message, where] of early ?? []) recordClientError("error", message, where || undefined);
   document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && outbox.length && flushReports(true));
   window.addEventListener("error", (e) => {
     const file = e.filename ? e.filename.split("/").pop()?.split("?")[0] : "";

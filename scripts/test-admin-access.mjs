@@ -4,7 +4,9 @@
 //   npm run build && npm run test:admin-access
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { chromium } from "playwright";
 import { actionTable, callAction } from "./lib/actions.mjs";
+import { walkAdmin } from "./lib/admin-walk.mjs";
 import { seedAdmin } from "./lib/seed-admin.mjs";
 import { startApp } from "./lib/test-app.mjs";
 
@@ -25,7 +27,7 @@ for (const f of ADMIN_FILES) {
 
 // R17 P8: a second admin address in ADMIN_EMAILS only (its stored role is still "user").
 const LISTED = "listed-admin@example.com";
-const app = await startApp({ db: "admin-access-test.db", port: Number(process.env.PORT || 3121), env: { ADMIN_EMAILS: `test-admin@example.com,${LISTED}` } });
+const app = await startApp({ db: "admin-access-test.db", port: Number(process.env.PORT || 3121), env: { ADMIN_EMAILS: `test-admin@example.com,${LISTED}`, TZ: "UTC" } });
 try {
   await seedAdmin(app.db, { adminId: app.admin, personal: app.personal });
   const noa = await app.sessionFor("ad_noa");
@@ -71,6 +73,23 @@ try {
   const live = table.find((a) => a.name === "getLive");
   const r = await callAction(app.base, admin, live, [null]);
   ok(!r.failed && r.text.includes("ad_noa"), "the admin's getLive answers", `${r.status} ${r.text.slice(0, 160)}`);
+
+  // R17 S5 S1: the panel in a real browser (server in UTC, browser in Asia/Jerusalem — like Vercel and Tal), every tab,
+  // desktop 1366×768 + phone 390, en + he: no console error, no hydration warning, no 5xx, never a blank page.
+  const browser = await chromium.launch();
+  try {
+    for (const [w, h] of [[1366, 768], [390, 844]])
+      for (const locale of ["en", "he"]) {
+        const ctx = await browser.newContext({ viewport: { width: w, height: h }, timezoneId: "Asia/Jerusalem", locale: locale === "he" ? "he-IL" : "en-US", colorScheme: "dark" });
+        await ctx.addCookies(app.cookies(app.personal, locale));
+        const page = await ctx.newPage();
+        const res = await walkAdmin(page, app.base, { locale });
+        ok(res.problems.length === 0, `S1 /admin ${w} ${locale}: ${res.tabs} tabs, no console error / hydration warning / 5xx / blank`, res.problems.join(" | "));
+        await ctx.close();
+      }
+  } finally {
+    await browser.close();
+  }
 } finally {
   app.stop();
 }

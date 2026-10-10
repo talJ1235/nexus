@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
+import { installClientErrorCapture } from "@/lib/client-errors";
 import { ThemeProvider, useTheme } from "next-themes";
 import { Direction } from "radix-ui";
 import { Toaster } from "sonner";
@@ -40,7 +41,9 @@ export function Providers({ locale, nonce, children }: { locale: Locale; nonce?:
     window.location.reload();
   }, []);
   // Pages without the app shell (login, shared lists) are ready once hydrated; the app marks itself when its data is in.
+  // R17 S5 S1: every page reports its errors (the admin panel had none) — with the ones caught before hydration.
   useEffect(() => {
+    installClientErrorCapture();
     if (!document.querySelector("[data-app-shell]")) markBooted();
   }, []);
   const phone = useSyncExternalStore(subscribePhone, () => window.matchMedia(PHONE).matches, () => false);

@@ -27,6 +27,16 @@ const ok = (c: boolean, m: string, d = "") => {
 };
 
 async function unit() {
+  // R17 S5 S1: which DB failures get one more try (reads only, never SQL errors).
+  const { isReadStatement, isTransientDbError } = await import("../src/db/transient");
+  const failed = (cause: unknown) => Object.assign(new Error("Failed query: select 1\nparams: x"), { cause });
+  ok(isTransientDbError(failed(new TypeError("fetch failed"))), "S1 transient: fetch failed (in the cause) → retry");
+  ok(isTransientDbError(failed({ code: "SERVER_ERROR", message: "Server returned HTTP status 503" })), "S1 transient: HTTP 503 → retry");
+  ok(isTransientDbError(failed({ code: "STREAM_EXPIRED", message: "Hrana stream expired" })), "S1 transient: stream expired → retry");
+  ok(!isTransientDbError(failed({ code: "SQLITE_UNKNOWN", message: "SQLite error: no such table: member" })), "S1 transient: no such table → no retry");
+  ok(!isTransientDbError(failed({ code: "SQLITE_CONSTRAINT", message: "UNIQUE constraint failed" })), "S1 transient: constraint → no retry");
+  ok(!isTransientDbError(new Error("Failed query: select 1")), "S1 transient: no cause → no retry");
+  ok(isReadStatement(`select "id" from "space"`) && isReadStatement("  PRAGMA busy_timeout = 5000") && !isReadStatement(`insert into "x" values (1)`) && !isReadStatement("with a as (select 1) delete from x"), "S1 retry: reads only");
   const { redact, normalise, shape } = await import("../src/lib/errors/shape");
   const { recordError } = await import("../src/lib/errors/record");
   const { db, schema } = await import("../src/db");

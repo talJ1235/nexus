@@ -18,6 +18,10 @@ export const onRequestError: Instrumentation.onRequestError = async (err, reques
   // A per-device stand-in for "who" (hashed with the fingerprint, never stored as is): the session cookie.
   const cookie = typeof headers.cookie === "string" ? headers.cookie : "";
   const session = /(?:^|;\s*)(?:__Secure-)?nexus_session[^=]*=([^;]+)/.exec(cookie)?.[1] ?? null;
+  // R17 S5 S1: Drizzle's "Failed query" hides the driver's reason (network, stream expired, blocked…) in `cause`.
+  const cause = (err as { cause?: { code?: string; message?: string } })?.cause;
+  // First in the sample: samples are cut at 500 characters and the query text is long.
+  const why = cause ? `cause: ${cause.code ? `${cause.code} ` : ""}${String(cause.message ?? cause).slice(0, 200)}\n` : "";
   const { recordError } = await import("@/lib/errors/record");
-  await recordError({ kind: "server", code: name.slice(0, 40), where, message, sample: `${name}: ${message}\n${(e as Error)?.stack?.split("\n").slice(1, 4).join("\n") ?? ""}` }, session);
+  await recordError({ kind: "server", code: name.slice(0, 40), where, message, sample: `${why}${name}: ${message}\n${(e as Error)?.stack?.split("\n").slice(1, 4).join("\n") ?? ""}` }, session);
 };

@@ -7,6 +7,7 @@ import "./admin.css";
 import Link from "next/link";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { getAdminNav } from "@/app/admin-actions";
+import { CrashBoundary } from "@/components/crash";
 import { useI18n } from "@/components/providers";
 import { useMedia } from "@/components/ui/use-media";
 import { AiTab } from "./ai";
@@ -73,7 +74,9 @@ export function AdminApp({ initial, me }: { initial: Route; me: string }) {
   const phoneTab: Tab = ["live", "people", "reports"].includes(cur) ? cur : "more";
 
   const body = !hydrated ? null : (
-    <TabBody route={route} phone={phone} go={go} me={me} nav={nav} setNav={setNav} />
+    <CrashBoundary key={`${route.tab}/${route.sub ?? ""}`} where="admin">
+      <TabBody route={route} phone={phone} go={go} me={me} nav={nav} setNav={setNav} />
+    </CrashBoundary>
   );
 
   return (

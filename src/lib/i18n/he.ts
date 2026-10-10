@@ -3,6 +3,16 @@ import type { Dict } from "./en";
 export const he: Dict = {
   appName: "Nexus",
   tagline: "כל מה שאתה מתכנן לקנות, במקום אחד",
+  crash: {
+    title: "משהו השתבש",
+    body: "הדף הפסיק לעבוד. טעינה מחדש בדרך כלל פותרת את זה — כבר רשמנו מה קרה.",
+    reload: "טעינה מחדש",
+    report: "דיווח",
+    sending: "שולחים…",
+    sent: "תודה — הדיווח נשלח",
+    failed: "השליחה לא הצליחה — נסו שוב",
+    happened: "הדף קרס ({where}): {message}",
+  },
   nt: {
     title: "התראות",
     markAll: "סימון הכול כנקרא",

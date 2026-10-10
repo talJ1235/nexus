@@ -25,6 +25,10 @@ const CUBE = (x: number, y: number) =>
   `M${x + 28} ${y}l28 16v32l-28 16-28-16V${y + 16}z M${x} ${y + 16}l28 16 28-16 M${x + 28} ${y + 32}v32`;
 const OUTLINE = CUBE(4, 0);
 
+/** R17 S5 S1: errors before the app is up (a hydration mismatch is reported as a window error before any effect runs)
+ * are kept here until installClientErrorCapture() picks them up. */
+const EARLY_ERRORS = `(function(){var q=window.__nxEarly=[];addEventListener("error",function(e){if(q.length<10&&window.__nxEarly===q)q.push([String((e.error&&e.error.message)||e.message||"").slice(0,300),e.filename?String(e.filename).split("/").pop().split("?")[0]+":"+e.lineno+":"+e.colno:""])})})()`;
+
 const MODE_SCRIPT = `(function(){var d=document.documentElement,m="full",r=0;try{r=localStorage.getItem("nexus.motion")==="reduce";if(r)d.setAttribute("data-motion","reduce")}catch(e){}try{var p=matchMedia("(max-width: 768px), (display-mode: standalone)").matches,a=new Date(),k=a.getFullYear()+"-"+(a.getMonth()+1)+"-"+a.getDate(),L=localStorage;if(p){var n=performance.getEntriesByType("navigation")[0],t=n&&n.type,s=sessionStorage;if(t==="reload"||t==="back_forward"||s.getItem("nexus.opened")||L.getItem("nexus.bootDay")===k)m="small";else L.setItem("nexus.bootDay",k);s.setItem("nexus.opened","1")}else if(location.pathname!=="/"){m="none"}else{if(L.getItem("nexus.bootDay")===k)m="small";else L.setItem("nexus.bootDay",k)}}catch(e){m="small"}if(r&&m==="full")m="small";d.setAttribute("data-boot",m)})()`;
 
 /**
@@ -77,7 +81,7 @@ const AMBIENT: [string, string, number, number, number, number, number, number][
 export function BootScreen({ nonce }: { nonce?: string }) {
   return (
     <>
-      <script nonce={nonce} dangerouslySetInnerHTML={{ __html: VIEWPORT_GUARD + ";" + MODE_SCRIPT }} />
+      <script nonce={nonce} dangerouslySetInnerHTML={{ __html: EARLY_ERRORS + ";" + VIEWPORT_GUARD + ";" + MODE_SCRIPT }} />
       <div id="boot" aria-hidden="true">
         <div className="boot-bg">
           <div className="boot-bloom" />

@@ -3,6 +3,7 @@ import { createClient, type InStatement } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { noteDb } from "@/lib/timing";
 import * as schema from "./schema";
+import { isReadStatement, isTransientDbError } from "./transient";
 
 const client = createClient({
   url: process.env.TURSO_DATABASE_URL ?? "file:local.db",
@@ -18,8 +19,14 @@ const execute = client.execute.bind(client);
 const batch = client.batch.bind(client);
 client.execute = (async (stmt: InStatement, args?: unknown) => {
   const t = performance.now();
+  const run = () => (execute as (s: InStatement, a?: unknown) => ReturnType<typeof execute>)(stmt, args);
   try {
-    return await (execute as (s: InStatement, a?: unknown) => ReturnType<typeof execute>)(stmt, args);
+    return await run();
+  } catch (e) {
+    // R17 S5 S1: a read that failed on the way (not the SQL) gets one more try.
+    if (!isTransientDbError(e) || !isReadStatement(sqlOf(stmt))) throw e;
+    await new Promise((r) => setTimeout(r, 120));
+    return await run();
   } finally {
     noteDb(sqlOf(stmt), performance.now() - t);
   }
