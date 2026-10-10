@@ -113,7 +113,7 @@ export async function sharedActivity(userId: string, spaceId: string | null, kin
 // ---------- M3: prices ----------
 
 /**
- * The alerts of one check run → one `price` row per item for every member of its space. They share the run id and the
+ * The alerts of one check run → one `price` row per item for the space's owners and members (R17 Q1: not viewers). They share the run id and the
  * person's active hour, so the dispatcher sends them as one push ("3 price drops"). minDropPct already applied.
  */
 export async function priceAlerts(alerts: Alert[], runId: string, now = Date.now()) {
@@ -121,7 +121,7 @@ export async function priceAlerts(alerts: Alert[], runId: string, now = Date.now
   for (const a of alerts) if (a.kind === "drop" || a.kind === "target") bySpace.set(a.spaceId, [...(bySpace.get(a.spaceId) ?? []), a]);
   let n = 0;
   for (const [spaceId, list] of bySpace) {
-    const audience = (await spaceAudience(spaceId, null)).map((m) => m.userId);
+    const audience = (await spaceAudience(spaceId, null)).filter((m) => m.role !== "viewer").map((m) => m.userId);
     if (!audience.length) continue;
     const s = new Scoped({ spaceId, userId: null, by: "system" });
     for (const a of list) {

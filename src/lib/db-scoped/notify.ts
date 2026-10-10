@@ -48,11 +48,14 @@ export async function notificationsByGroup(groupKey: string) {
 }
 
 /** The inbox: 30 days, newest first, not swiped away. */
+/** R17 Q1: price news is for owners and members — a viewer's price rows (from before this rule) stay hidden. */
+const notViewerPrice = sql`NOT (${schema.notification.kind} = 'price' AND EXISTS (SELECT 1 FROM space_member m WHERE m.space_id = ${schema.notification.spaceId} AND m.user_id = ${schema.notification.userId} AND m.role = 'viewer'))`;
+
 export async function inboxRows(userId: string, now = Date.now(), limit = 200) {
   return db
     .select()
     .from(schema.notification)
-    .where(and(eq(schema.notification.userId, userId), isNull(schema.notification.deletedAt), gte(schema.notification.updatedAt, now - INBOX_KEEP_MS)))
+    .where(and(eq(schema.notification.userId, userId), isNull(schema.notification.deletedAt), gte(schema.notification.updatedAt, now - INBOX_KEEP_MS), notViewerPrice))
     .orderBy(desc(schema.notification.updatedAt))
     .limit(limit);
 }
@@ -61,7 +64,7 @@ export async function unreadCount(userId: string, now = Date.now()) {
   const [r] = await db
     .select({ n: count() })
     .from(schema.notification)
-    .where(and(eq(schema.notification.userId, userId), isNull(schema.notification.deletedAt), isNull(schema.notification.readAt), gte(schema.notification.updatedAt, now - INBOX_KEEP_MS)));
+    .where(and(eq(schema.notification.userId, userId), isNull(schema.notification.deletedAt), isNull(schema.notification.readAt), gte(schema.notification.updatedAt, now - INBOX_KEEP_MS), notViewerPrice));
   return r?.n ?? 0;
 }
 
@@ -99,6 +102,7 @@ export async function claimDue(now: number, opts: { userId?: string; limit?: num
     isNull(schema.notification.sentAt),
     isNull(schema.notification.deletedAt),
     eq(schema.notification.pushState, "due"),
+    notViewerPrice,
     ...(opts.userId ? [eq(schema.notification.userId, opts.userId)] : []),
   );
   const ids = (

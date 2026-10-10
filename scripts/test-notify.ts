@@ -238,6 +238,17 @@ async function senders() {
   const yp = await rows("yoav", "price");
   assert.equal(yp.length, 2);
   assert.ok(yp.every((r) => r.sendAfter === yp[0].sendAfter), "one run shares one send time (one push)");
+  // R17 Q1: owners and members only — the viewer gets no price row (so no inbox row and no push).
+  assert.equal((await rows("noa", "price")).length, 2, "the owner gets them");
+  assert.equal((await rows("maya", "price")).length, 0, "the viewer gets none");
+  // A viewer's price row from before the rule: not in the inbox, not counted, never pushed.
+  const nq = await import("../src/lib/db-scoped/notify");
+  const mayaUnread = await nq.unreadCount("maya", IL(9, 12));
+  await db.insert(schema.notification).values({ id: "old_vp", userId: "maya", spaceId: "home", kind: "price", groupKey: "price:old:it1", data: "{}", createdAt: IL(9, 11), updatedAt: IL(9, 11), sendAfter: IL(9, 11), pushState: "due" } as never);
+  assert.ok(!(await nq.inboxRows("maya", IL(9, 12))).some((r) => r.id === "old_vp"), "hidden from the viewer's inbox");
+  assert.ok(!(await nq.claimDue(IL(9, 12), { userId: "maya" })).some((r) => r.id === "old_vp"), "never pushed");
+  assert.equal(await nq.unreadCount("maya", IL(9, 12)), mayaUnread, "not counted");
+  await db.delete(schema.notification).where(eq(schema.notification.id, "old_vp"));
 
   // M4: a delivery due today → 08:00 local, once.
   await db.insert(schema.items).values({ id: "it3", spaceId: "home", title: "Car vent clip", status: "ordered", eta: IL(10, 14), createdAt: t0, updatedAt: t0 } as never);
