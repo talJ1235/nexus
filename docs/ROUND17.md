@@ -988,3 +988,17 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
   178) land on results — unchanged.
 - **S6:** `enctype` added; `/share` takes a GET share (test:headers).
 - **No DB change** → no migration rehearsal.
+- **Local guards:** test:admin-access (with the new browser walk), test:admin-people, test:admin-live, test:polish (all,
+  incl. S3 / A2 / #29), test:onboarding, test:home, test:sug, test:errors (unit), test:ai-quota, test:headers,
+  test:help, test:roles, test:authz-coverage, test:scope, test:bidi, test:clip quick (278 screens, 0) — all OK. Smoke
+  (fresh seeded DB): desktop all passed (one earlier run failed once on an aborted WASM download, passed on the re-run);
+  phone failed on a different step each run (item sheet morph by 3.8 px, a click timeout, Ably's CSP in the local
+  server) — the S4 phone flake; nothing in this session touches those paths. Watch it in CI.
+- **CI (guards on `round17-s5`):** green at `d09162c` after three fixes it found — polish A2 (copies of the tallest
+  slide took the room of the list under a wide suggestions card → the fixed text box), admin People (the crash
+  boundary was keyed by the open person and remounted the tab → keyed by tab), polish #29 (CI loads moved on before
+  their token request — 20–24 of 30, **main failed the same today**; each load now waits for its own). FedCM "cancel:
+  focus back on the Google button" failed twice and passed on a re-run (the S4 flake; login code untouched).
+- **After the deploy (for the next session / Tal):** run `BASE=https://nexus-ashen-beta.vercel.app node --env-file=.env.local
+  scripts/probe-admin.mjs` and read the error log — any new "Failed query" entry now starts with `cause:`.
+- **Merged** `round17-s5` → `main` (fast-forward).
