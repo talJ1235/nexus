@@ -7,6 +7,11 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-10 (late night):** R18 planning started → **`docs/R18-PLANNING.md`** (gate to close R17, what exists,
+  draft scope Parts A–G in 3 sessions, R19/R20 dependencies — native FCM push needed in the Android wrapper, gtin +
+  store + price capture for R19 —, 6 questions for Tal, prep with calendar time). **Next:** Tal answers §5 → decisions
+  here → research update → boards in a new chat (canvas "Nexus R18 — Supermarket") → `docs/ROUND18.md` (S1 without
+  boards can run first). R17 S5 still running/pending.
 - **2026-10-10 (night):** Tal's checks after S4 → **R17 Session 5 brief `docs/ROUND17-S5.md`** (hotfixes): S1 `/admin`
   black on desktop (React #418 hydration text mismatch + 500s on server actions and `/api/presence`; phone works), S2
   "שקל" still shown (AI wording cached per day before the S4 normaliser), S3 suggestions card bobs under mouse hover
@@ -324,6 +329,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-10 · same chat · Roadmap after R17 + R18 kickoff: wrote `docs/R18-PLANNING.md`. Found in code: trips are a pref (no trip table, no check-order log), no staples/templates, no duplicate merge, offline adds not in the outbox.
 - 2026-10-10 · same chat · Tal's checks after S4 (admin black on desktop with React #418 + 500s, "שקל" still shown, card bobbing on hover) + answers (QR always, check prices) → wrote `docs/ROUND17-S5.md`. Cause of "שקל": AI wording cache read without the normaliser.
 - 2026-10-10 · same chat · Reviewed R17 S4 results (all items done, CI green, merged). Gave Tal the admin check and the S4 test list.
 - 2026-10-10 · same chat · Tal's phone/PC notes after S2+S3 → wrote `docs/ROUND17-S4.md` (Parts P, Q, R). Causes found in code: switcher `truncate` on a Latin name inside RTL (ellipsis at the start), inbox `Skeleton` = 3 fixed bars, carousel drag rubber-bands at the ends, admin gate = `role === "admin"` (Tal's role to verify on prod).
