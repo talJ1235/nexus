@@ -3,7 +3,9 @@
 import { z } from "zod";
 import { requireCtx } from "@/lib/ctx";
 import { deleteNotification, inboxRows, markNotificationsRead, mySubscription, unreadCount } from "@/lib/db-scoped/notify";
+import { after } from "next/server";
 import { sendTestPush } from "@/lib/notify/dispatch";
+import { maybeDispatch } from "@/lib/notify/maybe";
 import { userPrefGet, userPrefGetMany, userPrefSet } from "@/lib/db-scoped/prefs";
 import { NOTIFY_KEY } from "@/lib/home-prefs";
 import { ONBOARDING_KEY, parseOnboarding } from "@/lib/onboarding";
@@ -38,6 +40,8 @@ export async function notifyBoot(): Promise<NotifyBoot> {
   } catch {}
   const ob = parseOnboarding(kv[ONBOARDING_KEY]);
   const due = askDue(parseAsk(kv[ASK_KEY]), { now, today: await today(ctx.user.id, now), switchOn: on, onboardingAt: ob && ob.status !== "active" ? ob.at : null });
+  // R17 S6 U3: opening the app also keeps the dispatcher running (at most once per 5 min, for everyone).
+  after(() => maybeDispatch());
   return { publicKey: vapidPublicKey(), configured: pushConfigured(), on, askDue: due, unread: await unreadCount(ctx.user.id, now) };
 }
 

@@ -50,6 +50,9 @@ async function beat(req: Request) {
     if (tr.started) await tripStarted(ctx.user.id, ctx.space.id, beat.shoppingLeft).catch(() => {});
     else if (tr.finished) await tripFinished(ctx.user.id, beat.shoppingLeft).catch(() => {});
     else if (tr.shopping) await tripProgress(ctx.user.id, beat.shoppingLeft).catch(() => {});
+    // R17 S6 U3: anyone online keeps the dispatcher running (once per 5 min for everyone, not only this person).
+    const { maybeDispatch } = await import("@/lib/notify/maybe");
+    await maybeDispatch();
   });
   return new Response(null, { status: 204 });
 }

@@ -41,7 +41,7 @@ Acceptance: `test:push` covers the test-push path (fake push service: sent, 410 
 - The inbox is unchanged.
 Acceptance: `test:notify` unit tables for every kind × (day / night / just after another activity push).
 
-### U3. [ ] Don't depend on GitHub's schedule alone
+### U3. [x] Don't depend on GitHub's schedule alone
 GitHub delays or skips scheduled workflows, so deferred rows (quiet hours, the activity hour, Thursday) and the time
 sweeps (idle trips, deliveries today, budget, weekly) can't rely on `hourly.yml` alone:
 - Opportunistic dispatch: any signed-in request that already runs server code (e.g. the presence beat) calls a

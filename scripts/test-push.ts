@@ -122,6 +122,24 @@ async function serverSide() {
     ok(!!mine && mine.lastCode === 500 && !(await n.mySubscription("u2", `${fake.base}/boom/2`)), "this device's state: the server has it (only for its own person)");
     await db.delete(schema.pushSubscription).where(eq(schema.pushSubscription.id, boom2!.id));
 
+    // R17 S6 U3: the opportunistic dispatcher — two requests at once: one wins the 5-minute lease, the row goes once;
+    // a row due later is sent by the next request after its time (5 min on), without the hourly job.
+    const { maybeDispatch } = await import("../src/lib/notify/maybe");
+    await db.insert(schema.user).values({ id: "u3", name: "Dana", email: "u3@test.example", emailVerified: true, createdAt: d, updatedAt: d });
+    await n.saveSubscription("u3", { endpoint: `${fake.base}/ok/u3`, p256dh: b64(ua.getPublicKey()), auth: b64(auth), device: "phone", label: null });
+    const T = Date.now();
+    const dueRow = (id: string, at: number) => ({ id, userId: "u3", spaceId: null, kind: "budget", groupKey: `budget:${id}`, data: JSON.stringify({ space: "Home", pct: 80, spent: 800, budget: 1000, currency: "ILS", month: 9 }), createdAt: T, updatedAt: T, sendAfter: at, pushState: "due" }) as never;
+    await db.insert(schema.notification).values([dueRow("m1", T - 60_000), dueRow("m2", T + 60_000)]);
+    const toU3 = () => fake.seen.filter((x) => x.path === "/ok/u3").length;
+    const both = await Promise.all([maybeDispatch(T, true), maybeDispatch(T, true)]);
+    ok(both.filter(Boolean).length === 1 && toU3() === 1, "U3: two dispatches at once → one runs, the due row is pushed once", JSON.stringify({ ran: both.map((x) => !!x), pushes: toU3() }));
+    ok((await maybeDispatch(T + 61_000, true)) === null && toU3() === 1, "U3: within 5 minutes nothing runs again");
+    const later = await maybeDispatch(T + 6 * 60_000, true);
+    const [m2] = await db.select().from(schema.notification).where(eq(schema.notification.id, "m2"));
+    ok(!!later && toU3() === 2 && m2.pushState === "sent", "U3: the row due later goes with the next request after its time (no cron)", JSON.stringify({ later: !!later, pushes: toU3(), state: m2.pushState }));
+    const { kvGet } = await import("../src/lib/kv");
+    ok(JSON.parse((await kvGet("pref:last_notify")) ?? "{}").by === "app", "U3: the run is recorded for System → Push (by the app)");
+
     // Only browser push services (SSRF guard); loopback only under the test flag.
     ok(push.allowedEndpoint("https://fcm.googleapis.com/fcm/send/x") && push.allowedEndpoint("https://updates.push.services.mozilla.com/wpush/v2/x") && push.allowedEndpoint("https://web.push.apple.com/x") && push.allowedEndpoint("https://wns2-db5p.notify.windows.com/w/?token=x"), "the push services are allowed");
     ok(!push.allowedEndpoint("https://example.com/x") && !push.allowedEndpoint("http://fcm.googleapis.com/x") && !push.allowedEndpoint("https://fcm.googleapis.com:8443/x") && !push.allowedEndpoint("https://user:pw@fcm.googleapis.com/x") && !push.allowedEndpoint("https://fcm.googleapis.com.evil.io/x"), "anything else is refused");

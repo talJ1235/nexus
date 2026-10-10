@@ -12,6 +12,7 @@ import { dayStart, logActivity, recordBeat } from "@/lib/db-scoped/presence";
 import { notifyCounts, pushDiagnostics } from "@/lib/db-scoped/notify";
 import { kvGet } from "@/lib/kv";
 import { sendTestPush } from "@/lib/notify/dispatch";
+import { LAST_NOTIFY_KEY } from "@/lib/notify/maybe";
 import { pushConfigured } from "@/lib/notify/push";
 import { parseBeat, platformOf } from "@/lib/presence-keys";
 import { adminNavCounts, adminReport, adminReports, cronSummary } from "@/lib/db-scoped/admin-health";
@@ -149,7 +150,6 @@ export async function getSystem() {
 }
 
 /** R17 S6 U1: the dispatcher's last run (`/api/cron/notify` or an opportunistic run) — when, how long, sent / failed. */
-const LAST_NOTIFY_KEY = "pref:last_notify";
 function lastNotify(v: string | null) {
   try {
     const j = JSON.parse(v ?? "null") as { at?: unknown; ms?: unknown; sent?: unknown; failed?: unknown; by?: unknown } | null;

@@ -14,6 +14,8 @@ env:
   TURSO_DATABASE_URL: file:ci-unit.db
   TURSO_AUTH_TOKEN: ""
   NEXT_TELEMETRY_DISABLED: "1"
+  # R17 S6 U3: test servers keep their seeded data — no opportunistic notification sweeps on beats (test:push forces it).
+  NOTIFY_AUTO_DISPATCH: "0"
 jobs:
   guards:
     runs-on: ubuntu-24.04 # pinned: ubuntu-latest moves to 26.04 on 2026-10-19

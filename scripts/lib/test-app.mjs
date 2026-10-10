@@ -35,6 +35,8 @@ export async function startApp({ db: file, port, dev = false, env: extra = {} })
     ABLY_API_KEY: "",
     CF_FETCH_URL: "",
     NEXUS_AI_MOCK: "1",
+    // R17 S6 U3: seeded test data stays as seeded — no opportunistic sweeps on beats (test:push covers maybeDispatch).
+    NOTIFY_AUTO_DISPATCH: "0",
     REALTIME_FAKE: dev ? "1" : "",
     NEXT_DIST_DIR: undefined,
     ...extra,
