@@ -7,6 +7,18 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-10 (night):** Tal's checks after S4 → **R17 Session 5 brief `docs/ROUND17-S5.md`** (hotfixes): S1 `/admin`
+  black on desktop (React #418 hydration text mismatch + 500s on server actions and `/api/presence`; phone works), S2
+  "שקל" still shown (AI wording cached per day before the S4 normaliser), S3 suggestions card bobs under mouse hover
+  (desktop height not fixed + `StackHeight` observer/animation loop), S4 desktop step 5 always shows the phone QR, S5
+  "if paid" prices checked from official pages + store search links, S6 manifest `enctype` warning. Tal still has to add
+  the VAPID keys to Vercel (System tab shows "Keys not set — inbox only"). Prompt:
+  ```
+  Round 17, session 5 (docs/ROUND17-S5.md) — Parts S, T, unattended, on branch round17-s5, S1 first. Step 0, now while
+  I'm here: make sure .claude/settings.local.json allows "Bash(git push origin round17-s5)", "Bash(git push -u origin
+  round17-s5)", "Bash(git merge --ff-only round17-s5)". Then go through all parts without stopping. Merge to main only
+  if everything is green.
+  ```
 - **2026-10-10 (evening):** **R17 Session 4 merged and live** (`dbcb872`, no DB change; results in `docs/ROUND17.md`
   Open "### Session 4"). Causes the builder found: no Radix direction provider (every menu was LTR in Hebrew); admin role
   was reset on each sign-in from `ADMIN_EMAIL` only (now `ADMIN_EMAILS` too, applied on the next request — not verified
@@ -280,6 +292,8 @@ to setup, tooling or workflow is recorded there in the same session.
   ("תכנון עם Nexus" → Nexus on the left); guarded by `test:bidi`. Carousels loop at both ends on drag/swipe too.
 - **R17 S3 follow-ups (Tal 2026-10-10):** price notifications go to the space owner + members, never viewers; "Check now"
   comes back as an action on the item page (no drop-% picker; `minDropPct` stays 5 %). For the S2 + S3 fix round.
+- **Onboarding + admin leftovers (Tal 2026-10-10):** desktop onboarding step 5 always shows the phone QR (only the QR
+  when the computer can't install); "if it were paid" uses prices checked on the official pages, with the date shown.
 
 ## Product direction (discussed 2026-10-03, not started)
 - Toward a multi-user product: sign-up on web or app, short onboarding questionnaire (habits, stores), Google sign-in,
@@ -310,6 +324,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-10 · same chat · Tal's checks after S4 (admin black on desktop with React #418 + 500s, "שקל" still shown, card bobbing on hover) + answers (QR always, check prices) → wrote `docs/ROUND17-S5.md`. Cause of "שקל": AI wording cache read without the normaliser.
 - 2026-10-10 · same chat · Reviewed R17 S4 results (all items done, CI green, merged). Gave Tal the admin check and the S4 test list.
 - 2026-10-10 · same chat · Tal's phone/PC notes after S2+S3 → wrote `docs/ROUND17-S4.md` (Parts P, Q, R). Causes found in code: switcher `truncate` on a Latin name inside RTL (ellipsis at the start), inbox `Skeleton` = 3 fixed bars, carousel drag rubber-bands at the ends, admin gate = `role === "admin"` (Tal's role to verify on prod).
 - 2026-10-10 · same chat as the S3 boards · Reviewed R17 S3 results (merged, CI green, rehearsal ok, local smoke 81/81 + 95/95, one pre-existing prod smoke failure). Accepted the builder's decisions; Tal then chose: price pushes not to viewers; "Check now" back on the item page (both → fix round). Gave Tal the VAPID / `CRON_SECRET` steps; `hourly` ran green by hand.
