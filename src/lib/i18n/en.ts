@@ -230,6 +230,7 @@ export const en = {
       ofAll: "of {n}",
       statAi: "AI calls today",
       statReports: "Reports waiting",
+      statNotify: "Notifications sent today",
       phone: "Phone",
       computer: "Computer",
       person: "Person",
@@ -487,7 +488,11 @@ export const en = {
       keysHint: "Names only — values are never shown.",
       set: "Set",
       missing: "Missing",
-      tables: { items: "Items", sources: "Store links", price_points: "Price history", ai_usage: "AI calls", error_event: "Error log", session: "Sessions", activity: "Activity", user: "People" },
+      tables: { items: "Items", sources: "Store links", price_points: "Price history", ai_usage: "AI calls", error_event: "Error log", session: "Sessions", activity: "Activity", notification: "Inbox", push_subscription: "Push devices", user: "People" },
+      push: "Notifications",
+      pushLine: "{p} phones · {c} computers",
+      pushToday: "Sent today {s} · failed {f} · due now {d}",
+      pushOff: "Keys not set — inbox only",
     },
   },
   // R16 E1/E2: Home customise (presets, sizes, drag, tray) and the new widgets.
@@ -600,6 +605,7 @@ export const en = {
       activity: "Activity & recovery",
       invites: "Invite codes",
       reports: "Your reports",
+      notifications: "Notifications",
     },
     keywords: {
       account: "security passkey devices sign out google name אבטחה מכשירים",

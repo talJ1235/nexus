@@ -25,6 +25,10 @@ try {
   }
   await x("INSERT INTO items (id, space_id, title, notes, status, added_by_user_id, created_at, updated_at) VALUES ('ad_item1', 'ad_home', 'Velvet armchair Pirouette', 'note: hide from the panel', 'to_buy', 'ad_noa', ?, ?)", [now, now]);
   await x("UPDATE items SET notes = 'private note ' || id WHERE notes IS NULL AND id IN (SELECT id FROM items LIMIT 30)");
+  // R17 S3 N3: inbox rows (their data holds names, titles, prices) and a push address — the panel shows counts only.
+  await x("INSERT INTO notification (id, user_id, space_id, kind, group_key, data, created_at, updated_at, sent_at, push_state) VALUES ('nt_priv1', 'ad_noa', 'ad_home', 'price', 'price:priv:1', ?, ?, ?, ?, 'sent')", [JSON.stringify({ itemId: "ad_item1", title: "Inbox title Marmalade lamp", store: "Secretstore", now: 12, was: 20, currency: "ILS", run: "priv" }), now, now, now]);
+  await x("INSERT INTO notification (id, user_id, space_id, kind, group_key, data, created_at, updated_at, push_state) VALUES ('nt_priv2', ?, ?, 'activity', 'activity:priv', ?, ?, ?, 'due')", [app.admin, app.personal, JSON.stringify({ names: ["Persimmon Person"], byIds: ["ad_noa"], added: 3, checked: 0, space: "Hidden space name" }), now, now]);
+  await x("INSERT INTO push_subscription (id, user_id, endpoint, p256dh, auth, device, label, created_at, fail_count) VALUES ('ps_priv', 'ad_noa', 'https://fcm.googleapis.com/fcm/send/secret-endpoint-abc123', 'p256dh-secret-key', 'auth-secret', 'phone', 'Chrome · Android', ?, 0)", [now]);
 
   const strings = new Set();
   const add = (v) => typeof v === "string" && v.trim().length >= 6 && strings.add(v.trim());
@@ -34,6 +38,7 @@ try {
   for (const r of (await x("SELECT title FROM conversations")).rows) add(r.title);
   for (const r of (await x("SELECT text FROM memories")).rows) add(r.text);
   for (const r of (await x("SELECT name FROM collections")).rows) add(r.name);
+  for (const v of ["Inbox title Marmalade lamp", "Secretstore", "Persimmon Person", "Hidden space name", "secret-endpoint-abc123", "p256dh-secret-key", "auth-secret"]) strings.add(v);
   ok(strings.size > 20, `${strings.size} content strings from the seed to look for`);
 
   const FILES = ["src/app/admin-actions.ts", "src/app/invite-admin-actions.ts", "src/app/error-actions.ts"];

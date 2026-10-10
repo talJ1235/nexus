@@ -69,6 +69,13 @@ export function SystemTab({ phone, go }: { phone: boolean; go: Go }) {
                 {hl(data.realtime ? "ok" : "warn", S.live, data.realtime ? S.liveOn : S.liveOff)}
                 {hl("ok", S.checks, f(S.linksHour, { n: num(data.db.checksHour) }))}
                 {hl(data.storeReader ? "ok" : "off", S.reader, data.storeReader ? S.on : S.notSetUp)}
+                {/* R17 S3 N3: counts only — devices, sent / failed today, due now. */}
+                {hl(!data.notify.configured ? "off" : data.notify.failedToday > data.notify.sentToday ? "warn" : "ok", S.push, data.notify.configured ? f(S.pushLine, { p: data.notify.phone, c: data.notify.computer }) : S.pushOff, "push")}
+                {data.notify.configured && (
+                  <div className="tiny" style={{ paddingInlineStart: 18, marginTop: -4 }} data-system-push>
+                    {f(S.pushToday, { s: data.notify.sentToday, f: data.notify.failedToday, d: data.notify.dueNow })}
+                  </div>
+                )}
               </div>
             </section>
             <section className="panel">

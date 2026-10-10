@@ -8,7 +8,9 @@ import { logSecurityEvent } from "@/lib/auth/events";
 import { AccessError, isAdmin, requireCtx, type Ctx } from "@/lib/ctx";
 import { markAccountDeletion, soleOwnerBlocks } from "@/lib/db-scoped/account";
 import { adminAiStats, adminLive, adminPeople, adminPerson, adminSystemDb, revokeUserSession, revokeUserSessions, setUserBanned, userExists } from "@/lib/db-scoped/admin";
-import { logActivity, recordBeat } from "@/lib/db-scoped/presence";
+import { dayStart, logActivity, recordBeat } from "@/lib/db-scoped/presence";
+import { notifyCounts } from "@/lib/db-scoped/notify";
+import { pushConfigured } from "@/lib/notify/push";
 import { parseBeat, platformOf } from "@/lib/presence-keys";
 import { adminNavCounts, adminReport, adminReports, cronSummary } from "@/lib/db-scoped/admin-health";
 import { setReportStatusAdmin } from "@/lib/db-scoped/reports";
@@ -139,9 +141,9 @@ export async function getAiStats(days: 7 | 30) {
 /** Services, the daily job's last run, DB size + rows per table, keys set / missing (names only, never values). */
 export async function getSystem() {
   await admin();
-  const [dbInfo, cron] = await Promise.all([adminSystemDb(), cronSummary()]);
+  const [dbInfo, cron, notify] = await Promise.all([adminSystemDb(), cronSummary(), notifyCounts(dayStart())]);
   const keys = KEYS.map(([name, group]) => ({ name, group, set: !!process.env[name] }));
-  return { db: dbInfo, cron, keys, storeReader: !!process.env.CF_FETCH_URL, realtime: !!process.env.ABLY_API_KEY, issues: !!process.env.GITHUB_ISSUES_TOKEN };
+  return { db: dbInfo, cron, keys, notify: { ...notify, configured: pushConfigured() }, storeReader: !!process.env.CF_FETCH_URL, realtime: !!process.env.ABLY_API_KEY, issues: !!process.env.GITHUB_ISSUES_TOKEN };
 }
 
 const KEYS: [string, string][] = [
@@ -159,6 +161,9 @@ const KEYS: [string, string][] = [
   ["BLOB_READ_WRITE_TOKEN", "files"],
   ["CF_FETCH_URL", "stores"],
   ["CRON_SECRET", "jobs"],
+  ["VAPID_PUBLIC_KEY", "push"],
+  ["VAPID_PRIVATE_KEY", "push"],
+  ["VAPID_SUBJECT", "push"],
   ["GITHUB_ISSUES_TOKEN", "reports"],
   ["REPORTS_TOKEN", "reports"],
   ["RESEND_API_KEY", "mail"],

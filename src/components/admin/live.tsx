@@ -124,7 +124,7 @@ function LiveDesktop({ data, title, fresh, go }: { data: Data; title: React.Reac
     <>
       {title}
       <div className="ad-body fill" data-live>
-        <div className="strip stg" data-live-stats>
+        <div className="strip stg" style={{ gridTemplateColumns: "repeat(6,minmax(0,1fr))" }} data-live-stats>
           <div className="stat">
             <span className="v num">{s.online}</span>
             <span className="k">{t.adm.live.statOnline}</span>
@@ -157,6 +157,10 @@ function LiveDesktop({ data, title, fresh, go }: { data: Data; title: React.Reac
           <div className="stat">
             <span className={`v num${s.reports ? " warnv" : ""}`}>{s.reports}</span>
             <span className="k">{t.adm.live.statReports}</span>
+          </div>
+          <div className="stat" data-live-notify={s.notifySent}>
+            <span className="v num">{s.notifySent}</span>
+            <span className="k">{t.adm.live.statNotify}</span>
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: 16, flex: 1, minHeight: 0 }}>

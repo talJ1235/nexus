@@ -231,6 +231,7 @@ export const he: Dict = {
       ofAll: "מתוך {n}",
       statAi: "קריאות AI היום",
       statReports: "דיווחים ממתינים",
+      statNotify: "התראות שנשלחו היום",
       phone: "טלפון",
       computer: "מחשב",
       person: "מי",
@@ -488,7 +489,11 @@ export const he: Dict = {
       keysHint: "רק שמות — הערכים אף פעם לא מוצגים.",
       set: "מוגדר",
       missing: "חסר",
-      tables: { items: "פריטים", sources: "קישורי חנויות", price_points: "היסטוריית מחירים", ai_usage: "קריאות AI", error_event: "יומן שגיאות", session: "חיבורים", activity: "פעילות", user: "אנשים" },
+      tables: { items: "פריטים", sources: "קישורי חנויות", price_points: "היסטוריית מחירים", ai_usage: "קריאות AI", error_event: "יומן שגיאות", session: "חיבורים", activity: "פעילות", notification: "תיבת התראות", push_subscription: "מכשירי פוש", user: "אנשים" },
+      push: "התראות",
+      pushLine: "{p} טלפונים · {c} מחשבים",
+      pushToday: "נשלחו היום {s} · נכשלו {f} · ממתינות {d}",
+      pushOff: "המפתחות לא הוגדרו — רק בפעמון",
     },
   },
   // R16 E1/E2: Home customise (presets, sizes, drag, tray) and the new widgets.
@@ -601,6 +606,7 @@ export const he: Dict = {
       activity: "פעילות ושחזור",
       invites: "קודי הזמנה",
       reports: "הדיווחים שלי",
+      notifications: "התראות",
     },
     keywords: {
       account: "security passkey devices sign out google name אבטחה מכשירים מפתח גישה התנתקות",

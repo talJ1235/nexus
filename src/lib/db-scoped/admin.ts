@@ -5,6 +5,7 @@ import { aiDay, aiAllowance, type Allowance } from "../ai-gate";
 import { ONLINE_MS, type Device } from "../presence-keys";
 import { describeUa } from "../auth/ua";
 import { activityRows, dayStart, presenceRows } from "./presence";
+import { notifyCounts } from "./notify";
 
 // R17 G — the admin panel's reads. Counts only, never content (MULTIUSER §1): people's names / emails, space names,
 // devices, screens (fixed keys), activity kinds + counts, AI call counts. No item title, note, link, chat text, memory
@@ -33,7 +34,7 @@ export type LiveData = {
   now: number;
   online: LiveRow[];
   earlier: { userId: string; name: string; at: number }[];
-  stats: { online: number; phone: number; computer: number; shopping: number; activeToday: number; people: number; aiToday: number; reports: number };
+  stats: { online: number; phone: number; computer: number; shopping: number; activeToday: number; people: number; aiToday: number; reports: number; /** R17 S3 N3 */ notifySent: number };
   hours: number[];
   /** The current hour's column (Israel day). */
   hourNow: number;
@@ -43,13 +44,14 @@ export type LiveData = {
 /** Live: who is online now (one row per person, their latest session), earlier today, by hour, the activity stream. */
 export async function adminLive(now = Date.now()): Promise<LiveData> {
   const start = dayStart(now);
-  const [people, rows, events, hourRows, [{ ai }], [{ open }]] = await Promise.all([
+  const [people, rows, events, hourRows, [{ ai }], [{ open }], nc] = await Promise.all([
     everyone(),
     presenceRows(Math.min(start, now - ONLINE_MS)),
     activityRows({ since: now - 2 * DAY, limit: 40 }),
     activityRows({ since: start, hours: true, limit: 5000 }),
     db.select({ ai: count() }).from(schema.aiUsage).where(and(eq(schema.aiUsage.day, aiDay(now)), eq(schema.aiUsage.system, false))),
     db.select({ open: count() }).from(schema.reports).where(eq(schema.reports.status, "open")),
+    notifyCounts(start, now),
   ]);
   const name = new Map(people.map((p) => [p.id, p.name]));
   const visible = new Set(people.filter((p) => p.deletionRequestedAt == null).map((p) => p.id));
@@ -81,6 +83,7 @@ export async function adminLive(now = Date.now()): Promise<LiveData> {
       people: visible.size,
       aiToday: Number(ai ?? 0),
       reports: Number(open ?? 0),
+      notifySent: nc.sentToday,
     },
     hours: hours.map((s) => s.size),
     hourNow: Math.min(23, Math.floor((now - start) / 3_600_000)),
@@ -266,6 +269,8 @@ const TABLES = [
   ["error_event", schema.errorEvent],
   ["session", schema.session],
   ["activity", schema.activity],
+  ["notification", schema.notification],
+  ["push_subscription", schema.pushSubscription],
   ["user", schema.user],
 ] as const;
 
