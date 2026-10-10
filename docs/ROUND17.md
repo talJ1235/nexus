@@ -876,3 +876,6 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
   at 1366×768 (the desktop recipients row + no nx17 in the app), and `SQLITE_BUSY` in test:polish (WAL, as the other
   server-backed tests).
 - **Merged** `round17-s3` → `main` (fast-forward) after the checks above; prod deploys from `main`.
+- **Prod smoke after the deploy** (`37f8b7b`): one failure, "category filter narrows the grid" (a click timeout) — the
+  same check failed on the prod smoke before S3 (`5786fa5`), so it is not from this session; left for the next fix round
+  (likely the real data has no category chip that the step clicks). Everything else passed or was skipped as real data.
