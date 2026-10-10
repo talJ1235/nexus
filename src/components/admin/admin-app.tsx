@@ -74,7 +74,7 @@ export function AdminApp({ initial, me }: { initial: Route; me: string }) {
   const phoneTab: Tab = ["live", "people", "reports"].includes(cur) ? cur : "more";
 
   const body = !hydrated ? null : (
-    <CrashBoundary key={`${route.tab}/${route.sub ?? ""}`} where="admin">
+    <CrashBoundary key={route.tab} where="admin">
       <TabBody route={route} phone={phone} go={go} me={me} nav={nav} setNav={setNav} />
     </CrashBoundary>
   );
