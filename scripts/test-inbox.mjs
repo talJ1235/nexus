@@ -307,7 +307,7 @@ try {
     await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
     await page.goto(app.base);
     await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 30000 });
-    await page.waitForTimeout(3500);
+    await page.waitForTimeout(5000); // the idle boot call (≤ 2.5 s) + the prefetch 1.5 s after it
     await page.locator(z.bell).click();
     await page.waitForSelector(z.host);
     await page.waitForTimeout(400);

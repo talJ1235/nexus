@@ -525,14 +525,16 @@ export function NotifyRuntime() {
   useEffect(() => {
     if (s.loading || s.offlineAt != null) return;
     let alive = true;
+    let warm = 0;
     // Off the load path: the app's own first requests (data, live sync) go first; the badge follows when idle.
     const run = () =>
       notifyBoot()
         .then((b) => {
           if (!alive) return;
           inboxStore.setBoot(b);
-          // R17 P4: the list too, so the bell opens on real rows.
-          inboxStore.prefetch();
+          // R17 P4: the list too, so the bell opens on real rows — a moment later, so it never competes with what a
+          // page needs on arrival (live sync, the next navigation); hover / press on the bell fetch it at once.
+          warm = window.setTimeout(() => alive && document.visibilityState === "visible" && inboxStore.prefetch(), 1500);
           // iPhone: only a Home Screen app can subscribe.
           const env = pushEnv();
           if (!env.iphone || env.standalone) void ensureSubscribed(b.publicKey);
@@ -542,6 +544,7 @@ export function NotifyRuntime() {
     const id = idle(() => void run(), { timeout: 2500 });
     return () => {
       alive = false;
+      window.clearTimeout(warm);
       (window.cancelIdleCallback ?? clearTimeout)(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

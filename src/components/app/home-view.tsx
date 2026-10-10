@@ -782,7 +782,7 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
             if (k === i) return null;
             const yt = template(y, t, fm);
             return (
-              <div key={`ghost:${y.key}`} className="invisible flex flex-col gap-[3px] [grid-area:s]" aria-hidden data-sug-ghost>
+              <div key={`ghost:${y.key}`} className="invisible flex flex-col gap-[3px] [grid-area:s] @min-[600px]:hidden" aria-hidden data-sug-ghost>
                 <span className="text-[11.5px] font-bold uppercase tracking-[0.06em] @max-[600px]:hidden">{t.dash.suggests}</span>
                 <b className="text-[15px] font-semibold leading-snug @max-[600px]:line-clamp-2 @min-[600px]:text-[16px]">{phrased[y.key]?.title ?? yt.title}</b>
                 <span className="text-[12.5px] @max-[600px]:line-clamp-2">{phrased[y.key]?.why || yt.why}</span>
@@ -1663,7 +1663,7 @@ function NoticedCard({ list, h = 1, className, style }: { list: Insight[]; h?: 1
                 </div>
               );
             return (
-              <div key={x.key} className="r13-swap flex flex-col gap-2 [grid-area:s]" data-insight={x.kind}>
+              <div key={x.key} className="r13-swap flex flex-col gap-2 self-center [grid-area:s]" data-insight={x.kind}>
                 <p className="text-[13.5px] leading-relaxed">{it.text}</p>
                 {it.link && (<button type="button" onClick={() => act(x)} className="self-start py-1 text-[13px] font-semibold underline underline-offset-4">
                   {it.link}
