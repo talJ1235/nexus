@@ -84,6 +84,17 @@ export async function ensureSubscribed(publicKey: string | null, force = false):
   }
 }
 
+/** R17 S6 U1: this browser's current push address (null = none, or no service worker within 3 s). */
+export async function currentEndpoint(): Promise<string | null> {
+  if (!pushEnv().supported) return null;
+  try {
+    const reg = await Promise.race([navigator.serviceWorker.ready, new Promise<null>((r) => setTimeout(() => r(null), 3000))]);
+    return (await reg?.pushManager.getSubscription())?.endpoint ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** The browser's own question — only ever called from a tap on "Turn on". */
 export async function askPermission(): Promise<NotificationPermission | "unsupported"> {
   if (!("Notification" in window)) return "unsupported";

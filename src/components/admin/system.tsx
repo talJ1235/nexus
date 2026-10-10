@@ -3,6 +3,7 @@
 import { getSystem } from "@/app/admin-actions";
 import { useI18n } from "@/components/providers";
 import type { Go } from "./admin-app";
+import { PushPanel } from "./push";
 import { Failed, PATH, Skeleton, Svg, useLoad, useNow, useTimes } from "./ui";
 
 // R17 G7 — System (board Admin-desktop "System"): services (DB ping, the last AI success per provider, live sync, price
@@ -118,6 +119,7 @@ export function SystemTab({ phone, go }: { phone: boolean; go: Go }) {
               </div>
             </section>
           </div>
+          <PushPanel data={data} phone={phone} />
           <section className="panel" data-system-keys>
             <div className="ph">
               <h2>{S.keys}</h2>

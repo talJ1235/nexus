@@ -2,7 +2,8 @@
 
 import { z } from "zod";
 import { requireCtx } from "@/lib/ctx";
-import { deleteNotification, inboxRows, markNotificationsRead, unreadCount } from "@/lib/db-scoped/notify";
+import { deleteNotification, inboxRows, markNotificationsRead, mySubscription, unreadCount } from "@/lib/db-scoped/notify";
+import { sendTestPush } from "@/lib/notify/dispatch";
 import { userPrefGet, userPrefGetMany, userPrefSet } from "@/lib/db-scoped/prefs";
 import { NOTIFY_KEY } from "@/lib/home-prefs";
 import { ONBOARDING_KEY, parseOnboarding } from "@/lib/onboarding";
@@ -83,6 +84,25 @@ export async function notifyAsk(answer: "shown" | "no" | "yes"): Promise<void> {
   const day = await today(ctx.user.id, now);
   const next = a === "no" ? saidNo(cur, now, day) : a === "yes" ? saidYes(cur) : wasShown(cur, day);
   await userPrefSet(ctx.user.id, ASK_KEY, JSON.stringify(next));
+}
+
+const Endpoint = z.string().url().max(1000);
+
+/** R17 S6 U1: is this browser's push address on the server (Settings → Notifications "registered?"). */
+export async function pushHere(endpoint: string | null): Promise<{ registered: boolean; lastOkAt: number | null; lastCode: number | null }> {
+  const ctx = await requireCtx("view");
+  if (!endpoint) return { registered: false, lastOkAt: null, lastCode: null };
+  const s = await mySubscription(ctx.user.id, Endpoint.parse(endpoint));
+  return { registered: !!s, lastOkAt: s?.lastOkAt ?? null, lastCode: s && s.lastFailAt != null && (s.lastOkAt == null || s.lastFailAt > s.lastOkAt) ? s.lastCode : null };
+}
+
+/** R17 S6 U1: "Test on this device" — the fixed test text to this browser's address only. */
+export async function testPushHere(endpoint: string): Promise<{ result: "sent" | "gone" | "failed" | "none" | "off"; code: number }> {
+  const ctx = await requireCtx("view");
+  if (!pushConfigured()) return { result: "off", code: 0 };
+  const r = await sendTestPush(ctx.user.id, Endpoint.parse(endpoint));
+  const d = r.results[0];
+  return d ? { result: d.result, code: d.code } : { result: "none", code: 0 };
 }
 
 const safe = (s: string) => {

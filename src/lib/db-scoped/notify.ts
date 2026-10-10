@@ -161,11 +161,22 @@ export async function subscriptionOk(id: string, now = Date.now()) {
   await db.update(schema.pushSubscription).set({ lastOkAt: now, failCount: 0 }).where(eq(schema.pushSubscription.id, id));
 }
 
-export async function subscriptionFailed(id: string) {
+/** A failed send: counts up and remembers when + the push service's status code (0 = no answer). */
+export async function subscriptionFailed(id: string, code = 0, now = Date.now()) {
   await db
     .update(schema.pushSubscription)
-    .set({ failCount: sql`${schema.pushSubscription.failCount} + 1` })
+    .set({ failCount: sql`${schema.pushSubscription.failCount} + 1`, lastFailAt: now, lastCode: code })
     .where(eq(schema.pushSubscription.id, id));
+}
+
+/** R17 S6: this browser's address as the server has it (Settings → Notifications "registered?") — no keys returned. */
+export async function mySubscription(userId: string, endpoint: string) {
+  const [r] = await db
+    .select({ lastOkAt: schema.pushSubscription.lastOkAt, lastFailAt: schema.pushSubscription.lastFailAt, lastCode: schema.pushSubscription.lastCode, failCount: schema.pushSubscription.failCount })
+    .from(schema.pushSubscription)
+    .where(and(eq(schema.pushSubscription.userId, userId), eq(schema.pushSubscription.endpoint, endpoint)))
+    .limit(1);
+  return r && r.failCount < SUB_MAX_FAILS ? r : null;
 }
 
 export async function dropSubscription(id: string) {
@@ -212,12 +223,34 @@ export async function notifyCounts(dayStartMs: number, now = Date.now()) {
   const today = gte(schema.notification.sentAt, dayStartMs);
   const [sent] = await db.select({ n: count() }).from(schema.notification).where(and(today, eq(schema.notification.pushState, "sent")));
   const [failed] = await db.select({ n: count() }).from(schema.notification).where(and(today, eq(schema.notification.pushState, "failed")));
-  const [due] = await db
-    .select({ n: count() })
-    .from(schema.notification)
-    .where(and(lte(schema.notification.sendAfter, now), isNull(schema.notification.sentAt), isNull(schema.notification.deletedAt), eq(schema.notification.pushState, "due")));
+  const [due] = await db.select({ n: count(), oldest: sql<number | null>`min(${schema.notification.sendAfter})` }).from(schema.notification).where(overdue(now));
   const by = Object.fromEntries(subs.map((s) => [s.device, s.n]));
-  return { phone: by.phone ?? 0, computer: by.computer ?? 0, sentToday: sent?.n ?? 0, failedToday: failed?.n ?? 0, dueNow: due?.n ?? 0 };
+  return { phone: by.phone ?? 0, computer: by.computer ?? 0, sentToday: sent?.n ?? 0, failedToday: failed?.n ?? 0, dueNow: due?.n ?? 0, oldestDueAt: due?.oldest ?? null };
+}
+
+/** Rows the dispatcher would claim right now (the same filter as `claimDue`, without the claim). */
+const overdue = (now: number) => and(lte(schema.notification.sendAfter, now), isNull(schema.notification.sentAt), isNull(schema.notification.deletedAt), eq(schema.notification.pushState, "due"), notViewerPrice);
+
+export const PUSH_STATES = ["due", "sent", "failed", "skipped", "off"] as const;
+
+/**
+ * R17 S6 U1 — the admin's Push view: rows of the last 7 days by push state, and every push address with its person's
+ * name, device, label, last success and last failure code. Counts and status codes only — never content or addresses.
+ */
+export async function pushDiagnostics(now = Date.now()) {
+  const states = await db
+    .select({ state: schema.notification.pushState, n: count() })
+    .from(schema.notification)
+    .where(gte(schema.notification.updatedAt, now - 7 * 86_400_000))
+    .groupBy(schema.notification.pushState);
+  const byState = Object.fromEntries(PUSH_STATES.map((k) => [k, states.find((s) => s.state === k)?.n ?? 0])) as Record<(typeof PUSH_STATES)[number], number>;
+  const devices = await db
+    .select({ id: schema.pushSubscription.id, userId: schema.pushSubscription.userId, name: schema.user.name, device: schema.pushSubscription.device, label: schema.pushSubscription.label, createdAt: schema.pushSubscription.createdAt, lastOkAt: schema.pushSubscription.lastOkAt, lastFailAt: schema.pushSubscription.lastFailAt, lastCode: schema.pushSubscription.lastCode, failCount: schema.pushSubscription.failCount })
+    .from(schema.pushSubscription)
+    .innerJoin(schema.user, eq(schema.user.id, schema.pushSubscription.userId))
+    .orderBy(asc(schema.user.name), desc(schema.pushSubscription.createdAt))
+    .limit(200);
+  return { byState, devices };
 }
 
 /** Rows due in the next window (for tests / the dispatcher's summary). */

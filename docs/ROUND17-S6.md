@@ -11,7 +11,7 @@ diagnosis: `docs/R18-PLANNING.md` §7. Run **after Session 5 is merged**.
 - U1 first — it is what lets Tal (and you) see where a push is lost.
 
 ## Part U
-### U1. [ ] See where a push gets lost
+### U1. [x] See where a push gets lost
 Cause candidates from the code (planner, §7): (a) only `shop` / `delivery` are urgent; `activity`, `price`, `budget`
 wait for the person's *active hour* (the hour they usually open the app) and `week` for Thursday, and those are sent
 only by `/api/cron/notify` from `hourly.yml` — if GitHub skips/delays the schedule or the call fails, they never push and

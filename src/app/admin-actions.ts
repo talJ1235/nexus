@@ -9,7 +9,9 @@ import { AccessError, isAdmin, requireCtx, type Ctx } from "@/lib/ctx";
 import { markAccountDeletion, soleOwnerBlocks } from "@/lib/db-scoped/account";
 import { adminAiStats, adminLive, adminPeople, adminPerson, adminSystemDb, revokeUserSession, revokeUserSessions, setUserBanned, userExists } from "@/lib/db-scoped/admin";
 import { dayStart, logActivity, recordBeat } from "@/lib/db-scoped/presence";
-import { notifyCounts } from "@/lib/db-scoped/notify";
+import { notifyCounts, pushDiagnostics } from "@/lib/db-scoped/notify";
+import { kvGet } from "@/lib/kv";
+import { sendTestPush } from "@/lib/notify/dispatch";
 import { pushConfigured } from "@/lib/notify/push";
 import { parseBeat, platformOf } from "@/lib/presence-keys";
 import { adminNavCounts, adminReport, adminReports, cronSummary } from "@/lib/db-scoped/admin-health";
@@ -141,9 +143,30 @@ export async function getAiStats(days: 7 | 30) {
 /** Services, the daily job's last run, DB size + rows per table, keys set / missing (names only, never values). */
 export async function getSystem() {
   await admin();
-  const [dbInfo, cron, notify] = await Promise.all([adminSystemDb(), cronSummary(), notifyCounts(dayStart())]);
+  const [dbInfo, cron, notify, diag, last] = await Promise.all([adminSystemDb(), cronSummary(), notifyCounts(dayStart()), pushDiagnostics(), kvGet(LAST_NOTIFY_KEY)]);
   const keys = KEYS.map(([name, group]) => ({ name, group, set: !!process.env[name] }));
-  return { db: dbInfo, cron, keys, notify: { ...notify, configured: pushConfigured() }, storeReader: !!process.env.CF_FETCH_URL, realtime: !!process.env.ABLY_API_KEY, issues: !!process.env.GITHUB_ISSUES_TOKEN };
+  return { db: dbInfo, cron, keys, notify: { ...notify, configured: pushConfigured(), ...diag, last: lastNotify(last) }, storeReader: !!process.env.CF_FETCH_URL, realtime: !!process.env.ABLY_API_KEY, issues: !!process.env.GITHUB_ISSUES_TOKEN };
+}
+
+/** R17 S6 U1: the dispatcher's last run (`/api/cron/notify` or an opportunistic run) — when, how long, sent / failed. */
+const LAST_NOTIFY_KEY = "pref:last_notify";
+function lastNotify(v: string | null) {
+  try {
+    const j = JSON.parse(v ?? "null") as { at?: unknown; ms?: unknown; sent?: unknown; failed?: unknown; by?: unknown } | null;
+    if (!j || typeof j.at !== "number") return null;
+    const n = (x: unknown) => (typeof x === "number" ? x : 0);
+    return { at: j.at, ms: n(j.ms), sent: n(j.sent), failed: n(j.failed), by: typeof j.by === "string" ? j.by : "cron" };
+  } catch {
+    return null;
+  }
+}
+
+/** R17 S6 U1: a fixed test text to the admin's own devices (no inbox row) — the answer per device, codes only. */
+export async function adminTestPush() {
+  const ctx = await admin();
+  if (!pushConfigured()) return { configured: false, results: [] };
+  const r = await sendTestPush(ctx.user.id);
+  return { configured: true, results: r.results.map(({ device, label, result, code }) => ({ device, label, result, code })) };
 }
 
 const KEYS: [string, string][] = [

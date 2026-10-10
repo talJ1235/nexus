@@ -39,6 +39,17 @@ export function payloadFor(rows: NotificationRow[], locale: Locale): PushPayload
   return { ...base, id: "group", title: t.title, body: t.body, url: "/inbox", tag: "nexus-updates", renotify: true };
 }
 
+/**
+ * R17 S6 U1 — "Send a test push": a fixed text straight to the person's devices (no inbox row), the answer per device.
+ * `only` = this browser's address (Settings → Notifications "Test on this device").
+ */
+export async function sendTestPush(userId: string, only?: string) {
+  const locale = await localeOf(userId);
+  const nt = dictionaries[locale].nt;
+  const payload: PushPayload = { id: "test", title: nt.test.title, body: nt.test.body, url: "/settings/notifications", tag: "nexus-test", lang: locale, dir: locale === "he" ? "rtl" : "ltr", renotify: true };
+  return sendToUser(userId, payload, 600, { only });
+}
+
 export async function dispatch(now = Date.now(), opts: { userId?: string } = {}) {
   const rows = await claimDue(now, opts);
   const byUser = new Map<string, NotificationRow[]>();

@@ -497,6 +497,9 @@ export const pushSubscription = sqliteTable(
     createdAt: integer("created_at").notNull(),
     lastOkAt: integer("last_ok_at"),
     failCount: integer("fail_count").notNull().default(0),
+    /** R17 S6: the last failed send — when, and the push service's status code (0 = no answer). */
+    lastFailAt: integer("last_fail_at"),
+    lastCode: integer("last_code"),
   },
   (t) => [index("push_subscription_user_idx").on(t.userId)],
 );

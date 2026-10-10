@@ -238,6 +238,10 @@ try {
     await page.waitForSelector("[data-notify-settings] [data-nt-steps]");
     await page.waitForTimeout(400);
     await page.screenshot({ path: `${SHOTS}/settings-notifications-phone.png` });
+    // R17 S6 U1: "Not arriving?" — the browser / OS steps.
+    await page.click("[data-notify-help-toggle]");
+    const help = await page.waitForSelector("[data-notify-help-list]", { timeout: 5000 }).then((e) => e.evaluate((el) => el.querySelectorAll("li").length)).catch(() => 0);
+    ok(help === 5, "settings: Not arriving? lists the steps (Windows ×2, Android, iPhone, not for your own actions)", String(help));
     await page.goto(`${app.base}/settings/budget`);
     await page.waitForSelector("[data-budget-recipients]", { timeout: 30000 });
     const r = await page.evaluate(() => [...document.querySelectorAll("[data-budget-to-toggle]")].map((b) => ({ id: b.getAttribute("data-budget-to-toggle"), disabled: b.hasAttribute("disabled") || b.getAttribute("aria-disabled") === "true" })));

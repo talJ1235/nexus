@@ -53,3 +53,9 @@ export async function migrateR17s3(client: Client) {
     device text NOT NULL, label text, created_at integer NOT NULL, last_ok_at integer, fail_count integer DEFAULT 0 NOT NULL)`);
   await client.execute("CREATE INDEX IF NOT EXISTS push_subscription_user_idx ON push_subscription (user_id)");
 }
+
+/** R17 Session 6 — a push address's last failure: when and the push service's status code (0 = no answer). Additive. */
+export async function migrateR17s6(client: Client, log: (s: string) => void = console.log) {
+  await addColumn(client, "push_subscription", "last_fail_at", "integer", log);
+  await addColumn(client, "push_subscription", "last_code", "integer", log);
+}

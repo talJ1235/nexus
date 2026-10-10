@@ -4,7 +4,7 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 import { LEGACY_CATEGORIES } from "../lib/categories";
 import { migrateR15 } from "./migrate-r15";
 import { migrateR16 } from "./migrate-r16";
-import { migrateR17, migrateR17s2, migrateR17s3 } from "./migrate-r17";
+import { migrateR17, migrateR17s2, migrateR17s3, migrateR17s6 } from "./migrate-r17";
 
 async function main() {
   const url = process.env.TURSO_DATABASE_URL ?? "file:local.db";
@@ -107,6 +107,8 @@ async function main() {
   await migrateR17s2(client);
   // Round 17 Session 3: the inbox + push subscriptions.
   await migrateR17s3(client);
+  // Round 17 Session 6: each push address remembers its last failure (status code) for the admin's Push view.
+  await migrateR17s6(client, (m) => console.log(`[migrate-r17s6] ${m}`));
   console.log("[migrate] done:", url.replace(/\/\/.*@/, "//***@").split("?")[0]);
   client.close();
 }

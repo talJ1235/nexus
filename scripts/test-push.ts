@@ -101,6 +101,27 @@ async function serverSide() {
     const purged = await n.purgeNotifications();
     ok(purged.subscriptions === 1, "5 failures in a row → deleted by the daily purge");
 
+    // R17 S6 U1: the test push — straight through sendToUser (no inbox row), the answer per device: sent, 410 → the
+    // row is deleted, 500 → the code is shown and remembered (last_code); `only` = this browser's address.
+    const { sendTestPush } = await import("../src/lib/notify/dispatch");
+    await n.saveSubscription("u1", { endpoint: `${fake.base}/boom/2`, p256dh: b64(ua.getPublicKey()), auth: b64(auth), device: "computer", label: "Chrome · Windows" });
+    await n.saveSubscription("u1", { endpoint: `${fake.base}/gone/2`, p256dh: b64(ua.getPublicKey()), auth: b64(auth), device: "phone", label: null });
+    const before = fake.seen.length;
+    const t = await sendTestPush("u1");
+    const by = Object.fromEntries(t.results.map((x) => [x.label ?? x.device, `${x.result}:${x.code}`]));
+    ok(by["Chrome · Android"] === "sent:201" && by["Chrome · Windows"] === "failed:500" && by.phone === "gone:410", "test push: per device sent / 500 shown / 410 gone", JSON.stringify(by));
+    const testBody = JSON.parse(decrypt(fake.seen[before].body, ua, auth)) as { id: string; tag: string; title: string };
+    ok(testBody.id === "test" && testBody.tag === "nexus-test" && testBody.title === "Test from Nexus", "test push: the fixed text", JSON.stringify(testBody));
+    const subs2 = await db.select().from(schema.pushSubscription).where(eq(schema.pushSubscription.userId, "u1"));
+    const boom2 = subs2.find((x) => x.endpoint.endsWith("/boom/2"));
+    ok(!subs2.some((x) => x.endpoint.endsWith("/gone/2")) && boom2?.lastCode === 500 && boom2.lastFailAt != null, "test push: 410 deleted the row, 500 remembered as last_code", JSON.stringify(subs2.map((x) => [x.endpoint.slice(-7), x.lastCode])));
+    ok((await db.select().from(schema.notification)).length === 0, "test push: no inbox row");
+    const only = await sendTestPush("u1", `${fake.base}/ok/abc`);
+    ok(only.results.length === 1 && only.results[0].result === "sent", "test push on this device: only this browser's address", JSON.stringify(only.results));
+    const mine = await n.mySubscription("u1", `${fake.base}/boom/2`);
+    ok(!!mine && mine.lastCode === 500 && !(await n.mySubscription("u2", `${fake.base}/boom/2`)), "this device's state: the server has it (only for its own person)");
+    await db.delete(schema.pushSubscription).where(eq(schema.pushSubscription.id, boom2!.id));
+
     // Only browser push services (SSRF guard); loopback only under the test flag.
     ok(push.allowedEndpoint("https://fcm.googleapis.com/fcm/send/x") && push.allowedEndpoint("https://updates.push.services.mozilla.com/wpush/v2/x") && push.allowedEndpoint("https://web.push.apple.com/x") && push.allowedEndpoint("https://wns2-db5p.notify.windows.com/w/?token=x"), "the push services are allowed");
     ok(!push.allowedEndpoint("https://example.com/x") && !push.allowedEndpoint("http://fcm.googleapis.com/x") && !push.allowedEndpoint("https://fcm.googleapis.com:8443/x") && !push.allowedEndpoint("https://user:pw@fcm.googleapis.com/x") && !push.allowedEndpoint("https://fcm.googleapis.com.evil.io/x"), "anything else is refused");
@@ -160,7 +181,8 @@ async function swHandlers() {
 async function browser() {
   const { chromium } = await import("playwright");
   const { startApp } = await import("./lib/test-app.mjs");
-  const app = await startApp({ db: "push-browser-test.db", port: 3113 });
+  const keys = (await import("web-push")).default.generateVAPIDKeys();
+  const app = await startApp({ db: "push-browser-test.db", port: 3113, env: { VAPID_PUBLIC_KEY: keys.publicKey, VAPID_PRIVATE_KEY: keys.privateKey } });
   // The full Chromium (new headless) where it starts (CI); the headless shell (fallback) has no notifications at all.
   const b = await chromium.launch({ channel: "chromium" }).catch(() => chromium.launch());
   try {
@@ -195,6 +217,15 @@ async function browser() {
         if (!v) await page.waitForTimeout(250);
       }
       ok(!!v && v.title === "Arrives today" && v.tag === "delivery:i:1" && v.actions.join() === "received", "a real push in Chromium shows our notification with the Received action", JSON.stringify(v));
+    }
+    // R17 S6 U1: Settings → Notifications checks Allowed against the server — allowed but no saved address →
+    // "On, but this device isn't registered" + Fix.
+    if (perm === "granted") {
+      await page.goto(`${app.base}/settings/notifications`);
+      // (The app may have subscribed on its own when the runner reaches the real push service: then "Test on this device".)
+      const reg = await page.waitForSelector("[data-notify-registered=no], [data-notify-registered=yes]", { timeout: 20000 }).then((e) => e.getAttribute("data-notify-registered")).catch(() => null);
+      const control = reg === "no" ? await page.locator("[data-notify-fix]").count() : await page.locator("[data-notify-test]").count();
+      ok(!!reg && control === 1, `settings: allowed → checked against the server (${reg}: ${reg === "no" ? "Fix" : "Test on this device"})`, await page.locator("[data-notify-device]").evaluate((e) => e.outerHTML.slice(0, 200)).catch(() => ""));
     }
     await ctx.close();
   } finally {

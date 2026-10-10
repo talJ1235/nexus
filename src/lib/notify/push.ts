@@ -24,6 +24,8 @@ export type PushPayload = {
 };
 
 export type SendResult = { sent: number; failed: number; gone: number; devices: number };
+/** R17 S6: one device's answer (the test push shows these) — status codes only, never the address. */
+export type DeviceResult = { id: string; device: "phone" | "computer"; label: string | null; result: "sent" | "gone" | "failed"; code: number };
 
 export const vapidPublicKey = () => process.env.VAPID_PUBLIC_KEY || null;
 export const pushConfigured = () => !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
@@ -48,9 +50,9 @@ export function allowedEndpoint(endpoint: string) {
 
 let warned = false;
 
-/** Send one payload to every working address of this person. */
-export async function sendToUser(userId: string, payload: PushPayload, ttlSec: number): Promise<SendResult> {
-  const res: SendResult = { sent: 0, failed: 0, gone: 0, devices: 0 };
+/** Send one payload to every working address of this person (`only` = one address: "Test on this device"). */
+export async function sendToUser(userId: string, payload: PushPayload, ttlSec: number, opts: { only?: string } = {}): Promise<SendResult & { results: DeviceResult[] }> {
+  const res: SendResult & { results: DeviceResult[] } = { sent: 0, failed: 0, gone: 0, devices: 0, results: [] };
   if (!pushConfigured()) {
     if (!warned) {
       warned = true;
@@ -58,14 +60,16 @@ export async function sendToUser(userId: string, payload: PushPayload, ttlSec: n
     }
     return res;
   }
-  const subs = await subscriptionsOf(userId);
+  const subs = (await subscriptionsOf(userId)).filter((s) => !opts.only || s.endpoint === opts.only);
   res.devices = subs.length;
   const body = JSON.stringify(payload);
   await Promise.all(
     subs.map(async (s) => {
+      const out = (result: DeviceResult["result"], code: number) => res.results.push({ id: s.id, device: s.device, label: s.label, result, code });
       if (!allowedEndpoint(s.endpoint)) {
         await dropSubscription(s.id);
         res.gone++;
+        out("gone", 0);
         return;
       }
       try {
@@ -79,17 +83,21 @@ export async function sendToUser(userId: string, payload: PushPayload, ttlSec: n
         if (r.status === 404 || r.status === 410) {
           await dropSubscription(s.id);
           res.gone++;
+          out("gone", r.status);
         } else if (r.status >= 200 && r.status < 300) {
           await subscriptionOk(s.id);
           res.sent++;
+          out("sent", r.status);
         } else {
-          await subscriptionFailed(s.id);
+          await subscriptionFailed(s.id, r.status);
           res.failed++;
+          out("failed", r.status);
           reportError({ kind: "notify", code: `push_${r.status}`, where: "notify:push", message: `push service answered ${r.status}` });
         }
       } catch (e) {
-        await subscriptionFailed(s.id);
+        await subscriptionFailed(s.id, 0);
         res.failed++;
+        out("failed", 0);
         reportError({ kind: "notify", code: "push_error", where: "notify:push", message: String((e as Error)?.name ?? "error") });
       }
     }),
