@@ -1,6 +1,6 @@
 # R18 planning — supermarket mode v2 (and the road to the family release)
 
-Planning chat, 2026-10-10. Status: **Tal answered §5 + asked for more (§6); push diagnosis §7; open questions §10 (answered) → §11 structure; questions §12**.
+Planning chat, 2026-10-10. Status: **Tal answered §5 + asked for more (§6); push diagnosis §7; open questions §10 (answered) → §11 structure; questions §12 (answered) → architecture draft §13**.
 Decisions go into `docs/PLANNER.md` "Decisions that stand" at the end of the chat; the brief is cut as `docs/ROUND18.md`.
 
 ## 1. Where we are
@@ -182,3 +182,39 @@ scanned? / left behind?"); (4) bought items that weren't on the list are learned
     (Supermarket | Projects) with a new icon; c) tab 4 becomes "Supermarket" and Projects move into Shopping → Stores
     as a filter.
 13. After the receipt (§11.4): all five, or which?
+
+**Tal's answers (2026-10-10):** 12 → a dedicated **Supermarket** dock tab on the phone **in place of Projects**
+(supermarket = mostly phone, projects = mostly computer); Projects are reached from the Shopping (stores) tab and open
+inside it; more ways to start a trip besides the tab. 13 → all five receipt steps. Tal wants to go over the whole
+architecture in detail before the boards.
+
+## 13. Architecture draft (for discussion with Tal, 2026-10-10)
+Principle: the phone is for shopping now (supermarket), the computer for planning (projects, analysis, the weekly plan
+with the AI). Same data, different weight.
+### 13.1 Phone dock
+Home · Stores (was Shopping) · + · **Supermarket** · Insights. Projects → inside Stores (a "Projects" chip row / entry
+that opens a project in the tab). Name of the stores tab = question 14.
+### 13.2 Supermarket tab (planning view)
+Top → bottom: space + chosen store/branch chip + basket estimate; staples-due strip ("4 to add"); add field always on
+top (type-ahead, scan, photo, voice); the list in sections (store order, drag groups); sticky **Start shopping** above the
+dock. ⋯ menu: templates, plan with the assistant, past trips, receipts, store order.
+### 13.3 Store mode
+Full screen, dock hidden, §11.3 features; leaving it mid-trip shows the trip bar everywhere until Finish.
+### 13.4 The + button
+Tap = context: on Supermarket adds to the supermarket list; elsewhere the current menu. Long-press = Add to list · Scan
+· Photo · Start shopping (from any tab).
+### 13.5 Computer
+Sidebar: "Supermarket" near the top with a count → a two-column planning page (list by sections | staples, templates,
+AI plan, estimate). No full store mode on the computer (question 18).
+### 13.6 What is a supermarket item
+Added on the Supermarket side, or a grocery-type category (food, drinks, cleaning, toiletries, baby, pets), or a food
+barcode → Supermarket; has a store link → Stores. Movable both ways.
+
+## 14. Questions (architecture, 2026-10-10)
+14. Name of the stores tab: a) "חנויות" (stores) b) "מוצרים" (products) c) keep "קניות". *Planner: a — in Hebrew
+    "קניות" sounds like groceries and would clash with the Supermarket tab.*
+15. Lists: a) one supermarket list per space, the store chosen when starting a trip, an item can be pinned to a store
+    (e.g. Super-Pharm); b) a separate list per store. *Planner: a.*
+16. The + on the Supermarket tab: a) adds straight to the list (context); b) always the menu. *Planner: a.*
+17. Makers: a setting to swap tab 4 back to Projects (onboarding "projects" sets it). *Planner: yes.*
+18. Computer: a) planning page only (+ "send to phone"); b) full store mode there too. *Planner: a.*
