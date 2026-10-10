@@ -870,3 +870,9 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
 - **For Tal:** copy `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` from `.env.local` to Vercel (Production)
   and redeploy; add the GitHub repo secret `CRON_SECRET` (= Vercel's) so `hourly.yml` runs. Until then the inbox, the
   badge and the card all work, nothing is pushed (System shows "Keys not set"). On iPhone, push needs the Home Screen app.
+- **Smoke (local, fresh seeded DB):** desktop 81/81, phone 95/95.
+- **CI** (guards on `round17-s3`): green at the last code commit after three fixes it found — polish #29 counted fewer
+  realtime-token requests per load (the inbox start-up call now waits for idle), the Budget / Account sections scrolled
+  at 1366×768 (the desktop recipients row + no nx17 in the app), and `SQLITE_BUSY` in test:polish (WAL, as the other
+  server-backed tests).
+- **Merged** `round17-s3` → `main` (fast-forward) after the checks above; prod deploys from `main`.
