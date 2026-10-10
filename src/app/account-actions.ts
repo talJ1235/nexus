@@ -6,7 +6,7 @@ import { noteActivity } from "@/lib/activity";
 import { isFresh } from "@/lib/auth/security";
 import { logSecurityEvent } from "@/lib/auth/events";
 import { requireCtx } from "@/lib/ctx";
-import { markAccountDeletion, restoreAccount, soleOwnerBlocks } from "@/lib/db-scoped/account";
+import { markAccountDeletion, restoreAccount, setMyName, soleOwnerBlocks } from "@/lib/db-scoped/account";
 
 // R17 E4 — Settings → Account → Delete account (and the restore screen). Personal: any role in the current space.
 
@@ -38,4 +38,13 @@ export async function restoreMyAccount(): Promise<boolean> {
   const ok = await restoreAccount(ctx.user.id);
   if (ok) await logSecurityEvent(ctx.user.id, "account_restored", null, await headers());
   return ok;
+}
+
+/** R17 P3: Settings → Profile — your display name, 1–40 characters, shown everywhere names show. */
+export async function saveMyName(name: string): Promise<{ ok: boolean }> {
+  const ctx = await requireCtx("view");
+  const v = z.string().trim().min(1).max(40).safeParse(name);
+  if (!v.success) return { ok: false };
+  await setMyName(ctx.user.id, v.data);
+  return { ok: true };
 }

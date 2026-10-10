@@ -119,14 +119,14 @@ export async function spaceMembers(spaceId: string): Promise<SpacePerson[]> {
     .sort((a, b) => (rank[a.role] ?? 3) - (rank[b.role] ?? 3));
 }
 
-export type Face = { id: string; name: string };
+export type Face = { id: string; name: string; image?: string | null };
 
 /** Member counts + up to 3 faces per space (the switcher's facepiles). */
 export async function spaceFaces(spaceIds: string[]) {
   const out = new Map<string, { count: number; faces: Face[] }>();
   if (!spaceIds.length) return out;
   const rows = await db
-    .select({ spaceId: schema.member.organizationId, id: schema.user.id, name: schema.user.name, email: schema.user.email })
+    .select({ spaceId: schema.member.organizationId, id: schema.user.id, name: schema.user.name, email: schema.user.email, image: schema.user.image })
     .from(schema.member)
     .innerJoin(schema.user, eq(schema.user.id, schema.member.userId))
     .where(and(inArray(schema.member.organizationId, spaceIds), isNull(schema.user.deletionRequestedAt)))
@@ -134,7 +134,7 @@ export async function spaceFaces(spaceIds: string[]) {
   for (const r of rows) {
     const e = out.get(r.spaceId) ?? { count: 0, faces: [] };
     e.count++;
-    if (e.faces.length < 3) e.faces.push({ id: r.id, name: r.name || r.email.split("@")[0] });
+    if (e.faces.length < 3) e.faces.push({ id: r.id, name: r.name || r.email.split("@")[0], image: r.image });
     out.set(r.spaceId, e);
   }
   return out;
@@ -299,5 +299,5 @@ export async function spaceShell(memberships: Membership[], current: { id: strin
     const f = faces.get(m.spaceId);
     return { id: m.spaceId, name: m.name, kind: m.kind, color: m.color, icon: m.icon, photo: m.photo, role: m.role, count: f?.count ?? 1, faces: f?.faces ?? [] };
   });
-  return { spaces, people: people.map((p) => ({ id: p.id, name: p.name || p.email.split("@")[0] })) };
+  return { spaces, people: people.map((p) => ({ id: p.id, name: p.name || p.email.split("@")[0], image: p.image })) };
 }

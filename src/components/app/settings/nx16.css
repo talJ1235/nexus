@@ -132,3 +132,10 @@ html[data-motion=reduce] .nx .sx-page,html[data-motion=reduce] .nx .sx-in{animat
 .nx .tgl:disabled{opacity:.45;cursor:default}
 .nx .tgl:focus-visible{outline:none;box-shadow:var(--focus)}
 .nx .li-sw{cursor:pointer}
+/* R17 P3: the phone list's "you" header is one button into Profile — press scale, gated hover tint, ring inside. */
+.nx .sx-me{display:flex;align-items:center;gap:14px;width:100%;padding:8px 10px;margin:-4px -6px 0;border:0;border-radius:16px;background:transparent;color:var(--ink);text-align:start;cursor:pointer;transition:transform .16s var(--ease-out),background-color .16s var(--ease-out)}
+.nx .sx-me:active{transform:scale(.97)}
+.nx .sx-me:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.nx .sx-me>svg:last-child{color:var(--faint);flex-shrink:0}
+@media (hover:hover) and (pointer:fine){.nx .sx-me:hover{background:var(--hover)}}
+@media (prefers-reduced-motion:reduce){.nx .sx-me{transition:background-color .16s}.nx .sx-me:active{transform:none}}

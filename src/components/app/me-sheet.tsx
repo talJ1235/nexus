@@ -14,12 +14,13 @@ import { useNotifyUnread } from "../notify/inbox";
 import { useMeName } from "./spaces/space-ui";
 import { SpaceRows } from "./spaces/switcher";
 import { initialOf } from "@/lib/initial";
+import { PersonPhoto } from "./person-photo";
 
 /** Phone "Me" sheet (Round 9 A1), from the avatar in the phone top bar: everything that lives in the sidebar's owner
  * card and Settings on desktop, within thumb reach. Rows are ≥ 52 px. */
 export function MeSheet() {
   const s = useStore();
-  const { t, locale } = useI18n();
+  const { t, f, locale } = useI18n();
   const { theme, setTheme } = useTheme();
   const [palette, setPalette] = usePalette();
   const open = s.meOpen;
@@ -37,11 +38,22 @@ export function MeSheet() {
   return (
     <Sheet open={open} onOpenChange={s.setMeOpen} title={t.me.open} side="start">
       <div className="flex items-center gap-3 border-b border-line px-4 pb-4 pt-2 sm:pt-4" data-sheet-grip data-me>
-        <span className="grid size-14 shrink-0 place-items-center rounded-full bg-ink text-[22px] font-extrabold text-bg">{initialOf(meName, "")}</span>
-        <div className="min-w-0 flex-1">
-          <b className="bidi block truncate text-[18px] font-extrabold">{s.me?.name || meName}</b>
-          {s.me && <span className="bidi block truncate text-[13px] text-muted">{s.me.email}</span>}
-        </div>
+        {/* R17 P3: tapping who you are opens Settings → Profile. */}
+        <button
+          type="button"
+          onClick={go(() => s.openSettings("profile"))}
+          aria-label={f(t.sx.pf.open, { name: s.me?.name || meName })}
+          className="-my-1 -ms-1 flex min-w-0 flex-1 items-center gap-3 rounded-[18px] p-1 text-start transition-[transform,background-color] duration-150 ease-[var(--ease-out)] active:scale-[.97] active:bg-surface-2 motion-reduce:active:scale-100"
+          data-me-profile
+        >
+          <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-full bg-ink text-[22px] font-extrabold text-bg">
+            <PersonPhoto url={s.me?.image} fallback={initialOf(meName, "")} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <b className="bidi block truncate text-[18px] font-extrabold">{s.me?.name || meName}</b>
+            {s.me && <span className="bidi block truncate text-[13px] text-muted">{s.me.email}</span>}
+          </span>
+        </button>
         <SheetClose className="grid size-11 place-items-center rounded-full text-muted hover:bg-surface-2" aria-label={t.phone.closeMenu}>
           <X className="size-5" />
         </SheetClose>

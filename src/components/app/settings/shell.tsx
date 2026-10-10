@@ -23,7 +23,7 @@ import { YOU_PAGES } from "./you";
  * the section's page (push), Back / swipe from the edge returns to the list. Deep links: /settings/<section>.
  */
 
-export const YOU = ["account", "display", "ai", "calendar", "memory", "data"] as const;
+export const YOU = ["profile", "account", "display", "ai", "calendar", "memory", "data"] as const;
 export const SPACE = ["general", "people", "budget", "danger"] as const;
 /** Sub-pages and their parent. */
 const SUB: Record<string, string> = { activity: "account", reports: "account", notifications: "account" };
@@ -61,9 +61,12 @@ export function SettingsShell() {
   const desktop = useMedia(DESK);
   const open = s.settingsSection != null;
   const { loading, openSettings } = s;
-  // Deep link: /settings[/<section>] opens here once the app is ready; /?panel=settings too (older links).
+  // Deep link: /settings[/<section>] opens here once the app is ready; /?panel=settings too (older links). Once: a later
+  // background load (loading → false again) must not send someone who already moved on back to the linked section.
+  const linked = useRef(false);
   useEffect(() => {
-    if (loading) return;
+    if (loading || linked.current) return;
+    linked.current = true;
     const m = window.location.pathname.match(/^\/settings(?:\/([\w-]+))?\/?$/);
     const u = new URL(window.location.href);
     if (m) openSettings(ALIAS[m[1] ?? ""] ?? m[1] ?? "");
@@ -403,17 +406,19 @@ function PhoneList({ go }: { go: (id: SectionId) => void }) {
   const themeLabel = theme === "dark" ? t.settings.dark : theme === "light" ? t.settings.light : t.sx.matchDevice;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }} data-settings-list>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "4px 4px 0" }}>
-        <Av name={s.me?.name || s.me?.email || "?"} color={avatarColor(s.me?.id ?? "")} size="xl" />
-        <span style={{ lineHeight: 1.35, minWidth: 0 }}>
-          <b style={{ fontSize: 17 }}>{s.me?.name || s.me?.email}</b>
-          <br />
-          <span className="sub">{s.me?.email}</span>
+      {/* R17 P3: who you are opens Profile. */}
+      <button type="button" className="sx-me" onClick={() => go("profile")} aria-label={f(t.sx.pf.open, { name: s.me?.name || s.me?.email || "" })} data-settings-me>
+        <Av name={s.me?.name || s.me?.email || "?"} color={avatarColor(s.me?.id ?? "")} size="xl" image={s.me?.image} />
+        <span style={{ lineHeight: 1.35, minWidth: 0, flex: 1 }}>
+          <b className="bidi" style={{ fontSize: 17, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.me?.name || s.me?.email}</b>
+          <span className="sub bidi" style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.me?.email}</span>
         </span>
-      </div>
+        <I d={P.chevron} size="sm" className="flip" />
+      </button>
       <div>
         <p className="sec" style={{ paddingInlineStart: 4 }}>{t.sx.you}</p>
         <div className="card">
+          {row("profile")}
           {row("account")}
           {row("display", themeLabel)}
           {row("ai", s.homePrefs.aiSuggestions ? t.sx.aiRules : t.sx.rulesOnly)}

@@ -12,6 +12,7 @@ import { COLLECTION_COLORS, itemsForView } from "./view-items";
 import { NavRowsSkeleton, Skel } from "./skeletons";
 import { DRAG_TYPE, useMoveItems } from "./buy-filters";
 import { SpaceSwitcher } from "./spaces/switcher";
+import { PersonPhoto } from "./person-photo";
 import { useMeName } from "./spaces/space-ui";
 import { initialOf } from "@/lib/initial";
 
@@ -119,7 +120,7 @@ function SectionHeader({ label, onAdd, addLabel, carry, collapsed, onLabel }: { 
  *  Also used inside the phone nav sheet (`floating={false}`, never collapsed). */
 export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: boolean; onToggle?: () => void; floating?: boolean }) {
   const s = useStore();
-  const { t } = useI18n();
+  const { t, f } = useI18n();
 
   const counts = useMemo(
     () => ({
@@ -139,6 +140,7 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
   const lists = s.collections.filter((c) => c.kind === "list" && !c.archived);
   const c = !!collapsed;
   const meName = useMeName();
+  const profileLabel = f(t.sx.pf.open, { name: s.me?.name || meName });
 
   return (
     <nav
@@ -245,23 +247,31 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
 
       {/* Bottom: avatar + name + extension state, under a hairline. */}
       <div className={cn("-mx-0.5 flex shrink-0 items-center gap-2.5 border-t border-line px-2 pt-2.5", c && "justify-center px-0")}>
+        {/* R17 P3: the whole block (avatar + name + email) is one button into Settings → Profile; the gear stays. */}
         <button
           type="button"
-          onClick={() => s.setSettingsOpen(true)}
+          onClick={() => s.openSettings("profile")}
           data-carry="settings"
-          title={c ? t.nav.settings : undefined}
-          aria-label={c ? t.nav.settings : undefined}
-          tabIndex={c ? 0 : -1}
-          className="grid size-7 shrink-0 place-items-center rounded-full bg-ink text-xs font-bold text-bg"
+          title={c ? profileLabel : undefined}
+          aria-label={profileLabel}
+          className={cn(
+            "flex min-w-0 items-center gap-2.5 rounded-lg text-start transition-[transform,background-color] duration-150 ease-[var(--ease-out)] active:scale-[.97] motion-reduce:active:scale-100 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-surface-2",
+            c ? "shrink-0 rounded-full" : "-my-1 -ms-1 flex-1 px-1 py-1",
+          )}
+          data-profile-block
         >
-          {initialOf(meName, "")}
+          <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full bg-ink text-xs font-bold text-bg">
+            <PersonPhoto url={s.me?.image} fallback={initialOf(meName, "")} />
+          </span>
+          {!c && (
+            <span className="min-w-0 flex-1 leading-tight">
+              <b className="bidi block truncate text-[13px] font-semibold">{s.me?.name || meName}</b>
+              <span className="bidi block truncate text-[11.5px] text-muted">{s.me?.email}</span>
+            </span>
+          )}
         </button>
         {!c && (
           <>
-            <div className="min-w-0 flex-1 leading-tight">
-              <b className="bidi block truncate text-[13px] font-semibold">{meName}</b>
-              <span className="bidi block truncate text-[11.5px] text-muted">{s.me?.email}</span>
-            </div>
             <button
               type="button"
               onClick={() => s.setSettingsOpen(true)}

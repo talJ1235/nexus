@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { ackNewSignIn, createRecoveryCodes, getSecurityState, removePasskey, renameMyPasskey, signOutDevice, signOutOtherDevices, type SecurityState } from "@/app/security-actions";
 import { NotificationsLink } from "./notifications";
 import { deletionBlocks, requestAccountDeletion } from "@/app/account-actions";
-import { loadAppData } from "@/app/data-actions";
 import { useI18n } from "@/components/providers";
 import { authClient } from "@/lib/auth/client";
 import { describeUa } from "@/lib/auth/ua";
@@ -90,7 +89,6 @@ export function AccountPage({ go, phone }: PageProps) {
   const [mountedAt] = useState(() => Date.now());
   const now = loadedAt || mountedAt;
   const { day, when, ago } = useWhen(now);
-  const [editing, setEditing] = useState<string | null>(null);
   const [allDevices, setAllDevices] = useState(false);
   const devName = (d: { browser: string | null; os: string | null }) => (d.browser && d.os ? f(x.on, { browser: d.browser, os: d.os }) : d.browser || d.os || x.unknownDevice);
   const [here] = useState(() => describeUa(typeof navigator === "undefined" ? "" : navigator.userAgent));
@@ -117,17 +115,6 @@ export function AccountPage({ go, phone }: PageProps) {
       await load();
     }
   };
-  const saveName = async () => {
-    const name = (editing ?? "").trim();
-    setEditing(null);
-    if (!name || name === s.me?.name) return;
-    const r = await authClient.updateUser({ name: name.slice(0, 60) }).catch(() => ({ error: true }));
-    if (r && "error" in r && r.error) return void toast.error(t.errors.generic);
-    toast.success(t.sx.nameSaved);
-    void loadAppData()
-      .then((d) => s.replaceData(d, { keepView: true }))
-      .catch(() => {});
-  };
 
   const name = s.me?.name || s.me?.email || "";
   // Checkup: a sign-in method; a passkey (when passkeys are on); no unreviewed new sign-in.
@@ -139,27 +126,15 @@ export function AccountPage({ go, phone }: PageProps) {
     <>
       <SectionHead title={t.sx.sections.account} />
       <div className="card" style={{ display: "flex", gap: 16, alignItems: "center", padding: "16px 18px", borderRadius: 14, background: "var(--s)", flexWrap: phone ? "wrap" : undefined }} data-account-card>
-        <Av name={name} color={avatarColor(s.me?.id ?? "")} size="xl" />
+        <Av name={name} color={avatarColor(s.me?.id ?? "")} size="xl" image={s.me?.image} />
         <span style={{ flex: 1, lineHeight: 1.35, minWidth: 160 }}>
-          {editing != null ? (
-            <label className="input" style={{ height: 38 }}>
-              <input autoFocus value={editing} maxLength={60} placeholder={t.sx.namePh} aria-label={t.sx.namePh} onChange={(e) => setEditing(e.target.value)} onKeyDown={(e) => (e.key === "Enter" ? void saveName() : e.key === "Escape" && (e.stopPropagation(), setEditing(null)))} data-account-name-input />
-            </label>
-          ) : (
-            <b style={{ fontSize: 16 }}>{name}</b>
-          )}
-          <br />
-          <span className="sub">{s.me?.email}</span>
+          <b className="bidi" style={{ fontSize: 16, display: "block" }}>{name}</b>
+          <span className="sub bidi" style={{ display: "block" }}>{s.me?.email}</span>
         </span>
-        {editing != null ? (
-          <button type="button" className="btn sm pri" onClick={() => void saveName()} data-account-name-save>
-            {t.sx.save}
-          </button>
-        ) : (
-          <button type="button" className="btn sm" onClick={() => setEditing(s.me?.name ?? "")} data-account-name-edit>
-            {t.sx.editName}
-          </button>
-        )}
+        {/* R17 P3: name and photo moved to Profile; this page keeps sign-in, devices and delete. */}
+        <button type="button" className="btn sm" onClick={() => go("profile")} data-account-profile>
+          {t.sx.editProfile}
+        </button>
         {!phone && <div style={{ width: 1, alignSelf: "stretch", background: "var(--line-in)", margin: "0 6px" }} />}
         {!st && (
           <span style={{ display: "flex", alignItems: "center", gap: 12 }} aria-busy="true" data-checkup-skeleton>

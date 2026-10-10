@@ -69,7 +69,7 @@ const scrolls = (page) => page.evaluate(() => {
   return m ? m.scrollHeight - m.clientHeight : -1;
 });
 
-const YOU = ["account", "display", "ai", "calendar", "memory", "data"];
+const YOU = ["profile", "account", "display", "ai", "calendar", "memory", "data"];
 const SPACE_IDS = ["general", "people", "budget", "danger"];
 
 // ---- desktop 1366 × 768 ----
@@ -173,6 +173,79 @@ for (const width of [360, 390]) {
     }
     await ctx.close();
   }
+}
+
+// ---- R17 P3: Profile — from the profile block and the Me sheet, name → sidebar + facepiles, photo upload + remove ----
+{
+  const orig = (await db.execute({ sql: `SELECT name, image FROM "user" WHERE id = ?`, args: [admin.id] })).rows[0];
+  const NEW = "Tal Profile Test";
+  for (const he of [false, true]) {
+    const { ctx, page } = await open({ width: 1366, height: 768 }, { he });
+    await page.goto(`${BASE}/`);
+    await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 30000 });
+    const label = await page.locator("[data-profile-block]").getAttribute("aria-label");
+    await page.locator("[data-profile-block]").click();
+    await atSection(page, "profile");
+    await page.waitForURL(/\/settings\/profile$/, { timeout: 5000 }).catch(() => {});
+    await Promise.resolve().then(
+      () => ok(new URL(page.url()).pathname === "/settings/profile" && !!label && label.includes(orig.name), `P3 ${he ? "he" : "en"}: the profile block opens Settings → Profile (one button, “${label}”)`, page.url()),
+      () => ok(false, `P3 ${he ? "he" : "en"}: the profile block opens Settings → Profile`),
+    );
+    ok((await page.locator('[data-sx-nav]').first().getAttribute("data-sx-nav")) === "profile", `P3 ${he ? "he" : "en"}: Profile is the first section under You`);
+    if (!he) {
+      // Name: 1–40, then it shows in the sidebar and in the switcher's facepile.
+      const input = page.locator("[data-profile-name-input]");
+      await input.fill("");
+      ok(await page.locator("[data-profile-name-save]").isDisabled(), "P3 an empty name can't be saved");
+      await input.fill(NEW);
+      await page.locator("[data-profile-name-save]").click();
+      await page.waitForFunction((n) => document.querySelector("[data-profile-block] b")?.textContent === n, NEW, { timeout: 15000 }).catch(() => {});
+      ok((await page.locator("[data-profile-block] b").textContent()) === NEW, "P3 a new name shows in the sidebar at once");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(400);
+      ok((await page.locator(`[data-space-switcher] [data-facepile] [data-avatar][aria-label="${NEW}"]`).count()) >= 1, "P3 … and in the switcher's facepile");
+      // Photo: upload (a 900 × 600 JPEG) → cropped circle → stored 512 px WebP, shown in the sidebar + facepile; remove → initials.
+      await page.goto(`${BASE}/settings/profile`);
+      await atSection(page, "profile");
+      const jpg = await sharp({ create: { width: 900, height: 600, channels: 3, background: { r: 30, g: 140, b: 90 } } }).jpeg().toBuffer();
+      await page.locator("[data-profile-file]").setInputFiles({ name: "me.jpg", mimeType: "image/jpeg", buffer: jpg });
+      await page.waitForSelector("[data-profile-crop] [data-identity-cropper]", { timeout: 10000 });
+      await page.locator("[data-profile-use]").click();
+      await page.waitForSelector('[data-profile-avatar="photo"]', { timeout: 15000 }).catch(() => {});
+      const img = (await db.execute({ sql: `SELECT image FROM "user" WHERE id = ?`, args: [admin.id] })).rows[0].image;
+      const meta = img?.startsWith("data:image/webp;base64,") ? await sharp(Buffer.from(img.split(",")[1], "base64")).metadata() : null;
+      ok(meta?.format === "webp" && meta.width === 512 && meta.height === 512 && !meta.exif, "P3 the photo is stored as a 512 px WebP without metadata", String(img).slice(0, 40));
+      ok((await page.locator('[data-profile-avatar="photo"] [data-person-photo]').count()) === 1 && (await page.locator("[data-profile-block] [data-person-photo]").count()) === 1, "P3 the photo shows in Profile and the sidebar");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(400);
+      ok((await page.locator(`[data-space-switcher] [data-facepile] [data-avatar][aria-label="${NEW}"] [data-person-photo]`).count()) >= 1, "P3 … and in the facepile");
+      await page.goto(`${BASE}/settings/profile`);
+      await atSection(page, "profile");
+      await page.locator("[data-profile-remove]").click();
+      await page.waitForSelector('[data-profile-avatar="initials"]', { timeout: 15000 }).catch(() => {});
+      const gone = (await db.execute({ sql: `SELECT image FROM "user" WHERE id = ?`, args: [admin.id] })).rows[0].image;
+      ok(gone === null && (await page.locator("[data-profile-block] [data-person-photo]").count()) === 0, "P3 Remove photo → initials everywhere", String(gone));
+      // Server side: Better Auth's update-user stays off the HTTP allow-list (nobody points their avatar at any URL).
+      const r = await page.evaluate(async () => (await fetch("/api/auth/update-user", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ image: "https://example.com/x.png" }) })).status);
+      const row = (await db.execute({ sql: `SELECT image FROM "user" WHERE id = ?`, args: [admin.id] })).rows[0];
+      ok(r === 404 && row.image === null, "P3 update-user is not reachable (the photo only changes through /api/me-photo)", JSON.stringify({ r, row }));
+      // (A page can't set Origin itself — Node can.)
+      const other = (await fetch(`${BASE}/api/me-photo`, { method: "DELETE", headers: { origin: "https://evil.example", cookie: `nexus_session_dev=${cookies.owner}` } })).status;
+      ok(other === 403, "P3 /api/me-photo refuses another origin", String(other));
+    }
+    await ctx.close();
+  }
+  // Phone: the top of the Me sheet opens Profile.
+  for (const he of [false, true]) {
+    const { ctx, page } = await open({ width: 390, height: 844 }, { he });
+    await page.goto(`${BASE}/`);
+    await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 30000 });
+    await page.locator("[data-me-open]").click();
+    await page.locator("[data-me-profile]").click();
+    await atSection(page, "profile").then(() => ok(true, `P3 phone ${he ? "he" : "en"}: tapping the name in the Me sheet opens Profile`), () => ok(false, `P3 phone ${he ? "he" : "en"}: tapping the name in the Me sheet opens Profile`));
+    await ctx.close();
+  }
+  await db.execute({ sql: `UPDATE "user" SET name = ?, image = ? WHERE id = ?`, args: [orig.name, orig.image, admin.id] });
 }
 
 // ---- D4: the switch moment ----

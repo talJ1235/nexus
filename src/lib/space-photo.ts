@@ -2,7 +2,7 @@ import "server-only";
 import { del, put } from "@vercel/blob";
 import { nanoid } from "nanoid";
 import sharp from "sharp";
-import { isSpacePhoto } from "@/components/app/spaces/look";
+import { isSpacePhoto, isUserPhoto } from "@/components/app/spaces/look";
 
 // R16 D5: a space's photo (like a WhatsApp group picture). The client crops (pinch/drag/zoom/rotate) and sends a
 // square image; here it is always decoded and re-encoded — 512 × 512 WebP, no metadata (EXIF/GPS/XMP dropped: sharp
@@ -33,5 +33,21 @@ export async function storeSpacePhoto(spaceId: string, webp: Buffer): Promise<st
 /** The old photo goes when it is replaced or removed (never throws). */
 export async function deleteSpacePhoto(url: string | null | undefined) {
   if (!url || !isSpacePhoto(url) || url.startsWith("data:") || !process.env.BLOB_READ_WRITE_TOKEN) return;
+  await del(url).catch(() => {});
+}
+
+/** R17 P3: a person's own photo (Settings → Profile) — the same re-encode, stored under users/<id>/photo/. */
+export async function storeUserPhoto(userId: string, webp: Buffer): Promise<string> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    if (process.env.VERCEL) throw new Error("blob_missing");
+    return `data:image/webp;base64,${webp.toString("base64")}`;
+  }
+  const blob = await put(`users/${userId}/photo/${nanoid(10)}.webp`, webp, { access: "public", contentType: "image/webp", cacheControlMaxAge: 60 * 60 * 24 * 365 });
+  return blob.url;
+}
+
+/** Only our own uploads are deleted (a Google photo URL is Google's). Never throws. */
+export async function deleteUserPhoto(url: string | null | undefined) {
+  if (!url || !isUserPhoto(url) || url.startsWith("data:") || !process.env.BLOB_READ_WRITE_TOKEN) return;
   await del(url).catch(() => {});
 }

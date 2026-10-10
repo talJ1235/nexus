@@ -7,6 +7,7 @@ import { Scoped } from "./db-scoped";
 import { collectionByShareToken } from "./db-scoped/system";
 import { spacePrefGet, spacePrefLike } from "./db-scoped/prefs";
 import { readRev } from "./db-scoped/feed";
+import { myProfile } from "./db-scoped/account";
 import { DEFAULT_IMPORT_LIMIT_USD, IMPORT_LIMIT_KEY } from "./import-vat";
 import { loadHomePrefs } from "./home-prefs";
 import { getRates } from "./rates";
@@ -41,6 +42,8 @@ export async function loadItems(s: Scoped, ids?: string[]): Promise<ItemWithSour
 export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo, me?: AppData["me"]): Promise<AppData> {
   // R16 B1: the revision first — a write landing while the data loads is then re-sent by changesSince (idempotent).
   const rev = (await readRev(s.spaceId)).rev;
+  // R17 P3: name / photo / member since straight from the user row (the session is cached up to a minute per instance).
+  const fresh = me?.id ? myProfile(me.id) : Promise.resolve(null);
   const [collections, items, altGroups, storeSettings, budget, rates, importLimitUsd, alerts, home, budgetWarn] = await Promise.all([
     s.select(schema.collections).orderBy(asc(schema.collections.sortOrder), asc(schema.collections.createdAt)),
     loadItems(s),
@@ -53,7 +56,7 @@ export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo, m
     loadHomePrefs(userId, s.spaceId),
     loadBudgetWarn(s),
   ]);
-  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, budgetWarn, alerts, home, rev, ...(space ? { space } : {}), ...(me ? { me } : {}) };
+  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, budgetWarn, alerts, home, rev, ...(space ? { space } : {}), ...(me ? { me: { ...me, ...(await fresh) } } : {}) };
 }
 
 /** R16 D2: Space settings → Budget → "Warn everyone at 80%" (space pref; on unless turned off). */

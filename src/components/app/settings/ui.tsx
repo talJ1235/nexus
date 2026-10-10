@@ -2,12 +2,14 @@
 
 import { Children, isValidElement } from "react";
 import { cn } from "@/lib/utils";
+import { PersonPhoto } from "../person-photo";
 import { initialOf } from "@/lib/initial";
 
 // R16 D1–D3: small pieces of the settings shell in the boards' kit (.nx, components/auth/nx.css + ./nx16.css).
 
 /** The boards' line icons (24-grid paths, stroked). */
 export const P = {
+  profile: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4.5 20.5c1.3-3.3 4-5 7.5-5s6.2 1.7 7.5 5",
   account: "M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z M12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z M8.5 16.5c.8-1.6 2-2.4 3.5-2.4s2.7.8 3.5 2.4",
   display: "M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4 M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   notif: "M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.9 1.9 0 0 0 3.4 0",
@@ -146,10 +148,10 @@ export function SectionHead({ title, children }: { title: React.ReactNode; child
 }
 
 /** Avatar in the kit (`.av`), colour from the same palette as the app's avatars. */
-export function Av({ name, color, size, online }: { name: string; color: string; size?: "xs" | "sm" | "lg" | "xl"; online?: boolean }) {
+export function Av({ name, color, size, online, image }: { name: string; color: string; size?: "xs" | "sm" | "lg" | "xl"; online?: boolean; image?: string | null }) {
   return (
     <span className={cn("av", size)} style={{ background: color }} aria-hidden>
-      {initialOf(name)}
+      <PersonPhoto url={image} fallback={initialOf(name)} />
       {online && <span className="on" />}
     </span>
   );

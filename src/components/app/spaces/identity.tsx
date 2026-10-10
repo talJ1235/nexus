@@ -24,15 +24,15 @@ import { Facepile, reloadInto, SpaceTile } from "./space-ui";
  * at the switcher / sidebar / invite sizes. Owners only (the server checks).
  */
 
-const MAX_IN = 10 * 1024 * 1024;
+export const MAX_IN = 10 * 1024 * 1024;
 const OUT = 768;
 
 /** Offsets `x`/`y` are in frame units (1 = the crop square's side), so every frame size agrees. */
-type Crop = { img: ImageBitmap | HTMLImageElement; w: number; h: number; zoom: number; rot: 0 | 90 | 180 | 270; x: number; y: number };
+export type Crop = { img: ImageBitmap | HTMLImageElement; w: number; h: number; zoom: number; rot: 0 | 90 | 180 | 270; x: number; y: number };
 /** null = keep, "remove" = back to the icon, a crop = upload it. */
 type PhotoEdit = null | "remove" | Crop;
 
-async function decode(file: File): Promise<{ img: ImageBitmap | HTMLImageElement; w: number; h: number }> {
+export async function decode(file: File): Promise<{ img: ImageBitmap | HTMLImageElement; w: number; h: number }> {
   try {
     const b = await createImageBitmap(file, { imageOrientation: "from-image" });
     return { img: b, w: b.width, h: b.height };
@@ -47,7 +47,7 @@ async function decode(file: File): Promise<{ img: ImageBitmap | HTMLImageElement
 
 /** Scale (image px → frame units) that makes the rotated image cover the frame at zoom 1. */
 const coverScale = (c: Crop) => 1 / Math.min(c.w, c.h);
-function clamp(c: Crop): Crop {
+export function clamp(c: Crop): Crop {
   const s = coverScale(c) * c.zoom;
   const W = (c.rot % 180 ? c.h : c.w) * s;
   const H = (c.rot % 180 ? c.w : c.h) * s;
@@ -56,7 +56,7 @@ function clamp(c: Crop): Crop {
   return { ...c, x: Math.max(-mx, Math.min(mx, c.x)), y: Math.max(-my, Math.min(my, c.y)) };
 }
 
-async function exportCrop(c: Crop, out = OUT): Promise<Blob> {
+export async function exportCrop(c: Crop, out = OUT): Promise<Blob> {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = out;
   const g = canvas.getContext("2d")!;
@@ -506,7 +506,7 @@ function DropZone({ onFile, onChoose }: { onFile: (f: File) => void; onChoose: (
   );
 }
 
-function ZoomSlider({ crop, setCrop }: { crop: Crop; setCrop: (c: Crop) => void }) {
+export function ZoomSlider({ crop, setCrop }: { crop: Crop; setCrop: (c: Crop) => void }) {
   const { t } = useI18n();
   return (
     <input
@@ -527,7 +527,8 @@ function ZoomSlider({ crop, setCrop }: { crop: Crop; setCrop: (c: Crop) => void 
  * The crop stage: the image (CSS transform, GPU only) behind a rounded-square frame. Drag with one pointer, pinch with
  * two, wheel to zoom; arrow keys move, +/- zoom. Everything in frame pixels; export uses the same numbers.
  */
-function Cropper({ crop, setCrop, frame, box, dark }: { crop: Crop; setCrop: (c: Crop) => void; frame: number; box: number; dark?: boolean }) {
+/** `round`: a circle frame (a person's photo, R17 P3) instead of the space's rounded square. */
+export function Cropper({ crop, setCrop, frame, box, dark, round }: { crop: Crop; setCrop: (c: Crop) => void; frame: number; box: number; dark?: boolean; round?: boolean }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const pts = useRef(new Map<number, { x: number; y: number }>());
@@ -549,7 +550,7 @@ function Cropper({ crop, setCrop, frame, box, dark }: { crop: Crop; setCrop: (c:
     c.getContext("2d")?.drawImage(crop.img, 0, 0);
   }, [crop.img, crop.w, crop.h, src]);
   const media = { position: "absolute" as const, left: "50%", top: "50%", width: crop.w, height: crop.h, transformOrigin: "center", transform: `translate(-50%,-50%) translate(${crop.x * frame}px, ${crop.y * frame}px) rotate(${crop.rot}deg) scale(${s})`, willChange: "transform", pointerEvents: "none" as const, maxWidth: "none" };
-  const r = Math.round(frame * 0.22);
+  const r = round ? frame / 2 : Math.round(frame * 0.22);
   return (
     <div
       ref={ref}

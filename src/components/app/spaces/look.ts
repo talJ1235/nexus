@@ -57,3 +57,17 @@ export function isSpacePhoto(url: string | null | undefined): url is string {
   if (url.startsWith("data:image/webp;base64,")) return url.length < 400_000;
   return /^https:\/\/[a-z0-9-]+\.(public|private)\.blob\.vercel-storage\.com\/spaces\/[\w-]+\/identity\/[\w.-]+\.webp$/i.test(url);
 }
+
+/** R17 P3: a person's own upload (users/<id>/photo/), same rules as a space photo. */
+export function isUserPhoto(url: string | null | undefined): boolean {
+  if (!url) return false;
+  if (url.startsWith("data:image/webp;base64,")) return url.length < 400_000;
+  return /^https:\/\/[a-z0-9-]+\.(public|private)\.blob\.vercel-storage\.com\/users\/[\w-]+\/photo\/[\w.-]+\.webp$/i.test(url);
+}
+
+/** What an avatar may show: the person's upload, or the photo Google gave at sign-up (its image host only). */
+export function personPhoto(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (isUserPhoto(url)) return url;
+  return /^https:\/\/lh\d\.googleusercontent\.com\/[\w\-./=%~]+$/i.test(url) && url.length < 2000 ? url : null;
+}

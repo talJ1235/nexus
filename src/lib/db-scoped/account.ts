@@ -62,9 +62,30 @@ export async function accountsToPurge(now = Date.now()) {
   return db.select({ id: schema.user.id }).from(schema.user).where(and(isNotNull(schema.user.deletionRequestedAt), lt(schema.user.deletionRequestedAt, now - ACCOUNT_UNDO_MS)));
 }
 
+/** R17 P3: who you are, from the row itself (Profile edits show on the next load, not after the session cache). */
+export async function myProfile(userId: string): Promise<{ name: string; image: string | null; since: number } | null> {
+  const [u] = await db.select({ name: schema.user.name, image: schema.user.image, createdAt: schema.user.createdAt }).from(schema.user).where(eq(schema.user.id, userId));
+  return u ? { name: u.name, image: u.image ?? null, since: +u.createdAt } : null;
+}
+
+/** R17 P3: a display name, 1–40 characters (trimmed). */
+export async function setMyName(userId: string, name: string) {
+  await db.update(schema.user).set({ name, updatedAt: new Date() }).where(eq(schema.user.id, userId));
+}
+
+/** R17 P3: the person's photo (Settings → Profile) — a URL of our own upload, or null for initials. Returns the old one. */
+export async function setMyPhoto(userId: string, url: string | null): Promise<string | null> {
+  const [u] = await db.select({ image: schema.user.image }).from(schema.user).where(eq(schema.user.id, userId));
+  await db.update(schema.user).set({ image: url, updatedAt: new Date() }).where(eq(schema.user.id, userId));
+  return u?.image ?? null;
+}
+
 /** The purge (cron, after the undo window). Returns the blob URLs to delete. */
 export async function purgeAccount(userId: string): Promise<string[]> {
   const urls: string[] = [];
+  // R17 P3: their uploaded photo (the cron deletes every returned URL).
+  const [me] = await db.select({ image: schema.user.image }).from(schema.user).where(eq(schema.user.id, userId));
+  if (me?.image && /\/users\/[\w-]+\/photo\//.test(me.image) && me.image.startsWith("https://")) urls.push(me.image);
   const mine = await db
     .select({ id: schema.space.id, kind: schema.space.kind })
     .from(schema.member)

@@ -92,7 +92,7 @@ export function spaceInfo(ctx: Ctx): SpaceInfo {
 }
 
 export function meInfo(ctx: Ctx) {
-  return { id: ctx.user.id, name: ctx.user.name, email: ctx.user.email, admin: isAdmin(ctx) };
+  return { id: ctx.user.id, name: ctx.user.name, email: ctx.user.email, image: ctx.user.image, admin: isAdmin(ctx) };
 }
 
 export function isAdmin(ctx: Ctx) {

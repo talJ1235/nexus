@@ -157,7 +157,7 @@ type Store = {
   space: SpaceInfo | null;
   spaces: SpaceCard[];
   people: Person[];
-  me: { id: string; name: string; email: string } | null;
+  me: { id: string; name: string; email: string; image?: string | null; since?: number } | null;
   /** No write controls: the offline snapshot, or the viewer role in this space (the server refuses anyway). */
   readOnly: boolean;
   setImportLimitUsd: (v: number) => void;
@@ -874,7 +874,7 @@ export function StoreProvider({
       space: base.space ?? null,
       spaces: base.spaces ?? [],
       people: base.people ?? [],
-      me: base.me ? { id: base.me.id ?? "", name: base.me.name, email: base.me.email } : null,
+      me: base.me ? { id: base.me.id ?? "", name: base.me.name, email: base.me.email, image: base.me.image ?? null, since: base.me.since } : null,
       readOnly: offlineAt != null || base.space?.role === "viewer",
       replaceData,
       getRev,

@@ -18,6 +18,7 @@ import { avatarColor } from "./colors";
 import { SpaceTile } from "./tile";
 import { startMoment } from "./moment";
 import { initialOf } from "@/lib/initial";
+import { PersonPhoto } from "../person-photo";
 export { SpaceTile };
 
 const initial = (name: string) => initialOf(name);
@@ -37,7 +38,7 @@ export function Avatar({ person, size = 24, online, className, title }: { person
       role="img"
       data-avatar
     >
-      {initial(person.name)}
+      <PersonPhoto url={person.image} fallback={initial(person.name)} />
       {online && <span className="absolute -bottom-px -end-px size-2.5 rounded-full bg-[#22c55e] ring-2 ring-raised" />}
     </span>
   );
