@@ -109,7 +109,7 @@ jobs:
         run: npm run -s test:admin-people
       - name: onboarding — 7 steps, skips, resume, invite / iPhone / standalone (R17 H; built app)
         run: npm run -s test:onboarding
-      - name: web push — fake push service + decrypt, 410 / failures, endpoint allow-list, service worker handlers, a real push (R17 S3 J2; built app)
+      - name: web push — fake push service + decrypt, 410 / failures, endpoint allow-list, service worker handlers, a real push, the test push + opportunistic dispatch (R17 S3 J2, S6 U1/U3; built app)
         run: npm run -s test:push
       - name: inbox — popover + phone page, read / mark all / swipe / Received, media inside rows, RTL, the reminder card, Settings → Notifications, budget recipients (R17 S3 K–N; built app)
         run: npm run -s test:inbox

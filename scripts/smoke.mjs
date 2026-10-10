@@ -448,6 +448,24 @@ try {
       }
     });
 
+    // R17 S6 U4: pushes really leave — System → Push: no waiting row older than 70 min, a dispatcher run within 3 h
+    // (prod only: a seeded local server never runs the dispatcher).
+    if (REAL)
+      await step("admin System → Push: dispatcher running, nothing stuck", async () => {
+        const p = await ctx.newPage();
+        try {
+          await p.goto(`${BASE}/admin/system`);
+          const el = p.locator("[data-system-push-panel]");
+          await el.waitFor({ timeout: 20000 });
+          const age = await el.getAttribute("data-dispatch-age");
+          const oldest = await el.locator("[data-push-oldest]").getAttribute("data-push-oldest");
+          ok(age !== "never" && Number(age) <= 180, `push: the dispatcher ran ${age} min ago (≤ 180)`, `age ${age}`);
+          ok(oldest === "none" || Number(oldest) <= 70, `push: the oldest waiting row is ${oldest === "none" ? "—" : `${oldest} min`} old (≤ 70)`, `oldest ${oldest}`);
+        } finally {
+          await p.close();
+        }
+      });
+
     openPalette = async () => {
       for (let k = 0; k < 6; k++) {
         await page.keyboard.press("Escape");

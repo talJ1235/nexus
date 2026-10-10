@@ -51,7 +51,7 @@ sweeps (idle trips, deliveries today, budget, weekly) can't rely on `hourly.yml`
 Acceptance: unit/integration test — two concurrent `maybeDispatch()` calls send each row once; a due row is sent by the
 next request after its time without the cron.
 
-### U4. [ ] Guard
+### U4. [x] Guard
 Prod smoke: read System (admin) and fail when the oldest `due` row is older than 70 min or the last dispatcher run is
 older than 3 h. Local: `test:notify` / `test:push` in `guards.yml` as today.
 

@@ -40,7 +40,7 @@ export function PushPanel({ data, phone }: { data: Sys; phone: boolean }) {
     </div>
   );
   return (
-    <section className="panel" data-system-push-panel data-dispatch-old={dispOld ? "yes" : "no"} data-due-old={dueOld ? "yes" : "no"}>
+    <section className="panel" data-system-push-panel data-dispatch-old={dispOld ? "yes" : "no"} data-dispatch-age={last ? String(Math.round((now - last.at) / 60_000)) : "never"} data-due-old={dueOld ? "yes" : "no"}>
       <div className="ph">
         <h2>{S.pushTitle}</h2>
         <span className="tiny">{n.configured ? f(S.pushLine, { p: n.phone, c: n.computer }) : S.pushOff}</span>
