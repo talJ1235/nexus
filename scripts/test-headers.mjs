@@ -52,6 +52,12 @@ if (canSignIn(BASE)) {
   violations.push(...(await page.evaluate(() => window.__csp ?? [])).map((v) => `panels: ${v}`));
 } else console.log("SKIP signed-in pages (no test sign-in)");
 await check("/s/does-not-exist-000000");
+// R17 S5 S6: the share target has an enctype (Chrome's "Manifest: Enctype should be set…" on every page) and /share
+// still takes a GET share.
+const mf = await (await page.request.get(`${BASE}/manifest.webmanifest`)).json();
+ok(mf.share_target?.method === "GET" && mf.share_target?.enctype === "application/x-www-form-urlencoded" && mf.share_target?.action === "/share", "manifest share_target: GET + application/x-www-form-urlencoded", JSON.stringify(mf.share_target));
+const sh = await page.request.get(`${BASE}/share?title=Drill&text=look&url=${encodeURIComponent("https://example.com/p/1")}`, { maxRedirects: 0 });
+ok(sh.status() < 500, "/share takes a GET share", String(sh.status()));
 ok(nonces.size >= 3 && !nonces.has(undefined), "a fresh nonce per response", [...nonces].join(","));
 ok(violations.length === 0, "no CSP violations", violations.slice(0, 6).join(" | "));
 await browser.close();

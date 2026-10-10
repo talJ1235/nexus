@@ -22,6 +22,8 @@ export default function manifest(): MetadataRoute.Manifest {
     share_target: {
       action: "/share",
       method: "GET",
+      // R17 S5 S6: Chrome warns on every page without it ("Enctype should be set…"); GET sends the fields as a query.
+      enctype: "application/x-www-form-urlencoded",
       params: { title: "title", text: "text", url: "url" },
     },
   } as MetadataRoute.Manifest;
