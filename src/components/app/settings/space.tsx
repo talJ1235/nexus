@@ -19,6 +19,7 @@ import {
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { Menu, MenuContent, MenuItem, MenuTrigger, Modal } from "@/components/ui/overlays";
+import { useMedia } from "@/components/ui/use-media";
 import { capFor, monthKeyIn, monthStartIn, monthForecast, nextMonthKey } from "@/lib/budget";
 import { lineTotal, spendDate } from "@/lib/calc";
 import { formatMoney } from "@/lib/money";
@@ -778,6 +779,8 @@ function BudgetRecipients() {
   const { t, f } = useI18n();
   const st = t.nt.set;
   const [state, setState] = useState<Awaited<ReturnType<typeof budgetRecipientsState>> | null>(null);
+  const desk = useMedia("(min-width: 1024px)");
+  const [open, setOpen] = useState(false);
   const spaceId = s.space?.id;
   useEffect(() => {
     let alive = true;
@@ -799,9 +802,8 @@ function BudgetRecipients() {
       },
     );
   };
-  return (
-    <div data-budget-recipients>
-      <p className="sec">{st.whoGets}</p>
+  const list = (
+    <>
       <div className="card">
         {state.people.map((p) => {
           const owner = p.role === "owner";
@@ -818,6 +820,34 @@ function BudgetRecipients() {
       <p className="tiny" style={{ padding: "10px 4px 0", margin: 0, lineHeight: 1.5 }}>
         {st.budgetNote}
       </p>
+    </>
+  );
+  // Phone (board Settings-notify-phone): the list on the page. Desktop: one row → the same list in a small dialog, so the
+  // Budget section still fits a laptop screen without scrolling (test:settings D1/D2).
+  if (!desk)
+    return (
+      <div data-budget-recipients>
+        <p className="sec">{st.whoGets}</p>
+        {list}
+      </div>
+    );
+  const names = state.people.filter((p) => p.role === "owner" || state.picked.includes(p.id)).map((p) => p.name.split(/s+/)[0]);
+  return (
+    <div data-budget-recipients>
+      <div className="card">
+        <Li icon={P.bell} title={st.whoGets} sub={names.join(", ")} data-budget-to-row>
+          <button type="button" className="btn sm" onClick={() => setOpen(true)} data-budget-to-open>
+            {state.canEdit ? st.change : st.view}
+          </button>
+        </Li>
+      </div>
+      {open && (
+        <Modal open onOpenChange={(o) => !o && setOpen(false)} title={st.whoGets} className="max-w-[440px]">
+          <div className="nx" style={{ background: "transparent" }} data-budget-to-dialog>
+            {list}
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

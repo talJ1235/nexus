@@ -859,7 +859,12 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
   - Desktop card: "Not now" instead of the board's close ✕ in the blocked state (same action, one fewer control).
   - Data patches (live count, Marked received) keep the row's time and place; only real news moves it up.
   - Hebrew verbs are neutral where gender is unknown (`סיים/ה`, `הוסיף/ה`; plural with two names).
-- **Fixes along the way:** the R16 budget toast covered the phone card (the card now waits); the smoke's Account timing
+  - Budget recipients: on the phone the board's list sits on the Budget page; in the desktop dialog it is one row
+    ("Budget alerts go to · Tal, Noa" + Change) opening the same list in a small dialog — the Budget section must fit
+    1366×768 / 1280×720 without scrolling (test:settings D1/D2).
+- **Fixes along the way:** importing the admin kit (`nx17.css`) into the app restyled Settings (`.stat`; Account scrolled by 62 px) — the
+  inbox kit now carries its own motion tokens and nx17 stays admin/onboarding only; the inbox's start-up call waits for
+  idle (CI's polish #29 counted fewer realtime-token requests per load); the R16 budget toast covered the phone card (the card now waits); the smoke's Account timing
   read response bodies that DevTools had already dropped late in a long run — it now matches the call by its action id;
   a timing flake in "Go to History" (waits for the first card).
 - **For Tal:** copy `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` from `.env.local` to Vercel (Production)

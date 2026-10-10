@@ -111,6 +111,8 @@ export const en = {
       viewer: "Viewer",
       you: "{name} (you)",
       budgetNote: "At 80% and 100% of the month. Only the owner can change this.",
+      change: "Change",
+      view: "View",
       iphone: "On iPhone, open Nexus from the Home Screen to turn them on.",
     },
   },

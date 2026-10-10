@@ -2,7 +2,6 @@
 
 import "../auth/nx.css";
 import "../app/settings/nx16.css";
-import "../admin/nx17.css";
 import "./nx18.css";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";

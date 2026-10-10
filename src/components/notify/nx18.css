@@ -5,6 +5,11 @@
    the drawn browser prompts are board-only; positions come from the bell at run time. */
 
 .nx.nt-root{background:transparent;color:var(--ink)}
+/* The motion tokens this kit needs (the admin kit nx17.css isn't loaded in the app — its .stat etc. would restyle Settings). */
+.nx.nt-root,.nx.ibx-page,.nx.nudge-pc,.nx.nudge-ph,.nx .ibx,[data-notify-settings]{--ease-out:cubic-bezier(.23,1,.32,1);--ease-drawer:cubic-bezier(.32,.72,0,1)}
+@keyframes nt-rise{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes nt-in-up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes nt-fade{from{opacity:0}to{opacity:1}}
 
 /* bell + badge (the app's header keeps its own round button; this is the count + the ring) */
 .nt-bd{position:absolute;top:2px;inset-inline-end:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--spark,#f59e0b);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px var(--surface,#fff);font-variant-numeric:tabular-nums;line-height:1;pointer-events:none}
@@ -67,7 +72,7 @@
 /* in-place update: blur bridges the old and new text */
 .nx .swap{animation:nt-swap 320ms ease both}
 @keyframes nt-swap{from{opacity:.2;filter:blur(3px)}to{opacity:1;filter:none}}
-.nx .newrow{animation:rise-s 380ms ease both}
+.nx .newrow{animation:nt-rise 380ms ease both}
 .nx .ifoot{border-top:1px solid var(--line-in);padding:10px 20px;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--faint)}
 .nx .ifoot a,.nx .ifoot button{color:var(--muted);font-weight:600;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line-strong);background:none;border:0;padding:0}
 .nx .banner{margin:4px 12px 6px;padding:12px 14px;border-radius:14px;display:flex;align-items:center;gap:12px;font-size:13.5px;line-height:1.35}
@@ -75,7 +80,7 @@
 .nx .banner.blocked{background:var(--warn-t);color:var(--ink)}
 .nx .banner .grow{flex:1;min-width:0}
 .nx .banner svg{width:20px;height:20px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.nx .ibx-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;animation:rise-s 380ms ease both}
+.nx .ibx-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;animation:nt-rise 380ms ease both}
 .nx .ibx-empty .ic{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:var(--s2);color:var(--ink2)}
 .nx .ibx-empty .ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
@@ -158,7 +163,7 @@
 .nx.nudge-pc.gone{animation:none;transform:scale(.9);opacity:0;pointer-events:none}
 .nx.nudge-pc .tip{position:absolute;top:-6px;inset-inline-end:var(--tip,22px);width:12px;height:12px;background:var(--raised);border-top:1px solid var(--line);border-inline-start:1px solid var(--line);transform:rotate(45deg);z-index:1}
 [dir=rtl] .nx.nudge-pc .tip{transform:rotate(-45deg)}
-.nx .nudge .grow-in{animation:in-up 260ms var(--ease-out) both}
+.nx .nudge .grow-in{animation:nt-in-up 260ms var(--ease-out) both}
 .nx .steps{display:flex;flex-direction:column;border:1px solid var(--line-in);border-radius:12px;background:var(--s)}
 .nx .steps>div{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 14px;font-size:13.5px}
 .nx .steps>div+div{border-top:1px solid var(--line-in)}
@@ -166,7 +171,7 @@
 .nx .nudge .btn.wait{opacity:.6}
 
 @media (prefers-reduced-motion:reduce){
- .nx .ibx,.nx .ibx.out,.nx .newrow,.nx .swap,.nx .ibx-empty,.nx.ibx-page,.nx.ibx-page.out,.nx.nudge-ph,.nx.nudge-pc,.nx .nudge .grow-in{animation:fade-o 180ms ease both !important}
+ .nx .ibx,.nx .ibx.out,.nx .newrow,.nx .swap,.nx .ibx-empty,.nx.ibx-page,.nx.ibx-page.out,.nx.nudge-ph,.nx.nudge-pc,.nx .nudge .grow-in{animation:nt-fade 180ms ease both !important}
  .nx.ibx-page.out,.nx .ibx.out{animation-direction:reverse !important}
  .nt-ring svg,.nx .kinds .b svg,.nx .ping::after{animation:none}
  .nx .sw-row.settle,.nx.ibx-page.snap{transition:none}
