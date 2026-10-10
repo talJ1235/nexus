@@ -258,7 +258,8 @@ function Popover({ onClose }: { onClose: () => void }) {
     setOut(true);
     setTimeout(() => {
       onClose();
-      document.querySelector<HTMLElement>('[data-nt-bell="desk"]')?.focus();
+      // Next frame: after the close re-renders the header (nothing may take the focus back from the bell).
+      requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-nt-bell="desk"]')?.focus());
     }, 140);
   }, [onClose]);
   const open = useOpenRow(onClose);
@@ -277,7 +278,8 @@ function Popover({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     void inboxStore.load();
     ref.current?.focus({ preventScroll: true });
-    const key = (e: KeyboardEvent) => e.key === "Escape" && (e.stopPropagation(), close());
+    // Esc is handled here (the app's own Esc opens the command menu when nothing is open — not this time).
+    const key = (e: KeyboardEvent) => e.key === "Escape" && (e.preventDefault(), e.stopPropagation(), close());
     const down = (e: PointerEvent) => {
       const el = e.target as HTMLElement;
       if (ref.current?.contains(el) || el.closest('[data-nt-bell="desk"]')) return;

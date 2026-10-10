@@ -2251,6 +2251,7 @@ try {
       const tg = await page.getByText("Telegram", { exact: true }).count();
       await page.keyboard.press("Escape");
       await pop.waitFor({ state: "detached", timeout: 5000 });
+      await page.waitForFunction(() => document.activeElement?.getAttribute("data-nt-bell") === "desk", null, { timeout: 1500 }).catch(() => {});
       const focus = await page.evaluate(() => document.activeElement?.getAttribute("data-nt-bell"));
       ok(tg === 0 && focus === "desk", "inbox popover: no Telegram controls, Esc closes, focus back on the bell", JSON.stringify({ tg, focus }));
     });
@@ -2576,6 +2577,8 @@ try {
           await page.waitForSelector(READY);
           await page.locator("[data-compare-open]").click();
           await page.locator("[data-compare-row]").first().waitFor({ timeout: 20000 });
+          // The stores answer one by one: wait for a second row before reading (a flake when read at the first).
+          await page.waitForFunction(() => document.querySelectorAll("[data-compare-row]").length >= 2, null, { timeout: 20000 }).catch(() => {});
           const prices = await page.locator("[data-compare-row] .tabular.text-\\[17px\\]").allInnerTexts();
           await shot(page, "compare");
           ok(prices.length >= 2, "compare stores: item sheet → results sorted by price", JSON.stringify(prices));
