@@ -1,7 +1,8 @@
 // Unit test for src/lib/home.ts (Home model, delivery track, cadence, suggestions).  npm run test:home
 import assert from "node:assert/strict";
 import { addDays, cadenceOf, dayKeyIn, deliveryTrack, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, monthGrid, reorderDue, shiftMonth, weekDays, type HomeInput } from "../src/lib/home";
-import { numbersIn, numbersKnown, validateHomeAi } from "../src/lib/home-ai";
+import { normalizeMoney, numbersIn, numbersKnown, validateHomeAi } from "../src/lib/home-ai";
+import { formatMoney } from "../src/lib/money";
 import { add, defaultLayout, fromLegacy, moveTo, parseLayout, patch, presetItems, PRESETS, remove, serialize, sizeFromDrag, unused, WIDGETS } from "../src/lib/home-layout";
 import { homeExtras } from "../src/lib/home-widgets";
 import { FALLBACK_RATES } from "../src/lib/money";
@@ -386,6 +387,34 @@ assert.equal(addDays("2026-10-31", 1), "2026-11-01");
   const empty = homeExtras({ items: [], alerts: [], rates, currency: "ILS", now: NOW, tz, monthFrom, monthTo, lastMonthFrom: lastFrom, lastMonthKey: "2026-09" });
   assert.equal(empty.vsLast.pct, null);
   assert.equal(empty.nextDelivery, null);
+}
+
+// ---- R17 P5: money is the app's formatted amount, never a word (he + en, before / after the number, commas, decimals).
+{
+  const he = (n: number, c = "ILS") => formatMoney(n, c, "he");
+  assert.equal(normalizeMoney("לקנות שוב — נקנה ב-45 שקל", "he"), `לקנות שוב — נקנה ב-${he(45)}`);
+  assert.equal(normalizeMoney("נקנה ב-45 שקלים בפעם הקודמת", "he"), `נקנה ב-${he(45)} בפעם הקודמת`);
+  assert.equal(normalizeMoney('עלה 1,299 ש"ח', "he"), `עלה ${he(1299)}`);
+  assert.equal(normalizeMoney("עלה 1,299 ש״ח", "he"), `עלה ${he(1299)}`);
+  assert.equal(normalizeMoney("שקל 45 בלבד", "he"), `${he(45)} בלבד`); // the word before the number
+  assert.equal(normalizeMoney("₪45 שקל", "he"), he(45)); // a sign and a word: one amount
+  assert.equal(normalizeMoney("12.5 דולר", "he"), he(12.5, "USD"));
+  assert.equal(normalizeMoney("was 45.50 NIS last time", "en"), "was ₪45.5 last time");
+  assert.equal(normalizeMoney("costs NIS 1,234.5", "en"), "costs ₪1,235"); // ≥ 1,000: whole, as the app writes it
+  assert.equal(normalizeMoney("about 3 shekels", "en"), "about ₪3");
+  assert.equal(normalizeMoney("12 dollars and 9 Euros", "en"), "$12 and €9");
+  // Untouched: no number, other words, a word that only starts like one, an amount already formatted.
+  for (const t of ["Order 3 items", "ILSA 45", "45 שקלאות", "₪45", "שקל אחד", "Dollar store"]) assert.equal(normalizeMoney(t, "en"), t);
+  // validateHomeAi normalises suggestions and insights, and the number guard still holds on the result.
+  const ids = { items: new Set(["i1"]), collections: new Set<string>() };
+  const v = validateHomeAi(
+    { suggestions: [{ title: "לקנות שוב", why: "נקנה ב-45 שקל", action: { type: "add", itemId: "i1" } }], insights: [{ text: "הוצאת 1,299 ש״ח החודש" }, { text: "הוצאת 77 שקל" }] },
+    ids,
+    [45, 1299],
+    "he",
+  );
+  assert.equal(v.suggestions[0].why, `נקנה ב-${he(45)}`);
+  assert.deepEqual(v.insights.map((x) => x.text), [`הוצאת ${he(1299)} החודש`]); // 77 is not in the data: dropped
 }
 
 console.log("OK test-home");

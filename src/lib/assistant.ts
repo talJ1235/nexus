@@ -152,8 +152,9 @@ function lastAlert(i: AppData["items"][number], alerts: AppData["alerts"], rates
   return `alert=${a.kind}${a.oldPrice != null || a.newPrice != null ? ` ${m(a.oldPrice)}→${m(a.newPrice)}` : ""}@${new Date(a.createdAt).toISOString().slice(0, 10)}`;
 }
 
-/** Compact snapshot of the user's data for the model. Items are referenced as [[id]]. */
-export function snapshot(data: AppData, currency: string, rates: Rates) {
+/** Compact snapshot of the user's data for the model. Items are referenced as [[id]]. `money` (R17 P5, Home's look):
+ *  amounts written as the app writes them ("₪45"), so the model copies the sign, never a word. */
+export function snapshot(data: AppData, currency: string, rates: Rates, money: (n: number) => string = (n) => String(n)) {
   const cName = new Map(data.collections.map((c) => [c.id, c.name]));
   const lines = data.items.slice(0, 450).map((i) => {
     const unit = unitPrice(i, rates, currency);
@@ -164,14 +165,14 @@ export function snapshot(data: AppData, currency: string, rates: Rates) {
       `status=${i.status}`,
       i.priority !== "normal" ? `priority=${i.priority}` : "",
       `qty=${i.quantity}`,
-      unit != null ? `unit=${Math.round(unit * 100) / 100}` : "unit=?",
-      line != null && i.quantity > 1 ? `total=${Math.round(line)}` : "",
+      unit != null ? `unit=${money(Math.round(unit * 100) / 100)}` : "unit=?",
+      line != null && i.quantity > 1 ? `total=${money(Math.round(line))}` : "",
       i.collectionId ? `project="${cName.get(i.collectionId) ?? "?"}"` : "project=none",
       stores ? `store=${stores}` : "",
       i.tags?.length ? `tags=${i.tags.join(",")}` : "",
       i.purchasedAt ? `bought=${new Date(i.purchasedAt).toISOString().slice(0, 10)}` : "",
       i.orderedAt && i.status === "ordered" ? `ordered=${new Date(i.orderedAt).toISOString().slice(0, 10)}` : "",
-      i.targetPrice != null ? `target=${Math.round(convert(i.targetPrice, i.targetCurrency ?? currency, currency, rates))}` : "",
+      i.targetPrice != null ? `target=${money(Math.round(convert(i.targetPrice, i.targetCurrency ?? currency, currency, rates)))}` : "",
       priceMoves(i, rates, currency),
       lastAlert(i, data.alerts, rates, currency),
     ].filter(Boolean);
@@ -179,7 +180,7 @@ export function snapshot(data: AppData, currency: string, rates: Rates) {
   });
   const projects = data.collections.map((c) => {
     const b = budgetStats(c, data.items, data.altGroups, rates, currency);
-    return `- [${c.id}] ${c.kind} "${c.name}"${c.description ? ` (${c.description.slice(0, 80)})` : ""}: ${b.count} items, planned ${Math.round(b.planned)}, spent ${Math.round(b.spent)}${b.budget != null ? `, budget ${Math.round(b.budget)}` : ""}`;
+    return `- [${c.id}] ${c.kind} "${c.name}"${c.description ? ` (${c.description.slice(0, 80)})` : ""}: ${b.count} items, planned ${money(Math.round(b.planned))}, spent ${money(Math.round(b.spent))}${b.budget != null ? `, budget ${money(Math.round(b.budget))}` : ""}`;
   });
   return { lines, projects };
 }

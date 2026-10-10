@@ -5,6 +5,8 @@ import { dictionaries, isLocale, type Locale } from "../i18n";
 import { ttlOf, type NotifyKind } from "./kinds";
 import { sendToUser, type PushPayload, type SendResult } from "./push";
 import { groupedPushText, pushText } from "./text";
+import { normalizeMoney } from "../home-ai";
+
 
 // R17 S3 J3 — send everything that is due. Each row is claimed (sent_at set) in the same UPDATE that selects it, so the
 // hourly run and an in-request urgent send never push a row twice. One push per person per run: one row → its own
@@ -30,7 +32,8 @@ export function payloadFor(rows: NotificationRow[], locale: Locale): PushPayload
     const t = pushText(r.kind as NotifyKind, data, nt, locale);
     const actions: PushPayload["actions"] = r.kind === "price" ? [{ action: "open", title: nt.open }] : r.kind === "delivery" && !(data as { received?: boolean }).received ? [{ action: "received", title: nt.received }] : undefined;
     // A row updated in place (the trip finished) replaces the earlier notification quietly.
-    return { ...base, id: r.id, title: t.title, body: t.body, url: openUrl(r.id), tag: r.groupKey, actions, renotify: false };
+    // R17 P5: money as the app writes it, never a word (the weekly summary included).
+    return { ...base, id: r.id, title: normalizeMoney(t.title, locale), body: normalizeMoney(t.body, locale), url: openUrl(r.id), tag: r.groupKey, actions, renotify: false };
   }
   const t = groupedPushText(rows.map((r) => r.kind as NotifyKind), nt);
   return { ...base, id: "group", title: t.title, body: t.body, url: "/inbox", tag: "nexus-updates", renotify: true };
