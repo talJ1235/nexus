@@ -90,3 +90,4 @@ ci-*.db
 /bidi-test.db*
 /shots-test.db*
 /ci-settings.db*
+/check-now-test.db*

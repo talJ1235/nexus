@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, gt, isNull, lt, or, type SQL } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { schema } from "@/db";
-import { recordPrice } from "./data";
+import { loadItems, recordPrice } from "./data";
 import { Scoped, joins } from "./db-scoped";
 import { userPrefGet, userPrefSet } from "./db-scoped/prefs";
 import { systemWatchedSources } from "./db-scoped/system";
@@ -11,7 +11,7 @@ import { isLocale } from "./i18n";
 import { convert, CURRENCIES, parsePrice } from "./money";
 import { getRates } from "./rates";
 import { storeFromUrl } from "./stores";
-import type { Alert, Source } from "./types";
+import type { Alert, ItemWithSources, Source } from "./types";
 
 // Price tracking. R15: alerts belong to a space; alert preferences to a user. Telegram digests and the weekly summary
 // are off for everyone (D2) — alerts show in the app (push + inbox arrive in R16).
@@ -118,6 +118,29 @@ export async function checkSourceOnServer(s: Scoped, src: Source): Promise<Alert
     return null;
   }
   return applyObservation(s, src, obs);
+}
+
+/** R17 Q2: "Check now" — the outcome for the item's main link (the chosen one, else the first). */
+export type CheckNow =
+  | { ok: true; outcome: "same" | "down" | "up" | "new"; price: number; currency: string; pct: number; item: ItemWithSources }
+  | { ok: false; reason: "blocked" | "limit" | "no_link"; item?: ItemWithSources };
+
+/** R17 Q2: read one item's links now (≤ 3), the daily check's way; compare its main link's price with before. */
+export async function checkItemOnServer(s: Scoped, itemId: string): Promise<CheckNow> {
+  const [item] = await loadItems(s, [itemId]);
+  const links = (item?.sources ?? []).filter((x) => /^https?:\/\//i.test(x.url)).slice(0, 3);
+  if (!item || !links.length) return { ok: false, reason: "no_link" };
+  const main = links.find((x) => x.id === item.chosenSourceId) ?? links[0];
+  const results = await Promise.all(links.map((x) => checkSourceOnServer(s, x).catch(() => null)));
+  const [fresh] = await loadItems(s, [itemId]);
+  const now = fresh?.sources.find((x) => x.id === main.id);
+  if (results[links.indexOf(main)] == null || !now || now.price == null) return { ok: false, reason: "blocked", item: fresh };
+  if (main.price == null) return { ok: true, outcome: "new", price: now.price, currency: now.currency, pct: 0, item: fresh };
+  const was = convert(main.price, main.currency, now.currency, await getRates());
+  const same = Math.abs(now.price - was) < 0.005;
+  // A change under 1 % still reads as a change ("down 1 %"), never as "no change".
+  const pct = same || was <= 0 ? 0 : Math.max(1, Math.round((Math.abs(now.price - was) / was) * 100));
+  return { ok: true, outcome: same ? "same" : now.price < was ? "down" : "up", price: now.price, currency: now.currency, pct, item: fresh };
 }
 
 /** Check from HTML the browser extension fetched with the user's own connection (extension retired in R15 — kept). */

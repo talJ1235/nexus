@@ -30,7 +30,7 @@ jobs:
         run: npx eslint --quiet .
       - name: unit tests
         run: |
-          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles status feed assistant-context short-name ai-quota blocked delete-account notify; do
+          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles status feed assistant-context short-name ai-quota blocked delete-account notify check-now; do
             echo "::group::test:$t"; npm run -s test:$t; echo "::endgroup::"
           done
       - name: authz coverage · data scope · SSRF · query plans

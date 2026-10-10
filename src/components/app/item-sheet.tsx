@@ -20,6 +20,7 @@ import { StoreMark } from "@/components/ui/store-mark";
 import { SheetPicture } from "./sheet-picture";
 import { useStore, useOpenItemId } from "./store";
 import { useReadOnly } from "./offline-banner";
+import { checkItemNow } from "@/app/check-actions";
 import { useExtension } from "./use-extension";
 import { COLLECTION_COLORS } from "./view-items";
 
@@ -588,6 +589,7 @@ export function ItemSheet() {
 
               <Group title={t.history.title} icon={LineChart} aside={<LowestBadge item={item} />}>
                 <PriceHistory item={item} />
+                {item.status === "to_buy" && hasLink && <CheckNow item={item} />}
                 {item.status === "to_buy" && hasLink && <PriceWatch item={item} save={save} />}
               </Group>
 
@@ -709,3 +711,41 @@ function FullTitle({ text, onUse }: { text: string; onUse: () => void }) {
   );
 }
 
+/** R17 Q2: read this item's price now (the daily check's ladder and bookkeeping) — the answer inline. Hidden read-only. */
+function CheckNow({ item }: { item: ItemWithSources }) {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const ro = useReadOnly();
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<{ kind: string; text: string } | null>(null);
+  if (ro.ro) return null;
+  const run = async () => {
+    setBusy(true);
+    setRes(null);
+    try {
+      const r = await checkItemNow(item.id);
+      if (r.item) s.upsertItem(r.item);
+      if (!r.ok) return setRes({ kind: r.reason, text: r.reason === "limit" ? t.item.checkLimit : t.item.checkBlocked });
+      const price = formatMoney(r.price, r.currency, locale);
+      const tpl = r.outcome === "down" ? t.item.checkedDown : r.outcome === "up" ? t.item.checkedUp : r.outcome === "new" ? t.item.checkedNew : t.item.checkedSame;
+      setRes({ kind: r.outcome, text: f(tpl, { price, pct: r.pct }) });
+    } catch {
+      toast.error(t.errors.generic);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 pb-3" data-check-now>
+      <Button type="button" size="sm" variant="subtle" className="h-9" onClick={() => void run()} disabled={busy} data-check-now-btn>
+        {busy ? <Spinner /> : <RefreshCw />}
+        {busy ? t.item.checking : t.item.checkNow}
+      </Button>
+      {res && (
+        <span role="status" className={cn("min-w-0 text-[12.5px] font-medium", res.kind === "down" ? "text-ok" : res.kind === "up" || res.kind === "blocked" || res.kind === "limit" ? "text-warn" : "text-muted")} data-check-now-result={res.kind}>
+          {res.text}
+        </span>
+      )}
+    </div>
+  );
+}

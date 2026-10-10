@@ -62,6 +62,7 @@
     "test:ai-quota": "tsx --conditions=react-server scripts/test-ai-quota.ts",
     "test:short-name": "tsx scripts/test-short-name.ts",
     "test:blocked": "tsx --conditions=react-server scripts/test-blocked.ts",
+    "test:check-now": "tsx --conditions=react-server scripts/test-check-now.ts",
     "test:delete-account": "tsx --conditions=react-server scripts/test-delete-account.ts",
     "test:admin-access": "node scripts/test-admin-access.mjs",
     "test:admin-privacy": "node scripts/test-admin-privacy.mjs",
