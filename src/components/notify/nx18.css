@@ -182,3 +182,9 @@
 /* Settings → Notifications (board Settings-notify-phone) */
 .nx .stat-ok{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ok);white-space:nowrap}
 .nx .stat-ok .sdot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+/* R17 P4: rows after a cold-start skeleton fade in (opacity only); the popover's height settles once (empty ↔ list). */
+.nx .ilist.nt-fadein{animation:nt-fade 150ms var(--ease-out) both}
+@keyframes nt-fade{from{opacity:0}to{opacity:1}}
+.nx .ibx{transition:height 200ms var(--ease-out)}
+@media (prefers-reduced-motion:reduce){.nx .ibx{transition:none}}
+[data-motion=reduce] .nx .ibx{transition:none}

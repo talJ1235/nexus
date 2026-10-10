@@ -6,13 +6,13 @@
 //   2. Hebrew walk (P2, the test:clip screens in Hebrew, phone 390 + desktop 1366): every visible element whose text
 //      starts with a Hebrew letter has `direction: rtl`, and in every text node whose first letter is Hebrew a Latin word
 //      that follows a Hebrew word on the same line is to its LEFT (DOM Range rects) — "תכנון עם Nexus", not "Nexus תכנון עם".
-// Usage: npm run build, then `npm run test:bidi` (PORT=3111). BIDI_ONLY=switcher,walk
+// Usage: npm run build, then `npm run test:bidi` (PORT=3114). BIDI_ONLY=switcher,walk
 import { chromium } from "playwright";
 import { seedAdmin } from "./lib/seed-admin.mjs";
 import { seedInbox } from "./lib/seed-notify.mjs";
 import { startApp } from "./lib/test-app.mjs";
 
-const PORT = Number(process.env.PORT || 3111);
+const PORT = Number(process.env.PORT || 3114);
 const ONLY = (process.env.BIDI_ONLY || "").split(",").filter(Boolean);
 const want = (g) => !ONLY.length || ONLY.includes(g);
 const app = await startApp({ db: "bidi-test.db", port: PORT });

@@ -252,6 +252,84 @@ try {
     await page.screenshot({ path: `${SHOTS}/settings-budget-recipients-phone.png` });
     await ctx.close();
   }
+
+  // ---------- R17 P4: the inbox opens without a jump ----------
+  // In the page: layout shifts (PerformanceObserver), when the popover / page and the skeleton first appear, and
+  // whether the popover / page had rows in the frame it appeared in.
+  const watch = () => {
+    window.__ls = [];
+    new PerformanceObserver((l) => {
+      for (const e of l.getEntries()) window.__ls.push({ t: e.startTime, v: e.value, nodes: (e.sources ?? []).map((s) => s.node) });
+    }).observe({ type: "layout-shift", buffered: true });
+    window.__open = null;
+    window.__skel = null;
+    window.__firstRows = null;
+    new MutationObserver(() => {
+      const host = document.querySelector("[data-nt-popover], [data-nt-page]");
+      if (host && window.__open == null) {
+        window.__open = performance.now();
+        window.__firstRows = host.querySelectorAll("[data-nt]").length;
+      }
+      if (window.__skel == null && document.querySelector("[data-nt-skeleton]")) window.__skel = { at: performance.now(), n: Number(document.querySelector("[data-nt-skeleton]").getAttribute("data-nt-skeleton")) };
+    }).observe(document, { childList: true, subtree: true });
+  };
+  const shiftsAfterOpen = (page) =>
+    page.evaluate(() => {
+      const host = document.querySelector("[data-nt-popover], [data-nt-page]");
+      const inside = (n) => n && host?.contains(n);
+      return window.__ls.filter((e) => e.t > window.__open + 17 && e.v > 0 && (e.nodes.length === 0 || e.nodes.some(inside))).map((e) => +e.v.toFixed(4));
+    });
+  // The steps above emptied this inbox: the seven rows again.
+  await app.db.execute({ sql: "DELETE FROM notification WHERE user_id = ?", args: [app.admin] });
+  await seedInbox(app.db, { userId: app.admin, spaceId: app.personal });
+  for (const z of [{ name: "desktop", w: 1366, h: 768, bell: "[data-nt-bell=desk]", host: "[data-nt-popover]" }, { name: "phone", w: 390, h: 844, bell: "[data-nt-bell=phone]", host: "[data-nt-page]", phone: true }]) {
+    const ctx = await browser.newContext({ viewport: { width: z.w, height: z.h }, reducedMotion: "no-preference", ...(z.phone ? { isMobile: true, hasTouch: true } : {}) });
+    await ctx.addCookies(app.cookies(app.personal, z.phone ? "he" : "en"));
+    await ctx.addInitScript(watch);
+    const page = await ctx.newPage();
+    // Cold start on a slow network: open the bell the moment the app is ready (before the idle prefetch is back).
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send("Network.enable");
+    await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 900, downloadThroughput: -1, uploadThroughput: -1 });
+    await page.goto(app.base);
+    await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 60000 });
+    await page.locator(z.bell).click();
+    await page.waitForSelector(`${z.host} [data-nt]`, { timeout: 30000 });
+    await page.waitForTimeout(400);
+    const cold = await page.evaluate(() => ({ skel: window.__skel && { after: Math.round(window.__skel.at - window.__open), n: window.__skel.n }, rows: document.querySelectorAll("[data-nt]").length }));
+    const shifts = await shiftsAfterOpen(page);
+    ok(!cold.skel || cold.skel.after >= 280, `P4 ${z.name} cold: nothing for the first 300 ms (a skeleton only after)`, JSON.stringify(cold));
+    ok(shifts.length === 0, `P4 ${z.name} cold, slow network: no layout shift inside the ${z.name === "desktop" ? "popover" : "page"} after its first frame`, JSON.stringify(shifts));
+    await page.keyboard.press("Escape");
+    if (z.phone) await page.goBack().catch(() => {});
+    await page.waitForTimeout(500);
+    // Warm: back to a normal network, reload, let the idle prefetch run, open → the first frame already has rows.
+    await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    await page.goto(app.base);
+    await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 30000 });
+    await page.waitForTimeout(3500);
+    await page.locator(z.bell).click();
+    await page.waitForSelector(z.host);
+    await page.waitForTimeout(400);
+    const warm = await page.evaluate(() => ({ first: window.__firstRows, skel: window.__skel }));
+    ok(warm.first > 0 && !warm.skel, `P4 ${z.name} warm: the first frame already has rows (no loading state)`, JSON.stringify(warm));
+    await page.keyboard.press("Escape");
+    if (z.phone) await page.goBack().catch(() => {});
+    // A cold start that knows the count: the skeleton has as many rows as last time (≤ 6).
+    await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 1500, downloadThroughput: -1, uploadThroughput: -1 });
+    await page.goto(app.base);
+    await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 60000 });
+    await page.locator(z.bell).click();
+    await page.waitForSelector("[data-nt-skeleton]", { timeout: 5000 }).catch(() => {});
+    const n = await page.evaluate(() => window.__skel?.n ?? null);
+    const real = await page.evaluate(() => sessionStorage.getItem(Object.keys(sessionStorage).find((k) => k.startsWith("nexus.inbox.n:")) ?? ""));
+    ok(n != null && String(n) === real, `P4 ${z.name}: the skeleton has as many rows as the inbox had (${real})`, String(n));
+    await page.waitForSelector(`${z.host} [data-nt]`, { timeout: 30000 });
+    await page.waitForTimeout(300);
+    const s2 = await shiftsAfterOpen(page);
+    ok(s2.length === 0, `P4 ${z.name}: skeleton → rows without a layout shift`, JSON.stringify(s2));
+    await ctx.close();
+  }
 } catch (e) {
   console.error(e);
   fails++;

@@ -25,6 +25,11 @@ export function useInbox() {
 }
 
 let loading: Promise<void> | null = null;
+let loadedAt = 0;
+// R17 P4: how many rows the inbox had last time (per person, this tab) — a cold-start skeleton has that many.
+let who = "";
+const COUNT_KEY = "nexus.inbox.n:";
+const STALE_MS = 30_000;
 
 export const inboxStore = {
   get: () => state,
@@ -34,13 +39,37 @@ export const inboxStore = {
   setBoot(boot: NotifyBoot) {
     set({ boot, unread: boot.unread });
   },
-  /** The full list (when the popover / page opens, or a push arrives while it is open). */
+  setUser(id: string | undefined) {
+    who = id ?? "";
+  },
+  /** Rows the last load had (≤ 6), for the skeleton's shape; 3 when unknown. */
+  lastCount() {
+    try {
+      const v = sessionStorage.getItem(COUNT_KEY + who);
+      return v == null ? 3 : Math.max(0, Math.min(6, Number(v) || 0));
+    } catch {
+      return 3;
+    }
+  },
+  /** The full list (when the popover / page opens, or a push arrives while it is open). Rows already in memory stay on
+   *  screen while it refreshes. */
   load() {
     loading ??= inbox()
-      .then((r) => set({ rows: r.rows, unread: r.unread, now: r.now }))
+      .then((r) => {
+        loadedAt = Date.now();
+        set({ rows: r.rows, unread: r.unread, now: r.now });
+        try {
+          sessionStorage.setItem(COUNT_KEY + who, String(Math.min(6, r.rows.length)));
+        } catch {}
+      })
       .catch(() => {})
       .finally(() => (loading = null));
     return loading;
+  },
+  /** R17 P4: warm the list before it is opened (app idle after start, bell hover / press) — skipped while fresh. */
+  prefetch() {
+    if (state.rows && Date.now() - loadedAt < STALE_MS) return;
+    void inboxStore.load();
   },
   async refreshUnread(ring = false) {
     try {

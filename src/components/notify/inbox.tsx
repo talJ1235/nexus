@@ -236,13 +236,41 @@ function Empty() {
   );
 }
 
-const Skeleton = () => (
-  <div style={{ padding: "8px 20px", display: "flex", flexDirection: "column", gap: 14 }} aria-hidden>
-    {[0, 1, 2].map((i) => (
-      <div key={i} className="skeleton" style={{ height: 52, borderRadius: 12 }} />
-    ))}
-  </div>
-);
+/**
+ * R17 P4: the list hardly ever waits — it is fetched when the app is idle and again on bell hover / press, and kept.
+ * On a cold start: nothing for the first 300 ms, then a skeleton shaped like the real list (the group header, as many
+ * rows as last time, the same row grid and media column), then the rows fade in (150 ms, opacity only).
+ */
+function useColdStart(rows: InboxRow[] | null) {
+  const [late, setLate] = useState(false);
+  useEffect(() => {
+    if (rows) return;
+    const id = setTimeout(() => setLate(true), 300);
+    return () => clearTimeout(id);
+  }, [rows]);
+  return { skeleton: !rows && late, fade: !!rows && late, n: inboxStore.lastCount() };
+}
+
+const W = [78, 64, 71, 58, 69, 62];
+function Skeleton({ n }: { n: number }) {
+  if (!n) return null;
+  const bar = (w: string | number, h: number, mt = 0) => <span className="skeleton" style={{ display: "block", width: w, height: h, borderRadius: h / 2, marginTop: mt }} />;
+  return (
+    <div className="ilist" aria-hidden data-nt-skeleton={n}>
+      <div className="igrp">{bar(56, 10, 3)}</div>
+      {Array.from({ length: n }, (_, i) => (
+        <div key={i} className="nt">
+          <span className="media skeleton" style={{ borderRadius: 12 }} />
+          <span className="tx">
+            {bar(`${W[i]}%`, 12, 4)}
+            {bar("46%", 10, 10)}
+          </span>
+          <span className="meta">{bar(28, 10, 4)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /** Desktop: out of the bell. Esc / outside click close; focus returns to the bell. */
 function Popover({ onClose }: { onClose: () => void }) {
@@ -250,6 +278,7 @@ function Popover({ onClose }: { onClose: () => void }) {
   const nt = t.nt;
   const s = useStore();
   const { rows, now, unread } = useInbox();
+  const cold = useColdStart(rows);
   const ref = useRef<HTMLElement>(null);
   const [pos, setPos] = useState<{ top: number; end: number; h: number } | null>(null);
   const [out, setOut] = useState(false);
@@ -317,11 +346,11 @@ function Popover({ onClose }: { onClose: () => void }) {
         </div>
         <Banners phone={false} />
         {!rows ? (
-          <Skeleton />
+          cold.skeleton && <Skeleton n={cold.n} />
         ) : rows.length === 0 ? (
           <Empty />
         ) : (
-          <div className="ilist">
+          <div className={cn("ilist", cold.fade && "nt-fadein")}>
             <Groups rows={rows} now={now} onOpen={open} />
           </div>
         )}
@@ -343,6 +372,7 @@ function Page({ onClose }: { onClose: () => void }) {
   const nt = t.nt;
   const s = useStore();
   const { rows, now, unread } = useInbox();
+  const cold = useColdStart(rows);
   const [out, setOut] = useState(false);
   const [dx, setDx] = useState<number | null>(null);
   const edge = useRef<{ x0: number; t0: number } | null>(null);
@@ -412,11 +442,11 @@ function Page({ onClose }: { onClose: () => void }) {
       </div>
       <Banners phone />
       {!rows ? (
-        <Skeleton />
+        cold.skeleton && <Skeleton n={cold.n} />
       ) : rows.length === 0 ? (
         <Empty />
       ) : (
-        <div className="ilist">
+        <div className={cn("ilist", cold.fade && "nt-fadein")}>
           <Groups rows={rows} now={now} onOpen={open} swipe />
           <div className="pg-foot">
             <span>{nt.kept}</span>
@@ -464,6 +494,9 @@ export function NotifyBell({ variant, className }: { variant: "desk" | "phone"; 
       type="button"
       className={cn(className, ringing && "nt-ring")}
       onClick={() => s.setPanel(open ? null : "alerts")}
+      onPointerEnter={(e) => e.pointerType === "mouse" && inboxStore.prefetch()}
+      onPointerDown={() => inboxStore.prefetch()}
+      onFocus={() => inboxStore.prefetch()}
       aria-label={label}
       aria-expanded={variant === "desk" ? open : undefined}
       aria-haspopup={variant === "desk" ? "dialog" : undefined}
@@ -488,6 +521,7 @@ export function NotifyBell({ variant, className }: { variant: "desk" | "phone"; 
 export function NotifyRuntime() {
   const s = useStore();
   const { boot } = useInbox();
+  inboxStore.setUser(s.me?.id);
   useEffect(() => {
     if (s.loading || s.offlineAt != null) return;
     let alive = true;
@@ -497,6 +531,8 @@ export function NotifyRuntime() {
         .then((b) => {
           if (!alive) return;
           inboxStore.setBoot(b);
+          // R17 P4: the list too, so the bell opens on real rows.
+          inboxStore.prefetch();
           // iPhone: only a Home Screen app can subscribe.
           const env = pushEnv();
           if (!env.iphone || env.standalone) void ensureSubscribed(b.publicKey);
