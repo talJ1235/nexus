@@ -28,13 +28,12 @@
 - Pictures share one style; "Ask Nexus" is always a rounded pill; mixed Hebrew/English titles keep their direction.
 
 ## Settings
-<!-- spec: Settings, Notifications -->
+<!-- spec: Settings -->
 - Desktop: a large window — sections on the side (You, then the current space), search with `/`, Esc closes. Phone: a
   list of sections, each opens as its own page (Back returns). Each section has an address (e.g. /settings/display)
   and a command-menu entry ("Settings: Budget").
-- **Notifications** (התראות) is one switch in **Account & security**: On (default) — Nexus decides what to tell you and
-  when (a price drop, a delivery, the budget at 80 %, someone's changes in a shared space); Off — nothing is sent, but
-  the bell (alerts) still keeps everything. There are no per-kind settings; phone notifications are coming soon.
+- **Notifications** (התראות): Account & security → Notifications — one switch for all your devices, this device's
+  state, quiet hours (details in the Notifications topic).
 - **Assistant & AI**: AI + rules or Rules only for "Nexus suggests"; Memory; the AI status. **Calendar**: the feed
   link and which kinds it carries. **Data**: back up / restore (owner), import a spreadsheet or receipts, export items.
 

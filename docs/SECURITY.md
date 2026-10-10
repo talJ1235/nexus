@@ -187,3 +187,28 @@ security control.
 - **Activity** (`activity`): kinds + counts only, 30 days, purged with the account.
 - **Onboarding** answers (`pref:onboarding`) are the person's own prefs; the notification permission is asked only on
   the "Turn on" tap.
+
+## R17 Session 3 additions (notifications: web push + inbox)
+- **Push payloads** are encrypted per device (RFC 8291 aes128gcm via `web-push` 3.6.7, VAPID-signed); the push service
+  (Google / Mozilla / Apple / Microsoft) sees the endpoint and size only. Payload = title, one line, a same-origin path,
+  the group tag, actions — item titles / names / prices of the person's own spaces, nothing else. TTL 1 h (shopping) /
+  12 h. VAPID keys live in `.env.local` + Vercel only (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`).
+- **Subscriptions** (`push_subscription`): endpoint + its two browser keys + device kind + a "browser · OS" label (no
+  versions, no fingerprinting). Saved only by the signed-in person (`/api/notify/subscribe`, same origin, ≤ 4 KB), and
+  **only for browser push services** (`allowedEndpoint`: https, port 443, FCM / Mozilla autopush / WNS / Apple hosts, no
+  userinfo) — an endpoint is browser input, so this is the SSRF guard; the request is sent with `fetch`,
+  `redirect: "manual"`, 10 s timeout. Loopback is allowed only under `PUSH_TEST_LOOPBACK=1` outside production.
+  404/410 deletes, 5 failures in a row → the daily purge; a hidden (deleted) account loses them at once; sign-out
+  unsubscribes the browser (`clearOffline`).
+- **Inbox** (`notification`): the person's own rows (every read / write is keyed by the session user, viewers too);
+  30 days; deleted with the account; exported with "Download my data". Text is built at read time (no stored HTML).
+- **Received** (`POST /api/notify/received`, from the service worker or the row): session cookie required (401
+  without), same origin, the row must be that person's delivery row and they must be able to edit its space; it only
+  moves that item On the way → bought. **Open** (`GET /api/notify/open?id=`): marks read, switches the space cookie only
+  to a space the person is a member of, redirects to a same-origin path. The service worker keeps only same-origin
+  paths from a payload.
+- **Cron**: `/api/cron/notify` uses the same `CRON_SECRET` Bearer check as `/api/cron/prices`; GitHub Actions
+  `hourly.yml` holds it as a repo secret. Rows are claimed in the same UPDATE that marks them sent (no double sends).
+- **Admin** sees counts only (devices per kind, sent / failed today, due now) — `test:admin-privacy` seeds inbox rows and
+  a subscription and greps every admin answer for their content and keys.
+- No content in logs: push failures are recorded as status codes (`notify · push_410` …).

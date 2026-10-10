@@ -742,6 +742,28 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
 - Guards: `test:admin-access`, `test:admin-privacy`, `test:admin-live`, `test:admin-people`, `test:onboarding`;
   `test:clip` walks the admin tabs and every onboarding step; `test:auth-flow` checks a banned sign-in.
 
+## Round 17 — Session 3: notifications (web push + inbox)
+(brief `docs/ROUND17-S3.md`, boards `docs/design/r17/` Inbox / Permission / Push-previews / Settings-notify, notes:
+`docs/ROUND17.md` "## Open" → "### Session 3")
+- **Inbox**: the header bell (count badge) opens a 420-wide popover on computers and a full page `/inbox` on phones
+  (pushed in from the inline-end over Home; Back / edge swipe / browser Back). Today / Earlier, unread tint + dot, Mark all
+  read, tap = read + open (another space → `/api/notify/open` switches first), swipe to delete (phone), Received on a
+  delivery, Open on a price. 30 days. Rows are built from data + the reader's language at read time. The R16 alerts panel
+  and its Telegram leftovers are gone; every old entry point opens the inbox.
+- **Web push**: VAPID (`web-push`, payload encrypted per device), service worker shows it with the group's tag (updates
+  replace in place), Received / Open actions, clicks focus Nexus. Subscribed after permission (re-checked every start,
+  dropped on sign-out; iPhone only from the Home Screen). Push services only (endpoint allow-list); 404/410 deletes the
+  address, 5 failures in a row → the daily purge.
+- **Notifications**: one switch (Settings → Account → Notifications: all devices, this device's state, quiet hours) — no
+  per-kind settings. Kinds: someone shopping now / finished (one per trip, updated in place), shared-space activity (one
+  row per space per hour), price drop / target (one push per check run; checks hourly via GitHub Actions `hourly.yml`),
+  delivery today (08:00, Received), budget 80 % / 100 % (owner + picked members: Space settings → Budget → "Budget alerts
+  go to"), Thursday summary. Urgent at once, the rest at the person's usual hour (from 14 days of opens, default 09:00),
+  never 22:00–07:00. The actor is never notified. Reminder card after "Not now": 3 → 7 → 14 → 30 days, generic, Home only.
+  Admin: System row + a Live stat, counts only.
+- Data (additive): `notification` (one row per person per group key), `push_subscription`. Guards: `test:notify`,
+  `test:push`, `test:inbox`; `test:clip` walks the inbox, the card and Settings → Notifications.
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
@@ -757,7 +779,7 @@ same product from another store → added as another source). `#name` in the mes
 linked chat. The webhook is (re)set after linking, whenever the alerts state loads, and by the daily cron.
 
 ## Non-goals (for now)
-Carrier API tracking sync. (Multi-user accounts arrived in Round 15; onboarding and the admin panel shipped in R17 Session 2; push + inbox is Session 3.)
+Carrier API tracking sync. (Multi-user accounts arrived in Round 15; onboarding and the admin panel shipped in R17 Session 2, push + inbox in Session 3. No email channel.)
 
 ## Stack (all free tier)
 Next.js 16 (App Router) on Vercel · Turso (libSQL) + Drizzle · Gemini Flash-Lite (+ optional Groq/OpenRouter) ·
@@ -776,6 +798,7 @@ Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 | `ADMIN_EMERGENCY_TOKEN` | R17 E1: admin-only emergency sign-in (≥ 32 chars; unset = off); the prod smoke uses it as `SMOKE_ADMIN_TOKEN` |
 | `ADMIN_EMAILS` | R17 E1: comma-separated admin addresses allowed to use the emergency sign-in (plus `ADMIN_EMAIL`) |
 | `CF_FETCH_URL` / `CF_FETCH_SECRET` | R17 C2: the Cloudflare fetch worker for stores that block Vercel (optional) |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | R17 S3: web push keys (generate once; without them the inbox works, nothing is pushed). Subject: `mailto:` or the site URL |
 | `SESSION_SECRET` | ≥32 random chars (pre-R15 sessions; still used by retired guest/Telegram code) |
 | `BETTER_AUTH_SECRET` | R15: 32+ random bytes — signs session cookies, encrypts invite codes |
 | `BETTER_AUTH_URL` | R15: the app's URL (prod `https://nexus-ashen-beta.vercel.app`, local `http://localhost:3100`) |
@@ -788,7 +811,7 @@ Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 | `AUTH_FULL_LOCAL` | local only (`=1`): full sign-in mode (passkeys, recovery) on localhost; `0` = closed-circle mode |
 | `AUTH_TEST_IDP` | tests only (`=1`, never production): the fake Google for `test:auth-flow` |
 | `BLOB_READ_WRITE_TOKEN` | auto-added when a Blob store is connected |
-| `CRON_SECRET` | authorizes the daily price-check cron (Vercel sends it automatically) |
+| `CRON_SECRET` | authorizes the daily price-check cron (Vercel sends it automatically); R17 S3: the same value as the GitHub secret `CRON_SECRET` for `hourly.yml` (notifications + hourly price slice) |
 | `TELEGRAM_API_BASE` | local tests only: send bot messages to a fake Telegram API (ignored on Vercel) |
 | `BRAVE_SEARCH_API_KEY` | optional: web/image/shopping search for compare stores, barcode lookups and product pictures (preferred) |
 | `SERPER_API_KEY` | optional alternative search provider (Google results via serper.dev) — real product pictures (Google Images, Israel/Hebrew first) |

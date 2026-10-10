@@ -49,6 +49,15 @@
   beat `components/app/presence-beat.tsx`, `lib/activity.ts` (`noteActivity`). Onboarding = `/welcome`,
   `components/onboarding/`, `app/onboarding-actions.ts`, `lib/onboarding.ts` (`pref:onboarding`, stores, presets).
   Tests that call actions over HTTP: `scripts/lib/actions.mjs`; admin demo data: `scripts/lib/seed-admin.mjs`.
+- R17 S3 notifications: every sender calls `notify()` (`lib/notify/enqueue.ts`: actor excluded, one row per group key,
+  `send_after` from `lib/notify/schedule.ts` — quiet hours, active hour); senders `lib/notify/senders.ts` (trips from the
+  presence beat, activity from `noteActivity`, prices from the cron, deliveries / budget / week in the hourly sweep);
+  dispatcher `lib/notify/dispatch.ts` + `/api/cron/notify` (GitHub `hourly.yml`); push `lib/notify/push.ts` (endpoint
+  allow-list) + `public/sw.js`; texts from data at read time `lib/notify/text.ts` (i18n `nt`); data
+  `lib/db-scoped/notify.ts`. UI `components/notify/` (inbox popover / `/inbox` page, rows, reminder card, kit `nx18.css`),
+  actions `app/notify-actions.ts`, Settings → Notifications `settings/notifications.tsx`, budget recipients in
+  `settings/space.tsx` (`pref:budget-alerts`). Routes `/api/notify/{subscribe,received,open}`. Inbox demo rows:
+  `scripts/lib/seed-notify.mjs`.
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)

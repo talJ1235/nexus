@@ -17,7 +17,7 @@ env:
 jobs:
   guards:
     runs-on: ubuntu-24.04 # pinned: ubuntu-latest moves to 26.04 on 2026-10-19
-    timeout-minutes: 110 # R17: + test:clip (752 + 218 screens), test:auth-flow; S2: admin + onboarding tests
+    timeout-minutes: 120 # R17: + test:clip (752 + 218 screens), test:auth-flow; S2: admin + onboarding tests; S3: push + inbox
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0 }
@@ -30,7 +30,7 @@ jobs:
         run: npx eslint --quiet .
       - name: unit tests
         run: |
-          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles status feed assistant-context short-name ai-quota blocked delete-account; do
+          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles status feed assistant-context short-name ai-quota blocked delete-account notify; do
             echo "::group::test:$t"; npm run -s test:$t; echo "::endgroup::"
           done
       - name: authz coverage · data scope · SSRF · query plans
@@ -105,6 +105,10 @@ jobs:
         run: npm run -s test:admin-people
       - name: onboarding — 7 steps, skips, resume, invite / iPhone / standalone (R17 H; built app)
         run: npm run -s test:onboarding
+      - name: web push — fake push service + decrypt, 410 / failures, endpoint allow-list, service worker handlers, a real push (R17 S3 J2; built app)
+        run: npm run -s test:push
+      - name: inbox — popover + phone page, read / mark all / swipe / Received, media inside rows, RTL, the reminder card, Settings → Notifications, budget recipients (R17 S3 K–N; built app)
+        run: npm run -s test:inbox
       - name: settings shell, space look, switch moment, Home customise (R16 D1–D5, E1)
         env:
           CI_DB: file:ci-settings.db

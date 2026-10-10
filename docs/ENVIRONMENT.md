@@ -167,3 +167,12 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   `scripts/lib/seed-admin.mjs`; `node scripts/parity-r17.mjs [prefix]` (boards vs app, own server on `parity-r17.db`).
   `.claude/settings.local.json` allows the round17-s2 push/merge commands.
 - 2026-10-09 (planning chat): a Design canvas made on the other Claude account opens here only as a read-only copy ("belongs to another organization") — `read` works, `publish` with its `url` doesn't. To continue it: read it, publish a new canvas from the Design type on this account with the same `project/*` files, and treat the new one as current (record its name in `PLANNER.md`).
+- 2026-10-10 (Claude Code, R17 Session 3): web push. `.env.local` has `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+  `VAPID_SUBJECT` (generated in Step 0 with Node's crypto; subject = the prod URL until a privacy address exists) — copy
+  the same three to Vercel (Production) and redeploy. New GitHub Actions workflow `hourly.yml` (`5 * * * *`: curls
+  `/api/cron/notify` then `/api/cron/prices?scope=hourly`) needs the repo secret `CRON_SECRET` = Vercel's value (without
+  it the job skips, green). New tests `test:notify` (unit + throwaway DB), `test:push` (fake push service on loopback,
+  decrypts the payload; the browser part prefers the full Chromium — `chromium.launch({ channel: "chromium" })` — and
+  falls back to the headless shell, which has no notifications), `test:inbox` (built app, port 3111; screenshots to
+  `test-data/inbox`). Seeder `scripts/lib/seed-notify.mjs`. `.claude/settings.local.json` allows the round17-s3
+  push/merge commands.

@@ -33,8 +33,7 @@
 
 ## Telegram — retired
 <!-- spec: Telegram bot input, Weekly Telegram summary -->
-- Telegram messages ended in Round 15. Price alerts show in the app (the bell; phone: Me → Price alerts); phone
-  notifications are coming next.
+- Telegram messages ended in Round 15. Price drops now arrive as notifications and in the bell (see Notifications).
 
 ## Import, export and backup
 <!-- spec: Import & backup, Excel export -->

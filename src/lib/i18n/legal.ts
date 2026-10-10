@@ -23,6 +23,7 @@ const en = {
           "What you put in: items, links, prices, lists and projects, receipts and photos you upload, notes, your chats with the assistant and the notes it remembers (only when Memory is on). This is the app — it's kept so you can use it.",
           "Security: your sign-in sessions and devices (browser, operating system, an approximate city from the network address, times) and a security log (sign-ins, sign-outs, passkey changes) — to show you your devices and to spot sign-ins that weren't you.",
           "When something fails, an error log keeps a short technical note with emails, names and links' query strings removed; people are counted through one-way hashes, never named. AI usage is counted per person (which feature, when, did it work) — not what was asked.",
+          "Notifications: your inbox (what each notification said — names, item titles and prices from your spaces) for 30 days, and, for each device where you turned notifications on, the push address its browser gave us (from Google, Mozilla, Apple or Microsoft's push service) with only the browser and system name (for example \"Chrome · Android\"). Each notification is encrypted for your device on the way; the push service sees the address, not the text. Signing out on a device stops its notifications; failing addresses are deleted.",
         ],
       },
       {
@@ -105,6 +106,7 @@ const he: typeof en = {
           "מה שמכניסים: פריטים, קישורים, מחירים, רשימות ופרויקטים, קבלות ותמונות שמעלים, הערות, השיחות עם העוזר והדברים שהוא זוכר (רק כשהזיכרון פועל). זו האפליקציה עצמה — זה נשמר כדי שאפשר יהיה להשתמש בה.",
           "אבטחה: הכניסות והמכשירים שלך (דפדפן, מערכת הפעלה, עיר משוערת לפי כתובת הרשת, זמנים) ויומן אבטחה (כניסות, יציאות, שינויי מפתחות גישה) — כדי להראות לך את המכשירים ולזהות כניסה שלא הייתה שלך.",
           "כשמשהו נכשל, יומן שגיאות שומר הערה טכנית קצרה בלי מיילים, שמות ופרמטרים של קישורים; אנשים נספרים דרך גיבוב חד-כיווני, אף פעם לא בשם. השימוש בבינה מלאכותית נספר לכל אדם (איזו יכולת, מתי, האם הצליח) — לא מה נשאל.",
+          "התראות: תיבת ההתראות שלך (מה נכתב בכל התראה — שמות, שמות פריטים ומחירים מהמרחבים שלך) ל-30 יום, ולכל מכשיר שבו הפעלת התראות — כתובת הפוש שהדפדפן נתן (משירות הפוש של Google, ‏Mozilla, ‏Apple או Microsoft) עם שם הדפדפן ומערכת ההפעלה בלבד (למשל \"Chrome · Android\"). כל התראה מוצפנת למכשיר שלך בדרך; שירות הפוש רואה את הכתובת, לא את הטקסט. יציאה מהחשבון במכשיר עוצרת את ההתראות בו; כתובות שנכשלות נמחקות.",
         ],
       },
       {

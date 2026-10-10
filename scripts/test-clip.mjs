@@ -8,11 +8,12 @@
 //   • a number or an amount that is truncated at all (polish #23: numbers never truncate), or
 //   • text running off the side of the screen.
 // Scroll containers (overflow: auto/scroll) aren't cuts. Report = screen · viewport · locale · selector · text.
-// Usage: npm run build, then `npm run test:clip` (PORT=3109). CLIP_ONLY=settings,views,sheets  CLIP_QUICK=1 (390 + 1366,
+// Usage: npm run build, then `npm run test:clip` (PORT=3109). CLIP_ONLY=settings,views,sheets,notify  CLIP_QUICK=1 (390 + 1366,
 // one theme, English + Hebrew).
 import { chromium } from "playwright";
 import { seedAdmin } from "./lib/seed-admin.mjs";
 import { startApp } from "./lib/test-app.mjs";
+import { seedInbox } from "./lib/seed-notify.mjs";
 
 const PORT = Number(process.env.PORT || 3109);
 const QUICK = !!process.env.CLIP_QUICK;
@@ -22,6 +23,14 @@ const app = await startApp({ db: "clip-test.db", port: PORT });
 const BASE = app.base;
 // R17 S2: the admin panel's demo people (presence put back to "now" before each admin screen) and the onboarding steps.
 await seedAdmin(app.db, { adminId: app.admin, personal: app.personal });
+// R17 S3: the boards' inbox in both spaces, plus a worst-case row (long names, a long title, a big price).
+for (const sp of [app.personal, "pa_big"]) await seedInbox(app.db, { userId: app.admin, spaceId: sp });
+await app.db.execute({
+  sql: "INSERT INTO notification (id, user_id, space_id, kind, group_key, data, created_at, updated_at, push_state) VALUES ('n_worst1', ?, 'pa_big', 'activity', 'activity:worst', ?, ?, ?, 'sent'), ('n_worst2', ?, 'pa_big', 'price', 'price:worst:1', ?, ?, ?, 'sent')",
+  args: [app.admin, JSON.stringify({ names: ["Christopher Alexander Montgomery III", "נור الهدى عبد الرحمن"], byIds: ["pa_u3", "pa_u4"], added: 128, checked: 47, space: "משפחת וישנייבסקה-קובלצ'יק — הדירה החדשה ברחוב הרצל 42" }), Date.now(), Date.now(), app.admin, JSON.stringify({ itemId: "x", title: "Ergonomic office chair with adjustable lumbar support, 4D armrests and headrest — black mesh edition", store: "Office Depot International Wholesale", now: 1249999.9, was: 1999999, currency: "ILS", run: "worst" }), Date.now() - 1000, Date.now() - 1000],
+});
+const askDue = () =>
+  app.db.execute({ sql: "INSERT INTO user_pref (user_id, key, value, updated_at) VALUES (?, 'pref:notify-ask', ?, ?) ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value", args: [app.admin, JSON.stringify({ count: 1, lastNo: Date.now() - 4 * 86_400_000, shown: null }), Date.now()] });
 const freshen = () => app.db.execute({ sql: "UPDATE presence SET updated_at = ? WHERE session_id IN ('ads_noa_p', 'ads_yoav', 'ads_maya')", args: [Date.now() - 8000] });
 const ADMIN = ["/admin", "/admin/people", "/admin/people/ad_noa", "/admin/invites", "/admin/ai", "/admin/reports", "/admin/reports/r_admin_demo", "/admin/errors", "/admin/system", "/admin/more"];
 const obAt = (step) =>
@@ -31,7 +40,7 @@ const obAt = (step) =>
   });
 
 const VIEWS = ["/", "/?v=to_buy", "/?v=ordered", "/?v=history", "/?v=orders", "/?v=spending", "/?v=projects", "/?v=collection&id=pa_big_c0", "/?v=store&key=ksp"];
-const YOU = ["account", "display", "ai", "calendar", "memory", "data", "activity", "reports"];
+const YOU = ["account", "display", "ai", "calendar", "memory", "data", "activity", "reports", "notifications"];
 const SPACE = ["general", "people", "budget", "danger"];
 const SIZES = QUICK
   ? [{ w: 390, h: 844, phone: true }, { w: 1366, h: 768 }]
@@ -255,6 +264,25 @@ for (const space of [app.personal, "pa_big"])
             record(`${tag} palette`, await page.evaluate(scan, "[role=dialog]"));
             await page.keyboard.press("Escape");
           }
+        }
+        if (want("notify")) {
+          // R17 S3: the inbox (phone page / desktop popover) and the reminder card (blocked state + its steps).
+          await page.goto(`${BASE}/inbox`);
+          await settle();
+          await page.waitForSelector("[data-nt-page] [data-nt], [data-nt-popover] [data-nt]", { timeout: 30_000 });
+          await page.waitForTimeout(500);
+          record(`${tag} inbox`, await page.evaluate(scan, "[data-nt-page], [data-nt-popover]"));
+          await askDue();
+          await page.goto(BASE);
+          await settle();
+          const card = page.locator("[data-nt-card]");
+          if (await card.waitFor({ timeout: 15_000 }).then(() => true, () => false)) {
+            await page.waitForTimeout(500);
+            record(`${tag} reminder card`, await page.evaluate(scan, "[data-nt-card]"));
+            await page.click("[data-nt-card-btn=how]").catch(() => {});
+            await page.waitForTimeout(400);
+            record(`${tag} reminder card steps`, await page.evaluate(scan, "[data-nt-card]"));
+          } else record(`${tag} reminder card`, [{ why: "the reminder card did not show", sel: "[data-nt-card]", text: "" }]);
         }
         if (space === app.personal && want("admin") && (z.w !== 1280 || scheme === "light"))
           for (const r of ADMIN) {
