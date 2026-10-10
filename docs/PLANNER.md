@@ -6,7 +6,16 @@ writes the round briefs. Everything durable lives in this repo, not in chat hist
 Setup of this chat (network, GitHub connector, rebuilding it on a new account): `docs/ENVIRONMENT.md` — any change
 to setup, tooling or workflow is recorded there in the same session.
 
-## Current state & handoff (updated 2026-10-09 → read this first on any account)
+## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-10:** **R17 Session 3 merged and live** (notifications: inbox, web push, reminder card, senders, settings,
+  admin counts; results in `docs/ROUND17.md` Open "### Session 3"). Planner reviewed the builder's decisions — all
+  accepted (4 reminder cards 3/7/14/30 with onboarding's "Not now" as the first; never-asked users get one card; one
+  weekly summary per person, skipped when empty; hourly 20 s price slice). Asked Tal: (1) price pushes also go to
+  viewers — keep? (2) "Check now" + the drop-% picker were removed with the old alerts panel — bring "Check now" back?
+  **Tal to do:** VAPID keys → Vercel (Production) + redeploy; GitHub secret `CRON_SECRET` (= Vercel's; if Vercel hides
+  it, set a new value in both). **Next:** Tal tests (push needs another member's action — e.g. Noa starts a shopping
+  trip) → notes → one fix round for S2 + S3, incl. the prod smoke step "category filter narrows the grid" and the S2
+  Open items (top Skip → Home, desktop install QR, unchecked "if paid" prices).
 - **2026-10-09 (late):** **R17 Session 3 boards v2 approved** (canvas "Nexus R17 — Notifications v2", private Design
   artifact on the account that made it) and copied to `docs/design/r17/` (`Main` → `Inbox-desktop`, `Inbox-phone`,
   `Permission-*`, `Push-previews`, `Settings-notify-phone`, `nx18.css`). Brief written: `docs/ROUND17-S3.md` (own file;
@@ -274,6 +283,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-10 · same chat as the S3 boards · Reviewed R17 S3 results (merged, CI green, rehearsal ok, local smoke 81/81 + 95/95, one pre-existing prod smoke failure). Accepted the builder's decisions; open questions to Tal: price pushes to viewers, "Check now" removed. Gave Tal the VAPID / `CRON_SECRET` steps.
 - 2026-10-09 · other account (v1 canvas not editable here) · R17 S3 boards v2 on new canvas "Nexus R17 — Notifications v2": phone inbox → full page, icon clipping fixed (media column was an inline span → 0 px wide), permission boards redrawn without item context as a recurring reminder (desktop from the bell, phone above the dock). Skills used: emil-design-eng, apple-design, mobile-native, animate RECIPES + frontend-design. Tal approved (reminders 3/7/14/30 days then stop; phone card above the dock) → boards in `docs/design/r17/`, brief `docs/ROUND17-S3.md`.
 - 2026-10-09 · B · R17 S2 boards: first pass with 3 onboarding directions; Tal chose A, asked for a Live admin view, admin delete, and the emilkowalski skills bar on every mockup → boards redesigned (Live tab + activity stream, hold-to-delete, reactive onboarding scenes, Hebrew tweak). Approved → `docs/design/r17/`, `.claude/skills/animate/` added, brief Session 2 written in `docs/ROUND17.md`.
 - 2026-10-07 · A · Tal approved the R16 boards (after widening the settings dialog to 1220 and fixing the People table). Copied to `docs/design/r16/` (`Main` → `Settings-desktop`), ticked the list in `docs/ROUND16.md` Part D, gave Tal the Session 2 prompt.
