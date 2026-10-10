@@ -686,7 +686,11 @@ if (want("29")) {
   const t0 = Date.now();
   for (let i = 0; i < 30; i++) {
     await ctx.addCookies([{ name: "nexus_space", value: spaces[i % 3], url: BASE }]);
+    // R17 S5: wait for this load's own token request (CI's slower loads moved on before it, 20–24 of 30 — main too), so
+    // the run still sends 30 in well under a minute and the 0 × 429 means something.
+    const token = page.waitForResponse((r) => r.url().includes("/api/realtime/token"), { timeout: 4000 }).catch(() => null);
     await page.goto(BASE + ROUTES[i % 6], { waitUntil: "load" });
+    await token;
     const left = t0 + (i + 1) * 1000 - Date.now();
     if (left > 0) await page.waitForTimeout(left);
   }
