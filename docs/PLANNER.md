@@ -7,6 +7,20 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-10 (later):** Tal's test notes → **R17 Session 4 brief `docs/ROUND17-S4.md`** (fixes): P1 switcher name cut
+  from the wrong end in RTL + clipped highlight, P2 Hebrew/English order ("תכנון עם Nexus") + app-wide audit + `test:bidi`,
+  P3 the whole sidebar profile block / Me-sheet header opens a new Settings → **Profile** section, P4 inbox opens without
+  the skeleton jump (prefetch + count-shaped skeleton), P5 ₪ instead of "שקל" in AI text, P6 Suggests card fixed height
+  on the phone, P7 carousel drag/swipe wraps around both ends, P8 admin access (Tal got no panel at /admin — check his
+  role on prod), Q1 no price pushes to viewers, Q2 "Check now" on the item page, Q3 the prod smoke category step.
+  Still open from S2 (not in S4, Tal hasn't decided): desktop install QR always, "if paid" prices. **Next:** Tal runs
+  Session 4 with this prompt:
+  ```
+  Round 17, session 4 (docs/ROUND17-S4.md) — Parts P, Q, R, unattended, on branch round17-s4. Step 0, now while I'm
+  here: make sure .claude/settings.local.json allows "Bash(git push origin round17-s4)", "Bash(git push -u origin
+  round17-s4)", "Bash(git merge --ff-only round17-s4)". Then go through all parts without stopping. Merge to main only
+  if everything is green (and the migration rehearsal passes if the DB changed).
+  ```
 - **2026-10-10:** **R17 Session 3 merged and live** (notifications: inbox, web push, reminder card, senders, settings,
   admin counts; results in `docs/ROUND17.md` Open "### Session 3"). Planner reviewed the builder's decisions — all
   accepted (4 reminder cards 3/7/14/30 with onboarding's "Not now" as the first; never-asked users get one card; one
@@ -254,6 +268,10 @@ to setup, tooling or workflow is recorded there in the same session.
   Screen guide). `Notification.requestPermission()` only on the card's tap (repeated native prompts get Chrome to
   auto-block the site). Tal chose (2026-10-09): reminders 3, 7, 14 and 30 days after the last "Not now", then stop (the inbox banner +
   Settings switch stay); at most once a day, only on Home, never during a shopping trip; phone card above the dock.
+- **Profile (Tal 2026-10-10):** clicking the whole profile block (sidebar) / the Me-sheet header opens Settings →
+  Profile (photo, display name, email read-only, member since); the gear still opens Settings.
+- **Mixed Hebrew/English in the UI (Tal 2026-10-10):** Latin words inside Hebrew text sit where Hebrew order puts them
+  ("תכנון עם Nexus" → Nexus on the left); guarded by `test:bidi`. Carousels loop at both ends on drag/swipe too.
 - **R17 S3 follow-ups (Tal 2026-10-10):** price notifications go to the space owner + members, never viewers; "Check now"
   comes back as an action on the item page (no drop-% picker; `minDropPct` stays 5 %). For the S2 + S3 fix round.
 
@@ -286,6 +304,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-10 · same chat · Tal's phone/PC notes after S2+S3 → wrote `docs/ROUND17-S4.md` (Parts P, Q, R). Causes found in code: switcher `truncate` on a Latin name inside RTL (ellipsis at the start), inbox `Skeleton` = 3 fixed bars, carousel drag rubber-bands at the ends, admin gate = `role === "admin"` (Tal's role to verify on prod).
 - 2026-10-10 · same chat as the S3 boards · Reviewed R17 S3 results (merged, CI green, rehearsal ok, local smoke 81/81 + 95/95, one pre-existing prod smoke failure). Accepted the builder's decisions; Tal then chose: price pushes not to viewers; "Check now" back on the item page (both → fix round). Gave Tal the VAPID / `CRON_SECRET` steps; `hourly` ran green by hand.
 - 2026-10-09 · other account (v1 canvas not editable here) · R17 S3 boards v2 on new canvas "Nexus R17 — Notifications v2": phone inbox → full page, icon clipping fixed (media column was an inline span → 0 px wide), permission boards redrawn without item context as a recurring reminder (desktop from the bell, phone above the dock). Skills used: emil-design-eng, apple-design, mobile-native, animate RECIPES + frontend-design. Tal approved (reminders 3/7/14/30 days then stop; phone card above the dock) → boards in `docs/design/r17/`, brief `docs/ROUND17-S3.md`.
 - 2026-10-09 · B · R17 S2 boards: first pass with 3 onboarding directions; Tal chose A, asked for a Live admin view, admin delete, and the emilkowalski skills bar on every mockup → boards redesigned (Live tab + activity stream, hold-to-delete, reactive onboarding scenes, Hebrew tweak). Approved → `docs/design/r17/`, `.claude/skills/animate/` added, brief Session 2 written in `docs/ROUND17.md`.
