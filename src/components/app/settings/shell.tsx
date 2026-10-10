@@ -153,7 +153,10 @@ function Shell({ desktop, instant }: { desktop: boolean; instant?: boolean }) {
     const last = path[path.length - 1];
     want.current = !last ? "/settings" : last === "space" ? "/settings/space" : `/settings/${last}`;
     const id = setTimeout(() => window.history.replaceState(window.history.state, "", want.current), 0);
-    return () => clearTimeout(id);
+    // R17 P3: opened from inside the app (the profile block), a late address write elsewhere (view / query clean-up on
+    // a slow load) could land after ours — while Settings is open it owns the address, so it is checked once more.
+    const again = setTimeout(() => window.location.pathname !== want.current && window.history.replaceState(window.history.state, "", want.current), 400);
+    return () => (clearTimeout(id), clearTimeout(again));
   }, [path]);
 
   const go = (id: SectionId) => {

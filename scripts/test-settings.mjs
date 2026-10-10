@@ -186,7 +186,7 @@ for (const width of [360, 390]) {
     const label = await page.locator("[data-profile-block]").getAttribute("aria-label");
     await page.locator("[data-profile-block]").click();
     await atSection(page, "profile");
-    await page.waitForURL(/\/settings\/profile$/, { timeout: 5000 }).catch(() => {});
+    await page.waitForURL(/\/settings\/profile$/, { timeout: 5000 }).catch(async () => console.log("  url after the block:", page.url(), await page.evaluate(() => history.length)));
     await Promise.resolve().then(
       () => ok(new URL(page.url()).pathname === "/settings/profile" && !!label && label.includes(orig.name), `P3 ${he ? "he" : "en"}: the profile block opens Settings → Profile (one button, “${label}”)`, page.url()),
       () => ok(false, `P3 ${he ? "he" : "en"}: the profile block opens Settings → Profile`),
