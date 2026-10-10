@@ -36,7 +36,7 @@ const ENV = {
   REALTIME_FAKE: "1",
   NEXT_DIST_DIR: undefined,
 };
-// POLISH_ONLY=A1,A2 runs only those sections (tags: 6, phone, 23, reduced, desktop, A1, A2, A3, P6, P7, 29).
+// POLISH_ONLY=A1,A2 runs only those sections (tags: 6, phone, 23, reduced, desktop, A1, A2, A3, P6, S3, P7, 29).
 const want = (tag) => !process.env.POLISH_ONLY || process.env.POLISH_ONLY.split(",").includes(tag);
 let fails = 0;
 const ok = (c, m, d = "") => {
@@ -507,6 +507,111 @@ if (want("P6")) {
     const hs = new Set(seen.map((x) => x.h));
     const tops = new Set(seen.map((x) => x.next));
     ok(n >= 2 && hs.size === 1 && tops.size === 1 && new Set(seen.map((x) => x.i)).size === n, `P6 phone ${width}: through all ${n} suggestions the card's height and the next widget's top never change`, JSON.stringify(seen));
+    await ctx.close();
+  }
+}
+
+// ---------- R17 S5 S3: on a computer, under a real mouse, the card never bobs (1366 and 1280×720) ----------
+if (want("S3")) {
+  // 2560×1305 = Tal's screen (from his report): the card is ≥ 600 px wide there — the card's desktop layout.
+  for (const [width, height] of [[1366, 860], [1280, 720], [2560, 1305]]) {
+    const ctx = await browser.newContext({ viewport: { width, height }, reducedMotion: "no-preference" });
+    ctx.setDefaultTimeout(180_000);
+    await ctx.addCookies([
+      { name: "nexus_session_dev", value: cookie, url: BASE },
+      { name: "nexus_space", value: personal, url: BASE },
+      { name: "nexus_locale", value: "en", url: BASE },
+    ]);
+    await ctx.addInitScript(() => {
+      try {
+        sessionStorage.setItem("nexus.opened", "1");
+        const d = new Date();
+        localStorage.setItem("nexus.bootDay", `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+      } catch {}
+    });
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/`);
+    await page.waitForFunction(() => !!window.__nexusTest, null, { timeout: 180_000 });
+    const sec = page.locator('[data-home-section="suggest"]').first();
+    await sec.waitFor();
+    await sec.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(2500); // AI wording (mock) and the AI's look settle — a new set may change the height once
+    let n = Number(await sec.getAttribute("data-sug-count"));
+    // Wording of very different lengths (one wraps to three lines at this width, one is a single word) — the case that
+    // bobbed on Tal's computer: today's cached AI wording, written for the keys on the card, then a reload.
+    const keys = [];
+    for (let k = 0; k < n; k++) {
+      keys.push(await sec.locator("[data-sug-swipe]").getAttribute("data-sug-key"));
+      await page.evaluate((j) => [...document.querySelectorAll('[data-home-section="suggest"] [data-sug-pager] span > button')].filter((x) => x.offsetParent)[j]?.click(), (k + 1) % n);
+      await page.waitForTimeout(420);
+    }
+    const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    const long = "This one has a much longer title than the others so that it wraps onto a second and a third line at this width";
+    const map = Object.fromEntries(keys.map((k, j) => [k, j % 2 ? { title: "Short", why: "Yes" } : { title: long, why: `${long} — and a why line that wraps as well` }]));
+    await db.execute({ sql: "INSERT OR REPLACE INTO space_pref (space_id, key, value, updated_at) VALUES (?, ?, ?, ?)", args: [personal, `home:ai:v2:${day}:en`, JSON.stringify({ at: Date.now(), map }), Date.now()] });
+    await page.reload();
+    await page.waitForFunction(() => !!window.__nexusTest, null, { timeout: 180_000 });
+    await sec.waitFor();
+    await sec.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(2500);
+    n = Number(await sec.getAttribute("data-sug-count"));
+    const longShown = await page.evaluate((l) => document.querySelector('[data-home-section="suggest"]').textContent.includes(l.slice(0, 40)), long);
+    ok(longShown, `S3 desktop ${width}: the cached wording of different lengths is on the card (card ${Math.round((await sec.boundingBox()).width)} px)`);
+    const geo = () =>
+      page.evaluate(() => {
+        const s = document.querySelector('[data-home-section="suggest"]');
+        const hw = s.closest(".hw") ?? s;
+        const next = hw.nextElementSibling;
+        const stack = s.querySelector("[data-sug-stack]")?.parentElement;
+        const anims = [...s.getAnimations(), ...(stack?.getAnimations() ?? [])].length;
+        const r = (v) => Math.round(v * 10) / 10;
+        const st = stack?.getBoundingClientRect();
+        return { h: r(s.getBoundingClientRect().height), next: next ? r(next.getBoundingClientRect().top) : null, stack: st ? `${r(st.top - s.getBoundingClientRect().top)}/${r(st.height)}` : null, i: s.getAttribute("data-sug-index"), anims };
+      });
+    const b = await sec.boundingBox();
+    await page.mouse.move(b.x + b.width * 0.6, b.y + b.height / 2, { steps: 4 }); // hover the card
+    const seen = [await geo()];
+    const after = async (how) => {
+      await page.waitForTimeout(300);
+      seen.push({ ...(await geo()), how });
+    };
+    const visible = (sel) => page.evaluate((s) => [...document.querySelectorAll(s)].filter((x) => x.offsetParent).map((x) => { const r = x.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }), sel);
+    // Arrows (the desktop pager's next button), with the real mouse.
+    for (let k = 0; k < n; k++) {
+      const [next] = (await visible('[data-home-section="suggest"] [data-sug-pager] > button:last-child')).slice(-1);
+      if (next) await page.mouse.click(next.x, next.y);
+      await after("arrow");
+    }
+    // Dots.
+    for (let k = 0; k < n; k++) {
+      const dots = await visible('[data-home-section="suggest"] [data-sug-pager] span > button');
+      const d = dots[(k + 1) % n];
+      if (d) await page.mouse.click(d.x, d.y);
+      await after("dot");
+    }
+    // Drag (mouse), then hold the hover for 3 s, sampling.
+    for (let k = 0; k < n; k++) {
+      const sb = await sec.locator("[data-sug-swipe]").boundingBox();
+      const x0 = sb.x + sb.width / 2;
+      const y0 = sb.y + Math.min(14, sb.height / 2);
+      await page.mouse.move(x0, y0);
+      await page.mouse.down();
+      for (let j = 1; j <= 12; j++) await page.mouse.move(x0 - (b.width * 0.45 * j) / 12, y0);
+      await page.mouse.up();
+      await page.waitForTimeout(150);
+      await after("drag");
+    }
+    await page.mouse.move(b.x + b.width * 0.4, b.y + b.height / 2, { steps: 3 });
+    for (let k = 0; k < 15; k++) {
+      await page.waitForTimeout(200);
+      seen.push({ ...(await geo()), how: "hold" });
+    }
+    const hs = new Set(seen.map((x) => x.h));
+    const tops = new Set(seen.map((x) => x.next));
+    const stacks = new Set(seen.map((x) => x.stack));
+    const busy = seen.filter((x) => x.how && x.anims > 0);
+    const visited = new Set(seen.map((x) => x.i)).size;
+    ok(n >= 2 && hs.size === 1 && tops.size === 1 && stacks.size === 1 && busy.length === 0 && visited === n, `S3 desktop ${width}×${height}: arrows, dots, drag and a 3 s hover — the card's height, its text block and the next widget's top never change, no animation 300 ms after a move`, JSON.stringify({ n, visited, heights: [...hs], tops: [...tops], stacks: [...stacks], busy: busy.slice(0, 3) }));
     await ctx.close();
   }
 }

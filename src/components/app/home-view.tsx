@@ -673,6 +673,7 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
   const i = Math.min(idx, sugs.length - 1);
   const x = sugs[i];
   const tpl = template(x, t, fm);
+  const ctas = [...new Set(sugs.map((y) => template(y, t, fm).cta).filter((c): c is string => !!c))];
   const ai = phrased[x.key];
   const rtl = dir === "rtl";
   const go = (d: number, fromPx?: number) => {
@@ -776,13 +777,14 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
           {sugs.length > 1 && <span className="@min-[600px]:hidden">{pager}</span>}
         </div>
         {/* R17 P6: every suggestion's text sits in the same grid cell (the others invisible), so the card is as tall as its
-            tallest suggestion and keeps that height while sliding; a new set changes it once, animated (StackHeight). */}
-        <StackHeight className="grid min-w-0 flex-1 [grid-template-areas:'s']" data-sug-stack>
+            tallest suggestion and keeps that height while sliding; a new set changes it once, animated (StackHeight).
+            R17 S5 S3: on every width — on desktop the ghosts were hidden, so the height changed per slide. */}
+        <StackHeight className="grid min-w-0 [grid-template-areas:'s']" data-sug-stack>
           {sugs.map((y, k) => {
             if (k === i) return null;
             const yt = template(y, t, fm);
             return (
-              <div key={`ghost:${y.key}`} className="invisible flex flex-col gap-[3px] [grid-area:s] @min-[600px]:hidden" aria-hidden data-sug-ghost>
+              <div key={`ghost:${y.key}`} className="invisible flex flex-col gap-[3px] [grid-area:s]" aria-hidden data-sug-ghost>
                 <span className="text-[11.5px] font-bold uppercase tracking-[0.06em] @max-[600px]:hidden">{t.dash.suggests}</span>
                 <b className="text-[15px] font-semibold leading-snug @max-[600px]:line-clamp-2 @min-[600px]:text-[16px]">{phrased[y.key]?.title ?? yt.title}</b>
                 <span className="text-[12.5px] @max-[600px]:line-clamp-2">{phrased[y.key]?.why || yt.why}</span>
@@ -802,10 +804,21 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
           </div>
         </StackHeight>
         <div className="flex items-center gap-2">
-          {tpl.cta && (
-            <button type="button" onClick={() => void run()} disabled={ro.ro && x.action.type !== "open"} className="h-9 rounded-full bg-brand px-4 text-[13px] font-semibold text-on-brand transition active:scale-[0.97] disabled:opacity-50" data-sug-cta>
-              {tpl.cta}
-            </button>
+          {/* R17 S5 S3: the button is as wide as the set's widest label (the others invisible in the same cell) — on a wide
+              card it shares the row with the text, and a label of another width re-wrapped the text on every slide. */}
+          {ctas.length > 0 && (
+            <span className="grid [grid-template-areas:'c']" data-sug-cta-box>
+              {ctas.map((c) => (
+                <span key={c} className="invisible h-9 whitespace-nowrap px-4 text-[13px] font-semibold [grid-area:c]" aria-hidden>
+                  {c}
+                </span>
+              ))}
+              {tpl.cta && (
+                <button type="button" onClick={() => void run()} disabled={ro.ro && x.action.type !== "open"} className="h-9 whitespace-nowrap rounded-full bg-brand px-4 text-[13px] font-semibold text-on-brand transition [grid-area:c] active:scale-[0.97] disabled:opacity-50" data-sug-cta>
+                  {tpl.cta}
+                </button>
+              )}
+            </span>
           )}
           <button type="button" onClick={() => dismiss(`sug:${x.key}`, ai?.title ?? tpl.title)} className="h-9 rounded-full px-3 text-[13px] font-semibold text-muted transition hover:text-ink" data-sug-notnow>
             {t.dash.notNow}
@@ -848,17 +861,30 @@ function StackHeight({ className, children, ...rest }: { className?: string; chi
     const o = outer.current;
     const el = inner.current;
     if (!o || !el) return;
-    let last: number | null = null;
-    const ro = new ResizeObserver(() => {
+    // R17 S5 S3: the animation can't feed itself — one look per frame, compared with the height we are already going to
+    // (our own animation never moves the target), and `overflow: clip` (not hidden: a hidden overflow changes a flex
+    // item's automatic minimum size, so the text could re-wrap mid-animation and fire the observer again).
+    let target: number | null = null;
+    let frame = 0;
+    const look = () => {
+      frame = 0;
       const h = el.getBoundingClientRect().height;
-      const from = last;
-      last = h;
-      if (from == null || Math.abs(from - h) < 1 || reduce || document.documentElement.dataset.motion === "reduce") return;
+      const from = target;
+      if (from != null && Math.abs(from - h) < 1) return;
+      target = h;
+      if (from == null || reduce || document.documentElement.dataset.motion === "reduce") return;
+      const now = o.getAnimations().length ? o.getBoundingClientRect().height : from;
       o.getAnimations().forEach((a) => a.cancel());
-      o.animate([{ height: `${from}px`, overflow: "hidden" }, { height: `${h}px`, overflow: "hidden" }], { duration: 200, easing: "cubic-bezier(0.23, 1, 0.32, 1)" });
+      o.animate([{ height: `${now}px`, overflow: "clip" }, { height: `${h}px`, overflow: "clip" }], { duration: 200, easing: "cubic-bezier(0.23, 1, 0.32, 1)" });
+    };
+    const ro = new ResizeObserver(() => {
+      if (!frame) frame = requestAnimationFrame(look);
     });
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [reduce]);
   return (
     <div ref={outer} className="flex min-w-0 flex-1 flex-col">
