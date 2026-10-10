@@ -15,6 +15,13 @@ process.env.ADMIN_EMAIL = "";
 execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", "src/db/migrate.ts"], { env: process.env, stdio: "ignore" });
 
 async function main() {
+  // R17 S5 S5: every model the chain can call has a checked price row (not the fallback), and the date parses.
+  const { AI_PRICES, AI_PRICES_CHECKED, priceOf } = await import("../src/lib/ai-prices");
+  const used = [...readFileSync("src/lib/ai.ts", "utf8").matchAll(/"((?:gemini-[\w.-]+)|(?:openai\/gpt-oss-\d+b)|(?:openrouter\/free))"/g)].map((m) => m[1]);
+  assert.ok(used.length >= 6, `models found in lib/ai.ts: ${used.length}`);
+  for (const m of new Set(used)) assert.ok(AI_PRICES.some((p) => p.match.test(m)), `a price row for ${m}`);
+  assert.deepEqual([priceOf("gemini-2.5-flash-lite", "gemini").input, priceOf("gemini-2.5-flash", "gemini").input, priceOf("gemini-3.6-flash", "gemini").output, priceOf("openai/gpt-oss-20b", "groq").input, priceOf("openrouter/free", "openrouter").output], [0.1, 0.3, 3.75, 0.075, 0]);
+  assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(AI_PRICES_CHECKED) && !Number.isNaN(Date.parse(AI_PRICES_CHECKED)), "AI_PRICES_CHECKED is a date");
   const { db, schema } = await import("../src/db");
   const { aiAllowance, aiGate, recordAiUsage, makeRedactor, writeAiQuota, DAILY_QUOTA, aiDay } = await import("../src/lib/ai-gate");
   const { HOME_AI_KEY } = await import("../src/lib/home-prefs");

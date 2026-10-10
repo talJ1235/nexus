@@ -412,6 +412,7 @@ export const en = {
       same: "about the same as before",
       failed: "Failed, all fell back to rules",
       paid: "A month, if it were paid",
+      pricesChecked: "Prices checked {date}",
       perDay: "Calls per day",
       failedL: "Failed",
       byFeature: "By feature",

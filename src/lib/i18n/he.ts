@@ -412,6 +412,7 @@ export const he: Dict = {
       same: "בערך כמו קודם",
       failed: "נכשלו, כולן עברו לכללים",
       paid: "לחודש, אם זה היה בתשלום",
+      pricesChecked: "המחירים נבדקו ב־{date}",
       perDay: "קריאות ביום",
       failedL: "נכשלו",
       byFeature: "לפי תכונה",

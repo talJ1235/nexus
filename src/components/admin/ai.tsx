@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { getAiStats } from "@/app/admin-actions";
 import { useI18n } from "@/components/providers";
+import { AI_PRICE_SOURCES, AI_PRICES_CHECKED, priceOf } from "@/lib/ai-prices";
 import type { AiStats } from "@/lib/db-scoped/admin";
 import type { Go } from "./admin-app";
 import { Av, Failed, PATH, Skeleton, Svg, useLoad, useTimes } from "./ui";
@@ -12,27 +13,17 @@ import { Av, Failed, PATH, Skeleton, Svg, useLoad, useTimes } from "./ui";
 // failed, by feature, closest to the limit today.
 
 /**
- * "If it were paid": approximate list prices in USD per million tokens (input, output) for the models Nexus calls, from
- * each provider's public pricing page (ai.google.dev/gemini-api/docs/pricing, groq.com/pricing, openrouter.ai/models)
- * as remembered when R17 was built (2026-10-09) — not checked live; update the table when a provider changes prices.
- * Free-tier models on OpenRouter cost 0. A row without a token count is estimated as 1 200 input +
- * 300 output tokens (a typical Nexus prompt). Approximate on purpose: the point is the order of magnitude.
+ * "If it were paid": list prices from lib/ai-prices.ts (checked against each provider's pricing page, date + links shown
+ * under the numbers). A row without a token count is estimated as 1 200 input + 300 output tokens (a typical Nexus
+ * prompt). Approximate on purpose: the point is the order of magnitude.
  */
-const PRICES: { match: RegExp; input: number; output: number }[] = [
-  { match: /gemini.*flash-lite/i, input: 0.1, output: 0.4 },
-  { match: /gemini.*flash/i, input: 0.3, output: 2.5 },
-  { match: /gemini.*pro/i, input: 1.25, output: 10 },
-  { match: /llama-3\.3-70b|70b/i, input: 0.59, output: 0.79 },
-  { match: /llama.*8b|8b-instant/i, input: 0.05, output: 0.08 },
-  { match: /:free$/i, input: 0, output: 0 },
-];
 const EST_IN = 1200;
 const EST_OUT = 300;
 
 function paidPerMonth(s: AiStats, days: number) {
   let usd = 0;
   for (const m of s.models) {
-    const p = PRICES.find((x) => x.match.test(m.model)) ?? (m.provider === "openrouter" ? { input: 0, output: 0 } : { input: 0.3, output: 2.5 });
+    const p = priceOf(m.model, m.provider);
     const tokens = m.tokens || m.n * (EST_IN + EST_OUT);
     const share = m.tokens ? 0.8 : EST_IN / (EST_IN + EST_OUT);
     usd += (tokens * share * p.input + tokens * (1 - share) * p.output) / 1e6;
@@ -97,6 +88,17 @@ export function AiTab({ phone, go }: { phone: boolean; go: Go }) {
           <span className="k">{A.paid}</span>
         </div>
       </div>
+      <p className="sub" style={{ fontSize: 12, margin: "-4px 2px 0", display: "flex", flexWrap: "wrap", gap: "2px 8px" }} data-ai-prices={AI_PRICES_CHECKED}>
+        <span>{f(A.pricesChecked, { date: new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { day: "numeric", month: "short", year: "numeric" }).format(Date.parse(`${AI_PRICES_CHECKED}T12:00:00Z`)) })}</span>
+        {AI_PRICE_SOURCES.map((s) => (
+          <span key={s.url}>
+            {"· "}
+            <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 2 }} dir="ltr">
+              {s.name}
+            </a>
+          </span>
+        ))}
+      </p>
       <section className="panel">
         <div className="ph">
           <h2>{A.perDay}</h2>
