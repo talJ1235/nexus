@@ -4,8 +4,8 @@
 export const NOTIFY_KINDS = ["shop", "activity", "week", "price", "delivery", "budget"] as const;
 export type NotifyKind = (typeof NOTIFY_KINDS)[number];
 
-/** Sent at once (unless quiet hours); the rest wait for the person's active hour. */
-export const URGENT: ReadonlySet<NotifyKind> = new Set(["shop", "delivery"]);
+// R17 S6 U2: every kind is sent at once (quiet hours aside); only the weekly summary waits (Thursday, active hour) and
+// activity is held to one push per space per hour (lib/notify/schedule.ts).
 
 /** How long a push service keeps trying (seconds): "shopping now" is stale after an hour. */
 export const ttlOf = (k: NotifyKind) => (k === "shop" ? 3600 : 12 * 3600);

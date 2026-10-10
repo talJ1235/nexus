@@ -12,9 +12,10 @@
 - **One switch**: Settings → Account & security → **Notifications** — On for all your devices, or Off (nothing is
   sent; everything still collects in the bell). There are no per-kind settings: Nexus decides what is worth a
   notification and when.
-- **When**: urgent things (someone shopping now, a delivery today) come at once; the rest wait for the hour you
-  usually open Nexus. **Quiet at night** (שקט בלילה): nothing between 22:00 and 07:00 — it waits until morning. A shared
-  space sends at most one "Noa added 5 items" per hour, and one price check sends one notification ("3 price drops").
+- **When**: everything comes at once — except **Quiet at night** (שקט בלילה): nothing between 22:00 and 07:00, it
+  waits until 07:00 (a finished shopping trip at night isn't sent at all), and the week summary, which comes on Thursday
+  at the hour you usually open Nexus. A shared space sends the first "Noa added 5 items" at once, then at most one per
+  hour (later ones are grouped into the next). One price check sends one notification ("3 price drops").
 - **Budget alerts** go to the space owner and the members the owner picks: Space settings → Budget → **Budget alerts go
   to** (viewers can't be picked).
 - **Turning them on** on a device: the browser asks once, after you tap **Turn on** (הפעלה) — in Getting started, on

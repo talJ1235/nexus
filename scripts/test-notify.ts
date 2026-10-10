@@ -27,21 +27,30 @@ async function unit() {
   assert.equal(s.isQuiet(IL(8, 6, 59), TZ), true);
   assert.equal(s.isQuiet(IL(8, 7), TZ), false);
   assert.equal(s.isQuiet(IL(8, 21, 59), TZ), false);
-  // Urgent: now by day; 07:00 after a quiet night; a finished trip at night is inbox only.
-  assert.equal(s.sendAfterFor("shop", IL(8, 12), TZ, 9), IL(8, 12));
-  assert.equal(s.sendAfterFor("shop", IL(8, 23, 30), TZ, 9), IL(9, 7));
-  assert.equal(s.sendAfterFor("delivery", IL(9, 2), TZ, 9), IL(9, 7));
-  assert.equal(s.sendAfterFor("shop", IL(8, 23, 30), TZ, 9, { finishedTrip: true }), null);
-  // Batched: the next active hour (now when inside it).
-  assert.equal(s.sendAfterFor("activity", IL(8, 12), TZ, 9), IL(9, 9));
-  assert.equal(s.sendAfterFor("price", IL(8, 9, 20), TZ, 9), IL(8, 9, 20));
-  assert.equal(s.sendAfterFor("price", IL(8, 8, 59), TZ, 9), IL(8, 9));
-  assert.equal(s.sendAfterFor("budget", IL(8, 23), TZ, 20), IL(9, 20));
-  // Week: Thursday (2026-10-08 is a Thursday) at the active hour.
-  assert.equal(s.local(IL(8, 12), TZ).weekday, 4);
-  assert.equal(s.sendAfterFor("week", IL(8, 12), TZ, 18), IL(8, 18));
-  assert.equal(s.sendAfterFor("week", IL(8, 19), TZ, 18), IL(15, 18));
-  assert.equal(s.sendAfterFor("week", IL(10, 9), TZ, 9), IL(15, 9));
+  // R17 S6 U2 — every kind × (day / night / just after another activity push in that space). Everything at once, 07:00
+  // after a quiet night; the weekly summary on Thursday at the active hour; activity ≤ 1 push per space per hour.
+  const day = IL(8, 12); // Thursday noon
+  const night = IL(8, 23, 30);
+  const lastAct = IL(8, 11, 40); // an activity push 20 min before `day`
+  const want: Record<string, [number | null, number | null, number | null]> = {
+    shop: [day, IL(9, 7), day],
+    activity: [day, IL(9, 7), IL(8, 12, 40)],
+    price: [day, IL(9, 7), day],
+    delivery: [day, IL(9, 7), day],
+    budget: [day, IL(9, 7), day],
+    week: [IL(8, 18), IL(15, 18), IL(8, 18)],
+  };
+  for (const kind of ["shop", "activity", "week", "price", "delivery", "budget"] as const) {
+    const got = [s.pushTime(kind, day, TZ, 18), s.pushTime(kind, night, TZ, 18), s.pushTime(kind, day, TZ, 18, { lastActivity: lastAct })];
+    assert.deepEqual(got, want[kind], `${kind}: day / night / just after an activity push`);
+  }
+  // A finished trip at night is inbox only; activity just after a push but the hour ends in quiet time → 07:00.
+  assert.equal(s.pushTime("shop", night, TZ, 9, { finishedTrip: true }), null);
+  assert.equal(s.pushTime("shop", day, TZ, 9, { finishedTrip: true }), day);
+  assert.equal(s.pushTime("activity", IL(8, 21, 45), TZ, 9, { lastActivity: IL(8, 21, 30) }), IL(9, 7));
+  assert.equal(s.pushTime("activity", IL(8, 13), TZ, 9, { lastActivity: lastAct }), IL(8, 13), "over an hour later: at once");
+  assert.equal(s.pushTime("activity", IL(9, 6, 50), TZ, 9), IL(9, 7), "just before 07:00 → 07:00");
+  assert.equal(s.pushTime("budget", IL(8, 7), TZ, 20), IL(8, 7), "07:00 sharp is outside quiet hours");
   // Active hour: the most common open hour; night opens never win; nothing → 09:00.
   assert.equal(s.activeHour([], TZ), 9);
   assert.equal(s.activeHour([IL(1, 20, 5), IL(2, 20, 40), IL(3, 8, 10), IL(4, 23), IL(5, 23), IL(6, 23)], TZ), 20);
@@ -146,10 +155,12 @@ async function withDb() {
   assert.equal(c1.pushState, "off");
   assert.equal(c1.sendAfter, null);
 
-  // Batching per check: 3 price rows of one run for B → one push (claimed together at the active hour).
-  for (const i of ["i1", "i2", "i3"]) await notify(["uB"], "price", `price:run2:${i}`, { itemId: i, title: `Thing ${i}`, now: 90, was: 100, currency: "ILS", run: "run2" }, { actor: null, spaceId: "s1", now });
+  // Batching per check: 3 price rows of one run for B → one push (held, then claimed together; at once — U2).
   const due9 = IL(9, 9);
-  assert.ok((await rowsOf("uB")).filter((r) => r.kind === "price").every((r) => r.sendAfter === due9), "batched to the next active hour (09:00 default)");
+  const held: string[] = [];
+  for (const i of ["i1", "i2", "i3"]) held.push(...(await notify(["uB"], "price", `price:run2:${i}`, { itemId: i, title: `Thing ${i}`, now: 90, was: 100, currency: "ILS", run: "run2" }, { actor: null, spaceId: "s1", now: due9, hold: true })));
+  assert.ok((await rowsOf("uB")).filter((r) => r.kind === "price").every((r) => r.sendAfter === due9 && r.sentAt == null), "at once, held for the run's one push");
+  assert.deepEqual([...new Set(held)], ["uB"], "the held people come back to the caller");
   const { payloadFor } = await import("../src/lib/notify/dispatch");
   const claimed = await n.claimDue(due9, { userId: "uB" });
   assert.equal(claimed.filter((r) => r.kind === "price").length, 3);

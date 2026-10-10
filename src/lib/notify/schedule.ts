@@ -1,8 +1,9 @@
 // R17 S3 J3 — when a notification is sent (pure, unit-tested in test:notify). All clock reasoning happens in the person's
-// own time zone: quiet hours 22:00–07:00 (held until 07:00), batched kinds at their usual active hour (default 09:00),
-// the weekly summary on Thursday at that hour.
+// own time zone: quiet hours 22:00–07:00 (held until 07:00), the weekly summary on Thursday at the usual active hour
+// (default 09:00). R17 S6 U2 (Tal: "everything at once"): every other kind goes at once; activity at most once per hour
+// per space (the first at once, the later ones grouped into the next).
 
-import { URGENT, type NotifyKind } from "./kinds";
+import type { NotifyKind } from "./kinds";
 
 export const QUIET_FROM = 22;
 export const QUIET_TO = 7;
@@ -78,21 +79,28 @@ export function nextActive(now: number, tz: string, hour: number) {
 }
 
 /**
- * `send_after` for a new/updated row. Urgent kinds: now, or 07:00 after a quiet night. A finished shopping trip during
- * quiet hours is not pushed at all (null — inbox only). Batched kinds: the next active hour. Week: Thursday then.
+ * `send_after` for a new/updated row: now, or 07:00 after a quiet night. A finished shopping trip during quiet hours is
+ * not pushed at all (null — inbox only). Week: Thursday at the active hour. (Activity's hourly limit: activityNotBefore.)
  */
 export function sendAfterFor(kind: NotifyKind, now: number, tz: string, hour: number, opts: { finishedTrip?: boolean } = {}): number | null {
-  if (URGENT.has(kind)) {
-    if (isQuiet(now, tz)) return opts.finishedTrip ? null : nextLocal(now, tz, QUIET_TO);
-    return now;
-  }
   if (kind === "week") {
     const l = local(now, tz);
     if (l.weekday === 4 && l.hour === hour) return now;
     return nextLocal(now, tz, hour, 4);
   }
-  return nextActive(now, tz, hour);
+  if (isQuiet(now, tz)) return opts.finishedTrip ? null : nextLocal(now, tz, QUIET_TO);
+  return now;
 }
 
 /** Activity pushes: at most one per space per hour — the earliest time this one may go. */
 export const activityNotBefore = (sendAfter: number, lastSent: number | null) => (lastSent != null && sendAfter - lastSent < 3_600_000 ? lastSent + 3_600_000 : sendAfter);
+
+/**
+ * R17 S6 U2 — the whole policy in one place: `sendAfterFor`, then activity's hourly limit per space (`lastActivity` =
+ * the last activity push to this person for that space), never inside quiet hours.
+ */
+export function pushTime(kind: NotifyKind, now: number, tz: string, hour: number, o: { finishedTrip?: boolean; lastActivity?: number | null } = {}): number | null {
+  const t = sendAfterFor(kind, now, tz, hour, o);
+  if (t == null || kind !== "activity" || o.lastActivity == null) return t;
+  return afterQuiet(activityNotBefore(t, o.lastActivity), tz);
+}

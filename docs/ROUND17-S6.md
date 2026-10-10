@@ -33,7 +33,7 @@ Build:
 Acceptance: `test:push` covers the test-push path (fake push service: sent, 410 → row deleted, 500 → code shown);
 `test:admin-access` opens System with the new rows; Open lists what prod showed after deploy if Tal shared it.
 
-### U2. [ ] New timing policy (Tal 2026-10-10: "everything at once")
+### U2. [x] New timing policy (Tal 2026-10-10: "everything at once")
 - Every kind is sent **at once**, except: night quiet 22:00–07:00 local (sent at 07:00; a finished trip in quiet hours
   is not pushed, as today), the weekly summary (Thursday at the person's active hour, as today), and **activity**: the
   first in a space goes at once, then at most one per hour per space (the later ones grouped into the next one).

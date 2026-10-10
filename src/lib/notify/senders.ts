@@ -9,7 +9,7 @@ import { weekNumbers } from "../weekly";
 import { ownerPrefs } from "../tracker";
 import type { Alert } from "../types";
 import type { BudgetData, DeliveryData, PriceData, ShopData, WeekData } from "./kinds";
-import { notify, notifyPrefs } from "./enqueue";
+import { notify, notifyPrefs, sendNow } from "./enqueue";
 import { local, nextLocal } from "./schedule";
 
 // R17 S3 M — who gets what, when. Every sender goes through notify() (actor excluded, one row per group key, timing).
@@ -113,13 +113,14 @@ export async function sharedActivity(userId: string, spaceId: string | null, kin
 // ---------- M3: prices ----------
 
 /**
- * The alerts of one check run → one `price` row per item for the space's owners and members (R17 Q1: not viewers). They share the run id and the
- * person's active hour, so the dispatcher sends them as one push ("3 price drops"). minDropPct already applied.
+ * The alerts of one check run → one `price` row per item for the space's owners and members (R17 Q1: not viewers). They
+ * are held and sent together at the end of the run, so a person gets one push ("3 price drops"). minDropPct already applied.
  */
 export async function priceAlerts(alerts: Alert[], runId: string, now = Date.now()) {
   const bySpace = new Map<string, Alert[]>();
   for (const a of alerts) if (a.kind === "drop" || a.kind === "target") bySpace.set(a.spaceId, [...(bySpace.get(a.spaceId) ?? []), a]);
   let n = 0;
+  const due: string[] = [];
   for (const [spaceId, list] of bySpace) {
     const audience = (await spaceAudience(spaceId, null)).filter((m) => m.role !== "viewer").map((m) => m.userId);
     if (!audience.length) continue;
@@ -129,10 +130,12 @@ export async function priceAlerts(alerts: Alert[], runId: string, now = Date.now
       if (!item) continue;
       const src = a.sourceId ? await s.byId(schema.sources, a.sourceId) : null;
       const data: PriceData = { itemId: item.id, title: item.title, store: src?.store ?? undefined, now: a.newPrice ?? 0, was: a.oldPrice, currency: a.currency ?? src?.currency ?? "ILS", target: a.kind === "target", pic: item.imageUrl, run: runId };
-      await notify(audience, "price", `price:${runId}:${item.id}`, data, { actor: null, spaceId, now });
+      due.push(...(await notify(audience, "price", `price:${runId}:${item.id}`, data, { actor: null, spaceId, now, hold: true })));
       n++;
     }
   }
+  // R17 S6 U2: at once, and one push per person for the whole run ("3 price drops").
+  await sendNow(due);
   return n;
 }
 
