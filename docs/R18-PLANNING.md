@@ -1,6 +1,6 @@
 # R18 planning — supermarket mode v2 (and the road to the family release)
 
-Planning chat, 2026-10-10. Status: **Tal answered §5 + asked for more (§6); push diagnosis §7; open questions §10**.
+Planning chat, 2026-10-10. Status: **Tal answered §5 + asked for more (§6); push diagnosis §7; open questions §10 (answered) → §11 structure; questions §12**.
 Decisions go into `docs/PLANNER.md` "Decisions that stand" at the end of the chat; the brief is cut as `docs/ROUND18.md`.
 
 ## 1. Where we are
@@ -122,7 +122,7 @@ Fix session (proposal): admin **"Send a test push to my devices"** + per-device 
 in System; the timing policy per §10 Q7; a guard that fails CI when due rows stay unsent > 70 min on prod smoke.
 
 ## 8. Next steps
-1. This chat: Tal answers §10 → decisions into `PLANNER.md`; push fix brief (`docs/ROUND17-S6.md`).
+1. ~~Tal answers §10~~ (done) → push fix brief written: `docs/ROUND17-S6.md`. Tal answers §12.
 2. Planner: desk research update (Bring!, AnyList, Listonic, Israeli list apps — trip / staples / section-order UX).
 3. New chat: boards on a new canvas "Nexus R18 — Supermarket" (skills bar from `PLANNER.md`): phone list in the store,
    fast add, staples, shopping together, trip summary, desktop planning view.
@@ -142,3 +142,43 @@ in System; the timing policy per §10 Q7; a guard that fails CI when due rows st
 9. Photo add uses the AI (counts in the daily quota). OK? *Planner: yes.*
 10. Entry points §6.1 — approve as a set, or pick.
 11. Ideas §6.5 — which ones go in.
+
+**Tal's answers (2026-10-10):** 7 a (everything at once) · 8 b (default + per-branch suggested order) · 9 yes ·
+10 → §11 · 11: a, b, c, d — **but checked items stay in their section** (no sliding down; struck through in place, the
+section shows its progress) · e yes · f: Tal asked what it means (explained in chat; §11.4).
+
+## 11. Supermarket structure (planner proposal after Tal's notes, 2026-10-10)
+### 11.1 Two views of one list
+- **Shopping tab** gets a top switch **Supermarket | Stores** (Tal's idea). Stores = what exists today (KSP, Amazon,
+  AliExpress…: To buy ⇄ On the way, list/grid). Supermarket = the household's supermarket list as a **planning view**
+  (add, edit, quantities, staples strip, templates, AI plan, basket estimate, sections in store order). The tab
+  remembers the last side; a new household user (onboarding "supermarket"/"home shopping") starts on Supermarket.
+- **Store mode** = the same list, full screen, opened by "Start shopping": in-store features only (§11.3).
+- An item is supermarket or store by its kind (category / source); a typed item with no link goes to the side you are
+  on; it can be moved.
+### 11.2 Entry points (approved by Tal: long-press +, Home card, desktop, later items)
+- Long-press the dock **+** → Add to list · Scan · Photo · Start shopping.
+- **App-icon shortcuts** (Tal asked what it is): long-press Nexus' icon on the phone's home screen → a small menu
+  (like WhatsApp's "New chat") → Add to list / Scan / Start shopping. Free for the installed app (manifest `shortcuts`).
+- Home card "Next shop"; desktop sidebar "Supermarket" + shortcut; trip bar above the dock during a trip.
+- The evening-before push ("tomorrow is your shop — list ready") has a **Start / Open list** action.
+- Paste a WhatsApp list into Add → split into items; share text to Nexus does the same.
+- Later (R20 native): home-screen widget, location ("at Shufersal?"), quick-settings tile.
+- Dock tab 4 (Tal's idea: make Projects a minimal Projects/Supermarket tab, new icon + name): planner recommends
+  keeping the supermarket's home in Shopping only (one home per list) — question §12.
+### 11.3 Store mode features
+Sections in store order with per-section progress; checked = struck through **in place**; big rows, one hand, screen
+on, haptic tick, undo; barcode check-off; quick price; running total vs estimate and budget; "not found" (stays for
+next time); substitutes; live: who else is in the trip, items added at home appear highlighted + push; offline; finish
+→ summary → receipt.
+### 11.4 After the receipt (idea f, explained)
+Photo of the receipt at the end → (1) each line's price is saved for that store/branch (learning + R19); (2) lines that
+match unchecked list items mark them bought; (3) items checked in the store but not on the receipt are flagged ("not
+scanned? / left behind?"); (4) bought items that weren't on the list are learned as products (history, staples);
+(5) list items still unchecked → "forgot 2 things" — keep for next time or remind now.
+
+## 12. Questions (2026-10-10, after §11)
+12. Dock tab 4: a) Projects stays, the supermarket lives in Shopping (planner); b) tab 4 becomes "Lists"
+    (Supermarket | Projects) with a new icon; c) tab 4 becomes "Supermarket" and Projects move into Shopping → Stores
+    as a filter.
+13. After the receipt (§11.4): all five, or which?
