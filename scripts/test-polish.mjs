@@ -53,6 +53,9 @@ execFileSync(process.execPath, ["scripts/seed-worst.mjs"], { env: ENV, stdio: "i
 const db = createClient({ url: `file:${DB}` });
 // The server writes too (R17 presence beats): wait for the lock instead of failing.
 await db.execute("PRAGMA busy_timeout = 10000");
+// WAL (as test:live / test:tenancy): the dev server's reads never block this test's writes (R17 S3: CI hit SQLITE_BUSY
+// past the 10 s wait while the server served the worst-case space).
+await db.execute("PRAGMA journal_mode = WAL");
 const admin = (await db.execute({ sql: `SELECT id FROM "user" WHERE email = ?`, args: [ADMIN] })).rows[0].id;
 const personal = (await db.execute({ sql: `SELECT id FROM space WHERE kind = 'personal' AND created_by = ?`, args: [admin] })).rows[0].id;
 const token = randomBytes(24).toString("base64url");
