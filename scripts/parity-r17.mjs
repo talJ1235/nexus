@@ -7,6 +7,7 @@ import { mkdirSync, statSync } from "node:fs";
 import { chromium } from "playwright";
 import { renderBoard } from "./lib/board.mjs";
 import { seedAdmin } from "./lib/seed-admin.mjs";
+import { seedInbox } from "./lib/seed-notify.mjs";
 import { startApp } from "./lib/test-app.mjs";
 
 const OUT = process.env.OUT || "docs/design/parity-r17";
@@ -19,6 +20,9 @@ const PHONE = { width: 390, height: 844 };
 const app = await startApp({ db: "parity-r17.db", port: Number(process.env.PORT || 3117), env: { NEXUS_ONBOARDING_TEST: "1" } });
 const BASE = app.base;
 await seedAdmin(app.db, { adminId: app.admin, personal: app.personal });
+// R17 S3: the boards' inbox, and a reminder card due (a "Not now" 4 days ago).
+await seedInbox(app.db, { userId: app.admin, spaceId: app.personal });
+const askDue = () => app.db.execute({ sql: "INSERT INTO user_pref (user_id, key, value, updated_at) VALUES (?, 'pref:notify-ask', ?, ?) ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value", args: [app.admin, JSON.stringify({ count: 1, lastNo: Date.now() - 4 * 86_400_000, shown: null }), Date.now()] });
 /** Presence goes stale after 75 s: put the online ones back to "a few seconds ago" before each shot. */
 async function freshen() {
   const now = Date.now();
@@ -36,6 +40,8 @@ async function mockShot(name, props, viewport) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1 });
   const p = await ctx.newPage();
   await renderBoard(p, MOCK, name, props);
+  // S3 boards bring their cards in after a short delay (500–600 ms + the entrance).
+  await p.waitForTimeout(1300);
   const buf = await p.screenshot();
   await ctx.close();
   return buf;
@@ -50,7 +56,8 @@ async function appShot(path, viewport, opts = {}) {
     localStorage.setItem("nexus.bootDay", `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
     sessionStorage.setItem("nexus.opened", "1");
   }, opts.dark ? "dark" : "light");
-  await ctx.addCookies([...app.cookies(app.personal, opts.he ? "he" : "en"), { name: "nexus_palette", value: opts.plum ? "plum" : "graphite", url: BASE }]);
+  if (opts.ask) await askDue();
+  await ctx.addCookies([...app.cookies(opts.space ?? app.personal, opts.he ? "he" : "en"), { name: "nexus_palette", value: opts.plum ? "plum" : "graphite", url: BASE }]);
   if (opts.ob) await obAt(opts.ob.step, opts.ob.patch);
   // Headless Chromium never offers an install: hand the page a stand-in beforeinstallprompt (the step under test).
   if (opts.installable)
@@ -112,6 +119,24 @@ SHOTS.push(
   ["h-phone-iphone-he-dark", [["board · 5 iPhone (he)", "Onboarding-phone", { step: "5 install", device: "iphone", language: "עברית" }, PHONE], ["app · iPhone he", "/welcome", PHONE, { ...ob(5), installable: false, he: true, ua: IPHONE }], ["board · 1 why (he, dark)", "Onboarding-phone", { step: "1 why", language: "עברית", dark: true }, PHONE], ["app · he dark", "/welcome", PHONE, ob(1, { he: true, dark: true })]], 300],
   ["h-desktop-1-3", [["board · 1 why", "Onboarding-desktop", { step: "1 why" }, DESK], ["app", "/welcome", DESK, ob(1)], ["board · 3 budget", "Onboarding-desktop", { step: "3 budget" }, DESK], ["app", "/welcome", DESK, ob(3)]], 520],
   ["h-desktop-4-5-7", [["board · 4 who (plum dark he)", "Onboarding-desktop", { step: "4 who", palette: "plum", dark: true, language: "עברית" }, DESK], ["app", "/welcome", DESK, ob(4, { plum: true, dark: true, he: true })], ["board · 5 install", "Onboarding-desktop", { step: "5 install" }, DESK], ["app", "/welcome", DESK, ob(5)], ["board · 7 done", "Onboarding-desktop", { step: "7 done" }, DESK], ["app", "/welcome", DESK, ob(7)]], 420],
+);
+
+// R17 S3 (≤ 12 files). Headless Chromium answers "denied" for notifications, so the app shows the blocked states.
+const bell = (sel) => async (p) => {
+  await p.click(sel);
+  await p.waitForSelector("[data-nt-popover] [data-nt], [data-nt-page] [data-nt]", { timeout: 15000 }).catch(() => {});
+};
+const howCard = async (p) => p.click("[data-nt-card-btn=how]").catch(() => {});
+const READY = "[data-app-shell][data-ready]";
+const IPHONE_UA = IPHONE;
+SHOTS.push(
+  ["k1-inbox-desktop", [["board · full", "Inbox-desktop", {}, DESK], ["app", "/", DESK, { wait: READY, act: bell("[data-nt-bell=desk]") }], ["board · plum dark", "Inbox-desktop", { dark: true, palette: "plum" }, DESK], ["app · plum dark he", "/", DESK, { wait: READY, act: bell("[data-nt-bell=desk]"), dark: true, plum: true, he: true }]], 520],
+  ["k2-inbox-phone", [["board · full", "Inbox-phone", {}, PHONE], ["app", "/inbox", PHONE, { wait: "[data-nt-page] [data-nt]" }], ["board · he dark plum", "Inbox-phone", { language: "עברית", dark: true, palette: "plum" }, PHONE], ["app · he dark plum", "/inbox", PHONE, { wait: "[data-nt-page] [data-nt]", he: true, dark: true, plum: true }]], 300],
+  ["k-inbox-blocked-1280", [["board · blocked (phone)", "Inbox-phone", { state: "blocked" }, PHONE], ["app · blocked (phone)", "/inbox", PHONE, { wait: "[data-nt-banner]" }], ["app · popover 1280×720 dark", "/", { width: 1280, height: 720 }, { wait: READY, act: bell("[data-nt-bell=desk]"), dark: true }]], 360],
+  ["l-card-desktop", [["board · reminder", "Permission-desktop", {}, DESK], ["board · blocked", "Permission-desktop", { state: "blocked in browser" }, DESK], ["app · blocked → How to allow", "/", DESK, { wait: "[data-nt-card]", ask: true, act: howCard }], ["app · he dark", "/", DESK, { wait: "[data-nt-card]", ask: true, he: true, dark: true }]], 520],
+  ["l-card-phone", [["board · reminder", "Permission-phone", {}, PHONE], ["board · blocked", "Permission-phone", { state: "blocked in browser" }, PHONE], ["app · blocked → How to allow", "/", PHONE, { wait: "[data-nt-card]", ask: true, act: howCard }], ["board · iPhone", "Permission-phone", { state: "iPhone, not installed" }, PHONE], ["app · iPhone (Safari)", "/", PHONE, { wait: "[data-nt-card]", ask: true, ua: IPHONE_UA }]], 260],
+  ["n-settings-phone", [["board · account", "Settings-notify-phone", { thisDevice: "blocked" }, PHONE], ["app", "/settings/notifications", PHONE, { wait: "[data-notify-settings]" }], ["board · space budget", "Settings-notify-phone", { page: "space budget" }, PHONE], ["app", "/settings/budget", PHONE, { wait: "[data-budget-recipients]", space: "ad_home", act: async (p) => p.locator("[data-budget-recipients]").scrollIntoViewIfNeeded() }]], 300],
+  ["n-admin-system-live", [["app · System", "/admin/system", DESK, { wait: "[data-system]" }], ["app · Live", "/admin", DESK, { wait: "[data-live-notify]" }]], 640],
 );
 
 try {
