@@ -7,6 +7,10 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-10 (late night, 3):** R18 architecture settled with Tal → **`docs/R18-SCREENS.md`** (screens script for
+  approval; supersedes `R18-PLANNING.md` §16–§17: answers Q14–26, R18 / R18b split, default Israeli section order, "Build my list" rules, phone P1–P18,
+  computer D1–D3). **Next:** Tal approves / corrects the script → boards in a new chat (canvas "Nexus R18 —
+  Supermarket") → `docs/ROUND18.md` (S1 plumbing can run before boards). R17 S5 running, then S6.
 - **2026-10-10 (late night, 2):** Tal: push shows only inside the app → **R17 Session 6 brief `docs/ROUND17-S6.md`**
   (U1 see where a push is lost — System rows + "send a test push", U2 everything at once, U3 opportunistic dispatch so
   GitHub's schedule isn't the only sender, U4 guard). Run after S5 merges. R18 answers + structure in
@@ -315,6 +319,13 @@ to setup, tooling or workflow is recorded there in the same session.
   (struck through, no sliding); Shopping tab split Supermarket | Stores; entry points: long-press +, app-icon shortcuts,
   Home "Next shop" card, desktop sidebar entry, trip bar; ideas in: live adds during a trip, "not found", basket
   estimate, one-hand mode, substitutes.
+- **R18 architecture (Tal 2026-10-10), full list `docs/R18-SCREENS.md` §0:** phone dock = Home · **Products** (was
+  Shopping; Projects open inside it) · + · **Supermarket** · Insights (a setting swaps tab 4 back to Projects; onboarding
+  "projects" sets it); one supermarket list per space, store chosen per trip, items can be pinned to a store; + on
+  Supermarket adds directly; computer = planning page only + "send to phone"; text rows by default (thumbnails toggle);
+  recipes inside Supermarket (List | Recipes) — **recipes + AI shop planning = R18b**; "what's missing?" checklist, no
+  pantry; evening-before "Build my list" draft never touches the user's own items; meal planning later; optional
+  section owners; chain + branch in onboarding, changeable per trip; every onboarding answer editable in Settings.
 - **Onboarding + admin leftovers (Tal 2026-10-10):** desktop onboarding step 5 always shows the phone QR (only the QR
   when the computer can't install); "if it were paid" uses prices checked on the official pages, with the date shown.
 
@@ -347,6 +358,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-10 · same chat · R18 architecture with Tal (Q12–26): Supermarket dock tab replaces Projects, Products tab, recipes → R18b. Researched the usual Israeli store layout (produce at the entrance, bread/dairy at the back) → default section order. Wrote `docs/R18-SCREENS.md`.
 - 2026-10-10 · same chat · Push diagnosed from code (non-urgent kinds wait for the active hour and only `hourly.yml` sends them; actor never notified) → wrote `docs/ROUND17-S6.md`. Tal's R18 answers + supermarket structure (Shopping: Supermarket | Stores, store mode, entry points) in `docs/R18-PLANNING.md`.
 - 2026-10-10 · same chat · Roadmap after R17 + R18 kickoff: wrote `docs/R18-PLANNING.md`. Found in code: trips are a pref (no trip table, no check-order log), no staples/templates, no duplicate merge, offline adds not in the outbox.
 - 2026-10-10 · same chat · Tal's checks after S4 (admin black on desktop with React #418 + 500s, "שקל" still shown, card bobbing on hover) + answers (QR always, check prices) → wrote `docs/ROUND17-S5.md`. Cause of "שקל": AI wording cache read without the normaliser.
