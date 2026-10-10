@@ -75,6 +75,8 @@ const VIEW_OK = new Set([
   // R17 H: onboarding — the caller's own answers and personal space (a shared Home they create is theirs).
   "onboarding-actions.ts#me",
   "account-actions.ts#deletionBlocks", "account-actions.ts#requestAccountDeletion", "account-actions.ts#restoreMyAccount",
+  // R17 P3: your own display name (Settings → Profile), whatever your role in the space.
+  "account-actions.ts#saveMyName",
 ]);
 const dir = join(__dirname, "..", "src", "app");
 const viewUses: string[] = [];
