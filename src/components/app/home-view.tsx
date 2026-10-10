@@ -778,13 +778,15 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
         </div>
         {/* R17 P6: every suggestion's text sits in the same grid cell (the others invisible), so the card is as tall as its
             tallest suggestion and keeps that height while sliding; a new set changes it once, animated (StackHeight).
-            R17 S5 S3: on every width — on desktop the ghosts were hidden, so the height changed per slide. */}
+            R17 S5 S3: on a wide card (≥ 600 px) every slide gets the same text box instead — the title on 2 lines (at least
+            2), the why on 1, the rest on a tap — so the height can't change per slide and the card keeps its room for the
+            list under it (copies of the tallest slide there took it). */}
         <StackHeight className="grid min-w-0 [grid-template-areas:'s']" data-sug-stack>
           {sugs.map((y, k) => {
             if (k === i) return null;
             const yt = template(y, t, fm);
             return (
-              <div key={`ghost:${y.key}`} className="invisible flex flex-col gap-[3px] [grid-area:s]" aria-hidden data-sug-ghost>
+              <div key={`ghost:${y.key}`} className="invisible flex flex-col gap-[3px] [grid-area:s] @min-[600px]:hidden" aria-hidden data-sug-ghost>
                 <span className="text-[11.5px] font-bold uppercase tracking-[0.06em] @max-[600px]:hidden">{t.dash.suggests}</span>
                 <b className="text-[15px] font-semibold leading-snug @max-[600px]:line-clamp-2 @min-[600px]:text-[16px]">{phrased[y.key]?.title ?? yt.title}</b>
                 <span className="text-[12.5px] @max-[600px]:line-clamp-2">{phrased[y.key]?.why || yt.why}</span>
@@ -797,10 +799,10 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
               {t.dash.suggests}
               {sugs.length > 1 && <em className="font-semibold normal-case not-italic tracking-normal text-muted">{f(t.dash.ofN, { i: i + 1, n: sugs.length })}</em>}
             </span>
-            <b className={cn("text-[15px] font-semibold leading-snug @min-[600px]:text-[16px]", !whyOpen && "@max-[600px]:line-clamp-2")} data-sug-title>
+            <b className={cn("text-[15px] font-semibold leading-snug @min-[600px]:min-h-[2lh] @min-[600px]:text-[16px]", !whyOpen && "line-clamp-2")} data-sug-title>
               {ai?.title ?? tpl.title}
             </b>
-            <span className={cn("text-[12.5px] text-muted", !whyOpen && "@max-[600px]:line-clamp-2")}>{ai?.why || tpl.why}</span>
+            <span className={cn("text-[12.5px] text-muted @min-[600px]:min-h-[1lh]", !whyOpen && "@max-[600px]:line-clamp-2 @min-[600px]:line-clamp-1")}>{ai?.why || tpl.why}</span>
           </div>
         </StackHeight>
         <div className="flex items-center gap-2">

@@ -971,9 +971,11 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
   (1) the ghost slides were hidden, so the height followed the slide; (2) the action button shares the row with the
   text and its label differs per suggestion (or is missing), so the text column's width — and its wrapping — changed
   per slide; (3) the inner box was `flex-1` inside the animated outer box, so it stretched with the animation and the
-  observer fired every frame (measured: 145 → 186 → 163 → … → 147 px). Fixed all three (ghosts on every width; the
-  button keeps the set's widest label on a wide card only — on a half tile it pushed "Not now" out; the inner box
-  doesn't stretch; one look per frame against the target, `overflow: clip`). Hover changes colour / cursor only — it
+  observer fired every frame (measured: 145 → 186 → 163 → … → 147 px). Fixed all three: on a wide card every slide gets the same text box (title clamped to 2 lines with a
+  2-line minimum, why on 1 line, the full text on a tap) — first tried ghosts on every width, but copies of the tallest
+  slide took the room of the list under the card (CI polish A2: "big desk L×1 suggest fills 66 %"); the button keeps the
+  set's widest label on a wide card only (on a half tile it pushed "Not now" out); the inner box doesn't stretch; one
+  look per frame against the target, `overflow: clip`. Hover changes colour / cursor only — it
   never changed layout. `test:polish` S3 runs 1366, 1280×720 and 2560×1305 with wording of different lengths; it fails
   on the old code at 2560.
 - **S4:** "already installed" = running as the installed app, or the browser not offering install. Where install is
