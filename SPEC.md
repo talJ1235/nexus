@@ -795,8 +795,8 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
 - **Server errors** keep the database's own reason; a read that fails on the way (network, not SQL) is tried once more;
   the presence beat answers 503 instead of 500 when the database is down.
 - **Nexus suggests**: wording cached before S4 is normalised when read (₪, never "שקל"); cache keys carry `v2`. On a
-  computer the card never bobs under the mouse: every slide stacked on every width, the button keeps the set's widest
-  label on a wide card, the height animation can't feed itself.
+  computer the card never bobs under the mouse: on a wide card every slide has the same text box (title 2 lines, why 1,
+  the rest on a tap) and the button keeps the set's widest label; the height animation can't feed itself.
 - **Onboarding step 5** on a computer always shows — only the phone's QR when this computer can't install.
 - **Admin → AI usage**: "If it were paid" from checked list prices (`lib/ai-prices.ts`, date + source links under the
   numbers). Manifest `share_target` has its enctype (no Chrome warning).
