@@ -83,14 +83,15 @@ export function rubberBand(d: number): number {
 
 /**
  * Pager released after a horizontal drag: −1 = previous, 1 = next, 0 = snap back. Past 25 % of the width, or a fling,
- * moves one page (in reading order: LTR drags left for next, RTL drags right). No page past either end.
+ * moves one page (in reading order: LTR drags left for next, RTL drags right). No page past either end — unless `loop`
+ * (R17 P7: past the last comes the first, before the first the last, like the arrows).
  */
-export function pagerRelease({ dx, vx, dir, width, index, count }: { dx: number; vx: number; dir: 1 | -1; width: number; index: number; count: number }): -1 | 0 | 1 {
+export function pagerRelease({ dx, vx, dir, width, index, count, loop = false }: { dx: number; vx: number; dir: 1 | -1; width: number; index: number; count: number; loop?: boolean }): -1 | 0 | 1 {
   const x = -dx * dir; // + = toward next
   const v = -vx * dir;
   let step: -1 | 0 | 1 = 0;
   if (Math.abs(v) >= FLING && Math.abs(dx) >= 16) step = v > 0 ? 1 : -1;
   else if (Math.abs(x) >= width * 0.25) step = x > 0 ? 1 : -1;
-  if (index + step < 0 || index + step >= count) return 0;
+  if (count < 2 || (!loop && (index + step < 0 || index + step >= count))) return 0;
   return step;
 }

@@ -677,6 +677,7 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
   const rtl = dir === "rtl";
   const go = (d: number, fromPx?: number) => {
     setFrom(fromPx ?? null);
+    setWhyOpen(false);
     setIdx((i + d + sugs.length) % sugs.length);
   };
   const { swapRef, handlers: swipeHandlers, dragging } = useSwipePager({ count: sugs.length, index: i, go, rtl });
@@ -747,7 +748,7 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
   );
   return (
     <section
-      className={cn("r13-sug r13-section @container flex touch-pan-y flex-col", sugs.length > 1 && "lg:cursor-grab", dragging && "select-none lg:cursor-grabbing", className)}
+      className={cn("r13-sug r13-section @container flex touch-pan-y flex-col", sugs.length > 1 && "[@media(hover:hover)_and_(pointer:fine)]:cursor-grab", dragging && "select-none [@media(hover:hover)_and_(pointer:fine)]:cursor-grabbing", className)}
       style={style}
       {...swipeHandlers}
       data-dragging={dragging || undefined}
@@ -774,19 +775,32 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
           <span className="min-w-0 flex-1 truncate text-[11px] font-bold uppercase tracking-[0.06em] text-ai @min-[600px]:hidden">{t.dash.suggests}</span>
           {sugs.length > 1 && <span className="@min-[600px]:hidden">{pager}</span>}
         </div>
-        <div key={x.key} ref={swapRef} style={from != null ? ({ "--sug-from": `${from}px` } as React.CSSProperties) : undefined} className="r13-swap flex min-w-0 flex-1 flex-col gap-[3px]" data-sug-swipe data-sug-key={x.key} data-sug-kind={x.kind} data-sug-source={ai || x.kind === "ai" ? "ai" : "template"} aria-live="polite">
-          <span className="flex items-center gap-2 text-[11.5px] font-bold uppercase tracking-[0.06em] text-ai @max-[600px]:hidden">
-            {t.dash.suggests}
-            {sugs.length > 1 && <em className="font-semibold normal-case not-italic tracking-normal text-muted">{f(t.dash.ofN, { i: i + 1, n: sugs.length })}</em>}
-          </span>
-          <b className="text-[15px] font-semibold leading-snug @min-[600px]:text-[16px]" data-sug-title>
-            {ai?.title ?? tpl.title}
-          </b>
-          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- shows the rest of the line */}
-          <span className={cn("text-[12.5px] text-muted", !whyOpen && "@max-[600px]:line-clamp-1")} onClick={() => setWhyOpen((v) => !v)} data-expandable aria-expanded={whyOpen}>
-            {ai?.why || tpl.why}
-          </span>
-        </div>
+        {/* R17 P6: every suggestion's text sits in the same grid cell (the others invisible), so the card is as tall as its
+            tallest suggestion and keeps that height while sliding; a new set changes it once, animated (StackHeight). */}
+        <StackHeight className="grid min-w-0 flex-1 [grid-template-areas:'s']" data-sug-stack>
+          {sugs.map((y, k) => {
+            if (k === i) return null;
+            const yt = template(y, t, fm);
+            return (
+              <div key={`ghost:${y.key}`} className="invisible flex flex-col gap-[3px] [grid-area:s]" aria-hidden data-sug-ghost>
+                <span className="text-[11.5px] font-bold uppercase tracking-[0.06em] @max-[600px]:hidden">{t.dash.suggests}</span>
+                <b className="text-[15px] font-semibold leading-snug @max-[600px]:line-clamp-2 @min-[600px]:text-[16px]">{phrased[y.key]?.title ?? yt.title}</b>
+                <span className="text-[12.5px] @max-[600px]:line-clamp-2">{phrased[y.key]?.why || yt.why}</span>
+              </div>
+            );
+          })}
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- shows the rest of the text */}
+          <div key={x.key} ref={swapRef} style={from != null ? ({ "--sug-from": `${from}px` } as React.CSSProperties) : undefined} className="r13-swap flex min-w-0 flex-col gap-[3px] [grid-area:s]" onClick={() => setWhyOpen((v) => !v)} data-expandable aria-expanded={whyOpen} data-sug-swipe data-sug-key={x.key} data-sug-kind={x.kind} data-sug-source={ai || x.kind === "ai" ? "ai" : "template"} aria-live="polite">
+            <span className="flex items-center gap-2 text-[11.5px] font-bold uppercase tracking-[0.06em] text-ai @max-[600px]:hidden">
+              {t.dash.suggests}
+              {sugs.length > 1 && <em className="font-semibold normal-case not-italic tracking-normal text-muted">{f(t.dash.ofN, { i: i + 1, n: sugs.length })}</em>}
+            </span>
+            <b className={cn("text-[15px] font-semibold leading-snug @min-[600px]:text-[16px]", !whyOpen && "@max-[600px]:line-clamp-2")} data-sug-title>
+              {ai?.title ?? tpl.title}
+            </b>
+            <span className={cn("text-[12.5px] text-muted", !whyOpen && "@max-[600px]:line-clamp-2")}>{ai?.why || tpl.why}</span>
+          </div>
+        </StackHeight>
         <div className="flex items-center gap-2">
           {tpl.cta && (
             <button type="button" onClick={() => void run()} disabled={ro.ro && x.action.type !== "open"} className="h-9 rounded-full bg-brand px-4 text-[13px] font-semibold text-on-brand transition active:scale-[0.97] disabled:opacity-50" data-sug-cta>
@@ -822,9 +836,45 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
 }
 
 /**
+ * R17 P6: a box as tall as its content (a stack of every slide in one grid cell, so it never changes per slide). When the
+ * content's height does change (a new set of suggestions, AI wording arriving, another width) it moves there once,
+ * 200 ms ease-out (instantly under reduced motion). The inner box is observed; the outer one animates.
+ */
+function StackHeight({ className, children, ...rest }: { className?: string; children: React.ReactNode } & Record<`data-${string}`, string | boolean | undefined>) {
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  const reduce = useMedia("(prefers-reduced-motion: reduce)");
+  useEffect(() => {
+    const o = outer.current;
+    const el = inner.current;
+    if (!o || !el) return;
+    let last: number | null = null;
+    const ro = new ResizeObserver(() => {
+      const h = el.getBoundingClientRect().height;
+      const from = last;
+      last = h;
+      if (from == null || Math.abs(from - h) < 1 || reduce || document.documentElement.dataset.motion === "reduce") return;
+      o.getAnimations().forEach((a) => a.cancel());
+      o.animate([{ height: `${from}px`, overflow: "hidden" }, { height: `${h}px`, overflow: "hidden" }], { duration: 200, easing: "cubic-bezier(0.23, 1, 0.32, 1)" });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [reduce]);
+  return (
+    <div ref={outer} className="flex min-w-0 flex-1 flex-col">
+      <div ref={inner} className={className} {...rest}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
  * R16 A7 — swipe (touch) / drag (mouse) between suggestions. Follows the pointer 1:1 once the gesture is horizontal
- * (axis lock after 8 px, so vertical scrolling still works), rubber-bands at either end, snaps on release (25 % of the
- * width or a fling). RTL mirrors. Reduced motion: no glide, instant snap. A drag never clicks the button under it.
+ * (axis lock after 8 px, so vertical scrolling still works), snaps on release (25 % of the width or a fling). R17 P7: the
+ * list is a loop — past the last comes the first and before the first the last, with the same glide as the arrows (the
+ * next one comes in from the edge it was pushed toward). RTL mirrors. Reduced motion: no glide, instant change. A drag
+ * never clicks the button under it.
  */
 function useSwipePager({ count, index, go, rtl }: { count: number; index: number; go: (d: number, from?: number) => void; rtl: boolean }) {
   const swapRef = useRef<HTMLDivElement>(null);
@@ -845,7 +895,7 @@ function useSwipePager({ count, index, go, rtl }: { count: number; index: number
     if (!st || st.axis !== "x") return;
     setDragging(false);
     const width = e.currentTarget.getBoundingClientRect().width || 320;
-    const step = cancel ? 0 : pagerRelease({ dx: st.dx, vx: reduce ? 0 : velocity(st.samples), dir, width, index, count });
+    const step = cancel ? 0 : pagerRelease({ dx: st.dx, vx: reduce ? 0 : velocity(st.samples), dir, width, index, count, loop: true });
     if (step) {
       place(0, false);
       // The next suggestion comes in from the side the finger pushed toward.
@@ -879,7 +929,7 @@ function useSwipePager({ count, index, go, rtl }: { count: number; index: number
       st.dx = dx;
       st.samples.push({ t: e.timeStamp, v: dx });
       if (st.samples.length > 8) st.samples.shift();
-      place(pagerOffset(dx, dir, index > 0, index < count - 1), false);
+      place(pagerOffset(dx, dir, true, true), false);
     },
     onPointerUp: (e: React.PointerEvent<HTMLElement>) => end(e),
     onPointerCancel: (e: React.PointerEvent<HTMLElement>) => end(e, true),
@@ -1601,18 +1651,27 @@ function NoticedCard({ list, h = 1, className, style }: { list: Insight[]; h?: 1
         }}
         data-noticed-phone
       >
-        {(() => {
-          const x = list[i];
-          const it = insightText(x, t, fm);
-          return (
-            <div key={x.key} className="r13-swap flex flex-col gap-2" data-insight={x.kind}>
-              <p className="text-[13.5px] leading-relaxed">{it.text}</p>
-              {it.link && (<button type="button" onClick={() => act(x)} className="self-start py-1 text-[13px] font-semibold underline underline-offset-4">
-                {it.link}
-              </button>)}
-            </div>
-          );
-        })()}
+        {/* R17 P6: all insights in one grid cell (the others invisible) — the card keeps one height while they rotate. */}
+        <StackHeight className="grid [grid-template-areas:'s']" data-noticed-stack>
+          {list.map((x, k) => {
+            const it = insightText(x, t, fm);
+            if (k !== i)
+              return (
+                <div key={`ghost:${x.key}`} className="invisible flex flex-col gap-2 [grid-area:s]" aria-hidden data-noticed-ghost>
+                  <p className="text-[13.5px] leading-relaxed">{it.text}</p>
+                  {it.link && <span className="self-start py-1 text-[13px] font-semibold">{it.link}</span>}
+                </div>
+              );
+            return (
+              <div key={x.key} className="r13-swap flex flex-col gap-2 [grid-area:s]" data-insight={x.kind}>
+                <p className="text-[13.5px] leading-relaxed">{it.text}</p>
+                {it.link && (<button type="button" onClick={() => act(x)} className="self-start py-1 text-[13px] font-semibold underline underline-offset-4">
+                  {it.link}
+                </button>)}
+              </div>
+            );
+          })}
+        </StackHeight>
       </div>
     </section>
   );

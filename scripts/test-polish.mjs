@@ -36,7 +36,7 @@ const ENV = {
   REALTIME_FAKE: "1",
   NEXT_DIST_DIR: undefined,
 };
-// POLISH_ONLY=A1,A2 runs only those sections (tags: 6, phone, 23, reduced, desktop, A1, A2, A3, 29).
+// POLISH_ONLY=A1,A2 runs only those sections (tags: 6, phone, 23, reduced, desktop, A1, A2, A3, P6, P7, 29).
 const want = (tag) => !process.env.POLISH_ONLY || process.env.POLISH_ONLY.split(",").includes(tag);
 let fails = 0;
 const ok = (c, m, d = "") => {
@@ -464,6 +464,106 @@ if (want("A3")) {
     ok(r.shell === true, `A3 tap → Settings (${phone ? "phone, from the avatar sheet" : "desktop, sidebar"}): the shell is in the next frame`, JSON.stringify(r));
     await ctx.close();
   }
+}
+
+// ---------- R17 P6: "Nexus suggests" keeps one height while it slides (phone 360 / 390) ----------
+if (want("P6")) {
+  for (const width of [360, 390]) {
+    const ctx = await browser.newContext({ viewport: { width, height: 800 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, reducedMotion: "no-preference" });
+    ctx.setDefaultTimeout(180_000);
+    await ctx.addCookies([
+      { name: "nexus_session_dev", value: cookie, url: BASE },
+      { name: "nexus_space", value: personal, url: BASE },
+      { name: "nexus_locale", value: "en", url: BASE },
+    ]);
+    await ctx.addInitScript(() => {
+      try {
+        sessionStorage.setItem("nexus.opened", "1");
+        const d = new Date();
+        localStorage.setItem("nexus.bootDay", `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+      } catch {}
+    });
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/`);
+    await page.waitForFunction(() => !!window.__nexusTest, null, { timeout: 180_000 });
+    const sec = page.locator('[data-home-section="suggest"]').first();
+    await sec.waitFor();
+    await page.waitForTimeout(2500); // AI wording (mock) and the AI's look settle — a new set may change the height once
+    const n = Number(await sec.getAttribute("data-sug-count"));
+    const geo = () =>
+      page.evaluate(() => {
+        const s = document.querySelector('[data-home-section="suggest"]');
+        const hw = s.closest(".hw") ?? s;
+        const next = hw.nextElementSibling;
+        return { h: Math.round(s.getBoundingClientRect().height * 10) / 10, next: next ? Math.round(next.getBoundingClientRect().top * 10) / 10 : null, i: s.getAttribute("data-sug-index") };
+      });
+    const seen = [await geo()];
+    for (let k = 1; k <= n; k++) {
+      // The dots (the pager is in the DOM twice, one per layout; the visible one).
+      await page.evaluate((j) => [...document.querySelectorAll('[data-home-section="suggest"] [data-sug-pager] span > button')].filter((b) => b.offsetParent)[j]?.click(), k % n);
+      await page.waitForTimeout(420);
+      seen.push(await geo());
+    }
+    const hs = new Set(seen.map((x) => x.h));
+    const tops = new Set(seen.map((x) => x.next));
+    ok(n >= 2 && hs.size === 1 && tops.size === 1 && new Set(seen.map((x) => x.i)).size === n, `P6 phone ${width}: through all ${n} suggestions the card's height and the next widget's top never change`, JSON.stringify(seen));
+    await ctx.close();
+  }
+}
+
+// ---------- R17 P7: drag / swipe past either end wraps around (mouse + touch, en + he) ----------
+if (want("P7")) {
+  for (const he of [false, true])
+    for (const touch of [false, true]) {
+      const ctx = await browser.newContext({ viewport: touch ? { width: 390, height: 844 } : { width: 1366, height: 860 }, ...(touch ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}), reducedMotion: "no-preference" });
+      ctx.setDefaultTimeout(180_000);
+      await ctx.addCookies([
+        { name: "nexus_session_dev", value: cookie, url: BASE },
+        { name: "nexus_space", value: personal, url: BASE },
+        { name: "nexus_locale", value: he ? "he" : "en", url: BASE },
+      ]);
+      await ctx.addInitScript(() => {
+        try {
+          sessionStorage.setItem("nexus.opened", "1");
+          const d = new Date();
+          localStorage.setItem("nexus.bootDay", `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+        } catch {}
+      });
+      const page = await ctx.newPage();
+      await page.goto(`${BASE}/`);
+      await page.waitForFunction(() => !!window.__nexusTest, null, { timeout: 180_000 });
+      const sec = page.locator('[data-home-section="suggest"]').first();
+      await sec.waitFor();
+      await page.waitForTimeout(1500);
+      const n = Number(await sec.getAttribute("data-sug-count"));
+      const cdp = touch ? await ctx.newCDPSession(page) : null;
+      /** Drag the suggestion text by `dx` px (physical), as a mouse or a finger. */
+      const drag = async (dx) => {
+        const b = await sec.locator("[data-sug-swipe]").boundingBox();
+        const x0 = b.x + b.width / 2;
+        const y0 = b.y + Math.min(14, b.height / 2);
+        if (!touch) {
+          await page.mouse.move(x0, y0);
+          await page.mouse.down();
+          for (let k = 1; k <= 12; k++) await page.mouse.move(x0 + (dx * k) / 12, y0, { steps: 1 });
+          await page.mouse.up();
+        } else {
+          const pt = (x) => [{ x, y: y0, id: 1 }];
+          await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: pt(x0) });
+          for (let k = 1; k <= 12; k++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: pt(x0 + (dx * k) / 12) });
+          await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        }
+        await page.waitForTimeout(450);
+        return Number(await sec.getAttribute("data-sug-index"));
+      };
+      const w = (await sec.boundingBox()).width;
+      const toNext = he ? 1 : -1; // LTR: drag left for next; RTL: drag right
+      const before = await drag(-toNext * w * 0.45); // "previous" from the first
+      const after = await drag(toNext * w * 0.45); // "next" from the last
+      const cursor = touch ? null : await page.evaluate(() => getComputedStyle(document.querySelector('[data-home-section="suggest"]')).cursor);
+      ok(n >= 2 && before === n - 1 && after === 0 && (touch || cursor === "grab"), `P7 ${touch ? "touch" : "mouse"} ${he ? "he" : "en"}: past the first → the last, past the last → the first${touch ? "" : " (grab cursor)"}`, JSON.stringify({ n, before, after, cursor }));
+      await ctx.close();
+    }
 }
 
 // ---------- #29: 30 navigations in 30 s across 3 spaces → 0 × 429 ----------

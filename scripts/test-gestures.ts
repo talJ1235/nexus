@@ -63,6 +63,14 @@ assert.equal(velocity([{ t: 0, v: 0 }, { t: 50, v: 40 }, { t: 300, v: 40 }]), 0)
   assert.equal(pagerOffset(-50, 1, true, true), -50, "follows the finger 1:1");
   assert.ok(Math.abs(pagerOffset(-150, 1, true, false)) < 50, "rubber band at the end");
   assert.ok(Math.abs(pagerOffset(150, -1, true, false)) < 50, "rubber band at the end (RTL)");
+  // R17 P7: the suggestions loop — past the last is the first, before the first the last (both directions, RTL too).
+  const l = (dx: number, dir: 1 | -1, index: number, count = 3) => pagerRelease({ dx, vx: 0, dir, width: 320, index, count, loop: true });
+  assert.equal(l(-100, 1, 2), 1, "loop: LTR next from the last moves (the caller wraps to the first)");
+  assert.equal(l(100, 1, 0), -1, "loop: LTR previous from the first moves (→ the last)");
+  assert.equal(l(100, -1, 2), 1, "loop: RTL next from the last");
+  assert.equal(l(-100, -1, 0), -1, "loop: RTL previous from the first");
+  assert.equal(l(-40, 1, 2), 0, "loop: a short drag still snaps back");
+  assert.equal(l(-100, 1, 0, 1), 0, "loop: one suggestion — nothing to move to");
 }
 
 console.log("OK gestures");
