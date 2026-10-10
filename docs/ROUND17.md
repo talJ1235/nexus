@@ -812,3 +812,56 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
   1366×768 with a 4th tile ("Getting started" moved to Settings → Display), and the server-backed tests hit
   `SQLITE_BUSY` now that presence beats write while they run (`busy_timeout` on their DB handles).
 - **Merged** `round17-s2` → `main` (fast-forward) after the checks above; prod deploys from `main`.
+
+### Session 3 (2026-10-09/10) — notifications (brief `docs/ROUND17-S3.md`)
+- **At start.** Step 0: `.claude/settings.local.json` allows the round17-s3 push / merge; VAPID keys generated into
+  `.env.local` only (Node crypto, P-256). `VAPID_SUBJECT` = the prod URL — the brief asks for `mailto:` + the privacy
+  address, which doesn't exist yet (`legal.ts`: "coming soon"); swap it when there is one. The local checkout was 10
+  commits behind (the S3 brief and boards weren't there) — pulled first. Open reports: 1 (`cwc.co.il` "Couldn't read that
+  link" — a blocked store, Part C's ladder; not S3). Error log: nothing new since S2.
+- **Done:** J1–J3, K1–K4, L1–L2, M1–M4, N1–N3, O. Commits `R17.J1` … `R17.O` (K, L, M, N each as one commit per part —
+  their items share files; tests and docs in `R17.O`).
+- **Tests (local, built app):** test:notify (unit: quiet hours, active hour, Thursday, the 3 → 7 → 14 → 30 schedule,
+  texts en/he; DB: actor excluded, in-place update, switch off, one push per check, ≤ 1 activity push per space per hour,
+  30-day purge; senders: trip start / live / finish, activity grouping, prices per run, delivery at 08:00 once, budget
+  recipients), test:push (a fake push service on loopback; the payload decrypted with the device keys per RFC 8291; 410
+  deletes, 500 counts up, 5 failures purge; endpoint allow-list incl. lookalike hosts / ports / userinfo; the service
+  worker's push / click / Received handlers in a sandbox; a real push through DevTools reaches the worker; Received →
+  401 without a session), test:inbox (desktop popover, phone page en/he, light/dark, Graphite/Plum, swipe delete,
+  Received → item bought, tap → read + item, browser Back, /inbox, empty; every media box inside its row in LTR + RTL; the
+  card on desktop + phone with How to allow and Not now remembered once a day; Settings → Notifications; budget
+  recipients), test:admin-privacy with inbox rows + a subscription seeded, test:clip **1066 screens, 0 cut text** (with
+  the inbox, the card + steps and Settings → Notifications at 360/390/1366/1280, en/he, light/dark, both spaces),
+  test:onboarding, test:admin-access / -live / -people, test:polish, test:live, test:tenancy, test:errors, all unit tests,
+  authz / scope / SSRF / query-plan guards, `npm run check`. Smoke: see the last line below.
+- **Migration rehearsal** (`node --env-file=.env.local scripts/r17-rehearsal.mjs --source snapshots/prod-2026-10-10.db
+  --base origin/main`, a fresh read-only prod snapshot): new tables `notification`, `push_subscription`; no new columns;
+  nothing dropped; row counts equal in all 42 tables; integrity ok; second run a no-op; To buy 13 / On the way 8 /
+  History 11 and this month's budget unchanged; 520 ms.
+- **Parity:** 7 new PNGs in `docs/design/parity-r17/` (k1 inbox desktop + plum dark he, k2 phone page + he dark plum,
+  k blocked + 1280×720 dark, l card desktop / phone + iPhone, n Settings → Notifications + budget recipients, n admin
+  System + Live) — 27 in all. The board renderer now loads `nx18.css` and waits for the boards' delayed entrances.
+- **Decisions (no stopping to ask):**
+  - Reminder schedule: onboarding's "Not now" is the first; cards come 3, 7, 14 and 30 days after the last "Not now" —
+    four cards — then never (the brief's "after the 4th Not now" would drop the 30-day card; the explicit days won).
+    People who were never asked (signed up before onboarding, or skipped step 6) get the card once as a first offer,
+    never on the first day after onboarding. The card waits while a toast sits where it would go.
+  - Weekly summary: one per person across all their spaces, in their display currency; skipped when nothing was bought
+    and nothing dropped. Shared activity counts adds and check-offs (check-offs during a trip are the trip's news).
+    Price notifications go to every member of the item's space (viewers too: they can see the item).
+  - Price checks hourly: `?scope=hourly` = 20 s of checks, oldest first (the daily run keeps 26 s + maintenance) —
+    a few dozen links an hour, so every tracked link is re-checked every few hours at today's size; free limits: 24 short
+    invocations a day. `minDropPct` stays as stored (default 5 %) — its picker lived in the old alerts panel, which is
+    gone with "Check now" (the brief: no per-kind settings; the inbox replaces the panel).
+  - Trip "list" isn't in the row (the beat carries a screen key + count, not the list); the row says the space.
+  - The header bell keeps the app's round 50 px button (the board's mock header is simplified) with the board's count
+    badge; the phone header has its bell back (R14 had moved alerts into the Me sheet; the row stays there too).
+  - Desktop card: "Not now" instead of the board's close ✕ in the blocked state (same action, one fewer control).
+  - Data patches (live count, Marked received) keep the row's time and place; only real news moves it up.
+  - Hebrew verbs are neutral where gender is unknown (`סיים/ה`, `הוסיף/ה`; plural with two names).
+- **Fixes along the way:** the R16 budget toast covered the phone card (the card now waits); the smoke's Account timing
+  read response bodies that DevTools had already dropped late in a long run — it now matches the call by its action id;
+  a timing flake in "Go to History" (waits for the first card).
+- **For Tal:** copy `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` from `.env.local` to Vercel (Production)
+  and redeploy; add the GitHub repo secret `CRON_SECRET` (= Vercel's) so `hourly.yml` runs. Until then the inbox, the
+  badge and the card all work, nothing is pushed (System shows "Keys not set"). On iPhone, push needs the Home Screen app.

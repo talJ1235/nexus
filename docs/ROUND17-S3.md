@@ -50,7 +50,7 @@ permission and says push isn't set up yet — logged once, no error toast).
 - Parity PNGs (board vs app) into `docs/design/parity-r17/` — up to 12 new files (they are already at 20; S3 may add 12).
 
 ## Part J — plumbing: data, push, scheduler
-### J1. [ ] Data
+### J1. [x] Data
 Two new tables (additive):
 - `notification` — id, user_id, space_id (nullable), kind (`shop` | `activity` | `week` | `price` | `delivery` |
   `budget`), group_key (e.g. `shop:<tripId>`, `activity:<spaceId>:<hour>`, `price:<checkRunId>`), data (JSON: what the row
@@ -64,7 +64,7 @@ Two new tables (additive):
 Retention: the daily cron deletes notifications older than 30 days and subscriptions failing 5 times in a row.
 Delete account (E4) removes both; export (E4) includes the person's inbox rows.
 
-### J2. [ ] Web push (server + service worker)
+### J2. [x] Web push (server + service worker)
 - `web-push` (pinned) in `lib/notify/push.ts`; payload = title, body, url, tag (= group_key), actions, lang/dir. A 404/410
   from the push service deletes that subscription; other failures increment fail_count. TTL 12 h for batched kinds,
   1 h for "shopping now".
@@ -78,7 +78,7 @@ Delete account (E4) removes both; export (E4) includes the person's inbox rows.
   on sign-out. iPhone: only in standalone (Home Screen) mode.
 - No content in logs. Admin sees counts only.
 
-### J3. [ ] Scheduler — when each notification is sent
+### J3. [x] Scheduler — when each notification is sent
 - `lib/notify/enqueue.ts` — one entry point `notify(userIds, kind, groupKey, data)`: never notifies the person who
   caused the event; writes/updates the inbox row; decides `send_after`:
   - urgent (shop, delivery today): now — unless quiet hours, then 07:00 (a finished trip during the night is dropped
@@ -94,37 +94,37 @@ Delete account (E4) removes both; export (E4) includes the person's inbox rows.
 - The On/Off switch off → rows are written, nothing is sent.
 
 ## Part K — the inbox (boards `Inbox-desktop`, `Inbox-phone`)
-### K1. [ ] Desktop popover
+### K1. [x] Desktop popover
 The bell in the header opens the popover from the bell (origin = the bell, 200 ms `--ease-out`), 420 wide, list scrolls
 inside; header Notifications + Mark all read + close; banners for "off on this computer" / "blocked in this browser"
 (with How to allow); empty state; footer "Kept for 30 days · Notification settings". Esc and outside click close; focus
 returns to the bell. Replaces the current `AlertsPanel` bell (price rows now come from `notification`; remove the
 Telegram leftovers in `alerts-panel.tsx` if nothing else uses them).
-### K2. [ ] Phone page `/inbox`
+### K2. [x] Phone page `/inbox`
 The bell opens a **full page** pushed in from the inline-end over Home (Home shifts 22 % back and dims; 380 ms
 `--ease-drawer`; Back / edge swipe / browser Back reverse the same path; mirrored in RTL). Large title + "N new";
 Mark all read top-end; sticky Today / Earlier headers; rows full width with inset dividers; dock hidden on this page;
 footer at the end of the list. Swipe to delete (1:1 follow, velocity flick, snap on the drawer curve), tap = open the
 thing it's about and mark read.
-### K3. [ ] Rows (both)
+### K3. [x] Rows (both)
 **The media column is a fixed 40×40 block** (board fix: an inline wrapper collapsed to 0 px and the kind badges and
 second face hung outside the row — `test:inbox` asserts every badge's box is inside its row). Kinds: shop (face with
 ring; live "6 of 15 left" while the trip runs; text crossfades with 2–3 px blur when it finishes), price (item picture +
 tag badge; now / was / −% or "target"; Open), delivery (picture + truck badge; Received → "Marked received"),
 activity (two faces), budget (wallet tile + meter), week (chart tile). Unread tint + dot; time right-aligned, tabular.
-### K4. [ ] Badge and freshness
+### K4. [x] Badge and freshness
 Unread count on the bell (desktop) and the phone header bell; updates on app focus, on a push message from the
 service worker, and every 60 s while visible. Mark read is optimistic. No content over Ably.
 
 ## Part L — asking for permission (boards `Permission-desktop`, `Permission-phone`)
-### L1. [ ] When the reminder shows
+### L1. [x] When the reminder shows
 First offer = onboarding step 6 (unchanged). The reminder card shows when **all** hold: permission is `default` or
 `denied` on this device, or iPhone not in standalone; the account switch is On; this person said "Not now" (onboarding
 or card) and the next step of **3 → 7 → 14 → 30 days** since the last "Not now" has passed; not shown today; the page
 is Home and settled (≥ 1.5 s, no open sheet/dialog); not in shopping mode; not the first session after onboarding.
 After the 4th "Not now" it never shows again. State per user: `pref:notify-ask` = `{ count, lastNo }`; "Turn on"
 granted → no more cards. Unit test the schedule.
-### L2. [ ] The card
+### L2. [x] The card
 No item or price — the same card everywhere: bell with three kind dots, "Turn on notifications?", one line (price drops,
 deliveries, what the household adds, never at night), Not now / Turn on. Desktop: popover from the bell (tip pointing at
 it, `--ease-out` 200 ms, origin top-end; the bell shows a dot while it's open). Phone: above the dock (the board's
@@ -134,32 +134,32 @@ off any time in Settings", leaves by itself after ~2.5 s) · blocked (`denied`: 
 "I allowed it" re-checks) · iPhone not on the Home Screen (Share → Add to Home Screen → open from there).
 
 ## Part M — the senders
-### M1. [ ] Shopping trip
+### M1. [x] Shopping trip
 Starting shopping mode on a shared list → `shop` to the other members of that space (urgent; one per trip). Finishing
 (or 30 min idle) updates the same row + push in place: "Noa finished shopping · bought 12, 3 left".
-### M2. [ ] Shared activity
+### M2. [x] Shared activity
 Adds/checks by others in a shared space → grouped `activity` rows per space per hour (names + count, the list name).
-### M3. [ ] Price
+### M3. [x] Price
 Price checks hourly (`scope=hourly` checks a slice so every tracked item is checked at least every few hours within the
 free limits — say what you chose in Open). Any drop and/or reaching the target → one `price` row per item; all rows from
 one check run → **one** push ("Steam cleaner dropped to ₪899" or "3 price drops"). Respects `minDropPct` as today.
-### M4. [ ] Delivery today / budget / week
+### M4. [x] Delivery today / budget / week
 Delivery due today → `delivery` at 08:00 local (urgent kind but never before 07:00) with Received. Budget 80 % / 100 %
 once per space per month → owner + picked members (replaces the R16 per-device toast in `budget-watch.tsx`; the toast
 stays only when push isn't on). Weekly summary Thursday at the active hour from `lib/weekly.ts` (bought, spent, drops).
 
 ## Part N — settings and admin
-### N1. [ ] Account → Notifications (board `Settings-notify-phone`)
+### N1. [x] Account → Notifications (board `Settings-notify-phone`)
 The existing Account row opens a small page (phone) / section (desktop dialog): the one switch "On all your devices";
 "This phone / This computer" status — Allowed · Blocked (How to allow) · Not turned on yet (Turn on); the quiet-hours
 line (info, not a setting); the one-line explanation. No per-kind switches.
-### N2. [ ] Space settings → Budget → "Budget alerts go to"
+### N2. [x] Space settings → Budget → "Budget alerts go to"
 Owner always (locked row) + member checkboxes, owner-only edit, viewers can't be picked. Stored on the space.
-### N3. [ ] Admin
+### N3. [x] Admin
 System row: subscriptions (phone / computer), sent today, failed today, due now. Live: a "Notifications sent today"
 stat. Counts only — `test:admin-privacy` extended to the new tables.
 
-## Part O — guards and docs
+## Part O — guards and docs [x]
 - `test:notify` (unit: quiet hours, active hour, grouping/in-place update, actor excluded, batching per check, reminder
   schedule, switch off), `test:push` (a local fake push endpoint receives an encrypted request; 410 deletes the
   subscription; SW click/actions via Playwright), `test:inbox` (popover + page, read/mark all/swipe, media boxes inside

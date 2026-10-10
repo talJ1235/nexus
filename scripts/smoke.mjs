@@ -23,6 +23,7 @@
 //     into $SMOKE_OUT/visual/, for judging a visual change by screenshot. SMOKE_VISUAL_FULL=1 takes full-page shots.
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { canSignIn, signIn as signInAs } from "./lib/sign-in.mjs";
+import { actionTable } from "./lib/actions.mjs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
@@ -1650,13 +1651,22 @@ try {
     if (MOBILE)
       await step("account & security (phone): one layout (CLS 0 warm), devices < 500 ms, tiles not cut at 360", async () => {
         const r = {};
+        let secId = null;
+        try {
+          secId = actionTable().find((a) => a.name === "getSecurityState")?.id ?? null;
+        } catch {
+          /* no local build (prod smoke): fall back to the body */
+        }
         const visit = async () => {
           const times = [];
           const sent = new Map();
           const onReq = (q) => q.method() === "POST" && q.headers()["next-action"] && sent.set(q, Date.now());
+          // The devices call is recognised by its action id (the build's manifest), not by reading its body: late in a
+          // long run DevTools may already have dropped the body ("No data found for resource") — R17 S3.
           const onRes = async (res) => {
             const q = res.request();
             if (!sent.has(q)) return;
+            if (secId) return void (q.headers()["next-action"] === secId && times.push(Date.now() - sent.get(q)));
             const body = await res.text().catch(() => "");
             if (body.includes('"devices"')) times.push(Date.now() - sent.get(q));
           };
@@ -1853,6 +1863,8 @@ try {
         await page.locator("[data-go-history]").waitFor({ timeout: 8000 });
         await page.locator("[data-go-history]").click();
         await page.locator("[data-history-tools]").waitFor({ timeout: 8000 });
+        // The filtered list renders a moment after the tools (a timing flake when read at once).
+        await page.locator("main [data-item-card]").first().waitFor({ timeout: 8000 }).catch(() => {});
         r.goHistory = (await page.locator("[data-history-search]").inputValue()) === word && (await page.locator("main [data-item-card]").count()) > 0;
       }
       ok(Object.values(r).every(Boolean), "insights: Spending · History, history filters + timeline, Go to History", JSON.stringify(r));
@@ -2217,9 +2229,20 @@ try {
       await page.keyboard.press("Escape");
     });
 
-    await step("inbox popover (R17 S3): opens from the bell, no Telegram, Esc closes and focus returns", async () => {
+    await step(MOBILE ? "inbox page (R17 S3): the phone bell opens it, browser Back closes it" : "inbox popover (R17 S3): opens from the bell, no Telegram, Esc closes and focus returns", async () => {
       await page.goto(BASE);
-      await page.waitForSelector("[data-nt-bell=desk]", { timeout: 15000 });
+      await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 15000 });
+      if (MOBILE) {
+        await page.click("[data-nt-bell=phone]");
+        const pg = page.locator("[data-nt-page]");
+        await pg.waitFor({ timeout: 10000 });
+        await page.waitForTimeout(450);
+        await shot(page, "inbox-page");
+        await page.goBack();
+        await pg.waitFor({ state: "detached", timeout: 5000 });
+        ok(true, "inbox page: the phone bell opens it, browser Back closes it");
+        return;
+      }
       await page.click("[data-nt-bell=desk]");
       const pop = page.locator("[data-nt-popover]");
       await pop.waitFor({ timeout: 10000 });

@@ -200,9 +200,9 @@ if (want("phone")) {
   ok(ub && ub.height >= 40 && ub.width >= 40, "#2 the toast's Undo is ≥ 40 × 40 on touch", JSON.stringify(ub));
   await undo.click();
   // #3: a settings switch row is a ≥ 40px target — tapping its title flips the switch (and the knob slides).
-  // R17 D3: the Notifications section is gone — its one switch lives in Account.
-  await page.goto(`${BASE}/settings/account`);
-  await page.waitForSelector('[data-settings-section="account"]');
+  // R17 S3 N1: the one Notifications switch lives on Account → Notifications.
+  await page.goto(`${BASE}/settings/notifications`);
+  await page.waitForSelector("[data-notify-master]");
   const sw = page.locator("[data-notifications-on]");
   const row = page.locator(".li", { has: sw });
   const before = await sw.getAttribute("aria-checked");
