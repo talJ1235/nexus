@@ -492,17 +492,22 @@ export function NotifyRuntime() {
   useEffect(() => {
     if (s.loading || s.offlineAt != null) return;
     let alive = true;
-    notifyBoot()
-      .then((b) => {
-        if (!alive) return;
-        inboxStore.setBoot(b);
-        // iPhone: only a Home Screen app can subscribe.
-        const env = pushEnv();
-        if (!env.iphone || env.standalone) void ensureSubscribed(b.publicKey);
-      })
-      .catch(() => {});
+    // Off the load path: the app's own first requests (data, live sync) go first; the badge follows when idle.
+    const run = () =>
+      notifyBoot()
+        .then((b) => {
+          if (!alive) return;
+          inboxStore.setBoot(b);
+          // iPhone: only a Home Screen app can subscribe.
+          const env = pushEnv();
+          if (!env.iphone || env.standalone) void ensureSubscribed(b.publicKey);
+        })
+        .catch(() => {});
+    const idle = window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 1200));
+    const id = idle(() => void run(), { timeout: 2500 });
     return () => {
       alive = false;
+      (window.cancelIdleCallback ?? clearTimeout)(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.loading]);
