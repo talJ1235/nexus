@@ -71,6 +71,12 @@
   server error samples start with the driver's `cause` (`instrumentation.ts`). Admin walk (console / hydration / 5xx /
   blank) `scripts/lib/admin-walk.mjs` — used by the smoke, `test:admin-access`, `scripts/probe-admin.mjs` (prod). AI list
   prices `lib/ai-prices.ts` (one edit + date). Cached AI wording keys `home:ai:v2:…` / `home:look:v2:…` (`HOME_AI_CACHE_V`).
+- R17 S6 push: timing policy `pushTime()` (`lib/notify/schedule.ts`: all at once, quiet hours, Thursday week, activity
+  ≤ 1/h/space); opportunistic dispatcher `lib/notify/maybe.ts` (`maybeDispatch` in `after()` of `/api/presence` and
+  `notifyBoot`, 5-min kv lease `kvLease` in `lib/kv.ts`; `NOTIFY_AUTO_DISPATCH=0` on seeded test servers);
+  `/api/cron/notify` = `runDispatcher("cron")`. Test push `sendTestPush` (`dispatch.ts`); admin System → Push
+  `components/admin/push.tsx` (`pushDiagnostics` in `db-scoped/notify.ts`, `adminTestPush`); Settings device state /
+  Fix / test (`pushHere`, `testPushHere` in `notify-actions.ts`, `currentEndpoint` in `lib/notify/client.ts`).
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)

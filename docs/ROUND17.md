@@ -1002,3 +1002,19 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
 - **After the deploy (for the next session / Tal):** run `BASE=https://nexus-ashen-beta.vercel.app node --env-file=.env.local
   scripts/probe-admin.mjs` and read the error log — any new "Failed query" entry now starts with `cause:`.
 - **Merged** `round17-s5` → `main` (fast-forward).
+
+### Session 6 (2026-10-10) — push that reaches you outside the app (brief `docs/ROUND17-S6.md`)
+- **Done:** U1 (System → Push, test push, this device's state / Fix / Not arriving?), U2 (everything at once, policy in
+  `pushTime()`), U3 (`maybeDispatch` on beats + app start, 5-min kv lease), U4 (prod smoke guard), V (SPEC, help topic,
+  CLAUDE.md, ENVIRONMENT.md).
+- **Decisions:** per-device last failure = two additive columns (`push_subscription.last_fail_at`, `last_code`).
+  Activity keeps one row per space per clock hour; a row updated after its push carries the hour's totals in the next
+  one. Deliveries keep "today at 08:00" (a time event). A price run holds its rows and sends once at the end. Seeded test
+  servers set `NOTIFY_AUTO_DISPATCH=0`. The prod smoke's own visit runs the dispatcher before it reads System, so the
+  guard mostly catches a dispatcher that fails or rows that can't be sent.
+- **Rehearsal:** a fresh prod snapshot was refused ("production reads"); ran on `snapshots/prod-2026-10-10.db`: 2 new
+  columns, nothing dropped, counts equal in 44 tables, integrity ok, second run no-op, numbers unchanged — PASS.
+- **Local:** check, test:notify, test:push, test:admin-access, test:admin-privacy, test:inbox, test:help, scope, authz,
+  clip quick (278, 0) — OK. Phone smoke: 2 FAILs (item sheet morph, quick actions click timeout) — the known S4/S5
+  phone flake, paths untouched here.
+- **Prod after deploy:** not seen yet (Tal didn't share); the prod smoke now reports the dispatcher age and oldest row.

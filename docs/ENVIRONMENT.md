@@ -193,3 +193,11 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   prod DB queries are still refused by the permission classifier ("production reads") and there is no Vercel CLI login
   here — the 500s' real cause has to come from the error log (it now records the driver's reason). `.claude/settings.local.json`
   allows the round17-s5 push/merge commands.
+- 2026-10-10 (PC, R17 Session 6): new env flag `NOTIFY_AUTO_DISPATCH` — `0` turns off the opportunistic notification
+  dispatcher on app requests; `scripts/lib/test-app.mjs`, `scripts/serve-smoke.sh` and `guards.yml` set it so seeded
+  test data stays as seeded (unset in prod = on). `test:push` gained the test push + `maybeDispatch` checks (it now
+  starts its browser app with throwaway VAPID keys), `test:admin-access` starts its app with throwaway VAPID keys and
+  checks System → Push, `test:inbox` the "Not arriving?" steps. The prod smoke (`scripts/smoke.mjs`, signed-in, real data
+  only) fails when System → Push shows a waiting row older than 70 min or no dispatcher run for 3 h. A fresh prod
+  snapshot was again refused by the permission classifier ("production reads"); the rehearsal ran on
+  `snapshots/prod-2026-10-10.db`. `.claude/settings.local.json` allows the round17-s6 push/merge commands.

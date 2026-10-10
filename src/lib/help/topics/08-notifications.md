@@ -1,7 +1,7 @@
 <!-- topic: Notifications -->
 
 ## Notifications
-<!-- spec: Notifications, Inbox, Web push -->
+<!-- spec: Notifications, Inbox, Web push, Timing, Not only GitHub's schedule, Admin → System → Push, Settings → Notifications -->
 - **The bell** (פעמון, top of the screen) is your inbox (התראות): price drops and targets, deliveries arriving today,
   someone shopping now and what they bought, what others added in a shared space, the budget at 80 % and 100 %, and the
   Thursday summary of your week. Computer: it opens under the bell. Phone: a full page — Back or a swipe from the edge
@@ -24,5 +24,10 @@
   Site settings (phone: Permissions) → Notifications → Allow, then reload. Settings → Notifications shows these steps.
 - **iPhone**: notifications work only in the installed app — in Safari tap Share → **Add to Home Screen**, then open
   Nexus from the Home Screen and turn them on there.
+- **Not arriving?** (לא מגיעות?) — Settings → Notifications shows this device's state: **Fix** (תיקון) when it is on
+  but not registered, and **Test on this device** (בדיקה במכשיר הזה). You never get a notification for what you did
+  yourself. Windows: in Chrome, Settings → System → "Continue running background apps when Google Chrome is closed";
+  Windows Settings → System → Notifications → Google Chrome on. Android: Chrome (or the Nexus app) notifications on,
+  battery Unrestricted. iPhone: only the Nexus app opened from the Home Screen.
 - Each device you turn on is listed by browser and system only (e.g. "Chrome · Android"). Signing out stops that
   device's notifications.

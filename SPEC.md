@@ -758,8 +758,8 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
   per-kind settings. Kinds: someone shopping now / finished (one per trip, updated in place), shared-space activity (one
   row per space per hour), price drop / target (one push per check run; checks hourly via GitHub Actions `hourly.yml`),
   delivery today (08:00, Received), budget 80 % / 100 % (owner + picked members: Space settings → Budget → "Budget alerts
-  go to"), Thursday summary. Urgent at once, the rest at the person's usual hour (from 14 days of opens, default 09:00),
-  never 22:00–07:00. The actor is never notified. Reminder card after "Not now": 3 → 7 → 14 → 30 days, generic, Home only.
+  go to"), Thursday summary. Timing: see Session 6 (everything at once since then), never 22:00–07:00. The actor is
+  never notified. Reminder card after "Not now": 3 → 7 → 14 → 30 days, generic, Home only.
   Admin: System row + a Live stat, counts only.
 - Data (additive): `notification` (one row per person per group key), `push_subscription`. Guards: `test:notify`,
   `test:push`, `test:inbox`; `test:clip` walks the inbox, the card and Settings → Notifications.
@@ -805,6 +805,28 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
   (cached money), `test:onboarding` (step 5 both ways), `test:errors` (retry rules), `test:ai-quota` (a price per model),
   `test:headers` (manifest).
 
+## Round 17 — Session 6: push that reaches you outside the app
+(brief `docs/ROUND17-S6.md`, notes: `docs/ROUND17.md` "## Open" → "### Session 6")
+- **Timing** (Tal: "everything at once"): every kind is pushed at once — except quiet hours 22:00–07:00 (held to 07:00;
+  a finished trip at night stays in the bell), the Thursday summary (at the person's usual hour, from 14 days of opens,
+  default 09:00) and shared-space activity (the first at once, then at most one per space per hour, later ones grouped
+  into the next). One price check run = one push per person. The inbox is unchanged. Policy in one place: `pushTime()`.
+- **Not only GitHub's schedule**: every signed-in beat / app start runs the dispatcher (time sweeps + every due row) at
+  most once per 5 minutes for everyone (a kv lease; claiming stays idempotent). `hourly.yml` and the daily cron stay as
+  safety nets for nights / nobody online.
+- **Admin → System → Push**: the dispatcher's last run (when, how long, sent / failed, by cron or app; warning after
+  90 min), the last 7 days' rows by push state (waiting / sent / failed / no device / switched off) with the oldest
+  waiting row, every device (person, phone / computer, label, last success, last failure code) and **Send a test push to
+  my devices** with the answer per device (sent · gone → removed · failed with the code). Codes only, never content.
+- **Settings → Notifications**: this device's state is checked against the server (on · blocked · on but not registered
+  → **Fix** subscribes and saves again), **Test on this device** (the fixed test text to this browser only), and **Not
+  arriving?** (Windows Chrome background apps + Windows notifications, Android notifications + battery, iPhone Home
+  Screen only, nothing for your own actions).
+- Data (additive): `push_subscription.last_fail_at`, `last_code`. Guards: `test:notify` (kind × day / night / after an
+  activity push), `test:push` (the test push: sent / 410 deleted / 500 shown; two concurrent dispatches send once; a later
+  row goes with the next request), `test:admin-access` (System → Push), `test:inbox` (Not arriving?), the prod smoke
+  (fails when a waiting row is > 70 min old or the dispatcher's last run > 3 h).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
@@ -820,7 +842,7 @@ same product from another store → added as another source). `#name` in the mes
 linked chat. The webhook is (re)set after linking, whenever the alerts state loads, and by the daily cron.
 
 ## Non-goals (for now)
-Carrier API tracking sync. (Multi-user accounts arrived in Round 15; onboarding and the admin panel shipped in R17 Session 2, push + inbox in Session 3, Profile + fixes in Session 4. No email channel.)
+Carrier API tracking sync. (Multi-user accounts arrived in Round 15; onboarding and the admin panel shipped in R17 Session 2, push + inbox in Session 3, Profile + fixes in Session 4, push diagnostics + "at once" timing in Session 6. No email channel.)
 
 ## Stack (all free tier)
 Next.js 16 (App Router) on Vercel · Turso (libSQL) + Drizzle · Gemini Flash-Lite (+ optional Groq/OpenRouter) ·
