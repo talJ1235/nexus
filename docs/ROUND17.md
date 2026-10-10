@@ -922,3 +922,11 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
 - **Local guards:** test:bidi (switcher + 140 Hebrew screens), test:clip quick (278 screens, 0), test:settings,
   test:inbox, test:polish, test:admin-access, test:auth-flow, test:notify, test:home, test:gestures, test:check-now,
   test:roles, test:authz-coverage, test:help — all OK.
+- **CI** (guards on `round17-s4`): green at `1d47cd0` after the fixes it found — the role matrix (`saveMyName` on the
+  viewer read list), polish #29 (29 realtime-token requests for 34 loads: the inbox prefetch now waits 1.5 s after the
+  idle boot call), polish A2 (the suggestions tile's invisible copies only under 600 px; the phone "noticed" insight
+  centred), settings P3 (the address after opening Profile from the block — the shell re-checks it), test:help (spec
+  markers). One re-run: "Google in-app sign-in — cancel: focus back on the Google button" failed once and passed on the
+  re-run (it had passed on the run before; login code untouched in between).
+- **No DB change** in this session → no migration rehearsal needed. **Merged** `round17-s4` → `main` (fast-forward).
+- Locally, `test:ai-quota` and `test:delete-account` print OK but exit 127 on Windows — the same on `main`; CI passes.
