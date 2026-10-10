@@ -1,6 +1,6 @@
 # R18 screens script — the supermarket, in words (before the boards)
 
-Planning chat, 2026-10-10. Status: **for Tal's approval**. Context and earlier answers: `docs/R18-PLANNING.md`; this
+Planning chat, 2026-10-10. Status: **approved by Tal (2026-10-10)** — changes later if needed. Context and earlier answers: `docs/R18-PLANNING.md`; this
 script **supersedes its §16 (section order) and §17 (board list)** where they differ.
 When approved, this file is the board list for the canvas "Nexus R18 — Supermarket" (design bar: the project skills
 in `.claude/skills/` + frontend-design, as every board since R17) and the source for `docs/ROUND18.md` / R18b.
