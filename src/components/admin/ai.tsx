@@ -115,7 +115,7 @@ export function AiTab({ phone, go }: { phone: boolean; go: Go }) {
         </div>
         <div className="pb" dir="ltr">
           {data.period === 0 ? (
-            <div className="tiny">{A.noCalls}</div>
+            <div className="tiny" dir="auto">{A.noCalls}</div>
           ) : (
             <>
               <div style={{ display: "flex", alignItems: "flex-end", gap: days === 7 ? 10 : phone ? 2 : 4, height: 130 }} data-ai-days-chart>
@@ -137,10 +137,11 @@ export function AiTab({ phone, go }: { phone: boolean; go: Go }) {
                   });
                 })()}
               </div>
+              {/* The chart runs left → right (time), its labels read in their own language (R17 P2). */}
               <div className="xaxis">
-                <span>{date(Date.parse(data.days[0].day))}</span>
-                {days === 30 && !phone && <span>{date(Date.parse(data.days[14].day))}</span>}
-                <span>{t.adm.ago.today}</span>
+                <span dir="auto">{date(Date.parse(data.days[0].day))}</span>
+                {days === 30 && !phone && <span dir="auto">{date(Date.parse(data.days[14].day))}</span>}
+                <span dir="auto">{t.adm.ago.today}</span>
               </div>
             </>
           )}
@@ -175,7 +176,7 @@ export function AiTab({ phone, go }: { phone: boolean; go: Go }) {
             {data.closest.map((c) => (
               <button key={c.userId} type="button" className="hl" style={{ width: "100%", border: 0, background: "none", textAlign: "start", color: "inherit" }} onClick={() => go("people", c.userId)}>
                 <Av id={c.userId} name={c.name} size="sm" />
-                <span className="grow">{c.name}</span>
+                <span className="grow bidi">{c.name}</span>
                 <span className={`qbar${c.limit != null && c.used >= c.limit ? " full" : ""}`}>
                   <i style={{ width: `${Math.min(100, c.limit == null ? (c.used / 40) * 100 : c.limit ? (c.used / c.limit) * 100 : 100)}%` }} />
                 </span>

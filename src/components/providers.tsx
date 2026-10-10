@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
 import { ThemeProvider, useTheme } from "next-themes";
+import { Direction } from "radix-ui";
 import { Toaster } from "sonner";
 import { markBooted } from "@/lib/boot";
 import { dictionaries, fmt, LOCALE_COOKIE, type Dict, type Locale } from "@/lib/i18n";
@@ -50,7 +51,8 @@ export function Providers({ locale, nonce, children }: { locale: Locale; nonce?:
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange nonce={nonce}>
       <I18nContext.Provider value={value}>
-        {children}
+        {/* R17 P2: Radix menus / popovers write their own `dir` (ltr unless told) — Hebrew menus read RTL like the page. */}
+        <Direction.Provider dir={value.dir}>{children}</Direction.Provider>
         {/* Look + motion overrides live in globals.css ("Toasts"). Normal 4 s, with an action (Undo) 7 s; hover pauses. */}
         <ThemedToaster
           position={phone ? "bottom-center" : locale === "he" ? "bottom-left" : "bottom-right"}

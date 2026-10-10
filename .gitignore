@@ -87,3 +87,4 @@ ci-*.db
 /push-test.db*
 /inbox-test.db*
 /push-browser-test.db*
+/bidi-test.db*

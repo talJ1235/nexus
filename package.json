@@ -58,6 +58,7 @@
     "test:settings": "node scripts/test-settings.mjs",
     "test:polish": "node scripts/test-polish.mjs",
     "test:clip": "node scripts/test-clip.mjs",
+    "test:bidi": "node scripts/test-bidi.mjs",
     "test:ai-quota": "tsx --conditions=react-server scripts/test-ai-quota.ts",
     "test:short-name": "tsx scripts/test-short-name.ts",
     "test:blocked": "tsx --conditions=react-server scripts/test-blocked.ts",
