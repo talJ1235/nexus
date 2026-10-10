@@ -23,6 +23,7 @@
   Open Food Facts, your items and icons are used.
 - **Missing price or name?** The store blocked the server. Type the price in the item sheet; the daily check tries
   again.
+<!-- spec: Prices -->
 - **Check now** (בדיקה עכשיו): in the item sheet, under the price history, for an item to buy with a store link — reads
   its price right away ("Checked now · ₪899, dropped 10%"; up to 10 checks an hour). Prices are also checked every hour
   on their own; price-drop notifications go to the space's owners and members (not viewers).

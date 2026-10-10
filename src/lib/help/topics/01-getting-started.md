@@ -65,9 +65,10 @@ Example: `[Open settings → Palette](nexus:settings)`.
   and watch/target, Tags & notes, Receipts, Advanced.
 
 ## Home suggestions, insights and deliveries
-<!-- spec: Nexus suggests, Nexus noticed, Delivery track, Home suggestions -->
+<!-- spec: Nexus suggests, Nexus noticed, Nexus suggests / noticed, Delivery track, Home suggestions -->
 - **Nexus suggests**: one idea at a time — a deal on something you want (sometimes "order both" for free shipping),
   time to reorder, a cheaper weekday, a project without a budget. The button does it; "Not now" hides it for 7 days.
+  Swipe (phone) or drag (computer) between ideas — past the last comes the first again.
   When the exact rules find little, the AI looks once a day (only at your own items and numbers) and simple tips fill
   in. Settings → Assistant & AI: AI + rules, or Rules only (no AI calls); Status shows the last run and any error.
 - **Nexus noticed**: short facts from your data (shipping saved, a cheaper weekday, a project without a budget).

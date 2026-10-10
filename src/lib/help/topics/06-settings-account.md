@@ -19,7 +19,7 @@
   ownership, deleting a space or changing passkeys. Tal (admin): Account → **Invite codes**.
 
 ## Look and language
-<!-- spec: Design system, Box logo, Mixed Hebrew/English text, Dark mode depth, One picture style, Solid tags, Ask button, Card borders, Sidebar v4, Phone shell v4, Calmer light theme -->
+<!-- spec: Design system, Box logo, Mixed Hebrew/English text, Mixed Hebrew + English, Dark mode depth, One picture style, Solid tags, Ask button, Card borders, Sidebar v4, Phone shell v4, Calmer light theme -->
 - Settings → **Display** (תצוגה): theme Light / Dark / Match device, colour **Graphite** (default) or **Plum** (שזיף),
   language (English / עברית, full right-to-left), currency, Motion (Match device / Reduced). Per device, instant.
   **Reduced** keeps soft fades (sheets and menus fade in and out) but nothing moves or slides.
@@ -32,7 +32,7 @@
 - Pictures share one style; "Ask Nexus" is always a rounded pill; mixed Hebrew/English titles keep their direction.
 
 ## Settings
-<!-- spec: Settings -->
+<!-- spec: Settings, Settings → Profile, Admin -->
 - Desktop: a large window — sections on the side (You, then the current space), search with `/`, Esc closes. Phone: a
   list of sections, each opens as its own page (Back returns). Each section has an address (e.g. /settings/display)
   and a command-menu entry ("Settings: Budget").
