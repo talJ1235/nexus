@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { saveImportLimit, saveBudgetWarn } from "@/app/money-actions";
+import { budgetRecipientsState, saveBudgetRecipients, saveImportLimit, saveBudgetWarn } from "@/app/money-actions";
 import { loadAppData } from "@/app/data-actions";
 import {
   changeMemberRole,
@@ -549,6 +549,7 @@ function BudgetPage() {
           ))}
         </div>
       </div>
+      {s.space?.kind === "shared" && <BudgetRecipients />}
       <div className="card">
         <Li icon={P.bell} tone="warn" title={t.sx.warn80}>
           <Toggle
@@ -767,3 +768,56 @@ function SpaceConfirms({ confirm, setConfirm, count, adminReauth, onDone }: { co
 }
 
 export const SPACE_PAGES = { general: GeneralPage, people: PeoplePage, budget: BudgetPage, danger: DangerPage };
+
+/**
+ * R17 S3 N2 (board Settings-notify-phone, "space budget"): who gets this space's budget alerts at 80 % / 100 %. The owner
+ * always (locked row), plus the members the owner picks; viewers can't be picked. Others see it read-only.
+ */
+function BudgetRecipients() {
+  const s = useStore();
+  const { t, f } = useI18n();
+  const st = t.nt.set;
+  const [state, setState] = useState<Awaited<ReturnType<typeof budgetRecipientsState>> | null>(null);
+  const spaceId = s.space?.id;
+  useEffect(() => {
+    let alive = true;
+    budgetRecipientsState().then((r) => alive && setState(r), () => {});
+    return () => {
+      alive = false;
+    };
+  }, [spaceId]);
+  if (!state) return null;
+  const toggle = (id: string, on: boolean) => {
+    const before = state.picked;
+    const next = on ? [...before, id] : before.filter((x) => x !== id);
+    setState({ ...state, picked: next });
+    saveBudgetRecipients(next).then(
+      (picked) => setState((cur) => (cur ? { ...cur, picked } : cur)),
+      () => {
+        setState((cur) => (cur ? { ...cur, picked: before } : cur));
+        toast.error(t.errors.generic);
+      },
+    );
+  };
+  return (
+    <div data-budget-recipients>
+      <p className="sec">{st.whoGets}</p>
+      <div className="card">
+        {state.people.map((p) => {
+          const owner = p.role === "owner";
+          const viewer = p.role === "viewer";
+          const on = owner || state.picked.includes(p.id);
+          const name = p.id === s.me?.id ? f(st.you, { name: p.name }) : p.name;
+          return (
+            <Li key={p.id} icon={<Av name={p.name} color={avatarColor(p.id)} size="sm" />} title={name} sub={owner ? st.owner : viewer ? st.viewer : st.member} data-budget-to={p.id}>
+              <Toggle on={on} disabled={owner || viewer || !state.canEdit} label={name} onChange={(v) => toggle(p.id, v)} data-budget-to-toggle={p.id} />
+            </Li>
+          );
+        })}
+      </div>
+      <p className="tiny" style={{ padding: "10px 4px 0", margin: 0, lineHeight: 1.5 }}>
+        {st.budgetNote}
+      </p>
+    </div>
+  );
+}

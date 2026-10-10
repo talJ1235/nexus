@@ -19,3 +19,6 @@ export type BudgetData = { space: string; pct: 80 | 100; spent: number; budget: 
 export type WeekData = { bought: number; spent: number; currency: string; drops: number };
 
 export type NotifyData = ShopData | ActivityData | PriceData | DeliveryData | BudgetData | WeekData;
+
+/** N2: the space pref listing the members (besides the owner) who get budget alerts. */
+export const BUDGET_TO_KEY = "pref:budget-alerts";

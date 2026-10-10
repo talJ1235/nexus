@@ -19,7 +19,8 @@ import { local, nextLocal } from "./schedule";
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 export const TRIP_KEY = "pref:shop-trip";
-export const BUDGET_TO_KEY = "pref:budget-alerts";
+export { BUDGET_TO_KEY } from "./kinds";
+import { BUDGET_TO_KEY } from "./kinds";
 const TRIP_IDLE_MS = 30 * 60_000;
 
 type Trip = { key: string; spaceId: string; at: number; total: number | null };

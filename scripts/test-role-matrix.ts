@@ -47,6 +47,8 @@ const VIEW_OK = new Set([
   "ai-actions.ts#ask",
   // R17 S3: the inbox, its count and the permission card's memory — the caller's own rows only (everyone has one).
   "notify-actions.ts#*",
+  // R17 S3 N2: reading who gets the budget alerts (the page shows it read-only); saving asks for "owner".
+  "money-actions.ts#budgetRecipientsState",
   "barcode-actions.ts#lookupBarcode",
   "cal-actions.ts#calendarInfo", "cal-actions.ts#regenerateCalendar", "cal-actions.ts#markCalendarSubscribed", "cal-actions.ts#calendarSubscribed", "cal-actions.ts#setCalendarKinds",
   "chat-actions.ts#me",

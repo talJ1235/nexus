@@ -6,7 +6,9 @@ import { z } from "zod";
 import { schema } from "@/db";
 import { requireCtx } from "@/lib/ctx";
 import { scoped } from "@/lib/db-scoped";
-import { spacePrefSet } from "@/lib/db-scoped/prefs";
+import { spacePrefGet, spacePrefSet } from "@/lib/db-scoped/prefs";
+import { spaceMembers } from "@/lib/spaces";
+import { BUDGET_TO_KEY } from "@/lib/notify/kinds";
 import { BUDGET_KV_PREFIX, capFor, monthKeyIn, type BudgetHistory } from "@/lib/budget";
 import type { Conflict } from "@/lib/conflict";
 import { spacePrefBy } from "@/lib/db-scoped/prefs";
@@ -65,4 +67,27 @@ export async function saveMonthlyBudget(cap: number | null, currency: string, ba
   }
   await spacePrefSet(s, `${BUDGET_KV_PREFIX}${month}`, JSON.stringify({ cap: c, currency: cur }));
   return loadBudgetHistory(s);
+}
+
+/** R17 S3 N2: Space settings → Budget → "Budget alerts go to": the owner always, plus members the owner picks. */
+export async function budgetRecipientsState(): Promise<{ people: { id: string; name: string; role: string }[]; picked: string[]; canEdit: boolean }> {
+  const ctx = await requireCtx("view");
+  const s = scoped(ctx);
+  const people = (await spaceMembers(ctx.space.id)).map((p) => ({ id: p.id, name: p.name, role: p.role }));
+  let picked: string[] = [];
+  try {
+    picked = JSON.parse((await spacePrefGet(s, BUDGET_TO_KEY)) ?? "[]");
+  } catch {}
+  return { people, picked: picked.filter((id) => people.some((p) => p.id === id && p.role === "member")), canEdit: ctx.role === "owner" };
+}
+
+export async function saveBudgetRecipients(ids: string[]): Promise<string[]> {
+  const ctx = await requireCtx("owner");
+  const s = scoped(ctx);
+  const want = z.array(z.string().min(1).max(64)).max(50).parse(ids);
+  // Members only (owners always get it; viewers can't be picked).
+  const ok = new Set((await spaceMembers(ctx.space.id)).filter((p) => p.role === "member").map((p) => p.id));
+  const picked = [...new Set(want.filter((id) => ok.has(id)))];
+  await spacePrefSet(s, BUDGET_TO_KEY, picked.length ? JSON.stringify(picked) : null);
+  return picked;
 }
