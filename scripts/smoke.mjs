@@ -753,14 +753,27 @@ try {
       });
 
       await step("category filter narrows the grid", async () => {
+        // R17 Q3: To buy on its own — on real data the step that used to open it is skipped (demo seed only), so this
+        // ran on Home, which has no category filter (prod: click timeout). An account with < 2 categories can't narrow.
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector(READY, { timeout: 15000 });
+        await page.locator("[data-item-card]").first().waitFor({ timeout: 8000 }).catch(() => {});
+        const filter = page.locator("[data-category-filter]");
+        if (!(await filter.count())) return console.log("SKIP category filter narrows the grid (no categories in this account's To buy)");
         const before = await page.locator("[data-item-card]").count();
-        await page.click("[data-category-filter]");
-        const opt = page.getByRole("menuitemradio").nth(1);
-        await opt.click();
+        await filter.click();
+        const opts = page.getByRole("menuitemradio");
+        await opts.first().waitFor({ timeout: 5000 });
+        const cats = (await opts.count()) - 1; // minus "All"
+        if (cats < 2) {
+          await page.keyboard.press("Escape");
+          return console.log(`SKIP category filter narrows the grid (${cats} categor${cats === 1 ? "y" : "ies"} in this account — needs 2)`);
+        }
+        await opts.nth(1).click();
         await page.waitForTimeout(300);
         const after = await page.locator("[data-item-card]").count();
-        ok(after > 0 && after <= before, "category filter narrows the grid", `${before} → ${after}`);
-        await page.click("[data-category-filter]");
+        ok(after > 0 && after <= before, "category filter narrows the grid", `${before} → ${after} (${cats} categories)`);
+        await filter.click();
         await page.getByRole("menuitemradio").first().click();
       });
     }
