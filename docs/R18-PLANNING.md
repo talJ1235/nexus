@@ -1,6 +1,6 @@
 # R18 planning — supermarket mode v2 (and the road to the family release)
 
-Planning chat, 2026-10-10. Status: **Tal answered §5 + asked for more (§6); push diagnosis §7; open questions §10 (answered) → §11 structure; questions §12 (answered) → architecture draft §13**.
+Planning chat, 2026-10-10. Status: **Tal answered §5 + asked for more (§6); push diagnosis §7; open questions §10 (answered) → §11 structure; questions §12 (answered) → architecture §13–§14 (answered) → decisions §15, default layout §16, screen list for the boards §17**.
 Decisions go into `docs/PLANNER.md` "Decisions that stand" at the end of the chat; the brief is cut as `docs/ROUND18.md`.
 
 ## 1. Where we are
@@ -123,7 +123,7 @@ in System; the timing policy per §10 Q7; a guard that fails CI when due rows st
 
 ## 8. Next steps
 1. ~~Tal answers §10~~ (done) → push fix brief written: `docs/ROUND17-S6.md`. Tal answers §12.
-2. Planner: desk research update (Bring!, AnyList, Listonic, Israeli list apps — trip / staples / section-order UX).
+2. ~~Planner: section-order research~~ (§16). Screen list for the boards: §17 — Tal approves it, then boards.
 3. New chat: boards on a new canvas "Nexus R18 — Supermarket" (skills bar from `PLANNER.md`): phone list in the store,
    fast add, staples, shopping together, trip summary, desktop planning view.
 4. `docs/ROUND18.md`: Session 1 (no boards) can run before the boards are approved.
@@ -218,3 +218,60 @@ barcode → Supermarket; has a store link → Stores. Movable both ways.
 16. The + on the Supermarket tab: a) adds straight to the list (context); b) always the menu. *Planner: a.*
 17. Makers: a setting to swap tab 4 back to Projects (onboarding "projects" sets it). *Planner: yes.*
 18. Computer: a) planning page only (+ "send to phone"); b) full store mode there too. *Planner: a.*
+
+**Tal's answers (2026-10-10):** 14 b — the stores tab is called **"מוצרים" (Products)** · 15 a · 16 a · 17 yes · 18 a.
+
+## 15. Decisions after the walkthrough (Tal 2026-10-10)
+Tal also asked: Nexus suggests items **on the list itself** and can build a list; photograph a recipe and add its
+products; keep recipes in the app (steps, quantities, photos) — everything designed with the project skills, top
+quality. Answers to the walkthrough questions:
+- 19: supermarket rows = compact text + a small section icon; product pictures behind a toggle.
+- 20: recipes live in the Supermarket tab (**List | Recipes** switch) and in the desktop sidebar — may change later.
+- 21: **split** — R18 = the list core; **R18b** = recipes (photo / link / typed import, servings scaling, steps,
+  cooking mode, "add missing to the list") + planning a shop with the assistant ("Shabbat for 6"). Boards for both
+  together so it reads as one system.
+- 22: no pantry inventory; adding a recipe asks "what's missing?" with checkboxes.
+- 23: "Build my list" by button **and** automatically the evening before the usual shop day, as a draft + push.
+  **Rule:** a built list never removes, renames or changes quantities of what people added themselves — it only adds
+  suggestions in a separate "Suggested" block; each is accepted or dismissed (dismissals teach). If an item is
+  already on the list, it is not suggested again.
+- 24: weekly meal planning — later.
+- 25: assigning sections to people in a shared trip — optional, low priority (usually one person shops).
+- 26: onboarding asks for the usual chain **and branch**; each trip can switch store for that trip only; **every
+  onboarding answer is editable in Settings** (a mis-tap during onboarding must be fixable).
+- Products tab (was Shopping): segments **To buy · On the way · Projects** (projects open inside the tab).
+
+## 16. Default section order (research 2026-10-10)
+Israeli and Western supermarkets put fresh produce at the entrance, bread/dairy/eggs at the back (so shoppers cross the
+store), packaged goods in the middle aisles and heavy drinks/toilet paper toward the end. Default order for a new
+store (the user can move groups; per-branch learning suggests changes): Fruit & vegetables · Bakery · Deli, meat & fish
+· Dry goods (pasta, rice, legumes, baking) · Canned & sauces · Oils & spices · Breakfast (cereal, spreads, coffee, tea) ·
+Snacks & sweets · Drinks · Toiletries & pharm · Cleaning & paper · Baby · Pets · Dairy & eggs · **Frozen last** (cold
+chain) · Other.
+
+## 17. Screens for the boards (canvas "Nexus R18 — Supermarket", R18 core + R18b)
+Phone 360/390, desktop 1366, light + dark, Graphite + Plum, en + he, states as tweaks; project skills bar.
+- **P1 Supermarket tab** — first-time empty (start from a basic basket / template), normal, "Nexus suggests" strip,
+  "Suggested" block from Build my list, offline, Plum dark.
+- **P2 Add** — type-ahead + "2 milk 3%" parse, duplicate → quantity merged (toast), scan result, package photo result,
+  voice split, pasted WhatsApp list split.
+- **P3 Item sheet** — quantity + unit, note, photo of the exact product, pin to a store, staple (suggest / add by
+  itself), move section, who added it.
+- **P4 Store picker** — chain + branch, "this trip only".
+- **P5 Store mode** — start moment, sections with progress, checked struck through in place, section done collapsed,
+  swipe: not found / substitute, long-press quantity + price, running total vs estimate + budget, shared trip (Noa's
+  face, her checks live, an item added at home highlighted), offline, finish confirm.
+- **P6 Trip bar** on other tabs.
+- **P7 After the trip** — summary → receipt camera → reconcile review (5 steps, §11.4) → "forgot 2 things".
+- **P8 Section order** — drag groups + the branch-learned suggestion card.
+- **P9 Templates + past trips** — list, make from a past trip in one tap, use a template.
+- **P10 Staples** — list with learned intervals and mode.
+- **P11 Home "Next shop" card** — normal, shop day, during a trip.
+- **P12 Navigation** — dock Home · Products · + · Supermarket · Insights; + long-press menu; app-icon shortcuts; the
+  Products tab with To buy · On the way · Projects.
+- **P13 Onboarding chain + branch step; Settings → your answers (editable).**
+- **P14 Push previews** — evening-before draft ready, "Noa added milk" during a trip.
+- **D1 Desktop Supermarket page** — two columns (list | suggests, staples, templates, recipes), Build my list draft,
+  Send to phone; **D2 sidebar** entry with count.
+- **R18b boards:** recipes list, recipe page (servings, ingredients, steps, photos), cooking mode, import from photo /
+  link, "what's missing?" sheet, plan a shop with the assistant.
