@@ -11,7 +11,7 @@ import { scoped } from "@/lib/db-scoped";
 import { spacePrefGet, spacePrefSet, userPrefGet, userPrefSet } from "@/lib/db-scoped/prefs";
 import { getAppData, getItem } from "@/lib/data";
 import { dayKeyIn, HIDE_MS } from "@/lib/home";
-import { normalizeMoney, numbersIn, validateHomeAi, type HomeAi } from "@/lib/home-ai";
+import { HOME_AI_CACHE_V, normalizeHomeAi, normalizeMoney, normalizePhrased, numbersIn, validateHomeAi, type HomeAi } from "@/lib/home-ai";
 import { CURRENCIES, formatMoney } from "@/lib/money";
 import { HOME_AI_KEY, HOME_DISMISSED_KEY, HOME_LAYOUT_KEY, homeLayoutKey, NOTIFY_KEY, parseDismissed } from "@/lib/home-prefs";
 import { parseLayout, serialize, type HomeLayout } from "@/lib/home-layout";
@@ -106,12 +106,12 @@ export async function phraseSuggestions(raw: unknown, locale: string): Promise<P
   const lang = locale === "he" ? "he" : "en";
   if (!cands.length || (await userPrefGet(ctx.user.id, HOME_AI_KEY)) === "off" || !(aiEnabled() || mockAi())) return {};
   const date = dayKeyIn(Date.now(), "Asia/Jerusalem");
-  const key = `home:ai:${date}:${lang}`;
+  const key = `home:ai:${HOME_AI_CACHE_V}:${date}:${lang}`;
   let cache: Cache | null = null;
   try {
     cache = JSON.parse((await spacePrefGet(s, key)) ?? "null");
   } catch {}
-  if (cache && !cache.failedAt) return cache.map;
+  if (cache && !cache.failedAt) return normalizePhrased(cache.map, lang);
   // A failed call is retried after 3 h, not on every page load.
   if (cache?.failedAt && Date.now() - cache.failedAt < 3 * 3_600_000) return {};
 
@@ -214,14 +214,14 @@ export async function homeLook(raw: unknown): Promise<{ ai: HomeAi | null; recei
     await writeDiag({ source: "rules", n: rules, error: null });
     return { ai: null, receipts };
   }
-  const key = `home:look:${dayKeyIn(Date.now(), "Asia/Jerusalem")}:${input.locale}`;
+  const key = `home:look:${HOME_AI_CACHE_V}:${dayKeyIn(Date.now(), "Asia/Jerusalem")}:${input.locale}`;
   let cache: LookCache | null = null;
   try {
     cache = JSON.parse((await spacePrefGet(s, key)) ?? "null");
   } catch {}
   if (cache && !cache.failedAt) {
     await writeDiag(cache.ai ? { source: "ai", n: shown(cache.ai), error: null } : { source: "rules", n: rules, error: null });
-    return { ai: cache.ai, receipts };
+    return { ai: normalizeHomeAi(cache.ai, input.locale), receipts };
   }
   if (input.ruleSugs >= 2 && input.ruleIns >= 2) {
     await writeDiag({ source: "rules", n: rules, error: null });

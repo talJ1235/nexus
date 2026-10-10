@@ -90,3 +90,21 @@ export function validateHomeAi(raw: unknown, ids: { items: Set<string>; collecti
   }
   return { suggestions, insights };
 }
+
+// R17 S5 S2: cached wording is normalised again when it is read (entries written before P5 — "164.93 שקל" — came back
+// untouched), and the cache keys carry a version so those entries are ignored anyway.
+export const HOME_AI_CACHE_V = "v2";
+
+/** "Nexus suggests" phrasing from the cache: title + why with money as the app writes it. */
+export function normalizePhrased<T extends { title: string; why: string }>(map: Record<string, T> | null | undefined, locale: string): Record<string, T> {
+  return Object.fromEntries(Object.entries(map ?? {}).map(([k, v]) => [k, { ...v, title: normalizeMoney(v.title ?? "", locale), why: normalizeMoney(v.why ?? "", locale) }]));
+}
+
+/** The AI's look at Home from the cache: suggestions (title, why) and "Nexus noticed" insights (text). */
+export function normalizeHomeAi(ai: HomeAi | null | undefined, locale: string): HomeAi | null {
+  if (!ai) return null;
+  return {
+    suggestions: (ai.suggestions ?? []).map((s) => ({ ...s, title: normalizeMoney(s.title ?? "", locale), why: normalizeMoney(s.why ?? "", locale) })),
+    insights: (ai.insights ?? []).map((i) => ({ ...i, text: normalizeMoney(i.text ?? "", locale) })),
+  };
+}

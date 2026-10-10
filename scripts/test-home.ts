@@ -1,7 +1,7 @@
 // Unit test for src/lib/home.ts (Home model, delivery track, cadence, suggestions).  npm run test:home
 import assert from "node:assert/strict";
 import { addDays, cadenceOf, dayKeyIn, deliveryTrack, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, monthGrid, reorderDue, shiftMonth, weekDays, type HomeInput } from "../src/lib/home";
-import { normalizeMoney, numbersIn, numbersKnown, validateHomeAi } from "../src/lib/home-ai";
+import { HOME_AI_CACHE_V, normalizeHomeAi, normalizeMoney, normalizePhrased, numbersIn, numbersKnown, validateHomeAi } from "../src/lib/home-ai";
 import { formatMoney } from "../src/lib/money";
 import { add, defaultLayout, fromLegacy, moveTo, parseLayout, patch, presetItems, PRESETS, remove, serialize, sizeFromDrag, unused, WIDGETS } from "../src/lib/home-layout";
 import { homeExtras } from "../src/lib/home-widgets";
@@ -415,6 +415,15 @@ assert.equal(addDays("2026-10-31", 1), "2026-11-01");
   );
   assert.equal(v.suggestions[0].why, `נקנה ב-${he(45)}`);
   assert.deepEqual(v.insights.map((x) => x.text), [`הוצאת ${he(1299)} החודש`]); // 77 is not in the data: dropped
+  // R17 S5 S2: wording cached before P5 is normalised when read (Tal's "המחיר עלה מ-99 ל-164.93 שקל").
+  const cached = normalizePhrased({ "deal:i1": { title: "המחיר עלה מ-99 ל-164.93 שקל", why: "נקנה ב-45 שקלים" } }, "he");
+  assert.equal(cached["deal:i1"].title, `המחיר עלה מ-99 ל-${he(164.93)}`);
+  assert.ok(cached["deal:i1"].title.includes("₪") && cached["deal:i1"].title.includes("164.93") && !cached["deal:i1"].title.includes("שקל"), cached["deal:i1"].title);
+  assert.equal(cached["deal:i1"].why, `נקנה ב-${he(45)}`);
+  const look = normalizeHomeAi({ suggestions: [{ title: "164.93 שקל", why: "עלה 1,299 ש״ח", action: { type: "none" } }], insights: [{ text: "הוצאת 77 שקל" }] }, "he");
+  assert.deepEqual([look?.suggestions[0].title, look?.suggestions[0].why, look?.insights[0].text], [he(164.93), `עלה ${he(1299)}`, `הוצאת ${he(77)}`]);
+  assert.equal(normalizeHomeAi(null, "he"), null);
+  assert.equal(HOME_AI_CACHE_V, "v2"); // old "home:ai:<date>:<lang>" / "home:look:…" entries are never read
 }
 
 console.log("OK test-home");
