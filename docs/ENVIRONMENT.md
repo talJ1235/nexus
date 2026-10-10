@@ -184,3 +184,12 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   emergency sign-in). The read-only prod snapshot (`db-snapshot.mjs`) was refused by the session's permission classifier
   ("production reads") — run it by hand when a session needs prod data. `.claude/settings.local.json` allows the
   round17-s4 push/merge commands.
+- 2026-10-10 (PC, R17 Session 5): new `scripts/lib/admin-walk.mjs` (every admin tab; fails on console errors, hydration
+  warnings, 5xx, blank pages) used by `test:admin-access` (now also a browser walk: 1366 + 390, en + he, server `TZ=UTC`,
+  browser Asia/Jerusalem) and the smoke (signed-in admin, en + he); `scripts/probe-admin.mjs` runs it against any BASE
+  (prod: `node --env-file=.env.local scripts/probe-admin.mjs` with `BASE=https://…`, one emergency sign-in — the path
+  answers 429 after a few quick ones). `test:polish` gained `S3` (desktop 1366 / 1280×720 / 2560×1305, real mouse, cached
+  wording of different lengths written into the test DB). `test:headers` checks the manifest share target. Read-only
+  prod DB queries are still refused by the permission classifier ("production reads") and there is no Vercel CLI login
+  here — the 500s' real cause has to come from the error log (it now records the driver's reason). `.claude/settings.local.json`
+  allows the round17-s5 push/merge commands.

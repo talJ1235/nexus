@@ -10,7 +10,7 @@ From Tal's checks on prod (2026-10-10, PC + phone). Part of Round 17 (`docs/ROUN
 - Do S1 first — the admin panel is unusable on Tal's computer.
 
 ## Part S
-### S1. [ ] Admin panel is a black screen on the computer
+### S1. [x] Admin panel is a black screen on the computer
 Tal (Chrome, Windows, desktop width, signed in as admin): `/admin` shows the panel's sidebar for a split second, then a
 black page; reload doesn't help. On the phone the panel works. Tal's console (screenshot):
 - `Uncaught Error: Minified React error #418` (args `text`) = **hydration mismatch on text**: the server HTML and the
@@ -28,14 +28,14 @@ page). Then make it impossible to get a blank screen again: an error boundary fo
 Acceptance: prod smoke + `test:admin-access` open `/admin` (every tab) as admin at 1366×768 **and** 390, en + he, and
 fail on any console error, React hydration warning, or 5xx; Open lists the exact causes found.
 
-### S2. [ ] "Nexus suggests" still shows "שקל"
+### S2. [x] "Nexus suggests" still shows "שקל"
 Tal's screenshot: "המחיר עלה מ-99 ל-164.93 שקל". **Cause:** `home-actions.ts` caches the AI wording per space per day
 (`spacePrefGet` → `return cache.map`) and runs `normalizeMoney` only when a new wording is written, so text cached before
 the S4 deploy comes back untouched. Fix: normalise on read as well (title, why, "Nexus noticed"), and bump the cache key
 version so old entries are ignored. Also check the rule-based templates for any money written as a word.
 Acceptance: unit test with a cached entry containing "164.93 שקל" → shown as ₪164.93.
 
-### S3. [ ] Suggestions card moves up and down under the mouse
+### S3. [x] Suggestions card moves up and down under the mouse
 Tal (computer): hovering the suggestions card while moving between suggestions makes it bob up and down until it
 settles. Likely causes: on desktop (container ≥ 600 px) the invisible "ghost" slides are `@min-[600px]:hidden`, so the
 height is not fixed per set and changes per slide; and `StackHeight` animates the outer box from a `ResizeObserver` on the
@@ -48,18 +48,18 @@ Acceptance: `test:polish` (or `test:home`) at 1366 and 1280 with a mouse: hover 
 arrow, dot and drag, hold the hover 3 s — the card's height and the next widget's `top` never change and
 `card.getAnimations()` is empty 300 ms after each move.
 
-### S4. [ ] Onboarding step 5 on a computer always shows the phone QR (Tal: yes)
+### S4. [x] Onboarding step 5 on a computer always shows the phone QR (Tal: yes)
 When the computer can't install (already installed, or a browser without install), step 5 still shows — with only the
 "On your phone" QR card and a short line; Continue / Not now as today. Unchanged where install is offered.
 `test:onboarding` covers both cases.
 
-### S5. [ ] "If it were paid" uses checked prices (Tal: yes)
+### S5. [x] "If it were paid" uses checked prices (Tal: yes)
 Admin → AI usage: look up the current official price pages of every model/provider in the table (Google AI pricing for
 Gemini, Groq, OpenRouter as used), update the numbers, and show "Prices checked <date> · source" under the row (links to
 the pages). Put the prices in one small data file with the date so the next check is one edit. In the same pass, open the
 two onboarding "find it in" store search URLs (Shufersal, IKEA) and fix them if they don't land on a search result.
 
-### S6. [ ] Manifest warning
+### S6. [x] Manifest warning
 Chrome warns "Manifest: Enctype should be set to either application/x-www-form-urlencoded or multipart/form-data" on
 every page. `app/manifest.ts` `share_target` (GET) — set `enctype: "application/x-www-form-urlencoded"` so the
 warning is gone; share to Nexus from Android still works (`/share`).

@@ -787,6 +787,24 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
 - No DB change. Guards: `test:bidi`, `test:check-now`; `test:settings` (Profile), `test:inbox` (P4), `test:polish` (P6,
   P7), `test:home` (money), `test:notify` (viewers), `test:admin-access` + `test:auth-flow` (ADMIN_EMAILS).
 
+## Round 17 — Session 5: hotfixes after S4
+(brief `docs/ROUND17-S5.md`, notes: `docs/ROUND17.md` "## Open" → "### Session 5")
+- **Never a blank page**: a page that crashes shows "Something went wrong · Reload · Report" in the app's style (the app,
+  the root layout, and the admin panel's tab body — the sidebar stays); the error is logged on its own, Report files a
+  problem report. Every page reports its client errors (the admin panel didn't), including those before hydration.
+- **Server errors** keep the database's own reason; a read that fails on the way (network, not SQL) is tried once more;
+  the presence beat answers 503 instead of 500 when the database is down.
+- **Nexus suggests**: wording cached before S4 is normalised when read (₪, never "שקל"); cache keys carry `v2`. On a
+  computer the card never bobs under the mouse: every slide stacked on every width, the button keeps the set's widest
+  label on a wide card, the height animation can't feed itself.
+- **Onboarding step 5** on a computer always shows — only the phone's QR when this computer can't install.
+- **Admin → AI usage**: "If it were paid" from checked list prices (`lib/ai-prices.ts`, date + source links under the
+  numbers). Manifest `share_target` has its enctype (no Chrome warning).
+- No DB change. Guards: the admin walk (every tab, 1366 + 390, en + he: no console error / hydration warning / 5xx /
+  blank) in `test:admin-access` and the prod smoke; `test:polish` S3 (1366, 1280×720, 2560×1305, mouse); `test:home`
+  (cached money), `test:onboarding` (step 5 both ways), `test:errors` (retry rules), `test:ai-quota` (a price per model),
+  `test:headers` (manifest).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.

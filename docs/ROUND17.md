@@ -930,3 +930,59 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
   re-run (it had passed on the run before; login code untouched in between).
 - **No DB change** in this session → no migration rehearsal needed. **Merged** `round17-s4` → `main` (fast-forward).
 - Locally, `test:ai-quota` and `test:delete-account` print OK but exit 127 on Windows — the same on `main`; CI passes.
+
+### Session 5 (2026-10-10) — hotfixes after S4 (brief `docs/ROUND17-S5.md`)
+- **Read first:** open reports — one new "Couldn't read that link" (scent.co.il, `link:partial`, blocked store — left
+  for a blocked-stores round). Error log — the S1 burst (below), a `ResizeObserver loop` on `/` at 14:09 (the S3 card,
+  fixed), two failure toasts during Tal's test (Settings → Profile, Home — the same DB failures), old `/login` viewport
+  and FedCM entries.
+- **S1 — what I found (exact):**
+  1. **The 500s** (`POST /` × 4 actions, `/api/presence` × 3, `/api/realtime/token` × 1): every one is the same thing —
+     Drizzle's "Failed query" on the space list that every request reads first (`listMemberships`, Tal's user id) plus
+     one admin count query, all between 14:01 and 14:10 UTC, only Tal's requests, not every request (3 of ~20 beats).
+     The SQL is fine (the same query runs locally and in the smoke). The driver's reason was hidden in `cause`, which the
+     error log didn't keep, and I couldn't get it elsewhere: the read-only prod DB query was refused again by the
+     permission classifier ("production reads"), and there is no Vercel log access here. The pattern (plain reads, a
+     burst, intermittent) is the Turso-over-HTTP connection failing on the way. **Fixed:** a read that fails with a
+     transient error (network / stream / 5xx — never a SQL error, never a write) is tried once more (`db/transient.ts`);
+     the error log now starts the sample with the driver's `cause:` so the next one names itself; `/api/presence`
+     answers 503 (logged) instead of 500.
+  2. **The hydration error #418 (`text`)**: not reproduced — prod with the smoke admin at 1366 × 768 and 390, en + he,
+     Asia/Jerusalem: 0 console errors, 0 hydration warnings, 0 × 5xx (`scripts/probe-admin.mjs`, before the deploy);
+     locally with `next dev` (unminified), the server in UTC: clean too. On `/admin` the server renders only the sidebar
+     (the tab body waits for hydration), and nothing in it depends on time, locale formatting or `window`. Tal's exact
+     signature (`#418`, args `text`, empty second arg) appears as soon as anything changes one text node before React
+     hydrates — I reproduced it by doing just that (as Chrome's Translate or an extension does). React then re-renders
+     the page from scratch, which recovers by itself — the #418 alone does not blank the page.
+  3. **The black screen** = an uncaught render error with no error boundary anywhere in the app (no `error.tsx`, no
+     `global-error.tsx`), so React unmounted everything. Which error it was is unknown: the admin panel didn't report
+     client errors at all (capture ran only in the app shell and login), and a hydration error fires before any effect.
+     **Fixed:** a crash screen "Something went wrong · Reload · Report" (app, root layout, and the admin tab body with
+     the sidebar kept) that logs itself and can file a report; client error capture on every page with a pre-hydration
+     buffer in the boot script. If it happens again, the error log has the message + where (`boundary:admin …`).
+  - **For Tal:** if `/admin` still misbehaves on the PC after this deploy, check the error log (`node scripts/errors.mjs`)
+    — the entry now names the cause; and try once with Chrome's Translate off for the site / in a window without
+    extensions. Not done (a product choice): `translate="no"` on the page to stop Chrome translating Nexus at all.
+- **S2:** the cause was as the brief said; read-time normalising for "Nexus suggests" (title, why) and the AI's look
+  (suggestions + "Nexus noticed"); keys `home:ai:v2:…` / `home:look:v2:…`. Rule templates: no money word anywhere
+  (en + he dictionaries and template code searched).
+- **S3 — the causes:** at 1366 and 1280 the card is under 600 px wide (540 / 497), so it already had the phone layout
+  and didn't bob; Tal's screen is 2560 × 1305 (his report), where the card is 693 px — the desktop row layout. There
+  (1) the ghost slides were hidden, so the height followed the slide; (2) the action button shares the row with the
+  text and its label differs per suggestion (or is missing), so the text column's width — and its wrapping — changed
+  per slide; (3) the inner box was `flex-1` inside the animated outer box, so it stretched with the animation and the
+  observer fired every frame (measured: 145 → 186 → 163 → … → 147 px). Fixed all three (ghosts on every width; the
+  button keeps the set's widest label on a wide card only — on a half tile it pushed "Not now" out; the inner box
+  doesn't stretch; one look per frame against the target, `overflow: clip`). Hover changes colour / cursor only — it
+  never changed layout. `test:polish` S3 runs 1366, 1280×720 and 2560×1305 with wording of different lengths; it fails
+  on the old code at 2560.
+- **S4:** "already installed" = running as the installed app, or the browser not offering install. Where install is
+  offered, step 5 is unchanged (both cards).
+- **S5 — prices (checked 2026-10-10):** Google AI pricing page (updated 2026-10-09): 3.6 Flash $0.75 / $3.75 (going to
+  $1.50 / $7.50 on 2027-01-01), 3.5 Flash-Lite $0.30 / $2.50, 3.1 Flash-Lite $0.25 / $1.50, 2.5 Flash $0.30 / $2.50,
+  2.5 Flash-Lite $0.10 / $0.40. **`gemini-3.5-flash` (in `lib/ai.ts` fallbacks) is no longer on the page** — counted at
+  3.6 Flash's price; worth checking that the model still answers. Groq: gpt-oss-120b $0.15 / $0.60, gpt-oss-20b
+  $0.075 / $0.30. OpenRouter `openrouter/free` $0. Store search links: Shufersal ("חלב": 893 results) and IKEA ("כיסא":
+  178) land on results — unchanged.
+- **S6:** `enctype` added; `/share` takes a GET share (test:headers).
+- **No DB change** → no migration rehearsal.

@@ -32,6 +32,8 @@
 - When something fails (a link, a picture search, a receipt, a barcode, an answer, an import), its error toast has
   **Report**: the form opens filled in; the link is attached (domain + path, can be unticked), a picture only if ticked.
 - Your reports and their status: Settings → Account → Your reports, or the command menu.
+- **"Something went wrong"** instead of the page <!-- spec: Never a blank page, Server errors -->: that page crashed and
+  the error was already logged. Reload usually fixes it; Report sends the details with a problem report.
 
 ## Common problems
 - **A product is missing its picture or price** → the store blocked the server; wait for the daily check or set it by
@@ -43,7 +45,7 @@
 - **Something is broken or you have an idea** → offer `[Report a problem](nexus:report)`.
 
 ## What the admin sees
-<!-- spec: Admin panel -->
+<!-- spec: Admin panel, Admin → AI usage -->
 - The person who runs Nexus has an admin panel to keep it working: who is online, on a phone or a computer, which part
   of the app (for example Home, or the shopping list and how many items are left), and counts of what happened ("added
   3 items"). Never the content — not item names, notes, links, chats, memory or receipts. A problem report you send is

@@ -65,6 +65,12 @@
   in `spaces/look.ts`). Money words → `normalizeMoney` (`lib/home-ai.ts`). Carousel height `StackHeight` + loop pager
   (`home-view.tsx`, `pagerRelease({ loop })`). Admin role = `isListedAdmin` (ADMIN_EMAILS + ADMIN_EMAIL, `lib/auth/config.ts`).
   Check now = `app/check-actions.ts` → `checkItemOnServer` (`lib/tracker.ts`), test `test:check-now`.
+- R17 S5: crash screen `components/crash.tsx` (`app/error.tsx`, `app/global-error.tsx`, `CrashBoundary` around the admin
+  tab body); client errors from every page (`installClientErrorCapture` in `providers.tsx`, pre-hydration buffer
+  `EARLY_ERRORS` in `boot-screen.tsx`); DB read retry on transient errors `db/transient.ts` (wired in `db/index.ts`);
+  server error samples start with the driver's `cause` (`instrumentation.ts`). Admin walk (console / hydration / 5xx /
+  blank) `scripts/lib/admin-walk.mjs` — used by the smoke, `test:admin-access`, `scripts/probe-admin.mjs` (prod). AI list
+  prices `lib/ai-prices.ts` (one edit + date). Cached AI wording keys `home:ai:v2:…` / `home:look:v2:…` (`HOME_AI_CACHE_V`).
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)
