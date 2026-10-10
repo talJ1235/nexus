@@ -88,8 +88,10 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
 
   const [o, setO] = useState<Onboarding>(initial);
   const skipped = useCallback(
-    (i: number) => (i === 3 && joined) || (i === 4 && (env.standalone || (!env.iphone && !canInstall && !o.installed))) || (i === 5 && ((env.iphone && !env.standalone) || !env.notif)),
-    [joined, env, canInstall, o.installed],
+    // R17 S5 S4: a computer always sees step 5 — when it can't install (installed already, or no install in this browser)
+    // it shows only the phone's QR.
+    (i: number) => (i === 3 && joined) || (i === 4 && !desk && (env.standalone || (!env.iphone && !canInstall && !o.installed))) || (i === 5 && ((env.iphone && !env.standalone) || !env.notif)),
+    [joined, env, canInstall, o.installed, desk],
   );
   const [at, setIdx] = useState(() => Math.min(6, Math.max(0, initial.step - 1)));
   const [dirn, setDirn] = useState<"f" | "b">("f");
@@ -209,8 +211,9 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
 
   // ---- the step's texts and the primary button
   const titleKey = (["why", "stores", "budget", "who", "install", "notif", "done"] as const)[idx];
-  const title = idx === 4 ? (env.iphone ? O.titles.installIphone : desk ? O.titles.installDesk : O.titles.install) : idx === 6 ? f(O.titles.done, { name }) : O.titles[titleKey];
-  const line = idx === 4 ? (env.iphone ? O.lines.installIphone : desk ? O.lines.installDesk : O.lines.install) : idx === 1 ? f(O.lines.stores, { n: storeCount }) : O.lines[titleKey];
+  const phoneOnly = desk && !env.iphone && (env.standalone || (!canInstall && !o.installed));
+  const title = idx === 4 ? (env.iphone ? O.titles.installIphone : phoneOnly ? O.titles.installPhone : desk ? O.titles.installDesk : O.titles.install) : idx === 6 ? f(O.titles.done, { name }) : O.titles[titleKey];
+  const line = idx === 4 ? (env.iphone ? O.lines.installIphone : phoneOnly ? O.lines.installPhone : desk ? O.lines.installDesk : O.lines.install) : idx === 1 ? f(O.lines.stores, { n: storeCount }) : O.lines[titleKey];
   let cta = O.continue;
   let primary: () => void = () => void next();
   let later = false;
@@ -598,7 +601,8 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
             <div className="hint">{O.iNote}</div>
           </div>
         ) : desk ? (
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: phoneOnly ? "minmax(0,1fr)" : "minmax(0,1fr) minmax(0,1fr)", gap: 12 }} data-ob-install={phoneOnly ? "phone" : "both"}>
+            {!phoneOnly && (
             <div className="card" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
               <b>{O.thisPc}</b>
               <span className="sub">{O.thisPcLine}</span>
@@ -611,7 +615,8 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
                 </div>
               )}
             </div>
-            <div className="card" style={{ padding: 18, display: "flex", gap: 14, alignItems: "center" }}>
+            )}
+            <div className="card" style={{ padding: 18, display: "flex", gap: 14, alignItems: "center" }} data-ob-phone-qr>
               <InviteQr value={typeof window === "undefined" ? "" : window.location.origin} name="Nexus" color="slate" size={96} className="qr-box" />
               <span style={{ lineHeight: 1.4, minWidth: 0 }}>
                 <b>{O.onPhone}</b>

@@ -86,8 +86,12 @@ try {
     await p.click('[data-ob-who="family"]');
     ok((await p.locator("[data-ob-shared]").count()) === 1, "family → the shared Home card with Invite");
     await primary(p);
-    // Headless Chromium can't install → step 5 is skipped; notifications are allowed for this context.
-    ok(await waitStep(p, 6), "→ step 6 (step 5 skipped: this browser can't install)");
+    // R17 S5 S4: headless Chromium can't install → on a computer step 5 still shows, with only the phone's QR.
+    ok(await waitStep(p, 5), "→ step 5 on a computer that can't install", String(await step(p)));
+    ok((await p.locator('[data-ob-install="phone"]').count()) === 1 && (await p.locator("[data-ob-phone-qr]").count()) === 1 && (await p.locator(".card").filter({ hasText: "On this computer" }).count()) === 0, "S4 step 5: only the \"On your phone\" QR card", await p.innerText("[data-ob-step]").catch(() => ""));
+    ok((await p.innerText("[data-ob-primary]")).trim().startsWith("Continue"), "S4 step 5 (phone QR only): Continue", await p.innerText("[data-ob-primary]").catch(() => ""));
+    await primary(p);
+    ok(await waitStep(p, 6), "→ step 6 (notifications are allowed for this context)");
     await primary(p);
     await p.waitForSelector('[data-ob-notif="granted"]', { timeout: 10_000 }).catch(() => {});
     ok((await p.locator('[data-ob-notif="granted"]').count()) === 1, "Turn on notifications → granted (asked only on that tap)");
@@ -168,6 +172,26 @@ try {
     ok((await step(p)) === 5 && (await p.locator("[data-ob-iphone-guide]").count()) === 1, "iPhone: step 5 is the Add-to-Home-Screen guide", String(await step(p)));
     await primary(p);
     ok(await waitStep(p, 7), "iPhone not standalone: \"I added it\" → done (step 6 skipped)", String(await step(p)));
+  }
+
+  // ---- R17 S5 S4: a computer where the browser offers install: both cards (this computer + the phone QR), Install + Not now.
+  {
+    const { page: p } = await person({});
+    await p.goto(`${app.base}/welcome`);
+    await waitStep(p, 1);
+    await p.evaluate(() => {
+      const e = new Event("beforeinstallprompt", { cancelable: true });
+      Object.assign(e, { prompt: async () => {}, userChoice: Promise.resolve({ outcome: "dismissed" }) });
+      window.dispatchEvent(e);
+    });
+    for (const k of [1, 2, 3, 4]) {
+      await primary(p);
+      await waitStep(p, k + 1);
+    }
+    ok((await step(p)) === 5 && (await p.locator('[data-ob-install="both"]').count()) === 1 && (await p.locator("[data-ob-phone-qr]").count()) === 1, "S4 desktop that can install: step 5 with both cards", String(await step(p)));
+    ok((await p.locator("[data-ob-later]").count()) === 1 && /Install/i.test(await p.innerText("[data-ob-primary]")), "S4 desktop that can install: Install + Not now", await p.innerText("[data-ob-primary]").catch(() => ""));
+    await p.click("[data-ob-later]");
+    ok(await waitStep(p, 6), "S4 Not now → step 6", String(await step(p)));
   }
 
   // ---- Standalone (already installed): step 5 skipped.
