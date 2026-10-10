@@ -7,6 +7,12 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-10 (evening):** **R17 Session 4 merged and live** (`dbcb872`, no DB change; results in `docs/ROUND17.md`
+  Open "### Session 4"). Causes the builder found: no Radix direction provider (every menu was LTR in Hebrew); admin role
+  was reset on each sign-in from `ADMIN_EMAIL` only (now `ADMIN_EMAILS` too, applied on the next request — not verified
+  on prod: the builder's classifier refused the prod snapshot). Watch: phone smoke "item sheet morph" / "compare stores"
+  flaked twice after a build. **Tal to do:** open `/admin` (if 404: his Google address in `ADMIN_EMAILS` on Vercel), then
+  test the S4 items. Still open from S2: desktop install QR always, "if paid" prices.
 - **2026-10-10 (later):** Tal's test notes → **R17 Session 4 brief `docs/ROUND17-S4.md`** (fixes): P1 switcher name cut
   from the wrong end in RTL + clipped highlight, P2 Hebrew/English order ("תכנון עם Nexus") + app-wide audit + `test:bidi`,
   P3 the whole sidebar profile block / Me-sheet header opens a new Settings → **Profile** section, P4 inbox opens without
@@ -304,6 +310,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-10 · same chat · Reviewed R17 S4 results (all items done, CI green, merged). Gave Tal the admin check and the S4 test list.
 - 2026-10-10 · same chat · Tal's phone/PC notes after S2+S3 → wrote `docs/ROUND17-S4.md` (Parts P, Q, R). Causes found in code: switcher `truncate` on a Latin name inside RTL (ellipsis at the start), inbox `Skeleton` = 3 fixed bars, carousel drag rubber-bands at the ends, admin gate = `role === "admin"` (Tal's role to verify on prod).
 - 2026-10-10 · same chat as the S3 boards · Reviewed R17 S3 results (merged, CI green, rehearsal ok, local smoke 81/81 + 95/95, one pre-existing prod smoke failure). Accepted the builder's decisions; Tal then chose: price pushes not to viewers; "Check now" back on the item page (both → fix round). Gave Tal the VAPID / `CRON_SECRET` steps; `hourly` ran green by hand.
 - 2026-10-09 · other account (v1 canvas not editable here) · R17 S3 boards v2 on new canvas "Nexus R17 — Notifications v2": phone inbox → full page, icon clipping fixed (media column was an inline span → 0 px wide), permission boards redrawn without item context as a recurring reminder (desktop from the bell, phone above the dock). Skills used: emil-design-eng, apple-design, mobile-native, animate RECIPES + frontend-design. Tal approved (reminders 3/7/14/30 days then stop; phone card above the dock) → boards in `docs/design/r17/`, brief `docs/ROUND17-S3.md`.
