@@ -804,12 +804,13 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
           </div>
         </StackHeight>
         <div className="flex items-center gap-2">
-          {/* R17 S5 S3: the button is as wide as the set's widest label (the others invisible in the same cell) — on a wide
-              card it shares the row with the text, and a label of another width re-wrapped the text on every slide. */}
+          {/* R17 S5 S3: on a wide card (≥ 600 px) the button is as wide as the set's widest label (the others invisible in
+              the same cell) — there it shares the row with the text, and a label of another width re-wrapped the text on
+              every slide. Narrower, the buttons sit under the text and keep their own width (a half tile has no room). */}
           {ctas.length > 0 && (
             <span className="grid [grid-template-areas:'c']" data-sug-cta-box>
               {ctas.map((c) => (
-                <span key={c} className="invisible h-9 whitespace-nowrap px-4 text-[13px] font-semibold [grid-area:c]" aria-hidden>
+                <span key={c} className="invisible h-9 whitespace-nowrap px-4 text-[13px] font-semibold [grid-area:c] @max-[600px]:hidden" aria-hidden>
                   {c}
                 </span>
               ))}
