@@ -44,13 +44,20 @@ export function Avatar({ person, size = 24, online, className, title }: { person
 }
 
 /** R16 B4: `online` = people present in this space now (green dot; they come first). */
-export function Facepile({ people, size = 22, max = 3, online }: { people: Person[]; size?: number; max?: number; online?: Set<string> }) {
+/** `more`: when people are left out, a "+N" disc after the faces (the switcher's narrow form). */
+export function Facepile({ people, size = 22, max = 3, online, more, className }: { people: Person[]; size?: number; max?: number; online?: Set<string>; more?: boolean; className?: string }) {
   const list = online?.size ? [...people.filter((p) => online.has(p.id)), ...people.filter((p) => !online.has(p.id))] : people;
+  const rest = list.length - max;
   return (
-    <span className="flex" aria-hidden data-facepile>
+    <span className={cn("flex shrink-0", className)} aria-hidden data-facepile>
       {list.slice(0, max).map((p, i) => (
         <Avatar key={p.id} person={p} size={size} online={online?.has(p.id)} className={cn("ring-2 ring-raised", i > 0 && "-ms-1.5")} />
       ))}
+      {more && rest > 0 && (
+        <span className="tabular -ms-1.5 grid shrink-0 place-items-center rounded-full bg-surface-2 px-1 font-semibold text-muted ring-2 ring-raised" style={{ minWidth: size, height: size, fontSize: Math.max(9, Math.round(size * 0.45)) }} data-facepile-more>
+          +{rest}
+        </span>
+      )}
     </span>
   );
 }

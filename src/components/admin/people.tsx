@@ -136,7 +136,7 @@ export function PeopleTab({ phone, go, me, person }: { phone: boolean; go: Go; m
                 <button key={r.id} type="button" className="li tap" onClick={(e) => open(r.id, e.currentTarget)} data-person-row={r.id}>
                   <Av id={r.id} name={r.name} size="lg" ring={r.online ? "on" : null} />
                   <span className="grow">
-                    <b>{r.name}</b>
+                    <b className="bidi">{r.name}</b>
                     <span>{seen(r)}</span>
                   </span>
                   <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
@@ -194,8 +194,8 @@ export function PeopleTab({ phone, go, me, person }: { phone: boolean; go: Go; m
                 <span className="who-c">
                   <Av id={r.id} name={r.name} ring={r.online ? "on" : null} />
                   <span className="nm">
-                    <b title={r.name}>{r.name}</b>
-                    <span title={r.email}>{r.email}</span>
+                    <b className="bidi" title={r.name}>{r.name}</b>
+                    <span className="bidi" title={r.email}>{r.email}</span>
                   </span>
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>

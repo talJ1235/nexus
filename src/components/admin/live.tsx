@@ -192,7 +192,7 @@ function LiveDesktop({ data, title, fresh, go }: { data: Data; title: React.Reac
                     <span className="who-c">
                       <Av id={u.userId} name={u.name} ring="on" />
                       <span className="nm">
-                        <b title={u.name}>{u.name}</b>
+                        <b className="bidi" title={u.name}>{u.name}</b>
                         <span title={where(u.space, u.personal)}>{where(u.space, u.personal)}</span>
                       </span>
                     </span>

@@ -39,8 +39,8 @@ export function MeSheet() {
       <div className="flex items-center gap-3 border-b border-line px-4 pb-4 pt-2 sm:pt-4" data-sheet-grip data-me>
         <span className="grid size-14 shrink-0 place-items-center rounded-full bg-ink text-[22px] font-extrabold text-bg">{initialOf(meName, "")}</span>
         <div className="min-w-0 flex-1">
-          <b className="block truncate text-[18px] font-extrabold">{s.me?.name || meName}</b>
-          {s.me && <span className="block truncate text-[13px] text-muted">{s.me.email}</span>}
+          <b className="bidi block truncate text-[18px] font-extrabold">{s.me?.name || meName}</b>
+          {s.me && <span className="bidi block truncate text-[13px] text-muted">{s.me.email}</span>}
         </div>
         <SheetClose className="grid size-11 place-items-center rounded-full text-muted hover:bg-surface-2" aria-label={t.phone.closeMenu}>
           <X className="size-5" />

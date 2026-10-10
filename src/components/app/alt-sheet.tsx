@@ -106,7 +106,7 @@ export function AltSheet() {
                       </button>
                       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
                         <dt className="text-faint">{t.table.store}</dt>
-                        <dd className="truncate text-end">{src?.store ?? "—"}</dd>
+                        <dd className="bidi truncate text-end">{src?.store ?? "—"}</dd>
                         <dt className="text-faint">{t.table.price}</dt>
                         <dd className="tabular text-end">{unit != null ? formatMoney(unit, s.currency, locale) : "—"}</dd>
                         <dt className="text-faint">{t.item.shipping}</dt>

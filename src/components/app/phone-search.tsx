@@ -206,7 +206,7 @@ function Results({ q, onClose, onPick }: { q: string; onClose: () => void; onPic
                     <StoreIcon />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <b className="block truncate text-[14px] font-semibold">
+                    <b className="bidi block truncate text-[14px] font-semibold">
                       <Mark text={x.name} q={query} />
                     </b>
                     <span className="block text-[12px] text-muted">{x.n === 1 ? t.search.storeItemsOne : f(t.search.storeItems, { n: x.n })}</span>

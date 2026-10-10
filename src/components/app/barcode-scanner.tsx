@@ -295,7 +295,7 @@ function ResultCard({ result, onNext, onDone }: { result: BarcodeResult | "loadi
             {t.barcode.found} · {t.barcode.from[hit.source]}
           </div>
           <div className="line-clamp-2 font-bold leading-snug bidi">{hit.title}</div>
-          {(hit.brand || cat) && <div className="truncate text-xs text-muted">{[hit.brand, cat && t.categories[cat]].filter(Boolean).join(" · ")}</div>}
+          {(hit.brand || cat) && <div className="bidi truncate text-xs text-muted">{[hit.brand, cat && t.categories[cat]].filter(Boolean).join(" · ")}</div>}
         </div>
       </div>
       <label className="mt-3 flex items-center gap-2 text-sm">

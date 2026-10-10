@@ -408,7 +408,7 @@ function TallRows({ rows }: { rows: { key: string; dot?: string; label: React.Re
         const inner = (
           <>
             {r.dot && <i className="size-2 shrink-0 rounded-full" style={{ background: r.dot }} />}
-            <bdi className="min-w-0 flex-1 truncate">{r.label}</bdi>
+            <bdi className="bidi min-w-0 flex-1 truncate">{r.label}</bdi>
             <span className={cn("tabular shrink-0 font-semibold", r.tone ?? "text-ink")}>{r.value}</span>
           </>
         );
@@ -454,7 +454,7 @@ function Stats({ model, only, h = 1 }: { model: HomeModel; only: "left" | "budge
           {l.segments.slice(0, 3).map((g) => (
             <span key={g.key} className="flex min-w-0 items-center gap-1.5">
               <i className="size-2 shrink-0 rounded-full" style={{ background: segColor(g.collectionId) }} />
-              <span className="truncate">{segName(g.collectionId)}</span>
+              <span className="bidi truncate">{segName(g.collectionId)}</span>
             </span>
           ))}
         </span>
@@ -1338,8 +1338,8 @@ function OnTheWayCard({ model, rows = 4, className, style }: { model: HomeModel;
               <span className="flex items-center gap-3">
                 <ProductImage src={p.item.imageUrl} alt="" className="size-9 shrink-0 rounded-lg border border-line-in lg:size-10" iconClass="size-5" />
                 <span className="min-w-0 flex-1">
-                  <b className="block truncate text-[13.5px] font-semibold">{p.item.quantity > 1 && !/[×x]\s*\d+\s*$/i.test(p.item.title) ? `${p.item.title} ×${p.item.quantity}` : p.item.title}</b>
-                  <span className="block truncate text-[12.5px] text-muted">{[p.store, p.price != null ? fm.money(p.price) : null].filter(Boolean).join(" · ")}</span>
+                  <b className="bidi block truncate text-[13.5px] font-semibold">{p.item.quantity > 1 && !/[×x]\s*\d+\s*$/i.test(p.item.title) ? `${p.item.title} ×${p.item.quantity}` : p.item.title}</b>
+                  <span className="bidi block truncate text-[12.5px] text-muted">{[p.store, p.price != null ? fm.money(p.price) : null].filter(Boolean).join(" · ")}</span>
                 </span>
                 <span className={cn("shrink-0 text-[12.5px] font-bold", late ? "text-warn" : d ? "text-info" : "text-muted")}>
                   {late ? (
@@ -1449,7 +1449,7 @@ function ProjectRows({ model, compact, rows = 99 }: { model: HomeModel; compact?
             <span className="flex items-center gap-3">
               <span className={cn("flex min-w-0 shrink-0 items-center gap-2", compact ? "w-[30%]" : "w-[28%]")}>
                 <i className="size-2 shrink-0 rounded-full" style={{ background: color }} />
-                <b className="truncate text-[13.5px] font-semibold">{p.collection.name}</b>
+                <b className="bidi truncate text-[13.5px] font-semibold">{p.collection.name}</b>
               </span>
               <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
                 <i className="grow-x block h-full rounded-full" style={{ width: `${Math.round(p.pctBought * 100)}%`, background: color }} />

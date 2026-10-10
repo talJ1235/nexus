@@ -38,7 +38,7 @@ export function SpaceSwitcher({ collapsed }: { collapsed?: boolean }) {
           aria-label={`${t.spaces.switch}: ${cur.name}`}
           title={collapsed ? cur.name : undefined}
           className={cn(
-            "flex h-11 w-full shrink-0 items-center gap-2.5 rounded-lg px-2 text-start transition hover:bg-surface-2 data-[state=open]:bg-[var(--nav-active)]",
+            "@container/sw flex h-11 w-full shrink-0 items-center gap-2.5 rounded-lg px-2 text-start transition hover:bg-surface-2 data-[state=open]:bg-[var(--nav-active)]",
             collapsed && "justify-center px-0",
           )}
           data-space-switcher
@@ -48,10 +48,16 @@ export function SpaceSwitcher({ collapsed }: { collapsed?: boolean }) {
           {!collapsed && (
             <>
               <span className="min-w-0 flex-1 leading-tight">
-                <b className="block truncate text-[14px] font-semibold">{cur.name}</b>
+                <b className="bidi block truncate text-[14px] font-semibold">{cur.name}</b>
                 {presence.shopping.length ? <ShoppingNow className="mt-0.5 max-w-full" /> : <span className="block truncate text-[11.5px] text-muted">{sub(cur, true)}</span>}
               </span>
-              {cur.kind === "shared" && cur.faces.length > 1 && <Facepile people={cur.faces} size={20} online={presence.online} />}
+              {/* R17 P1: the faces never squeeze the name under ~8 letters — three faces from 236 px, then one face + "+N", then none. */}
+              {cur.kind === "shared" && cur.faces.length > 1 && (
+                <>
+                  <Facepile people={cur.faces} size={20} online={presence.online} className="hidden @min-[236px]/sw:flex" />
+                  <Facepile people={cur.faces} size={20} online={presence.online} max={1} more className="hidden @min-[196px]/sw:flex @min-[236px]/sw:hidden" />
+                </>
+              )}
               <ChevronsUpDown className="size-4 shrink-0 text-muted" />
             </>
           )}
@@ -63,7 +69,7 @@ export function SpaceSwitcher({ collapsed }: { collapsed?: boolean }) {
           <MenuItem key={sp.id} onSelect={() => sp.id !== cur.id && void go(sp.id)} className="h-auto min-h-11 py-1.5" data-space-item={sp.id}>
             <SpaceLook space={sp} size={22} />
             <span className="min-w-0 flex-1 leading-tight">
-              <span className={cn("block truncate", sp.id === cur.id && "font-semibold")}>{sp.name}</span>
+              <span className={cn("bidi block truncate", sp.id === cur.id && "font-semibold")}>{sp.name}</span>
               <span className="block truncate text-[11.5px] text-muted">{sp.kind === "personal" ? t.spaces.personal : t.spaces.roles[sp.role]}</span>
             </span>
             {sp.kind === "shared" && sp.faces.length > 1 && <Facepile people={sp.faces} size={18} />}
@@ -124,7 +130,7 @@ export function SpaceRows({ close }: { close: (fn: () => void) => () => void }) 
         >
           <SpaceLook space={sp} size={32} />
           <span className="min-w-0 flex-1 leading-tight">
-            <span className={cn("block truncate", sp.id === cur.id ? "font-bold" : "font-semibold")}>{sp.name}</span>
+            <span className={cn("bidi block truncate", sp.id === cur.id ? "font-bold" : "font-semibold")}>{sp.name}</span>
             {sp.id === cur.id && presence.shopping.length ? <ShoppingNow className="mt-0.5 max-w-full" /> : <span className="block truncate text-[12.5px] text-muted">{sub(sp, true)}</span>}
           </span>
           {sp.kind === "shared" && sp.faces.length > 1 && <Facepile people={sp.faces} size={20} online={sp.id === cur.id ? presence.online : undefined} />}

@@ -79,7 +79,7 @@ export function PhoneTopBar() {
           {s.space ? (
             <button type="button" onClick={() => s.setMeOpen(true)} className="me-auto ms-1 flex h-10 min-w-10 items-center gap-1 overflow-hidden rounded-full border border-line bg-surface pe-1.5 ps-[5px]" aria-label={`${t.spaces.switch}: ${s.space.name}`} data-phone-space>
               <SpaceLook space={s.space} size={26} />
-              <b className="min-w-0 max-w-[96px] truncate text-[13px] font-bold max-[379px]:hidden" data-phone-space-name>{s.space.name}</b>
+              <b className="bidi min-w-0 max-w-[96px] truncate text-[13px] font-bold max-[379px]:hidden" data-phone-space-name>{s.space.name}</b>
               <ChevronDown className="size-3.5 shrink-0 text-muted" />
             </button>
           ) : (

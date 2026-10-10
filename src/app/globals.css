@@ -605,9 +605,14 @@ body {
 
 /* ---------- Mixed Hebrew/English text ----------
    Product and user titles work out their own reading order (so "Elegoo PLA 1.75mm אדום" keeps
-   its runs in place) but are always aligned to the PAGE's start edge, never flipped by their first letter. */
-.bidi { unicode-bidi: plaintext; text-align: left; }
-:root[dir="rtl"] .bidi { text-align: right; }
+   its runs in place) but are always aligned to the PAGE's start edge, never flipped by their first letter.
+   R17 P1: every piece of user-written text (space / item / store / people names, emails) that can be cut carries it, so
+   a Latin name in the Hebrew UI is cut at its end ("Jacoby Ho…", not "…coby Home"). In the components layer so an
+   alignment utility (text-center, text-end) on the same element wins. */
+@layer components {
+  .bidi { unicode-bidi: plaintext; text-align: left; }
+  :root[dir="rtl"] .bidi { text-align: right; }
+}
 
 /* A click in the streamed loading shell (page.tsx) is remembered and replayed when the app is in: show it pressed. */
 [data-carry-armed] { box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--accent-soft); }

@@ -160,7 +160,7 @@ function ReportsBody({
                 <Icon className="size-[18px]" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[14px] font-bold">{r.title}</span>
+                <span className="bidi block truncate text-[14px] font-bold">{r.title}</span>
                 <span className="block text-xs text-muted">
                   {t.report[r.type]} · {date(r.createdAt)}
                 </span>

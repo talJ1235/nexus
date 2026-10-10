@@ -42,7 +42,7 @@ export function DropsWidget({ x, h, className, style }: P) {
           {rows.map((d) => (
             <button key={d.itemId} type="button" onClick={() => s.openItem(d.itemId)} className="flex w-full items-center gap-2.5 py-2 text-start" data-drop-row={d.itemId}>
               <i className="size-2 shrink-0 rounded-full bg-ok" />
-              <bdi className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{d.title}</bdi>
+              <bdi className="bidi min-w-0 flex-1 truncate text-[13.5px] font-medium">{d.title}</bdi>
               <span className="tabular shrink-0 text-[12.5px] font-bold text-ok">−{d.pct}%</span>
             </button>
           ))}
@@ -111,14 +111,14 @@ export function NextDeliveryWidget({ x, h, className, style }: P) {
       ) : (
         <button type="button" onClick={() => s.openItem(n.itemId)} className="flex flex-col gap-1 px-4 pb-3 pt-2.5 text-start lg:px-[18px]" data-next-delivery={n.itemId}>
           <Big className={n.late ? "text-warn" : undefined}>{label}</Big>
-          <bdi className="truncate text-[12.5px] text-muted">{[n.title, n.store].filter(Boolean).join(" · ")}</bdi>
+          <bdi className="bidi truncate text-[12.5px] text-muted">{[n.title, n.store].filter(Boolean).join(" · ")}</bdi>
         </button>
       )}
       {n && later.length > 0 && (
         <div className="mt-auto flex flex-col border-t border-line-in px-4 pb-1 lg:px-[18px]" data-stat-tall>
           {later.map((d) => (
             <button key={d.itemId} type="button" onClick={() => s.openItem(d.itemId)} className="flex min-h-[34px] w-full items-center gap-2.5 text-start text-[12.5px]" data-later-delivery={d.itemId}>
-              <bdi className="min-w-0 flex-1 truncate font-medium">{d.title}</bdi>
+              <bdi className="bidi min-w-0 flex-1 truncate font-medium">{d.title}</bdi>
               <span className={cn("shrink-0 font-semibold", d.late ? "text-warn" : "text-info")}>{when(d)}</span>
             </button>
           ))}
@@ -168,7 +168,7 @@ export function MostBoughtWidget({ x, h, className, style }: P) {
           {rows.map((r) => (
             <button key={r.key} type="button" onClick={() => s.openItem(r.itemId)} className="flex w-full items-center gap-2.5 py-2 text-start" data-most={r.key}>
               <i className="size-2 shrink-0 rounded-full bg-info" />
-              <bdi className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{r.title}</bdi>
+              <bdi className="bidi min-w-0 flex-1 truncate text-[13.5px] font-medium">{r.title}</bdi>
               <span className="tabular shrink-0 text-[12.5px] text-muted">{f(t.hc.times, { n: r.count })}</span>
             </button>
           ))}

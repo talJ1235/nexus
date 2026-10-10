@@ -83,7 +83,7 @@ function NavItem({
       data-nav-row
     >
       <span className={cn("flex size-[17px] shrink-0 items-center justify-center [&_svg]:size-[17px] [&_svg]:stroke-[1.8]", active ? "text-ink" : "text-muted")}>{icon}</span>
-      {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
+      {!collapsed && <span className="bidi min-w-0 flex-1 truncate">{label}</span>}
       {!collapsed &&
         (trailing ??
           (count === null ? (
@@ -169,8 +169,10 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
         )}
       </div>
 
-      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-[18px] overflow-y-auto overflow-x-hidden px-1">
-        <div className="-mb-2.5 -mt-2">
+      {/* R17 P1: the switcher sits 8 px closer to the header than the 18 px gap — the scroll box moves up instead of the
+          switcher (a negative margin inside it cut the switcher's top corners and focus ring); pt-1 leaves its ring room. */}
+      <div className="-mx-1 -mt-3 flex min-h-0 flex-1 flex-col gap-[18px] overflow-y-auto overflow-x-hidden px-1 pt-1">
+        <div className="-mb-2.5">
           <SpaceSwitcher collapsed={c} />
         </div>
         <div className="flex flex-col gap-px">
@@ -257,8 +259,8 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
         {!c && (
           <>
             <div className="min-w-0 flex-1 leading-tight">
-              <b className="block truncate text-[13px] font-semibold">{meName}</b>
-              <span className="block truncate text-[11.5px] text-muted">{s.me?.email}</span>
+              <b className="bidi block truncate text-[13px] font-semibold">{meName}</b>
+              <span className="bidi block truncate text-[11.5px] text-muted">{s.me?.email}</span>
             </div>
             <button
               type="button"

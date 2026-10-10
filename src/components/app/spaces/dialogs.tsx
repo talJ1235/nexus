@@ -173,7 +173,7 @@ export function MoveDialog({ collectionId, onOpenChange }: { collectionId: strin
             data-move-target={sp.id}
           >
             <SpaceLook space={sp} size={28} />
-            <span className="min-w-0 flex-1 truncate font-medium">{sp.name}</span>
+            <span className="bidi min-w-0 flex-1 truncate font-medium">{sp.name}</span>
             <span className="text-[12px] text-muted">{sp.kind === "personal" ? t.spaces.personal : t.spaces.roles[sp.role]}</span>
           </button>
         ))}

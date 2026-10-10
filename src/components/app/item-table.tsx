@@ -131,13 +131,13 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
                         {group.name}
                       </button>
                     )}
-                    {i.tags?.length ? <span className="truncate">{i.tags.join(", ")}</span> : null}
+                    {i.tags?.length ? <span className="bidi truncate">{i.tags.join(", ")}</span> : null}
                   </div>
                 </td>
                 <td className="py-2 ps-2 text-muted">
                   <span className="flex min-w-0 items-center gap-2">
                     {src?.url && <StoreMark store={src.store} storeKey={src.storeKey} url={src.url} size={18} />}
-                    <span className="truncate">{src?.store ?? "—"}</span>
+                    <span className="bidi truncate">{src?.store ?? "—"}</span>
                     {i.sources.length > 1 && <span dir="ltr" className="inline-block text-xs text-faint">+{i.sources.length - 1}</span>}
                   </span>
                 </td>
@@ -156,7 +156,7 @@ export function ItemTable({ items, pending = [], bare = false }: { items: ItemWi
                   {c ? (
                     <span className="flex items-center gap-1.5 truncate">
                       <span className="size-1.5 shrink-0 rounded-full" style={{ background: COLLECTION_COLORS[c.color] }} />
-                      <span className="truncate">{c.name}</span>
+                      <span className="bidi truncate">{c.name}</span>
                     </span>
                   ) : (
                     <span className="text-faint">—</span>
