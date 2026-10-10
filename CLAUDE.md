@@ -58,6 +58,13 @@
   actions `app/notify-actions.ts`, Settings → Notifications `settings/notifications.tsx`, budget recipients in
   `settings/space.tsx` (`pref:budget-alerts`). Routes `/api/notify/{subscribe,received,open}`. Inbox demo rows:
   `scripts/lib/seed-notify.mjs`.
+- R17 S4: user-written text that can be cut gets `.bidi` (globals.css, components layer); Radix direction via
+  `Direction.Provider` in `providers.tsx`; guard `test:bidi`. Settings → Profile = `settings/profile.tsx` (photo
+  `/api/me-photo` + `lib/space-photo.ts` storeUserPhoto, name `saveMyName` in `account-actions.ts`, `me` read fresh by
+  `myProfile` in `lib/db-scoped/account.ts`); avatars show photos through `components/app/person-photo.tsx` (`personPhoto`
+  in `spaces/look.ts`). Money words → `normalizeMoney` (`lib/home-ai.ts`). Carousel height `StackHeight` + loop pager
+  (`home-view.tsx`, `pagerRelease({ loop })`). Admin role = `isListedAdmin` (ADMIN_EMAILS + ADMIN_EMAIL, `lib/auth/config.ts`).
+  Check now = `app/check-actions.ts` → `checkItemOnServer` (`lib/tracker.ts`), test `test:check-now`.
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)

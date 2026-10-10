@@ -14,7 +14,7 @@ RECIPES; easing tokens, press feedback, gated hover, reduced motion = fades only
   `docs/design/parity-r17/` only if the 12-file allowance is left.
 
 ## Part P — Tal's notes
-### P1. [ ] Space switcher: the name is cut from the wrong end, the pressed square is clipped
+### P1. [x] Space switcher: the name is cut from the wrong end, the pressed square is clipped
 Tal (screenshot, Hebrew UI): the sidebar switcher shows "…coby home" — the start of "Jacoby Home" is cut, and the
 pressed/selected square around the switcher looks cut off and untidy. **Cause (seen in code):** `switcher.tsx` puts the
 Latin space name in a `truncate` span inside the RTL page, so the ellipsis lands at the visual start (left) and eats
@@ -28,7 +28,7 @@ Acceptance: a `test:clip`-style check on the switcher at 232 px sidebar width wi
 a 40-character Latin and a 40-character Hebrew name, en + he: the visible text starts with the name's first letter;
 the switcher's highlight box is not clipped by any ancestor (its rect equals its visible rect).
 
-### P2. [ ] Mixed Hebrew + English reads in the wrong order
+### P2. [x] Mixed Hebrew + English reads in the wrong order
 Tal: in the Hebrew UI the "+" (New) menu shows "תכנון עם Nexus" with **Nexus on the right**, next to the icon; it must
 read "תכנון עם" first and Nexus on its left, like any Hebrew sentence. The string in `he.ts` is right, so the row is
 laid out with an LTR base direction (likely a `dir="ltr"`/`direction: ltr` on the row or its label — the row also holds
@@ -40,7 +40,7 @@ Acceptance: new `test:bidi` (reuse the `test:clip` walk, Hebrew only): every vis
 Hebrew letter has computed `direction: rtl`, and in every text node with Hebrew + Latin the Latin run that follows a
 Hebrew word is to its **left** (compare `Range` rects). In `guards.yml`. List the places you fixed in Open.
 
-### P3. [ ] The profile block opens a Profile section in Settings
+### P3. [x] The profile block opens a Profile section in Settings
 Tal: today only the small gear next to the profile (bottom of the sidebar) opens Settings. Clicking the **whole profile
 block** (avatar + name + email) should open Settings on a new **Profile** section — personal details, not general
 settings. Same on the phone: tapping the avatar/name at the top of the Me sheet opens Settings → Profile.
@@ -53,7 +53,7 @@ settings. Same on the phone: tapping the avatar/name at the top of the Me sheet 
 Acceptance: `test:settings` gains Profile (open from the block, from the Me sheet, edit name → sidebar + facepiles
 update, photo upload + remove, en + he).
 
-### P4. [ ] The inbox opens smoothly — no skeleton jump
+### P4. [x] The inbox opens smoothly — no skeleton jump
 Tal: the first time after a page load, the bell shows a loading animation that looks broken and then jumps to the real
 notifications. **Cause:** `inbox.tsx` `Skeleton` always draws three 52 px bars, whatever the real rows are, and swaps
 them for the list in one frame. Fix, in this order:
@@ -68,7 +68,7 @@ them for the list in one frame. Fix, in this order:
 Acceptance: `test:inbox` adds: open right after load (throttled network) → no layout shift > 0 after the first frame
 (`PerformanceObserver` layout-shift inside the popover/page), and with a warm cache the first frame already has rows.
 
-### P5. [ ] "Nexus suggests" writes "שקל" instead of ₪
+### P5. [x] "Nexus suggests" writes "שקל" instead of ₪
 Tal: a suggestion like "buy again — was bought for 45 שקל"; it must be the currency sign (₪45), never the word.
 The text comes from the AI phrasing (`home-actions.ts` prompt) and passes `validateHomeAi()` in `lib/home-ai.ts`.
 Fix both: the prompt tells the model to write money only as the app formats it (give it the formatted strings, e.g.
@@ -77,7 +77,7 @@ Fix both: the prompt tells the model to write money only as the app formats it (
 (`₪45`, `$12`, `€9`), keeping the number guard. Same for "Nexus noticed" and the weekly-summary push.
 Acceptance: unit tests for the normaliser (he + en, before/after the number, with commas/decimals).
 
-### P6. [ ] "Nexus suggests" must not change height on the phone
+### P6. [x] "Nexus suggests" must not change height on the phone
 Tal: on the phone the card's height follows the current suggestion, so every slide pushes all widgets below it up and
 down. Fix: the card's height is fixed per layout — measure the tallest of its suggestions (title 2 lines max, why 1–2
 lines, clamped with ellipsis) once per data change and width, and keep that height while sliding; a new data set may
@@ -85,7 +85,7 @@ change it once, animated (200 ms ease-out), never per slide. Same rule for every
 Acceptance: `test:home` (or `test:polish`) slides through all suggestions at 360 and 390 and asserts the widget's
 height and the next widget's `top` never change.
 
-### P7. [ ] Suggestions carousel: drag/swipe that wraps around
+### P7. [x] Suggestions carousel: drag/swipe that wraps around
 Tal: you can swipe (phone) or drag (computer) between suggestions, but at the last one a further swipe does nothing
 (it rubber-bands), while the arrow wraps to the first. **Cause:** the drag handler (`home-view.tsx`, the carousel
 comment "rubber-bands at either end") stops at the ends. Wanted: **drag/swipe past the last goes to the first, and past
@@ -95,7 +95,7 @@ rewind through all slides: the next slide comes in from the edge as if the list 
 motion = instant change. Axis lock and "a drag never clicks" stay.
 Acceptance: `test:home` drags past both ends (mouse + touch emulation, en + he) and lands on first / last.
 
-### P8. [ ] Tal couldn't open the admin panel
+### P8. [x] Tal couldn't open the admin panel
 Tal tried "/admin" and didn't get the panel. The panel is at `https://nexus-ashen-beta.vercel.app/admin` (not under
 `/api`); everyone who isn't `role = admin` gets a 404 on purpose (G0). Check on prod data (read-only snapshot) that
 Tal's user row has `role = 'admin'`. If not: on every sign-in, a user whose email is in `ADMIN_EMAILS` (or
@@ -104,13 +104,13 @@ Tal. Make the entry visible: the "Admin" row in the avatar menu / Me sheet and t
 admins on prod. `/api/admin` and other wrong paths stay 404. Write in Open exactly what you found.
 
 ## Part Q — leftovers from Sessions 2–3 (Tal's answers 2026-10-10)
-### Q1. [ ] Price notifications: owner + members only
+### Q1. [x] Price notifications: owner + members only
 Viewers no longer get `price` notifications or pushes (inbox included). `test:notify` updated.
-### Q2. [ ] "Check now" is back — on the item page
+### Q2. [x] "Check now" is back — on the item page
 An action on the item page / item sheet for items with a tracked link: checks this item's price now (same fetch ladder,
 rate-limited per user, e.g. 10 an hour), shows the result inline ("Checked now · ₪899, no change" / "dropped 10 %").
 No drop-% picker (`minDropPct` stays as stored, default 5). Hebrew + RTL, viewer = hidden.
-### Q3. [ ] Prod smoke: "category filter narrows the grid"
+### Q3. [x] Prod smoke: "category filter narrows the grid"
 Fails on prod before and after S3 (click timeout). Find why (likely no category chip in the real data, or a changed
 selector) and make the step robust: skip with a note when the account has < 2 categories, otherwise pass.
 

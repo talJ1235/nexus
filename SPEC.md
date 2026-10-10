@@ -764,6 +764,29 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
 - Data (additive): `notification` (one row per person per group key), `push_subscription`. Guards: `test:notify`,
   `test:push`, `test:inbox`; `test:clip` walks the inbox, the card and Settings → Notifications.
 
+## Round 17 — Session 4: fixes after S2 + S3 (Tal's notes)
+(brief `docs/ROUND17-S4.md`, notes: `docs/ROUND17.md` "## Open" → "### Session 4")
+- **Mixed Hebrew + English**: user-written text that can be cut (space / item / store / people names, emails) carries
+  `.bidi` (its own direction, aligned to the page's start), so a Latin name in the Hebrew UI loses its end, not its start.
+  Radix menus / popovers get the page's direction (`Direction.Provider`): "תכנון עם Nexus" reads right to left. The
+  switcher's highlight and focus ring are never clipped; its faces shrink to one + "+N", then none, before the name
+  drops under ~8 letters. Guard `test:bidi`.
+- **Settings → Profile** (first under You; from the whole profile block in the sidebar, the top of the Me sheet, the
+  Settings list header): photo (Google's from sign-up; upload + circle crop → `/api/me-photo`, 512 px WebP without
+  metadata; remove → initials), display name 1–40 (shown everywhere), email (read-only), member since. Photos show in
+  every avatar (only our uploads or Google's image host). Account & security keeps sign-in, devices, delete.
+- **Inbox** opens on real rows: prefetched when the app is idle and on bell hover / press; a cold start shows nothing for
+  300 ms, then a skeleton shaped like the last list (≤ 6 rows), then a 150 ms fade — no layout shift.
+- **Nexus suggests / noticed**: money as the app writes it (₪45 / 45 ₪), never "שקל" / "NIS" (prompt + normaliser, pushes
+  too); the card keeps one height while it slides (every slide stacked in one cell; a new set changes it once, 200 ms);
+  drag / swipe past either end wraps around (mouse + touch, RTL mirrored).
+- **Admin**: the role follows ADMIN_EMAILS + ADMIN_EMAIL (it was ADMIN_EMAIL only), a listed address gets the panel at
+  once; an Admin link in the desktop sidebar.
+- **Prices**: owners and members get price notifications, viewers don't. **Check now** is back in the item sheet (one
+  item, the same fetch ladder, 10 an hour, the answer inline).
+- No DB change. Guards: `test:bidi`, `test:check-now`; `test:settings` (Profile), `test:inbox` (P4), `test:polish` (P6,
+  P7), `test:home` (money), `test:notify` (viewers), `test:admin-access` + `test:auth-flow` (ADMIN_EMAILS).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
@@ -779,7 +802,7 @@ same product from another store → added as another source). `#name` in the mes
 linked chat. The webhook is (re)set after linking, whenever the alerts state loads, and by the daily cron.
 
 ## Non-goals (for now)
-Carrier API tracking sync. (Multi-user accounts arrived in Round 15; onboarding and the admin panel shipped in R17 Session 2, push + inbox in Session 3. No email channel.)
+Carrier API tracking sync. (Multi-user accounts arrived in Round 15; onboarding and the admin panel shipped in R17 Session 2, push + inbox in Session 3, Profile + fixes in Session 4. No email channel.)
 
 ## Stack (all free tier)
 Next.js 16 (App Router) on Vercel · Turso (libSQL) + Drizzle · Gemini Flash-Lite (+ optional Groq/OpenRouter) ·
@@ -796,7 +819,7 @@ Vercel Blob · Tailwind v4 · Radix primitives · cmdk · sonner · motion.
 | `OPENROUTER_API_KEY` | optional third free AI provider (`openrouter/free`) |
 | `APP_PASSWORD` | R15–16 admin password fallback — **removed in R17** (delete it from Vercel) |
 | `ADMIN_EMERGENCY_TOKEN` | R17 E1: admin-only emergency sign-in (≥ 32 chars; unset = off); the prod smoke uses it as `SMOKE_ADMIN_TOKEN` |
-| `ADMIN_EMAILS` | R17 E1: comma-separated admin addresses allowed to use the emergency sign-in (plus `ADMIN_EMAIL`) |
+| `ADMIN_EMAILS` | R17 E1: comma-separated admin addresses allowed to use the emergency sign-in (plus `ADMIN_EMAIL`); R17 S4: every address here holds the admin role |
 | `CF_FETCH_URL` / `CF_FETCH_SECRET` | R17 C2: the Cloudflare fetch worker for stores that block Vercel (optional) |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | R17 S3: web push keys (generate once; without them the inbox works, nothing is pushed). Subject: `mailto:` or the site URL |
 | `SESSION_SECRET` | ≥32 random chars (pre-R15 sessions; still used by retired guest/Telegram code) |

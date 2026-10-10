@@ -879,3 +879,46 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
 - **Prod smoke after the deploy** (`37f8b7b`): one failure, "category filter narrows the grid" (a click timeout) — the
   same check failed on the prod smoke before S3 (`5786fa5`), so it is not from this session; left for the next fix round
   (likely the real data has no category chip that the step clicks). Everything else passed or was skipped as real data.
+
+### Session 4 (2026-10-10) — fixes after S2 + S3 (brief `docs/ROUND17-S4.md`)
+- **Read first:** open reports — the 2026-10-07 suggestions-animation complaint (A1, fixed in S1) and two "Couldn't
+  read that link" (scent.co.il, payngo.co.il — blocked stores, `link:partial`); error log — the same blocked stores
+  (cwc, scent, payngo), old `/login` viewport / FedCM entries, nothing new from S3. Left for a blocked-stores round.
+- **P1 — where `.bidi` now goes** (it already existed; moved into the components layer so `text-center` / `text-end`
+  win): switcher trigger, menu rows and phone rows; sidebar profile name + email and project / list rows; Me sheet
+  name + email; phone top bar space name; space dialogs list; alt sheet store; barcode brand; item table tags / store /
+  list; your reports' titles; phone search store rows; Home tiles (list legend, package titles + store, project names,
+  tall stat rows, `<bdi>` rows in home-extra); Settings list header + Account card; admin People (name + email), Live
+  (name), AI (name). Not on UI sentences that contain a name (they keep the page's direction — P2). The switcher's
+  clip: the wrapper's `-mt-2` sat inside the sidebar's scroll box (cut top corners + ring) — the scroll box moves up
+  instead. Facepile: 3 faces ≥ 236 px card, then 1 + "+N", then none. "232 px" in the brief: the expanded sidebar is
+  224 px (SIDEBAR_MAX); `test:bidi` checks both its own width and a forced 232.
+- **P2 — the cause and what was fixed:** Radix wrote `dir="ltr"` on every menu / popover / select content (no
+  `DirectionProvider`) — the "+" menu, the switcher menu, every dropdown in Hebrew; one provider fixes all. The walk
+  (views, Settings, menus, sheets, inbox, admin, privacy / terms, onboarding; he; 390 + 1366; 140 screens) found one
+  more: the admin AI chart's date labels in its LTR chart box (`dir="auto"`). Push payloads already carry `dir: rtl`.
+  Help answers / toasts aren't walked (toasts already use plaintext).
+- **P3 decisions:** Profile photo = `user.image` (Google's from sign-up; no new column). Better Auth only sets it at
+  account creation, so a removed photo stays removed. Account's old "Edit name" had been broken since R17 E1 (update-user
+  is not on the auth HTTP allow-list → 404); name now goes through `saveMyName`. The sidebar block shows the full
+  display name (greetings keep the first name).
+- **P8 — what I found:** I could not read prod: the session's permission classifier refused the read-only snapshot
+  (`db-snapshot.mjs`, "production reads"), so Tal's row is unchecked. In the code: the role written at every sign-in
+  came from `ADMIN_EMAIL` only — an address in `ADMIN_EMAILS` (or an `ADMIN_EMAIL` that isn't exactly Tal's Google
+  address) was set back to `user` on each sign-in, and `/admin` is a 404 for non-admins by design. Now `ADMIN_EMAILS` +
+  `ADMIN_EMAIL` decide the role, and `isAdmin` also accepts a listed address — so instead of a migration step (a DB
+  change that would have needed a prod-snapshot rehearsal I couldn't run) Tal is in on his next request. Desktop has an
+  Admin link next to the gear; Me sheet and palette had it. **For Tal:** if `/admin` still 404s after this deploy,
+  check that the Google address you sign in with is in `ADMIN_EMAILS` (or is `ADMIN_EMAIL`) on Vercel.
+- **Q3 — why:** on real data the step before ("to buy: no summary card…") is demo-only and skipped, and it was the one
+  that opened To buy; the filter step ran on Home (no filter) → click timeout. It opens To buy itself now, and skips with
+  the count under 2 categories.
+- **Parity PNGs** (P1 / P4 / P6): not added — the 12-file allowance went to code and tests.
+- **Fixes along the way:** the Settings deep link re-ran on a later background load and bounced someone who had moved
+  on back to the linked section (runs once now); role matrix: `saveMyName` on the viewer read list.
+- **Smoke (local, fresh seeded DB):** desktop 81/81; phone 95/95 three runs in a row — the first two phone runs after a
+  build each failed "item sheet morph" (a 30 s wait for a card's tap button) and one "compare stores" (one result);
+  `main` passed its run. Treated as a timing flake; watch it in CI.
+- **Local guards:** test:bidi (switcher + 140 Hebrew screens), test:clip quick (278 screens, 0), test:settings,
+  test:inbox, test:polish, test:admin-access, test:auth-flow, test:notify, test:home, test:gestures, test:check-now,
+  test:roles, test:authz-coverage, test:help — all OK.

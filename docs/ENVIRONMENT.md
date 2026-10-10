@@ -176,3 +176,11 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   falls back to the headless shell, which has no notifications), `test:inbox` (built app, port 3111; screenshots to
   `test-data/inbox`). Seeder `scripts/lib/seed-notify.mjs`. `.claude/settings.local.json` allows the round17-s3
   push/merge commands.
+- 2026-10-10 (PC, R17 Session 4): new checks `test:bidi` (built app, port 3114: the switcher with Latin / Hebrew names
+  + a Hebrew walk of the app — guards.yml) and `test:check-now` (tsx, throwaway DB, a fake store behind a resolver stub;
+  in the guards unit loop). `test:inbox`, `test:polish` (`POLISH_ONLY=P6,P7`), `test:settings` (Profile),
+  `test:admin-access`, `test:auth-flow` gained checks. Locally `test:settings` runs like CI (`ci-settings.db`, port 3107,
+  `ADMIN_EMAIL=ci-admin@example.com`, a build first). `ADMIN_EMAILS` now also grants the admin role (not only the
+  emergency sign-in). The read-only prod snapshot (`db-snapshot.mjs`) was refused by the session's permission classifier
+  ("production reads") — run it by hand when a session needs prod data. `.claude/settings.local.json` allows the
+  round17-s4 push/merge commands.

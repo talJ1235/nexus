@@ -9,7 +9,11 @@
   screen: tap your account and you're in, no page change. For a different account use **Use another Google account**
   (חשבון Google אחר) under the button. Closing the sheet keeps you on the sign-in page; on iPhone and computers
   Google's page opens as before.
-- **Settings → Account & security** (חשבון ואבטחה): your name, a security checkup, sign-in methods (Google,
+- **Settings → Profile** (פרופיל): tap your name and email at the bottom of the sidebar (on a phone: the top of the
+  Me sheet). Your photo (Google's at first — **Change photo** to upload one and crop it in the circle, **Remove photo**
+  for your initial), your display name (1–40 characters, what everyone in your spaces sees), your email (from Google)
+  and when you joined.
+- **Settings → Account & security** (חשבון ואבטחה): a security checkup, sign-in methods (Google,
   passkeys), devices (sign one out, or all the others; a new sign-in to review is at the top — "No, sign it out" ends
   it), and Activity & recovery. **Confirm it's you** (sign in again) is asked before removing someone, transferring
   ownership, deleting a space or changing passkeys. Tal (admin): Account → **Invite codes**.
