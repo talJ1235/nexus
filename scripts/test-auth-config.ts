@@ -1,7 +1,7 @@
 // R15 A1 unit tests: authMode(), the admin-fallback guard, the 90-day absolute session age, ?next= safety, cookie
 // names, invite-code normalisation.   npx tsx scripts/test-auth-config.ts
 import assert from "node:assert/strict";
-import { adminEmail, authMode, emergencyEmails, emergencyEnabled, isAdminEmail, safeNext, SESSION_ABSOLUTE_MS, sessionCookieName, sessionTooOld, testIdpEnabled } from "../src/lib/auth/config";
+import { adminEmail, authMode, emergencyEmails, emergencyEnabled, isAdminEmail, isListedAdmin, safeNext, SESSION_ABSOLUTE_MS, sessionCookieName, sessionTooOld, testIdpEnabled } from "../src/lib/auth/config";
 import { newInviteCode, normalizeInviteCode } from "../src/lib/auth/crypto";
 
 const FULL = { NEXT_PUBLIC_APP_URL: "https://karto.app", RESEND_API_KEY: "re_x" };
@@ -35,6 +35,12 @@ assert.equal(adminEmail({ ADMIN_EMAIL: " Tal@Example.COM " }), "tal@example.com"
 assert.equal(isAdminEmail("tal@example.com", { ADMIN_EMAIL: "TAL@example.com" }), true);
 assert.equal(isAdminEmail("other@example.com", { ADMIN_EMAIL: "tal@example.com" }), false);
 assert.equal(isAdminEmail("tal@example.com", {}), false);
+// R17 P8: the admin role follows every address in ADMIN_EMAILS plus ADMIN_EMAIL (case and spaces ignored).
+assert.equal(isListedAdmin("Tal@Gmail.com", { ADMIN_EMAIL: "other@example.com", ADMIN_EMAILS: " tal@gmail.com , x@y.z" }), true);
+assert.equal(isListedAdmin("other@example.com", { ADMIN_EMAIL: "other@example.com", ADMIN_EMAILS: "tal@gmail.com" }), true);
+assert.equal(isListedAdmin("someone@example.com", { ADMIN_EMAIL: "other@example.com", ADMIN_EMAILS: "tal@gmail.com" }), false);
+assert.equal(isListedAdmin("", { ADMIN_EMAILS: "tal@gmail.com" }), false);
+assert.equal(isListedAdmin("tal@gmail.com", {}), false);
 
 // Absolute age: reject after 90 days however active.
 const now = Date.UTC(2026, 9, 5);

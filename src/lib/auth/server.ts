@@ -17,13 +17,14 @@ import { logActivity } from "@/lib/db-scoped/presence";
 import { APP_NAME } from "@/lib/brand";
 import { timed } from "@/lib/timing";
 import { addMember, ensurePersonalSpace, firstName, personalSpaceId } from "@/lib/spaces";
-import { adminEmail, authMode, emergencyEmails, emergencyEnabled, isAdminEmail, SESSION_IDLE_S, sessionCookieName, STEP_UP_MS, testIdpEnabled } from "./config";
+import { adminEmail, authMode, emergencyEmails, emergencyEnabled, isAdminEmail, isListedAdmin, SESSION_IDLE_S, sessionCookieName, STEP_UP_MS, testIdpEnabled } from "./config";
 import { safeEqualStr } from "./crypto";
 import { useRecoveryCode } from "./security";
 import { codeEmail, sendEmail } from "./email";
 import { logSecurityEvent, requestCity } from "./events";
 import { checkInviteCookie, consumeJoinToken, consumeSignupCode, INVITE_COOKIE, readInviteCookie } from "./invites";
 import { authRateLimitStorage, DAY, HOUR, hitLimit, peekLimit } from "./limits";
+import { reportError } from "../errors/record";
 
 // R15 A1 — accounts with Better Auth. SECURITY.md §2–§4, MULTIUSER.md §4.1. The HTTP surface is an allow-list (below):
 // every space/member/admin write goes through Nexus's own server actions (requireCtx), never the plugins' routes.
@@ -410,7 +411,10 @@ export const auth = betterAuth({
             db.select({ email: schema.user.email, role: schema.user.role }).from(schema.user).where(eq(schema.user.id, s.userId)),
             personalSpaceId(s.userId),
           ]);
-          const want = u && isAdminEmail(u.email) ? "admin" : "user";
+          // R17 P8: ADMIN_EMAILS too (it used to be ADMIN_EMAIL only, so a listed address was set back to "user").
+          const want = u && isListedAdmin(u.email) ? "admin" : "user";
+          // A promotion is written to the admin's error log once (the role then stays; no name, only the event).
+          if (u && want === "admin" && u.role !== "admin") reportError({ kind: "auth", code: "admin_promoted", where: "auth:sign-in", message: "admin role from ADMIN_EMAILS" }, s.userId);
           await Promise.all([
             u && u.role !== want ? db.update(schema.user).set({ role: want }).where(eq(schema.user.id, s.userId)) : null,
             u && !space ? ensurePersonalSpace(s.userId, firstName(null, u.email)) : null,

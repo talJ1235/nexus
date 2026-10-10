@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChartColumn, History, House, PanelLeftClose, Plus, Settings, ShoppingCart, Store, Truck } from "lucide-react";
+import { ChartColumn, History, House, PanelLeftClose, Plus, Settings, ShieldCheck, ShoppingCart, Store, Truck } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { Ring } from "@/components/ui/ring";
@@ -11,6 +11,7 @@ import { useStore, type View } from "./store";
 import { COLLECTION_COLORS, itemsForView } from "./view-items";
 import { NavRowsSkeleton, Skel } from "./skeletons";
 import { DRAG_TYPE, useMoveItems } from "./buy-filters";
+import Link from "next/link";
 import { SpaceSwitcher } from "./spaces/switcher";
 import { PersonPhoto } from "./person-photo";
 import { useMeName } from "./spaces/space-ui";
@@ -272,6 +273,12 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
         </button>
         {!c && (
           <>
+            {/* R17 P8: the admin panel in sight on desktop too (the Me sheet and the palette have it). */}
+            {s.admin && (
+              <Link href="/admin" prefetch={false} aria-label={t.adm.entry} title={t.adm.entry} className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-ink" data-sidebar-admin>
+                <ShieldCheck className="size-4" />
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => s.setSettingsOpen(true)}

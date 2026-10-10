@@ -1,4 +1,5 @@
 import "server-only";
+import { isListedAdmin } from "@/lib/auth/config";
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
 import type { SpaceRole } from "@/db/auth-schema";
@@ -95,6 +96,7 @@ export function meInfo(ctx: Ctx) {
   return { id: ctx.user.id, name: ctx.user.name, email: ctx.user.email, image: ctx.user.image, admin: isAdmin(ctx) };
 }
 
+/** R17 P8: the stored role, or an address in ADMIN_EMAILS / ADMIN_EMAIL (in at once, before the next sign-in stores it). */
 export function isAdmin(ctx: Ctx) {
-  return ctx.user.role === "admin";
+  return ctx.user.role === "admin" || isListedAdmin(ctx.user.email);
 }

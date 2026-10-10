@@ -23,7 +23,9 @@ for (const f of ADMIN_FILES) {
   ok(fns.length > 0 && bad.length === 0, `${f}: all ${fns.length} actions start with admin()`, bad.join(", "));
 }
 
-const app = await startApp({ db: "admin-access-test.db", port: Number(process.env.PORT || 3121) });
+// R17 P8: a second admin address in ADMIN_EMAILS only (its stored role is still "user").
+const LISTED = "listed-admin@example.com";
+const app = await startApp({ db: "admin-access-test.db", port: Number(process.env.PORT || 3121), env: { ADMIN_EMAILS: `test-admin@example.com,${LISTED}` } });
 try {
   await seedAdmin(app.db, { adminId: app.admin, personal: app.personal });
   const noa = await app.sessionFor("ad_noa");
@@ -38,6 +40,19 @@ try {
     ok(asAdmin.status === 200 && /<meta name="robots" content="noindex, nofollow"/.test(html), `${r}: admin → 200, noindex`, String(asAdmin.status));
     ok(out.status === 307 || out.status === 308 || out.status === 302, `${r}: signed out → sign-in redirect`, String(out.status));
   }
+  // R17 P8: an address in ADMIN_EMAILS gets the panel at once (role still "user" in the row); wrong paths stay 404.
+  await app.db.execute({ sql: `INSERT INTO "user" (id, name, email, email_verified, role, created_at, updated_at) VALUES ('p8_listed', 'Listed', ?, 1, 'user', ?, ?)`, args: [LISTED, Date.now(), Date.now()] });
+  const listed = await app.sessionFor("p8_listed");
+  const asListed = await fetch(`${app.base}/admin`, { headers: { cookie: listed.header }, redirect: "manual" });
+  ok(asListed.status === 200, "P8 /admin: an ADMIN_EMAILS address → 200 before its role is stored", String(asListed.status));
+  for (const p of ["/api/admin", "/api/admin/people", "/admin.php", "/api/auth/admin/list-users"]) {
+    const r = await fetch(`${app.base}${p}`, { headers: { cookie: admin }, redirect: "manual" });
+    ok(r.status === 404, `P8 ${p} → 404 (even for the admin)`, String(r.status));
+  }
+  // The desktop sidebar shows the Admin entry to admins only.
+  const home = async (cookie) => (await fetch(`${app.base}/`, { headers: { cookie } })).text();
+  ok(/data-sidebar-admin/.test(await home(admin)) && !/data-sidebar-admin/.test(await home(noa.header)), "P8 the sidebar's Admin entry: the admin sees it, a member doesn't");
+
   // /settings/invites moved into the panel.
   const inv = await fetch(`${app.base}/settings/invites`, { headers: { cookie: admin }, redirect: "manual" });
   ok([307, 308].includes(inv.status) && (inv.headers.get("location") ?? "").endsWith("/admin/invites"), "/settings/invites → /admin/invites", `${inv.status} ${inv.headers.get("location")}`);

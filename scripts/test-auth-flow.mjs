@@ -25,6 +25,8 @@ const ENV = {
   AUTH_FULL_LOCAL: "1", // full mode on localhost: passkeys + email-code recovery are on
   AUTH_SESSION_CACHE: "0",
   ADMIN_EMAIL: ADMIN,
+  // R17 P8: a second admin address, listed only here.
+  ADMIN_EMAILS: `${ADMIN},second-admin@example.com`,
   ADMIN_NAME: "Admin",
   APP_PASSWORD: "",
   GOOGLE_CLIENT_ID: "",
@@ -291,6 +293,13 @@ try {
   ok(home.status === 200, "E1 that session opens the app", String(home.status));
   const ev = await q(`SELECT kind FROM security_event WHERE kind LIKE 'emergency%' ORDER BY created_at`);
   ok(ev.some((r) => r.kind === "emergency_sign_in"), "E1 logged to the security log", JSON.stringify(ev));
+  // R17 P8: an ADMIN_EMAILS address whose row says "user" is promoted on sign-in, written to the error log once.
+  await q(`INSERT INTO "user" (id, name, email, email_verified, role, created_at, updated_at) VALUES ('p8_second', 'Second', 'second-admin@example.com', 1, 'user', ?, ?)`, [Date.now(), Date.now()]);
+  ok((await post({ token: EMERGENCY, email: "second-admin@example.com" }, "10.0.0.4")).status === 200, "P8 an ADMIN_EMAILS address signs in (emergency path)");
+  await new Promise((r) => setTimeout(r, 1500)); // the log is written after the response
+  const second = await q(`SELECT role FROM "user" WHERE id = 'p8_second'`);
+  const promoted = await q(`SELECT count(*) AS n FROM error_event WHERE code = 'admin_promoted'`);
+  ok(second[0]?.role === "admin" && Number(promoted[0]?.n) === 1, "P8 … and is promoted to admin, logged once (admin-only error log)", JSON.stringify({ second, promoted }));
   const codes = [];
   for (let k = 0; k < 4; k++) codes.push((await post({ token: "x".repeat(40), email: ADMIN }, "10.0.0.9")).status);
   ok(codes.slice(0, 3).every((c) => c === 401) && codes[3] === 429, "E1 3 attempts per hour per IP, then 429", codes.join(","));

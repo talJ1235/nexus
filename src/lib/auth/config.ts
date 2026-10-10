@@ -55,6 +55,11 @@ export function adminEmail(env: Env = process.env) {
   return e && /^[^@\s]+@[^@\s]+$/.test(e) ? e : null;
 }
 
+/** R17 P8: who holds the admin role — every address in ADMIN_EMAILS plus ADMIN_EMAIL (the emergency list). */
+export function isListedAdmin(email: string | null | undefined, env: Env = process.env) {
+  return !!email && emergencyEmails(env).includes(email.trim().toLowerCase());
+}
+
 export function isAdminEmail(email: string | null | undefined, env: Env = process.env) {
   const a = adminEmail(env);
   return !!a && !!email && email.trim().toLowerCase() === a;
