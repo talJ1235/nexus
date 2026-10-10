@@ -7,6 +7,16 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-10 (late night, 2):** Tal: push shows only inside the app → **R17 Session 6 brief `docs/ROUND17-S6.md`**
+  (U1 see where a push is lost — System rows + "send a test push", U2 everything at once, U3 opportunistic dispatch so
+  GitHub's schedule isn't the only sender, U4 guard). Run after S5 merges. R18 answers + structure in
+  `docs/R18-PLANNING.md` §5, §10–§12 (open: Q12 dock tab 4, Q13 receipt steps). Prompt:
+  ```
+  Round 17, session 6 (docs/ROUND17-S6.md) — Parts U, V, unattended, on branch round17-s6 from main (after S5 is
+  merged), U1 first. Step 0, now while I'm here: make sure .claude/settings.local.json allows "Bash(git push origin
+  round17-s6)", "Bash(git push -u origin round17-s6)", "Bash(git merge --ff-only round17-s6)". Then go through all parts
+  without stopping. Merge to main only if everything is green.
+  ```
 - **2026-10-10 (late night):** R18 planning started → **`docs/R18-PLANNING.md`** (gate to close R17, what exists,
   draft scope Parts A–G in 3 sessions, R19/R20 dependencies — native FCM push needed in the Android wrapper, gtin +
   store + price capture for R19 —, 6 questions for Tal, prep with calendar time). **Next:** Tal answers §5 → decisions
@@ -297,6 +307,14 @@ to setup, tooling or workflow is recorded there in the same session.
   ("תכנון עם Nexus" → Nexus on the left); guarded by `test:bidi`. Carousels loop at both ends on drag/swipe too.
 - **R17 S3 follow-ups (Tal 2026-10-10):** price notifications go to the space owner + members, never viewers; "Check now"
   comes back as an action on the item page (no drop-% picker; `minDropPct` stays 5 %). For the S2 + S3 fix round.
+- **R18 + push (Tal 2026-10-10), details `docs/R18-PLANNING.md`:** family comes in only after the Android app is on
+  Google Play (R20 gate); staples suggest by default, "add by itself" per item; several named templates, one tap from a
+  past trip; store sections = default supermarket layout + per-branch learned order *suggested* for confirmation, user
+  can move groups; receipt offered after every trip; push: every kind at once except night quiet, weekly summary and
+  activity (first at once, then ≤ 1/h/space); photo add counts in the AI quota; checked items stay in their section
+  (struck through, no sliding); Shopping tab split Supermarket | Stores; entry points: long-press +, app-icon shortcuts,
+  Home "Next shop" card, desktop sidebar entry, trip bar; ideas in: live adds during a trip, "not found", basket
+  estimate, one-hand mode, substitutes.
 - **Onboarding + admin leftovers (Tal 2026-10-10):** desktop onboarding step 5 always shows the phone QR (only the QR
   when the computer can't install); "if it were paid" uses prices checked on the official pages, with the date shown.
 
@@ -329,6 +347,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-10 · same chat · Push diagnosed from code (non-urgent kinds wait for the active hour and only `hourly.yml` sends them; actor never notified) → wrote `docs/ROUND17-S6.md`. Tal's R18 answers + supermarket structure (Shopping: Supermarket | Stores, store mode, entry points) in `docs/R18-PLANNING.md`.
 - 2026-10-10 · same chat · Roadmap after R17 + R18 kickoff: wrote `docs/R18-PLANNING.md`. Found in code: trips are a pref (no trip table, no check-order log), no staples/templates, no duplicate merge, offline adds not in the outbox.
 - 2026-10-10 · same chat · Tal's checks after S4 (admin black on desktop with React #418 + 500s, "שקל" still shown, card bobbing on hover) + answers (QR always, check prices) → wrote `docs/ROUND17-S5.md`. Cause of "שקל": AI wording cache read without the normaliser.
 - 2026-10-10 · same chat · Reviewed R17 S4 results (all items done, CI green, merged). Gave Tal the admin check and the S4 test list.
