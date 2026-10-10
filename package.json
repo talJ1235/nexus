@@ -68,7 +68,8 @@
     "test:admin-people": "node scripts/test-admin-people.mjs",
     "test:onboarding": "node scripts/test-onboarding.mjs",
     "test:notify": "tsx --conditions=react-server scripts/test-notify.ts",
-    "test:inbox": "node scripts/test-inbox.mjs"
+    "test:inbox": "node scripts/test-inbox.mjs",
+    "test:push": "tsx --conditions=react-server scripts/test-push.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",

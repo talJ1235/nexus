@@ -59,8 +59,10 @@ export function AskCard() {
       setSettled(false);
       return;
     }
-    const id = setTimeout(() => setSettled(!document.querySelector('[role=dialog]:not([data-nt-card]), [data-state=open][role=menu]')), SETTLE_MS);
-    return () => clearTimeout(id);
+    // Re-checked every 1.5 s: a dialog, an open menu or a toast (it sits where the phone card goes) means "not yet".
+    const busy = () => !!document.querySelector("[role=dialog]:not([data-nt-card]), [data-state=open][role=menu], [data-sonner-toast]");
+    const id = setInterval(() => !busy() && (setSettled(true), clearInterval(id)), SETTLE_MS);
+    return () => clearInterval(id);
   }, [calm]);
 
   // Enter once per page life when everything holds; the server remembers "shown today".

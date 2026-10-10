@@ -175,6 +175,83 @@ try {
     ok(true, "empty state");
     await ctx.close();
   }
+  // ---------- L: the reminder card (a "Not now" 4 days ago → the 3-day step is due) ----------
+  const askState = async () => JSON.parse((await app.db.execute({ sql: `SELECT value FROM user_pref WHERE user_id = ? AND key = 'pref:notify-ask'`, args: [app.admin] })).rows[0]?.value ?? "{}");
+  for (const [w, h, phone] of [
+    [1366, 768, false],
+    [390, 844, true],
+  ]) {
+    await app.db.execute({ sql: `INSERT INTO user_pref (user_id, key, value, updated_at) VALUES (?, 'pref:notify-ask', ?, ?) ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value`, args: [app.admin, JSON.stringify({ count: 1, lastNo: Date.now() - 4 * 86_400_000, shown: null }), Date.now()] });
+    await app.db.execute({ sql: `DELETE FROM user_pref WHERE user_id = ? AND key = 'pref:onboarding'`, args: [app.admin] });
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, ...(phone ? { isMobile: true, hasTouch: true } : {}) });
+    await ctx.addCookies(app.cookies(app.personal, "en"));
+    const page = await ctx.newPage();
+    await page.goto(app.base);
+    await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 30000 });
+    const card = page.locator(`[data-nt-card=${phone ? "phone" : "desk"}]`);
+    await card.waitFor({ timeout: 15000 });
+    await page.waitForTimeout(700);
+    const g = await page.evaluate((ph) => {
+      const c = document.querySelector("[data-nt-card]").getBoundingClientRect();
+      const bell = document.querySelector("[data-nt-bell=desk]")?.getBoundingClientRect();
+      const dock = document.querySelector("[data-dock]")?.getBoundingClientRect();
+      return { blockedState: !!document.querySelector("[data-nt-card-btn=how]"), dot: !!document.querySelector("[data-nt-ask-dot]"), placed: ph ? !!dock && c.bottom <= dock.top : !!bell && c.top >= bell.bottom && Math.abs(c.right - bell.right) < 40, inView: c.left >= 0 && c.right <= innerWidth };
+    }, phone);
+    // Headless Chromium answers "denied", so the card opens in its blocked state (How to allow).
+    ok(g.blockedState && g.placed && g.inView && (phone || g.dot), `card ${phone ? "phone: above the dock" : "desktop: under the bell, bell dot"} (blocked state)`, JSON.stringify(g));
+    await page.screenshot({ path: `${SHOTS}/card-${phone ? "phone" : "desktop"}-blocked.png` });
+    await page.click("[data-nt-card-btn=how]");
+    await page.waitForSelector("[data-nt-card] .steps");
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${SHOTS}/card-${phone ? "phone" : "desktop"}-how.png` });
+    ok((await page.locator("[data-nt-card] .steps > div").count()) === 3, "card: How to allow shows 3 steps");
+    await page.click("[data-nt-card-btn=later]");
+    await card.waitFor({ state: "detached", timeout: 3000 });
+    await page.waitForTimeout(400);
+    const a = await askState();
+    ok(a.count === 2 && a.lastNo > Date.now() - 60_000 && typeof a.shown === "string", "card: Not now is remembered (count 2, today)", JSON.stringify(a));
+    await page.reload();
+    await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 30000 });
+    await page.waitForTimeout(2600);
+    ok((await card.count()) === 0, "card: not again the same day");
+    await ctx.close();
+  }
+
+  // ---------- N1 / N2: Settings ----------
+  {
+    await app.db.execute({ sql: `UPDATE space_member SET role = 'viewer' WHERE space_id = 'pa_big' AND user_id = 'pa_u4'` });
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await ctx.addCookies(app.cookies("pa_big", "en"));
+    // Today's opening animation already played (it would cover the first screenshot).
+    await ctx.addInitScript(() => {
+      const d = new Date();
+      localStorage.setItem("nexus.bootDay", `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+    });
+    const page = await ctx.newPage();
+    await page.goto(`${app.base}/settings/notifications`);
+    await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 30000 });
+    await page.waitForSelector("[data-notify-settings]", { timeout: 30000 });
+    await page.waitForTimeout(400);
+    const s = await page.evaluate(() => ({ master: !!document.querySelector("[data-notify-master]"), device: document.querySelector("[data-notify-device]")?.getAttribute("data-notify-device"), quiet: !!document.querySelector("[data-notify-quiet]") }));
+    ok(s.master && s.device === "denied" && s.quiet, "settings: the switch, this phone (blocked → How to allow), quiet hours", JSON.stringify(s));
+    await page.click("[data-notify-how]");
+    await page.waitForSelector("[data-notify-settings] [data-nt-steps]");
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${SHOTS}/settings-notifications-phone.png` });
+    await page.goto(`${app.base}/settings/budget`);
+    await page.waitForSelector("[data-budget-recipients]", { timeout: 30000 });
+    const r = await page.evaluate(() => [...document.querySelectorAll("[data-budget-to-toggle]")].map((b) => ({ id: b.getAttribute("data-budget-to-toggle"), disabled: b.hasAttribute("disabled") || b.getAttribute("aria-disabled") === "true" })));
+    const owner = r.find((x) => !x.id.startsWith("pa_u"));
+    const viewer = r.find((x) => x.id === "pa_u4");
+    const member = r.find((x) => x.id === "pa_u1");
+    ok(r.length === 5 && owner?.disabled && viewer?.disabled && member && !member.disabled, "budget recipients: owner locked, viewer can't be picked, members can", JSON.stringify(r));
+    await page.click("[data-budget-to-toggle=pa_u1]");
+    await page.waitForTimeout(600);
+    const saved = (await app.db.execute({ sql: `SELECT value FROM space_pref WHERE space_id = 'pa_big' AND key = 'pref:budget-alerts'` })).rows[0]?.value;
+    ok(saved === JSON.stringify(["pa_u1"]), "budget recipients: a member switched on is stored on the space", String(saved));
+    await page.screenshot({ path: `${SHOTS}/settings-budget-recipients-phone.png` });
+    await ctx.close();
+  }
 } catch (e) {
   console.error(e);
   fails++;
