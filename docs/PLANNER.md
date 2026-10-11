@@ -7,6 +7,13 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-11:** **R18 boards, part 1 approved by Tal** — canvas **"Nexus R18 — Supermarket"** (private Design artifact,
+  this account). Phone boards: `Supermarket-phone` (P2, canvas `Main`), `StoreMode-phone` (P9), `Add-phone` (P3),
+  `Finish-phone` (P11), `HomeCard-phone` (P1 + P10 trip bar), `Nav-phone` (P15 + P18); shared `nx-sm.css` on top of the
+  R17 css. Copies go to `docs/design/r18/` from the zip Tal saves into his checkout (the chat sandbox has no push
+  credentials and the connector would need ~220 KB pasted) — the builder commits them as `R18.0`. **Next:** (1) new
+  chat → `docs/ROUND18.md` Session 1 (plumbing, no boards) can run now; (2) boards part 2 (P4–P8, P10 standalone,
+  P12–P13, P16–P17, D1, D3) on the same canvas, then R18b (P14, D2) — needed before Session 2.
 - **2026-10-10 (late night, 3):** R18 architecture settled with Tal → **`docs/R18-SCREENS.md`** (screens script for
   approval; supersedes `R18-PLANNING.md` §16–§17: answers Q14–26, R18 / R18b split, default Israeli section order, "Build my list" rules, phone P1–P18,
   computer D1–D3). **Next:** Tal approves / corrects the script → boards in a new chat (canvas "Nexus R18 —
@@ -328,6 +335,15 @@ to setup, tooling or workflow is recorded there in the same session.
   section owners; chain + branch in onboarding, changeable per trip; every onboarding answer editable in Settings.
 - **Onboarding + admin leftovers (Tal 2026-10-10):** desktop onboarding step 5 always shows the phone QR (only the QR
   when the computer can't install); "if it were paid" uses prices checked on the official pages, with the date shown.
+- **R18 boards look (Tal 2026-10-11):** every supermarket product shows a picture tile (replaces Q19 "text rows by
+  default"): a flat illustration of the product type on its section's tint by default, a real photo only when the
+  exact product is known (barcode / own photo / Open Food Facts) — planner recommendation, Tal to confirm; layout lever
+  rows (default) | tiles. Each of the 16 sections has its own colour (icon tile, card tint, aisle rail), with an off
+  switch. Store mode: big progress header (count, %, aisle rail in section colours), the picture tile is the check
+  (fills green, spark burst), confetti + "everything's in the cart" when all is checked and on the finish screen.
+  Product names lead (bigger, bolder; quantity as a chip); stronger borders, less white (screen `#ecebe6`). Hebrew is
+  the default board language. Add: full product name, only the typed letters bold; spelling mistakes → "Did you mean"
+  (edit distance against the household's products), with "add as new" still offered.
 
 ## Product direction (discussed 2026-10-03, not started)
 - Toward a multi-user product: sign-up on web or app, short onboarding questionnaire (habits, stores), Google sign-in,
@@ -358,6 +374,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-11 · this chat · R18 boards part 1 on new canvas "Nexus R18 — Supermarket" (P1, P2, P3, P9, P11, P15, P18; skills bar). Three passes with Tal: v2 bolder names, borders, section colours, progress hero, confetti; v3 product illustrations + tiles layout; v4 stronger edges, typed-letters-only bold, "did you mean". Approved → zip for `docs/design/r18/` (sandbox can't push). Not done: rendering self-check (the Design type forbids it).
 - 2026-10-10 · same chat · R18 architecture with Tal (Q12–26): Supermarket dock tab replaces Projects, Products tab, recipes → R18b. Researched the usual Israeli store layout (produce at the entrance, bread/dairy at the back) → default section order. Wrote `docs/R18-SCREENS.md`.
 - 2026-10-10 · same chat · Push diagnosed from code (non-urgent kinds wait for the active hour and only `hourly.yml` sends them; actor never notified) → wrote `docs/ROUND17-S6.md`. Tal's R18 answers + supermarket structure (Shopping: Supermarket | Stores, store mode, entry points) in `docs/R18-PLANNING.md`.
 - 2026-10-10 · same chat · Roadmap after R17 + R18 kickoff: wrote `docs/R18-PLANNING.md`. Found in code: trips are a pref (no trip table, no check-order log), no staples/templates, no duplicate merge, offline adds not in the outbox.
