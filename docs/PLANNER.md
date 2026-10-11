@@ -7,6 +7,19 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-11 (later):** Tal: zooming the page on the PC switches to the phone UI (admin showed the phone tab bar);
+  `/admin` content area empty on his PC (both layouts, no console error; planner couldn't reproduce locally, see brief
+  X1). → **R17 Session 7 brief `docs/ROUND17-S7.md`** (W: one device class from real signals — client hints / UA, primary
+  pointer + hover, screen size — fixed per page load, Settings → Display → Layout override, `phone:`/`desk:` variants +
+  `useDevice()`, narrow computer window keeps the computer UI; X: empty admin content + app-wide `translate="no"`; Y docs).
+  Order: merge S6 (main moved with 3 docs commits → merge `origin/main` into `round17-s6` first, CI, then ff) → S7 → R18 S1.
+  Prompt:
+  ```
+  Round 17, session 7 (docs/ROUND17-S7.md) — Parts W, X, Y, unattended, on branch round17-s7 from main (after Session 6
+  is merged). Step 0, now while I'm here: make sure .claude/settings.local.json allows "Bash(git push origin
+  round17-s7)", "Bash(git push -u origin round17-s7)", "Bash(git merge --ff-only round17-s7)". Then go through all parts
+  without stopping. Merge to main only if everything is green.
+  ```
 - **2026-10-11:** **R18 boards, part 1 approved by Tal** — canvas **"Nexus R18 — Supermarket"** (private Design artifact,
   this account). Phone boards: `Supermarket-phone` (P2, canvas `Main`), `StoreMode-phone` (P9), `Add-phone` (P3),
   `Finish-phone` (P11), `HomeCard-phone` (P1 + P10 trip bar), `Nav-phone` (P15 + P18); shared `nx-sm.css` on top of the
@@ -349,6 +362,9 @@ to setup, tooling or workflow is recorded there in the same session.
   section owners; chain + branch in onboarding, changeable per trip; every onboarding answer editable in Settings.
 - **Onboarding + admin leftovers (Tal 2026-10-10):** desktop onboarding step 5 always shows the phone QR (only the QR
   when the computer can't install); "if it were paid" uses prices checked on the official pages, with the date shown.
+- **Phone vs computer UI (Tal 2026-10-11):** decided by the device, never by window width or zoom — a computer always
+  gets the computer UI (narrow window → collapsed sidebar, not the phone UI); tablets get the computer UI (planner's
+  choice); a Settings → Display → Layout override exists. Nexus opts out of browser machine translation (`translate="no"`).
 - **R18 boards look (Tal 2026-10-11):** every supermarket product shows a picture tile (replaces Q19 "text rows by
   default"): a flat illustration of the product type on its section's tint by default, a real photo only when the
   exact product is known (barcode / own photo / Open Food Facts) — approved with the boards; layout lever
@@ -388,6 +404,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-11 · this chat · Tal: admin menu won't open on PC. Found `round17-s6` can't fast-forward onto `main` (3 docs commits; the merge is clean) → gave the merge steps. Rebuilt the S5 code in the sandbox (2560 / 1366 / zoom-sized viewports, dark, he, installed-app mode): admin always renders. Tal's screenshot showed the zoomed PC in the phone layout → Tal: phone UI only on real phones → wrote `docs/ROUND17-S7.md`. Empty admin content still undiagnosed (Tal's console snapshot pending).
 - 2026-10-11 · this chat · Tal approved all R18 part-1 boards and asked to start the round → wrote `docs/ROUND18.md` Session 1 (data + engines, no screens; additive migration + prod-snapshot rehearsal). Treated "illustration by default, real photo when the exact product is known" as approved.
 - 2026-10-11 · this chat · R18 boards part 1 on new canvas "Nexus R18 — Supermarket" (P1, P2, P3, P9, P11, P15, P18; skills bar). Three passes with Tal: v2 bolder names, borders, section colours, progress hero, confetti; v3 product illustrations + tiles layout; v4 stronger edges, typed-letters-only bold, "did you mean". Approved → zip for `docs/design/r18/` (sandbox can't push). Not done: rendering self-check (the Design type forbids it).
 - 2026-10-10 · same chat · R18 architecture with Tal (Q12–26): Supermarket dock tab replaces Projects, Products tab, recipes → R18b. Researched the usual Israeli store layout (produce at the entrance, bread/dairy at the back) → default section order. Wrote `docs/R18-SCREENS.md`.
