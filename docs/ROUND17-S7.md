@@ -11,7 +11,7 @@ to `docs/ROUND17.md` "## Open" → "### Session 7"**; tick the items here. Run *
 ## How to run (Session 7)
 - Branch **`round17-s7`** from `main`; commit per item `R17.<part><k>: …`; push after each part; unattended; decisions in
   Open; `git merge --ff-only round17-s7` only when CI is green. No DB change expected.
-- Read open reports and the error log first (`node scripts/errors.mjs`) — X1 may already have a named cause there.
+- **X1 first** (small, unblocks the admin panel), then W, then Y. Read open reports and the error log first (`node scripts/errors.mjs`).
 
 ## Why it happens (planner, from the code)
 The phone/computer decision is made **by viewport width** in ~40 places: Tailwind `lg:` / `max-lg:` (185 + 41 uses; the
@@ -64,19 +64,27 @@ motion-extras, sidebar-edge, assistant-panel, item-card, sheet-drag), CSS `@medi
   layout-choosing width checks outside an allow-list file.
 
 ## Part X — `/admin` content empty on Tal's PC
-### X1. [ ] Find and fix the empty content area
-Facts: Tal's PC (Chrome, Hebrew, dark, screen 2560×1305, page zoomed): the admin frame renders (tab bar, and the
-**reports badge "3"**, which comes from the Live tab's own poll → JS runs and the server answers), but `#admin-main`
-shows nothing — in the computer layout too. Planner reproduced the S5 build locally (1366 / 2560 / 1017×496 /
-600×300, DPR 3.5, dark, he, reduced motion, installed-app mode): content always shows. Not reproduced = something only
-on prod or in Tal's browser. Suspects, in order: (1) **Chrome's Translate** rewriting the Hebrew page (S5 found its
-#418 signature on Tal's PC) — React can lose the tree with no console error; (2) prod data in Live (an event/person
-row that renders nothing or zero height); (3) the crash boundary's fallback invisible in the dark admin theme.
-Do: run `scripts/probe-admin.mjs` on prod at Tal's sizes (2544×1240 at 100 %, and 1017×496) with Translate-like DOM
-edits; read the error log. **Decided by planner:** add `translate="no"` on `<html>` + `<meta name="google"
-content="notranslate">` app-wide — Nexus has its own he/en switch and machine translation breaks React. Also make the
-admin crash fallback and empty states visible in dark (contrast check). Acceptance: on prod after deploy the probe shows
-Live content at both sizes; Open names the cause (or what was ruled out) and what Tal should check if it remains.
+### X1. [ ] Admin hidden by ad blockers — rename the `ad-*` classes (do this first)
+**Cause found (planner, 2026-10-11, from Tal's console):** on Tal's PC `#admin-main`, `.ad-top` and `.ad-body` have
+computed `display: none` with no inline style, no `hidden`, and no external stylesheet in `document.styleSheets` → an ad
+blocker's cosmetic filter (injected as a user-level sheet, invisible to the page and silent in the console). EasyList
+(the base list of uBlock Origin / AdBlock / Adblock Plus / Brave) has the generic rules `##.ad-main`, `##.ad-top`,
+`##.ad-body`, `##.ad-side` — exactly the admin shell's class names (`admin-app.tsx`, `admin.css`, `nx17.css`, also
+imported by onboarding). That is also the S5 "black admin on desktop" that survived the #418 fix (side nav + main both
+hidden; on the phone layout only the tab bar is left). Translate was ruled out (no `translated-*` class, 0 `<font>`). **Tal confirmed:** turning the ad blocker off for the site
+makes the panel appear — the fix must make it work **with the blocker on**.
+Do:
+- Rename every `ad-*` class (`ad-main`, `ad-top`, `ad-body`, `ad-side`, and any other) to a neutral prefix, e.g.
+  `ops-*`, in TSX, CSS and tests; keep `id="admin-main"` only if it doesn't match a list rule (check).
+- New guard **`test:adblock`** (built app, own DB, in `guards.yml`): a vendored snapshot of EasyList's generic cosmetic
+  selectors (`##…` lines without a domain) in `scripts/fixtures/easylist-generic.txt` (+ a script to refresh it, run by
+  hand) is injected into the page on Home, Shopping, Settings, Inbox, onboarding and every `/admin` tab (computer +
+  phone). Fail if any app element is matched (`document.querySelectorAll(selector)` per rule, report rule + element).
+  The quick text check also greps class names against the snapshot.
+- Keep the app-wide `translate="no"` + `<meta name="google" content="notranslate">` (decided; not the cause here, but
+  machine translation breaks React the same silent way).
+Acceptance: `test:adblock` green; on prod after deploy Tal's PC (ad blocker on) shows the admin panel in both layouts;
+Open lists the renamed classes and any other app selector the snapshot caught.
 
 ## Part Y — docs
 - SPEC (device class + override), help topic (Display → Layout), CLAUDE.md map (`useDevice`, `phone:`/`desk:`, the
