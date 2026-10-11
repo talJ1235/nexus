@@ -156,11 +156,11 @@ export function SystemTab({ phone, go }: { phone: boolean; go: Go }) {
     );
   return (
     <>
-      <div className="ad-top">
+      <div className="ops-top">
         <h1>{t.adm.tabs.system}</h1>
         {data && <HealthBadge data={data} />}
       </div>
-      <div className="ad-body" data-system-page>
+      <div className="ops-body" data-system-page>
         {failed && <Failed onRetry={reload} />}
         {content}
       </div>

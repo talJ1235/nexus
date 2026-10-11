@@ -158,7 +158,7 @@ export function PeopleTab({ phone, go, me, person }: { phone: boolean; go: Go; m
 
   return (
     <>
-      <div className="ad-top">
+      <div className="ops-top">
         <h1>{t.adm.tabs.people}</h1>
         <span className="sub num">{counts.all}</span>
         <div style={{ marginInlineStart: "auto", display: "flex", gap: 8, alignItems: "center" }}>
@@ -172,7 +172,7 @@ export function PeopleTab({ phone, go, me, person }: { phone: boolean; go: Go; m
           </button>
         </div>
       </div>
-      <div className="ad-body" data-people>
+      <div className="ops-body" data-people>
         {chips}
         {failed && <Failed onRetry={reload} />}
         <section className="panel" style={{ paddingTop: 12, flexShrink: 0 }}>

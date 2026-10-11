@@ -64,7 +64,7 @@ motion-extras, sidebar-edge, assistant-panel, item-card, sheet-drag), CSS `@medi
   layout-choosing width checks outside an allow-list file.
 
 ## Part X — `/admin` content empty on Tal's PC
-### X1. [ ] Admin hidden by ad blockers — rename the `ad-*` classes (do this first)
+### X1. [x] Admin hidden by ad blockers — rename the `ad-*` classes (do this first)
 **Cause found (planner, 2026-10-11, from Tal's console):** on Tal's PC `#admin-main`, `.ad-top` and `.ad-body` have
 computed `display: none` with no inline style, no `hidden`, and no external stylesheet in `document.styleSheets` → an ad
 blocker's cosmetic filter (injected as a user-level sheet, invisible to the page and silent in the console). EasyList

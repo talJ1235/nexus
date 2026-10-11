@@ -267,12 +267,12 @@ export function InvitesTab({ phone, go }: { phone: boolean; go: Go }) {
 
   return (
     <>
-      <div className="ad-top">
+      <div className="ops-top">
         <h1>{t.adm.tabs.invites}</h1>
         <span className="sub">{I.sub}</span>
         {newBtn}
       </div>
-      <div className="ad-body" data-invites>
+      <div className="ops-body" data-invites>
         {failed && <Failed onRetry={reload} />}
         {formCard}
         {freshCard}

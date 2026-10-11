@@ -161,12 +161,12 @@ export function ErrorsTab({ phone, go }: { phone: boolean; go: Go }) {
     );
   return (
     <>
-      <div className="ad-top">
+      <div className="ops-top">
         <h1>{t.adm.tabs.errors}</h1>
         <span className="sub">{E.kept}</span>
         {segs}
       </div>
-      <div className="ad-body" data-errors>
+      <div className="ops-body" data-errors>
         {failed && <Failed onRetry={reload} />}
         {list}
         {open && open.overflow > 0 && <div className="alert warn">{f(v.overflow, { n: open.overflow })}</div>}

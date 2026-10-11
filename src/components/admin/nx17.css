@@ -58,11 +58,11 @@
 [data-palette=plum] .nx .c-phone{background:var(--brand)}
 .nx .c-desk{background:var(--info)}
 .nx .c-idle{background:var(--s3)}
-.nx .ad-side{width:228px;flex-shrink:0;border-inline-end:1px solid var(--line-in);background:var(--s);padding:16px 10px;display:flex;flex-direction:column;gap:2px}
-.nx .ad-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;position:relative}
-.nx .ad-top{height:64px;display:flex;align-items:center;gap:12px;padding:0 28px;flex-shrink:0}
-.nx .ad-top h1{font-size:22px;font-weight:700;letter-spacing:-.025em;margin:0;line-height:1.1}
-.nx .ad-body{flex:1;min-height:0;overflow:hidden;padding:4px 28px 24px;display:flex;flex-direction:column;gap:16px}
+.nx .ops-side{width:228px;flex-shrink:0;border-inline-end:1px solid var(--line-in);background:var(--s);padding:16px 10px;display:flex;flex-direction:column;gap:2px}
+.nx .ops-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.nx .ops-top{height:64px;display:flex;align-items:center;gap:12px;padding:0 28px;flex-shrink:0}
+.nx .ops-top h1{font-size:22px;font-weight:700;letter-spacing:-.025em;margin:0;line-height:1.1}
+.nx .ops-body{flex:1;min-height:0;overflow:hidden;padding:4px 28px 24px;display:flex;flex-direction:column;gap:16px}
 .nx .navb{border:0;background:transparent;width:100%;text-align:start;color:var(--ink2);height:36px;border-radius:9px;transition:background-color 120ms ease}
 @media (hover:hover) and (pointer:fine){.nx .navb:not(.on):hover{background:var(--hover)}
 }

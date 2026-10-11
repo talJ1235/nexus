@@ -81,7 +81,7 @@ export function AdminApp({ initial, me }: { initial: Route; me: string }) {
 
   return (
     <div className="nx adm" data-admin={route.tab}>
-      <aside className="ad-side" aria-label={t.adm.nav}>
+      <aside className="ops-side" aria-label={t.adm.nav}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "2px 10px 14px" }}>
           <span className="logo">
             <Svg d={PATH.logo} className="i lg" />
@@ -119,7 +119,7 @@ export function AdminApp({ initial, me }: { initial: Route; me: string }) {
         </div>
       </aside>
 
-      <main className="ad-main" id="admin-main">
+      <main className="ops-main" id="admin-main">
         {body}
       </main>
 

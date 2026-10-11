@@ -71,7 +71,8 @@
     "test:onboarding": "node scripts/test-onboarding.mjs",
     "test:notify": "tsx --conditions=react-server scripts/test-notify.ts",
     "test:inbox": "node scripts/test-inbox.mjs",
-    "test:push": "tsx --conditions=react-server scripts/test-push.ts"
+    "test:push": "tsx --conditions=react-server scripts/test-push.ts",
+    "test:adblock": "node scripts/test-adblock.mjs"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",

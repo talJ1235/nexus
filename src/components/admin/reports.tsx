@@ -80,7 +80,7 @@ export function ReportsTab({ phone, go, report }: { phone: boolean; go: Go; repo
 
   return (
     <>
-      <div className="ad-top">
+      <div className="ops-top">
         <h1>{t.adm.tabs.reports}</h1>
         {segs}
       </div>

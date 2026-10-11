@@ -50,7 +50,7 @@ export function LiveTab({ phone, go, onNav }: { phone: boolean; go: Go; onNav: (
           )}
         </div>
       ) : (
-        <div className="ad-top">
+        <div className="ops-top">
           <h1>{t.adm.tabs.live}</h1>
           {data && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--ok)", fontWeight: 600 }} data-live-online={data.stats.online}>
@@ -75,7 +75,7 @@ export function LiveTab({ phone, go, onNav }: { phone: boolean; go: Go; onNav: (
     ) : (
       <>
         {title}
-        <div className="ad-body">{failed ? <Failed onRetry={() => window.location.reload()} /> : <Skeleton rows={6} h={64} />}</div>
+        <div className="ops-body">{failed ? <Failed onRetry={() => window.location.reload()} /> : <Skeleton rows={6} h={64} />}</div>
       </>
     );
 
@@ -123,7 +123,7 @@ function LiveDesktop({ data, title, fresh, go }: { data: Data; title: React.Reac
   return (
     <>
       {title}
-      <div className="ad-body fill" data-live>
+      <div className="ops-body fill" data-live>
         <div className="strip stg" style={{ gridTemplateColumns: "repeat(6,minmax(0,1fr))" }} data-live-stats>
           <div className="stat">
             <span className="v num">{s.online}</span>

@@ -210,11 +210,11 @@ export function AiTab({ phone, go }: { phone: boolean; go: Go }) {
     );
   return (
     <>
-      <div className="ad-top">
+      <div className="ops-top">
         <h1>{t.adm.tabs.ai}</h1>
         {seg}
       </div>
-      <div className="ad-body" data-ai>
+      <div className="ops-body" data-ai>
         {failed && <Failed onRetry={reload} />}
         {content}
       </div>
