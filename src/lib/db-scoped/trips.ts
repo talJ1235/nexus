@@ -163,3 +163,35 @@ export async function noteTripCheck(s: Scoped, userId: string | null, item: { id
   await addCheck(s, t.id, { action: "check", itemId: item.id, productKey: item.productKey, section: item.section, gtin: item.gtin, by: userId });
   if (price != null && price > 0) await addCheck(s, t.id, { action: "price", itemId: item.id, productKey: item.productKey, price, gtin: item.gtin, by: userId });
 }
+
+/** Spaces with at least `min` finished trips, and who shopped in each (B3: the evening draft goes to the shoppers). */
+export async function shoppingSpaces(min = 3) {
+  const rows = await db
+    .select({ spaceId: schema.trip.spaceId, userId: schema.trip.userId, n: sql<number>`count(*)` })
+    .from(schema.trip)
+    .where(isNotNull(schema.trip.finishedAt))
+    .groupBy(schema.trip.spaceId, schema.trip.userId);
+  const out = new Map<string, { trips: number; shoppers: string[] }>();
+  for (const r of rows) {
+    const cur = out.get(r.spaceId) ?? { trips: 0, shoppers: [] };
+    cur.trips += Number(r.n);
+    cur.shoppers.push(r.userId);
+    out.set(r.spaceId, cur);
+  }
+  return [...out.entries()].filter(([, v]) => v.trips >= min).map(([spaceId, v]) => ({ spaceId, shoppers: v.shoppers }));
+}
+
+/** Spaces whose supermarket list has an `auto` staple (the hourly sweep adds the due ones). */
+export async function spacesWithAutoStaples() {
+  const rows = await db
+    .selectDistinct({ spaceId: schema.items.spaceId })
+    .from(schema.items)
+    .where(and(eq(schema.items.list, "supermarket"), eq(schema.items.staple, "auto")));
+  return rows.map((r) => r.spaceId);
+}
+
+/** Other members' open trips in a space (D2: an add reaches them live). */
+export async function openTripsIn(spaceId: string, exceptUserId: string | null) {
+  const rows = await db.select().from(schema.trip).where(and(eq(schema.trip.spaceId, spaceId), isNull(schema.trip.finishedAt)));
+  return rows.filter((t) => t.userId !== exceptUserId && Date.now() - t.startedAt < SAME_TRIP_MS);
+}

@@ -488,7 +488,7 @@ export const notification = sqliteTable(
     id: text("id").primaryKey(),
     userId: text("user_id").notNull(),
     spaceId: text("space_id"),
-    kind: text("kind", { enum: ["shop", "activity", "week", "price", "delivery", "budget"] }).notNull(),
+    kind: text("kind", { enum: ["shop", "activity", "week", "price", "delivery", "budget", "draft", "trip_add"] }).notNull(),
     groupKey: text("group_key").notNull(),
     data: text("data").notNull().default("{}"),
     createdAt: integer("created_at").notNull(),

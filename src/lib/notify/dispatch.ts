@@ -30,7 +30,7 @@ export function payloadFor(rows: NotificationRow[], locale: Locale): PushPayload
     const r = rows[0];
     const data = safe(r.data);
     const t = pushText(r.kind as NotifyKind, data, nt, locale);
-    const actions: PushPayload["actions"] = r.kind === "price" ? [{ action: "open", title: nt.open }] : r.kind === "delivery" && !(data as { received?: boolean }).received ? [{ action: "received", title: nt.received }] : undefined;
+    const actions: PushPayload["actions"] = r.kind === "price" ? [{ action: "open", title: nt.open }] : r.kind === "draft" ? [{ action: "open", title: nt.openList }] : r.kind === "delivery" && !(data as { received?: boolean }).received ? [{ action: "received", title: nt.received }] : undefined;
     // A row updated in place (the trip finished) replaces the earlier notification quietly.
     // R17 P5: money as the app writes it, never a word (the weekly summary included).
     return { ...base, id: r.id, title: normalizeMoney(t.title, locale), body: normalizeMoney(t.body, locale), url: openUrl(r.id), tag: r.groupKey, actions, renotify: false };

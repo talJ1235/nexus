@@ -3,7 +3,7 @@
 
 import { fmt, type Dict } from "../i18n";
 import { formatMoney } from "../money";
-import type { ActivityData, BudgetData, DeliveryData, NotifyKind, PriceData, ShopData, WeekData } from "./kinds";
+import type { ActivityData, BudgetData, DeliveryData, DraftData, NotifyKind, PriceData, ShopData, TripAddData, WeekData } from "./kinds";
 
 type NT = Dict["nt"];
 export type RowText = {
@@ -78,6 +78,15 @@ export function rowText(kind: NotifyKind, raw: unknown, nt: NT, locale: string):
     case "week": {
       const d = raw as WeekData;
       return { title: nt.week, sub: fmt(nt.weekSub, { bought: d.bought, spent: money(d.spent, d.currency), drops: d.drops }) };
+    }
+    case "draft": {
+      const d = raw as DraftData;
+      return { title: d.items === 1 ? nt.draftOne : fmt(nt.draft, { n: d.items }), sub: d.suggested > 0 ? fmt(nt.draftSub, { k: d.suggested, space: d.space }) : fmt(nt.draftSubNone, { space: d.space }), action: "open" };
+    }
+    case "trip_add": {
+      const d = raw as TripAddData;
+      const title = d.n === 1 && d.titles[0] ? fmt(nt.tripAdd, { who: d.who || nt.someone, title: short(d.titles[0], 40) }) : fmt(nt.tripAddN, { who: d.who || nt.someone, n: d.n });
+      return { title, sub: fmt(nt.tripAddSub, { space: d.space }), action: "open" };
     }
   }
 }

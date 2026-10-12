@@ -10,8 +10,11 @@ import { ownerPrefs } from "../tracker";
 import type { Alert } from "../types";
 import type { BudgetData, DeliveryData, PriceData, ShopData, WeekData } from "./kinds";
 import { notify, notifyPrefs, sendNow } from "./enqueue";
-import { finishTrip, openTripOf, openTrips, SAME_TRIP_MS, setTripLeft, startTrip, tripScope, type TripRow } from "../db-scoped/trips";
-import { defaultStore, refreshSuggestedOrder } from "../db-scoped/grocery";
+import { addCheck, finishTrip, openTripOf, openTrips, openTripsIn, SAME_TRIP_MS, setTripLeft, shoppingSpaces, spacesWithAutoStaples, startTrip, tripScope, type TripRow } from "../db-scoped/trips";
+import { addDueStaples, defaultStore, historyOf, refreshSuggestedOrder, suggestFor, supermarketList } from "../db-scoped/grocery";
+import { kvGet, kvSet } from "../kv";
+import { DRAFT_PREF_KEY, type DraftData, type TripAddData } from "./kinds";
+import { isQuiet } from "./schedule";
 import { local, nextLocal } from "./schedule";
 
 // R17 S3 M — who gets what, when. Every sender goes through notify() (actor excluded, one row per group key, timing).
@@ -49,7 +52,7 @@ async function currentTrip(userId: string): Promise<{ row: TripRow | null; legac
  * Shopping mode started → a `trip` row (every space: trips teach the walking order and the staples), and in a shared
  * space the other members hear about it at once (one inbox row per trip, updated in place).
  */
-export async function tripStarted(userId: string, spaceId: string | null, left: number | null, now = Date.now()) {
+export async function tripStarted(userId: string, spaceId: string | null, left: number | null, now = Date.now(), at?: { chain: string; branch: string }) {
   if (!spaceId) return;
   const open = await currentTrip(userId);
   if (open && open.spaceId === spaceId && now - open.at < SAME_TRIP_MS) return; // a reload mid-trip is the same trip
@@ -58,7 +61,7 @@ export async function tripStarted(userId: string, spaceId: string | null, left: 
   if (open?.legacy) await userPrefSet(userId, TRIP_KEY, null);
   const key = `shop:${userId}:${now}`;
   const s = new Scoped({ spaceId, userId, by: userId });
-  const store = await defaultStore(s);
+  const store = at ?? (await defaultStore(s));
   await startTrip(s, userId, { planned: left ?? 0, notifyKey: key, now, chain: store?.chain ?? null, branch: store?.branch ?? null });
   const sp = await spaceBrief(spaceId);
   if (!sp || sp.kind !== "shared") return;
@@ -277,6 +280,109 @@ export async function idleTrips(now = Date.now()) {
   return n;
 }
 
+// ---------- R18 B3: the evening-before draft ----------
+
+const DRAFT_FROM = 19;
+const DRAFT_TO = 21;
+
+/**
+ * For a space whose usual shopping day (≥ 3 trips) is tomorrow, between 19:00 and 21:00 in the shopper's zone and not
+ * in quiet hours: the draft (list + suggestions) is computed once per space per day and each member who shops gets one
+ * push "Your list for tomorrow: 18 items, Nexus suggests 4". Never changes the list.
+ */
+export async function eveningDrafts(now = Date.now()) {
+  let n = 0;
+  for (const { spaceId, shoppers } of await shoppingSpaces(3)) {
+    const sp = await spaceBrief(spaceId);
+    if (!sp || sp.deletedAt) continue;
+    const members = new Set((await spaceAudience(spaceId, null)).filter((m) => m.role !== "viewer").map((m) => m.userId));
+    for (const userId of shoppers.filter((u) => members.has(u))) {
+      if ((await userPrefGet(userId, DRAFT_PREF_KEY)) === "off") continue;
+      const p = await notifyPrefs(userId, now);
+      const l = local(now, p.tz);
+      if (l.hour < DRAFT_FROM || l.hour >= DRAFT_TO || isQuiet(now, p.tz)) continue;
+      const s = new Scoped({ spaceId, userId, by: "system" });
+      const { history } = await historyOf(s, p.tz);
+      const tomorrow = local(now + DAY, p.tz);
+      if (!history.usualDay || history.usualDay.weekday !== tomorrow.weekday) continue;
+      const day = ymd(now + DAY, p.tz);
+      const key = `draft:${spaceId}:${day}`;
+      if (await notificationByGroup(userId, key)) continue;
+      // Computed once per space per evening (every shopper sees the same draft).
+      const cacheKey = `sm:draft:${spaceId}:${day}`;
+      let draft = parse<{ items: number; suggestions: unknown[] }>(await kvGet(cacheKey));
+      if (!draft) {
+        const [list, sug] = await Promise.all([supermarketList(s), suggestFor(s, { now, tz: p.tz })]);
+        draft = { items: list.length, suggestions: sug };
+        await kvSet(cacheKey, JSON.stringify({ ...draft, at: now }));
+      }
+      const data: DraftData = { space: sp.name, items: draft.items, suggested: draft.suggestions.length, day };
+      await notify([userId], "draft", key, data, { actor: null, spaceId, now });
+      n++;
+    }
+  }
+  return n;
+}
+
+/** The draft computed for a space's evening (S2 opens /supermarket?draft=1 with it). */
+export async function draftOf(spaceId: string, day: string) {
+  return parse<{ items: number; suggestions: unknown[]; at: number }>(await kvGet(`sm:draft:${spaceId}:${day}`));
+}
+
+/** B2: `auto` staples due today are added by Nexus (once per product per due day; undoable). */
+export async function autoStaples(now = Date.now()) {
+  let n = 0;
+  for (const spaceId of await spacesWithAutoStaples()) {
+    const sp = await spaceBrief(spaceId);
+    if (!sp || sp.deletedAt) continue;
+    const tz = (await notifyPrefs(sp.ownerId ?? "", now)).tz;
+    n += (await addDueStaples(new Scoped({ spaceId, userId: null, by: "system" }), { now, tz })).length;
+  }
+  return n;
+}
+
+// ---------- R18 D2: an add reaches the shopper in the store ----------
+
+const LIVE_GAP = 10 * 60_000;
+
+/**
+ * Someone added to the supermarket list while another member is shopping in this space → an `add` in that trip's log
+ * (the shopper's list highlights it) and a push "Noa added milk": the first at once, then grouped, ≤ 1 per 10 min per trip.
+ */
+export async function liveAdd(userId: string, spaceId: string, added: { itemId: string; title: string; productKey: string | null; section: string | null }[], now = Date.now()) {
+  if (!added.length) return 0;
+  const trips = await openTripsIn(spaceId, userId);
+  if (!trips.length) return 0;
+  const sp = await spaceBrief(spaceId);
+  const who = (await firstNames([userId]))[userId] ?? "";
+  for (const t of trips) {
+    const s = tripScope(t);
+    for (const a of added) await addCheck(s, t.id, { action: "add", itemId: a.itemId, productKey: a.productKey, section: a.section, by: userId, at: now });
+    const key = `tripadd:${t.id}`;
+    const prev = await notificationByGroup(t.userId, key);
+    const at = !prev ? now : prev.sentAt ? Math.max(now, prev.sentAt + LIVE_GAP) : prev.sendAfter && prev.sendAfter > now ? prev.sendAfter : now;
+    await notify(
+      [t.userId],
+      "trip_add",
+      key,
+      (old) => {
+        // Adds not pushed yet join the waiting row; after a push the row starts a new group.
+        const carry = !prev?.sentAt ? (old as TripAddData | null) : null;
+        return {
+          who: carry?.who || who,
+          whoIds: [...new Set([...(carry?.whoIds ?? []), userId])],
+          titles: [...(carry?.titles ?? []), ...added.map((a) => a.title)].slice(-5),
+          n: (carry?.n ?? 0) + added.length,
+          space: sp?.name ?? "",
+          tripId: t.id,
+        } satisfies TripAddData;
+      },
+      { actor: userId, spaceId, now, at: () => at },
+    );
+  }
+  return trips.length;
+}
+
 /** The hourly dispatcher's sweeps (each step on its own: one failing never stops the others). */
 export async function runNotifySweeps(now = Date.now()) {
   const step = async (f: () => Promise<number>) => {
@@ -291,6 +397,8 @@ export async function runNotifySweeps(now = Date.now()) {
     deliveries: await step(() => deliveriesToday(now)),
     budget: await step(() => budgetAlerts(now)),
     week: await step(() => weeklySummaries(now)),
+    drafts: await step(() => eveningDrafts(now)),
+    staples: await step(() => autoStaples(now)),
   };
 }
 

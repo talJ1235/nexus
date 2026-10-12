@@ -1,6 +1,7 @@
 // R18 B1 + B2 — learn from what the household bought, and suggest (pure; the server feeds it rows from trip_check,
 // purchased supermarket items and receipts). Rules from R18-SCREENS §3: suggestions never change the list; never what is
 // already on it (any quantity) or was dismissed this cycle; each carries a short reason.
+//   (first reason wins: shabbat, holiday, with, due)
 //   due      — bought ≥ 3 times (≥ 2 for a `suggest` / `auto` staple) and the usual gap has (almost) passed: "every ~9 days"
 //   shabbat  — Wednesday afternoon → Friday 14:00: challah / wine, or what this home buys mostly on Thursday / Friday
 //   holiday  — the 3 days before a holiday's eve: its typical products (lib/grocery/holidays.ts)
@@ -156,12 +157,7 @@ export function suggest(i: SuggestInput): Suggestion[] {
     if (!ok(p.productKey)) return;
     out.set(p.productKey, { productKey: p.productKey, title: p.title, qty: p.usualQty, amount: p.usualAmount, unit: p.unit, section: p.section, art: p.art, reasonKey, reasonArgs, quietUntil });
   };
-  // 1. Due by the usual gap.
-  for (const p of [...i.history.products.values()].sort((a, b) => b.count - a.count)) {
-    if (i.staples?.get(p.productKey) === "auto") continue; // the engine adds those itself (dueStaples)
-    if (isDue(p, i.now)) add(p, "due", { days: p.intervalDays! }, i.now + Math.max(1, p.intervalDays! - 1) * DAY);
-  }
-  // 2. Shabbat: Wednesday from noon until Friday 14:00, unless bought since Sunday.
+  // 1. Shabbat (the more specific reason wins over "due"): Wednesday from noon until Friday 14:00, unless bought since Sunday.
   const shabbatWindow = (l.weekday === 3 && l.hour >= 12) || l.weekday === 4 || (l.weekday === 5 && l.hour < 14);
   if (shabbatWindow) {
     const sinceSunday = i.now - ((l.weekday * 24 + l.hour) * 3_600_000);
@@ -172,7 +168,7 @@ export function suggest(i: SuggestInput): Suggestion[] {
       if (shabbatItem && p.last.at < sinceSunday) add(p, "shabbat", {}, untilSat);
     }
   }
-  // 3. A holiday in the next 3 days: its typical products (the household's own version when it has one).
+  // 2. A holiday in the next 3 days: its typical products (the household's own version when it has one).
   const today = `${l.y}-${String(l.m).padStart(2, "0")}-${String(l.d).padStart(2, "0")}`;
   const hol = holidayAhead(today, 3);
   if (hol) {
@@ -184,7 +180,7 @@ export function suggest(i: SuggestInput): Suggestion[] {
       else if (t) add({ productKey: t.key, title: i.locale === "he" ? t.he : t.en, usualQty: 1, usualAmount: null, unit: null, section: t.section, art: t.art }, "holiday", { holiday: hol.key }, after);
     }
   }
-  // 4. Usually bought with something on the list.
+  // 3. Usually bought with something on the list.
   for (const a of i.onList) {
     const withA = i.baskets.filter((b) => b.has(a));
     if (withA.length < 3) continue;
@@ -194,6 +190,11 @@ export function suggest(i: SuggestInput): Suggestion[] {
       const p = i.history.products.get(k);
       if (p && n / withA.length >= 0.6) add(p, "with", { title: i.listTitles?.get(a) ?? i.history.products.get(a)?.title ?? a }, i.now + 7 * DAY);
     }
+  }
+  // 4. Due by the usual gap.
+  for (const p of [...i.history.products.values()].sort((a, b) => b.count - a.count)) {
+    if (i.staples?.get(p.productKey) === "auto") continue; // the engine adds those itself (dueStaples)
+    if (isDue(p, i.now)) add(p, "due", { days: p.intervalDays! }, i.now + Math.max(1, p.intervalDays! - 1) * DAY);
   }
   return [...out.values()].slice(0, i.limit ?? 12);
 }

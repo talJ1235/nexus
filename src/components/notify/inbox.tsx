@@ -67,7 +67,7 @@ function useOpenRow(close: () => void) {
       }
       close();
       if ((r.kind === "price" || r.kind === "delivery") && d.itemId) s.openItem(d.itemId);
-      else if (r.kind === "shop" || r.kind === "activity") s.setView({ type: "to_buy" });
+      else if (r.kind === "shop" || r.kind === "activity" || r.kind === "draft" || r.kind === "trip_add") s.setView({ type: "to_buy" });
       else s.setView({ type: "spending" });
     },
     [s, close],
