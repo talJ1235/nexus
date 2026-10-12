@@ -1039,6 +1039,9 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
   a computer never gets them. `presence-keys.deviceOf` removed: beats, push device labels and diagnostics use the class.
   Narrow computer: the rail state lives in the store (`narrowDesk`, `railOpen`), so the sidebar, its edge, Ctrl+B and
   the add bar agree; `min-width: 720px` on computer pages.
+  Every device selector is anchored to `html[data-device=…]`: Settings → devices rows (`current` / `other`) and admin
+  Live rows (`phone` / `computer`!) already use `data-device` on elements — CI caught it (`test:auth-flow` counted
+  `<html>` as a third session row); the test now counts `body [data-device]`.
 - **Kept width checks** (`scripts/device-width-allow.txt`): `lg:grid-cols-*` in projects / skeletons / spending (column
   counts), `max-sm:` icon-only labels and the item card's compact look (sizing; not flagged — the guard watches `lg:`,
   width `useMedia`/`matchMedia` and CSS `@media` width), the narrow-phone media in globals.css (each rule also needs

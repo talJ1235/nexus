@@ -191,11 +191,11 @@ try {
   await p2.waitForURL((u) => u.pathname === "/", { timeout: 120_000 });
   await pn.goto(`${BASE}/settings/security`, { timeout: 120_000 });
   await pn.waitForSelector("[data-device=other]", { timeout: 60_000 });
-  const devices = await pn.locator("[data-device]").count();
+  const devices = await pn.locator("body [data-device]").count(); // not <html data-device> (R17 S7)
   ok(devices === 2, "A1/A5 the session list shows both devices", String(devices));
   ok((await pn.textContent("[data-device=other]")).includes("Android"), "A5 the other device is described (Chrome on Android)");
   await pn.click("[data-sign-out-device]");
-  await pn.waitForFunction(() => document.querySelectorAll("[data-device]").length === 1, null, { timeout: 30_000 });
+  await pn.waitForFunction(() => document.querySelectorAll("body [data-device]").length === 1, null, { timeout: 30_000 });
   const r = await p2.goto(`${BASE}/?v=to_buy`, { timeout: 120_000 });
   ok(new URL(p2.url()).pathname === "/login", "A5 the signed-out device gets /login on its next request", `${r?.status()} ${p2.url()}`);
   ok((await q(`SELECT count(*) n FROM security_event e JOIN "user" u ON u.id = e.user_id WHERE u.email = 'newbie@auth.test' AND e.kind = 'sign_out_device'`))[0].n === 1, "A5 security event logged");

@@ -24,17 +24,17 @@
 .nx.ob .face{position:absolute}
 .nx.ob .qr-box{flex-shrink:0}
 @media (max-width:359px){.nx.ob .stores{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-height:700px){:where([data-device=phone]) .nx.ob .band{height:min(220px,32dvh)}:where([data-device=phone]) .nx.ob .stage .scene,:where([data-device=phone]) .nx.ob .stage>*{transform:scale(.82)}}
+@media (max-height:700px){:where(html[data-device=phone]) .nx.ob .band{height:min(220px,32dvh)}:where(html[data-device=phone]) .nx.ob .stage .scene,:where(html[data-device=phone]) .nx.ob .stage>*{transform:scale(.82)}}
 
- :where([data-device=computer]) .nx.ob{flex-direction:row}
- :where([data-device=computer]) .nx.ob .band{width:min(560px,41vw);height:auto;padding:36px 44px}
- :where([data-device=computer]) .nx.ob .band .stage{transform:none}
- :where([data-device=computer]) .nx.ob .big-scene{transform:scale(1.45)}
- :where([data-device=computer]) .nx.ob .main{flex:1;min-width:0;display:flex;flex-direction:column;padding:36px 72px 40px}
- :where([data-device=computer]) .nx.ob .qt{font-size:34px;font-weight:800;letter-spacing:-.035em;margin:0;line-height:1.1}
- :where([data-device=computer]) .nx.ob .ql{margin:10px 0 0;font-size:16px;color:var(--muted)}
- :where([data-device=computer]) .nx.ob .col{max-width:560px;width:100%;margin-top:min(64px,6vh);display:flex;flex-direction:column;flex:1;min-height:0}
- :where([data-device=computer]) .nx.ob .col .content{margin-top:32px;min-height:0;overflow-y:auto;padding:2px}
- :where([data-device=computer]) .nx.ob .actions{margin-top:auto;padding-top:16px;display:flex;gap:10px;align-items:center}
- :where([data-device=computer]) .nx.ob input{font-size:14px}
-@media (max-height:760px){:where([data-device=computer]) .nx.ob .col{margin-top:28px}:where([data-device=computer]) .nx.ob .col .content{margin-top:20px}:where([data-device=computer]) .nx.ob .big-scene{transform:scale(1.25)}}
+ :where(html[data-device=computer]) .nx.ob{flex-direction:row}
+ :where(html[data-device=computer]) .nx.ob .band{width:min(560px,41vw);height:auto;padding:36px 44px}
+ :where(html[data-device=computer]) .nx.ob .band .stage{transform:none}
+ :where(html[data-device=computer]) .nx.ob .big-scene{transform:scale(1.45)}
+ :where(html[data-device=computer]) .nx.ob .main{flex:1;min-width:0;display:flex;flex-direction:column;padding:36px 72px 40px}
+ :where(html[data-device=computer]) .nx.ob .qt{font-size:34px;font-weight:800;letter-spacing:-.035em;margin:0;line-height:1.1}
+ :where(html[data-device=computer]) .nx.ob .ql{margin:10px 0 0;font-size:16px;color:var(--muted)}
+ :where(html[data-device=computer]) .nx.ob .col{max-width:560px;width:100%;margin-top:min(64px,6vh);display:flex;flex-direction:column;flex:1;min-height:0}
+ :where(html[data-device=computer]) .nx.ob .col .content{margin-top:32px;min-height:0;overflow-y:auto;padding:2px}
+ :where(html[data-device=computer]) .nx.ob .actions{margin-top:auto;padding-top:16px;display:flex;gap:10px;align-items:center}
+ :where(html[data-device=computer]) .nx.ob input{font-size:14px}
+@media (max-height:760px){:where(html[data-device=computer]) .nx.ob .col{margin-top:28px}:where(html[data-device=computer]) .nx.ob .col .content{margin-top:20px}:where(html[data-device=computer]) .nx.ob .big-scene{transform:scale(1.25)}}
