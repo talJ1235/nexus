@@ -7,6 +7,12 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-12 (later):** **R18 S1 done on `round18-s1`** (all parts ticked; prod snapshot + rehearsal passed, no items
+  moved — prod has no grocery-named collection; CI was running on `11e3df8`). Planner checked the holiday table
+  (`src/lib/grocery/holidays.ts`, Oct 2026 → Oct 2027) against a computed Hebrew calendar: all dates correct (5787 is a
+  leap year → Purim in Adar II, eve 2027-03-22; Independence Day 5 Iyar = Wed 2027-05-12, no shift). Tal decided the
+  staple semantics (below) → goes into the S2 brief with the Settings / item-sheet UI. Phone smoke "item sheet morph"
+  fails on `main` too → fix in S2. **Next:** boards part 2 (new chat) → S2 brief.
 - **2026-10-12:** **R17 S6 + S7 merged and live** (S6 `0f913bd` after a green re-run; S7 `cba203b`, CI green).
   S7: admin `ad-*` → `ops-*` + `test:adblock`; device class (`html[data-device]`, `useDevice()`, `phone:`/`desk:`,
   Layout override, 222 tokens + ~25 JS checks moved) + `test:device` (111) + `test:device-width`. Not yet verified by
@@ -372,6 +378,10 @@ to setup, tooling or workflow is recorded there in the same session.
   gets the computer UI (narrow window → collapsed sidebar, not the phone UI); tablets get the computer UI (planner's
   choice); a Settings → Display → Layout override exists. Nexus opts out of browser machine translation (`translate="no"`).
 - **Class names (2026-10-11):** no CSS class or id may match ad-blocker cosmetic lists (EasyList generic `##` rules, e.g. `ad-*`, `ads`, `sponsor`); guarded by `test:adblock`.
+- **Staples (Tal 2026-10-12):** three states per product. **Not set** (default): Nexus suggests it by itself once it has
+  learned the rhythm (≥ 3 purchases). **Suggest / Add by itself**: chosen by the user. **Off**: only when the user picks it
+  (e.g. "don't suggest this") → never suggested again. S1 stores `staple = off` as the default and still suggests → S2
+  adds the "not set" state (e.g. null default; existing `off` rows migrate to not set, since no user could choose yet).
 - **R18 boards look (Tal 2026-10-11):** every supermarket product shows a picture tile (replaces Q19 "text rows by
   default"): a flat illustration of the product type on its section's tint by default, a real photo only when the
   exact product is known (barcode / own photo / Open Food Facts) — approved with the boards; layout lever
@@ -411,6 +421,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-12 · this chat · Reviewed R18 S1 (all parts done, rehearsal on the prod snapshot passed). Verified the holiday table with a computed Hebrew calendar (all correct). Tal chose the staple states (not set → suggests; off = only by choice, never).
 - 2026-10-12 · this chat · Reviewed R17 S6 + S7 results (both merged, CI green; S7 X1/W/Y as briefed, 111 device checks). Added the S7 rules and a no-search-key smoke fix to `docs/ROUND18.md` "How to run". Gave Tal the prod checks; R18 S1 next.
 - 2026-10-11 · this chat · Tal: admin menu won't open on PC. Found `round17-s6` can't fast-forward onto `main` (3 docs commits; the merge is clean) → gave the merge steps. Rebuilt the S5 code in the sandbox (2560 / 1366 / zoom-sized viewports, dark, he, installed-app mode): admin always renders. Tal's screenshot showed the zoomed PC in the phone layout → Tal: phone UI only on real phones → wrote `docs/ROUND17-S7.md`. Empty admin content then diagnosed from Tal's console: `#admin-main` / `.ad-top` / `.ad-body` computed `display:none`, no inline style, no external sheet → ad blocker; EasyList has `##.ad-main`, `##.ad-top`, `##.ad-body`, `##.ad-side` → S7 X1 rewritten (rename `ad-*`, new `test:adblock` with a vendored EasyList generic snapshot), X1 runs first. Tal confirmed: ad blocker off → panel shows.
 - 2026-10-11 · this chat · Tal approved all R18 part-1 boards and asked to start the round → wrote `docs/ROUND18.md` Session 1 (data + engines, no screens; additive migration + prod-snapshot rehearsal). Treated "illustration by default, real photo when the exact product is known" as approved.
