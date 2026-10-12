@@ -198,3 +198,9 @@ Run 2026-10-12 on `round18-s1` (from `main` 0976c97, after R17 S6 + S7). All ite
   `grocery`, counts in the person's quota) — S2's Add screen should show `other` rows settling into their section.
   Locally `test:ai-quota` / `test:delete-account` exit non-zero after printing OK on Windows (same on `main`; the
   native DB client on exit) — CI on Linux is the judge.
+- **Phone smoke** (`serve-smoke.sh` + `SMOKE_WRITE=1 SMOKE_MOBILE=1 npm run smoke`): "compare stores" passes with
+  `SEARCH_OFF=1`. One failure, **also on `main`** (same build + data): "item sheet morph — nothing behind the sheet moves
+  on open" (the card under the tapped one moves 168 px ~70 ms after opening). Not from R18 — left for an R18 S2 / S3 fix.
+  (The boot-screen step failed once and passed on the rerun: flaky.)
+- The evening-before push is skipped when the supermarket list is empty and nothing is suggested (a home still
+  shopping from Products would otherwise get "0 items").
