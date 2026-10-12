@@ -30,7 +30,7 @@ export function ProjectsView() {
     <div className="flex flex-col gap-8 pb-4" data-projects-view>
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-[26px] font-extrabold tracking-[-0.02em] lg:text-[28px]">{t.projects.title}</h1>
+          <h1 className="text-[26px] font-extrabold tracking-[-0.02em] desk:text-[28px]">{t.projects.title}</h1>
           <NewMenu />
         </div>
         {projects.length > 0 && <Summary projects={projects} />}
@@ -238,7 +238,7 @@ function ProjectCard({ c, index, small }: { c: Collection; index: number; small?
           <button
             type="button"
             onClick={() => s.setEditor({ mode: "edit", collection: c })}
-            className="relative z-[2] -me-1.5 -mt-1 grid size-9 place-items-center rounded-full text-muted opacity-0 transition hover:bg-surface-2 hover:text-ink group-hover:opacity-100 max-lg:hidden"
+            className="relative z-[2] -me-1.5 -mt-1 grid size-9 place-items-center rounded-full text-muted opacity-0 transition hover:bg-surface-2 hover:text-ink group-hover:opacity-100 phone:hidden"
             aria-label={t.collection.rename}
             title={t.collection.rename}
           >

@@ -11,19 +11,18 @@ import { notifyAsk, notifyBoot, type InboxRow } from "@/app/notify-actions";
 import { setNotificationsOn } from "@/app/home-actions";
 import { askPermission, ensureSubscribed, permState, pushEnv, type PermState } from "@/lib/notify/client";
 import { isToday } from "@/lib/notify/text";
-import { useMedia } from "@/components/ui/use-media";
 import { useBackClose } from "@/components/ui/sheet-drag";
 import { cn } from "@/lib/utils";
 import { useStore } from "../app/store";
 import { AllowSteps } from "./allow";
 import { inboxStore, useInbox } from "./inbox-state";
 import { ICONS, NotifyRow, Svg } from "./row";
+import { isPhone, useDevice } from "@/components/ui/use-device";
 
 // R17 S3 K — the inbox. Desktop: a popover out of the header bell (420 wide, 200 ms ease-out from the bell). Phone: a
 // full page pushed in from the inline-end over Home (Home shifts back and dims; Back / edge swipe / browser Back reverse
 // it). Opened by `panel === "alerts"` so every old entry point (Me sheet, palette, assistant, "Needs you") lands here.
 
-export const DESK = "(min-width: 1024px)";
 const REFRESH_MS = 60_000;
 
 /** This device's permission, re-read on focus (the person may have changed it in the browser's settings). */
@@ -381,7 +380,7 @@ function Page({ onClose }: { onClose: () => void }) {
     document.documentElement.removeAttribute("data-inbox");
     setTimeout(onClose, 280);
   }, [onClose]);
-  useBackClose(true, finish, "(max-width: 1023px)");
+  useBackClose(true, finish, isPhone);
   const open = useOpenRow(onClose);
   useEffect(() => {
     void inboxStore.load();
@@ -463,7 +462,7 @@ function Page({ onClose }: { onClose: () => void }) {
 /** The inbox for whichever layout is showing. */
 export function InboxLayer() {
   const s = useStore();
-  const desk = useMedia(DESK);
+  const desk = useDevice() === "computer";
   const open = s.panel === "alerts";
   const close = useCallback(() => {
     s.setPanel(null);

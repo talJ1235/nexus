@@ -25,6 +25,7 @@ import { DeliveryTrack } from "./delivery-track";
 import { dayKeyIn, deliveryTrack } from "@/lib/home";
 import { ItemContextMenu, openItemActions, SHORTCUT, StatusIcon, statusActs, useActionLabels, useItemActions } from "./quick-actions";
 import { EASE_OUT } from "@/lib/motion";
+import { isPhoneNarrow } from "@/components/ui/use-device";
 
 /**
  * The one product picture frame (Round 11 D1), used everywhere a product picture shows. Cut-outs — and pictures not
@@ -662,7 +663,7 @@ function useCardGestures({ enabled, blocks, onRowHold, onCardHold, onDelete }: {
   };
   const handlers = {
     onPointerDown: (e: React.PointerEvent) => {
-      if (e.pointerType === "mouse" || !window.matchMedia("(max-width: 639px)").matches) return;
+      if (e.pointerType === "mouse" || !isPhoneNarrow()) return;
       const el = e.currentTarget as HTMLElement;
       const rows = !!el.closest('[data-phone-layout="rows"]');
       const dir: 1 | -1 = document.documentElement.dir === "rtl" ? -1 : 1;
@@ -720,7 +721,7 @@ function useCardGestures({ enabled, blocks, onRowHold, onCardHold, onDelete }: {
     },
     // Long-press must not open the browser's own menu / image callout on phones.
     onContextMenu: (e: React.MouseEvent) => {
-      if (window.matchMedia("(max-width: 639px)").matches && touch) e.preventDefault();
+      if (isPhoneNarrow() && touch) e.preventDefault();
     },
   };
   return { dx, held, dragging, touch, close, handlers };

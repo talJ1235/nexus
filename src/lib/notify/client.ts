@@ -2,7 +2,7 @@
 // R17 S3 J2 — this browser's push: environment, permission, subscribe / re-check / save. Browser-only.
 // iPhone: push exists only for a Home Screen app (standalone) — in Safari tabs the API is missing or never fires.
 
-import { deviceOf } from "../presence-keys";
+import { isPhone } from "@/components/ui/use-device";
 
 export type PushEnv = { supported: boolean; iphone: boolean; standalone: boolean; device: "phone" | "computer" };
 export type PermState = "granted" | "denied" | "default" | "unsupported" | "iphone-browser";
@@ -13,7 +13,7 @@ export function pushEnv(): PushEnv {
   const iphone = /iPhone|iPod|iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
   const supported = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
-  return { supported, iphone, standalone, device: deviceOf(window.matchMedia("(pointer: coarse)").matches, window.innerWidth) };
+  return { supported, iphone, standalone, device: isPhone() ? "phone" : "computer" };
 }
 
 export function permState(env = pushEnv()): PermState {

@@ -7,8 +7,8 @@ import type { ItemWithSources } from "@/lib/types";
 import { itemsForView } from "@/lib/views";
 import { normalizeCategory } from "@/lib/categories";
 import { monthKey } from "@/lib/budget";
-import { PHONE, useMedia } from "@/components/ui/use-media";
 import { useStore } from "./store";
+import { usePhoneNarrow } from "@/components/ui/use-device";
 
 export { itemsForView };
 
@@ -18,7 +18,7 @@ export { itemsForView };
  */
 export function useTable() {
   const s = useStore();
-  const phone = useMedia(PHONE);
+  const phone = usePhoneNarrow();
   return !phone && s.layout === "table";
 }
 

@@ -19,7 +19,6 @@ import {
 import { useI18n } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { Menu, MenuContent, MenuItem, MenuTrigger, Modal } from "@/components/ui/overlays";
-import { useMedia } from "@/components/ui/use-media";
 import { capFor, monthKeyIn, monthStartIn, monthForecast, nextMonthKey } from "@/lib/budget";
 import { lineTotal, spendDate } from "@/lib/calc";
 import { formatMoney } from "@/lib/money";
@@ -32,6 +31,7 @@ import { deepOf, gradientOf, isSpacePhoto } from "../spaces/look";
 import { avatarColor, Facepile, openSpaces, reloadInto, SpaceLook, usePresence } from "../spaces/space-ui";
 import type { PageProps } from "./shell";
 import { Av, I, Li, P, SectionHead, Sel, Toggle } from "./ui";
+import { useDevice } from "@/components/ui/use-device";
 
 // Settings → the current space (R16 D2, boards SpaceSettings-desktop/-phone): a cover band in the space's look, then
 // General (name, currency, numbers, look), People & invites (roles, remove, transfer, links + QR), Budget, Danger
@@ -779,7 +779,7 @@ function BudgetRecipients() {
   const { t, f } = useI18n();
   const st = t.nt.set;
   const [state, setState] = useState<Awaited<ReturnType<typeof budgetRecipientsState>> | null>(null);
-  const desk = useMedia("(min-width: 1024px)");
+  const desk = useDevice() === "computer";
   const [open, setOpen] = useState(false);
   const spaceId = s.space?.id;
   useEffect(() => {

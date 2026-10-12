@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useI18n } from "@/components/providers";
 import { cn } from "@/lib/utils";
 import { useStore } from "./store";
+import { isPhone } from "@/components/ui/use-device";
 
 export const SIDEBAR_MIN = 68;
 export const SIDEBAR_MAX = 224;
@@ -31,7 +32,7 @@ export function SidebarEdge({ onLive }: { onLive: (w: number | null) => void }) 
       if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "b" || e.altKey || e.shiftKey) return;
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
-      if (!window.matchMedia("(min-width: 1024px)").matches) return;
+      if (isPhone()) return;
       e.preventDefault();
       s.setSidebarCollapsed(!s.sidebarCollapsed);
     };

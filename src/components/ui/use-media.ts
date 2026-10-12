@@ -15,5 +15,5 @@ export function useMedia(query: string): boolean {
   );
 }
 
-/** Phone width (matches Tailwind's `max-sm`). */
+/** Narrow width (Tailwind's `max-sm`) — sizing only; "is this the phone UI" = useDevice() (R17 S7). */
 export const PHONE = "(max-width: 639px)";

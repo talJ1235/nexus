@@ -2,6 +2,7 @@
 // attached to problem reports. Never secrets, never personal data or item prices — view names, counts, versions.
 import { clientErrors, failedRequests, type ClientError, type FailedRequest } from "./client-errors";
 import { currentPalette } from "./palette";
+import { isPhone } from "@/components/ui/use-device";
 
 export type ClientDiag = {
   view: string;
@@ -46,7 +47,7 @@ export function collectDiag(view: string, locale: string, extension: string | nu
   const sw = navigator.serviceWorker?.controller?.scriptURL ?? null;
   return {
     view,
-    device: window.matchMedia("(max-width: 1023px)").matches ? "phone" : "desktop",
+    device: isPhone() ? "phone" : "desktop",
     viewport: `${window.innerWidth}×${window.innerHeight}`,
     palette: currentPalette(),
     mode: document.documentElement.classList.contains("dark") ? "dark" : "light",

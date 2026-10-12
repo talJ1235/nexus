@@ -28,12 +28,10 @@
 .nx.adm .navb.on{background:var(--sel);color:var(--ink);font-weight:600}
 .nx.adm .navb svg{flex-shrink:0}
 .nx.adm .ops-side .navlabel{padding:14px 10px 6px}
-@media (max-width:1023px){
- .nx.adm{display:block}
- .nx.adm .ops-side{display:none}
- .nx.adm .ops-main{height:100%}
-}
-@media (min-width:1024px){.nx.adm .tabbar{display:none}}
+ :where([data-device=phone]) .nx.adm{display:block}
+ :where([data-device=phone]) .nx.adm .ops-side{display:none}
+ :where([data-device=phone]) .nx.adm .ops-main{height:100%}
+:where([data-device=computer]) .nx.adm .tabbar{display:none}
 
 /* desktop tables (board helmet) */
 .nx.adm .live-cols{grid-template-columns:minmax(0,1.5fr) 150px minmax(0,1fr) 70px}
@@ -66,24 +64,22 @@
 @media (prefers-reduced-motion:reduce){.nx.adm .hold.holding .fill{transition:clip-path 2s steps(4)}}
 
 /* ---------- phone (board Admin-phone helmet) ---------- */
-@media (max-width:1023px){
- .nx.adm .lt{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1.1;min-width:0;overflow-wrap:anywhere}
- .nx.adm .page{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:calc(env(safe-area-inset-top,0px) + 52px) 16px calc(env(safe-area-inset-bottom,0px) + 110px);display:flex;flex-direction:column;gap:14px}
- .nx.adm .page.under-bar{padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
- .nx.adm .bar{height:calc(env(safe-area-inset-top,0px) + 52px);padding-top:env(safe-area-inset-top,0px);display:flex;align-items:center;gap:4px;padding-inline:4px;position:absolute;top:0;inset-inline:0;background:color-mix(in srgb,var(--screen) 80%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);z-index:2}
- .nx.adm .li{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 14px;width:100%;border:0;background:transparent;text-align:start;color:var(--ink);font-size:15px}
- .nx.adm .li+.li{border-top:1px solid var(--line-in)}
- .nx.adm .li .grow{flex:1;min-width:0;line-height:1.3}
- .nx.adm .li .grow b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
- .nx.adm .li .grow span{display:block;font-size:12.5px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
- .nx.adm .push{animation:push 300ms var(--ease-drawer) both}
- .nx.adm .uc{display:flex;gap:12px;align-items:center;padding:12px 14px;border:0;background:transparent;width:100%;text-align:start;color:var(--ink)}
- .nx.adm .uc+.uc{border-top:1px solid var(--line-in)}
- .nx.adm .evr{padding:10px 14px;font-size:14px}
- .nx.adm .tabbar{position:fixed;z-index:3}
- .nx.adm .kv{grid-template-columns:90px minmax(0,1fr)}
- .nx.adm .panel>.ph{flex-wrap:wrap}
-}
+ :where([data-device=phone]) .nx.adm .lt{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1.1;min-width:0;overflow-wrap:anywhere}
+ :where([data-device=phone]) .nx.adm .page{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:calc(env(safe-area-inset-top,0px) + 52px) 16px calc(env(safe-area-inset-bottom,0px) + 110px);display:flex;flex-direction:column;gap:14px}
+ :where([data-device=phone]) .nx.adm .page.under-bar{padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
+ :where([data-device=phone]) .nx.adm .bar{height:calc(env(safe-area-inset-top,0px) + 52px);padding-top:env(safe-area-inset-top,0px);display:flex;align-items:center;gap:4px;padding-inline:4px;position:absolute;top:0;inset-inline:0;background:color-mix(in srgb,var(--screen) 80%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);z-index:2}
+ :where([data-device=phone]) .nx.adm .li{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 14px;width:100%;border:0;background:transparent;text-align:start;color:var(--ink);font-size:15px}
+ :where([data-device=phone]) .nx.adm .li+.li{border-top:1px solid var(--line-in)}
+ :where([data-device=phone]) .nx.adm .li .grow{flex:1;min-width:0;line-height:1.3}
+ :where([data-device=phone]) .nx.adm .li .grow b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ :where([data-device=phone]) .nx.adm .li .grow span{display:block;font-size:12.5px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ :where([data-device=phone]) .nx.adm .push{animation:push 300ms var(--ease-drawer) both}
+ :where([data-device=phone]) .nx.adm .uc{display:flex;gap:12px;align-items:center;padding:12px 14px;border:0;background:transparent;width:100%;text-align:start;color:var(--ink)}
+ :where([data-device=phone]) .nx.adm .uc+.uc{border-top:1px solid var(--line-in)}
+ :where([data-device=phone]) .nx.adm .evr{padding:10px 14px;font-size:14px}
+ :where([data-device=phone]) .nx.adm .tabbar{position:fixed;z-index:3}
+ :where([data-device=phone]) .nx.adm .kv{grid-template-columns:90px minmax(0,1fr)}
+ :where([data-device=phone]) .nx.adm .panel>.ph{flex-wrap:wrap}
 .nx.adm .chev{width:16px;height:16px;color:var(--faint);fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 [dir=rtl] .nx.adm .chev,[dir=rtl] .nx.adm .flip{transform:scaleX(-1)}
 @keyframes push{from{transform:translateX(30%);opacity:.4}to{transform:none;opacity:1}}

@@ -21,6 +21,8 @@ import { ensureImages } from "@/app/image-actions";
 import { cacheShell, saveSnapshot } from "@/lib/offline";
 import type { BudgetHistory } from "@/lib/budget";
 import type { ShopScope } from "@/lib/shop-outbox";
+import { isPhone } from "@/components/ui/use-device";
+import { useMedia } from "@/components/ui/use-media";
 
 export type { View };
 
@@ -396,8 +398,14 @@ export function StoreProvider({
   const [compareItemId, setCompareItemId] = useState<string | null>(null);
   const [importLimitUsd, setImportLimitUsd] = useState(initial.importLimitUsd ?? 130);
   const [budgetWarn, setBudgetWarn] = useState(initial.budgetWarn ?? true);
-  const [sidebarCollapsed, setSidebarCollapsedState] = useState(!!ui.sidebarCollapsed);
+  const [sidebarPref, setSidebarCollapsedState] = useState(!!ui.sidebarCollapsed);
+  // R17 S7 W2: a computer window under 1024 px (zoom, half a screen) keeps the computer UI with the sidebar on its icon
+  // rail by itself; opening it there lasts until the window widens and is never saved as the person's choice.
+  const narrowDesk = useMedia("(max-width: 1023px)");
+  const [railOpen, setRailOpen] = useState(false);
+  const sidebarCollapsed = narrowDesk ? !railOpen : sidebarPref;
   const setSidebarCollapsed = useCallback((c: boolean) => {
+    if (narrowDesk) return setRailOpen(!c);
     setCookie(SIDEBAR_COOKIE, c ? "collapsed" : "open");
     // Polish #18: the layout snaps to its new columns and the page cross-fades (a view transition: opacity on the
     // compositor, globals.css `html[data-vt="sidebar"]`) instead of re-laying the whole page every frame for 400 ms.
@@ -406,7 +414,7 @@ export function StoreProvider({
     if (!doc.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches || html.getAttribute("data-motion") === "reduce") return setSidebarCollapsedState(c);
     html.setAttribute("data-vt", "sidebar");
     doc.startViewTransition(() => flushSync(() => setSidebarCollapsedState(c))).finished.finally(() => html.removeAttribute("data-vt"));
-  }, []);
+  }, [narrowDesk]);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   useEffect(() => {
     openRef.current = openItemId;
@@ -484,7 +492,7 @@ export function StoreProvider({
     if (loading) return;
     markBooted();
     // Phones: warm the camera screens' code in idle time, so "Scan a barcode" / the receipt camera open fast.
-    if (!window.matchMedia("(max-width: 1023px)").matches) return;
+    if (!isPhone()) return;
     const idle = window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 1500));
     const id = idle(() => prewarmScanners({ download: true }), { timeout: 4000 });
     return () => (window.cancelIdleCallback ?? clearTimeout)(id);

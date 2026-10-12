@@ -8,7 +8,6 @@ import { createSpace, updateCurrentSpace } from "@/app/space-actions";
 import { loadAppData } from "@/app/data-actions";
 import { useI18n } from "@/components/providers";
 import { useBackClose } from "@/components/ui/sheet-drag";
-import { useMedia } from "@/components/ui/use-media";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useStore } from "../store";
@@ -16,6 +15,7 @@ import { I, P, Seg } from "../settings/ui";
 import { InvitePanel } from "./dialogs";
 import { COLOR_KEYS, gradientOf, ICON_KEYS, isSpacePhoto, SPACE_ICONS } from "./look";
 import { Facepile, reloadInto, SpaceTile } from "./space-ui";
+import { isPhone, useDevice } from "@/components/ui/use-device";
 
 /**
  * R16 D5 — the space's look, for create and edit (boards SpaceIdentity-desktop/-phone): name, then either an icon on
@@ -71,7 +71,7 @@ export async function exportCrop(c: Crop, out = OUT): Promise<Blob> {
 }
 
 export function IdentityDialog({ open, create, onOpenChange }: { open: boolean; create: boolean; onOpenChange: (o: boolean) => void }) {
-  const desktop = useMedia("(min-width: 1024px)");
+  const desktop = useDevice() === "computer";
   if (!open) return null;
   return <Identity key={`${create}:${desktop}`} create={create} desktop={desktop} onClose={() => onOpenChange(false)} />;
 }
@@ -94,7 +94,7 @@ function Identity({ create, desktop, onClose }: { create: boolean; desktop: bool
   const file = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  useBackClose(!desktop, onClose, "(max-width: 1023px)");
+  useBackClose(!desktop, onClose, isPhone);
 
   // The tile preview: the crop rendered small (debounced), the saved photo, or the icon.
   useEffect(() => {

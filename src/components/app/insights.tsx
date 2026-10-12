@@ -20,7 +20,7 @@ export function InsightsSwitch() {
   const { t } = useI18n();
   const value = s.view.type === "history" ? "history" : "spending";
   return (
-    <div className="mb-4 lg:hidden" data-insights-switch={value}>
+    <div className="mb-4 desk:hidden" data-insights-switch={value}>
       <Segmented<"spending" | "history">
         label={t.insights.title}
         value={value}

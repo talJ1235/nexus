@@ -249,17 +249,17 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
       <div
         aria-hidden
         className={cn(
-          "pointer-events-none fixed bottom-0 end-0 z-[25] h-[140px] bg-gradient-to-b from-transparent to-bg to-70% max-lg:start-0 max-lg:h-[130px]",
-          collapsed ? "lg:start-[68px]" : "lg:start-[224px]",
+          "pointer-events-none fixed bottom-0 end-0 z-[25] h-[140px] bg-gradient-to-b from-transparent to-bg to-70% phone:start-0 phone:h-[130px]",
+          collapsed ? "desk:start-[68px]" : "desk:start-[224px]",
         )}
       />
       <div
         data-paste-capsule
         className={cn(
-          "fixed z-30 flex flex-col items-center gap-2 transition-[opacity,transform] duration-[450ms] ease-[var(--ease-out)] lg:bottom-[26px] lg:end-[26px] [[data-selecting]_&]:pointer-events-none [[data-selecting]_&]:opacity-0",
-          "max-lg:inset-x-3 max-lg:bottom-[calc(100px+env(safe-area-inset-bottom))]",
-          !s.pasteOpen && "max-lg:pointer-events-none max-lg:translate-y-4 max-lg:opacity-0",
-          collapsed ? "lg:start-[80px]" : "lg:start-[236px]",
+          "fixed z-30 flex flex-col items-center gap-2 transition-[opacity,transform] duration-[450ms] ease-[var(--ease-out)] desk:bottom-[26px] desk:end-[26px] [[data-selecting]_&]:pointer-events-none [[data-selecting]_&]:opacity-0",
+          "phone:inset-x-3 phone:bottom-[calc(100px+env(safe-area-inset-bottom))]",
+          !s.pasteOpen && "phone:pointer-events-none phone:translate-y-4 phone:opacity-0",
+          collapsed ? "desk:start-[80px]" : "desk:start-[236px]",
         )}
       >
         {!SHOWS_PENDING.includes(s.view.type) && s.pending.length > 0 && (
@@ -290,7 +290,7 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
               void submit(value);
               s.setPasteOpen(false);
             }}
-            className="group flex h-[58px] items-center gap-1.5 rounded-full bg-surface pe-[5px] ps-5 text-muted lg:h-[58px]"
+            className="group flex h-[58px] items-center gap-1.5 rounded-full bg-surface pe-[5px] ps-5 text-muted desk:h-[58px]"
           >
             <Link2 className="pointer-events-none size-[19px] shrink-0 text-ink" strokeWidth={1.8} />
             <input
@@ -317,7 +317,7 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
               className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-[15px] text-ink outline-none placeholder:text-muted"
               aria-label={t.add.placeholder}
             />
-            {!value && <span className="me-1 hidden shrink-0 rounded-[7px] bg-surface-2 px-2 py-[3px] text-xs lg:inline">{t.shell.pasteKey}</span>}
+            {!value && <span className="me-1 hidden shrink-0 rounded-[7px] bg-surface-2 px-2 py-[3px] text-xs desk:inline">{t.shell.pasteKey}</span>}
             <button
               type="button"
               onClick={() => setBulk(true)}
@@ -344,7 +344,7 @@ export function AddBar({ incoming, collapsed }: { incoming?: Incoming; collapsed
             <span className="inline-flex shrink-0 items-stretch">
               <button
                 type="submit"
-                className="inline-flex h-12 shrink-0 items-center gap-[7px] rounded-full bg-brand px-[18px] text-[14px] font-bold text-on-brand transition hover:bg-brand-hover active:scale-[0.97] disabled:opacity-60 lg:rounded-e-none lg:pe-3.5 lg:active:scale-100 lg:disabled:opacity-100 lg:disabled:hover:bg-brand lg:disabled:[&>*]:opacity-55"
+                className="inline-flex h-12 shrink-0 items-center gap-[7px] rounded-full bg-brand px-[18px] text-[14px] font-bold text-on-brand transition hover:bg-brand-hover active:scale-[0.97] disabled:opacity-60 desk:rounded-e-none desk:pe-3.5 desk:active:scale-100 desk:disabled:opacity-100 desk:disabled:hover:bg-brand desk:disabled:[&>*]:opacity-55"
                 disabled={ro.ro || (!isHttpUrl(value.trim()) && !extractUrls(value).length)}
               >
                 {working ? <Spinner /> : <Plus className="size-[17px]" strokeWidth={2.4} />}
@@ -449,7 +449,7 @@ function AddMenu({ disabled }: { disabled: boolean }) {
         <button
           type="button"
           disabled={disabled}
-          className="hidden h-12 w-10 shrink-0 place-items-center rounded-e-full border-s border-[color-mix(in_srgb,var(--on-brand)_22%,transparent)] bg-brand text-on-brand transition hover:bg-brand-hover disabled:opacity-60 lg:grid"
+          className="hidden h-12 w-10 shrink-0 place-items-center rounded-e-full border-s border-[color-mix(in_srgb,var(--on-brand)_22%,transparent)] bg-brand text-on-brand transition hover:bg-brand-hover disabled:opacity-60 desk:grid"
           aria-label={t.phone.moreAdd}
           title={t.phone.moreAdd}
           data-add-menu

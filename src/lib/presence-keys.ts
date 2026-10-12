@@ -54,10 +54,7 @@ export const ACTIVITY_KEEP_MS = 30 * 86_400_000;
 
 export type Device = "phone" | "computer";
 
-/** Phone = a coarse pointer and a viewport narrower than 1024 px; anything else is a computer. */
-export function deviceOf(coarse: boolean, width: number): Device {
-  return coarse && width < 1024 ? "phone" : "computer";
-}
+// The beat's device = the page's device class (useDevice / isPhone, src/lib/device.ts — R17 S7).
 
 /** "Android · Chrome" from UA-CH or the UA — OS family + browser, nothing finer. */
 export function platformOf(ua: string, chPlatform?: string | null): string {

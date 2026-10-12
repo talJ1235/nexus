@@ -9,6 +9,7 @@ import { Facepile } from "./space-ui";
 import { SpaceTile } from "./tile";
 import { EASE_OUT } from "@/lib/motion";
 import { useBackClose } from "@/components/ui/sheet-drag";
+import { isPhone } from "@/components/ui/use-device";
 
 /**
  * R16 D4 — "You're now in Jacoby Home": on a space switch the tile flies from the switcher to the centre (a shared
@@ -130,7 +131,7 @@ function Run({ m, onEnd }: { m: Moment; onEnd: () => void }) {
     setSwitching(true);
     onEnd();
   };
-  useBackClose(true, skip, "(max-width: 1023px)");
+  useBackClose(true, skip, isPhone);
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && (e.preventDefault(), skip());
     window.addEventListener("keydown", k, true);

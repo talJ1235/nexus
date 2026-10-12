@@ -32,6 +32,7 @@ import { homeExtras } from "@/lib/home-widgets";
 import { monthStartIn } from "@/lib/budget";
 import { COLLECTION_COLORS } from "./view-items";
 import { trackAiWork } from "@/lib/ai-work";
+import { useDevice } from "@/components/ui/use-device";
 
 type T = ReturnType<typeof useI18n>["t"];
 
@@ -110,7 +111,7 @@ export function HomeView() {
   );
   const ruleSugs = useMemo(() => homeSuggestions(model), [model]);
   const ext = useExtension();
-  const desktop = useMedia("(min-width: 1024px)");
+  const desktop = useDevice() === "computer";
   // R15 D2: the extension is retired — never suggest it.
   const extOk = EXTENSION_RETIRED ? null : desktop ? ext.available : null;
   const fbCounts = useMemo(() => [fallbackSuggestions(model, { extension: extOk, receipts: null }).length, fallbackInsights(model).length] as const, [model, extOk]);
@@ -204,7 +205,7 @@ export function HomeView() {
   const stagger = s.navSeq === 0;
   if (editing)
     return (
-      <div className="flex flex-col gap-3 pb-4 lg:grid lg:grid-cols-12 lg:gap-[14px]" data-home dir="auto">
+      <div className="flex flex-col gap-3 pb-4 desk:grid desk:grid-cols-12 desk:gap-[14px]" data-home dir="auto">
         <Customise
           draft={editing}
           setDraft={setEditing as React.Dispatch<React.SetStateAction<HomeLayout>>}
@@ -221,7 +222,7 @@ export function HomeView() {
     );
 
   return (
-    <div className="flex flex-col gap-3 pb-4 lg:grid lg:grid-cols-12 lg:gap-[14px]" data-home dir="auto">
+    <div className="flex flex-col gap-3 pb-4 desk:grid desk:grid-cols-12 desk:gap-[14px]" data-home dir="auto">
       <HomeHeader model={model} onCustomize={() => setEditing(s.homeLayout)} />
       <WidgetGrid layout={s.homeLayout} render={render} stagger={stagger} />
     </div>
@@ -244,29 +245,29 @@ function HomeHeader({ model, onCustomize }: { model: HomeModel; onCustomize: () 
   const { t, f } = useI18n();
   const fm = useFmt();
   return (
-    <section className="contents lg:col-span-12 lg:flex lg:flex-col lg:rounded-xl lg:border lg:border-card-line lg:bg-surface lg:shadow-[var(--card-shadow)]" data-home-header>
-      <div className="flex items-end gap-3 px-1 pt-1 lg:gap-4 lg:px-6 lg:pb-4 lg:pt-[22px]">
+    <section className="contents desk:col-span-12 desk:flex desk:flex-col desk:rounded-xl desk:border desk:border-card-line desk:bg-surface desk:shadow-[var(--card-shadow)]" data-home-header>
+      <div className="flex items-end gap-3 px-1 pt-1 desk:gap-4 desk:px-6 desk:pb-4 desk:pt-[22px]">
         <div className="min-w-0 flex-1">
           <div className="text-[12.5px] font-medium text-muted" suppressHydrationWarning>
             {fm.dateLong(model.today)}
           </div>
-          <h1 className="mt-0.5 truncate text-[23px] font-extrabold leading-tight tracking-[-0.03em] lg:text-[30px]" suppressHydrationWarning>
+          <h1 className="mt-0.5 truncate text-[23px] font-extrabold leading-tight tracking-[-0.03em] desk:text-[30px]" suppressHydrationWarning>
             {f(greeting(s.clock.now, s.clock.tz, t), { name: meName })}
           </h1>
         </div>
         <button
             type="button"
             onClick={onCustomize}
-            className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-card-line bg-surface px-3 text-[12.5px] font-semibold text-ink transition hover:border-ink/40 max-lg:size-10 max-lg:justify-center max-lg:px-0"
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-card-line bg-surface px-3 text-[12.5px] font-semibold text-ink transition hover:border-ink/40 phone:size-10 phone:justify-center phone:px-0"
             aria-label={t.dash.customize}
             data-home-customize
           >
             <LayoutGrid className="size-4" />
-            <span className="max-lg:hidden">{t.dash.customize}</span>
+            <span className="phone:hidden">{t.dash.customize}</span>
           </button>
       </div>
       {/* R16 E1: the four numbers are widgets now; the strip stays with the greeting. */}
-      <div className="r13-card overflow-hidden empty:hidden max-lg:mt-1 lg:contents">
+      <div className="r13-card overflow-hidden empty:hidden phone:mt-1 desk:contents">
         <StatusStrip model={model} />
       </div>
     </section>
@@ -327,7 +328,7 @@ function StatusStrip({ model }: { model: HomeModel }) {
   if (!tiles.length) return null;
   return (
     <div
-      className="grid border-b border-line-in lg:mx-6 lg:mb-5 lg:overflow-hidden lg:rounded-[10px] lg:border lg:border-card-line"
+      className="grid border-b border-line-in desk:mx-6 desk:mb-5 desk:overflow-hidden desk:rounded-[10px] desk:border desk:border-card-line"
       style={{ gridTemplateColumns: `repeat(${tiles.length}, minmax(0, 1fr))` }}
       data-home-status
     >
@@ -341,21 +342,21 @@ function StatusStrip({ model }: { model: HomeModel }) {
             if (x.id === "needs") s.setPanel("alerts");
             else s.setView({ type: x.id === "pace" ? "spending" : "ordered" });
           }}
-          className={cn("group flex min-w-0 items-center gap-3 px-3 py-2.5 text-start transition-colors hover:bg-surface-2 max-lg:gap-2 lg:px-4 lg:py-3", k > 0 && "border-s border-line-in")}
+          className={cn("group flex min-w-0 items-center gap-3 px-3 py-2.5 text-start transition-colors hover:bg-surface-2 phone:gap-2 desk:px-4 desk:py-3", k > 0 && "border-s border-line-in")}
           aria-label={f(t.dash.goTo, { name: x.line })}
           data-home-tile={x.id}
         >
-          <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg [&_svg]:size-4 max-lg:size-6 max-lg:self-start max-lg:rounded-md max-lg:[&_svg]:size-3.5", TONE_CHIP[x.tone])}>{x.icon}</span>
+          <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg [&_svg]:size-4 phone:size-6 phone:self-start phone:rounded-md phone:[&_svg]:size-3.5", TONE_CHIP[x.tone])}>{x.icon}</span>
           {/* Phone: big number + a 2-line label; desktop: bold line + muted line + chevron. */}
-          <span className="min-w-0 lg:hidden">
+          <span className="min-w-0 desk:hidden">
             <b className="tabular block text-[18px] font-extrabold leading-none tracking-[-0.02em]">{x.big}</b>
             <span className="mt-1 line-clamp-2 block text-[11px] leading-tight text-muted">{x.short}</span>
           </span>
-          <span className="min-w-0 flex-1 max-lg:hidden">
+          <span className="min-w-0 flex-1 phone:hidden">
             <b className="block truncate text-[14.5px] font-bold">{x.line}</b>
             <span className="block truncate text-[12px] text-muted">{x.sub}</span>
           </span>
-          <ChevronRight className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 max-lg:hidden rtl:-scale-x-100" />
+          <ChevronRight className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 phone:hidden rtl:-scale-x-100" />
         </button>
       ))}
     </div>
@@ -376,13 +377,13 @@ function Meter({ parts, marker, className }: { parts: { value: number; color: st
 
 function Stat({ label, value, small, children, valueClass }: { label: string; value: React.ReactNode; small?: string; children?: React.ReactNode; valueClass?: string }) {
   return (
-    <div className="flex min-w-0 flex-col gap-0.5 px-3 py-2.5 lg:gap-1.5 lg:px-5 lg:pb-[18px] lg:pt-4">
-      <span className="truncate text-[12px] font-semibold text-muted lg:text-[12.5px]" data-stat-label>
+    <div className="flex min-w-0 flex-col gap-0.5 px-3 py-2.5 desk:gap-1.5 desk:px-5 desk:pb-[18px] desk:pt-4">
+      <span className="truncate text-[12px] font-semibold text-muted desk:text-[12.5px]" data-stat-label>
         {label}
       </span>
-      <span className={cn("tabular truncate text-[20px] font-extrabold leading-[1.1] tracking-[-0.03em] lg:text-[28px]", valueClass)}>
+      <span className={cn("tabular truncate text-[20px] font-extrabold leading-[1.1] tracking-[-0.03em] desk:text-[28px]", valueClass)}>
         {value}
-        {small && <small className="ms-1 text-[12px] font-medium tracking-normal text-muted lg:text-[13px]">{small}</small>}
+        {small && <small className="ms-1 text-[12px] font-medium tracking-normal text-muted desk:text-[13px]">{small}</small>}
       </span>
       {children}
     </div>
@@ -450,7 +451,7 @@ function Stats({ model, only, h = 1 }: { model: HomeModel; only: "left" | "budge
         </span>
         <Meter parts={l.segments.map((g) => ({ value: g.value, color: segColor(g.collectionId) }))} />
         {tall && <TallRows rows={l.segments.slice(0, 5).map((g) => ({ key: g.key, dot: segColor(g.collectionId), label: segName(g.collectionId), value: fm.money(g.value) }))} />}
-        <span className={cn("flex min-w-0 gap-2.5 overflow-hidden text-[11px] text-muted max-lg:hidden", tall && "hidden")}>
+        <span className={cn("flex min-w-0 gap-2.5 overflow-hidden text-[11px] text-muted phone:hidden", tall && "hidden")}>
           {l.segments.slice(0, 3).map((g) => (
             <span key={g.key} className="flex min-w-0 items-center gap-1.5">
               <i className="size-2 shrink-0 rounded-full" style={{ background: segColor(g.collectionId) }} />
@@ -464,15 +465,15 @@ function Stats({ model, only, h = 1 }: { model: HomeModel; only: "left" | "budge
           <span className="truncate text-[12px] text-muted">
             {b.left! >= 0 ? (
               <b className="font-bold text-ok">
-                <span className="max-lg:hidden">{f(b.daysToGo === 1 ? t.dash.leftDaysOne : t.dash.leftDays, { amount: fm.money(b.left!), n: b.daysToGo })}</span>
-                <span className="lg:hidden">{f(t.dash.leftDaysShort, { amount: fm.money(b.left!), n: b.daysToGo })}</span>
+                <span className="phone:hidden">{f(b.daysToGo === 1 ? t.dash.leftDaysOne : t.dash.leftDays, { amount: fm.money(b.left!), n: b.daysToGo })}</span>
+                <span className="desk:hidden">{f(t.dash.leftDaysShort, { amount: fm.money(b.left!), n: b.daysToGo })}</span>
               </b>
             ) : (
               <b className="font-bold text-danger">{f(t.dash.overBy, { amount: fm.money(-b.left!) })}</b>
             )}
           </span>
           <Meter parts={[{ value: Math.min(b.spent, b.cap), color: b.spent > b.cap ? "var(--danger)" : "var(--ink)" }, { value: Math.max(0, b.cap - b.spent), color: "transparent" }]} marker={b.todayFrac} />
-          <span className="truncate text-[11px] text-muted max-lg:hidden">{t.dash.meterNote}</span>
+          <span className="truncate text-[11px] text-muted phone:hidden">{t.dash.meterNote}</span>
           {tall && (
             <span className="mt-auto block pt-2" data-stat-tall>
               <PaceChart model={model} />
@@ -531,15 +532,15 @@ function Stats({ model, only, h = 1 }: { model: HomeModel; only: "left" | "budge
               ].filter((r): r is { key: string; label: string; value: string; tone: string } => !!r)}
             />
           ) : (
-            <span className="flex flex-col text-[11px] leading-snug text-muted max-lg:hidden">
+            <span className="flex flex-col text-[11px] leading-snug text-muted phone:hidden">
               {saved.drops > 0.5 && <span>{f(t.dash.fromDrops, { amount: fm.money(saved.drops) })}</span>}
               {saved.freeShipping > 0.5 && <span>{f(t.dash.fromShipping, { amount: fm.money(saved.freeShipping) })}</span>}
             </span>
           )}
         </Stat>
       ) : (
-        <div className={cn("flex min-w-0 flex-col gap-1.5 px-3 py-3 lg:px-5 lg:pt-4", tall && "justify-center text-center")}>
-          <span className="truncate text-[12px] font-semibold text-muted lg:text-[12.5px]">{t.dash.savedYear}</span>
+        <div className={cn("flex min-w-0 flex-col gap-1.5 px-3 py-3 desk:px-5 desk:pt-4", tall && "justify-center text-center")}>
+          <span className="truncate text-[12px] font-semibold text-muted desk:text-[12.5px]">{t.dash.savedYear}</span>
           <span className="text-[13px] font-semibold leading-snug text-muted" data-saved-empty>
             {t.dash.startSaving}
           </span>
@@ -997,7 +998,7 @@ function WeekCard({ model, h = 1, className, style }: { model: HomeModel; h?: 1 
   const [open, setOpen] = useState(false);
   // R14 C1: "Month" — desktop: the card grows in place to the month grid; phone: a bottom sheet.
   const [month, setMonth] = useState(false);
-  const desktop = useMedia("(min-width: 1024px)");
+  const desktop = useDevice() === "computer";
   const { days, today, events } = model.week;
   const tz = model.ctx.tz;
   const onEv = (e: WeekEvent) => {
@@ -1027,7 +1028,7 @@ function WeekCard({ model, h = 1, className, style }: { model: HomeModel; h?: 1 
         </Sheet>
       )}
       {/* Desktop: 7 columns on a line, at most 2 events a day. */}
-      <div className={cn(fold(!(month && desktop)), "max-lg:hidden")}>
+      <div className={cn(fold(!(month && desktop)), "phone:hidden")}>
       <div className="min-h-0 overflow-hidden">
       <div className="relative grid grid-cols-7 px-2 pb-4 pt-3.5" data-week-desktop>
         <span className="absolute inset-x-[18px] top-[66px] h-px bg-card-line" aria-hidden />
@@ -1064,7 +1065,7 @@ function WeekCard({ model, h = 1, className, style }: { model: HomeModel; h?: 1 
       </div>
       </div>
       {/* Phone: a day strip with coloured dots, the next 3 events, "+N more" expands in place. */}
-      <div className="lg:hidden" data-week-phone>
+      <div className="desk:hidden" data-week-phone>
         <div className="grid grid-cols-7 px-2 pb-2 pt-2.5">
           {days.map((d) => {
             const kinds = [...new Set(events.filter((e) => e.day === d).map((e) => e.kind))].slice(0, 3);
@@ -1149,7 +1150,7 @@ function MonthCalendar({ model, onEv }: { model: HomeModel; onEv: (e: WeekEvent)
   };
   const nav = "grid size-9 place-items-center rounded-full border border-card-line bg-surface text-ink transition hover:bg-surface-2 active:scale-95";
   return (
-    <div className="flex flex-col gap-3 px-3 pb-4 pt-3 lg:px-[18px]" data-month={month}>
+    <div className="flex flex-col gap-3 px-3 pb-4 pt-3 desk:px-[18px]" data-month={month}>
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => go(-1)} className={nav} aria-label={t.dash.monthPrev} data-month-prev>
           <ChevronLeft className="size-4 rtl:-scale-x-100" />
@@ -1234,7 +1235,7 @@ function NeedsCard({ model, rows = 4, className, style }: { model: HomeModel; ro
   const { t } = useI18n();
   return (
     <Card id="needs" title={t.dash.needsYou} count={model.needs.length} badge link={t.dash.all} onLink={() => s.setPanel("alerts")} className={cn("@container", className)} style={style} more={model.needs.length - rows}>
-      <div className="r13-rows px-4 pb-1 lg:px-[18px]">
+      <div className="r13-rows px-4 pb-1 desk:px-[18px]">
         {model.needs.slice(0, rows).map((n) => (
           <NeedRowView key={n.key} n={n} model={model} />
         ))}
@@ -1328,7 +1329,7 @@ function NeedRowView({ n, model, className }: { n: NeedRow; model: HomeModel; cl
   }
   return (
     <div className={cn("relative overflow-hidden", className)} data-need={n.kind} data-need-key={n.key}>
-      <div {...row.bind} className="group flex touch-pan-y items-center gap-3 bg-surface py-2.5 transition-transform lg:py-[11px]" style={row.style}>
+      <div {...row.bind} className="group flex touch-pan-y items-center gap-3 bg-surface py-2.5 transition-transform desk:py-[11px]" style={row.style}>
         <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg [&_svg]:size-4", TONE_CHIP[tone])}>{icon}</span>
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- shows the rest of the text; the row's actions are its buttons */}
         <div className="min-w-0 flex-1" onClick={() => setWhole((v) => !v)} data-expandable aria-expanded={whole}>
@@ -1336,13 +1337,13 @@ function NeedRowView({ n, model, className }: { n: NeedRow; model: HomeModel; cl
           <span className={cn("block text-[12.5px] text-muted", whole ? "break-words" : "truncate")}>{sub}</span>
         </div>
         <button type="button" disabled={ro.ro && n.kind !== "alert"} onClick={run} className="h-8 shrink-0 rounded-full border border-card-line bg-surface px-3 text-[12.5px] font-semibold transition hover:border-ink/40 disabled:opacity-50" data-need-act>
-          <span className="max-lg:hidden @max-[400px]:hidden">{act}</span>
-          <span className="lg:hidden @max-[400px]:!inline">{actShort}</span>
+          <span className="phone:hidden @max-[400px]:hidden">{act}</span>
+          <span className="desk:hidden @max-[400px]:!inline">{actShort}</span>
         </button>
         <button
           type="button"
           onClick={() => dismiss(n.key, title)}
-          className="grid size-7 shrink-0 place-items-center rounded-full text-muted opacity-0 transition hover:bg-surface-2 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100 max-lg:hidden"
+          className="grid size-7 shrink-0 place-items-center rounded-full text-muted opacity-0 transition hover:bg-surface-2 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100 phone:hidden"
           aria-label={t.dash.dismiss}
           title={t.dash.dismiss}
           data-need-dismiss
@@ -1407,15 +1408,15 @@ function OnTheWayCard({ model, rows = 4, className, style }: { model: HomeModel;
   const tz = model.ctx.tz;
   return (
     <Card id="ontheway" title={t.dash.onTheWay} count={model.packages.length} link={t.dash.trackAll} onLink={() => s.setView({ type: "ordered" })} className={className} style={style} more={model.packages.length - rows}>
-      <div className="r13-rows px-4 pb-1 lg:px-[18px]">
+      <div className="r13-rows px-4 pb-1 desk:px-[18px]">
         {model.packages.slice(0, rows).map((p) => {
           const late = p.track.late;
           const d = p.item.eta != null ? dayKeyIn(p.item.eta, tz) : null;
           const lateDays = late && d ? Math.round((utc(model.today).getTime() - utc(d).getTime()) / 86_400_000) : 0;
           return (
-            <button key={p.item.id} type="button" onClick={() => s.openItem(p.item.id)} className="block w-full py-2.5 text-start lg:py-[11px]" data-package={p.item.id}>
+            <button key={p.item.id} type="button" onClick={() => s.openItem(p.item.id)} className="block w-full py-2.5 text-start desk:py-[11px]" data-package={p.item.id}>
               <span className="flex items-center gap-3">
-                <ProductImage src={p.item.imageUrl} alt="" className="size-9 shrink-0 rounded-lg border border-line-in lg:size-10" iconClass="size-5" />
+                <ProductImage src={p.item.imageUrl} alt="" className="size-9 shrink-0 rounded-lg border border-line-in desk:size-10" iconClass="size-5" />
                 <span className="min-w-0 flex-1">
                   <b className="bidi block truncate text-[13.5px] font-semibold">{p.item.quantity > 1 && !/[×x]\s*\d+\s*$/i.test(p.item.title) ? `${p.item.title} ×${p.item.quantity}` : p.item.title}</b>
                   <span className="bidi block truncate text-[12.5px] text-muted">{[p.store, p.price != null ? fm.money(p.price) : null].filter(Boolean).join(" · ")}</span>
@@ -1423,20 +1424,20 @@ function OnTheWayCard({ model, rows = 4, className, style }: { model: HomeModel;
                 <span className={cn("shrink-0 text-[12.5px] font-bold", late ? "text-warn" : d ? "text-info" : "text-muted")}>
                   {late ? (
                     <>
-                      <span className="max-lg:hidden">{lateDays === 1 ? t.dash.dayLate : f(t.dash.daysLate, { n: lateDays })}</span>
-                      <span className="lg:hidden">{t.dash.lateShort}</span>
+                      <span className="phone:hidden">{lateDays === 1 ? t.dash.dayLate : f(t.dash.daysLate, { n: lateDays })}</span>
+                      <span className="desk:hidden">{t.dash.lateShort}</span>
                     </>
                   ) : d ? (
                     <>
-                      <span className="max-lg:hidden">{fm.dayShort(d)}</span>
-                      <span className="lg:hidden">{whenLabel(d, model.today, fm)}</span>
+                      <span className="phone:hidden">{fm.dayShort(d)}</span>
+                      <span className="desk:hidden">{whenLabel(d, model.today, fm)}</span>
                     </>
                   ) : (
                     t.dash.noDate
                   )}
                 </span>
               </span>
-              <DeliveryTrack track={p.track} className="mt-1.5 lg:mt-2" />
+              <DeliveryTrack track={p.track} className="mt-1.5 desk:mt-2" />
             </button>
           );
         })}
@@ -1497,7 +1498,7 @@ function PaceCard({ model, h = 1, className, style }: { model: HomeModel; h?: 1 
   const p = model.pace;
   return (
     <Card id="pace" title={f(t.dash.pace, { month: fm.month(model.month) })} link={t.dash.paceLink} onLink={() => s.setView({ type: "spending" })} className={className} style={style}>
-      <div className="flex flex-1 flex-col gap-3 px-4 pb-4 pt-3 lg:px-[18px]">
+      <div className="flex flex-1 flex-col gap-3 px-4 pb-4 pt-3 desk:px-[18px]">
         <span className="tabular text-[24px] font-extrabold tracking-[-0.03em]">
           {fm.money(model.stats.budget.spent)}
           {p.cap != null && <small className="ms-1 text-[12.5px] font-medium tracking-normal text-muted">{f(t.dash.ofCap, { amount: fm.money(p.cap) })}</small>}
@@ -1520,7 +1521,7 @@ function ProjectRows({ model, compact, rows = 99 }: { model: HomeModel; compact?
   const { t, f } = useI18n();
   const fm = useFmt();
   return (
-    <div className="r13-rows px-4 lg:px-[18px]">
+    <div className="r13-rows px-4 desk:px-[18px]">
       {model.projects.slice(0, rows).map((p) => {
         const color = COLLECTION_COLORS[p.collection.color] ?? COLLECTION_COLORS.slate;
         return (
@@ -1615,7 +1616,7 @@ function NoticedCard({ list, h = 1, className, style }: { list: Insight[]; h?: 1
   const swipe = useRef<{ x: number; id: number } | null>(null);
   const tall = h === 2;
   const dots = list.length > 1 && !tall && (
-    <span className="-me-3 ms-auto flex lg:hidden" role="tablist">
+    <span className="-me-3 ms-auto flex desk:hidden" role="tablist">
       {list.map((x, k) => (
         <button key={x.key} type="button" role="tab" aria-selected={k === i} aria-label={f(t.dash.insightN, { i: k + 1, n: list.length })} onClick={() => setIdx(k)} className="relative grid h-6 w-8 place-items-center after:absolute after:inset-x-0 after:-inset-y-2 after:content-['']">
           <i className={cn("block h-1.5 rounded-full transition-[width,background-color] duration-300", k === i ? "w-4 bg-ai" : "w-1.5 bg-card-line")} />
@@ -1625,13 +1626,13 @@ function NoticedCard({ list, h = 1, className, style }: { list: Insight[]; h?: 1
   );
   return (
     <section className={cn("r13-card r13-section flex min-w-0 flex-col", className)} style={style} data-home-section="noticed" data-more={tall ? Math.max(0, list.length - 3) : list.length - 1} data-noticed-count={list.length} data-noticed-kinds={list.map((y) => y.kind).join(" ")}>
-      <div className="flex min-h-[42px] items-center gap-2 border-b border-line-in px-4 py-2 lg:min-h-[46px] lg:px-[18px] lg:py-2.5">
+      <div className="flex min-h-[42px] items-center gap-2 border-b border-line-in px-4 py-2 desk:min-h-[46px] desk:px-[18px] desk:py-2.5">
         <Sparkles className="size-4 text-ai" />
         <h2 className="text-[12px] font-bold uppercase tracking-[0.05em] text-ai">{t.dash.noticed}</h2>
         {dots}
       </div>
       {/* Desktop: all insights side by side. */}
-      <div className="grid flex-1 max-lg:hidden" style={{ gridTemplateColumns: `repeat(${list.length}, minmax(0, 1fr))` }}>
+      <div className="grid flex-1 phone:hidden" style={{ gridTemplateColumns: `repeat(${list.length}, minmax(0, 1fr))` }}>
         {list.map((x, k) => {
           const it = insightText(x, t, fm);
           return (
@@ -1647,7 +1648,7 @@ function NoticedCard({ list, h = 1, className, style }: { list: Insight[]; h?: 1
       </div>
       {/* Phone 2×: all of them, one under the other. */}
       {tall && (
-        <div className="flex flex-1 flex-col lg:hidden" data-noticed-phone-all>
+        <div className="flex flex-1 flex-col desk:hidden" data-noticed-phone-all>
           {list.slice(0, 3).map((x, k) => {
             const it = insightText(x, t, fm);
             return (
@@ -1666,7 +1667,7 @@ function NoticedCard({ list, h = 1, className, style }: { list: Insight[]; h?: 1
       {/* Phone: one at a time; swipe or tap the dots. */}
       <div
         hidden={tall}
-        className="touch-pan-y px-4 pb-3 pt-2.5 lg:hidden"
+        className="touch-pan-y px-4 pb-3 pt-2.5 desk:hidden"
         onPointerDown={(e) => (swipe.current = { x: e.clientX, id: e.pointerId })}
         onPointerUp={(e) => {
           const st = swipe.current;
@@ -1717,18 +1718,18 @@ function HomeEmpty({ model }: { model: HomeModel }) {
   const all = useAddActions().filter((a) => a.primary && (a.key !== "plan" || s.aiEnabled));
   const actions = [...all.filter((a) => a.key === "paste"), ...all.filter((a) => a.key !== "paste")];
   return (
-    <div className="flex flex-col gap-4 pb-6 lg:pt-2" data-home data-home-empty>
+    <div className="flex flex-col gap-4 pb-6 desk:pt-2" data-home data-home-empty>
       <div className="px-1">
         <div className="text-[12.5px] font-medium text-muted" suppressHydrationWarning>
           {fm.dateLong(model.today)}
         </div>
-        <h1 className="mt-0.5 text-[26px] font-extrabold tracking-[-0.03em] lg:text-[30px]" suppressHydrationWarning>
+        <h1 className="mt-0.5 text-[26px] font-extrabold tracking-[-0.03em] desk:text-[30px]" suppressHydrationWarning>
           {f(greeting(s.clock.now, s.clock.tz, t), { name: meName })}
         </h1>
         <p className="mt-2 text-[15px] font-semibold">{t.dash.emptyTitle}</p>
         <p className="mt-0.5 max-w-[52ch] text-[13.5px] text-muted">{t.dash.emptyHint}</p>
       </div>
-      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-3.5">
+      <div className="grid grid-cols-2 gap-2.5 desk:grid-cols-4 desk:gap-3.5">
         {actions.map((a, k) => (
           <button
             key={a.key}
@@ -1737,7 +1738,7 @@ function HomeEmpty({ model }: { model: HomeModel }) {
             onClick={a.run}
             data-home-empty-action={a.key}
             style={{ backgroundColor: "var(--surface)", backgroundImage: `var(--act-${a.tone})`, "--d": `${k * 60}ms` } as React.CSSProperties}
-            className="r13-rise flex min-h-[124px] flex-col items-start justify-between rounded-[18px] border border-card-line p-3.5 text-start transition active:scale-[0.98] disabled:opacity-50 lg:min-h-[150px] lg:p-4"
+            className="r13-rise flex min-h-[124px] flex-col items-start justify-between rounded-[18px] border border-card-line p-3.5 text-start transition active:scale-[0.98] disabled:opacity-50 desk:min-h-[150px] desk:p-4"
           >
             <span className="block h-11 w-14" style={{ color: `var(--act-${a.tone}-ink)` }} aria-hidden>
               {a.art}
@@ -1757,10 +1758,10 @@ function HomeEmpty({ model }: { model: HomeModel }) {
 
 function HomeSkeleton() {
   return (
-    <div className="skeleton-in flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:gap-[14px]" aria-hidden data-home-skeleton>
-      <div className="h-[86px] rounded-xl bg-surface-2 lg:col-span-12 lg:h-[300px]" />
-      <div className="h-[110px] rounded-xl bg-surface-2 lg:col-span-12 lg:h-[96px]" />
-      <div className="h-[180px] rounded-xl bg-surface-2 lg:col-span-12" />
+    <div className="skeleton-in flex flex-col gap-3 desk:grid desk:grid-cols-12 desk:gap-[14px]" aria-hidden data-home-skeleton>
+      <div className="h-[86px] rounded-xl bg-surface-2 desk:col-span-12 desk:h-[300px]" />
+      <div className="h-[110px] rounded-xl bg-surface-2 desk:col-span-12 desk:h-[96px]" />
+      <div className="h-[180px] rounded-xl bg-surface-2 desk:col-span-12" />
     </div>
   );
 }

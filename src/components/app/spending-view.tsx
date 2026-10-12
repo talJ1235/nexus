@@ -32,10 +32,10 @@ function Card({ title, children, className, delay = 0 }: { title?: string; child
 
 function Tile({ label, value, fmt, full, sub, delay }: { label: string; value: number; fmt: (v: number) => string; full?: string; sub?: string; delay?: number }) {
   return (
-    <div className="rise-in min-w-0 rounded-[22px] border border-line bg-surface p-4 lg:rounded-[26px]" style={{ animationDelay: `${delay ?? 0}ms` }}>
+    <div className="rise-in min-w-0 rounded-[22px] border border-line bg-surface p-4 desk:rounded-[26px]" style={{ animationDelay: `${delay ?? 0}ms` }}>
       <div className="break-words text-xs font-semibold text-muted">{label}</div>
       <span className="block" title={full}>
-        <Ticker value={value} format={fmt} className="mt-1.5 block truncate text-[22px] font-black leading-none tracking-[-0.02em] sm:text-[24px] lg:text-[30px]" />
+        <Ticker value={value} format={fmt} className="mt-1.5 block truncate text-[22px] font-black leading-none tracking-[-0.02em] sm:text-[24px] desk:text-[30px]" />
       </span>
       {sub && <div className="mt-2 text-xs text-muted">{sub}</div>}
     </div>

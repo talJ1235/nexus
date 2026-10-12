@@ -9,7 +9,6 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { getAdminNav } from "@/app/admin-actions";
 import { CrashBoundary } from "@/components/crash";
 import { useI18n } from "@/components/providers";
-import { useMedia } from "@/components/ui/use-media";
 import { AiTab } from "./ai";
 import { ErrorsTab } from "./errors";
 import { InvitesTab } from "./invites";
@@ -19,6 +18,7 @@ import { ReportsTab } from "./reports";
 import { SystemTab } from "./system";
 import { parseRoute, pathOf, type Route, type Tab } from "./route";
 import { beatHere, PATH, Svg, useVisiblePoll } from "./ui";
+import { useDevice } from "@/components/ui/use-device";
 
 // R17 G0 — the admin panel (boards Admin-desktop / Admin-phone). /admin and /admin/<tab>[/<id>] deep links; the server
 // page already refused everyone but the admin (404). Desktop (≥ 1024 px): sidebar (Live · Manage · Health) + the tab.
@@ -35,7 +35,7 @@ export function AdminApp({ initial, me }: { initial: Route; me: string }) {
   const { t, f } = useI18n();
   const [route, setRoute] = useState<Route>(initial);
   const [nav, setNav] = useState<Nav | null>(null);
-  const phone = useMedia("(max-width: 1023px)");
+  const phone = useDevice() === "phone";
   const hydrated = useSyncExternalStore(noop, () => true, () => false);
 
   const go: Go = useCallback((tab, sub = null, opts) => {

@@ -5,6 +5,7 @@ import { useI18n } from "@/components/providers";
 import { useReadOnly } from "./offline-banner";
 import { BarcodeArt, LinkArt, PlanArt, ReceiptArt } from "./phone-shell";
 import { useStore } from "./store";
+import { isPhone } from "@/components/ui/use-device";
 
 export type AddAction = {
   key: "paste" | "barcode" | "receipt" | "plan" | "import" | "list" | "project";
@@ -21,8 +22,6 @@ export type AddAction = {
   disabled: boolean;
   run: () => void;
 };
-
-const isPhone = () => typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches;
 
 /**
  * R16 A3 — the one list of "ways to add" (phone "+" sheet, empty Home, desktop Add menu). Each action knows its

@@ -34,6 +34,7 @@ import { ProductImage } from "./item-card";
 import { ActionCard } from "./assistant-action-card";
 import { useStore } from "./store";
 import { useAiWork } from "@/lib/ai-work";
+import { isPhone } from "@/components/ui/use-device";
 
 // ---------- Suggested questions (Round 8 D1: a vertical list, never a sideways scroll; Round 12 #3: rows) ----------
 
@@ -301,7 +302,7 @@ function useNexusAction() {
     else if (a === "alerts") s.setPanel("alerts");
     else if (a === "import") s.setPanel("import");
     else if (a === "receipt") {
-      if (window.matchMedia("(max-width: 1023px)").matches) s.setScanner("receipt");
+      if (isPhone()) s.setScanner("receipt");
       else s.openReceipt();
     } else if (a === "barcode") s.setScanner("barcode");
     else if (a === "shop") s.setShop("pick");

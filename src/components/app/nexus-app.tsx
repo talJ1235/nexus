@@ -31,7 +31,6 @@ import { Dock, PhoneTopBar, PlusMenu } from "./phone-shell";
 import { FiltersRow, HomeSummary, SUMMARY_VIEWS } from "./home-summary";
 import { HomeView } from "./home-view";
 import { byArrival, groupByProject, ShopGroupHeader, ShoppingHeader } from "./shopping-tab";
-import { PHONE, useMedia } from "@/components/ui/use-media";
 import { AssistantPanel } from "./assistant-panel";
 import { ShareDialog } from "./share-dialog";
 import { ReceiptDialog } from "./receipt-dialog";
@@ -62,6 +61,7 @@ import { FALLBACK_RATES, type Currency } from "@/lib/money";
 import { DEFAULT_IMPORT_LIMIT_USD } from "@/lib/import-vat";
 import { useAiWork } from "@/lib/ai-work";
 import { useTruncationTitles } from "@/lib/trunc-title";
+import { isPhone, usePhoneNarrow } from "@/components/ui/use-device";
 
 /** Everything the first paint needs that the server knows without loading data. */
 export type AppBoot = UiInit & { currency: Currency; aiEnabled: boolean };
@@ -77,15 +77,11 @@ export function NexusApp({ boot, initial, incoming, offline }: { boot: AppBoot; 
   );
 }
 
-const LG = "(min-width: 1024px)";
-const subscribeLg = (cb: () => void) => {
-  const mq = window.matchMedia(LG);
-  mq.addEventListener("change", cb);
-  return () => mq.removeEventListener("change", cb);
-};
-/** "desktop" / "phone" after hydration; null while server-rendering/hydrating (then both layouts render, CSS hides one). */
+const never = () => () => {};
+/** "desktop" / "phone" (the device class, R17 S7) after hydration; null while server-rendering/hydrating (then both
+ * layouts render and the phone:/desk: variants hide one — right from the first paint even if the server guessed wrong). */
 function useLayoutSize() {
-  return useSyncExternalStore(subscribeLg, () => (window.matchMedia(LG).matches ? "desktop" : "phone"), () => null);
+  return useSyncExternalStore(never, () => (isPhone() ? "phone" : "desktop"), () => null);
 }
 
 /** --app-header-h = the visible sticky top bar's height, so section headers can stick right under it. */
@@ -125,11 +121,11 @@ function Shell({ incoming }: { incoming?: Incoming }) {
     >
       <div
         className={cn(
-          "nt-under lg:grid lg:grid-cols-[var(--sw)_minmax(0,1fr)] lg:gap-2 lg:pe-[26px] lg:ps-1",
+          "nt-under desk:grid desk:grid-cols-[var(--sw)_minmax(0,1fr)] desk:gap-2 desk:pe-[26px] desk:ps-1",
         )}
         data-nt-under
       >
-        <aside className="sticky top-0 hidden h-dvh min-w-0 lg:block" data-sidebar-w={sw}>
+        <aside className="sticky top-0 hidden h-dvh min-w-0 desk:block" data-sidebar-w={sw}>
           {size !== "phone" && <Sidebar collapsed={liveW != null ? liveW < (SIDEBAR_MIN + SIDEBAR_MAX) / 2 : collapsed} onToggle={() => s.setSidebarCollapsed(!collapsed)} />}
           {size !== "phone" && <SidebarEdge onLive={setLiveW} />}
         </aside>
@@ -139,20 +135,20 @@ function Shell({ incoming }: { incoming?: Incoming }) {
 
         <div className="min-w-0">
           {/* Phone / tablet header (Part C replaces it with the phone shell). */}
-          <div className="empty:hidden lg:pt-4">
+          <div className="empty:hidden desk:pt-4">
             <OfflineBanner />
           </div>
-          <header data-app-header className="sticky top-0 z-20 bg-bg/85 px-4 pb-2.5 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur-md sm:px-6 lg:hidden">
+          <header data-app-header className="sticky top-0 z-20 bg-bg/85 px-4 pb-2.5 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur-md sm:px-6 desk:hidden">
             {size !== "desktop" && <PhoneTopBar />}
           </header>
-          <div data-app-header className="sticky top-0 z-20 hidden bg-bg/85 pb-3 pt-4 backdrop-blur-md lg:block">
+          <div data-app-header className="sticky top-0 z-20 hidden bg-bg/85 pb-3 pt-4 backdrop-blur-md desk:block">
             <div className="mx-auto max-w-[1400px]">
               {size !== "phone" && <TopBar />}
             </div>
           </div>
           {/* overflow-x: clip — the sliding view transition must never make the page wider than a phone (a wider page
               widens the layout viewport and moved the fixed dock, Round 9 A2). Clip keeps sticky headers working. */}
-          <main className="mx-auto max-w-[1400px] px-4 pb-40 pt-2 [overflow-x:clip] sm:px-6 lg:px-0 lg:pt-2">
+          <main className="mx-auto max-w-[1400px] px-4 pb-40 pt-2 [overflow-x:clip] sm:px-6 desk:px-0 desk:pt-2">
             {/* Header + content switch together as one soft cross-fade; the very first paint is not animated. */}
             <div key={viewKey(s.view, size === "phone")} className={s.navSeq > 0 && !(size === "phone" && isShop(s.view)) ? (s.navDir > 0 ? "view-in view-fwd" : "view-in view-back") : undefined}>
               {s.view.type === "home" ? (
@@ -343,8 +339,8 @@ function ViewHeader() {
 
   return (
     <>
-    {shop && <ShoppingHeader className="lg:hidden" />}
-    <div className={shop ? "contents max-lg:hidden" : "contents"}>
+    {shop && <ShoppingHeader className="desk:hidden" />}
+    <div className={shop ? "contents phone:hidden" : "contents"}>
     {s.view.type === "history" && <InsightsSwitch />}
     <div className="mb-3 flex flex-col gap-[18px]">
       <div className={cn("flex flex-wrap items-center justify-between gap-x-6 gap-y-2", s.view.type === "to_buy" && "sr-only")}>
@@ -413,10 +409,10 @@ function ViewHeader() {
 
 function SummarySkeleton() {
   return (
-    <div className="skeleton-in grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] lg:gap-4" aria-hidden>
-      <Skel className="col-span-2 h-[156px] rounded-[26px] sm:h-[176px] lg:col-span-1 lg:h-[180px] lg:rounded-[30px]" />
-      <Skel className="h-[170px] rounded-[30px] max-sm:hidden lg:h-[180px]" />
-      <Skel className="h-[170px] rounded-[30px] max-sm:hidden lg:h-[180px]" />
+    <div className="skeleton-in grid grid-cols-2 gap-3 desk:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] desk:gap-4" aria-hidden>
+      <Skel className="col-span-2 h-[156px] rounded-[26px] sm:h-[176px] desk:col-span-1 desk:h-[180px] desk:rounded-[30px]" />
+      <Skel className="h-[170px] rounded-[30px] max-sm:hidden desk:h-[180px]" />
+      <Skel className="h-[170px] rounded-[30px] max-sm:hidden desk:h-[180px]" />
     </div>
   );
 }
@@ -469,7 +465,7 @@ function Content() {
  */
 function ShopContent({ items, pending }: { items: ItemWithSources[]; pending: PendingAdd[] }) {
   const s = useStore();
-  const phone = useMedia(PHONE);
+  const phone = usePhoneNarrow();
   const way = s.view.type === "ordered";
   const ordered = useMemo(() => (phone && way && s.shopSort.way === "arrival" ? byArrival(items, s.clock.now, s.clock.tz) : items), [phone, way, s.shopSort.way, items, s.clock]);
   const groups = useMemo(() => (phone && !way && s.phoneLayout === "rows" && s.shopSort.buy === "project" ? groupByProject(ordered, s) : null), [phone, way, s, ordered]);

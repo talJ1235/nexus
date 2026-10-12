@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { isPhoneNarrow } from "./use-device";
 import { rubberBand, sheetExitMs, sheetRelease, velocity } from "@/lib/gestures";
 
-const PHONE = "(max-width: 639px)";
 const NO_DRAG = "button, a, input, textarea, select, [contenteditable=true], [role=slider], [data-no-sheet-drag]";
 
 /**
@@ -30,7 +30,7 @@ export function useSheetDrag(onClose: () => void) {
       const prev = el.previousElementSibling as HTMLElement | null;
       return prev?.hasAttribute("data-sheet-scrim") ? prev : null;
     };
-    const phone = () => window.matchMedia(PHONE).matches;
+    const phone = isPhoneNarrow;
     const begin = (x: number, y: number, pointer: number | null) => {
       g = { x0: x, y0: y, dy: 0, on: false, samples: [{ t: performance.now(), v: 0 }], pointer };
     };
@@ -203,13 +203,13 @@ const onPop = () => {
   top.close();
 };
 
-export function useBackClose(open: boolean, onClose: () => void, media = PHONE) {
+export function useBackClose(open: boolean, onClose: () => void, when: () => boolean = isPhoneNarrow) {
   const close = useRef(onClose);
   useEffect(() => {
     close.current = onClose;
   });
   useEffect(() => {
-    if (!open || !window.matchMedia(media).matches) return;
+    if (!open || !when()) return;
     if (!listening) {
       window.addEventListener("popstate", onPop);
       listening = true;
@@ -236,5 +236,5 @@ export function useBackClose(open: boolean, onClose: () => void, media = PHONE) 
         history.back();
       }
     };
-  }, [open, media]);
+  }, [open, when]);
 }

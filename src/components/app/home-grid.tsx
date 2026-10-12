@@ -43,7 +43,7 @@ const cellStyle = (x: LayoutItem, k: number | null) =>
 
 export function WidgetGrid({ layout, render, stagger }: { layout: HomeLayout; render: RenderWidget; stagger: boolean }) {
   return (
-    <div className="hgrid lg:col-span-12" data-home-grid>
+    <div className="hgrid desk:col-span-12" data-home-grid>
       {layout.items.map((x, k) => {
         const node = render(x.id, x.h, false);
         if (!node) return null;
@@ -295,12 +295,12 @@ export function Customise({
   );
 
   return (
-    <div className="flex flex-col gap-3 lg:col-span-12 lg:flex-row lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-card-line lg:bg-surface" data-home-customizing>
-      <div className="flex min-w-0 flex-1 flex-col gap-3.5 lg:p-6">
-        <div className="flex items-center gap-2 px-1 pt-1 lg:px-0 lg:pt-0">
-          <h1 className="min-w-0 flex-1 truncate text-[20px] font-extrabold tracking-[-0.02em] lg:text-[22px]">{t.hc.title}</h1>
+    <div className="flex flex-col gap-3 desk:col-span-12 desk:flex-row desk:gap-0 desk:overflow-hidden desk:rounded-xl desk:border desk:border-card-line desk:bg-surface" data-home-customizing>
+      <div className="flex min-w-0 flex-1 flex-col gap-3.5 desk:p-6">
+        <div className="flex items-center gap-2 px-1 pt-1 desk:px-0 desk:pt-0">
+          <h1 className="min-w-0 flex-1 truncate text-[20px] font-extrabold tracking-[-0.02em] desk:text-[22px]">{t.hc.title}</h1>
           <button type="button" onClick={onReset} className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-muted hover:text-ink" data-home-reset>
-            <RotateCcw className="size-3.5 max-lg:hidden" />
+            <RotateCcw className="size-3.5 phone:hidden" />
             {t.dash.reset}
           </button>
           <button type="button" onClick={onDone} className="h-9 rounded-full bg-brand px-4 text-[13px] font-semibold text-on-brand" data-home-done>
@@ -324,7 +324,7 @@ export function Customise({
           ))}
           {draft.preset == null && <span className="flex h-9 shrink-0 items-center rounded-full bg-surface-2 px-3.5 text-[13px] font-semibold" data-home-preset="custom">{t.hc.custom}</span>}
         </div>
-        <p className="px-1 text-[12.5px] text-muted lg:px-0">{desktop ? t.hc.hint : t.hc.hintPhone}</p>
+        <p className="px-1 text-[12.5px] text-muted desk:px-0">{desktop ? t.hc.hint : t.hc.hintPhone}</p>
         <div ref={grid} className="hgrid relative" data-home-grid data-editing>
           {draft.items.map((x) => (
             <div

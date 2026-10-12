@@ -11,10 +11,10 @@ import { finishOnboarding, onboardingInvite, saveOnboarding } from "@/app/onboar
 import { useBeat } from "@/components/app/presence-beat";
 import { InviteQr } from "@/components/app/spaces/qr";
 import { useI18n } from "@/components/providers";
-import { useMedia } from "@/components/ui/use-media";
 import { monogram, presetFor, STORES, type Onboarding, type Who, type Why } from "@/lib/onboarding";
 import type { ScreenKey } from "@/lib/presence-keys";
 import { notifyAsk } from "@/app/notify-actions";
+import { useDevice } from "@/components/ui/use-device";
 
 // R17 H1–H4 — onboarding, direction A (boards Onboarding-phone / -desktop): one question per screen, the picture above
 // (phone) / beside (desktop) reacts to the answer. Steps 1 why · 2 stores · 3 budget · 4 who · 5 install ·
@@ -69,7 +69,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
   const O = t.ob;
   const he = locale === "he";
   const hydrated = useSyncExternalStore(noop, () => true, () => false);
-  const desk = useMedia("(min-width: 1024px)");
+  const desk = useDevice() === "computer";
   const env = useMemo(() => {
     if (typeof window === "undefined") return { iphone: false, standalone: false, notif: true };
     const ua = navigator.userAgent;

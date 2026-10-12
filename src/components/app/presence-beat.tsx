@@ -4,17 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useI18n } from "@/components/providers";
 import { getShoppingLeft, onShoppingLeft } from "@/lib/presence-client";
-import { BEAT_MS, deviceOf, type BeatInput, type ScreenKey } from "@/lib/presence-keys";
+import { BEAT_MS, type BeatInput, type ScreenKey } from "@/lib/presence-keys";
 import { useOpenItemId, useStore } from "./store";
+import { isPhone } from "@/components/ui/use-device";
 
 // R17 G1 — the presence beat: every 30 s while the page is visible, at once on a screen change, and an "away" beacon
 // on pagehide / hidden. Carries the device kind, installed or browser, a fixed screen key and the shopping count —
 // never what's on the screen. Read only by the admin panel's Live view (no Ably presence set for this).
 
 export function sendBeat(screen: ScreenKey, shoppingLeft: number | null = null) {
-  const coarse = window.matchMedia("(pointer: coarse)").matches;
   const installed = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
-  const beat: BeatInput = { device: deviceOf(coarse, window.innerWidth), app: installed ? "installed" : "browser", screen, shoppingLeft };
+  const beat: BeatInput = { device: isPhone() ? "phone" : "computer", app: installed ? "installed" : "browser", screen, shoppingLeft };
   return fetch("/api/presence", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ beat }), keepalive: true }).catch(() => {});
 }
 
@@ -95,8 +95,7 @@ export function TryHint() {
     if (u.searchParams.get("hint") !== "try") return;
     u.searchParams.delete("hint");
     window.history.replaceState(window.history.state, "", u);
-    const phone = window.matchMedia("(pointer: coarse)").matches;
-    toast(phone ? t.ob.tryItPhone : t.ob.tryIt, { duration: 8000, id: "try-hint" });
+    toast(isPhone() ? t.ob.tryItPhone : t.ob.tryIt, { duration: 8000, id: "try-hint" });
   }, [s.loading, t]);
   return null;
 }

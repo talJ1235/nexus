@@ -101,8 +101,8 @@
 
 /* phone inbox = a full page pushed in from the inline-end over Home (Home shifts 22 % back and dims) */
 .nt-under{transition:transform 380ms cubic-bezier(.32,.72,0,1),filter 380ms cubic-bezier(.32,.72,0,1)}
-@media (max-width:1023px){html[data-inbox=open] .nt-under{transform:translateX(-22%);filter:brightness(.92)}
-[dir=rtl][data-inbox=open] .nt-under{transform:translateX(22%)}}
+html:where([data-device=phone])[data-inbox=open] .nt-under{transform:translateX(-22%);filter:brightness(.92)}
+:where([data-device=phone])[dir=rtl][data-inbox=open] .nt-under{transform:translateX(22%)}
 .nx.ibx-page{position:fixed;inset:0;z-index:65;background:var(--raised);display:flex;flex-direction:column;box-shadow:-12px 0 40px -18px rgba(0,0,0,.35);
  animation:nt-page-in 380ms var(--ease-drawer) both}
 [dir=rtl] .nx.ibx-page{animation-name:nt-page-in-r;box-shadow:12px 0 40px -18px rgba(0,0,0,.35)}

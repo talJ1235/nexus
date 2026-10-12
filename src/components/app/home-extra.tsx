@@ -23,7 +23,7 @@ function useMoney() {
   return (v: number) => formatMoney(Math.round(v), s.currency, locale);
 }
 const Empty = ({ children }: { children: React.ReactNode }) => (
-  <p className="flex flex-1 items-center justify-center px-4 py-3 text-center text-[13px] text-muted lg:px-[18px]" data-widget-empty>
+  <p className="flex flex-1 items-center justify-center px-4 py-3 text-center text-[13px] text-muted desk:px-[18px]" data-widget-empty>
     {children}
   </p>
 );
@@ -38,7 +38,7 @@ export function DropsWidget({ x, h, className, style }: P) {
       {rows.length === 0 ? (
         <Empty>{t.hc.dropsEmpty}</Empty>
       ) : (
-        <div className="r13-rows px-4 pb-1 lg:px-[18px]">
+        <div className="r13-rows px-4 pb-1 desk:px-[18px]">
           {rows.map((d) => (
             <button key={d.itemId} type="button" onClick={() => s.openItem(d.itemId)} className="flex w-full items-center gap-2.5 py-2 text-start" data-drop-row={d.itemId}>
               <i className="size-2 shrink-0 rounded-full bg-ok" />
@@ -63,7 +63,7 @@ export function VsLastWidget({ x, h, className, style }: P) {
       {v.pct == null ? (
         <Empty>{t.hc.vsNone}</Empty>
       ) : (
-        <div className="flex flex-1 flex-col gap-1 px-4 pb-3 pt-2.5 lg:px-[18px]" data-vslast={v.pct}>
+        <div className="flex flex-1 flex-col gap-1 px-4 pb-3 pt-2.5 desk:px-[18px]" data-vslast={v.pct}>
           <Big className={less ? "text-ok" : "text-warn"}>
             {v.pct > 0 ? "+" : v.pct < 0 ? "−" : ""}
             {Math.abs(v.pct)}%
@@ -109,13 +109,13 @@ export function NextDeliveryWidget({ x, h, className, style }: P) {
       {!n ? (
         <Empty>{t.hc.nextEmpty}</Empty>
       ) : (
-        <button type="button" onClick={() => s.openItem(n.itemId)} className="flex flex-col gap-1 px-4 pb-3 pt-2.5 text-start lg:px-[18px]" data-next-delivery={n.itemId}>
+        <button type="button" onClick={() => s.openItem(n.itemId)} className="flex flex-col gap-1 px-4 pb-3 pt-2.5 text-start desk:px-[18px]" data-next-delivery={n.itemId}>
           <Big className={n.late ? "text-warn" : undefined}>{label}</Big>
           <bdi className="bidi truncate text-[12.5px] text-muted">{[n.title, n.store].filter(Boolean).join(" · ")}</bdi>
         </button>
       )}
       {n && later.length > 0 && (
-        <div className="mt-auto flex flex-col border-t border-line-in px-4 pb-1 lg:px-[18px]" data-stat-tall>
+        <div className="mt-auto flex flex-col border-t border-line-in px-4 pb-1 desk:px-[18px]" data-stat-tall>
           {later.map((d) => (
             <button key={d.itemId} type="button" onClick={() => s.openItem(d.itemId)} className="flex min-h-[34px] w-full items-center gap-2.5 text-start text-[12.5px]" data-later-delivery={d.itemId}>
               <bdi className="bidi min-w-0 flex-1 truncate font-medium">{d.title}</bdi>
@@ -139,7 +139,7 @@ export function ByCategoryWidget({ x, h, className, style }: P) {
       {rows.length === 0 ? (
         <Empty>{t.hc.bycatEmpty}</Empty>
       ) : (
-        <div className="flex flex-col gap-2 px-4 pb-3 pt-2.5 lg:px-[18px]">
+        <div className="flex flex-col gap-2 px-4 pb-3 pt-2.5 desk:px-[18px]">
           {rows.map((r) => (
             <div key={r.category} className="flex items-center gap-2.5 text-[12.5px]" data-bycat={r.category}>
               <span className="w-[34%] shrink-0 truncate font-medium">{t.categories[r.category as keyof typeof t.categories] ?? r.category}</span>
@@ -164,7 +164,7 @@ export function MostBoughtWidget({ x, h, className, style }: P) {
       {rows.length === 0 ? (
         <Empty>{t.hc.mostEmpty}</Empty>
       ) : (
-        <div className="r13-rows px-4 pb-1 lg:px-[18px]">
+        <div className="r13-rows px-4 pb-1 desk:px-[18px]">
           {rows.map((r) => (
             <button key={r.key} type="button" onClick={() => s.openItem(r.itemId)} className="flex w-full items-center gap-2.5 py-2 text-start" data-most={r.key}>
               <i className="size-2 shrink-0 rounded-full bg-info" />
@@ -191,7 +191,7 @@ export function ActivityWidget({ x, h, className, style }: P) {
       ) : rows.length === 0 ? (
         <Empty>{t.hc.actEmpty}</Empty>
       ) : (
-        <div className="r13-rows px-4 pb-1 lg:px-[18px]">
+        <div className="r13-rows px-4 pb-1 desk:px-[18px]">
           {rows.map((a) => {
             const p = s.people.find((x) => x.id === a.userId);
             const name = (p?.name ?? t.spaces.someone).split(/\s+/)[0];

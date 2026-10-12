@@ -101,7 +101,7 @@ function Results({ q, onClose, onPick }: { q: string; onClose: () => void; onPic
   const chip = "grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-ink [&_svg]:size-[18px]";
 
   return (
-    <div className="fixed inset-x-0 bottom-0 top-[var(--app-header-h,74px)] z-[19] overflow-y-auto overscroll-contain bg-bg px-3 pb-[calc(120px+env(safe-area-inset-bottom))] pt-1 lg:hidden" data-phone-search-results role="region" aria-label={t.view.search}>
+    <div className="fixed inset-x-0 bottom-0 top-[var(--app-header-h,74px)] z-[19] overflow-y-auto overscroll-contain bg-bg px-3 pb-[calc(120px+env(safe-area-inset-bottom))] pt-1 desk:hidden" data-phone-search-results role="region" aria-label={t.view.search}>
       {!res ? (
         <>
           {recent.length > 0 && (

@@ -7,6 +7,7 @@ import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { useBackClose } from "@/components/ui/sheet-drag";
+import { isPhone } from "@/components/ui/use-device";
 import { prewarmScanners } from "@/lib/barcode-reader";
 import { NotifyBell } from "../notify/inbox";
 import { useReadOnly } from "./offline-banner";
@@ -34,7 +35,7 @@ export function PhoneTopBar() {
     setQ("");
     setSearching(false);
   };
-  useBackClose(open, close, "(max-width: 1023px)");
+  useBackClose(open, close, isPhone);
   const meName = useMeName();
   // 36 px circles; the ::after grows each tap area to 40 px without moving anything.
   const circle = "relative grid size-9 shrink-0 place-items-center rounded-full transition-transform duration-[120ms] ease-[var(--ease-out)] active:scale-95 after:absolute after:-inset-0.5 after:content-['']";
@@ -181,7 +182,7 @@ function DockBar() {
   return (
     <nav
       dir="ltr"
-      className="fixed inset-x-3 bottom-[calc(18px+env(safe-area-inset-bottom))] z-40 grid h-[62px] grid-cols-5 items-center rounded-full border border-line bg-surface px-1 text-ink shadow-[0_8px_28px_color-mix(in_srgb,var(--ink)_12%,transparent)] transition-[transform,opacity] duration-[320ms] ease-[var(--ease-out)] lg:hidden [[data-selecting]_&]:pointer-events-none [[data-selecting]_&]:translate-y-[140%] [[data-selecting]_&]:opacity-0"
+      className="fixed inset-x-3 bottom-[calc(18px+env(safe-area-inset-bottom))] z-40 grid h-[62px] grid-cols-5 items-center rounded-full border border-line bg-surface px-1 text-ink shadow-[0_8px_28px_color-mix(in_srgb,var(--ink)_12%,transparent)] transition-[transform,opacity] duration-[320ms] ease-[var(--ease-out)] desk:hidden [[data-selecting]_&]:pointer-events-none [[data-selecting]_&]:translate-y-[140%] [[data-selecting]_&]:opacity-0"
       aria-label="Main"
       data-dock
     >
@@ -224,7 +225,7 @@ function PlusMenuSheet() {
   const ro = useReadOnly();
   const open = usePlusOpen();
   // Back gesture (the shared surface stack, like every sheet) / Esc closes.
-  useBackClose(open, () => s.setPlusOpen(false), "(max-width: 1023px)");
+  useBackClose(open, () => s.setPlusOpen(false), isPhone);
   useEffect(() => {
     if (!open) return;
     prewarmScanners(); // two of its four actions are camera screens (Round 10 B1)
@@ -248,7 +249,7 @@ function PlusMenuSheet() {
   const actions = all.filter((a) => a.primary);
   const more = all.filter((a) => !a.primary);
   return (
-    <div className="lg:hidden" data-plus-menu={open ? "open" : "closed"}>
+    <div className="desk:hidden" data-plus-menu={open ? "open" : "closed"}>
       <div
         aria-hidden
         onClick={() => s.setPlusOpen(false)}

@@ -1,21 +1,28 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
-/* Phones only, by the phone layout pref on the app shell (Round 8 C2): one row per item, or 2-column cards. */
+/* R17 S7 W2: phone vs computer UI = the device class (<html data-device>, src/lib/device.ts), never the window's width
+   (browser zoom shrinks the CSS width). Width variants (sm:/lg:) only size things inside a layout. */
+@custom-variant phone (&:where([data-device="phone"], [data-device="phone"] *));
+@custom-variant desk (&:where([data-device="computer"], [data-device="computer"] *));
+/* Phones only (a narrow phone — R17 S7: never a narrow computer window), by the phone layout pref on the app shell (Round 8 C2): one row per item, or 2-column cards. */
 @custom-variant prow {
   @media (width < 40rem) {
-    &:where([data-phone-layout="rows"] *) {
+    &:where([data-device="phone"] [data-phone-layout="rows"] *) {
       @slot;
     }
   }
 }
 @custom-variant pcard {
   @media (width < 40rem) {
-    &:where([data-phone-layout="cards"] *) {
+    &:where([data-device="phone"] [data-phone-layout="cards"] *) {
       @slot;
     }
   }
 }
+
+/* R17 S7 W2: a computer window narrower than this (heavy zoom) scrolls sideways instead of switching to the phone UI. */
+:where([data-device="computer"]) body { min-width: 720px; }
 
 /* ---------- Design tokens (Round 7: UI v2) ----------
    Two palettes × light/dark. Palette = data-palette on <html> (cookie, server-rendered: no flash); mode = next-themes
@@ -575,10 +582,10 @@ body {
    to close (src/components/ui/sheet-drag.ts). The grip never scrolls the page under it. */
 [data-sheet-grip] { touch-action: none; }
 @media (max-width: 639px) {
-  .sheet-phone { top: max(10px, env(safe-area-inset-top)); max-width: none; border: 0; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; overflow: hidden; }
-  .sheet-phone[data-state="open"], [dir="rtl"] .sheet-phone[data-state="open"] { animation: sheet-up 380ms var(--ease-out); }
-  .modal-phone { top: auto; bottom: 0; width: 100%; max-width: none; max-height: 90dvh; border-width: 1px 0 0; border-radius: 26px 26px 0 0; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
-  .modal-phone[data-state="open"] { animation: sheet-up 320ms var(--ease-out); }
+  :where([data-device="phone"]) .sheet-phone { top: max(10px, env(safe-area-inset-top)); max-width: none; border: 0; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; overflow: hidden; }
+  :where([data-device="phone"]) .sheet-phone[data-state="open"], :where([data-device="phone"])[dir="rtl"] .sheet-phone[data-state="open"] { animation: sheet-up 380ms var(--ease-out); }
+  :where([data-device="phone"]) .modal-phone { top: auto; bottom: 0; width: 100%; max-width: none; max-height: 90dvh; border-width: 1px 0 0; border-radius: 26px 26px 0 0; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+  :where([data-device="phone"]) .modal-phone[data-state="open"] { animation: sheet-up 320ms var(--ease-out); }
 }
 /* Polish #5: closing leaves along the path it came in by (✕, Esc, the scrim and Back, like the swipe already did).
    Radix keeps the dialog mounted until its exit animation ends. `to`-only keyframes start from wherever the surface is
@@ -597,10 +604,10 @@ body {
 /* The card → sheet morph: the picture flies back to its card while the sheet fades (as it faded in). */
 .sheet-in-end[data-morphed][data-state="closed"], .sheet-in-start[data-morphed][data-state="closed"] { animation: fade-out 150ms ease-out both; }
 @media (max-width: 639px) {
-  .sheet-phone[data-state="closed"], [dir="rtl"] .sheet-phone[data-state="closed"],
-  .modal-phone[data-state="closed"], .assistant-sheet[data-state="closed"], [dir="rtl"] .assistant-sheet[data-state="closed"],
+  :where([data-device="phone"]) .sheet-phone[data-state="closed"], :where([data-device="phone"])[dir="rtl"] .sheet-phone[data-state="closed"],
+  :where([data-device="phone"]) .modal-phone[data-state="closed"], :where([data-device="phone"]) .assistant-sheet[data-state="closed"], :where([data-device="phone"])[dir="rtl"] .assistant-sheet[data-state="closed"],
   .actions-sheet[data-state="closed"] { animation: sheet-down 200ms var(--ease-drawer) both; }
-  .sheet-phone[data-morphed][data-state="closed"] { animation: fade-out 150ms ease-out both; }
+  :where([data-device="phone"]) .sheet-phone[data-morphed][data-state="closed"] { animation: fade-out 150ms ease-out both; }
 }
 
 /* ---------- Mixed Hebrew/English text ----------
@@ -663,13 +670,12 @@ body {
   /* Polish #2: the action (Undo — the only way back from a delete) is a full 40px target, not a 24px chip. */
   :root [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-button] { height: 40px; padding-inline: 14px; font-size: 14px; border-radius: 10px; flex-shrink: 0; }
 }
-@media (max-width: 768px) {
-  :root [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(96px + env(safe-area-inset-bottom)) !important; }
-  :root[data-selecting] [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
-  /* Polish #9: the title stays one line; the description (often the item's name — the only content) gets two. */
-  .nx-toast-title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  .nx-toast-desc { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
-}
+/* Phones (R17 S7: the device class): toasts clear the dock. */
+:root:where([data-device="phone"]) [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(96px + env(safe-area-inset-bottom)) !important; }
+:root:where([data-device="phone"])[data-selecting] [data-sonner-toaster][data-y-position="bottom"] { bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
+/* Polish #9: the title stays one line; the description (often the item's name — the only content) gets two. */
+:where([data-device="phone"]) .nx-toast-title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+:where([data-device="phone"]) .nx-toast-desc { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
 
 /* Polish #8: a toast's title / description takes its reading order from its own text (an English item name in the
    Hebrew UI keeps its start and loses its end when cut), aligned to the page's start like .bidi. */
@@ -877,8 +883,8 @@ html[data-boot="full"]:not([data-booted]) .r13-rise { animation-play-state: paus
 .assistant-sheet[data-state="open"] { animation: slide-from-right 260ms var(--ease-drawer); }
 [dir="rtl"] .assistant-sheet[data-state="open"] { animation-name: slide-from-left; }
 @media (max-width: 639px) {
-  .assistant-sheet { max-width: none; border: 0; }
-  .assistant-sheet[data-state="open"] { animation: sheet-up 380ms var(--ease-out); }
+  :where([data-device="phone"]) .assistant-sheet { max-width: none; border: 0; }
+  :where([data-device="phone"]) .assistant-sheet[data-state="open"] { animation: sheet-up 380ms var(--ease-out); }
 }
 @keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
 /* The Box breathing while Nexus works: faces pulse in sequence. */
@@ -1101,10 +1107,8 @@ html[data-motion="reduce"] *::after {
 .hgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; grid-auto-rows: minmax(118px, auto); gap: 12px; }
 .hw { grid-column: span var(--pspan, 2); grid-row: span var(--rows, 1); min-width: 0; display: flex; flex-direction: column; }
 .hw > * { flex: 1 1 auto; }
-@media (min-width: 1024px) {
-  .hgrid { grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: minmax(132px, auto); gap: 14px; }
-  .hw { grid-column: span var(--span, 12); }
-}
+:where([data-device="computer"]) .hgrid { grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: minmax(132px, auto); gap: 14px; }
+:where([data-device="computer"]) .hw { grid-column: span var(--span, 12); }
 /* Customise: the widget sits in its dashed frame without its own card chrome or title (the frame's bar has it). */
 [data-editing] .hw-body > * { border: 0 !important; box-shadow: none !important; background: transparent !important; border-radius: 0 !important; }
 [data-editing] [data-card-head], [data-editing] [data-stat-label] { display: none !important; }

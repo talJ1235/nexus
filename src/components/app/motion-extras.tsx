@@ -6,6 +6,7 @@ import { LogoMark } from "@/components/logo";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useStore } from "./store";
+import { isPhone } from "@/components/ui/use-device";
 
 const PULL_AT = 72;
 
@@ -25,7 +26,7 @@ export function PullToRefresh() {
   const { loading, offlineAt } = s;
   useEffect(() => {
     if (loading || offlineAt != null) return;
-    const phone = () => window.matchMedia("(max-width: 1023px)").matches;
+    const phone = isPhone;
     const down = (e: TouchEvent) => {
       if (!phone() || window.scrollY > 0 || busy || document.querySelector('[role="dialog"]')) return;
       start.current = e.touches[0].clientY;
@@ -70,7 +71,7 @@ export function PullToRefresh() {
   if (!dy && !busy) return null;
   const k = busy ? 1 : Math.min(1, dy / PULL_AT);
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-30 flex justify-center pt-[max(10px,env(safe-area-inset-top))] lg:hidden" aria-live="polite" data-pull>
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-30 flex justify-center pt-[max(10px,env(safe-area-inset-top))] desk:hidden" aria-live="polite" data-pull>
       <span
         className={cn("grid size-11 place-items-center rounded-full border border-line bg-surface shadow-card", busy && "box-think")}
         style={{ transform: `translateY(${busy ? 52 : dy}px) rotate(${k * 240}deg) scale(${0.6 + 0.4 * k})`, opacity: k, transition: dy ? "none" : "transform 300ms var(--ease-out)" }}

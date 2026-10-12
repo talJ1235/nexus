@@ -6,13 +6,12 @@ import { useI18n } from "@/components/providers";
 import { notifyAsk } from "@/app/notify-actions";
 import { askHere, SETTLE_MS } from "@/lib/notify/ask";
 import { askPermission, ensureSubscribed, permState } from "@/lib/notify/client";
-import { useMedia } from "@/components/ui/use-media";
 import { cn } from "@/lib/utils";
 import { useScreen } from "../app/presence-beat";
 import { useOpenItemId, useStore } from "../app/store";
 import { inboxStore, useInbox } from "./inbox-state";
-import { DESK } from "./inbox";
 import { ICONS, Svg } from "./row";
+import { useDevice } from "@/components/ui/use-device";
 
 // R17 S3 L — the reminder card after a "Not now": generic (no item, no price), the same card everywhere. Desktop: out of
 // the header bell (tip pointing at it, the bell shows a dot). Phone: above the dock, in and out on the same path; a
@@ -41,7 +40,7 @@ export function AskCard() {
   const s = useStore();
   const { t } = useI18n();
   const a = t.nt.ask;
-  const desk = useMedia(DESK);
+  const desk = useDevice() === "computer";
   const { boot } = useInbox();
   const screen = useScreen();
   const overlay = useOverlay();

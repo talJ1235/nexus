@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/providers";
 import { initialOf } from "@/lib/initial";
 import type { BeatInput, Device } from "@/lib/presence-keys";
-import { deviceOf } from "@/lib/presence-keys";
+import { isPhone } from "@/components/ui/use-device";
 
 // R17 G — small pieces shared by the admin panel's tabs (boards Admin-desktop / Admin-phone).
 
@@ -147,9 +147,8 @@ export function useVisiblePoll(fn: () => void | Promise<unknown>, ms: number, de
 
 /** This browser's beat (the admin page sends it with its polls instead of a separate request). */
 export function beatHere(screen: BeatInput["screen"] = "admin"): BeatInput {
-  const coarse = window.matchMedia("(pointer: coarse)").matches;
   const installed = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
-  return { device: deviceOf(coarse, window.innerWidth), app: installed ? "installed" : "browser", screen, shoppingLeft: null };
+  return { device: isPhone() ? "phone" : "computer", app: installed ? "installed" : "browser", screen, shoppingLeft: null };
 }
 
 /** Loading / failed states for a tab. */

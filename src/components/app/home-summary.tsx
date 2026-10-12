@@ -152,7 +152,7 @@ function Tile({ tone, className, children, delay }: { tone: "tint" | "surface"; 
   return (
     <div
       className={cn(
-        "rise-in flex min-w-0 flex-col gap-1 rounded-[22px] p-3.5 max-sm:hidden lg:gap-2 lg:rounded-[30px] lg:p-[22px]",
+        "rise-in flex min-w-0 flex-col gap-1 rounded-[22px] p-3.5 max-sm:hidden desk:gap-2 desk:rounded-[30px] desk:p-[22px]",
         tone === "tint" ? "bg-tint text-tint-ink" : "border border-line bg-surface",
         className,
       )}
@@ -181,23 +181,23 @@ export function HomeSummary() {
   const hit = "relative after:absolute after:-inset-x-1 after:-inset-y-3 after:content-['']";
 
   return (
-    <section className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] lg:gap-4" data-home-summary>
+    <section className="grid grid-cols-2 gap-3 desk:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] desk:gap-4" data-home-summary>
       {/* Totals card: everything at a glance, but calm — the products below are the page. */}
-      <div className="rise-in col-span-2 flex flex-col gap-2 rounded-[26px] bg-[image:var(--hero)] p-4 text-on-hero sm:gap-2.5 sm:p-5 lg:col-span-1 lg:min-h-[180px] lg:gap-1.5 lg:rounded-[30px] lg:px-6 lg:py-[18px]" data-totals>
+      <div className="rise-in col-span-2 flex flex-col gap-2 rounded-[26px] bg-[image:var(--hero)] p-4 text-on-hero sm:gap-2.5 sm:p-5 desk:col-span-1 desk:min-h-[180px] desk:gap-1.5 desk:rounded-[30px] desk:px-6 desk:py-[18px]" data-totals>
         <span className="flex items-center gap-2 text-[13px] opacity-85">
           {n === 1 ? t.home.leftToBuyOne : f(t.home.leftToBuy, { n })}
           {sum.totals.estimated > 0 && <span className="text-xs opacity-80" data-estimated>· {f(t.home.estimated, { n: sum.totals.estimated })}</span>}
           {sum.saved >= 1 && <em className="ms-auto rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-bold not-italic">{f(t.home.saved, { amount: m(Math.round(sum.saved)) })}</em>}
         </span>
-        <BigMoney value={sum.totals.total} className="text-[34px] font-black leading-[0.95] tracking-[-0.03em] sm:text-[44px] lg:text-[48px]" />
+        <BigMoney value={sum.totals.total} className="text-[34px] font-black leading-[0.95] tracking-[-0.03em] sm:text-[44px] desk:text-[48px]" />
         {segTotal > 0 && (
           <>
-            <div className="mt-auto flex h-2 gap-[3px] pt-0.5 lg:h-2.5 lg:gap-1" aria-hidden>
+            <div className="mt-auto flex h-2 gap-[3px] pt-0.5 desk:h-2.5 desk:gap-1" aria-hidden>
               {sum.segments.map((g, i) => (
                 <span key={g.key} className="grow-x rounded-full" style={{ flex: g.value, background: g.color, animationDelay: `${200 + i * 60}ms` }} />
               ))}
             </div>
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[12px] lg:text-[13px]" data-totals-legend>
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[12px] desk:text-[13px]" data-totals-legend>
               {sum.segments.slice(0, legendMax).map((g) => (
                 <button
                   key={g.key}
@@ -218,7 +218,7 @@ export function HomeSummary() {
             </div>
           </>
         )}
-        <div className={cn("flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/12 pt-2 text-[12px] lg:text-[13px]", segTotal <= 0 && "mt-auto")} data-totals-strip>
+        <div className={cn("flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/12 pt-2 text-[12px] desk:text-[13px]", segTotal <= 0 && "mt-auto")} data-totals-strip>
           {[
             { key: "urgent", label: t.nav.urgent, value: String(strip.urgent), go: () => s.setView({ type: "to_buy", f: "urgent" }) },
             { key: "ordered", label: t.nav.onTheWay, value: String(strip.onTheWay), go: () => s.setView({ type: "ordered" }) },
@@ -237,13 +237,13 @@ export function HomeSummary() {
       {/* Tile 1: urgent (or the project's budget ring) */}
       {budget && budget.budget != null ? (
         <Tile tone="tint" delay={80}>
-          <span className="text-xs font-bold lg:text-[14px]">{t.home.budget}</span>
-          <div className="mt-auto flex items-center gap-2.5 lg:gap-3">
+          <span className="text-xs font-bold desk:text-[14px]">{t.home.budget}</span>
+          <div className="mt-auto flex items-center gap-2.5 desk:gap-3">
             <Ring value={(budget.pct ?? 0) / 100} size={56} stroke={7} color={budget.state === "over" ? "var(--danger)" : "var(--tint-ink)"} track="color-mix(in srgb, var(--tint-ink) 18%, transparent)">
               <span className="tabular text-[13px] font-extrabold">{Math.round(budget.pct ?? 0)}%</span>
             </Ring>
             <div className="min-w-0">
-              <div className="tabular text-[20px] font-black leading-none tracking-[-0.02em] lg:text-[26px]">{m(budget.budget)}</div>
+              <div className="tabular text-[20px] font-black leading-none tracking-[-0.02em] desk:text-[26px]">{m(budget.budget)}</div>
               <div className="mt-1 text-[13px] opacity-80">
                 {budget.state === "over" ? f(t.home.budgetOver, { amount: m(budget.used - budget.budget) }) : f(t.home.budgetLeft, { amount: m(budget.budget - budget.used) })}
               </div>
@@ -252,9 +252,9 @@ export function HomeSummary() {
         </Tile>
       ) : (
         <Tile tone="tint" delay={80}>
-          <span className="order-2 text-xs font-bold lg:order-none lg:text-[14px]">{t.home.urgent}</span>
-          <Ticker value={sum.urgent.length} format={(v) => String(Math.round(v))} className="order-1 text-[26px] font-black leading-none tracking-[-0.02em] lg:order-none lg:mt-auto lg:text-[48px]" />
-          <span className="line-clamp-2 text-[13px] opacity-80 bidi max-lg:hidden">{sum.urgent.length ? sum.urgent.slice(0, 3).map((i) => i.title.split(/\s+/).slice(0, 3).join(" ")).join(", ") : t.home.nothingUrgent}</span>
+          <span className="order-2 text-xs font-bold desk:order-none desk:text-[14px]">{t.home.urgent}</span>
+          <Ticker value={sum.urgent.length} format={(v) => String(Math.round(v))} className="order-1 text-[26px] font-black leading-none tracking-[-0.02em] desk:order-none desk:mt-auto desk:text-[48px]" />
+          <span className="line-clamp-2 text-[13px] opacity-80 bidi phone:hidden">{sum.urgent.length ? sum.urgent.slice(0, 3).map((i) => i.title.split(/\s+/).slice(0, 3).join(" ")).join(", ") : t.home.nothingUrgent}</span>
         </Tile>
       )}
 
@@ -262,21 +262,21 @@ export function HomeSummary() {
       <Tile tone="surface" delay={160}>
         {ship.best ? (
           <>
-            <span className="truncate text-[14px] font-bold max-lg:hidden">{f(t.home.freeShipping, { store: ship.best.store })}</span>
-            <Ticker value={ship.best.gap.remaining} format={m} className="text-[26px] font-black leading-none tracking-[-0.02em] lg:mt-auto lg:text-[48px]" />
-            <span className="truncate text-xs font-bold lg:hidden">{t.phone.toFreeShipping}</span>
-            <span className="line-clamp-2 text-[13px] text-muted max-lg:hidden">
+            <span className="truncate text-[14px] font-bold phone:hidden">{f(t.home.freeShipping, { store: ship.best.store })}</span>
+            <Ticker value={ship.best.gap.remaining} format={m} className="text-[26px] font-black leading-none tracking-[-0.02em] desk:mt-auto desk:text-[48px]" />
+            <span className="truncate text-xs font-bold desk:hidden">{t.phone.toFreeShipping}</span>
+            <span className="line-clamp-2 text-[13px] text-muted phone:hidden">
               {t.home.toGo} {ship.best.hint && <span className="bidi">{f(t.home.addHint, { name: ship.best.hint.split(/\s+/).slice(0, 4).join(" ") })}</span>}
             </span>
-            <div className="h-2 overflow-hidden rounded-full bg-surface-2 max-lg:mt-1 max-lg:h-1.5" aria-hidden>
+            <div className="h-2 overflow-hidden rounded-full bg-surface-2 phone:mt-1 phone:h-1.5" aria-hidden>
               <i className="grow-x block h-full rounded-full bg-brand" style={{ width: `${Math.round(ship.best.gap.progress * 100)}%`, animationDelay: "300ms" }} />
             </div>
           </>
         ) : (
           <>
-            <span className="text-[13px] font-bold lg:text-[14px]">{ship.anyRule && ship.anyFree ? t.home.allFree : t.home.noShipping}</span>
-            <span className="mt-auto text-[13px] text-muted max-lg:hidden">{ship.anyRule ? "" : t.home.noShippingHint}</span>
-            <button type="button" onClick={() => s.setView({ type: "orders" })} className="self-start rounded-full bg-surface-2 px-3 py-1.5 text-xs font-semibold transition hover:bg-line max-lg:mt-1">
+            <span className="text-[13px] font-bold desk:text-[14px]">{ship.anyRule && ship.anyFree ? t.home.allFree : t.home.noShipping}</span>
+            <span className="mt-auto text-[13px] text-muted phone:hidden">{ship.anyRule ? "" : t.home.noShippingHint}</span>
+            <button type="button" onClick={() => s.setView({ type: "orders" })} className="self-start rounded-full bg-surface-2 px-3 py-1.5 text-xs font-semibold transition hover:bg-line phone:mt-1">
               {t.nav.orders}
             </button>
           </>
@@ -389,7 +389,7 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
     <div
       ref={ref}
       className={cn(
-        "sticky top-[var(--app-header-h,0px)] z-[15] -mx-4 mb-4 flex items-center gap-2 px-4 py-2 transition-[background-color,box-shadow] duration-200 sm:-mx-6 sm:px-6 lg:-mx-3 lg:px-3",
+        "sticky top-[var(--app-header-h,0px)] z-[15] -mx-4 mb-4 flex items-center gap-2 px-4 py-2 transition-[background-color,box-shadow] duration-200 sm:-mx-6 sm:px-6 desk:-mx-3 desk:px-3",
         stuck && "bg-bg/85 shadow-[0_10px_18px_-14px_color-mix(in_srgb,var(--ink)_35%,transparent)] backdrop-blur-md",
       )}
       data-filters
@@ -397,7 +397,7 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
     >
       {section && (
         <div className="me-1 min-w-0 shrink-0" data-section-head>
-          <h2 className="text-[22px] font-extrabold leading-tight tracking-[-0.02em] lg:text-[24px]">{t.nav.toBuy}</h2>
+          <h2 className="text-[22px] font-extrabold leading-tight tracking-[-0.02em] desk:text-[24px]">{t.nav.toBuy}</h2>
           <p className="tabular truncate text-[12.5px] text-muted">
             {sum.toBuy.length === 1 ? t.home.countOne : f(t.home.count, { n: sum.toBuy.length })}
             {sum.totals.total > 0 && <> · <b className="font-semibold text-ink">{formatMoney(sum.totals.total, s.currency, locale)}</b></>}

@@ -7,7 +7,6 @@ import { Dialog as D } from "radix-ui";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/components/providers";
 import { useBackClose } from "@/components/ui/sheet-drag";
-import { useMedia } from "@/components/ui/use-media";
 import { rememberThisDevice } from "@/app/security-actions";
 import { cn } from "@/lib/utils";
 import { useStore } from "../store";
@@ -15,6 +14,7 @@ import { avatarColor, Facepile, openSpaces, SpaceLook, usePresence } from "../sp
 import { Av, I, P } from "./ui";
 import { SpaceCover, SPACE_PAGES } from "./space";
 import { YOU_PAGES } from "./you";
+import { isPhone, useDevice } from "@/components/ui/use-device";
 
 /**
  * R16 D1–D3 — Settings (boards Settings-desktop/-phone, SpaceSettings-desktop/-phone). Desktop (≥ 1024 px): a large
@@ -33,8 +33,7 @@ export const isSection = (v: string | null | undefined): v is SectionId => !!v &
 
 export type PageProps = { go: (id: SectionId) => void; close: () => void; phone: boolean };
 
-const DESK = "(min-width: 1024px)";
-const PHONE_NAV = "(max-width: 1023px)";
+const PHONE_NAV = isPhone;
 
 /** Which space sections the current space has (a personal space can't be shared, left or deleted). */
 function useSpaceSections() {
@@ -58,7 +57,7 @@ const ALIAS: Record<string, string> = { security: "account", space: "space", not
 
 export function SettingsShell() {
   const s = useStore();
-  const desktop = useMedia(DESK);
+  const desktop = useDevice() === "computer";
   const open = s.settingsSection != null;
   const { loading, openSettings } = s;
   // Deep link: /settings[/<section>] opens here once the app is ready; /?panel=settings too (older links). Once: a later
@@ -94,12 +93,12 @@ function BootFrame() {
   const rows = (n: number) => Array.from({ length: n }, (_, k) => <span key={k} className="block h-11 rounded-xl bg-surface-2/70" />);
   return (
     <div className="nx sx-root" data-settings-boot>
-      <div className="sx-scrim max-lg:hidden" />
-      <div className="sx-dialog max-lg:hidden" data-settings>
+      <div className="sx-scrim phone:hidden" />
+      <div className="sx-dialog phone:hidden" data-settings>
         <div className="flex w-[260px] shrink-0 flex-col gap-2 border-e border-line p-4">{rows(8)}</div>
         <div className="flex flex-1 flex-col gap-3 p-8">{rows(6)}</div>
       </div>
-      <div className="sx-phone lg:hidden" data-settings>
+      <div className="sx-phone desk:hidden" data-settings>
         <div className="flex flex-col gap-3 p-4 pt-[calc(env(safe-area-inset-top)+64px)]">{rows(7)}</div>
       </div>
     </div>

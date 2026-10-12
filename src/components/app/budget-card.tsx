@@ -149,12 +149,12 @@ export function MonthBudget() {
 
   const ringPct = fc.cap ? Math.min(1, fc.total / fc.cap) : 0;
   return (
-    <section data-month-budget={fc.state} className="rise-in min-w-0 rounded-[30px] bg-[image:var(--hero)] p-5 text-on-hero lg:px-[26px] lg:py-6">
+    <section data-month-budget={fc.state} className="rise-in min-w-0 rounded-[30px] bg-[image:var(--hero)] p-5 text-on-hero desk:px-[26px] desk:py-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-[14px] opacity-75">{t.budget.title}</h3>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-2">
-            <Ticker value={fc.total} format={mK} className="text-[36px] font-black leading-[0.95] tracking-[-0.03em] sm:text-[44px] lg:text-[56px]" />
+            <Ticker value={fc.total} format={mK} className="text-[36px] font-black leading-[0.95] tracking-[-0.03em] sm:text-[44px] desk:text-[56px]" />
             {fc.cap != null && <span className="text-sm opacity-70">{f(t.budget.of, { amount: mK(fc.cap) })}</span>}
           </div>
           {status && <div className={cn("tabular mt-2 text-sm font-semibold", fc.state === "over" ? "text-[var(--hero-danger)]" : "opacity-85")}>{status}</div>}

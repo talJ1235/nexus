@@ -15,7 +15,7 @@ import { PaletteSwatch } from "./settings-dialog";
 
 const SETTINGS_SECTIONS = ["account", "display", "ai", "calendar", "memory", "data", "general", "people", "budget", "danger"] as const;
 import { useStore } from "./store";
-import { PHONE, useMedia } from "@/components/ui/use-media";
+import { isPhone, usePhoneNarrow } from "@/components/ui/use-device";
 
 function postForm(action: string) {
   const f = document.createElement("form");
@@ -32,14 +32,14 @@ function postForm(action: string) {
 export function useCommands(): AppCommand[] {
   const s = useStore();
   const router = useRouter();
-  const phone = useMedia(PHONE);
+  const phone = usePhoneNarrow();
   const { t, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
   const [palette, setPalette] = usePalette();
   const aiOn = s.homePrefs.aiSuggestions;
   const cmds: AppCommand[] = [
     // Actions
-    { id: "add", group: "actions", label: t.cmd.addLink, keywords: "add link url paste הוספה קישור", icon: <Link2 />, run: () => (window.matchMedia("(max-width: 1023px)").matches ? s.setPasteOpen(true) : s.focusAdd()) },
+    { id: "add", group: "actions", label: t.cmd.addLink, keywords: "add link url paste הוספה קישור", icon: <Link2 />, run: () => (isPhone() ? s.setPasteOpen(true) : s.focusAdd()) },
     { id: "receipt", group: "actions", label: t.scan.title, keywords: "receipt invoice order confirmation purchased קבלה חשבונית", icon: <ReceiptText />, run: () => s.openReceipt() },
     { id: "shop", group: "actions", label: t.shop.title, keywords: "shopping mode store supermarket list קנייה סופר", icon: <ShoppingCart />, run: () => s.setShop("pick"), testId: "shop" },
     { id: "barcode", group: "actions", label: t.barcode.title, keywords: "scan barcode ean upc ברקוד סריקה", icon: <ScanBarcode />, run: () => s.setScanner("barcode") },

@@ -59,7 +59,7 @@ function ProjectsSkeleton() {
     <div className="flex flex-col gap-8" aria-busy="true" data-skeleton="projects">
       <header className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-[26px] font-extrabold tracking-[-0.02em] lg:text-[28px]">{t.projects.title}</h1>
+          <h1 className="text-[26px] font-extrabold tracking-[-0.02em] desk:text-[28px]">{t.projects.title}</h1>
           <Skel className="skeleton-in h-10 w-[84px] rounded-full" />
         </div>
         <div className="skeleton-in flex flex-wrap gap-2">
