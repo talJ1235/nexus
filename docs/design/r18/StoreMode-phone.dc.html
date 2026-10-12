@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Store mode · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+<link rel="stylesheet" href="./nx-sm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+<div class="phone">
+
+  <div class="sm-top" style="position:absolute;top:0;inset-inline:0">
+    <div class="r1">
+      <button class="ico-b" aria-label="{{t.leave}}"><svg class="s lg" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <div class="st-n">
+        <b class="bidi">{{store}}</b>
+        <span>{{startedLine}}</span>
+      </div>
+      <sc-if value="{{shared}}" hint-placeholder-val="{{ false }}">
+        <span class="av sm c2 ring-shop" title="{{t.noaHere}}" style="margin-inline-end:8px">{{iniN}}</span>
+      </sc-if>
+    </div>
+    <div class="prog-h" role="img" aria-label="{{ringLabel}}">
+      <span class="{{bigCls}}">{{nGot}}</span><span class="of">/ {{nAll}}</span>
+      <span class="pc"><b>{{pctText}}</b><span>{{leftText}}</span></span>
+    </div>
+    <div class="rail" aria-hidden="true">
+      <sc-for list="{{rail}}" as="seg" hint-placeholder-count="10">
+        <i class="{{seg.cls}}" style="flex-grow:{{seg.n}}"><u style="width:{{seg.w}}"></u></i>
+      </sc-for>
+    </div>
+    <div class="railcap">
+      <sc-if value="{{hasCur}}" hint-placeholder-val="{{ true }}"><span class="{{curSi}}"><svg viewBox="0 0 24 24"><path d="{{curD}}"></path></svg></span></sc-if>
+      <span class="grow">{{nowLine}}</span>
+      <sc-if value="{{offline}}" hint-placeholder-val="{{ false }}"><span class="stp off" style="height:24px"><svg class="s" viewBox="0 0 24 24"><path d="M2 2l20 20 M17.5 17.5H7a5 5 0 0 1-1.3-9.8 M10 5.3A6 6 0 0 1 18 9h.5a3.5 3.5 0 0 1 2.4 6"></path></svg>{{t.offline}}</span></sc-if>
+    </div>
+  </div>
+
+  <div class="st-list" style="top:{{listTop}}">
+    <div style="height:8px"></div>
+    <sc-for list="{{secs}}" as="sc" hint-placeholder-count="5">
+      <sc-if value="{{sc.folded}}" hint-placeholder-val="{{ false }}">
+        <button class="ssec-done" onClick="{{sc.unfold}}" aria-label="{{sc.doneLabel}}">
+          <svg class="s" viewBox="0 0 24 24" style="stroke-width:2.6"><path d="M20 6 9 17l-5-5"></path></svg>
+          <span class="grow">{{sc.name}}</span><span class="num">{{sc.n}}</span>
+        </button>
+      </sc-if>
+      <sc-if value="{{sc.open}}" hint-placeholder-val="{{ true }}">
+        <div class="ssec-h">
+          <span class="{{sc.si}}"><svg viewBox="0 0 24 24"><path d="{{sc.d}}"></path></svg></span>
+          <span class="nm">{{sc.name}}</span>
+          <sc-if value="{{sc.owner}}" hint-placeholder-val="{{ false }}"><span class="owner"><span class="av xs c2">{{iniN}}</span>{{t.noa}}</span></sc-if>
+          <span class="{{sc.nCls}}">{{sc.prog}}</span>
+        </div>
+        <sc-if value="{{tiles}}" hint-placeholder-val="{{ false }}"><div class="tgrid" style="margin:0 12px 12px">
+          <sc-for list="{{sc.rows}}" as="r" hint-placeholder-count="3">
+            <button class="{{r.tlCls}}" onClick="{{r.tap}}" aria-pressed="{{r.got}}" aria-label="{{r.aria}}"><span class="tq">{{r.q}}</span><span class="pt-wrap"><b></b><b></b><b></b><b></b><b></b><b></b><span class="{{r.tileClsL}}"><sc-if value="{{r.art.has}}" hint-placeholder-val="{{ true }}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path><path d="{{r.art.d4}}" fill="{{r.art.f4}}"></path><path d="{{r.art.d5}}" fill="{{r.art.f5}}"></path></svg></sc-if><sc-if value="{{r.noArt}}" hint-placeholder-val="{{ false }}"><svg class="fb" viewBox="0 0 24 24" aria-hidden="true"><path d="{{r.secD}}"></path></svg></sc-if><span class="ok2"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span></span></span><b class="bidi">{{r.name}}<s></s></b></button>
+          </sc-for>
+        </div></sc-if>
+        <sc-if value="{{rowsL}}" hint-placeholder-val="{{ true }}">
+        <div class="sbox" style="margin-bottom:10px">
+          <sc-for list="{{sc.rows}}" as="r" hint-placeholder-count="3">
+            <div class="{{r.wrap}}">
+              <div class="ir-under">
+                <button class="nf" onClick="{{r.nf}}" tabindex="{{r.tab}}"><svg class="s" viewBox="0 0 24 24"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.3-4.3 M8.5 8.5l5 5 M13.5 8.5l-5 5"></path></svg>{{t.nf}}</button>
+                <button class="sb" onClick="{{r.sb}}" tabindex="{{r.tab}}"><svg class="s" viewBox="0 0 24 24"><path d="M17 3l4 4-4 4 M21 7H8 M7 21l-4-4 4-4 M3 17h13"></path></svg>{{t.sb}}</button>
+              </div>
+              <button class="{{r.cls}}" style="{{r.tf}}" onClick="{{r.tap}}" onPointerDown="{{r.down}}" onPointerMove="{{r.move}}" onPointerUp="{{r.up}}" onPointerCancel="{{r.cancel}}" aria-pressed="{{r.got}}" aria-label="{{r.aria}}">
+                <span class="pt-wrap"><b></b><b></b><b></b><b></b><b></b><b></b><span class="{{r.tileCls}}"><sc-if value="{{r.art.has}}" hint-placeholder-val="{{ true }}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path><path d="{{r.art.d4}}" fill="{{r.art.f4}}"></path><path d="{{r.art.d5}}" fill="{{r.art.f5}}"></path></svg></sc-if><sc-if value="{{r.noArt}}" hint-placeholder-val="{{ false }}"><svg class="fb" viewBox="0 0 24 24" aria-hidden="true"><path d="{{r.secD}}"></path></svg></sc-if><span class="ok2"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span></span></span>
+                <span class="tx">
+                  <b class="bidi">{{r.name}}<s></s></b>
+                  <sc-if value="{{r.note}}" hint-placeholder-val="{{ false }}"><span class="nt2">{{r.note}}</span></sc-if>
+                  <sc-if value="{{r.isNF}}" hint-placeholder-val="{{ false }}"><span class="flag nf">{{t.nfFlag}}</span></sc-if>
+                  <sc-if value="{{r.isSB}}" hint-placeholder-val="{{ false }}"><span class="flag sb">{{t.sbFlag}}</span></sc-if>
+                  <sc-if value="{{r.isLive}}" hint-placeholder-val="{{ false }}"><span class="flag new">{{t.liveFlag}}</span></sc-if>
+                </span>
+                <span class="q">{{r.q}}</span>
+              </button>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+      </sc-if>
+    </sc-for>
+    <p class="tiny" style="text-align:center;padding:6px 24px 0;margin:0">{{t.hint}}</p>
+  </div>
+
+  <div class="sm-bot">
+    <div class="r">
+      <div class="tot"><b>{{total}}</b><span>{{totalSub}}</span></div>
+      <button class="{{finCls}}" onClick="{{openFinish}}">{{t.finish}}</button>
+    </div>
+    <div class="bmeter" role="img" aria-label="{{meterLabel}}"><i style="width:{{spentW}}"></i><em style="inset-inline-start:{{estW}}"></em></div>
+  </div>
+
+  <sc-if value="{{allDone}}" hint-placeholder-val="{{ false }}">
+    <div class="cf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="alldone" role="status">
+      <span class="ck"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span>
+      <span style="flex:1;min-width:0;line-height:1.3"><b style="display:block;font-size:16px;font-weight:800">{{t.allT}}</b><span class="sub">{{allS}}</span></span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+    <div class="toast2 show" role="status" style="bottom:118px">
+      <sc-if value="{{toastLive}}" hint-placeholder-val="{{ false }}"><span class="av sm c2">{{iniN}}</span></sc-if>
+      <span class="grow">{{toastText}}</span>
+      <sc-if value="{{toastUndo}}" hint-placeholder-val="{{ true }}"><button onClick="{{undo}}"><svg class="s sm" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5 M4 9h11a5 5 0 0 1 0 10h-3"></path></svg>{{t.undo}}</button></sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sheetOn}}" hint-placeholder-val="{{ false }}">
+    <button class="scrim2" style="border:0" onClick="{{closeSheet}}" aria-label="{{t.close}}"></button>
+    <div class="bsheet" role="dialog" aria-label="{{sheetName}}">
+      <div class="grab"></div>
+      <h3 class="bidi">{{sheetName}}</h3>
+      <div class="sub" style="margin-bottom:14px">{{sheetSub}}</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="stepper">
+          <button onClick="{{dec}}" aria-label="{{t.less}}"><svg class="s" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M5 12h14"></path></svg></button>
+          <b>{{sheetQty}}</b>
+          <button onClick="{{inc}}" aria-label="{{t.more}}"><svg class="s" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M12 5v14 M5 12h14"></path></svg></button>
+        </div>
+        <div class="unitseg">
+          <sc-for list="{{units}}" as="u" hint-placeholder-count="4"><button class="{{u.cls}}" onClick="{{u.pick}}">{{u.label}}</button></sc-for>
+        </div>
+        <label class="pricef"><span class="cur">₪</span><input type="text" inputmode="decimal" defaultValue="{{sheetPrice}}" aria-label="{{t.price}}"><span class="tiny">{{t.perUnit}}</span></label>
+        <button class="btn pri block" style="height:52px;border-radius:15px;font-size:16px" onClick="{{closeSheet}}">{{t.save}}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{finishOn}}" hint-placeholder-val="{{ false }}">
+    <button class="scrim2" style="border:0" onClick="{{closeFinish}}" aria-label="{{t.close}}"></button>
+    <div class="bsheet" role="dialog" aria-label="{{t.finishQ}}">
+      <div class="grab"></div>
+      <h3>{{t.finishQ}}</h3>
+      <div class="sub" style="margin-bottom:16px">{{finishSub}}</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <a class="btn pri block" href="Finish-phone.dc.html" style="height:54px;border-radius:16px;font-size:16px">{{finishBtn}}</a>
+        <button class="btn ghost block" style="height:48px" onClick="{{closeFinish}}">{{t.keepShopping}}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{startOn}}" hint-placeholder-val="{{ false }}">
+    <div class="startc">
+      <div class="big stg">
+        <span class="chain ch-a" style="width:56px;height:56px;border-radius:16px;font-size:20px">{{chainIni}}</span>
+        <h2 class="bidi">{{store}}</h2>
+        <div class="rail-xl" aria-hidden="true">
+          <sc-for list="{{rail}}" as="seg" hint-placeholder-count="10"><i style="flex-grow:{{seg.n}};animation-delay:{{seg.delay}}"></i></sc-for>
+        </div>
+        <span class="sub" style="font-size:15px">{{startSub}}</span>
+        <span class="tiny" style="display:flex;align-items:center;gap:6px"><svg class="s sm" viewBox="0 0 24 24"><path d="M12 3v1 M12 20v1 M4.2 4.2l.7.7 M19.1 19.1l.7.7 M3 12h1 M20 12h1 M4.2 19.8l.7-.7 M19.1 4.9l.7-.7 M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"></path></svg>{{t.screenOn}}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn pri block sm-press" style="height:56px;border-radius:16px;font-size:17px" onClick="{{go}}">{{t.go}}</button>
+        <button class="btn ghost block" style="height:48px">{{t.otherStore}}</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"section colours":{"editor":"boolean","default":true},"state":{"editor":"enum","options":["in progress","start","shared trip","offline","finish confirm"],"default":"in progress"},"data":{"editor":"enum","options":["demo","worst case"],"default":"demo"},"layout":{"editor":"enum","options":["rows","tiles"],"default":"rows"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() { this._arm(); }
+  componentDidUpdate(pp) { if (pp.state !== this.props.state || pp.data !== this.props.data) { this._arm(); this.setState({ got: null, flag: {}, off: {}, fold: {}, unfold: {}, started: false, finishOpen: false, sheet: null, toast: null }); } }
+  componentWillUnmount() { [this._lv, this._lp, this._tt, this._fd].forEach(clearTimeout); }
+  _arm() { clearTimeout(this._lv); this.setState({ live: false }); if ((this.props.state ?? 'in progress') === 'shared trip') this._lv = setTimeout(() => this._toast({ k: 'live' }, true), 2200); }
+  _toast(tt, live) { clearTimeout(this._tt); this.setState(live ? { toast: tt, live: true } : { toast: tt }); this._tt = setTimeout(() => this.setState({ toast: null }), 4200); }
+  _buzz() { try { if (navigator.vibrate) navigator.vibrate(8); } catch (_) {} }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const st = p.state ?? 'in progress';
+    const worst = (p.data ?? 'demo') === 'worst case';
+    const shared = st === 'shared trip', offline = st === 'offline';
+    const sgn = he ? -1 : 1;
+    const t = {
+      leave: L('Leave — the trip keeps going','יציאה — הקנייה ממשיכה'), noaHere: L('Noa is shopping with you','נועה קונה איתך'), noa: L('Noa','נועה'),
+      offline: L('Offline','לא מקוון'), nf: L('Not found','לא נמצא'), sb: L('Substitute','תחליף'),
+      nfFlag: L('Not found · stays for next time','לא נמצא · נשאר לפעם הבאה'), sbFlag: L('Substitute taken','נלקח תחליף'), liveFlag: L('Noa added it just now','נועה הוסיפה עכשיו'),
+      hint: L('Tap to check · swipe for not found · hold for quantity and price','הקשה לסימון · החלקה ל״לא נמצא״ · לחיצה ארוכה לכמות ומחיר'),
+      finish: L('Finish','סיום'), undo: L('Undo','ביטול'), close: L('Close','סגירה'), less: L('Less','פחות'), more: L('More','יותר'),
+      price: L('Price','מחיר'), perUnit: L('per unit','ליחידה'), save: L('Save','שמירה'),
+      finishQ: L('Finish shopping?','לסיים את הקנייה?'), keepShopping: L('Back to the list','חזרה לרשימה'),
+      screenOn: L('The screen stays on while you shop','המסך נשאר דולק בזמן הקנייה'), go: L('Let’s go','יוצאים לדרך'), allT: L('Everything’s in the cart','הכול בעגלה'), otherStore: L('Another store, this trip only','חנות אחרת, רק לקנייה הזו')
+    };
+    const P = {
+      produce:'M12 7c-3-2-7 0-7 5s3 9 7 9 7-4 7-9-4-7-7-5z M12 7c0-2 1-4 3-4', meat:'M3 12c3-5 9-6 13-2l5-3v10l-5-3c-4 4-10 3-13-2z M8 11h.01',
+      deli:'M3 11h18a9 9 0 0 1-18 0z M7 7c1-2 3-2 4 0 M12 6c1-2 3-2 4 0', dry:'M7 3h10 M8 3v3l-3 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10l-3-4V3 M5 13h14',
+      cans:'M6 5c0-1 2.7-2 6-2s6 1 6 2v14c0 1-2.7 2-6 2s-6-1-6-2z M6 5c0 1 2.7 2 6 2s6-1 6-2 M6 10h12', spice:'M9 3h6l1 4H8z M8 7h8v13a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1z M11 11h.01 M13 13h.01 M11 15h.01',
+      bfast:'M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z M17 10h1.5a2.5 2.5 0 0 1 0 5H17 M8 3v3 M12 3v3', snack:'M12 3a9 9 0 1 0 9 9 3 3 0 0 1-3-3 3 3 0 0 1-3-3 3 3 0 0 1-3-3z M8.5 11.5h.01 M12 16h.01 M15.5 14h.01',
+      drink:'M10 2h4 M10 2v4l-2 3v12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V9l-2-3V2 M8 13h8', clean:'M9 9h6v12H9z M10 9V6h4 M14 6l4-2 M17 7h2',
+      toil:'M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7z M7 10l7 7', baby:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M9 10h.01 M15 10h.01 M9.5 14.5a3.5 3.5 0 0 0 5 0',
+      pets:'M12 14c-2.8 0-5 2.6-5 4.4 0 1.6 2.2 1.6 5 1.6s5 0 5-1.6c0-1.8-2.2-4.4-5-4.4z M4.4 10a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0 M7.9 6.5a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0 M12.9 6.5a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0 M16.4 10a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0',
+      bread:'M6 11a4 4 0 0 1 0-8h12a4 4 0 0 1 0 8v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z', dairy:'M7 6l2-4h6l2 4 M7 6v15a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6z M7 6l5 4 5-4 M12 10v12',
+      frozen:'M12 2v20 M3.3 7l17.4 10 M3.3 17 20.7 7 M9 4l3 3 3-3 M9 20l3-3 3 3'
+    };
+    const C_ = (x, y, r) => 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z';
+    const E_ = (x, y, a, b) => 'M' + (x - a) + ' ' + y + 'a' + a + ' ' + b + ' 0 1 0 ' + (2 * a) + ' 0a' + a + ' ' + b + ' 0 1 0 ' + (-2 * a) + ' 0z';
+    const R_ = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + 'h' + (w - 2 * r) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r : '') + 'v' + (h - 2 * r) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r : '') + 'h' + (-(w - 2 * r)) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + (-r) : '') + 'v' + (-(h - 2 * r)) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + (-r) : '') + 'z';
+    const ART = {
+      tom: [[C_(24,27,14),'#e5483b'],[E_(18,22,4,2.5),'#ff9a8c'],['M24 9l2.2 4.6 4.8-1.6-2.8 4 4.2 2.6-5.2-.2-1.4 4.4-1.6-4.4-5.2.2 4.2-2.6-2.8-4 4.8 1.6z','#3f9d5a']],
+      pep: [['M14 18c0-4 4-6 10-6s10 2 10 6l-1 16c0 5-4 8-9 8s-9-3-9-8z','#d63a2f'],[E_(19,22,2.5,5),'#ff8a7a'],['M22 6h4v7h-4z','#3f8f4a']],
+      cuc: [['M9 36c-3-3-1-9 5-15l7-7c6-6 12-8 15-5s1 9-5 15l-7 7c-6 6-12 8-15 5z','#3d8b47'],[C_(17,28,1.4)+C_(23,22,1.4)+C_(29,16,1.4)+C_(21,31,1.2)+C_(27,25,1.2)+C_(32,20,1.1),'#93d48f']],
+      ban: [['M8 13c1 14 12 24 27 24 3 0 4 2 1 3C19 44 5 33 6 15c0-3 2-4 2-2z','#f5c542'],['M10 14c2 11 10 19 21 21-12 1-21-8-22-20z','#e0a92a'],[R_(5,9,4,6,1.5),'#6b4a2b']],
+      lem: [[E_(24,25,15,11),'#f2d23a'],['M8 25l-4-1.5 4-1.5z M40 25l4-1.5-4-1.5z','#e3bd22'],[E_(19,21,5,2.5),'#fbec95']],
+      par: [[R_(23,26,2.5,16,1.2),'#4f8a3a'],[C_(17,19,7)+C_(31,19,7)+C_(24,12,7)+C_(24,23,6),'#3f9d5a'],[C_(20,15,2.6)+C_(29,14,2.2)+C_(15,21,1.8),'#7cca72']],
+      chk: [['M10 30c0-10 8-18 18-18 7 0 11 5 11 11 0 10-10 17-20 17-6 0-9-4-9-10z','#f3b9a3'],['M20 34c6-1 12-6 14-12 1 4-3 11-10 13-2 .5-4 0-4-1z','#e49a83'],[E_(22,20,4,2),'#fbd9cc']],
+      hum: [['M6 24h36c0 10-8 17-18 17S6 34 6 24z','#5d86b5'],[E_(24,24,18,5),'#ecd39c'],[E_(24,24,7,2.2),'#c9a032'],[C_(31,22.5,1.4)+C_(17,25,1.2)+C_(26,26,1),'#6f8f2f']],
+      pen: [['M8 30l14-14 5 5-14 14z','#f0c35a'],['M20 36l14-14 5 5-14 14z','#e6ad3c'],['M14 20l12-12 4 4-12 12z','#f6d684']],
+      ric: [['M12 14c0-4 4-6 12-6s12 2 12 6l2 24c0 3-6 5-14 5s-14-2-14-5z','#f6f3ea'],[R_(14,22,20,10,3),'#3b7fc4'],['M15 10c3 3 15 3 18 0v3c-3 3-15 3-18 0z','#d9d3c3']],
+      crt: [[R_(12,9,24,32,4),'#d0573f'],[R_(12,17,24,15,0),'#f6efe4'],[C_(24,24.5,4.5),'#e5483b'],[E_(24,9.5,12,2.5),'#a93d2a']],
+      tah: [[R_(12,14,24,28,6),'#e7d2a7'],[R_(14,8,20,7,2),'#3a3a38'],[R_(16,24,16,9,2),'#ffffff'],[R_(19,27,10,3,1.5),'#c9a032']],
+      cor: [[R_(11,6,26,36,3),'#f08a24'],[C_(24,26,8),'#ffffff'],[C_(21,25,2.2)+C_(26,23.5,2)+C_(25,28.5,1.8)+C_(20.5,29,1.4),'#f2c14e'],[R_(14,9,20,4,2),'#ffd08a']],
+      cof: [['M13 12h22l3 30H10z','#6b4a2b'],['M13 12l3-5h16l3 5z','#4e3520'],[E_(24,27,4,6),'#c79a5e'],[R_(23.3,21.5,1.4,11,.7),'#6b4a2b']],
+      wat: [[R_(18,4,12,5,1.5),'#2f7fc1'],['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#8fd0f2'],[R_(15,22,18,9,0),'#2f7fc1'],[R_(19,13,3,25,1.5),'#c9ecfb']],
+      jui: [[R_(18,4,12,5,1.5),'#2f9d4a'],['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#f6a33a'],[C_(24,29,5.5),'#ffd36b'],[R_(19,13,3,25,1.5),'#ffc77a']],
+      oil: [[R_(21,3,6,6,1.5),'#3a3a38'],['M20 9h8v6l4 5v20c0 2-2 4-4 4h-8c-2 0-4-2-4-4V20l4-5z','#b9a43a'],[R_(17,24,14,10,2),'#f6efe4'],[C_(24,29,2.5),'#6f8f2f']],
+      dis: [[R_(22,4,4,6,1),'#1f7f62'],['M18 10h12l2 6v24c0 2-2 4-4 4h-8c-2 0-4-2-4-4V16z','#4cc3a0'],[C_(24,28,5.5),'#ffffff'],[C_(24,28,2.6),'#4cc3a0']],
+      trb: [[R_(10,13,28,26,6),'#3a3a38'],[E_(24,13,14,4),'#5b5b55'],[E_(24,13,5,1.6),'#1f1f1d'],['M10 31h28v3H10z','#4a4a46']],
+      tp: [[R_(8,12,22,28,5),'#ffffff'],[E_(19,12,11,4),'#ecebe6'],[E_(19,12,3.5,1.6),'#b8b5ac'],[R_(30,26,12,14,2),'#ffffff']],
+      tpa: [['M7 22l26-7 4 3-2 14-24 6c-3 1-5-1-5-4z','#f2f6fb'],['M33 15l6-2 2 6-4 1z','#3b7fc4'],['M13 25l17-4.5v4L13 29z','#e5483b']],
+      pit: [[E_(24,26,18,13),'#e3b97f'],[E_(24,24,15,10),'#f2d7a8'],[C_(18,22,1.2)+C_(28,27,1.2)+C_(25,20,1)+C_(21,29,1)+C_(31,22,1),'#c79a5e']],
+      brd: [['M8 22c0-7 7-11 16-11s16 4 16 11v15c0 2-2 4-4 4H12c-2 0-4-2-4-4z','#c98a3e'],['M14 18l4 6 M22 16l4 6 M30 17l4 6','none'],[R_(12,20,4,12,2)+R_(21,18,4,14,2)+R_(30,20,4,12,2),'#e6b06a']],
+      chl: [[E_(24,29,20,9),'#bf7428'],[E_(13,26,7.5,6)+E_(24,24,8,6.5)+E_(35,26,7.5,6),'#df9c4a'],[C_(15,23,.9)+C_(25,21,.9)+C_(33,24,.9)+C_(21,26,.8)+C_(29,27,.8),'#fbe7c2']],
+      mlk: [['M14 16l4-8h12l4 8z','#dfe9f5'],[R_(14,16,20,28,2),'#ffffff'],[R_(14,27,20,10,0),'#3b7fc4'],[R_(20,4,8,5,1),'#3b7fc4']],
+      cot: [['M10 18h28l-3 22c0 2-2 3-4 3H17c-2 0-4-1-4-3z','#ffffff'],[E_(24,18,15,4.5),'#3b7fc4'],[R_(14,26,20,8,2),'#cfe0f3']],
+      ylc: [['M6 34L36 12l6 6v20H6z','#f4c84a'],['M6 34L36 12l6 6z','#fbe08a'],[C_(20,32,3)+C_(32,28,2.5)+C_(28,35,1.8)+C_(37,33,1.5),'#dba62a']],
+      prm: [['M6 34L36 12l6 6v20H6z','#efdca0'],['M6 34L36 12l6 6z','#f8ecc4'],[R_(6,34,36,4,0),'#c9a24a']],
+      yog: [['M12 14h24l-3 26c0 2-2 3-4 3H19c-2 0-4-1-4-3z','#ffffff'],[R_(11,10,26,5,2),'#e86f8f'],[R_(14,22,20,8,0),'#f9c9d6']],
+      egg: [[R_(5,26,38,14,4),'#d9c3a0'],[E_(13,25,5,6.5)+E_(24,23,5,6.5)+E_(35,25,5,6.5),'#f7ecdc'],[E_(11.5,22,1.5,2.2)+E_(22.5,20,1.5,2.2)+E_(33.5,22,1.5,2.2),'#ffffff']],
+      pea: [['M6 30c6-12 22-20 36-16-4 14-22 22-36 16z','#4f9d4a'],[C_(16,27,4)+C_(24,23,4)+C_(32,19.5,4),'#8fd36b'],[C_(15,26,1.2)+C_(23,22,1.2)+C_(31,18.5,1.2),'#c8f0a8']]
+    };
+    const art = (key) => { const a = ART[key]; const o = { has: !!a }; for (let i = 0; i < 6; i++) { const x = a && (i === 0 ? [E_(24,44.5,13,2.2),'rgba(0,0,0,.10)'] : a[i - 1]); o['d' + i] = x ? x[0] : ''; o['f' + i] = x ? x[1] : 'none'; } return o; };
+    const SEC = [['produce','Fruit & vegetables','פירות וירקות'],['meat','Meat, poultry & fish','בשר, עוף ודגים'],['deli','Deli & salads','מעדנייה וסלטים'],['dry','Dry goods','יבשים'],['cans','Cans & sauces','שימורים ורטבים'],['spice','Spices & baking','תבלינים ואפייה'],['bfast','Breakfast & spreads','ארוחת בוקר וממרחים'],['snack','Snacks & sweets','חטיפים ומתוקים'],['drink','Drinks','משקאות'],['clean','Cleaning & disposables','ניקיון וחד־פעמי'],['toil','Toiletries & pharm','טואלטיקה ופארם'],['baby','Baby','תינוקות'],['pets','Pets','חיות מחמד'],['bread','Bread & bakery','לחם ומאפים'],['dairy','Dairy & eggs','חלב וביצים'],['frozen','Frozen','קפואים']];
+    const I = (id, k, en, hh, q, qh, pr, o) => Object.assign({ id, k, en, hh, q, qh: qh || q, pr }, o || {});
+    const DEMO = [
+      I('tom','produce','Tomatoes','עגבניות','1 kg','1 ק״ג',8.9), I('cuc','produce','Cucumbers','מלפפונים','1 kg','1 ק״ג',6.9),
+      I('ban','produce','Bananas','בננות','×6','',9.9,{ne:'Not too ripe',nh:'לא בשלות מדי'}), I('lem','produce','Lemons','לימונים','×4','',7.6), I('par','produce','Parsley','פטרוזיליה','×2','',7.8),
+      I('chk','meat','Chicken breast','חזה עוף','1 kg','1 ק״ג',39.9,{ne:'Thin slices',nh:'פרוס דק'}), I('hum','deli','Hummus','חומוס','×2','',15.8),
+      I('pen','dry','Penne 500 g','פסטה פנה 500 גרם','×2','',11.8), I('ric','dry','Basmati rice','אורז בסמטי','1 kg','1 ק״ג',14.9),
+      I('crt','cans','Crushed tomatoes','עגבניות מרוסקות','×3','',17.7), I('tah','cans','Raw tahini','טחינה גולמית','×1','',18.9),
+      I('cor','bfast','Cornflakes','קורנפלקס','×1','',21.9), I('cof','bfast','Ground coffee','קפה טחון','×1','',32.9,{ne:'The dark one',nh:'הכהה'}),
+      I('wat','drink','Sparkling water, 6-pack','מים מוגזים, שישייה','×1','',14.9), I('dis','clean','Dish soap','סבון כלים','×1','',9.9), I('trb','clean','Trash bags','שקיות אשפה','×1','',16.9),
+      I('pit','bread','Pita','פיתות','×10','',9.9), I('mlk','dairy','Milk 3%','חלב 3%','×2','',13.8), I('cot','dairy','Cottage cheese 5%','קוטג׳ 5%','×3','',17.7),
+      I('ylc','dairy','Sliced yellow cheese','גבינה צהובה פרוסה','200 g','200 גרם',21.9), I('yog','dairy','Yogurt','יוגורט','×4','',15.6), I('pea','frozen','Frozen peas','אפונה קפואה','800 g','800 גרם',14.9)
+    ];
+    const WORST = [
+      I('w1','produce','Tomatoes','עגבניות','12.5 kg','12.5 ק״ג',111.25), I('w2','produce','Cucumbers','מלפפונים','2 kg','2 ק״ג',13.8), I('w3','produce','Bananas','בננות','×6','',9.9), I('w4','produce','Red bell peppers','פלפל אדום','1 kg','1 ק״ג',12.9),
+      I('w5','meat','Chicken breast','חזה עוף','3 kg','3 ק״ג',119.7), I('w6','meat','Ground beef 15%','בשר טחון 15%','500 g','500 גרם',34.9), I('w7','meat','Salmon fillet','פילה סלמון','400 g','400 גרם',49.9),
+      I('w8','deli','Hummus','חומוס','×2','',15.8), I('w9','deli','Eggplant salad','סלט חצילים','×1','',12.9),
+      I('w10','dry','Penne 500 g','פסטה פנה 500 גרם','×24','',141.6), I('w11','dry','Basmati rice','אורז בסמטי','5 kg','5 ק״ג',59.9), I('w12','dry','Red lentils','עדשים כתומות','1 kg','1 ק״ג',11.9),
+      I('w13','cans','Crushed tomatoes','עגבניות מרוסקות','×12','',70.8), I('w14','cans','Raw tahini','טחינה גולמית','×1','',18.9),
+      I('w15','cans','Organic extra-virgin olive oil, cold pressed, 3 L tin','שמן זית כתית מעולה אורגני בכבישה קרה, פח 3 ליטר','×1','',119,{ne:'Only if the price is under ₪120 — otherwise the 1 L bottle from the top shelf',nh:'רק אם המחיר מתחת ל-₪120 — אחרת הבקבוק של ליטר מהמדף העליון'}),
+      I('w16','spice','Sweet paprika','פפריקה מתוקה','×1','',8.9), I('w17','spice','Baking powder','אבקת אפייה','×3','',5.7),
+      I('w18','bfast','Cornflakes','קורנפלקס','×2','',43.8), I('w19','bfast','Ground coffee','קפה טחון','×1','',32.9), I('w20','bfast','Chocolate spread','ממרח שוקולד','×1','',16.9),
+      I('w21','snack','Peanut puffs','חטיף בוטנים','×8','',31.2), I('w22','snack','Rice cakes','פריכיות אורז','×2','',13.8),
+      I('w23','drink','Sparkling water, 6-pack','מים מוגזים, שישייה','×4','',59.6), I('w24','drink','Orange juice 2 L','מיץ תפוזים 2 ליטר','×2','',39.8),
+      I('w25','clean','Dish soap','סבון כלים','×1','',9.9), I('w26','clean','Trash bags','שקיות אשפה','×2','',33.8), I('w27','clean','Toilet paper, 32 rolls','נייר טואלט, 32 גלילים','×1','',54.9),
+      I('w28','toil','Toothpaste','משחת שיניים','×2','',25.8), I('w29','toil','Shampoo','שמפו','×1','',19.9),
+      I('w30','baby','Diapers, size 4','חיתולים, מידה 4','×3','',209.7), I('w31','baby','Wet wipes','מגבונים לחים','×6','',35.4), I('w32','pets','Dry cat food 7 kg','מזון יבש לחתולים 7 ק״ג','×1','',89.9),
+      I('w33','bread','Gluten-free whole-grain spelt sourdough bread, sliced, 750 g','לחם כוסמין מלא ללא גלוטן, פרוס, מחמצת טבעית 750 גרם','×2','',59.8), I('w34','bread','Pita','פיתות','×10','',9.9),
+      I('w35','dairy','Lactose-free 1% milk with added vitamin D','חלב 1% ללא לקטוז בתוספת ויטמין D','×6','',47.4,{ne:'Blue cap only — if missing, the green one, never the red',nh:'רק עם הפקק הכחול — אם אין, אז הירוק, אף פעם לא האדום'}),
+      I('w36','dairy','Cottage cheese 5%','קוטג׳ 5%','×3','',17.7), I('w37','dairy','Yogurt','יוגורט','×12','',46.8), I('w38','dairy','Eggs, size L','ביצים L','×30','',39.9),
+      I('w39','frozen','Frozen peas','אפונה קפואה','800 g','800 גרם',14.9), I('w40','frozen','Frozen schnitzel','שניצל קפוא','1 kg','1 ק״ג',44.9)
+    ];
+    const items = (worst ? WORST : DEMO).slice();
+    if (s.live && !worst) items.push(I('oil','cans','Olive oil, 1 L','שמן זית, 1 ליטר','×1','',36.9,{live:true}));
+    if (s.live && worst) items.push(I('oil','cans','Olive oil, 1 L','שמן זית, 1 ליטר','×1','',36.9,{live:true}));
+    const initIds = st === 'start' ? [] : (worst ? WORST.slice(0, 18).map(x => x.id) : ['tom','cuc','ban','lem','par','chk','pen','crt','tah','cor','wat','trb']);
+    const init = {}; initIds.forEach(id => { init[id] = true; });
+    this._init = init;
+    const got = s.got || init;
+    const flag = s.flag || {}, off = s.off || {}, fold = s.fold || {}, unfold = s.unfold || {};
+    const cur = () => (this.state || {}).got || this._init;
+    const secOf = {}; items.forEach(r => { secOf[r.id] = r.k; });
+    const allIn = (k, g) => items.filter(r => r.k === k).every(r => g[r.id] || (this.state && (this.state.flag || {})[r.id] === 'nf'));
+    const toggle = (id) => {
+      const g0 = cur(); const was = !!g0[id]; const g = { ...g0, [id]: !was };
+      const k = secOf[id]; const upd = { got: g, tick: was ? null : id };
+      if (!was) this._buzz();
+      if (!was && allIn(k, g)) {
+        upd.fold = { ...((this.state || {}).fold || {}), [k]: false }; upd.unfold = { ...((this.state || {}).unfold || {}), [k]: false };
+        clearTimeout(this._fd); this._fd = setTimeout(() => this.setState({ fold: { ...((this.state || {}).fold || {}), [k]: true } }), 700);
+      }
+      this.setState(upd);
+    };
+    const setFlag = (id, f) => {
+      const prev = (this.state.flag || {})[id];
+      this.setState({ flag: { ...(this.state.flag || {}), [id]: f }, off: { ...(this.state.off || {}), [id]: 0 } });
+      this._toast({ k: f, id, prev });
+    };
+    const fm = (n) => '₪' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fm0 = (n) => '₪' + Math.round(n).toLocaleString('en-US');
+    const AK = { w1:'tom',w2:'cuc',w3:'ban',w4:'pep',w5:'chk',w6:'chk',w8:'hum',w9:'hum',w10:'pen',w11:'ric',w12:'ric',w13:'crt',w14:'tah',w15:'oil',w16:'tah',w18:'cor',w19:'cof',w23:'wat',w24:'jui',w25:'dis',w26:'trb',w27:'tp',w28:'tpa',w33:'brd',w34:'pit',w35:'mlk',w36:'cot',w37:'yog',w38:'egg',w39:'pea' };
+    const keyOf = (id) => (id in AK) ? AK[id] : (ART[id] ? id : '');
+    const tiles = (p.layout ?? 'rows') === 'tiles';
+    const rowsFor = (k) => items.filter(r => r.k === k).map(r => {
+      const id = r.id; const isGot = !!got[id]; const f = flag[id]; const o = off[id] || 0;
+      return {
+        art: art(keyOf(id)), noArt: !ART[keyOf(id)], secD: P[r.k], tileCls: 'pt k-' + r.k, tileClsL: 'pt lg k-' + r.k,
+        tlCls: 'tl k-' + r.k + (isGot ? ' got' : '') + (s.tick === id ? ' tick' : '') + (r.live ? ' nrow' : ''),
+        name: he ? r.hh : r.en, q: he ? r.qh : r.q, note: r.ne ? (he ? r.nh : r.ne) : '', got: isGot,
+        isNF: f === 'nf', isSB: f === 'sb', isLive: !!r.live,
+        wrap: 'ir' + (r.live ? ' liverow' : ''), tab: o ? '0' : '-1',
+        cls: 'irow' + (isGot ? ' got' : '') + (s.tick === id ? ' tick' : '') + (f === 'nf' ? ' nfnd' : '') + (r.live ? ' live' : '') + (s.drag === id ? '' : ' settle'),
+        tf: 'transform:translateX(' + (o * sgn) + 'px)',
+        aria: (he ? r.hh : r.en) + ', ' + (he ? r.qh : r.q),
+        tap: () => { if (this._suppress === id) { this._suppress = null; return; } if ((this.state.off || {})[id]) { this.setState({ off: { ...(this.state.off || {}), [id]: 0 } }); return; } toggle(id); },
+        nf: () => setFlag(id, 'nf'), sb: () => { setFlag(id, 'sb'); const g0 = cur(); if (!g0[id]) this.setState({ got: { ...g0, [id]: true } }); },
+        down: (e) => {
+          if (e.button) return;
+          this._p = { id, x0: e.clientX, y0: e.clientY, base: (this.state.off || {})[id] || 0, t0: Date.now(), axis: null };
+          clearTimeout(this._lp);
+          this._lp = setTimeout(() => { const d = this._p; if (d && d.id === id && !d.axis) { this._p = null; this._suppress = id; this._buzz(); this.setState({ sheet: id, qty: null, unit: null }); } }, 450);
+        },
+        move: (e) => {
+          const d = this._p; if (!d || d.id !== id) return;
+          const dx = (e.clientX - d.x0) * sgn, dy = e.clientY - d.y0;
+          if (!d.axis) {
+            if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { d.axis = 'x'; clearTimeout(this._lp); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} }
+            else if (Math.abs(dy) > 10) { d.axis = 'y'; clearTimeout(this._lp); }
+          }
+          if (d.axis !== 'x') return;
+          let v = d.base + dx; if (v > 0) v = v * 0.2; if (v < -176) v = -176 + (v + 176) * 0.3;
+          this.setState({ off: { ...(this.state.off || {}), [id]: v }, drag: id });
+        },
+        up: (e) => {
+          clearTimeout(this._lp); const d = this._p; this._p = null; if (!d || d.id !== id || d.axis !== 'x') return;
+          this._suppress = id;
+          const c = (this.state.off || {})[id] || 0; const vel = ((e.clientX - d.x0) * sgn) / Math.max(1, Date.now() - d.t0);
+          this.setState({ off: { ...(this.state.off || {}), [id]: (c < -88 || vel < -0.45) ? -176 : 0 }, drag: null });
+        },
+        cancel: () => { clearTimeout(this._lp); this._p = null; this.setState({ off: { ...(this.state.off || {}), [id]: 0 }, drag: null }); }
+      };
+    });
+    const secs = SEC.filter(([k]) => items.some(r => r.k === k)).map(([k, en, hh]) => {
+      const rows = rowsFor(k); const n = rows.length; const done = rows.filter(r => r.got || r.isNF).length;
+      const all = done === n; const folded = all && fold[k] !== false && !unfold[k];
+      return { k, si: 'si k-' + k, nCls: 'n' + (all ? ' done' : ''), name: he ? hh : en, d: P[k], rows, n: String(n), prog: done + '/' + n, folded, open: !folded,
+        owner: shared && (k === 'produce' || k === 'dairy'),
+        doneLabel: L('Done: ', 'הושלם: ') + (he ? hh : en) + L(' — tap to open', ' — הקשה לפתיחה'),
+        unfold: () => this.setState({ unfold: { ...((this.state || {}).unfold || {}), [k]: true } }),
+        all, done, cnt: n };
+    });
+    const total = items.filter(r => got[r.id]).reduce((a, r) => a + r.pr, 0);
+    const est = items.reduce((a, r) => a + r.pr, 0);
+    const nAll = items.length, nGot = items.filter(r => got[r.id]).length, nNF = items.filter(r => flag[r.id] === 'nf').length;
+    const left = nAll - nGot - nNF;
+    const curSec = secs.find(x => !x.all);
+    const budget = worst ? 900 : 1140;
+    const rail = secs.map((x, i) => ({ n: x.cnt, w: Math.round(x.done / x.cnt * 100) + '%', cls: 'k-' + x.k + (x.all ? ' full' : '') + (curSec && curSec.k === x.k ? ' cur' : ''), delay: (i * 30) + 'ms' }));
+    const tt = s.toast;
+    const it = (id) => items.find(r => r.id === id);
+    let toastText = '';
+    if (tt) {
+      if (tt.k === 'live') toastText = L('Noa added olive oil', 'נועה הוסיפה שמן זית');
+      else { const r = it(tt.id); const nm = r ? (he ? r.hh : r.en) : ''; toastText = tt.k === 'nf' ? L(nm + ' — not found', nm + ' — לא נמצא') : L(nm + ' — substitute taken', nm + ' — נלקח תחליף'); }
+    }
+    const sheetItem = s.sheet ? it(s.sheet) : null;
+    const baseQty = sheetItem ? (parseFloat(String(sheetItem.q).replace('×', '')) || 1) : 1;
+    const qty = s.qty != null ? s.qty : baseQty;
+    const unitKey = s.unit || (sheetItem && /kg/.test(sheetItem.q) ? 'kg' : (sheetItem && / g/.test(sheetItem.q) ? 'g' : 'u'));
+    const UN = [['u', L('Units','יח׳')], ['kg', L('kg','ק״ג')], ['g', L('g','גרם')], ['l', L('L','ליטר')]];
+    const time = '18:42';
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') + ((p.motion ?? 'full') === 'reduced' ? ' rm' : '') + (p['section colours'] === false ? ' mono' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t, shared, offline, tiles, rowsL: !tiles, iniN: he ? 'נ' : 'N',
+      store: worst ? L('Shufersal Sheli · Azrieli Mall Modi’in, 2nd floor', 'שופרסל שלי · קניון עזריאלי מודיעין, קומה 2') : L('Shufersal Deal · Herzl St.', 'שופרסל דיל · רח׳ הרצל'),
+      chainIni: he ? 'ש' : 'S',
+      startedLine: shared ? L('Started at ' + time + ' · Noa is here too', 'התחלתם ב-' + time + ' · נועה כאן גם') : L('Started at ' + time, 'התחלת ב-' + time),
+      ringBg: left === 0 ? 'var(--ok)' : 'conic-gradient(' + ((p.palette ?? 'graphite') === 'plum' ? 'var(--brand)' : 'var(--ink)') + ' ' + Math.round(nGot / nAll * 100) + '%,var(--s3) 0)', ringText: nGot + '/' + nAll,
+      ringLabel: L(nGot + ' of ' + nAll + ' checked', nGot + ' מתוך ' + nAll + ' סומנו'),
+      rail, listTop: '172px', nGot: String(nGot), nAll: String(nAll), bigCls: 'big ' + (nGot % 2 ? 'na' : 'nb'),
+      pctText: Math.round(nGot / nAll * 100) + '%', leftText: left === 0 ? L('all in the cart','הכול בעגלה') : L(left + ' left', 'נשארו ' + left),
+      hasCur: !!curSec, curSi: curSec ? 'si k-' + curSec.k : 'si', curD: curSec ? curSec.d : '',
+      allDone: left === 0 && st !== 'start', finCls: 'fin sm-press' + (left === 0 ? ' glow' : ''),
+      allS: L('Total ' + fm(total) + ' · tap Finish', 'סה״כ ' + fm(total) + ' · לסיום מקישים על ״סיום״'),
+      nowLine: curSec ? L('Now: ' + curSec.name + ' · ' + (curSec.cnt - curSec.done) + ' left', 'עכשיו: ' + curSec.name + ' · נשארו ' + (curSec.cnt - curSec.done)) : L('All checked — finish when ready', 'הכול סומן — מסיימים כשמוכנים'),
+      secs,
+      total: fm(total), totalSub: L('of ≈ ' + fm0(est) + ' · ' + left + ' left', 'מתוך ≈ ' + fm0(est) + ' · נשארו ' + left),
+      spentW: Math.min(100, total / budget * 100).toFixed(1) + '%', estW: Math.min(99, est / budget * 100).toFixed(1) + '%',
+      meterLabel: L(fm0(total) + ' of ' + fm0(budget) + ' left this month', fm0(total) + ' מתוך ' + fm0(budget) + ' שנשארו החודש'),
+      openFinish: () => this.setState({ finishOpen: true }), closeFinish: () => this.setState({ finishOpen: false, forceFinishClosed: true }),
+      finishOn: !!s.finishOpen || (st === 'finish confirm' && !s.forceFinishClosed),
+      finishSub: left + nNF > 0 ? L((left + nNF) + ' items not bought stay on the list for next time.', (left + nNF) + ' פריטים שלא נקנו נשארים ברשימה לפעם הבאה.') : L('Everything is checked.', 'הכול סומן.'),
+      finishBtn: L('Finish · ' + fm(total), 'סיום · ' + fm(total)),
+      toastOn: !!tt, toastLive: !!tt && tt.k === 'live', toastUndo: !!tt && tt.k !== 'live', toastText,
+      undo: () => { const x = this.state.toast; if (!x) return; if (x.k === 'nf' || x.k === 'sb') { const fl = { ...(this.state.flag || {}) }; if (x.prev) fl[x.id] = x.prev; else delete fl[x.id]; this.setState({ flag: fl, toast: null }); } },
+      sheetOn: !!sheetItem, sheetName: sheetItem ? (he ? sheetItem.hh : sheetItem.en) : '',
+      sheetSub: L('Last time ₪' + (sheetItem ? sheetItem.pr.toFixed(2) : '') + ' here', 'בפעם הקודמת ₪' + (sheetItem ? sheetItem.pr.toFixed(2) : '') + ' כאן'),
+      sheetQty: String(qty), sheetPrice: sheetItem ? sheetItem.pr.toFixed(2) : '',
+      dec: () => this.setState({ qty: Math.max(unitKey === 'u' ? 1 : 0.5, qty - (unitKey === 'u' ? 1 : 0.5)) }), inc: () => this.setState({ qty: qty + (unitKey === 'u' ? 1 : 0.5) }),
+      units: UN.map(([k, label]) => ({ label, cls: k === unitKey ? 'on' : '', pick: () => this.setState({ unit: k }) })),
+      closeSheet: () => this.setState({ sheet: null }), noop: () => {},
+      startOn: st === 'start' && !s.started, go: () => this.setState({ started: true }),
+      startSub: L(nAll + ' items · ≈ ' + fm0(est), nAll + ' פריטים · ≈ ' + fm0(est))
+    };
+  }
+}
+</script>
+</body>
+</html>

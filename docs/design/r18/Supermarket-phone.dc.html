@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Supermarket tab · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+<link rel="stylesheet" href="./nx-sm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+<div class="phone">
+  <div class="scroll" style="padding-bottom:{{padBottom}}">
+
+    <div style="display:flex;align-items:center;gap:8px;padding:14px 20px 0">
+      <span class="tile t22 gr-green"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg></span>
+      <span class="sub bidi" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600">{{space}}</span>
+      <span class="pile"><span class="av xs c3">{{iniT}}</span><span class="av xs c2">{{iniN}}</span><span class="av xs c4">{{iniY}}</span></span>
+    </div>
+    <div class="sm-head">
+      <h1>{{t.title}}</h1>
+      <sc-if value="{{offline}}" hint-placeholder-val="{{ false }}"><span class="stp off"><svg class="s" viewBox="0 0 24 24"><path d="M2 2l20 20 M17.5 17.5H7a5 5 0 0 1-1.3-9.8 M10 5.3A6 6 0 0 1 18 9h.5a3.5 3.5 0 0 1 2.4 6"></path></svg>{{t.offline}}</span></sc-if>
+      <sc-if value="{{viewer}}" hint-placeholder-val="{{ false }}"><span class="stp view"><svg class="s" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path></svg>{{t.viewOnly}}</span></sc-if>
+      <button class="{{moreCls}}" onClick="{{toggleMenu}}" aria-label="{{t.more}}" aria-expanded="{{menu}}"><svg class="s lg" viewBox="0 0 24 24" style="stroke-width:2.6"><path d="M5 12h.01 M12 12h.01 M19 12h.01"></path></svg></button>
+    </div>
+
+    <div style="padding:10px 16px 0">
+      <div class="seg2" role="tablist" aria-label="{{t.title}}">
+        <span class="pill" style="inset-inline-start:3px;width:calc(50% - 3px);transform:{{pillTf}}"></span>
+        <button role="tab" class="{{tabListCls}}" aria-selected="{{onList}}" onClick="{{toList}}">{{t.list}}</button>
+        <button role="tab" class="{{tabRecCls}}" aria-selected="{{onRec}}" onClick="{{toRec}}">{{t.recipes}}</button>
+      </div>
+    </div>
+
+    <sc-if value="{{onList}}" hint-placeholder-val="{{ true }}">
+      <div class="storebar">
+        <button class="chip-s" aria-label="{{t.changeStore}}">
+          <span class="chain ch-a">{{chainIni}}</span>
+          <span class="nm"><b class="bidi">{{chain}}</b><span class="bidi">{{branch}}</span></span>
+          <svg class="s sm" viewBox="0 0 24 24" style="color:var(--faint)"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <div class="est"><b>{{estimate}}</b><span class="{{emCls}}" aria-hidden="true"><i style="width:{{emW}}"></i></span><span>{{budgetLeft}}</span></div>
+      </div>
+
+      <sc-if value="{{hasList}}" hint-placeholder-val="{{ true }}"><div class="crail" role="img" aria-label="{{railLabel}}"><sc-for list="{{secs}}" as="sc" hint-placeholder-count="8"><i class="{{sc.kc}}" style="flex-grow:{{sc.count}}"></i></sc-for></div></sc-if>
+      <sc-if value="{{canEdit}}" hint-placeholder-val="{{ true }}">
+        <label class="addf">
+          <svg class="s lead" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg>
+          <input type="text" placeholder="{{t.addPh}}" enterkeyhint="done" autocomplete="off" aria-label="{{t.addPh}}">
+          <button class="ico-b" aria-label="{{t.scan}}"><svg class="s" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2 M7 8v8 M10 8v8 M13 8v8 M17 8v8"></path></svg></button>
+          <button class="ico-b" aria-label="{{t.photo}}"><svg class="s" viewBox="0 0 24 24"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path></svg></button>
+          <button class="ico-b" aria-label="{{t.voice}}"><svg class="s" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z M5 11a7 7 0 0 0 14 0 M12 18v3"></path></svg></button>
+          <button class="ico-b" aria-label="{{t.recipe}}"><svg class="s" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"></path></svg></button>
+        </label>
+      </sc-if>
+
+      <sc-if value="{{first}}" hint-placeholder-val="{{ false }}">
+        <div class="ft stg">
+          <div class="ft-art brandband">
+            <div class="aisle">
+              <sc-for list="{{shelves}}" as="sh" hint-placeholder-count="5">
+                <span class="shelf" style="height:{{sh.h}};animation-delay:{{sh.d}}"><svg viewBox="0 0 24 24"><path d="{{sh.p}}"></path></svg></span>
+              </sc-for>
+            </div>
+          </div>
+          <b style="font-size:20px;font-weight:800;letter-spacing:-.02em;padding:6px 4px 0">{{t.ftTitle}}</b>
+          <button class="opt sm-press" onClick="{{start}}">
+            <span class="ic" style="width:44px;height:44px;border-radius:13px"><svg class="s lg" viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg></span>
+            <span class="tx"><b>{{t.basket}}</b><span>{{t.basketS}}</span></span>
+            <svg class="s flip" viewBox="0 0 24 24" style="color:var(--faint)"><path d="m9 18 6-6-6-6"></path></svg>
+          </button>
+          <button class="opt sm-press" onClick="{{start}}">
+            <span class="ic" style="width:44px;height:44px;border-radius:13px;background:var(--spark);color:#fff"><svg class="s lg" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg></span>
+            <span class="tx"><b>{{t.build}}</b><span>{{t.buildS}}</span></span>
+            <svg class="s flip" viewBox="0 0 24 24" style="color:var(--faint)"><path d="m9 18 6-6-6-6"></path></svg>
+          </button>
+          <button class="opt sm-press" onClick="{{start}}">
+            <span class="ic" style="width:44px;height:44px;border-radius:13px"><svg class="s lg" viewBox="0 0 24 24"><path d="M9 3h6v3H9z M8 4H6a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-2"></path></svg></span>
+            <span class="tx"><b>{{t.paste}}</b><span>{{t.pasteS}}</span></span>
+            <svg class="s flip" viewBox="0 0 24 24" style="color:var(--faint)"><path d="m9 18 6-6-6-6"></path></svg>
+          </button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showSug}}" hint-placeholder-val="{{ true }}">
+        <section class="{{sugCls}}" aria-label="{{sugTitle}}">
+          <button class="sug-h" onClick="{{toggleSug}}" aria-expanded="{{sugOpen}}">
+            <span class="sp"><svg class="s sm" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg></span>
+            <span class="tt"><b>{{sugTitle}}</b><span>{{sugSub}}</span></span>
+            <svg class="s cv" viewBox="0 0 24 24" style="margin-inline-end:8px"><path d="m6 9 6 6 6-6"></path></svg>
+          </button>
+          <div class="sug-b"><div>
+            <sc-for list="{{sugs}}" as="g" hint-placeholder-count="4">
+              <div class="{{g.cls}}">
+                <span class="{{g.tileCls}}"><sc-if value="{{g.art.has}}" hint-placeholder-val="{{ true }}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{g.art.d0}}" fill="{{g.art.f0}}"></path><path d="{{g.art.d1}}" fill="{{g.art.f1}}"></path><path d="{{g.art.d2}}" fill="{{g.art.f2}}"></path><path d="{{g.art.d3}}" fill="{{g.art.f3}}"></path><path d="{{g.art.d4}}" fill="{{g.art.f4}}"></path><path d="{{g.art.d5}}" fill="{{g.art.f5}}"></path></svg></sc-if><sc-if value="{{g.noArt}}" hint-placeholder-val="{{ false }}"><svg class="fb" viewBox="0 0 24 24" aria-hidden="true"><path d="{{g.secD}}"></path></svg></sc-if></span>
+                <span class="tx"><b class="bidi">{{g.name}}</b><span class="why2"><svg viewBox="0 0 24 24" class="s xs"><path d="{{g.icon}}"></path></svg>{{g.why}}</span></span>
+                <button class="mini" onClick="{{g.no}}" aria-label="{{g.noLabel}}"><svg class="s" viewBox="0 0 24 24"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
+                <button class="mini add" onClick="{{g.yes}}" aria-label="{{g.yesLabel}}"><svg class="s" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M12 5v14 M5 12h14"></path></svg></button>
+              </div>
+            </sc-for>
+            <div class="sug-f">
+              <span class="sub">{{t.sugFoot}}</span>
+              <button class="btn sm pri" style="height:40px;border-radius:11px" onClick="{{acceptAll}}">{{t.addAll}}</button>
+            </div>
+          </div></div>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{hasList}}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:8px;padding:16px 20px 2px">
+          <b style="font-size:13px;color:var(--muted);font-weight:600;flex:1">{{countLine}}</b>
+        </div>
+        <sc-for list="{{secs}}" as="sc" hint-placeholder-count="5">
+          <div class="{{sc.cls}}">
+            <button class="sec-h" onClick="{{sc.toggle}}" aria-expanded="{{sc.open}}">
+              <span class="{{sc.si}}"><svg viewBox="0 0 24 24"><path d="{{sc.d}}"></path></svg></span>
+              <span class="nm">{{sc.name}}</span>
+              <span class="n">{{sc.count}}</span>
+              <svg class="s sm cv" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg>
+            </button>
+            <div class="sec-b"><div class="{{boxCls}}">
+              <sc-if value="{{tiles}}" hint-placeholder-val="{{ false }}"><div class="tgrid">
+                <sc-for list="{{sc.rows}}" as="r" hint-placeholder-count="3">
+                  <button class="{{r.tlCls}}" aria-label="{{r.aria}}"><span class="{{r.whoCls}}"></span><span class="tq">{{r.q}}</span><span class="{{r.tileClsL}}"><sc-if value="{{r.art.has}}" hint-placeholder-val="{{ true }}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path><path d="{{r.art.d4}}" fill="{{r.art.f4}}"></path><path d="{{r.art.d5}}" fill="{{r.art.f5}}"></path></svg></sc-if><sc-if value="{{r.noArt}}" hint-placeholder-val="{{ false }}"><svg class="fb" viewBox="0 0 24 24" aria-hidden="true"><path d="{{r.secD}}"></path></svg></sc-if></span><b class="bidi">{{r.name}}</b><sc-if value="{{r.note}}" hint-placeholder-val="{{ false }}"><span class="nt3">{{r.note}}</span></sc-if></button>
+                </sc-for>
+              </div></sc-if>
+              <sc-if value="{{rowsL}}" hint-placeholder-val="{{ true }}">
+              <sc-for list="{{sc.rows}}" as="r" hint-placeholder-count="3">
+                <button class="{{r.cls}}" aria-label="{{r.aria}}">
+                  <span class="{{r.tileCls}}"><sc-if value="{{r.art.has}}" hint-placeholder-val="{{ true }}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path><path d="{{r.art.d4}}" fill="{{r.art.f4}}"></path><path d="{{r.art.d5}}" fill="{{r.art.f5}}"></path></svg></sc-if><sc-if value="{{r.noArt}}" hint-placeholder-val="{{ false }}"><svg class="fb" viewBox="0 0 24 24" aria-hidden="true"><path d="{{r.secD}}"></path></svg></sc-if></span>
+                  <span class="tx">
+                    <b class="bidi">{{r.name}}</b>
+                    <sc-if value="{{r.hasLine}}" hint-placeholder-val="{{ false }}">
+                      <span class="nt2">
+                        <sc-if value="{{r.queued}}" hint-placeholder-val="{{ false }}"><span class="qd"><svg class="s xs" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2"></path></svg>{{t.waiting}}</span></sc-if>
+                        <sc-if value="{{r.pin}}" hint-placeholder-val="{{ false }}"><span class="pinb bidi"><svg class="s" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path></svg>{{r.pin}}</span></sc-if>
+                        <sc-if value="{{r.note}}" hint-placeholder-val="{{ false }}"><span>{{r.note}}</span></sc-if>
+                      </span>
+                    </sc-if>
+                  </span>
+                  <span class="{{r.whoCls}}" title="{{r.whoName}}"></span>
+                  <span class="qty">{{r.q}}</span>
+                </button>
+              </sc-for>
+              </sc-if>
+            </div></div>
+          </div>
+        </sc-for>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{onRec}}" hint-placeholder-val="{{ false }}">
+      <div class="ft rise" style="margin-top:28px;align-items:center;text-align:center">
+        <span class="ic" style="width:64px;height:64px;border-radius:20px"><svg class="s lg" viewBox="0 0 24 24" style="width:28px;height:28px"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"></path></svg></span>
+        <b style="font-size:19px;font-weight:800;letter-spacing:-.02em">{{t.recT}}</b>
+        <span class="sub" style="max-width:270px">{{t.recS}}</span>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;margin-top:8px">
+          <button class="btn" style="height:48px">{{t.recPhoto}}</button>
+          <button class="btn" style="height:48px">{{t.recLink}}</button>
+          <button class="btn" style="height:48px">{{t.recType}}</button>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{showStart}}" hint-placeholder-val="{{ true }}">
+    <div class="startwrap">
+      <a class="sm-start" href="StoreMode-phone.dc.html">
+        <svg class="s lg" viewBox="0 0 24 24"><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21 7H6"></path></svg>
+        <span>{{t.start}}</span><span class="c">{{startCount}}</span>
+      </a>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{menu}}" hint-placeholder-val="{{ false }}">
+    <button style="position:absolute;inset:0;z-index:4;border:0;background:transparent" onClick="{{toggleMenu}}" aria-label="{{t.close}}"></button>
+    <div class="menu grow" style="position:absolute;top:82px;inset-inline-end:14px;width:232px;z-index:5;transform-origin:{{menuOrigin}}" role="menu">
+      <sc-for list="{{menuItems}}" as="m" hint-placeholder-count="5">
+        <button class="mi" role="menuitem" style="width:100%;border:0;background:transparent;height:44px;color:var(--ink)"><svg class="s" viewBox="0 0 24 24" style="color:var(--muted)"><path d="{{m.d}}"></path></svg>{{m.label}}</button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <nav class="dock5" aria-label="{{t.nav}}">
+    <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span>{{t.home}}</span></button>
+    <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg><span>{{t.products}}</span></button>
+    <a class="plus" href="Add-phone.dc.html" aria-label="{{t.addPh}}"><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></a>
+    <button class="tab-b on" aria-current="page"><svg viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg><span>{{t.title}}</span></button>
+    <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg><span>{{t.insights}}</span></button>
+  </nav>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"section colours":{"editor":"boolean","default":true},"state":{"editor":"enum","options":["normal","first time","draft for tomorrow","viewer","offline"],"default":"normal"},"data":{"editor":"enum","options":["demo","worst case"],"default":"demo"},"layout":{"editor":"enum","options":["rows","tiles"],"default":"rows"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const st = p.state ?? 'normal';
+    const worst = (p.data ?? 'demo') === 'worst case';
+    const viewer = st === 'viewer', offline = st === 'offline', draft = st === 'draft for tomorrow';
+    const first = st === 'first time' && !s.started;
+    const tiles = (p.layout ?? 'rows') === 'tiles';
+    const tab = s.tab || 'list';
+    const onList = tab === 'list', onRec = tab === 'rec';
+    const t = {
+      title: L('Supermarket','סופר'), list: L('List','רשימה'), recipes: L('Recipes','מתכונים'), more: L('More','עוד'), close: L('Close','סגירה'),
+      offline: L('Offline · 2 waiting','לא מקוון · 2 ממתינים'), viewOnly: L('View only','צפייה בלבד'),
+      changeStore: L('Change store','החלפת חנות'), addPh: L('Add an item','הוספת פריט'),
+      scan: L('Scan a barcode','סריקת ברקוד'), photo: L('Photo of a package','צילום אריזה'), voice: L('Say it','הוספה בקול'), recipe: L('From a recipe','ממתכון'),
+      ftTitle: L('Start your list','מתחילים רשימה'), basket: L('Basic weekly basket','סל שבועי בסיסי'), basketS: L('24 common items. Edit after.','24 פריטים נפוצים, עורכים אחר כך.'),
+      build: L('Build my list','בנה לי רשימה'), buildS: L('From your answers, as suggestions','מהתשובות שלך, כהצעות'),
+      paste: L('Paste a list','הדבקת רשימה'), pasteS: L('From WhatsApp or notes','מוואטסאפ או מהפתקים'),
+      sugFoot: L('Your own items never change.','הפריטים שלכם לא משתנים.'), addAll: L('Add all','הוספת הכול'),
+      waiting: L('Waiting','ממתין'), start: L('Start shopping','מתחילים קנייה'),
+      recT: L('Your recipes','המתכונים שלכם'), recS: L('Save a recipe once, then add only what’s missing to the list.','שומרים מתכון פעם אחת, ומוסיפים לרשימה רק את מה שחסר.'),
+      recPhoto: L('Photo','צילום'), recLink: L('Link','קישור'), recType: L('Type it','הקלדה'),
+      home: L('Home','בית'), products: L('Products','מוצרים'), insights: L('Insights','תובנות'), nav: L('Main','ראשי')
+    };
+    const P = {
+      produce:'M12 7c-3-2-7 0-7 5s3 9 7 9 7-4 7-9-4-7-7-5z M12 7c0-2 1-4 3-4',
+      meat:'M3 12c3-5 9-6 13-2l5-3v10l-5-3c-4 4-10 3-13-2z M8 11h.01',
+      deli:'M3 11h18a9 9 0 0 1-18 0z M7 7c1-2 3-2 4 0 M12 6c1-2 3-2 4 0',
+      dry:'M7 3h10 M8 3v3l-3 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10l-3-4V3 M5 13h14',
+      cans:'M6 5c0-1 2.7-2 6-2s6 1 6 2v14c0 1-2.7 2-6 2s-6-1-6-2z M6 5c0 1 2.7 2 6 2s6-1 6-2 M6 10h12',
+      spice:'M9 3h6l1 4H8z M8 7h8v13a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1z M11 11h.01 M13 13h.01 M11 15h.01',
+      bfast:'M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z M17 10h1.5a2.5 2.5 0 0 1 0 5H17 M8 3v3 M12 3v3',
+      snack:'M12 3a9 9 0 1 0 9 9 3 3 0 0 1-3-3 3 3 0 0 1-3-3 3 3 0 0 1-3-3z M8.5 11.5h.01 M12 16h.01 M15.5 14h.01',
+      drink:'M10 2h4 M10 2v4l-2 3v12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V9l-2-3V2 M8 13h8',
+      clean:'M9 9h6v12H9z M10 9V6h4 M14 6l4-2 M17 7h2',
+      toil:'M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7z M7 10l7 7',
+      baby:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M9 10h.01 M15 10h.01 M9.5 14.5a3.5 3.5 0 0 0 5 0',
+      pets:'M12 14c-2.8 0-5 2.6-5 4.4 0 1.6 2.2 1.6 5 1.6s5 0 5-1.6c0-1.8-2.2-4.4-5-4.4z M4.4 10a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0 M7.9 6.5a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0 M12.9 6.5a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0 M16.4 10a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0',
+      bread:'M6 11a4 4 0 0 1 0-8h12a4 4 0 0 1 0 8v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z',
+      dairy:'M7 6l2-4h6l2 4 M7 6v15a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6z M7 6l5 4 5-4 M12 10v12',
+      frozen:'M12 2v20 M3.3 7l17.4 10 M3.3 17 20.7 7 M9 4l3 3 3-3 M9 20l3-3 3 3'
+    };
+    const C_ = (x, y, r) => 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z';
+    const E_ = (x, y, a, b) => 'M' + (x - a) + ' ' + y + 'a' + a + ' ' + b + ' 0 1 0 ' + (2 * a) + ' 0a' + a + ' ' + b + ' 0 1 0 ' + (-2 * a) + ' 0z';
+    const R_ = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + 'h' + (w - 2 * r) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r : '') + 'v' + (h - 2 * r) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r : '') + 'h' + (-(w - 2 * r)) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + (-r) : '') + 'v' + (-(h - 2 * r)) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + (-r) : '') + 'z';
+    const ART = {
+      tom: [[C_(24,27,14),'#e5483b'],[E_(18,22,4,2.5),'#ff9a8c'],['M24 9l2.2 4.6 4.8-1.6-2.8 4 4.2 2.6-5.2-.2-1.4 4.4-1.6-4.4-5.2.2 4.2-2.6-2.8-4 4.8 1.6z','#3f9d5a']],
+      pep: [['M14 18c0-4 4-6 10-6s10 2 10 6l-1 16c0 5-4 8-9 8s-9-3-9-8z','#d63a2f'],[E_(19,22,2.5,5),'#ff8a7a'],['M22 6h4v7h-4z','#3f8f4a']],
+      cuc: [['M9 36c-3-3-1-9 5-15l7-7c6-6 12-8 15-5s1 9-5 15l-7 7c-6 6-12 8-15 5z','#3d8b47'],[C_(17,28,1.4)+C_(23,22,1.4)+C_(29,16,1.4)+C_(21,31,1.2)+C_(27,25,1.2)+C_(32,20,1.1),'#93d48f']],
+      ban: [['M8 13c1 14 12 24 27 24 3 0 4 2 1 3C19 44 5 33 6 15c0-3 2-4 2-2z','#f5c542'],['M10 14c2 11 10 19 21 21-12 1-21-8-22-20z','#e0a92a'],[R_(5,9,4,6,1.5),'#6b4a2b']],
+      lem: [[E_(24,25,15,11),'#f2d23a'],['M8 25l-4-1.5 4-1.5z M40 25l4-1.5-4-1.5z','#e3bd22'],[E_(19,21,5,2.5),'#fbec95']],
+      par: [[R_(23,26,2.5,16,1.2),'#4f8a3a'],[C_(17,19,7)+C_(31,19,7)+C_(24,12,7)+C_(24,23,6),'#3f9d5a'],[C_(20,15,2.6)+C_(29,14,2.2)+C_(15,21,1.8),'#7cca72']],
+      chk: [['M10 30c0-10 8-18 18-18 7 0 11 5 11 11 0 10-10 17-20 17-6 0-9-4-9-10z','#f3b9a3'],['M20 34c6-1 12-6 14-12 1 4-3 11-10 13-2 .5-4 0-4-1z','#e49a83'],[E_(22,20,4,2),'#fbd9cc']],
+      hum: [['M6 24h36c0 10-8 17-18 17S6 34 6 24z','#5d86b5'],[E_(24,24,18,5),'#ecd39c'],[E_(24,24,7,2.2),'#c9a032'],[C_(31,22.5,1.4)+C_(17,25,1.2)+C_(26,26,1),'#6f8f2f']],
+      pen: [['M8 30l14-14 5 5-14 14z','#f0c35a'],['M20 36l14-14 5 5-14 14z','#e6ad3c'],['M14 20l12-12 4 4-12 12z','#f6d684']],
+      ric: [['M12 14c0-4 4-6 12-6s12 2 12 6l2 24c0 3-6 5-14 5s-14-2-14-5z','#f6f3ea'],[R_(14,22,20,10,3),'#3b7fc4'],['M15 10c3 3 15 3 18 0v3c-3 3-15 3-18 0z','#d9d3c3']],
+      crt: [[R_(12,9,24,32,4),'#d0573f'],[R_(12,17,24,15,0),'#f6efe4'],[C_(24,24.5,4.5),'#e5483b'],[E_(24,9.5,12,2.5),'#a93d2a']],
+      tah: [[R_(12,14,24,28,6),'#e7d2a7'],[R_(14,8,20,7,2),'#3a3a38'],[R_(16,24,16,9,2),'#ffffff'],[R_(19,27,10,3,1.5),'#c9a032']],
+      cor: [[R_(11,6,26,36,3),'#f08a24'],[C_(24,26,8),'#ffffff'],[C_(21,25,2.2)+C_(26,23.5,2)+C_(25,28.5,1.8)+C_(20.5,29,1.4),'#f2c14e'],[R_(14,9,20,4,2),'#ffd08a']],
+      cof: [['M13 12h22l3 30H10z','#6b4a2b'],['M13 12l3-5h16l3 5z','#4e3520'],[E_(24,27,4,6),'#c79a5e'],[R_(23.3,21.5,1.4,11,.7),'#6b4a2b']],
+      wat: [[R_(18,4,12,5,1.5),'#2f7fc1'],['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#8fd0f2'],[R_(15,22,18,9,0),'#2f7fc1'],[R_(19,13,3,25,1.5),'#c9ecfb']],
+      jui: [[R_(18,4,12,5,1.5),'#2f9d4a'],['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#f6a33a'],[C_(24,29,5.5),'#ffd36b'],[R_(19,13,3,25,1.5),'#ffc77a']],
+      oil: [[R_(21,3,6,6,1.5),'#3a3a38'],['M20 9h8v6l4 5v20c0 2-2 4-4 4h-8c-2 0-4-2-4-4V20l4-5z','#b9a43a'],[R_(17,24,14,10,2),'#f6efe4'],[C_(24,29,2.5),'#6f8f2f']],
+      dis: [[R_(22,4,4,6,1),'#1f7f62'],['M18 10h12l2 6v24c0 2-2 4-4 4h-8c-2 0-4-2-4-4V16z','#4cc3a0'],[C_(24,28,5.5),'#ffffff'],[C_(24,28,2.6),'#4cc3a0']],
+      trb: [[R_(10,13,28,26,6),'#3a3a38'],[E_(24,13,14,4),'#5b5b55'],[E_(24,13,5,1.6),'#1f1f1d'],['M10 31h28v3H10z','#4a4a46']],
+      tp: [[R_(8,12,22,28,5),'#ffffff'],[E_(19,12,11,4),'#ecebe6'],[E_(19,12,3.5,1.6),'#b8b5ac'],[R_(30,26,12,14,2),'#ffffff']],
+      tpa: [['M7 22l26-7 4 3-2 14-24 6c-3 1-5-1-5-4z','#f2f6fb'],['M33 15l6-2 2 6-4 1z','#3b7fc4'],['M13 25l17-4.5v4L13 29z','#e5483b']],
+      pit: [[E_(24,26,18,13),'#e3b97f'],[E_(24,24,15,10),'#f2d7a8'],[C_(18,22,1.2)+C_(28,27,1.2)+C_(25,20,1)+C_(21,29,1)+C_(31,22,1),'#c79a5e']],
+      brd: [['M8 22c0-7 7-11 16-11s16 4 16 11v15c0 2-2 4-4 4H12c-2 0-4-2-4-4z','#c98a3e'],['M14 18l4 6 M22 16l4 6 M30 17l4 6','none'],[R_(12,20,4,12,2)+R_(21,18,4,14,2)+R_(30,20,4,12,2),'#e6b06a']],
+      chl: [[E_(24,29,20,9),'#bf7428'],[E_(13,26,7.5,6)+E_(24,24,8,6.5)+E_(35,26,7.5,6),'#df9c4a'],[C_(15,23,.9)+C_(25,21,.9)+C_(33,24,.9)+C_(21,26,.8)+C_(29,27,.8),'#fbe7c2']],
+      mlk: [['M14 16l4-8h12l4 8z','#dfe9f5'],[R_(14,16,20,28,2),'#ffffff'],[R_(14,27,20,10,0),'#3b7fc4'],[R_(20,4,8,5,1),'#3b7fc4']],
+      cot: [['M10 18h28l-3 22c0 2-2 3-4 3H17c-2 0-4-1-4-3z','#ffffff'],[E_(24,18,15,4.5),'#3b7fc4'],[R_(14,26,20,8,2),'#cfe0f3']],
+      ylc: [['M6 34L36 12l6 6v20H6z','#f4c84a'],['M6 34L36 12l6 6z','#fbe08a'],[C_(20,32,3)+C_(32,28,2.5)+C_(28,35,1.8)+C_(37,33,1.5),'#dba62a']],
+      prm: [['M6 34L36 12l6 6v20H6z','#efdca0'],['M6 34L36 12l6 6z','#f8ecc4'],[R_(6,34,36,4,0),'#c9a24a']],
+      yog: [['M12 14h24l-3 26c0 2-2 3-4 3H19c-2 0-4-1-4-3z','#ffffff'],[R_(11,10,26,5,2),'#e86f8f'],[R_(14,22,20,8,0),'#f9c9d6']],
+      egg: [[R_(5,26,38,14,4),'#d9c3a0'],[E_(13,25,5,6.5)+E_(24,23,5,6.5)+E_(35,25,5,6.5),'#f7ecdc'],[E_(11.5,22,1.5,2.2)+E_(22.5,20,1.5,2.2)+E_(33.5,22,1.5,2.2),'#ffffff']],
+      pea: [['M6 30c6-12 22-20 36-16-4 14-22 22-36 16z','#4f9d4a'],[C_(16,27,4)+C_(24,23,4)+C_(32,19.5,4),'#8fd36b'],[C_(15,26,1.2)+C_(23,22,1.2)+C_(31,18.5,1.2),'#c8f0a8']]
+    };
+    const art = (key) => { const a = ART[key]; const o = { has: !!a }; for (let i = 0; i < 6; i++) { const x = a && (i === 0 ? [E_(24,44.5,13,2.2),'rgba(0,0,0,.10)'] : a[i - 1]); o['d' + i] = x ? x[0] : ''; o['f' + i] = x ? x[1] : 'none'; } return o; };
+    const SEC = [
+      ['produce','Fruit & vegetables','פירות וירקות'],['meat','Meat, poultry & fish','בשר, עוף ודגים'],['deli','Deli & salads','מעדנייה וסלטים'],
+      ['dry','Dry goods','יבשים'],['cans','Cans & sauces','שימורים ורטבים'],['spice','Spices & baking','תבלינים ואפייה'],
+      ['bfast','Breakfast & spreads','ארוחת בוקר וממרחים'],['snack','Snacks & sweets','חטיפים ומתוקים'],['drink','Drinks','משקאות'],
+      ['clean','Cleaning & disposables','ניקיון וחד־פעמי'],['toil','Toiletries & pharm','טואלטיקה ופארם'],['baby','Baby','תינוקות'],
+      ['pets','Pets','חיות מחמד'],['bread','Bread & bakery','לחם ומאפים'],['dairy','Dairy & eggs','חלב וביצים'],['frozen','Frozen','קפואים']
+    ];
+    const W = { T:{c:'c3',en:'Tal',he:'טל'}, N:{c:'c2',en:'Noa',he:'נועה'}, Y:{c:'c4',en:'Yoav',he:'יואב'},
+      A:{c:'c6',en:'Aleksandra Wiśniewska-Kowalczyk',he:'אלכסנדרה וישנייבסקה-קובלצ׳יק'} };
+    const I = (id, k, en, hh, q, qh, w, o) => Object.assign({ id, k, en, hh, q, qh: qh || q, w }, o || {});
+    const kg = (n) => [n + ' kg', n + ' ק״ג'], g = (n) => [n + ' g', n + ' גרם'];
+    const DEMO = [
+      I('tom','produce','Tomatoes','עגבניות',...kg(1),'T',{thm:'p3'}), I('cuc','produce','Cucumbers','מלפפונים',...kg(1),'T',{thm:'p4'}),
+      I('ban','produce','Bananas','בננות','×6','','N',{ne:'Not too ripe',nh:'לא בשלות מדי',thm:'p5'}), I('lem','produce','Lemons','לימונים','×4','','Y',{thm:'p5',qd:1}),
+      I('par','produce','Parsley','פטרוזיליה','×2','','N',{thm:'p4',qd:1}),
+      I('chk','meat','Chicken breast','חזה עוף',...kg(1),'T',{ne:'Thin slices',nh:'פרוס דק',thm:'p3'}),
+      I('hum','deli','Hummus','חומוס','×2','','Y',{thm:'p2'}),
+      I('pen','dry','Penne 500 g','פסטה פנה 500 גרם','×2','','N',{thm:'p5'}), I('ric','dry','Basmati rice','אורז בסמטי',...kg(1),'T',{thm:'p1'}),
+      I('crt','cans','Crushed tomatoes','עגבניות מרוסקות','×3','','N',{thm:'p3'}), I('tah','cans','Raw tahini','טחינה גולמית','×1','','T',{thm:'p2'}),
+      I('cor','bfast','Cornflakes','קורנפלקס','×1','','Y',{thm:'p5'}), I('cof','bfast','Ground coffee','קפה טחון','×1','','T',{ne:'The dark one',nh:'הכהה',thm:'p2'}),
+      I('wat','drink','Sparkling water, 6-pack','מים מוגזים, שישייה','×1','','T',{thm:'p1'}),
+      I('dis','clean','Dish soap','סבון כלים','×1','','N',{thm:'p6'}), I('trb','clean','Trash bags','שקיות אשפה','×1','','N',{thm:'p1'}),
+      I('tpa','toil','Toothpaste','משחת שיניים','×2','','T',{pe:'Super-Pharm',ph:'סופר-פארם',thm:'p6'}),
+      I('pit','bread','Pita','פיתות','×10','','Y',{thm:'p2'}),
+      I('mlk','dairy','Milk 3%','חלב 3%','×2','','N',{thm:'p1'}), I('cot','dairy','Cottage cheese 5%','קוטג׳ 5%','×3','','T',{thm:'p1'}),
+      I('ylc','dairy','Sliced yellow cheese',"גבינה צהובה פרוסה",...g(200),'N',{thm:'p5'}), I('yog','dairy','Yogurt','יוגורט','×4','','Y',{thm:'p1'}),
+      I('pea','frozen','Frozen peas','אפונה קפואה',...g(800),'T',{thm:'p4'})
+    ];
+    const WORST = [
+      I('w1','produce','Tomatoes','עגבניות',...kg(12.5),'A',{thm:'p3'}), I('w2','produce','Cucumbers','מלפפונים',...kg(2),'T',{thm:'p4'}), I('w3','produce','Bananas','בננות','×6','','N',{thm:'p5'}), I('w4','produce','Red bell peppers','פלפל אדום',...kg(1),'Y',{thm:'p3',qd:1}),
+      I('w5','meat','Chicken breast','חזה עוף',...kg(3),'T'), I('w6','meat','Ground beef 15%','בשר טחון 15%',...g(500),'A'), I('w7','meat','Salmon fillet','פילה סלמון',...g(400),'N'),
+      I('w8','deli','Hummus','חומוס','×2','','Y'), I('w9','deli','Eggplant salad','סלט חצילים','×1','','N'),
+      I('w10','dry','Penne 500 g','פסטה פנה 500 גרם','×24','','T'), I('w11','dry','Basmati rice','אורז בסמטי',...kg(5),'N'), I('w12','dry','Red lentils','עדשים כתומות',...kg(1),'A'),
+      I('w13','cans','Crushed tomatoes','עגבניות מרוסקות','×12','','N'), I('w14','cans','Raw tahini','טחינה גולמית','×1','','T'),
+      I('w15','cans','Organic extra-virgin olive oil, cold pressed, 3 L tin','שמן זית כתית מעולה אורגני בכבישה קרה, פח 3 ליטר','×1','','A',{ne:'Only if the price is under ₪120 — otherwise the 1 L bottle from the top shelf',nh:'רק אם המחיר מתחת ל-₪120 — אחרת הבקבוק של ליטר מהמדף העליון'}),
+      I('w16','spice','Sweet paprika','פפריקה מתוקה','×1','','Y'), I('w17','spice','Baking powder','אבקת אפייה','×3','','N'),
+      I('w18','bfast','Cornflakes','קורנפלקס','×2','','Y'), I('w19','bfast','Ground coffee','קפה טחון','×1','','T'), I('w20','bfast','Chocolate spread','ממרח שוקולד','×1','','N'),
+      I('w21','snack','Peanut puffs','חטיף בוטנים','×8','','Y'), I('w22','snack','Rice cakes','פריכיות אורז','×2','','A'),
+      I('w23','drink','Sparkling water, 6-pack','מים מוגזים, שישייה','×4','','T'), I('w24','drink','Orange juice 2 L','מיץ תפוזים 2 ליטר','×2','','N'),
+      I('w25','clean','Dish soap','סבון כלים','×1','','N'), I('w26','clean','Trash bags','שקיות אשפה','×2','','A'), I('w27','clean','Toilet paper, 32 rolls','נייר טואלט, 32 גלילים','×1','','T'),
+      I('w28','toil','Toothpaste','משחת שיניים','×2','','T',{pe:'Super-Pharm · Azrieli Mall Modi’in, 2nd floor',ph:'סופר-פארם · קניון עזריאלי מודיעין, קומה 2'}), I('w29','toil','Shampoo','שמפו','×1','','Y'),
+      I('w30','baby','Diapers, size 4','חיתולים, מידה 4','×3','','A',{qd:1}), I('w31','baby','Wet wipes','מגבונים לחים','×6','','N'),
+      I('w32','pets','Dry cat food 7 kg','מזון יבש לחתולים 7 ק״ג','×1','','Y'),
+      I('w33','bread','Gluten-free whole-grain spelt sourdough bread, sliced, 750 g','לחם כוסמין מלא ללא גלוטן, פרוס, מחמצת טבעית 750 גרם','×2','','A'), I('w34','bread','Pita','פיתות','×10','','Y'),
+      I('w35','dairy','Lactose-free 1% milk with added vitamin D','חלב 1% ללא לקטוז בתוספת ויטמין D','×6','','N',{ne:'Blue cap only — if missing, the green one, never the red',nh:'רק עם הפקק הכחול — אם אין, אז הירוק, אף פעם לא האדום'}),
+      I('w36','dairy','Cottage cheese 5%','קוטג׳ 5%','×3','','T'), I('w37','dairy','Yogurt','יוגורט','×12','','Y'), I('w38','dairy','Eggs, size L','ביצים L','×30','','A'),
+      I('w39','frozen','Frozen peas','אפונה קפואה',...g(800),'T'), I('w40','frozen','Frozen schnitzel','שניצל קפוא',...kg(1),'N')
+    ];
+    const SUG = worst ? [
+      { id:'s1', k:'dairy', en:'Organic free-range eggs, size XL, carton of 30', hh:'ביצי חופש אורגניות, מידה XL, תבנית של 30', q:'×1', why:L('every ~9 days · usually on Thursday','כל ~9 ימים · בדרך כלל ביום חמישי'), ic:'clock' },
+      { id:'s2', k:'bread', en:'Challah', hh:'חלה', q:'×2', why:L('Shabbat','שבת'), ic:'cal' },
+      { id:'s3', k:'dairy', en:'Grated parmesan', hh:'פרמזן מגורר', q:'×1', why:L('usually with pasta','בדרך כלל עם פסטה'), ic:'link' },
+      { id:'s4', k:'clean', en:'Dishwasher tablets', hh:'טבליות למדיח', q:'×1', why:L('every ~3 weeks','כל ~3 שבועות'), ic:'clock' }
+    ] : [
+      { id:'s1', k:'dairy', en:'Eggs, size L', hh:'ביצים L', q:'×12', why:L('every ~9 days','כל ~9 ימים'), ic:'clock' },
+      { id:'s2', k:'bread', en:'Challah', hh:'חלה', q:'×2', why:L('Shabbat','שבת'), ic:'cal' },
+      { id:'s3', k:'dairy', en:'Grated parmesan', hh:'פרמזן מגורר', q:'×1', why:L('usually with pasta','בדרך כלל עם פסטה'), ic:'link' },
+      { id:'s4', k:'clean', en:'Toilet paper, 32 rolls', hh:'נייר טואלט, 32 גלילים', q:'×1', why:L('every ~3 weeks','כל ~3 שבועות'), ic:'clock' }
+    ];
+    const IC = { clock:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2', cal:'M4 5h16v16H4z M4 10h16 M8 3v4 M16 3v4', link:'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1 M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1' };
+    const acc = s.acc || {}, dis = s.dis || {}, shut = s.shut || {};
+    const base = (worst ? WORST : DEMO).slice();
+    SUG.forEach(x => { if (acc[x.id]) base.push(I(x.id, x.k, x.en, x.hh, x.q, x.q, 'T', { isNew: true, thm: 'p6' })); });
+    const items = base;
+    const leave = (id, field) => { this.setState({ leaving: id }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ leaving: null, [field]: { ...((this.state || {})[field] || {}), [id]: true } }), 220); };
+    const AK = { w1:'tom',w2:'cuc',w3:'ban',w4:'pep',w5:'chk',w6:'chk',w8:'hum',w9:'hum',w10:'pen',w11:'ric',w12:'ric',w13:'crt',w14:'tah',w15:'oil',w16:'tah',w18:'cor',w19:'cof',w23:'wat',w24:'jui',w25:'dis',w26:'trb',w27:'tp',w28:'tpa',w33:'brd',w34:'pit',w35:'mlk',w36:'cot',w37:'yog',w38:'egg',w39:'pea',s1:'egg',s2:'chl',s3:'prm',s4: worst ? '' : 'tp' };
+    const keyOf = (id) => (id in AK) ? AK[id] : (ART[id] ? id : '');
+    const sugs = SUG.filter(x => !acc[x.id] && !dis[x.id]).map(x => ({
+      name: (he ? x.hh : x.en) + ' ' + x.q, why: x.why, icon: IC[x.ic], art: art(keyOf(x.id)), noArt: !ART[keyOf(x.id)], secD: P[x.k], tileCls: 'pt sm k-' + x.k,
+      cls: 'sug-r' + (s.leaving === x.id ? ' leave' : ''),
+      yes: () => leave(x.id, 'acc'), no: () => leave(x.id, 'dis'),
+      yesLabel: L('Add ', 'הוספת ') + (he ? x.hh : x.en), noLabel: L('Not now: ', 'לא עכשיו: ') + (he ? x.hh : x.en)
+    }));
+    const secs = SEC.map(([k, en, hh]) => {
+      const rows = items.filter(r => r.k === k).map(r => {
+        const pin = r.pe ? (he ? r.ph : r.pe) : '';
+        const note = r.ne ? (he ? r.nh : r.ne) : '';
+        const queued = offline && !!r.qd;
+        const who = W[r.w] || W.T;
+        const ak = keyOf(r.id);
+        return { art: art(ak), noArt: !ART[ak], secD: P[r.k], tileCls: 'pt k-' + r.k, tileClsL: 'pt lg k-' + r.k, tlCls: 'tl k-' + r.k + (r.isNew ? ' nrow' : ''),
+          name: he ? r.hh : r.en, q: he ? r.qh : r.q, note, pin, queued, hasLine: !!(note || pin || queued),
+          cls: 'srow' + (r.isNew ? ' nrow' : ''), thm: 'thm ' + (r.thm || 'p1'), whoCls: 'whod ' + who.c,
+          whoName: L('Added by ', 'הוסיף/ה: ') + (he ? who.he : who.en), aria: (he ? r.hh : r.en) + ', ' + (he ? r.qh : r.q) };
+      });
+      const open = !shut[k];
+      return { k, si: 'si k-' + k, kc: 'k-' + k, name: he ? hh : en, d: P[k], rows, count: rows.length, open, cls: 'sec k-' + k + (open ? '' : ' shut'),
+        toggle: () => this.setState({ shut: { ...((this.state || {}).shut || {}), [k]: open } }) };
+    }).filter(x => x.rows.length);
+    const n = items.length;
+    const sugOpen = !s.sugShut;
+    const showSug = !first && !viewer && onList && sugs.length > 0;
+    const shelvesK = ['produce','bread','dairy','cans','clean'];
+    const H = ['74px','96px','84px','62px','104px'];
+    const MI = [
+      [L('Templates','תבניות'),'M4 4h16v6H4z M4 14h7v6H4z M15 14h5v6h-5z'],
+      [L('Past trips','קניות קודמות'),'M12 21a9 9 0 1 0-9-9 M3 4v5h5 M12 7v5l3 2'],
+      [L('Receipts','קבלות'),'M5 3v18l2-1.5L9 21l2-1.5L13 21l2-1.5L17 21l2-1.5V3l-2 1.5L15 3l-2 1.5L11 3 9 4.5 7 3z M9 9h6 M9 13h6'],
+      [L('Section order','סדר מחלקות'),'M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01'],
+      [L('Show pictures','הצגת תמונות'),'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z']
+    ];
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') + ((p.motion ?? 'full') === 'reduced' ? ' rm' : '') + (p['section colours'] === false ? ' mono' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      space: worst ? L('The Wiśniewska-Kowalczyk family & friends from Herzl Street','משפחת וישנייבסקה-קובלצ׳יק והחברים מרחוב הרצל') : 'Jacoby Home',
+      iniT: he ? 'ט' : 'T', iniN: he ? 'נ' : 'N', iniY: he ? 'י' : 'Y',
+      offline, viewer, first, onList, onRec, tiles, rowsL: !tiles, boxCls: tiles ? 'box-t' : 'box-l',
+      railLabel: L('Your list by section, in store order', 'הרשימה לפי מחלקות, בסדר החנות'),
+      tabListCls: onList ? 'on' : '', tabRecCls: onRec ? 'on' : '',
+      pillTf: 'translateX(' + (onRec ? (he ? '-100%' : '100%') : '0') + ')',
+      toList: () => this.setState({ tab: 'list' }), toRec: () => this.setState({ tab: 'rec' }),
+      chain: worst ? L('Shufersal Sheli','שופרסל שלי') : L('Shufersal Deal','שופרסל דיל'), chainIni: he ? 'ש' : 'S',
+      branch: worst ? L('Azrieli Mall Modi’in, 2nd floor, next to the parking','קניון עזריאלי מודיעין, קומה 2, ליד החניון') : L('Herzl St.','רח׳ הרצל'),
+      estimate: first ? '—' : (worst ? '≈ ₪1,975' : '≈ ₪376'),
+      emCls: 'em' + (worst ? ' over' : ''), emW: first ? '0%' : (worst ? '100%' : '33%'),
+      budgetLeft: worst ? L('₪340 over October','₪340 מעל אוקטובר') : L('₪1,140 left this month','נשארו ₪1,140 החודש'),
+      canEdit: !viewer, shelves: shelvesK.map((k, i) => ({ p: P[k], h: H[i], d: (i * 60) + 'ms' })), start: () => this.setState({ started: true }),
+      showSug, sugOpen, sugCls: 'sug' + (sugOpen ? '' : ' shut'), toggleSug: () => this.setState({ sugShut: sugOpen }),
+      sugTitle: draft ? L('Ready for Thursday','מוכן ליום חמישי') : L('Nexus suggests','Nexus מציע'),
+      sugSub: draft ? L(sugs.length + ' suggestions · your ' + (n - Object.keys(acc).length) + ' items stay as they are', sugs.length + ' הצעות · ' + (n - Object.keys(acc).length) + ' הפריטים שלכם נשארים כמו שהם') : L(sugs.length + ' things you usually buy', sugs.length + ' דברים שאתם קונים בדרך כלל'),
+      sugs, acceptAll: () => { const a = { ...acc }; SUG.forEach(x => { if (!dis[x.id]) a[x.id] = true; }); this.setState({ acc: a }); },
+      hasList: !first, secs, countLine: worst ? L(n + ' items · ' + secs.length + ' sections', n + ' פריטים · ' + secs.length + ' מחלקות') : L(n + ' items', n + ' פריטים'),
+      showStart: onList && !first && !viewer, startCount: String(n),
+      padBottom: (onList && !first && !viewer) ? '176px' : '110px',
+      menu: !!s.menu, moreCls: 'ico-b' + (s.menu ? ' on' : ''), toggleMenu: () => this.setState({ menu: !s.menu }),
+      menuOrigin: he ? 'top left' : 'top right', menuItems: MI.map(([label, d]) => ({ label, d }))
+    };
+  }
+}
+</script>
+</body>
+</html>

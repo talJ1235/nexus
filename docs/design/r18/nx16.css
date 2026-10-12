@@ -1,0 +1,102 @@
+/* Nexus R16 additions — loaded after nx.css (R15 look, unchanged). Settings shell, space identity, Home customise. */
+
+/* space identity: 6 gradients (R15 flat colours → soft two-stop gradients) */
+.gr-green{background:linear-gradient(140deg,#3fbf8c,#16785a)}
+.gr-blue{background:linear-gradient(140deg,#5b9bf0,#2459b8)}
+.gr-violet{background:linear-gradient(140deg,#9f80f2,#5d3cc4)}
+.gr-amber{background:linear-gradient(140deg,#f2b33d,#c27408)}
+.gr-rose{background:linear-gradient(140deg,#ef7a9e,#b4335f)}
+.gr-slate{background:linear-gradient(140deg,#8f8e89,#4d4c48)}
+.tile{display:grid;place-items:center;color:#fff;flex-shrink:0;position:relative;overflow:hidden}
+.tile svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tile.t22{width:22px;height:22px;border-radius:6px}.tile.t22 svg{width:13px;height:13px}
+.tile.t28{width:28px;height:28px;border-radius:7px}.tile.t28 svg{width:16px;height:16px}
+.tile.t40{width:40px;height:40px;border-radius:10px}.tile.t40 svg{width:22px;height:22px}
+.tile.t56{width:56px;height:56px;border-radius:14px}.tile.t56 svg{width:28px;height:28px}
+.tile.t72{width:72px;height:72px;border-radius:18px;box-shadow:0 0 0 3px var(--raised),var(--sh2)}.tile.t72 svg{width:34px;height:34px}
+.tile.t120{width:120px;height:120px;border-radius:30px;box-shadow:var(--sh2)}.tile.t120 svg{width:56px;height:56px;stroke-width:1.6}
+.tile::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+
+/* stand-in photo (the builder uses the real uploaded WebP) */
+.photo{background:
+ radial-gradient(30% 22% at 72% 30%,#fff3d6 0%,transparent 70%),
+ linear-gradient(180deg,transparent 58%,rgba(0,0,0,.18) 58%),
+ radial-gradient(60% 40% at 30% 78%,#c96f4a 0%,transparent 70%),
+ radial-gradient(45% 35% at 78% 82%,#6f8f5a 0%,transparent 70%),
+ linear-gradient(165deg,#f6d9b8 0%,#e9b48c 45%,#a7684a 100%)}
+.tile.photo svg{display:none}
+
+/* cover band: space colour + the Box logo's isometric grid */
+.cover{position:relative;overflow:hidden;border-radius:14px;isolation:isolate}
+.cover::before{content:"";position:absolute;inset:0;opacity:.22;z-index:-1;
+ background-image:linear-gradient(30deg,rgba(255,255,255,.55) 1px,transparent 1px),linear-gradient(150deg,rgba(255,255,255,.55) 1px,transparent 1px);
+ background-size:28px 16px}
+.cover::after{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(60% 90% at 85% 10%,rgba(255,255,255,.28),transparent 60%)}
+
+/* settings shell */
+.sx-nav{height:34px;border-radius:8px;display:flex;align-items:center;gap:10px;padding:0 10px;font-size:13.5px;font-weight:500;color:var(--ink2);position:relative;border:0;background:transparent;width:100%;text-align:start}
+.sx-nav svg{color:var(--muted)}
+.sx-nav.on{background:var(--sel);color:var(--ink);font-weight:600}
+.sx-nav.on svg{color:var(--ink)}
+.sx-nav.on::before{content:"";position:absolute;inset-inline-start:0;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--spark)}
+.nx.plum .sx-nav.on::before{background:var(--brand)}
+.sx-group{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--faint);padding:14px 10px 6px;letter-spacing:.01em}
+.sx-h{display:flex;align-items:center;gap:12px;min-height:40px}
+.sx-h h1{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0;flex:1}
+.sec{font-size:12.5px;font-weight:600;color:var(--muted);margin:0 0 8px}
+
+/* segmented control */
+.seg{display:inline-flex;padding:3px;border-radius:10px;background:var(--s2);gap:2px}
+.seg>a,.seg>button{height:32px;padding:0 14px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--ink2);border:0;background:transparent}
+.seg>.on{background:var(--raised);color:var(--ink);font-weight:600;box-shadow:var(--sh1),0 0 0 1px var(--line)}
+.seg.lg>a,.seg.lg>button{height:38px}
+
+/* choice tiles (theme / palette / preset) */
+.pick{border:1px solid var(--line);border-radius:12px;background:var(--raised);padding:8px;display:flex;flex-direction:column;gap:8px;position:relative;text-align:start;color:var(--ink)}
+.pick.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.nx.plum .pick.on{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand)}
+.pick .lbl{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;padding:0 2px 2px}
+.pick .tick{margin-inline-start:auto;width:18px;height:18px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center}
+.nx.plum .pick .tick{background:var(--brand);color:#fff}
+.pick .tick svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.mini{border-radius:8px;overflow:hidden;display:flex;height:64px;border:1px solid rgba(0,0,0,.06)}
+.mini i{display:block}
+
+/* swatches */
+.sw{width:30px;height:30px;border-radius:50%;border:0;padding:0;flex-shrink:0}
+.sw.on{box-shadow:0 0 0 2px var(--raised),0 0 0 4px var(--ink)}
+.nx.plum .sw.on{box-shadow:0 0 0 2px var(--raised),0 0 0 4px var(--brand)}
+.icp{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;color:var(--ink2);border:0;background:transparent}
+.icp svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.icp.on{background:var(--sel);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.nx.plum .icp.on{box-shadow:inset 0 0 0 1.5px var(--brand);color:var(--brand)}
+
+/* ring (security checkup) */
+.ring{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;
+ background:conic-gradient(var(--ok) var(--p,66%),var(--s3) 0)}
+.ring>span{width:44px;height:44px;border-radius:50%;background:var(--raised);display:grid;place-items:center;font-weight:700;font-size:13px}
+
+/* home customise */
+.wg{background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:14px 16px;position:relative;display:flex;flex-direction:column;gap:8px;min-width:0}
+.cz .wg{border-style:dashed;border-color:var(--line-strong)}
+.wg .wh{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.02em;text-transform:uppercase}
+.wg .tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;text-transform:none;letter-spacing:0}
+.wg .tb{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:var(--muted);border:0;background:transparent}
+.wg .tb svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.sz{display:inline-flex;height:24px;border-radius:7px;background:var(--s2);padding:2px;gap:1px}
+.sz>span{min-width:22px;height:20px;padding:0 5px;border-radius:5px;display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--muted)}
+.sz>span.on{background:var(--raised);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.handle{position:absolute;inset-inline-end:4px;bottom:4px;width:14px;height:14px;color:var(--faint)}
+.handle svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.lifted{box-shadow:0 18px 40px -12px rgba(16,16,14,.35),0 0 0 1.5px var(--ink) !important;border-style:solid !important;transform:rotate(-1deg) scale(1.02);z-index:3}
+.nx.plum .lifted{box-shadow:0 18px 40px -12px rgba(60,20,120,.35),0 0 0 1.5px var(--brand) !important}
+.slot{border:1.5px dashed var(--line-strong);border-radius:12px;background:repeating-linear-gradient(135deg,transparent 0 8px,var(--hover) 8px 16px)}
+.big{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.bar{display:flex;align-items:flex-end;gap:5px;height:44px}
+.bar>i{flex:1;border-radius:3px 3px 0 0;background:var(--s3)}
+.bar>i.hi{background:var(--ink)}
+.nx.plum .bar>i.hi,.nx.plum .meter>i{background:var(--brand)}
+.chipb{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--raised);font-size:13px;font-weight:500;white-space:nowrap;color:var(--ink2)}
+.chipb.on{background:var(--ink);border-color:var(--ink);color:var(--bg);font-weight:600}
+.nx.plum .chipb.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.chipb svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}

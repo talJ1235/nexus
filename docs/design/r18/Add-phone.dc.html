@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Add to the list · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+<link rel="stylesheet" href="./nx-sm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+<div class="phone" style="background:var(--screen)">
+
+  <div style="display:flex;align-items:center;gap:4px;padding:10px 12px 0 6px" class="rise">
+    <a class="ico-b" href="Supermarket-phone.dc.html" aria-label="{{t.back}}"><svg class="s lg flip" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></a>
+    <label class="{{fieldCls}}" style="flex:1;margin:0">
+      <input type="text" value="{{q}}" onChange="{{onQ}}" onKeyDown="{{onKey}}" placeholder="{{t.ph}}" enterkeyhint="done" autocomplete="off" aria-label="{{t.ph}}">
+      <sc-if value="{{hasQ}}" hint-placeholder-val="{{ true }}"><button class="ico-b" onClick="{{clear}}" aria-label="{{t.clear}}"><svg class="s" viewBox="0 0 24 24"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button></sc-if>
+    </label>
+  </div>
+
+  <div style="display:flex;gap:6px;padding:10px 12px 2px;overflow-x:auto;scrollbar-width:none">
+    <sc-for list="{{modes}}" as="m" hint-placeholder-count="4">
+      <button class="{{m.cls}}" onClick="{{m.pick}}" style="height:40px;border-radius:12px;gap:7px;padding:0 13px;font-size:13.5px"><svg class="s sm" viewBox="0 0 24 24"><path d="{{m.d}}"></path></svg>{{m.label}}</button>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;top:118px;inset-inline:0;bottom:{{contentBottom}};overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none">
+
+    <sc-if value="{{isType}}" hint-placeholder-val="{{ true }}">
+      <sc-if value="{{hasParse}}" hint-placeholder-val="{{ false }}">
+        <div class="parse rise">
+          <span class="tok">{{parse.qty}}<small>{{parse.unitLabel}}</small></span>
+          <span class="tok bidi" style="flex:1 1 auto;min-width:0">{{parse.name}}</span>
+          <span class="tok"><svg class="s sm" viewBox="0 0 24 24"><path d="{{parse.secD}}"></path></svg>{{parse.sec}}</span>
+          <sc-if value="{{parse.dup}}" hint-placeholder-val="{{ false }}"><span class="sub" style="width:100%;display:flex;align-items:center;gap:6px"><span class="dupb">{{t.onList}}</span>{{parse.dupLine}}</span></sc-if>
+        </div>
+        <div style="padding:8px 12px 0">
+          <div class="unitseg">
+            <sc-for list="{{units}}" as="u" hint-placeholder-count="4"><button class="{{u.cls}}" onClick="{{u.pick}}">{{u.label}}</button></sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{hasResults}}" hint-placeholder-val="{{ true }}">
+        <div class="sugl">
+          <sc-for list="{{results}}" as="a" hint-placeholder-count="4">
+            <button class="{{a.cls}}" onClick="{{a.add}}">
+              <span class="{{a.tileCls}}"><sc-if value="{{a.art.has}}" hint-placeholder-val="{{ true }}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{a.art.d0}}" fill="{{a.art.f0}}"></path><path d="{{a.art.d1}}" fill="{{a.art.f1}}"></path><path d="{{a.art.d2}}" fill="{{a.art.f2}}"></path><path d="{{a.art.d3}}" fill="{{a.art.f3}}"></path><path d="{{a.art.d4}}" fill="{{a.art.f4}}"></path><path d="{{a.art.d5}}" fill="{{a.art.f5}}"></path></svg></sc-if><sc-if value="{{a.noArt}}" hint-placeholder-val="{{ false }}"><svg class="fb" viewBox="0 0 24 24" aria-hidden="true"><path d="{{a.secD}}"></path></svg></sc-if></span>
+              <span class="tx"><b class="bidi"><span>{{a.pre}}</span><mark>{{a.m}}</mark><span>{{a.post}}</span></b><span>{{a.sub}}</span></span>
+              <sc-if value="{{a.onList}}" hint-placeholder-val="{{ false }}"><span class="dupb">{{a.onListLabel}}</span></sc-if>
+              <span class="plusb"><svg class="s sm" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M12 5v14 M5 12h14"></path></svg></span>
+            </button>
+          </sc-for>
+          <sc-if value="{{showNew}}" hint-placeholder-val="{{ true }}">
+            <button class="ta" onClick="{{addNew}}">
+              <span class="si" style="background:transparent;border:1.5px dashed var(--line-strong)"><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></span>
+              <span class="tx"><b class="bidi">{{newLabel}}</b><span>{{newSub}}</span></span>
+            </button>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{hasFuzzy}}" hint-placeholder-val="{{ false }}">
+        <div class="dym"><svg class="s sm" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>{{t.didYou}}</div>
+        <div class="sugl">
+          <sc-for list="{{fuzzy}}" as="a" hint-placeholder-count="2">
+            <button class="ta" onClick="{{a.add}}">
+              <span class="{{a.tileCls}}"><sc-if value="{{a.art.has}}" hint-placeholder-val="{{ true }}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{a.art.d0}}" fill="{{a.art.f0}}"></path><path d="{{a.art.d1}}" fill="{{a.art.f1}}"></path><path d="{{a.art.d2}}" fill="{{a.art.f2}}"></path><path d="{{a.art.d3}}" fill="{{a.art.f3}}"></path><path d="{{a.art.d4}}" fill="{{a.art.f4}}"></path><path d="{{a.art.d5}}" fill="{{a.art.f5}}"></path></svg></sc-if><sc-if value="{{a.noArt}}" hint-placeholder-val="{{ false }}"><svg class="fb" viewBox="0 0 24 24" aria-hidden="true"><path d="{{a.secD}}"></path></svg></sc-if></span>
+              <span class="tx"><b class="bidi fz">{{a.name}}</b><span>{{a.sub}}</span></span>
+              <sc-if value="{{a.onList}}" hint-placeholder-val="{{ false }}"><span class="dupb">{{a.onListLabel}}</span></sc-if>
+              <span class="plusb"><svg class="s sm" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M12 5v14 M5 12h14"></path></svg></span>
+            </button>
+          </sc-for>
+          <button class="ta" onClick="{{addNew}}">
+            <span class="si" style="background:transparent;border:1.5px dashed var(--line-strong);width:40px;height:40px;border-radius:12px"><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></span>
+            <span class="tx"><b class="bidi" style="font-weight:600;color:var(--ink)">{{newLabel}}</b><span>{{newSub}}</span></span>
+          </button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showUsual}}" hint-placeholder-val="{{ false }}">
+        <div style="padding:14px 16px 4px" class="sub">{{t.usual}}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px">
+          <sc-for list="{{usual}}" as="u" hint-placeholder-count="6">
+            <button class="btn sm" style="height:40px;border-radius:12px;font-weight:550" onClick="{{u.add}}"><svg class="s sm" viewBox="0 0 24 24" style="color:var(--faint)"><path d="M12 5v14 M5 12h14"></path></svg>{{u.label}}</button>
+          </sc-for>
+        </div>
+        <sc-if value="{{hasRecent}}" hint-placeholder-val="{{ false }}">
+          <div style="padding:16px 16px 4px" class="sub">{{t.justAdded}}</div>
+          <div class="sugl">
+            <sc-for list="{{recent}}" as="r" hint-placeholder-count="2">
+              <div class="{{r.cls}}" style="display:flex;align-items:center;gap:12px;padding:8px 14px;min-height:56px">
+                <span class="{{r.tileCls}}"><sc-if value="{{r.art.has}}" hint-placeholder-val="{{ true }}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path><path d="{{r.art.d4}}" fill="{{r.art.f4}}"></path><path d="{{r.art.d5}}" fill="{{r.art.f5}}"></path></svg></sc-if><sc-if value="{{r.noArt}}" hint-placeholder-val="{{ false }}"><svg class="fb" viewBox="0 0 24 24" aria-hidden="true"><path d="{{r.secD}}"></path></svg></sc-if></span>
+                <span style="flex:1;min-width:0;line-height:1.28"><b class="bidi" style="display:block;font-size:15.5px;font-weight:550">{{r.name}}</b><span class="sub">{{r.sec}}</span></span>
+                <span class="qty">{{r.q}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{isListen}}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:22px;padding:70px 28px 0;text-align:center" class="rise">
+        <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <b class="bidi" style="font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.35;min-height:60px">{{transcript}}</b>
+        <span class="sub">{{t.listening}}</span>
+        <button class="mic-xl" onClick="{{stopVoice}}" aria-label="{{t.stop}}" style="margin-top:40px"><svg class="s" viewBox="0 0 24 24" style="width:30px;height:30px"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z M5 11a7 7 0 0 0 14 0 M12 18v3"></path></svg></button>
+        <span class="tiny">{{t.tapStop}}</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isSplit}}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{isPaste}}" hint-placeholder-val="{{ false }}"><div class="wa bidi">{{pasted}}</div></sc-if>
+      <sc-if value="{{isVoiceSplit}}" hint-placeholder-val="{{ false }}"><div class="parse" style="font-size:14px"><svg class="s sm" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z M5 11a7 7 0 0 0 14 0 M12 18v3"></path></svg><span class="bidi" style="flex:1;min-width:0">“{{transcriptDone}}”</span></div></sc-if>
+      <div style="padding:14px 16px 2px;display:flex;align-items:center" class="sub"><span style="flex:1">{{splitHead}}</span></div>
+      <div class="sugl splitl">
+        <sc-for list="{{split}}" as="x" hint-placeholder-count="4">
+          <button class="ta" onClick="{{x.toggle}}" aria-pressed="{{x.on}}">
+            <span class="{{x.chk}}" style="width:22px;height:22px;border-radius:7px"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span>
+            <span class="tx"><b class="bidi">{{x.name}}</b><span>{{x.sub}}</span></span>
+            <sc-if value="{{x.merge}}" hint-placeholder-val="{{ false }}"><span class="dupb">{{x.mergeLabel}}</span></sc-if>
+            <span class="qty">{{x.q}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{isSplit}}" hint-placeholder-val="{{ false }}">
+    <div class="bot-cta">
+      <button class="btn pri block sm-press" onClick="{{addSplit}}">{{splitBtn}}</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{showKb}}" hint-placeholder-val="{{ true }}">
+    <div class="kb" aria-hidden="true">
+      <div class="kr"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="kr"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="kr"><i class="w"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="w"></i></div>
+      <div class="kr"><i class="w"></i><i class="sp"></i><i class="go"></i></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+    <div class="toast2 show" role="status" style="bottom:{{toastBottom}}">
+      <svg class="s" viewBox="0 0 24 24" style="stroke-width:2.4;color:#4ade9a"><path d="M20 6 9 17l-5-5"></path></svg>
+      <span class="grow bidi">{{toastText}}</span>
+      <button onClick="{{undo}}"><svg class="s sm" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5 M4 9h11a5 5 0 0 1 0 10h-3"></path></svg>{{t.undo}}</button>
+    </div>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"section colours":{"editor":"boolean","default":true},"state":{"editor":"enum","options":["type-ahead","spelling mistake","quantity parse","duplicate merged","voice listening","voice split","paste a list"],"default":"type-ahead"},"data":{"editor":"enum","options":["demo","worst case"],"default":"demo"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidUpdate(pp) { if (pp.state !== this.props.state || pp.language !== this.props.language || pp.data !== this.props.data) { clearTimeout(this._tt); clearTimeout(this._vt); this.setState({ q: null, mode: null, toast: null, added: [], off: {}, unit: null }); this._arm(); } }
+  componentDidMount() { this._arm(); }
+  componentWillUnmount() { clearTimeout(this._tt); clearTimeout(this._vt); clearTimeout(this._wt); }
+  _arm() {
+    clearTimeout(this._wt);
+    if ((this.props.state ?? 'type-ahead') === 'duplicate merged') this._wt = setTimeout(() => { this.setState({ added: [{ id: 'mlk', n: 1, dup: true }] }); this._toast('dup', 'mlk', 3); }, 500);
+  }
+  _toast(k, id, n) { clearTimeout(this._tt); this.setState({ toast: { k, id, n } }); this._tt = setTimeout(() => this.setState({ toast: null }), 4200); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const st = p.state ?? 'type-ahead';
+    const worst = (p.data ?? 'demo') === 'worst case';
+    const t = {
+      back: L('Back to the list','חזרה לרשימה'), ph: L('Add an item','הוספת פריט'), clear: L('Clear','ניקוי'), onList: L('On the list','ברשימה'),
+      usual: L('You usually buy','אתם קונים בדרך כלל'), justAdded: L('Just added','נוסף עכשיו'), listening: L('Listening… say several things at once','מקשיב… אפשר כמה דברים בבת אחת'),
+      stop: L('Stop','עצירה'), didYou: L('Did you mean','אולי התכוונת ל'), tapStop: L('Tap to stop','הקשה לעצירה'), undo: L('Undo','ביטול')
+    };
+    const P = {
+      produce:'M12 7c-3-2-7 0-7 5s3 9 7 9 7-4 7-9-4-7-7-5z M12 7c0-2 1-4 3-4', meat:'M3 12c3-5 9-6 13-2l5-3v10l-5-3c-4 4-10 3-13-2z M8 11h.01',
+      cans:'M6 5c0-1 2.7-2 6-2s6 1 6 2v14c0 1-2.7 2-6 2s-6-1-6-2z M6 5c0 1 2.7 2 6 2s6-1 6-2 M6 10h12', snack:'M12 3a9 9 0 1 0 9 9 3 3 0 0 1-3-3 3 3 0 0 1-3-3 3 3 0 0 1-3-3z M8.5 11.5h.01 M12 16h.01 M15.5 14h.01',
+      clean:'M9 9h6v12H9z M10 9V6h4 M14 6l4-2 M17 7h2', bread:'M6 11a4 4 0 0 1 0-8h12a4 4 0 0 1 0 8v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z',
+      dairy:'M7 6l2-4h6l2 4 M7 6v15a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6z M7 6l5 4 5-4 M12 10v12', other:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 8v4 M12 16h.01'
+    };
+    const C_ = (x, y, r) => 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z';
+    const E_ = (x, y, a, b) => 'M' + (x - a) + ' ' + y + 'a' + a + ' ' + b + ' 0 1 0 ' + (2 * a) + ' 0a' + a + ' ' + b + ' 0 1 0 ' + (-2 * a) + ' 0z';
+    const R_ = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + 'h' + (w - 2 * r) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r : '') + 'v' + (h - 2 * r) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r : '') + 'h' + (-(w - 2 * r)) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + (-r) : '') + 'v' + (-(h - 2 * r)) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + (-r) : '') + 'z';
+    const ART = {
+      tom: [[C_(24,27,14),'#e5483b'],[E_(18,22,4,2.5),'#ff9a8c'],['M24 9l2.2 4.6 4.8-1.6-2.8 4 4.2 2.6-5.2-.2-1.4 4.4-1.6-4.4-5.2.2 4.2-2.6-2.8-4 4.8 1.6z','#3f9d5a']],
+      pep: [['M14 18c0-4 4-6 10-6s10 2 10 6l-1 16c0 5-4 8-9 8s-9-3-9-8z','#d63a2f'],[E_(19,22,2.5,5),'#ff8a7a'],['M22 6h4v7h-4z','#3f8f4a']],
+      cuc: [['M9 36c-3-3-1-9 5-15l7-7c6-6 12-8 15-5s1 9-5 15l-7 7c-6 6-12 8-15 5z','#3d8b47'],[C_(17,28,1.4)+C_(23,22,1.4)+C_(29,16,1.4)+C_(21,31,1.2)+C_(27,25,1.2)+C_(32,20,1.1),'#93d48f']],
+      ban: [['M8 13c1 14 12 24 27 24 3 0 4 2 1 3C19 44 5 33 6 15c0-3 2-4 2-2z','#f5c542'],['M10 14c2 11 10 19 21 21-12 1-21-8-22-20z','#e0a92a'],[R_(5,9,4,6,1.5),'#6b4a2b']],
+      lem: [[E_(24,25,15,11),'#f2d23a'],['M8 25l-4-1.5 4-1.5z M40 25l4-1.5-4-1.5z','#e3bd22'],[E_(19,21,5,2.5),'#fbec95']],
+      par: [[R_(23,26,2.5,16,1.2),'#4f8a3a'],[C_(17,19,7)+C_(31,19,7)+C_(24,12,7)+C_(24,23,6),'#3f9d5a'],[C_(20,15,2.6)+C_(29,14,2.2)+C_(15,21,1.8),'#7cca72']],
+      chk: [['M10 30c0-10 8-18 18-18 7 0 11 5 11 11 0 10-10 17-20 17-6 0-9-4-9-10z','#f3b9a3'],['M20 34c6-1 12-6 14-12 1 4-3 11-10 13-2 .5-4 0-4-1z','#e49a83'],[E_(22,20,4,2),'#fbd9cc']],
+      hum: [['M6 24h36c0 10-8 17-18 17S6 34 6 24z','#5d86b5'],[E_(24,24,18,5),'#ecd39c'],[E_(24,24,7,2.2),'#c9a032'],[C_(31,22.5,1.4)+C_(17,25,1.2)+C_(26,26,1),'#6f8f2f']],
+      pen: [['M8 30l14-14 5 5-14 14z','#f0c35a'],['M20 36l14-14 5 5-14 14z','#e6ad3c'],['M14 20l12-12 4 4-12 12z','#f6d684']],
+      ric: [['M12 14c0-4 4-6 12-6s12 2 12 6l2 24c0 3-6 5-14 5s-14-2-14-5z','#f6f3ea'],[R_(14,22,20,10,3),'#3b7fc4'],['M15 10c3 3 15 3 18 0v3c-3 3-15 3-18 0z','#d9d3c3']],
+      crt: [[R_(12,9,24,32,4),'#d0573f'],[R_(12,17,24,15,0),'#f6efe4'],[C_(24,24.5,4.5),'#e5483b'],[E_(24,9.5,12,2.5),'#a93d2a']],
+      tah: [[R_(12,14,24,28,6),'#e7d2a7'],[R_(14,8,20,7,2),'#3a3a38'],[R_(16,24,16,9,2),'#ffffff'],[R_(19,27,10,3,1.5),'#c9a032']],
+      cor: [[R_(11,6,26,36,3),'#f08a24'],[C_(24,26,8),'#ffffff'],[C_(21,25,2.2)+C_(26,23.5,2)+C_(25,28.5,1.8)+C_(20.5,29,1.4),'#f2c14e'],[R_(14,9,20,4,2),'#ffd08a']],
+      cof: [['M13 12h22l3 30H10z','#6b4a2b'],['M13 12l3-5h16l3 5z','#4e3520'],[E_(24,27,4,6),'#c79a5e'],[R_(23.3,21.5,1.4,11,.7),'#6b4a2b']],
+      wat: [[R_(18,4,12,5,1.5),'#2f7fc1'],['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#8fd0f2'],[R_(15,22,18,9,0),'#2f7fc1'],[R_(19,13,3,25,1.5),'#c9ecfb']],
+      jui: [[R_(18,4,12,5,1.5),'#2f9d4a'],['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#f6a33a'],[C_(24,29,5.5),'#ffd36b'],[R_(19,13,3,25,1.5),'#ffc77a']],
+      oil: [[R_(21,3,6,6,1.5),'#3a3a38'],['M20 9h8v6l4 5v20c0 2-2 4-4 4h-8c-2 0-4-2-4-4V20l4-5z','#b9a43a'],[R_(17,24,14,10,2),'#f6efe4'],[C_(24,29,2.5),'#6f8f2f']],
+      dis: [[R_(22,4,4,6,1),'#1f7f62'],['M18 10h12l2 6v24c0 2-2 4-4 4h-8c-2 0-4-2-4-4V16z','#4cc3a0'],[C_(24,28,5.5),'#ffffff'],[C_(24,28,2.6),'#4cc3a0']],
+      trb: [[R_(10,13,28,26,6),'#3a3a38'],[E_(24,13,14,4),'#5b5b55'],[E_(24,13,5,1.6),'#1f1f1d'],['M10 31h28v3H10z','#4a4a46']],
+      tp: [[R_(8,12,22,28,5),'#ffffff'],[E_(19,12,11,4),'#ecebe6'],[E_(19,12,3.5,1.6),'#b8b5ac'],[R_(30,26,12,14,2),'#ffffff']],
+      tpa: [['M7 22l26-7 4 3-2 14-24 6c-3 1-5-1-5-4z','#f2f6fb'],['M33 15l6-2 2 6-4 1z','#3b7fc4'],['M13 25l17-4.5v4L13 29z','#e5483b']],
+      pit: [[E_(24,26,18,13),'#e3b97f'],[E_(24,24,15,10),'#f2d7a8'],[C_(18,22,1.2)+C_(28,27,1.2)+C_(25,20,1)+C_(21,29,1)+C_(31,22,1),'#c79a5e']],
+      brd: [['M8 22c0-7 7-11 16-11s16 4 16 11v15c0 2-2 4-4 4H12c-2 0-4-2-4-4z','#c98a3e'],['M14 18l4 6 M22 16l4 6 M30 17l4 6','none'],[R_(12,20,4,12,2)+R_(21,18,4,14,2)+R_(30,20,4,12,2),'#e6b06a']],
+      chl: [[E_(24,29,20,9),'#bf7428'],[E_(13,26,7.5,6)+E_(24,24,8,6.5)+E_(35,26,7.5,6),'#df9c4a'],[C_(15,23,.9)+C_(25,21,.9)+C_(33,24,.9)+C_(21,26,.8)+C_(29,27,.8),'#fbe7c2']],
+      mlk: [['M14 16l4-8h12l4 8z','#dfe9f5'],[R_(14,16,20,28,2),'#ffffff'],[R_(14,27,20,10,0),'#3b7fc4'],[R_(20,4,8,5,1),'#3b7fc4']],
+      cot: [['M10 18h28l-3 22c0 2-2 3-4 3H17c-2 0-4-1-4-3z','#ffffff'],[E_(24,18,15,4.5),'#3b7fc4'],[R_(14,26,20,8,2),'#cfe0f3']],
+      ylc: [['M6 34L36 12l6 6v20H6z','#f4c84a'],['M6 34L36 12l6 6z','#fbe08a'],[C_(20,32,3)+C_(32,28,2.5)+C_(28,35,1.8)+C_(37,33,1.5),'#dba62a']],
+      prm: [['M6 34L36 12l6 6v20H6z','#efdca0'],['M6 34L36 12l6 6z','#f8ecc4'],[R_(6,34,36,4,0),'#c9a24a']],
+      yog: [['M12 14h24l-3 26c0 2-2 3-4 3H19c-2 0-4-1-4-3z','#ffffff'],[R_(11,10,26,5,2),'#e86f8f'],[R_(14,22,20,8,0),'#f9c9d6']],
+      egg: [[R_(5,26,38,14,4),'#d9c3a0'],[E_(13,25,5,6.5)+E_(24,23,5,6.5)+E_(35,25,5,6.5),'#f7ecdc'],[E_(11.5,22,1.5,2.2)+E_(22.5,20,1.5,2.2)+E_(33.5,22,1.5,2.2),'#ffffff']],
+      pea: [['M6 30c6-12 22-20 36-16-4 14-22 22-36 16z','#4f9d4a'],[C_(16,27,4)+C_(24,23,4)+C_(32,19.5,4),'#8fd36b'],[C_(15,26,1.2)+C_(23,22,1.2)+C_(31,18.5,1.2),'#c8f0a8']]
+    };
+    const art = (key) => { const a = ART[key]; const o = { has: !!a }; for (let i = 0; i < 6; i++) { const x = a && (i === 0 ? [E_(24,44.5,13,2.2),'rgba(0,0,0,.10)'] : a[i - 1]); o['d' + i] = x ? x[0] : ''; o['f' + i] = x ? x[1] : 'none'; } return o; };
+    const SN = { produce: L('Fruit & vegetables','פירות וירקות'), meat: L('Meat, poultry & fish','בשר, עוף ודגים'), cans: L('Cans & sauces','שימורים ורטבים'), snack: L('Snacks & sweets','חטיפים ומתוקים'), clean: L('Cleaning & disposables','ניקיון וחד־פעמי'), bread: L('Bread & bakery','לחם ומאפים'), dairy: L('Dairy & eggs','חלב וביצים'), other: L('Other','אחר') };
+    const C = [
+      { id:'mlk', k:'dairy', en:'Milk 3%', hh:'חלב 3%', n:14, onq:2, every: L('every ~5 days','כל ~5 ימים') },
+      { id:'chl', k:'bread', en:'Challah', hh:'חלה', n:11, every: L('Fridays','בימי שישי') },
+      { id:'cm', k:'dairy', en:'Chocolate milk', hh:'חלב שוקו', n:6 },
+      { id:'lf', k:'dairy', en: worst ? 'Lactose-free 1% milk with added vitamin D, 1 L carton' : 'Lactose-free milk 1%', hh: worst ? 'חלב 1% ללא לקטוז בתוספת ויטמין D, קרטון ליטר' : 'חלב 1% ללא לקטוז', n:3 },
+      { id:'hal', k:'snack', en:'Halva', hh:'חלבה', n:2 },
+      { id:'mil', k:'cans', en:'Millet', hh:'דוחן', n:1 },
+      { id:'egg', k:'dairy', en:'Eggs, size L', hh:'ביצים L', n:12 },
+      { id:'cuc', k:'produce', en:'Cucumbers', hh:'מלפפונים', n:15, onq:'1 kg' },
+      { id:'tp', k:'clean', en:'Toilet paper, 32 rolls', hh:'נייר טואלט, 32 גלילים', n:4 },
+      { id:'bre', k:'bread', en:'Bread', hh:'לחם', n:9 },
+      { id:'wng', k:'meat', en:'Chicken wings', hh:'כנפיים', n:2 },
+      { id:'tom', k:'produce', en:'Tomatoes', hh:'עגבניות', n:16, onq:'1 kg' },
+      { id:'tah', k:'cans', en:'Raw tahini', hh:'טחינה גולמית', n:7 }
+    ];
+    const defQ = { 'type-ahead': L('mil', 'חל'), 'spelling mistake': L('tomatos', 'עגבנות'), 'quantity parse': L('2 milk 3%', '2 חלב 3%') }[st];
+    const q = s.q != null ? s.q : (defQ || '');
+    const mode = s.mode || (st === 'voice listening' ? 'listen' : st === 'voice split' ? 'vsplit' : st === 'paste a list' ? 'paste' : 'type');
+    const m = q.trim().match(/^(\d+(?:[.,]\d+)?)\s*(kg|ק"ג|ק״ג|g|גרם|l|ליטר)?\s+(.+)$/i);
+    const rest = (m ? m[3] : q).trim().toLowerCase();
+    const nm = (c) => he ? c.hh : c.en;
+    const matches = rest ? C.map(c => ({ c, i: nm(c).toLowerCase().indexOf(rest) })).filter(x => x.i >= 0).sort((a, b) => (a.i === 0 ? 0 : 1) - (b.i === 0 ? 0 : 1) || b.c.n - a.c.n).slice(0, 5) : [];
+    const added = s.added || [];
+    const addItem = (c, qty) => {
+      const onq = c.onq;
+      if (onq && typeof onq === 'number') this._toast('dup', c.id, onq + (qty || 1));
+      else this._toast('add', c.id, qty || 1);
+      this.setState({ q: '', added: [{ id: c.id, n: qty || 1, dup: !!onq }].concat((this.state.added || []).filter(a => a.id !== c.id)).slice(0, 3) });
+    };
+    const UNITS = [['u', L('Units','יח׳')], ['kg', L('kg','ק״ג')], ['g', L('g','גרם')], ['l', L('L','ליטר')]];
+    const unitFromText = m && m[2] ? (/^(kg|ק"ג|ק״ג)$/i.test(m[2]) ? 'kg' : /^(g|גרם)$/i.test(m[2]) ? 'g' : 'l') : 'u';
+    const unit = s.unit || unitFromText;
+    const top = matches[0] && matches[0].c;
+    const qtyN = m ? parseFloat(m[1].replace(',', '.')) : 1;
+    const parse = m && top ? {
+      qty: String(qtyN), unitLabel: (UNITS.find(u => u[0] === unit) || UNITS[0])[1], name: nm(top), sec: SN[top.k], secD: P[top.k],
+      dup: !!top.onq, dupLine: typeof top.onq === 'number' ? L('×' + top.onq + ' now → ×' + (top.onq + qtyN) + ' after adding', '×' + top.onq + ' עכשיו ← ×' + (top.onq + qtyN) + ' אחרי ההוספה') : ''
+    } : null;
+    const lev = (a, b) => { const d = []; for (let i = 0; i <= a.length; i++) { d[i] = [i]; } for (let j = 1; j <= b.length; j++) d[0][j] = j;
+      for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; };
+    const near = (c) => { const words = nm(c).toLowerCase().split(/[\s,]+/); let best = 99; words.forEach(w => { for (let k = Math.max(1, rest.length - 1); k <= rest.length + 1; k++) best = Math.min(best, lev(rest, w.slice(0, k))); }); return best; };
+    const fuzzyRaw = (rest.length >= 3 && matches.length < 2) ? C.filter(c => !matches.some(x => x.c === c)).map(c => ({ c, d: near(c) })).filter(x => x.d <= Math.max(1, Math.floor(rest.length / 3))).sort((a, b) => a.d - b.d || b.c.n - a.c.n).slice(0, 3) : [];
+    const AKF = { tom:'tom', tah:'tah', mlk:'mlk', chl:'chl', egg:'egg', cuc:'cuc', tp:'tp', bre:'brd', cm:'mlk', lf:'mlk', wng:'chk' };
+    const fuzzy = fuzzyRaw.map(({ c }) => ({ name: nm(c), art: art(AKF[c.id] || ''), noArt: !ART[AKF[c.id] || ''], secD: P[c.k], tileCls: 'pt sm k-' + c.k,
+      sub: SN[c.k] + ' · ' + L('bought ' + c.n + '×', 'נקנה ' + c.n + ' פעמים'), onList: !!c.onq, onListLabel: typeof c.onq === 'number' ? L('On list ×' + c.onq, 'ברשימה ×' + c.onq) : L('On list', 'ברשימה'),
+      add: () => addItem(c, m ? qtyN : 1) }));
+    const results = matches.map(({ c, i }) => {
+      const full = nm(c);
+      const ak = { cm:'mlk', lf:'mlk', hal:'', mil:'ric', egg:'egg', cuc:'cuc', tp:'tp', bre:'brd', wng:'chk', chl:'chl', mlk:'mlk', tom:'tom', tah:'tah' }[c.id];
+      return { art: art(ak), noArt: !ART[ak], secD: P[c.k], tileCls: 'pt sm k-' + c.k, si: 'si k-' + c.k, pre: full.slice(0, i), m: full.slice(i, i + rest.length), post: full.slice(i + rest.length), d: P[c.k],
+        sub: SN[c.k] + ' · ' + L('bought ' + c.n + '×', 'נקנה ' + c.n + ' פעמים') + (c.every ? ' · ' + c.every : ''),
+        onList: !!c.onq, onListLabel: typeof c.onq === 'number' ? L('On list ×' + c.onq, 'ברשימה ×' + c.onq) : L('On list', 'ברשימה'),
+        cls: 'ta' + (m && c === top ? ' on' : ''), add: () => addItem(c, m ? qtyN : 1) };
+    });
+    const showNew = !!rest && !(matches[0] && nm(matches[0].c).toLowerCase() === rest);
+    const usualIds = ['egg','chl','cuc','tp','bre'];
+    const pastedEn = 'Noa: for tomorrow\nmilk\n2 cucumbers\ntoilet paper!!\nsomething nice for Shabbat';
+    const pastedHe = 'נועה: למחר\nחלב\n2 מלפפונים\nנייר טואלט!!\nמשהו טוב לשבת';
+    const pastedW = worst ? (he ? 'נועה: למחר\nחלב 1% ללא לקטוז בתוספת ויטמין D (רק עם הפקק הכחול!!)\n2 מלפפונים\nנייר טואלט!!\nמשהו טוב לשבת שהילדים אוהבים, לא חריף' : 'Noa: for tomorrow\nlactose-free 1% milk with added vitamin D (blue cap only!!)\n2 cucumbers\ntoilet paper!!\nsomething nice for Shabbat the kids like, not spicy') : (he ? pastedHe : pastedEn);
+    const SPL = mode === 'paste' ? [
+      { id:'p1', name: worst ? nm(C[3]) : L('Milk 3%','חלב 3%'), sub: SN.dairy, q:'×1', merge: !worst, mergeLabel: L('On list → ×3','ברשימה ← ×3'), def:true },
+      { id:'p2', name: L('Cucumbers','מלפפונים'), sub: SN.produce, q:'×2', merge: true, mergeLabel: L('On list (1 kg)','ברשימה (1 ק״ג)'), def:true },
+      { id:'p3', name: L('Toilet paper, 32 rolls','נייר טואלט, 32 גלילים'), sub: SN.clean + ' · ' + L('your usual','מה שאתם קונים תמיד'), q:'×1', def:true },
+      { id:'p4', name: worst ? L('Something nice for Shabbat the kids like, not spicy','משהו טוב לשבת שהילדים אוהבים, לא חריף') : L('Something nice for Shabbat','משהו טוב לשבת'), sub: L('Not a product — add it as a note?','לא מוצר — להוסיף כהערה?'), q:'', def:false }
+    ] : [
+      { id:'v1', name: L('Milk 3%','חלב 3%'), sub: SN.dairy, q:'×1', merge: true, mergeLabel: L('On list → ×3','ברשימה ← ×3'), def:true },
+      { id:'v2', name: L('Eggs, size L','ביצים L'), sub: SN.dairy + ' · ' + L('your usual','מה שאתם קונים תמיד'), q:'×1', def:true },
+      { id:'v3', name: L('Bread','לחם'), sub: SN.bread, q:'×2', def:true }
+    ];
+    const off = s.off || {};
+    const split = SPL.map(x => { const on = off[x.id] != null ? !off[x.id] : x.def; return { ...x, on, chk: 'chk' + (on ? ' on' : ''),
+      toggle: () => this.setState({ off: { ...(this.state.off || {}), [x.id]: on } }) }; });
+    const nOn = split.filter(x => x.on).length;
+    const tt = s.toast; const tc = tt ? C.find(c => c.id === tt.id) : null;
+    const toastText = !tt ? '' : tt.k === 'dup' ? L((tc ? nm(tc) : '') + ' is already on the list — now ×' + tt.n, (tc ? nm(tc) : '') + ' כבר ברשימה — עכשיו ×' + tt.n)
+      : tt.k === 'split' ? L(tt.n + ' items added · 2 merged', 'נוספו ' + tt.n + ' פריטים · 2 אוחדו') : !tc ? L('Added to Other', 'נוסף ל״אחר״') : L(nm(tc) + ' added to ' + SN[tc.k], nm(tc) + ' נוסף ל' + SN[tc.k]);
+    const MODES = [['scan', L('Scan','סריקה'), 'M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2 M7 8v8 M10 8v8 M13 8v8 M17 8v8'],
+      ['photo', L('Photo','צילום'), 'M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
+      ['listen', L('Voice','קול'), 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z M5 11a7 7 0 0 0 14 0 M12 18v3'],
+      ['paste', L('Paste a list','הדבקת רשימה'), 'M9 3h6v3H9z M8 4H6a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-2']];
+    const isType = mode === 'type', isListen = mode === 'listen', isSplit = mode === 'vsplit' || mode === 'paste';
+    const startListen = () => { clearTimeout(this._vt); this.setState({ mode: 'listen' }); };
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') + ((p.motion ?? 'full') === 'reduced' ? ' rm' : '') + (p['section colours'] === false ? ' mono' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      q, hasQ: !!q, fieldCls: 'addf' + (isType ? ' focus' : ''),
+      onQ: (e) => this.setState({ q: e.target.value, mode: 'type', unit: null }),
+      onKey: (e) => { if (e.key === 'Enter') { if (top) addItem(top, qtyN); else if (rest) { this._toast('add', null, 1); this.setState({ q: '' }); } } },
+      clear: () => this.setState({ q: '' }),
+      modes: MODES.map(([k, label, d]) => ({ label, d, cls: 'btn sm' + ((k === mode || (k === 'listen' && mode === 'vsplit')) ? ' pri' : ''),
+        pick: () => { if (k === 'listen') startListen(); else if (k === 'paste') this.setState({ mode: 'paste' }); else this.setState({ mode: 'type' }); } })),
+      isType, isListen, isSplit, isPaste: mode === 'paste', isVoiceSplit: mode === 'vsplit',
+      hasParse: !!parse, parse: parse || {}, units: UNITS.map(([k, label]) => ({ label, cls: k === unit ? 'on' : '', pick: () => this.setState({ unit: k }) })),
+      hasResults: !!rest && results.length > 0 || (!!rest && fuzzy.length === 0), results, hasFuzzy: fuzzy.length > 0, fuzzy, showNew,
+      newLabel: L('Add “' + (m ? m[3] : q).trim() + '” as new', 'הוספת ״' + (m ? m[3] : q).trim() + '״ כפריט חדש'), newSub: L('Section: Other — you can move it', 'מחלקה: אחר — אפשר להעביר'),
+      addNew: () => { this._toast('add', null, 1); this.setState({ q: '' }); },
+      showUsual: !rest, usual: usualIds.map(id => { const c = C.find(x => x.id === id); return { label: nm(c), add: () => addItem(c, 1) }; }),
+      hasRecent: added.length > 0, recent: added.map(a => { const c = C.find(x => x.id === a.id); const ak2 = { egg:'egg', chl:'chl', cuc:'cuc', tp:'tp', bre:'brd', mlk:'mlk' }[c.id] || '';
+      return { art: art(ak2), noArt: !ART[ak2], secD: P[c.k], tileCls: 'pt sm k-' + c.k, si: 'si k-' + c.k, name: nm(c), sec: SN[c.k], d: P[c.k], q: '×' + (typeof c.onq === 'number' ? c.onq + a.n : a.n), cls: 'nrow' }; }),
+      transcript: worst ? L('lactose-free milk with the blue cap, eggs and two breads, oh and the', 'חלב בלי לקטוז עם הפקק הכחול, ביצים ושני לחמים, אה וגם את ה') : L('milk, eggs and two breads', 'חלב, ביצים ושני לחמים'),
+      transcriptDone: L('milk, eggs and two breads', 'חלב, ביצים ושני לחמים'),
+      stopVoice: () => this.setState({ mode: 'vsplit' }),
+      pasted: pastedW, split, splitHead: L('Nexus split it into ' + split.length + ' — check what to add', 'Nexus פיצל ל-' + split.length + ' — מסמנים מה להוסיף'),
+      splitBtn: L('Add ' + nOn, 'הוספת ' + nOn), addSplit: () => { this._toast('split', null, nOn); this.setState({ mode: 'type', q: '' }); },
+      showKb: isType, contentBottom: isType ? '291px' : (isSplit ? '96px' : '0px'),
+      toastOn: !!tt, toastText, toastBottom: isType ? '303px' : '24px',
+      undo: () => { clearTimeout(this._tt); this.setState({ toast: null, added: (this.state.added || []).slice(1) }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

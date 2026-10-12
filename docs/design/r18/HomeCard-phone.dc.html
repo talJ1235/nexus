@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home — next shop · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+<link rel="stylesheet" href="./nx-sm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+<div class="phone">
+  <div class="scroll" style="padding-bottom:170px">
+    <div class="ph-head">
+      <span class="logo" style="font-size:15px;flex:1"><svg class="i" viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg>Nexus</span>
+      <button class="bell" aria-label="{{t.inbox}}"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg></button>
+    </div>
+    <div style="padding:2px 20px 10px"><b style="font-size:24px;font-weight:800;letter-spacing:-.03em">{{greet}}</b></div>
+
+    <sc-if value="{{cardLow}}" hint-placeholder-val="{{ true }}">
+      <div class="ph-w" style="margin-top:0;height:96px"><span style="display:block;height:10px;width:40%;border-radius:5px;background:var(--s3)"></span><span style="display:block;height:10px;width:70%;border-radius:5px;background:var(--s3)"></span></div>
+      <div style="height:12px"></div>
+    </sc-if>
+
+    <article class="{{cardCls}}" aria-label="{{t.nextShop}}">
+      <div class="r1">
+        <div class="tx">
+          <span class="{{ebCls}}"><svg class="s sm" viewBox="0 0 24 24"><path d="{{ebIcon}}"></path></svg><span class="bidi" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">{{eyebrow}}</span></span>
+          <h2>{{headline}}</h2>
+          <span class="sub" style="display:block;margin-top:2px">{{subline}}</span>
+        </div>
+        <sc-if value="{{isTrip}}" hint-placeholder-val="{{ false }}">
+          <div class="ring" style="background:{{ringBg}}"><span>{{ringText}}</span></div>
+        </sc-if>
+        <sc-if value="{{showFaces}}" hint-placeholder-val="{{ false }}"><span class="av sm c2 ring-shop">{{iniN}}</span></sc-if>
+      </div>
+
+      <sc-if value="{{isTrip}}" hint-placeholder-val="{{ false }}">
+        <div class="rail" style="padding:0" aria-hidden="true"><sc-for list="{{rail}}" as="seg" hint-placeholder-count="10"><i class="{{seg.cls}}" style="flex-grow:{{seg.n}}"><u style="width:{{seg.w}}"></u></i></sc-for></div>
+      </sc-if>
+      <sc-if value="{{showSecs}}" hint-placeholder-val="{{ true }}">
+        <div class="secs" aria-label="{{t.bySection}}">
+          <sc-for list="{{secs}}" as="c" hint-placeholder-count="4"><span class="{{c.k}}"><svg viewBox="0 0 24 24"><path d="{{c.d}}"></path></svg>{{c.n}}</span></sc-for>
+          <span class="more">{{moreSecs}}</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{showSug}}" hint-placeholder-val="{{ true }}">
+        <a class="why2" href="Supermarket-phone.dc.html" style="font-size:13px;color:var(--ink2);font-weight:600"><span style="width:20px;height:20px;border-radius:6px;background:var(--spark);color:#fff;display:inline-grid;place-items:center;flex-shrink:0"><svg class="s xs" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg></span>{{sugLine}}</a>
+      </sc-if>
+      <sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+        <div class="bts" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
+          <a class="btn" href="Supermarket-phone.dc.html">{{t.basket}}</a>
+          <a class="btn pri" href="Supermarket-phone.dc.html">{{t.build}}</a>
+        </div>
+      </sc-if>
+      <sc-if value="{{isPlan}}" hint-placeholder-val="{{ true }}">
+        <div class="bts">
+          <a class="btn" href="Supermarket-phone.dc.html">{{t.list}}</a>
+          <a class="btn pri sm-press" href="StoreMode-phone.dc.html"><svg class="s" viewBox="0 0 24 24"><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21 7H6"></path></svg>{{t.start}}</a>
+        </div>
+      </sc-if>
+      <sc-if value="{{isNoa}}" hint-placeholder-val="{{ false }}">
+        <div class="bts">
+          <a class="btn" href="Supermarket-phone.dc.html">{{t.list}}</a>
+          <a class="btn pri" href="Add-phone.dc.html"><svg class="s" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg>{{t.addFor}}</a>
+        </div>
+      </sc-if>
+      <sc-if value="{{isMine}}" hint-placeholder-val="{{ false }}">
+        <div class="bts">
+          <a class="btn" href="Finish-phone.dc.html">{{t.finish}}</a>
+          <a class="btn pri" href="StoreMode-phone.dc.html">{{t.resume}}</a>
+        </div>
+      </sc-if>
+    </article>
+
+    <sc-if value="{{cardHigh}}" hint-placeholder-val="{{ false }}">
+      <div class="ph-w"><span style="display:block;height:10px;width:40%;border-radius:5px;background:var(--s3)"></span><span style="display:block;height:10px;width:70%;border-radius:5px;background:var(--s3)"></span></div>
+    </sc-if>
+    <div class="ph-w" style="height:150px"><span style="display:block;height:10px;width:55%;border-radius:5px;background:var(--s3)"></span></div>
+    <div class="ph-w" style="height:130px"><span style="display:block;height:10px;width:35%;border-radius:5px;background:var(--s3)"></span></div>
+  </div>
+
+  <sc-if value="{{showBar}}" hint-placeholder-val="{{ false }}">
+    <a class="tripbar" href="StoreMode-phone.dc.html" aria-label="{{t.resume}}">
+      <span class="mr" style="background:conic-gradient(var(--spark) {{pct}},rgba(255,255,255,.18) 0)"><span>{{leftN}}</span></span>
+      <span class="tx"><b class="bidi">{{barTitle}}</b><span>{{barSub}}</span></span>
+      <span class="go">{{t.back}}<svg class="s sm flip" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></span>
+    </a>
+  </sc-if>
+
+  <nav class="dock5" aria-label="{{t.nav}}">
+    <button class="tab-b on" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span>{{t.home}}</span></button>
+    <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg><span>{{t.products}}</span></button>
+    <button class="plus" aria-label="{{t.add}}"><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button>
+    <a class="tab-b" href="Supermarket-phone.dc.html"><svg viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg><span>{{t.super}}</span><sc-if value="{{isTrip}}" hint-placeholder-val="{{ false }}"><span class="bd">{{leftN}}</span></sc-if></a>
+    <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg><span>{{t.insights}}</span></button>
+  </nav>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"section colours":{"editor":"boolean","default":true},"state":{"editor":"enum","options":["normal","shopping day","trip in progress","trip with Noa","empty space"],"default":"normal"},"data":{"editor":"enum","options":["demo","worst case"],"default":"demo"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const st = p.state ?? 'normal';
+    const worst = (p.data ?? 'demo') === 'worst case';
+    const trip = st === 'trip in progress' || st === 'trip with Noa', day = st === 'shopping day', empty = st === 'empty space';
+    const t = {
+      inbox: L('Inbox','התראות'), nextShop: L('Next shop','הקנייה הבאה'), bySection: L('Items by section','פריטים לפי מחלקה'),
+      basket: L('Basic basket','סל בסיסי'), build: L('Build my list','בנה לי רשימה'), list: L('List','רשימה'), start: L('Start shopping','מתחילים קנייה'),
+      finish: L('Finish','סיום'), addFor: L('Add for Noa','הוספה לנועה'), resume: L('Resume','חזרה לקנייה'), back: L('Back','חזרה'),
+      home: L('Home','בית'), products: L('Products','מוצרים'), add: L('Add','הוספה'), super: L('Supermarket','סופר'), insights: L('Insights','תובנות'), nav: L('Main','ראשי')
+    };
+    const P = {
+      produce:'M12 7c-3-2-7 0-7 5s3 9 7 9 7-4 7-9-4-7-7-5z M12 7c0-2 1-4 3-4', dairy:'M7 6l2-4h6l2 4 M7 6v15a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6z M7 6l5 4 5-4 M12 10v12',
+      dry:'M7 3h10 M8 3v3l-3 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10l-3-4V3 M5 13h14', cans:'M6 5c0-1 2.7-2 6-2s6 1 6 2v14c0 1-2.7 2-6 2s-6-1-6-2z M6 5c0 1 2.7 2 6 2s6-1 6-2 M6 10h12'
+    };
+    const BASKET = 'M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6';
+    const CAL = 'M4 5h16v16H4z M4 10h16 M8 3v4 M16 3v4';
+    const CART = 'M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21 7H6';
+    const store = worst ? L('Shufersal Sheli · Azrieli Mall Modi’in, 2nd floor','שופרסל שלי · קניון עזריאלי מודיעין, קומה 2') : L('Shufersal Deal · Herzl St.','שופרסל דיל · רח׳ הרצל');
+    const n = worst ? 40 : 23, got = worst ? 18 : 12, left = n - got;
+    const total = worst ? '₪1,012.85' : '₪187.40', est = worst ? '≈ ₪1,975' : '≈ ₪376';
+    const counts = worst ? [['produce',4],['dairy',4],['dry',3],['cans',3]] : [['produce',5],['dairy',4],['dry',2],['cans',2]];
+    const railN = worst ? [4,3,2,3,3,2,3,2,2,3,2,2,1,2,4,2] : [5,1,1,2,2,2,1,2,1,4,1];
+    let acc = 0; const rail = railN.map((c) => { const d = Math.max(0, Math.min(c, got - acc)); acc += c; return { n: c, w: Math.round(d / c * 100) + '%', cls: d === c ? 'full' : (d < c && acc - c <= got ? 'cur' : '') }; });
+    let curSet = false; rail.forEach(r => { if (r.cls === 'cur') { if (curSet) r.cls = ''; curSet = true; } });
+    const pct = Math.round(got / n * 100) + '%';
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') + ((p.motion ?? 'full') === 'reduced' ? ' rm' : '') + (p['section colours'] === false ? ' mono' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      greet: L('Good evening, Tal','ערב טוב, טל'),
+      cardLow: st === 'normal', cardHigh: st !== 'normal',
+      cardCls: 'nsc' + (day ? ' today' : '') + (st !== 'normal' ? ' rise' : ''),
+      ebCls: 'eb' + (day || trip ? ' hot' : ''), ebIcon: trip ? CART : (day ? CAL : BASKET),
+      eyebrow: empty ? L('Supermarket','סופר') : st === 'trip with Noa' ? L('Noa is shopping · ','נועה בקניות · ') + store : trip ? L('Shopping now · ','קונים עכשיו · ') + store : day ? L('Today is your shop','היום יום הקנייה') : L('Next shop · Thursday','הקנייה הבאה · יום חמישי'),
+      headline: empty ? L('Your first list','הרשימה הראשונה') : trip ? L(got + ' of ' + n + ' · ' + total, got + ' מתוך ' + n + ' · ' + total) : L(n + ' items · ' + est, n + ' פריטים · ' + est),
+      subline: empty ? L('Start from a basic basket, or let Nexus suggest from your answers.','מתחילים מסל בסיסי, או ש-Nexus מציע לפי התשובות שלך.')
+        : trip ? (st === 'trip with Noa' ? L('Started 18:42 · what you add reaches her live','התחילה ב-18:42 · מה שתוסיפו יגיע אליה מיד') : L('Started 18:42 · ' + left + ' left','התחלת ב-18:42 · נשארו ' + left))
+        : (worst ? L('₪340 over October','₪340 מעל אוקטובר') : L('₪1,140 left this month','נשארו ₪1,140 החודש')),
+      isTrip: trip, isNoa: st === 'trip with Noa', isMine: st === 'trip in progress', showBar: st === 'trip in progress', isEmpty: empty, isPlan: !trip && !empty, showFaces: st === 'trip with Noa',
+      ringBg: 'conic-gradient(' + ((p.palette ?? 'graphite') === 'plum' ? 'var(--brand)' : 'var(--ink)') + ' ' + pct + ',var(--s3) 0)', ringText: got + '/' + n, pct,
+      iniN: he ? 'נ' : 'N', rail,
+      showSecs: !trip && !empty, secs: counts.map(([k, c]) => ({ k: 'k-' + k, d: P[k], n: String(c) })), moreSecs: '+' + (worst ? 12 : 7),
+      showSug: !trip && !empty, sugLine: day ? L('Ready since last night · Nexus suggests 4','מוכן מאתמול בערב · Nexus מציע 4') : L('Nexus suggests 4 more','Nexus מציע עוד 4'),
+      leftN: String(left), barTitle: st === 'trip with Noa' ? L('Noa is shopping · ' + left + ' left','נועה בקניות · נשארו ' + left) : L(left + ' left · ' + store, 'נשארו ' + left + ' · ' + store),
+      barSub: L(total + ' so far', total + ' עד עכשיו')
+    };
+  }
+}
+</script>
+</body>
+</html>

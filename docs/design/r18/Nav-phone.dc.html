@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Entry points and Products tab · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+<link rel="stylesheet" href="./nx-sm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+<div class="phone">
+
+  <sc-if value="{{isHomeScr}}" hint-placeholder-val="{{ false }}">
+    <div class="wall2" style="position:absolute;inset:0">
+      <div class="{{gridCls}}" dir="ltr">
+        <sc-for list="{{apps}}" as="a" hint-placeholder-count="16">
+          <sc-if value="{{a.nexus}}" hint-placeholder-val="{{ false }}">
+            <button class="happ nexus" style="border:0;background:transparent;padding:0" onClick="{{toggleSc}}" onPointerDown="{{scDown}}" onPointerUp="{{scUp}}" aria-label="Nexus" aria-expanded="{{scOpen}}">
+              <span class="appicon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg></span>Nexus
+            </button>
+          </sc-if>
+          <sc-if value="{{a.other}}" hint-placeholder-val="{{ true }}"><span class="happ"><i></i>{{a.label}}</span></sc-if>
+        </sc-for>
+      </div>
+      <sc-if value="{{scOpen}}" hint-placeholder-val="{{ true }}">
+        <button style="position:absolute;inset:0;z-index:5;border:0;background:rgba(0,0,0,.18)" onClick="{{toggleSc}}" aria-label="{{t.close}}"></button>
+        <div class="sc-menu" style="top:278px;left:120px" role="menu" dir="{{dir}}">
+          <sc-for list="{{shortcuts}}" as="m" hint-placeholder-count="3">
+            <button role="menuitem"><svg class="s" viewBox="0 0 24 24"><path d="{{m.d}}"></path></svg>{{m.label}}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isHome}}" hint-placeholder-val="{{ true }}">
+    <div class="scroll" style="padding-bottom:110px">
+      <div class="ph-head">
+        <span class="logo" style="font-size:15px;flex:1"><svg class="i" viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg>Nexus</span>
+        <button class="bell" aria-label="{{t.inbox}}"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg></button>
+      </div>
+      <div class="ph-w" style="height:200px;margin-top:8px"><span style="display:block;height:10px;width:45%;border-radius:5px;background:var(--s3)"></span></div>
+      <div class="ph-w" style="height:150px"><span style="display:block;height:10px;width:60%;border-radius:5px;background:var(--s3)"></span></div>
+      <div class="ph-w" style="height:170px"><span style="display:block;height:10px;width:35%;border-radius:5px;background:var(--s3)"></span></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isProducts}}" hint-placeholder-val="{{ false }}">
+    <div class="scroll" style="padding-bottom:110px">
+      <div class="sm-head" style="padding-top:18px">
+        <h1>{{t.products}}</h1>
+        <button class="ico-b" aria-label="{{t.search}}"><svg class="s lg" viewBox="0 0 24 24"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.3-4.3"></path></svg></button>
+        <button class="ico-b" aria-label="{{t.view}}"><svg class="s lg" viewBox="0 0 24 24"><path d="M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z"></path></svg></button>
+      </div>
+      <div style="padding:10px 16px 6px">
+        <div class="seg2" role="tablist" aria-label="{{t.products}}">
+          <span class="pill" style="inset-inline-start:3px;width:calc(33.333% - 2px);transform:{{pillTf}}"></span>
+          <sc-for list="{{segs}}" as="g" hint-placeholder-count="3"><button role="tab" class="{{g.cls}}" aria-selected="{{g.on}}" onClick="{{g.pick}}">{{g.label}}</button></sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{isProj}}" hint-placeholder-val="{{ false }}">
+        <div class="sec-b" style="margin-top:8px"><div class="rise">
+          <sc-for list="{{projects}}" as="j" hint-placeholder-count="3">
+            <button class="pj srow" style="padding:12px 14px">
+              <span class="{{j.tile}}"><svg viewBox="0 0 24 24"><path d="{{j.d}}"></path></svg></span>
+              <span class="tx"><b class="bidi">{{j.name}}</b><span>{{j.sub}}</span><span class="meter" style="display:block"><i style="width:{{j.w}}"></i></span></span>
+              <svg class="s flip" viewBox="0 0 24 24" style="color:var(--faint)"><path d="m9 18 6-6-6-6"></path></svg>
+            </button>
+          </sc-for>
+        </div></div>
+        <div style="padding:12px 16px"><button class="btn block" style="height:48px;border-radius:14px"><svg class="s" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg>{{t.newProj}}</button></div>
+      </sc-if>
+
+      <sc-if value="{{isRows}}" hint-placeholder-val="{{ true }}">
+        <div class="sec-b" style="margin-top:8px"><div class="rise">
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+            <button class="prow srow" style="padding:10px 14px">
+              <span class="{{r.thm}}" style="width:44px;height:44px;border-radius:11px"></span>
+              <span class="tx"><b class="bidi">{{r.name}}</b><span class="bidi">{{r.sub}}</span></span>
+              <span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
+                <span class="pr">{{r.price}}</span>
+                <sc-if value="{{r.tag}}" hint-placeholder-val="{{ false }}"><span class="{{r.tagCls}}">{{r.tag}}</span></sc-if>
+              </span>
+            </button>
+          </sc-for>
+        </div></div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{showDock}}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{lp}}" hint-placeholder-val="{{ false }}">
+      <button class="lp-scrim" style="border:0" onClick="{{closeLp}}" aria-label="{{t.close}}"></button>
+      <div class="lp-menu" role="menu" aria-label="{{t.add}}">
+        <div class="stg">
+          <a class="lp-i" href="Add-phone.dc.html" role="menuitem"><span class="ic2"><svg class="s" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></span>{{t.addList}}</a>
+          <button class="lp-i" role="menuitem"><span class="ic2"><svg class="s" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2 M7 8v8 M10 8v8 M13 8v8 M17 8v8"></path></svg></span>{{t.scan}}</button>
+          <button class="lp-i" role="menuitem"><span class="ic2"><svg class="s" viewBox="0 0 24 24"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path></svg></span>{{t.photo}}</button>
+          <a class="lp-i pri" href="StoreMode-phone.dc.html" role="menuitem"><span class="ic2"><svg class="s" viewBox="0 0 24 24"><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21 7H6"></path></svg></span>{{t.startShop}}</a>
+        </div>
+      </div>
+    </sc-if>
+    <nav class="dock5" aria-label="{{t.nav}}" style="z-index:6">
+      <button class="{{homeTab}}" onClick="{{toHome}}"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span>{{t.home}}</span></button>
+      <button class="{{prodTab}}" onClick="{{toProducts}}"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg><span>{{t.products}}</span></button>
+      <button class="{{plusCls}}" onPointerDown="{{plusDown}}" onPointerUp="{{plusUp}}" onPointerLeave="{{plusUp}}" onClick="{{plusClick}}" onContextMenu="{{noCtx}}" aria-label="{{t.add}}" aria-haspopup="menu" aria-expanded="{{lp}}"><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button>
+      <a class="tab-b" href="Supermarket-phone.dc.html"><svg viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg><span>{{t.super}}</span></a>
+      <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg><span>{{t.insights}}</span></button>
+    </nav>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"section colours":{"editor":"boolean","default":true},"screen":{"editor":"enum","options":["long-press +","app-icon shortcuts","Products · To buy","Products · On the way","Products · Projects"],"default":"long-press +"},"data":{"editor":"enum","options":["demo","worst case"],"default":"demo"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidUpdate(pp) { if (pp.screen !== this.props.screen) this.setState({ view: null, seg: null, lp: null, sc: null }); }
+  componentWillUnmount() { clearTimeout(this._h); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const scr = p.screen ?? 'long-press +';
+    const worst = (p.data ?? 'demo') === 'worst case';
+    const view = s.view || (scr === 'app-icon shortcuts' ? 'apps' : scr.indexOf('Products') === 0 ? 'products' : 'home');
+    const segDef = scr === 'Products · On the way' ? 'way' : scr === 'Products · Projects' ? 'proj' : 'buy';
+    const seg = s.seg || segDef;
+    const lp = s.lp != null ? s.lp : (scr === 'long-press +');
+    const t = {
+      close: L('Close','סגירה'), inbox: L('Inbox','התראות'), products: L('Products','מוצרים'), search: L('Search','חיפוש'), view: L('List or grid','רשימה או רשת'),
+      newProj: L('New project','פרויקט חדש'), add: L('Add','הוספה'), addList: L('Add to list','הוספה לרשימה'), scan: L('Scan','סריקה'), photo: L('Photo','צילום'), startShop: L('Start shopping','מתחילים קנייה'),
+      home: L('Home','בית'), super: L('Supermarket','סופר'), insights: L('Insights','תובנות'), nav: L('Main','ראשי')
+    };
+    const SEGS = [['buy', L('To buy','לקנות')], ['way', L('On the way','בדרך')], ['proj', L('Projects','פרויקטים')]];
+    const idx = SEGS.findIndex(x => x[0] === seg);
+    const BUY = worst ? [
+      { name: L('Bosch Professional cordless drill-driver kit with two 4 Ah batteries and case','ערכת מברגה-מקדחה נטענת בוש פרופשיונל עם שתי סוללות 4 אמפר ומזוודה'), sub: L('KSP · project: Garage workbench rebuild 2026','KSP · פרויקט: שיפוץ שולחן העבודה במוסך 2026'), price: '₪1,249.90', tag: '−18%', tagCls: 'chg', thm: 'thm p1' },
+      { name: L('Steam cleaner','מנקה קיטור'), sub: 'KSP', price: '₪899', tag: '−10%', tagCls: 'chg', thm: 'thm p1' },
+      { name: L('Desk lamp','מנורת שולחן'), sub: L('IKEA','איקאה'), price: '₪149', thm: 'thm p5' },
+      { name: L('USB-C cable 2 m','כבל USB-C 2 מ׳'), sub: 'AliExpress', price: '₪12.40', thm: 'thm p6' },
+      { name: L('Soldering station','תחנת הלחמה'), sub: L('Garage workbench','שולחן העבודה במוסך'), price: '—', thm: 'thm p3' }
+    ] : [
+      { name: L('Steam cleaner','מנקה קיטור'), sub: 'KSP', price: '₪899', tag: '−10%', tagCls: 'chg', thm: 'thm p1' },
+      { name: L('Desk lamp','מנורת שולחן'), sub: L('IKEA · at your target','איקאה · במחיר היעד'), price: '₪149', thm: 'thm p5' },
+      { name: L('Soldering station','תחנת הלחמה'), sub: L('Garage workbench','שולחן העבודה במוסך'), price: '₪389', thm: 'thm p3' },
+      { name: L('USB-C cable 2 m','כבל USB-C 2 מ׳'), sub: 'AliExpress', price: '₪12.40', thm: 'thm p6' },
+      { name: L('Running shoes','נעלי ריצה'), sub: L('Nike · size 44','Nike · מידה 44'), price: '₪459', thm: 'thm p2' }
+    ];
+    const WAY = [
+      { name: L('Car vent clip','קליפס לפתח מיזוג'), sub: 'AliExpress', price: L('Today','היום'), tag: L('Arrives','מגיע'), tagCls: 'badge info', thm: 'thm p2' },
+      { name: worst ? L('Replacement HEPA filter set for robot vacuum, 6 pieces, compatible model list inside','סט מסנני HEPA חלופיים לשואב רובוטי, 6 יחידות, רשימת דגמים תואמים בפנים') : L('Robot vacuum filters','מסננים לשואב רובוטי'), sub: 'Amazon', price: L('Oct 21','21 באוק׳'), tag: L('Day 12','יום 12'), tagCls: 'badge', thm: 'thm p1' },
+      { name: L('Phone case','כיסוי לטלפון'), sub: 'AliExpress', price: L('Nov 2','2 בנוב׳'), thm: 'thm p6' }
+    ];
+    const PRJ = worst ? [
+      { name: L('Garage workbench rebuild 2026 — phase 2 (electrics, lights and the pegboard wall)','שיפוץ שולחן העבודה במוסך 2026 — שלב 2 (חשמל, תאורה וקיר הלוחות)'), sub: L('14 items · ₪12,480 · 3 of 14 bought','14 פריטים · ₪12,480 · 3 מתוך 14 נקנו'), w: '21%', tile: 'tile t40 gr-amber', d: 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z' },
+      { name: L('Baby room','חדר תינוק'), sub: L('22 items · ₪6,210 · 22 of 22 bought','22 פריטים · ₪6,210 · 22 מתוך 22 נקנו'), w: '100%', tile: 'tile t40 gr-rose', d: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M9 10h.01 M15 10h.01 M9.5 14.5a3.5 3.5 0 0 0 5 0' }
+    ] : [
+      { name: L('Garage workbench','שולחן העבודה במוסך'), sub: L('6 items · ₪1,240 · 4 of 6 bought','6 פריטים · ₪1,240 · 4 מתוך 6 נקנו'), w: '66%', tile: 'tile t40 gr-amber', d: 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z' },
+      { name: L('Balcony garden','גינה במרפסת'), sub: L('9 items · ₪680 · 2 of 9 bought','9 פריטים · ₪680 · 2 מתוך 9 נקנו'), w: '22%', tile: 'tile t40 gr-green', d: 'M12 7c-3-2-7 0-7 5s3 9 7 9 7-4 7-9-4-7-7-5z M12 7c0-2 1-4 3-4' },
+      { name: L('Home office','פינת עבודה'), sub: L('4 items · ₪2,130 · planning','4 פריטים · ₪2,130 · בתכנון'), w: '0%', tile: 'tile t40 gr-blue', d: 'M3 4h18v12H3z M8 20h8 M12 16v4' }
+    ];
+    const rows = seg === 'way' ? WAY : BUY;
+    const apps = []; for (let i = 0; i < 20; i++) apps.push({ nexus: i === 6, other: i !== 6, label: '' });
+    const plusDown = (e) => { if (e.button) return; clearTimeout(this._h); this._held = false; this.setState({ press: true }); this._h = setTimeout(() => { this._held = true; try { if (navigator.vibrate) navigator.vibrate(10); } catch (_) {} this.setState({ lp: true, press: false }); }, 420); };
+    const plusUp = () => { clearTimeout(this._h); if ((this.state || {}).press) this.setState({ press: false }); };
+    const scOpen = s.sc != null ? s.sc : true;
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') + ((p.motion ?? 'full') === 'reduced' ? ' rm' : '') + (p['section colours'] === false ? ' mono' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      isHomeScr: view === 'apps', isHome: view === 'home', isProducts: view === 'products', showDock: view !== 'apps',
+      apps, gridCls: 'homescr' + (scOpen ? ' dim-apps' : ''), scOpen, toggleSc: () => this.setState({ sc: !scOpen }), scDown: () => {}, scUp: () => {},
+      shortcuts: [[t.addList, 'M12 5v14 M5 12h14'], [t.scan, 'M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2 M7 8v8 M10 8v8 M13 8v8 M17 8v8'], [t.startShop, 'M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21 7H6']].map(([label, d]) => ({ label, d })),
+      segs: SEGS.map(([k, label]) => ({ label, on: k === seg, cls: k === seg ? 'on' : '', pick: () => this.setState({ seg: k }) })),
+      pillTf: 'translateX(' + (idx * (he ? -100 : 100)) + '%)',
+      isProj: seg === 'proj', isRows: seg !== 'proj', rows, projects: PRJ,
+      lp, closeLp: () => this.setState({ lp: false }),
+      plusCls: 'plus' + (lp || s.press ? ' held' : ''), plusDown, plusUp,
+      plusClick: () => { if (this._held) { this._held = false; return; } this.setState({ lp: !lp }); }, noCtx: (e) => { e.preventDefault(); },
+      homeTab: 'tab-b' + (view === 'home' ? ' on' : ''), prodTab: 'tab-b' + (view === 'products' ? ' on' : ''),
+      toHome: () => this.setState({ view: 'home', lp: false }), toProducts: () => this.setState({ view: 'products', lp: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

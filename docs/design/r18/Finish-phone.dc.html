@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Finish and receipt · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+<link rel="stylesheet" href="./nx-sm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+<div class="phone">
+
+  <sc-if value="{{isSummary}}" hint-placeholder-val="{{ true }}">
+    <div class="scroll" style="padding-bottom:150px">
+      <div class="fin-hero">
+        <span class="donebig"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span>
+        <h1>{{t.done}}</h1>
+        <span class="sub bidi">{{storeLine}}</span>
+      </div>
+      <div class="trio stg">
+        <div><b>{{bought}}</b><span>{{t.bought}}</span></div>
+        <div><b>{{left}}</b><span>{{t.left}}</span></div>
+        <div><b>{{mins}}</b><span>{{t.time}}</span></div>
+      </div>
+      <div class="cmp rise">
+        <div class="ln" style="min-height:40px"><span style="font-size:15px;font-weight:650">{{t.total}}</span><b style="font-size:26px;font-weight:800;letter-spacing:-.03em">{{total}}</b></div>
+        <div class="ln"><span class="sub">{{t.estimate}}</span><b class="sub" style="font-weight:600">{{estimate}}</b></div>
+        <div class="bar2" role="img" aria-label="{{barLabel}}"><i style="width:{{beforeW}}"></i><u style="inset-inline-start:{{beforeW}};width:{{tripW}}"></u></div>
+        <div class="ln"><span class="sub">{{monthLabel}}</span><b style="{{leftStyle}}">{{monthLeft}}</b></div>
+      </div>
+      <div class="rcpt rise" style="animation-delay:120ms">
+        <span class="pic" aria-hidden="true"></span>
+        <div style="flex:1;min-width:0;line-height:1.35">
+          <b style="display:block;font-size:16px;font-weight:750">{{t.rcptQ}}</b>
+          <span class="sub">{{t.rcptWhy}}</span>
+        </div>
+      </div>
+      <div style="margin:14px 16px 0" class="sub">{{leftNote}}</div>
+    </div>
+    <div class="cf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="bot-cta">
+      <button class="btn pri block sm-press" onClick="{{toCamera}}"><svg class="s" viewBox="0 0 24 24"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path></svg>{{t.photo}}</button>
+      <button class="btn ghost block" style="height:46px" onClick="{{skip}}">{{t.skip}}</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isCamera}}" hint-placeholder-val="{{ false }}">
+    <div class="cam">
+      <div class="vf">
+        <div class="paper" aria-hidden="true"><i class="s"></i><i class="m"></i><i></i><i class="m"></i><i></i><i class="s"></i><i></i><i class="m"></i><i></i><i></i><i class="m"></i><i class="s"></i><i></i><i class="m"></i><i></i><i class="s"></i><i></i><i class="m"></i><i class="s"></i></div>
+        <div class="guide" aria-hidden="true"><b></b><b></b><b></b><b></b></div>
+        <sc-if value="{{reading}}" hint-placeholder-val="{{ false }}"><div class="scanl" aria-hidden="true"></div></sc-if>
+        <div class="hint2">{{camHint}}</div>
+      </div>
+      <div class="ctrl">
+        <button class="lbl" onClick="{{back}}">{{t.cancel}}</button>
+        <sc-if value="{{notReading}}" hint-placeholder-val="{{ true }}"><button class="shutter" onClick="{{shoot}}" aria-label="{{t.shoot}}"><i></i></button></sc-if>
+        <sc-if value="{{reading}}" hint-placeholder-val="{{ false }}"><span class="spinner" style="width:44px;height:44px;border-width:3px;border-color:rgba(255,255,255,.2);border-top-color:#fff"></span></sc-if>
+        <button class="lbl">{{t.parts}}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isReview}}" hint-placeholder-val="{{ false }}">
+    <div class="scroll" style="padding-bottom:110px">
+      <div class="fin-h">
+        <span class="sub bidi">{{rcptLine}}</span>
+        <h1 style="font-size:26px">{{t.matched}}</h1>
+      </div>
+      <div class="stg">
+        <section class="rec">
+          <div class="rec-h"><span class="dotn" style="background:var(--ok-t);color:var(--ok)"><svg class="s xs" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span>
+            <span class="tx"><b>{{pricesT}}</b><span class="bidi">{{pricesS}}</span></span></div>
+          <sc-for list="{{changed}}" as="c" hint-placeholder-count="2">
+            <div class="rec-r"><span class="grow bidi">{{c.name}}</span><span class="num" style="font-weight:650">{{c.now}}</span><span class="{{c.cls}}">{{c.chg}}</span></div>
+          </sc-for>
+        </section>
+        <section class="rec">
+          <div class="rec-h"><span class="dotn" style="background:var(--ok-t);color:var(--ok)"><svg class="s xs" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span>
+            <span class="tx"><b>{{t.markedT}}</b><span>{{t.markedS}}</span></span></div>
+          <sc-for list="{{marked}}" as="m" hint-placeholder-count="2">
+            <div class="rec-r"><span class="grow bidi">{{m}}</span><span class="badge ok">{{t.bought1}}</span></div>
+          </sc-for>
+        </section>
+        <section class="rec">
+          <div class="rec-h"><span class="dotn" style="background:var(--warn-t);color:var(--warn)">?</span>
+            <span class="tx"><b>{{t.missT}}</b><span>{{t.missS}}</span></span></div>
+          <sc-for list="{{missing}}" as="x" hint-placeholder-count="1">
+            <div class="rec-r" style="flex-wrap:wrap"><span class="grow bidi">{{x.name}}</span>
+              <span class="acts"><sc-for list="{{x.acts}}" as="a" hint-placeholder-count="2"><button class="{{a.cls}}" onClick="{{a.pick}}">{{a.label}}</button></sc-for></span></div>
+          </sc-for>
+        </section>
+        <section class="rec">
+          <div class="rec-h"><span class="dotn" style="background:var(--info-t);color:var(--info)">+</span>
+            <span class="tx"><b>{{t.newT}}</b><span>{{t.newS}}</span></span></div>
+          <sc-for list="{{extras}}" as="x" hint-placeholder-count="1">
+            <div class="rec-r" style="flex-wrap:wrap"><span class="grow bidi">{{x.name}}</span><span class="num sub">{{x.price}}</span>
+              <span class="acts"><sc-for list="{{x.acts}}" as="a" hint-placeholder-count="2"><button class="{{a.cls}}" onClick="{{a.pick}}">{{a.label}}</button></sc-for></span></div>
+          </sc-for>
+        </section>
+        <section class="rec">
+          <div class="rec-h"><span class="dotn" style="background:var(--s2);color:var(--ink2)">{{forgotN}}</span>
+            <span class="tx"><b>{{forgotT}}</b><span>{{t.forgotS}}</span></span></div>
+          <sc-for list="{{forgot}}" as="x" hint-placeholder-count="2">
+            <div class="rec-r" style="flex-wrap:wrap"><span class="grow bidi">{{x.name}}</span>
+              <span class="acts"><sc-for list="{{x.acts}}" as="a" hint-placeholder-count="2"><button class="{{a.cls}}" onClick="{{a.pick}}">{{a.label}}</button></sc-for></span></div>
+          </sc-for>
+        </section>
+      </div>
+    </div>
+    <div class="bot-cta"><button class="btn pri block sm-press" onClick="{{save}}">{{t.save}}</button></div>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:0 32px 120px;text-align:center">
+      <span class="donebig"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span>
+      <h1 style="font-size:28px;font-weight:800;letter-spacing:-.03em;margin:6px 0 0">{{doneT}}</h1>
+      <div class="stg" style="display:flex;flex-direction:column;gap:6px;align-items:center">
+        <sc-for list="{{doneLines}}" as="d" hint-placeholder-count="3"><span class="sub" style="font-size:14.5px">{{d}}</span></sc-for>
+      </div>
+    </div>
+    <div class="bot-cta">
+      <a class="btn pri block" href="Supermarket-phone.dc.html">{{t.toList}}</a>
+      <a class="btn ghost block" style="height:46px" href="HomeCard-phone.dc.html">{{t.home}}</a>
+    </div>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"section colours":{"editor":"boolean","default":true},"step":{"editor":"enum","options":["summary","camera","reading","review","done","done (skipped receipt)"],"default":"summary"},"data":{"editor":"enum","options":["demo","worst case"],"default":"demo"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidUpdate(pp) { if (pp.step !== this.props.step) { clearTimeout(this._r); this.setState({ step: null, pick: {} }); } }
+  componentWillUnmount() { clearTimeout(this._r); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const worst = (p.data ?? 'demo') === 'worst case';
+    const map = { 'summary':'summary', 'camera':'camera', 'reading':'reading', 'review':'review', 'done':'done', 'done (skipped receipt)':'skipped' };
+    const step = s.step || map[p.step ?? 'summary'];
+    const t = {
+      done: L('Done shopping','סיימתם קנייה'), bought: L('bought','נקנו'), left: L('left','נשארו'), time: L('in the store','בחנות'),
+      total: L('Total','סה״כ'), estimate: L('Estimate before','הערכה מראש'),
+      rcptQ: L('Photo of the receipt?','לצלם את הקבלה?'), rcptWhy: L('Saves this branch’s prices and fixes the list for you.','שומר את המחירים של הסניף ומסדר לכם את הרשימה.'),
+      photo: L('Take a photo','צילום הקבלה'), skip: L('Skip','דילוג'), cancel: L('Cancel','ביטול'), shoot: L('Take photo','צילום'), parts: L('Long? In parts','ארוכה? בחלקים'),
+      matched: L('Receipt matched','הקבלה הותאמה'),
+      markedT: L('Marked as bought','סומנו כנקנו'), markedS: L('On the receipt, not checked in the store','בקבלה, אבל לא סומנו בחנות'), bought1: L('Bought','נקנה'),
+      missT: L('Not on the receipt','לא בקבלה'), missS: L('Checked in the store — what happened?','סומן בחנות — מה קרה?'),
+      newT: L('Also bought','נקנה גם'), newS: L('Not on the list — Nexus will learn it','לא היה ברשימה — Nexus ילמד אותו'),
+      forgotS: L('Still not bought','עדיין לא נקנה'), save: L('Save','שמירה'), toList: L('Back to the list','חזרה לרשימה'), home: L('Home','בית')
+    };
+    const fm = (n) => '₪' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const total = worst ? 1926.35 : 335.70, est = worst ? 1975.0 : 376.2, budget = worst ? 2500 : 2500, before = worst ? 1600 : 1360;
+    const leftAfter = budget - before - total;
+    const pick = s.pick || {};
+    const acts = (id, opts) => opts.map(([k, label]) => ({ label, cls: 'act-b' + (pick[id] === k ? ' on' : ''), pick: () => this.setState({ pick: { ...((this.state || {}).pick || {}), [id]: k } }) }));
+    const go = (st2) => this.setState({ step: st2 });
+    const forgot = worst ? [
+      { id:'f1', name: L('Lactose-free 1% milk with added vitamin D','חלב 1% ללא לקטוז בתוספת ויטמין D') },
+      { id:'f2', name: L('Organic extra-virgin olive oil, cold pressed, 3 L tin','שמן זית כתית מעולה אורגני בכבישה קרה, פח 3 ליטר') }
+    ] : [ { id:'f1', name: L('Lemons ×4','לימונים ×4') }, { id:'f2', name: L('Ground coffee','קפה טחון') } ];
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') + ((p.motion ?? 'full') === 'reduced' ? ' rm' : '') + (p['section colours'] === false ? ' mono' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      isSummary: step === 'summary', isCamera: step === 'camera' || step === 'reading', reading: step === 'reading', notReading: step !== 'reading',
+      isReview: step === 'review', isDone: step === 'done' || step === 'skipped',
+      storeLine: worst ? L('Shufersal Sheli · Azrieli Mall Modi’in, 2nd floor · 19:21','שופרסל שלי · קניון עזריאלי מודיעין, קומה 2 · 19:21') : L('Shufersal Deal · Herzl St. · 19:21','שופרסל דיל · רח׳ הרצל · 19:21'),
+      bought: worst ? '38' : '21', left: '2', mins: L(worst ? '1h 52m' : '39 min', worst ? '1:52 ש׳' : '39 דק׳'),
+      total: fm(total), estimate: '≈ ' + fm(est),
+      beforeW: Math.min(100, before / budget * 100).toFixed(1) + '%', tripW: Math.max(0, Math.min(100 - before / budget * 100, total / budget * 100)).toFixed(1) + '%',
+      barLabel: L('October budget: ' + fm(before + total) + ' of ' + fm(budget), 'תקציב אוקטובר: ' + fm(before + total) + ' מתוך ' + fm(budget)),
+      monthLabel: leftAfter >= 0 ? L('Left in October','נשאר באוקטובר') : L('Over October’s budget','מעל תקציב אוקטובר'),
+      monthLeft: fm(Math.abs(leftAfter)), leftStyle: leftAfter >= 0 ? '' : 'color:var(--danger)',
+      leftNote: L('2 items not bought stay on the list.','2 פריטים שלא נקנו נשארים ברשימה.'),
+      toCamera: () => go('camera'), skip: () => go('skipped'), back: () => go('summary'),
+      shoot: () => { go('reading'); clearTimeout(this._r); this._r = setTimeout(() => go('review'), 1800); },
+      camHint: step === 'reading' ? L('Reading the receipt…','קורא את הקבלה…') : L('Fit the whole receipt in the frame','מכניסים את כל הקבלה למסגרת'),
+      rcptLine: worst ? L('58 lines · ' + fm(total) + ' · 4 things to check','58 שורות · ' + fm(total) + ' · 4 דברים לבדוק') : L('26 lines · ' + fm(total) + ' · 3 things to check','26 שורות · ' + fm(total) + ' · 3 דברים לבדוק'),
+      pricesT: L((worst ? 36 : 18) + ' prices saved', (worst ? 36 : 18) + ' מחירים נשמרו'),
+      pricesS: worst ? L('For Shufersal Sheli · Azrieli Mall Modi’in, 2nd floor','לשופרסל שלי · קניון עזריאלי מודיעין, קומה 2') : L('For Shufersal Deal · Herzl St. · 2 changed','לשופרסל דיל · רח׳ הרצל · 2 השתנו'),
+      changed: [
+        { name: L('Milk 3%','חלב 3%'), now: '₪6.90', chg: '+₪0.30', cls: 'badge warn' },
+        { name: worst ? L('Gluten-free whole-grain spelt sourdough bread, sliced, 750 g','לחם כוסמין מלא ללא גלוטן, פרוס, מחמצת טבעית 750 גרם') : L('Raw tahini','טחינה גולמית'), now: worst ? '₪29.90' : '₪16.90', chg: '−₪2.00', cls: 'badge ok' }
+      ],
+      marked: [L('Parsley ×2','פטרוזיליה ×2'), L('Hummus ×2','חומוס ×2')],
+      missing: [{ name: L('Trash bags','שקיות אשפה'), acts: acts('m1', [['ns', L('Not scanned','לא נסרק')], ['lb', L('Left behind','נשאר בחנות')]]) }],
+      extras: [{ name: L('Chocolate spread','ממרח שוקולד'), price: '₪16.90', acts: acts('e1', [['learn', L('Keep it','לשמור')], ['ign', L('Ignore','להתעלם')]]) }],
+      forgotN: '2', forgotT: L('Forgot 2 things','שכחתם 2 דברים'),
+      forgot: forgot.map(f => ({ name: f.name, acts: acts(f.id, [['keep', L('Next time','לפעם הבאה')], ['rem', L('Remind me','תזכורת')]]) })),
+      save: () => go('done'),
+      doneT: step === 'skipped' ? L('Trip saved','הקנייה נשמרה') : L('All saved','הכול נשמר'),
+      doneLines: step === 'skipped' ? [L('Total ' + fm(total) + ' · prices not saved', 'סה״כ ' + fm(total) + ' · מחירים לא נשמרו'), L('2 items stay on the list for next time', '2 פריטים נשארים ברשימה לפעם הבאה'), L('Next shop: Thursday', 'הקנייה הבאה: יום חמישי')]
+        : [L((worst ? 36 : 18) + ' prices saved for this branch', (worst ? 36 : 18) + ' מחירים נשמרו לסניף'), L('2 items stay on the list for next time', '2 פריטים נשארים ברשימה לפעם הבאה'), L('Next shop: Thursday', 'הקנייה הבאה: יום חמישי')]
+    };
+  }
+}
+</script>
+</body>
+</html>
