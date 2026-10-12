@@ -10,6 +10,8 @@ import { ownerPrefs } from "../tracker";
 import type { Alert } from "../types";
 import type { BudgetData, DeliveryData, PriceData, ShopData, WeekData } from "./kinds";
 import { notify, notifyPrefs, sendNow } from "./enqueue";
+import { finishTrip, openTripOf, openTrips, SAME_TRIP_MS, setTripLeft, startTrip, tripScope, type TripRow } from "../db-scoped/trips";
+import { defaultStore, refreshSuggestedOrder } from "../db-scoped/grocery";
 import { local, nextLocal } from "./schedule";
 
 // R17 S3 M — who gets what, when. Every sender goes through notify() (actor excluded, one row per group key, timing).
@@ -18,6 +20,7 @@ import { local, nextLocal } from "./schedule";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
+/** Before R18 a trip lived in this user pref; it is only READ now (open trips from the last release), never written. */
 export const TRIP_KEY = "pref:shop-trip";
 export { BUDGET_TO_KEY } from "./kinds";
 import { BUDGET_TO_KEY } from "./kinds";
@@ -34,15 +37,32 @@ const parse = <T,>(s: string | null | undefined): T | null => {
 
 // ---------- M1: shopping trips ----------
 
-/** Shopping mode started in a shared space → the other members, at once (one row per trip, updated in place). */
+/** R18 A2: the person's open trip — the `trip` row, else an R17 pref trip still open from the last release. */
+async function currentTrip(userId: string): Promise<{ row: TripRow | null; legacy: Trip | null; key: string; spaceId: string; at: number } | null> {
+  const row = await openTripOf(userId);
+  if (row) return { row, legacy: null, key: row.notifyKey ?? `shop:${userId}:${row.startedAt}`, spaceId: row.spaceId, at: row.startedAt };
+  const legacy = parse<Trip>(await userPrefGet(userId, TRIP_KEY));
+  return legacy ? { row: null, legacy, key: legacy.key, spaceId: legacy.spaceId, at: legacy.at } : null;
+}
+
+/**
+ * Shopping mode started → a `trip` row (every space: trips teach the walking order and the staples), and in a shared
+ * space the other members hear about it at once (one inbox row per trip, updated in place).
+ */
 export async function tripStarted(userId: string, spaceId: string | null, left: number | null, now = Date.now()) {
   if (!spaceId) return;
+  const open = await currentTrip(userId);
+  if (open && open.spaceId === spaceId && now - open.at < SAME_TRIP_MS) return; // a reload mid-trip is the same trip
+  // A trip left open in another space (or a stale one) ends quietly: the new one replaces it.
+  if (open?.row) await finishTrip(tripScope(open.row), open.row.id, { now });
+  if (open?.legacy) await userPrefSet(userId, TRIP_KEY, null);
+  const key = `shop:${userId}:${now}`;
+  const s = new Scoped({ spaceId, userId, by: userId });
+  const store = await defaultStore(s);
+  await startTrip(s, userId, { planned: left ?? 0, notifyKey: key, now, chain: store?.chain ?? null, branch: store?.branch ?? null });
   const sp = await spaceBrief(spaceId);
   if (!sp || sp.kind !== "shared") return;
-  const open = parse<Trip>(await userPrefGet(userId, TRIP_KEY));
-  if (open && open.spaceId === spaceId && now - open.at < 6 * HOUR) return; // a reload mid-trip is the same trip
-  const trip: Trip = { key: `shop:${userId}:${now}`, spaceId, at: now, total: left };
-  await userPrefSet(userId, TRIP_KEY, JSON.stringify(trip));
+  const trip = { key };
   const who = (await firstNames([userId]))[userId] ?? "";
   const audience = (await spaceAudience(spaceId, userId)).map((m) => m.userId);
   const data: ShopData = { who, whoId: userId, space: sp.name, left, total: left };
@@ -51,8 +71,9 @@ export async function tripStarted(userId: string, spaceId: string | null, left: 
 
 /** While the trip runs: the live "6 of 15 left" in the members' rows (no new push). */
 export async function tripProgress(userId: string, left: number | null) {
-  const trip = parse<Trip>(await userPrefGet(userId, TRIP_KEY));
+  const trip = await currentTrip(userId);
   if (!trip || left == null) return;
+  if (trip.row) await setTripLeft(tripScope(trip.row), trip.row.id, left);
   const audience = (await spaceAudience(trip.spaceId, userId)).map((m) => m.userId);
   const prev = await notificationByGroup(audience[0] ?? "", trip.key);
   const cur = parse<ShopData>(prev?.data);
@@ -62,10 +83,17 @@ export async function tripProgress(userId: string, left: number | null) {
 
 /** Finished (left shopping mode, or 30 min idle) → the same row + push, in place: "bought 12, 3 left". */
 export async function tripFinished(userId: string, left: number | null, now = Date.now()) {
-  const trip = parse<Trip>(await userPrefGet(userId, TRIP_KEY));
+  const trip = await currentTrip(userId);
   if (!trip) return;
-  await userPrefSet(userId, TRIP_KEY, null);
-  const bought = await countActivity(userId, trip.spaceId, "checked_off", trip.at);
+  let bought = 0;
+  if (trip.row) {
+    const done = await finishTrip(tripScope(trip.row), trip.row.id, { now });
+    bought = done?.bought ?? 0;
+    // A5: the branch's walking order may have a new suggestion now.
+    if (done?.chain) await refreshSuggestedOrder(tripScope(trip.row), done.chain, done.branch ?? "", now).catch(() => null);
+  } else await userPrefSet(userId, TRIP_KEY, null); // the R17 pref trip ends: cleared, never rewritten
+  // Trips from the shopping mode before the check log existed count the check-offs instead.
+  if (!bought) bought = await countActivity(userId, trip.spaceId, "checked_off", trip.at);
   const audience = (await spaceAudience(trip.spaceId, userId)).map((m) => m.userId);
   await notify(
     audience,
@@ -85,7 +113,7 @@ export async function sharedActivity(userId: string, spaceId: string | null, kin
   if (!sp || sp.kind !== "shared") return;
   // Check-offs during a trip are the trip's news ("bought 12"), not activity.
   if (kind === "checked_off") {
-    const trip = parse<Trip>(await userPrefGet(userId, TRIP_KEY));
+    const trip = await currentTrip(userId);
     if (trip && trip.spaceId === spaceId) return;
   }
   const who = (await firstNames([userId]))[userId] ?? "";
@@ -235,9 +263,10 @@ export async function weeklySummaries(now = Date.now()) {
 /** Trips whose owner went quiet for 30 min (closed the app mid-trip) end by themselves. */
 export async function idleTrips(now = Date.now()) {
   let n = 0;
-  for (const r of await prefRows(TRIP_KEY)) {
-    const trip = parse<Trip>(r.value);
-    if (!trip) continue;
+  const shoppers = new Set<string>((await openTrips()).map((t) => t.userId));
+  for (const r of await prefRows(TRIP_KEY)) if (parse<Trip>(r.value)) shoppers.add(r.userId);
+  for (const userId of shoppers) {
+    const r = { userId };
     const beat = await lastBeat(r.userId);
     if (beat && beat.screen === "shopping-mode" && now - beat.at < TRIP_IDLE_MS) continue;
     if (!beat || now - beat.at >= TRIP_IDLE_MS || beat.screen !== "shopping-mode") {

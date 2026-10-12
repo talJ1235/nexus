@@ -19,6 +19,7 @@ import type { AltGroup, Collection, Item, ItemWithSources, PreviewResult, Source
 import { isHttpUrl } from "@/lib/utils";
 import { statusPatch, type Paid, type Status } from "@/lib/status";
 import { BaseZ, guardedUpdate, type Base, type Conflict } from "@/lib/conflict";
+import { noteTripCheck } from "@/lib/db-scoped/trips";
 
 // R15 B3: every action resolves the ctx first (requireCtx), then works only inside the current space (scoped).
 const edit = async () => scoped(await requireCtx("edit"));
@@ -166,7 +167,12 @@ export async function setStatus(id: string, status: Status, paid?: Paid, base?: 
   const c = await guardedUpdate(s, schema.items, Id.parse(id), (cur) => ((from = cur.status as Status), statusPatch(status, pd, cur)), b);
   if (c) return { conflict: true, row: await mustItem(s, id), by: c.by };
   // R17 G1: To buy → bought = checked off (shopping); On the way → received = a delivery.
-  if (status === "purchased" && from === "to_buy") noteActivity({ userId: s.scope.userId, spaceId: s.scope.spaceId }, "checked_off");
+  if (status === "purchased" && from === "to_buy") {
+    noteActivity({ userId: s.scope.userId, spaceId: s.scope.spaceId }, "checked_off");
+    // R18 A2: a check-off during an open trip is also the trip's next check.
+    const it = await s.byId(schema.items, id);
+    if (it) await noteTripCheck(s, s.scope.userId, it, pd?.price ?? null).catch(() => {});
+  }
   if (status === "purchased" && from === "ordered") noteActivity({ userId: s.scope.userId, spaceId: s.scope.spaceId }, "delivery_received");
   return mustItem(s, id);
 }
