@@ -77,7 +77,8 @@
     "test:device-width": "node scripts/test-device-width.mjs",
     "test:trips": "tsx --conditions=react-server scripts/test-trips.ts",
     "test:grocery": "tsx --conditions=react-server scripts/test-grocery.ts",
-    "test:staples": "tsx --conditions=react-server scripts/test-staples.ts"
+    "test:staples": "tsx --conditions=react-server scripts/test-staples.ts",
+    "test:add": "tsx --conditions=react-server scripts/test-add.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",
