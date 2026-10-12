@@ -76,7 +76,7 @@ async function seedUser(k, email) {
   await db.execute({ sql: `INSERT INTO space_member (id, space_id, user_id, role, created_at) VALUES (?, ?, ?, 'owner', ?)`, args: [id(), SP[k], U[k], now] });
 }
 async function seedData(space, mark, owner) {
-  const r = { item: "i_" + id(), item2: "i_" + id(), col: "c_" + id(), src: "s_" + id(), att: "a_" + id(), grp: "g_" + id(), rec: "r_" + id(), conv: "c_" + id(), msg: "m_" + id(), alert: "al_" + id(), pp: "pp_" + id() };
+  const r = { item: "i_" + id(), item2: "i_" + id(), col: "c_" + id(), src: "s_" + id(), att: "a_" + id(), grp: "g_" + id(), rec: "r_" + id(), conv: "c_" + id(), msg: "m_" + id(), alert: "al_" + id(), pp: "pp_" + id(), sm: "i_" + id(), trip: "tr_" + id(), tpl: "tp_" + id() };
   const q = (sql, args) => db.execute({ sql, args });
   await q(`INSERT INTO collections (id, space_id, kind, name, share_token, created_at) VALUES (?, ?, 'list', ?, ?, ?)`, [r.col, space, `${mark} list`, `share${id()}${id()}`, now]);
   await q(`INSERT INTO alt_groups (id, space_id, name, created_at) VALUES (?, ?, ?, ?)`, [r.grp, space, `${mark} group`, now]);
@@ -91,6 +91,13 @@ async function seedData(space, mark, owner) {
   await q(`INSERT INTO conversations (id, space_id, user_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`, [r.conv, space, owner, `${mark} chat`, now, now]);
   await q(`INSERT INTO conversation_messages (id, space_id, conversation_id, role, text, created_at) VALUES (?, ?, ?, 'user', ?, ?)`, [r.msg, space, r.conv, `${mark} message`, now]);
   await q(`INSERT INTO space_pref (space_id, key, value) VALUES (?, 'pref:budget:2026-10', '{"cap":5000,"currency":"ILS"}')`, [space]);
+  // R18: a supermarket row, a finished trip with a check, a store, a template, a dismissed suggestion.
+  await q(`INSERT INTO items (id, space_id, title, status, quantity, list, section, product_key, added_by_user_id, created_at, updated_at) VALUES (?, ?, ?, 'to_buy', 2, 'supermarket', 'dairy', 'milk', ?, ?, ?)`, [r.sm, space, `${mark} milk`, owner, now, now]);
+  await q(`INSERT INTO trip (id, space_id, user_id, chain, branch, started_at, finished_at, bought) VALUES (?, ?, ?, 'Chain', 'B', ?, ?, 1)`, [r.trip, space, owner, now - 3_600_000, now - 1_800_000]);
+  await q(`INSERT INTO trip_check (space_id, trip_id, item_id, product_key, section, action, at, seq) VALUES (?, ?, ?, 'milk', 'dairy', 'check', ?, 1)`, [space, r.trip, r.sm, now - 3_000_000]);
+  await q(`INSERT INTO space_store (space_id, chain, branch, is_default) VALUES (?, 'Chain', 'B', 1)`, [space]);
+  await q(`INSERT INTO template (id, space_id, name, items, created_at) VALUES (?, ?, ?, ?, ?)`, [r.tpl, space, `${mark} template`, JSON.stringify([{ productKey: "milk", title: `${mark} milk`, qty: 1 }]), now]);
+  await q(`INSERT INTO suggest_dismiss (space_id, product_key, until) VALUES (?, 'eggs', ?)`, [space, now + 86_400_000]);
   return r;
 }
 await seedUser("A", "a@tenancy.test");
@@ -114,7 +121,7 @@ for (const k of ["A", "B", "V"]) {
   cookieOf[k] = `nexus_session_dev=${sign(token)}`;
 }
 
-const SPACE_TABLES = ["collections", "items", "sources", "price_points", "attachments", "alerts", "alt_groups", "store_settings", "receipts", "conversations", "conversation_messages", "space_pref"];
+const SPACE_TABLES = ["collections", "items", "sources", "price_points", "attachments", "alerts", "alt_groups", "store_settings", "receipts", "conversations", "conversation_messages", "space_pref", "trip", "trip_check", "space_store", "template", "suggest_dismiss", "staple_add"];
 async function hashSpaces(spaces) {
   const h = createHash("sha256");
   for (const t of SPACE_TABLES) {
@@ -163,11 +170,20 @@ async function callAction(who, a, args, spaceCookie) {
 }
 
 function variants(r) {
-  const X = [r.item, r.item2, r.col, r.src, r.att, r.grp, r.rec, r.conv, r.alert, memA];
+  const X = [r.item, r.item2, r.col, r.src, r.att, r.grp, r.rec, r.conv, r.alert, memA, r.sm, r.trip, r.tpl];
   const patch = { title: "PWNED", quantity: 7, priority: "urgent", name: "PWNED", price: 1, archived: true, collectionId: null, watch: false, notes: "PWNED" };
   const v = [];
   for (const x of X) v.push([x], [x, patch], [[x]], [[x], { priority: "urgent", collectionId: null }], [x, 1, null], [x, "purchased"], [x, "PWNED"]);
   v.push(
+    // R18 supermarket shapes.
+    [r.sm, { quantity: 1, amount: null, unit: null, notes: "PWNED" }],
+    [r.sm, "auto"],
+    ["milk", "2026-10-12"],
+    ["Chain", "B", ["frozen"]],
+    ["Chain", "B", true],
+    [r.trip, "PWNED"],
+    [[{ id: "o1", kind: "check", itemId: r.sm, at: 1 }, { id: "o2", kind: "note", itemId: r.sm, notes: "PWNED", at: 2 }, { id: "o3", kind: "qty", itemId: r.sm, qty: 9, at: 3 }]],
+    [[{ productKey: "milk", title: "PWNED", qty: 9, amount: null, unit: null, section: "dairy", art: null }]],
     [r.item, r.item2],
     [[{ id: r.item, paid: null }, { id: r.item2, paid: null }], "purchased"],
     [{ itemId: r.item, currency: "ILS", refresh: true }],
