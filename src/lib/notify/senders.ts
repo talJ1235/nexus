@@ -316,6 +316,8 @@ export async function eveningDrafts(now = Date.now()) {
         draft = { items: list.length, suggestions: sug };
         await kvSet(cacheKey, JSON.stringify({ ...draft, at: now }));
       }
+      // Nothing on the list and nothing to suggest (a home still shopping from Products) → no push.
+      if (!draft.items && !draft.suggestions.length) continue;
       const data: DraftData = { space: sp.name, items: draft.items, suggested: draft.suggestions.length, day };
       await notify([userId], "draft", key, data, { actor: null, spaceId, now });
       n++;
