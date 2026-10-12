@@ -6,6 +6,7 @@ import { heeboHebrew, heeboLatin } from "./fonts";
 import { SwRegister } from "@/components/sw-register";
 import { BootScreen } from "@/components/boot-screen";
 import { isLocale, LOCALE_COOKIE } from "@/lib/i18n";
+import { DEVICE_COOKIE, deviceFrom } from "@/lib/device";
 import { DEFAULT_PALETTE, isPalette, PALETTE_BG, PALETTE_COOKIE } from "@/lib/palette";
 
 export const metadata: Metadata = {
@@ -39,12 +40,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const pal = jar.get(PALETTE_COOKIE)?.value;
   const palette = isPalette(pal) ? pal : DEFAULT_PALETTE;
   // R15 B4: the per-request CSP nonce (src/proxy.ts) for the inline scripts.
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const h = await headers();
+  const nonce = h.get("x-nonce") ?? undefined;
+  // R17 S7 W1: phone | computer for the first paint (the boot script confirms it before paint; lib/device.ts).
+  const device = deviceFrom(jar.get(DEVICE_COOKIE)?.value, h);
   return (
-    <html lang={locale} dir={locale === "he" ? "rtl" : "ltr"} data-palette={palette} className={`${heeboLatin.variable} ${heeboHebrew.variable}`} suppressHydrationWarning>
+    <html lang={locale} dir={locale === "he" ? "rtl" : "ltr"} data-palette={palette} data-device={device} className={`${heeboLatin.variable} ${heeboHebrew.variable}`} suppressHydrationWarning>
       <body>
         <BootScreen nonce={nonce} />
-        <Providers locale={locale} nonce={nonce}>
+        <Providers locale={locale} device={device} nonce={nonce}>
           {children}
         </Providers>
         <SwRegister />

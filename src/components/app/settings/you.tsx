@@ -1,14 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 import { calendarInfo, markCalendarSubscribed, regenerateCalendar, setCalendarKinds, type CalendarInfo } from "@/app/cal-actions";
 import { homeDiag, setAiSuggestions, type HomeDiag } from "@/app/home-actions";
 import { pictureSearchStatus } from "@/app/picture-actions";
 import { useI18n } from "@/components/providers";
 import { usePalette } from "@/components/use-palette";
-import { useMedia } from "@/components/ui/use-media";
 import { exportUrl } from "@/lib/export-url";
 import { dayKeyIn, weekDays } from "@/lib/home";
 import { calendarEvents, googleSubscribeUrl, type CalKinds } from "@/lib/ics";
@@ -23,6 +22,11 @@ import { NotificationsPage } from "./notifications";
 import { ProfilePage } from "./profile";
 import type { PageProps } from "./shell";
 import { I, Li, P, SectionHead, Sel, Seg, Tick, Toggle } from "./ui";
+import { useDevice } from "@/components/ui/use-device";
+import { DEVICE_COOKIE, deviceCookie, prefFrom, type DevicePref } from "@/lib/device";
+
+const never = () => () => {};
+const readLayoutPref = () => prefFrom(document.cookie.match(new RegExp(`(?:^|; )${DEVICE_COOKIE}=([^;]*)`))?.[1]);
 
 // Settings → the "You" sections (R16 D1, board Settings-desktop): Display, Notifications, Assistant & AI, Calendar,
 // Memory, Data. Account & security lives in ./account.
@@ -82,6 +86,7 @@ function DisplayPage() {
   const { theme, setTheme } = useTheme();
   const [palette, setPalette] = usePalette();
   const [motion, setMotion] = useState(motionPref);
+  const layoutPref = useSyncExternalStore(never, readLayoutPref, () => "auto" as DevicePref);
   const cur = (theme ?? "system") as "light" | "dark" | "system";
   const rates = s.rates.fetchedAt
     ? f(t.settings.rates, { time: new Date(s.rates.fetchedAt).toLocaleString(locale === "he" ? "he-IL" : "en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) })
@@ -155,6 +160,23 @@ function DisplayPage() {
               { value: "reduce", label: t.sx.motionReduce },
             ]}
             data-display-motion
+          />
+        </Li>
+        {/* R17 S7 W1: the device class override (a cookie; the page reloads — the layout is fixed for a page's life). */}
+        <Li icon={P.screen} title={t.sx.layout} sub={t.sx.layoutSub}>
+          <Sel<DevicePref>
+            label={t.sx.layout}
+            value={layoutPref}
+            onChange={(v) => {
+              document.cookie = deviceCookie(v);
+              window.location.reload();
+            }}
+            options={[
+              { value: "auto", label: t.sx.layoutAuto },
+              { value: "phone", label: t.sx.layoutPhone },
+              { value: "computer", label: t.sx.layoutComputer },
+            ]}
+            data-display-layout
           />
         </Li>
         {/* R17 H: go through the first questions again (every answer can be changed). */}
@@ -283,7 +305,7 @@ function CalendarPage() {
   // R17 B2: how many events the feed carries right now (the whole window, not just this week) — an empty feed is the
   // usual reason "nothing shows in Google".
   const feedSize = useMemo(() => calendarEvents(s.items, s.clock.now, s.clock.tz, { arrives: t.cal.arrives, late: t.cal.late, reorder: t.cal.reorder }, kinds).length, [s.items, s.clock, t, kinds]);
-  const phone = useMedia("(max-width: 1023px)");
+  const phone = useDevice() === "phone";
   const wd = (key: string) => new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { weekday: "short", timeZone: "UTC" }).format(new Date(`${key}T12:00:00Z`));
   return (
     <>

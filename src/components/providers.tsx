@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 import { installClientErrorCapture } from "@/lib/client-errors";
 import { ThemeProvider, useTheme } from "next-themes";
 import { Direction } from "radix-ui";
@@ -8,6 +8,8 @@ import { Toaster } from "sonner";
 import { markBooted } from "@/lib/boot";
 import { dictionaries, fmt, LOCALE_COOKIE, type Dict, type Locale } from "@/lib/i18n";
 import { z } from "zod";
+import type { Device } from "@/lib/device";
+import { DeviceContext, useDevice } from "@/components/ui/use-device";
 
 // R15 B4: no `new Function` probe under the strict CSP (zod would report a caught eval as a CSP violation).
 z.config({ jitless: true });
@@ -28,14 +30,17 @@ function ThemedToaster(props: React.ComponentProps<typeof Toaster>) {
   return <Toaster theme={resolvedTheme === "dark" ? "dark" : "light"} {...props} />;
 }
 
-const PHONE = "(max-width: 768px)";
-const subscribePhone = (cb: () => void) => {
-  const mq = window.matchMedia(PHONE);
-  mq.addEventListener("change", cb);
-  return () => mq.removeEventListener("change", cb);
-};
+export function Providers({ locale, device, nonce, children }: { locale: Locale; device: Device; nonce?: string; children: React.ReactNode }) {
+  return (
+    <DeviceContext.Provider value={device}>
+      <Inner locale={locale} nonce={nonce}>
+        {children}
+      </Inner>
+    </DeviceContext.Provider>
+  );
+}
 
-export function Providers({ locale, nonce, children }: { locale: Locale; nonce?: string; children: React.ReactNode }) {
+function Inner({ locale, nonce, children }: { locale: Locale; nonce?: string; children: React.ReactNode }) {
   const setLocale = useCallback((l: Locale) => {
     document.cookie = `${LOCALE_COOKIE}=${l}; path=/; max-age=31536000; samesite=lax`;
     window.location.reload();
@@ -46,7 +51,7 @@ export function Providers({ locale, nonce, children }: { locale: Locale; nonce?:
     installClientErrorCapture();
     if (!document.querySelector("[data-app-shell]")) markBooted();
   }, []);
-  const phone = useSyncExternalStore(subscribePhone, () => window.matchMedia(PHONE).matches, () => false);
+  const phone = useDevice() === "phone";
   const value = useMemo<I18n>(
     () => ({ locale, t: dictionaries[locale], f: fmt, setLocale, dir: locale === "he" ? "rtl" : "ltr" }),
     [locale, setLocale],

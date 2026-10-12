@@ -3,7 +3,7 @@
  * `markBooted()` once the app has its data. Transform/opacity only.
  *
  * When (inline script below, before the first paint → `<html data-boot="full|small|none">`):
- * - **Phone / installed app** (polish #7, Tal 2026-10-08): `full` on the first app open of the day (the same local date
+ * - **Phone (the device class, R17 S7) / installed app** (polish #7, Tal 2026-10-08): `full` on the first app open of the day (the same local date
  *   key as desktop, `localStorage` "nexus.bootDay"); `small` on every other open, a reload, back/forward or a later load
  *   in the same session (`sessionStorage`).
  * - **Desktop**: `full` on the first open of the day (the same key), `small` after that;
@@ -17,6 +17,7 @@
  * cubes wander, dots orbit both ways) · 2.5–2.95 exit: the box flies into the top-bar / sidebar logo, the field
  * fades, Home's cards rise in (lib/boot.ts).
  */
+import { DEVICE_SCRIPT } from "@/lib/device";
 const TOP = "M32 8 54 20 32 32 10 20z";
 const LEFT = "M10 20l22 12v24L10 44z";
 const RIGHT = "M54 20 32 32v24l22-12z";
@@ -29,7 +30,7 @@ const OUTLINE = CUBE(4, 0);
  * are kept here until installClientErrorCapture() picks them up. */
 const EARLY_ERRORS = `(function(){var q=window.__nxEarly=[];addEventListener("error",function(e){if(q.length<10&&window.__nxEarly===q)q.push([String((e.error&&e.error.message)||e.message||"").slice(0,300),e.filename?String(e.filename).split("/").pop().split("?")[0]+":"+e.lineno+":"+e.colno:""])})})()`;
 
-const MODE_SCRIPT = `(function(){var d=document.documentElement,m="full",r=0;try{r=localStorage.getItem("nexus.motion")==="reduce";if(r)d.setAttribute("data-motion","reduce")}catch(e){}try{var p=matchMedia("(max-width: 768px), (display-mode: standalone)").matches,a=new Date(),k=a.getFullYear()+"-"+(a.getMonth()+1)+"-"+a.getDate(),L=localStorage;if(p){var n=performance.getEntriesByType("navigation")[0],t=n&&n.type,s=sessionStorage;if(t==="reload"||t==="back_forward"||s.getItem("nexus.opened")||L.getItem("nexus.bootDay")===k)m="small";else L.setItem("nexus.bootDay",k);s.setItem("nexus.opened","1")}else if(location.pathname!=="/"){m="none"}else{if(L.getItem("nexus.bootDay")===k)m="small";else L.setItem("nexus.bootDay",k)}}catch(e){m="small"}if(r&&m==="full")m="small";d.setAttribute("data-boot",m)})()`;
+const MODE_SCRIPT = `(function(){var d=document.documentElement,m="full",r=0;try{r=localStorage.getItem("nexus.motion")==="reduce";if(r)d.setAttribute("data-motion","reduce")}catch(e){}try{var p=d.getAttribute("data-device")==="phone"||matchMedia("(display-mode: standalone)").matches,a=new Date(),k=a.getFullYear()+"-"+(a.getMonth()+1)+"-"+a.getDate(),L=localStorage;if(p){var n=performance.getEntriesByType("navigation")[0],t=n&&n.type,s=sessionStorage;if(t==="reload"||t==="back_forward"||s.getItem("nexus.opened")||L.getItem("nexus.bootDay")===k)m="small";else L.setItem("nexus.bootDay",k);s.setItem("nexus.opened","1")}else if(location.pathname!=="/"){m="none"}else{if(L.getItem("nexus.bootDay")===k)m="small";else L.setItem("nexus.bootDay",k)}}catch(e){m="small"}if(r&&m==="full")m="small";d.setAttribute("data-boot",m)})()`;
 
 /**
  * R16 A8 + hotfix (2026-10-07) — self-heal for a phone page laid out at desktop width. On Android, an installed app
@@ -81,7 +82,7 @@ const AMBIENT: [string, string, number, number, number, number, number, number][
 export function BootScreen({ nonce }: { nonce?: string }) {
   return (
     <>
-      <script nonce={nonce} dangerouslySetInnerHTML={{ __html: EARLY_ERRORS + ";" + VIEWPORT_GUARD + ";" + MODE_SCRIPT }} />
+      <script nonce={nonce} dangerouslySetInnerHTML={{ __html: DEVICE_SCRIPT + ";" + EARLY_ERRORS + ";" + VIEWPORT_GUARD + ";" + MODE_SCRIPT }} />
       <div id="boot" aria-hidden="true">
         <div className="boot-bg">
           <div className="boot-bloom" />
