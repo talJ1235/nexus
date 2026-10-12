@@ -10,6 +10,7 @@ import { createClient } from "@libsql/client";
 import { createHmac, randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync, statSync } from "node:fs";
 import { chromium } from "playwright";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
 const OUT = "docs/design/parity-r15";
@@ -70,7 +71,7 @@ async function mockShot(name, props, viewport) {
 }
 async function appShot(path, viewport, { dark, plum, he, signedIn, returning, space, act } = {}) {
   const phone = viewport.width < 640;
-  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, ...(phone ? { isMobile: true, hasTouch: true } : {}), colorScheme: dark ? "dark" : "light" });
+  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, ...(phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA } : {}), colorScheme: dark ? "dark" : "light" });
   await ctx.addInitScript((m) => {
     localStorage.setItem("theme", m);
     localStorage.setItem("nexus.bootDay", "x");

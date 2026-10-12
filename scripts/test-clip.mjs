@@ -14,6 +14,7 @@ import { chromium } from "playwright";
 import { seedAdmin } from "./lib/seed-admin.mjs";
 import { startApp } from "./lib/test-app.mjs";
 import { seedInbox } from "./lib/seed-notify.mjs";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const PORT = Number(process.env.PORT || 3109);
 const QUICK = !!process.env.CLIP_QUICK;
@@ -204,7 +205,7 @@ for (const space of [app.personal, "pa_big"])
   for (const z of SIZES)
     for (const locale of LOCALES)
       for (const scheme of SCHEMES) {
-        const ctx = await browser.newContext({ viewport: { width: z.w, height: z.h }, colorScheme: scheme, reducedMotion: "reduce", ...(z.phone ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) });
+        const ctx = await browser.newContext({ viewport: { width: z.w, height: z.h }, colorScheme: scheme, reducedMotion: "reduce", ...(z.phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2 } : {}) });
         ctx.setDefaultTimeout(30_000);
         await ctx.addCookies(app.cookies(space, locale));
         await ctx.addInitScript(() => {

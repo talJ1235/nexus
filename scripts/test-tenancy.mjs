@@ -10,6 +10,7 @@ import { createClient } from "@libsql/client";
 import { spawn, execFileSync } from "node:child_process";
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, rmSync } from "node:fs";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const PORT = Number(process.env.PORT || 3103);
 const BASE = `http://localhost:${PORT}`;
@@ -414,7 +415,7 @@ if (process.env.TENANCY_UI !== "0") {
   const { chromium } = await import("playwright");
   const browser = await chromium.launch();
   const ctxAs = async (who, space, viewport, phone = false) => {
-    const c = await browser.newContext({ viewport, ...(phone ? { isMobile: true, hasTouch: true } : {}) });
+    const c = await browser.newContext({ viewport, ...(phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA } : {}) });
     const [name, value] = cookieOf[who].split("=");
     await c.addCookies([
       { name, value, url: BASE },

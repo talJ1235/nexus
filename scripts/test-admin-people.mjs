@@ -7,6 +7,7 @@ import { chromium } from "playwright";
 import { actionTable, callAction } from "./lib/actions.mjs";
 import { seedAdmin } from "./lib/seed-admin.mjs";
 import { startApp } from "./lib/test-app.mjs";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 let fails = 0;
 const ok = (c, m, extra = "") => {
@@ -86,7 +87,7 @@ try {
   await p.waitForTimeout(500);
   ok((await p.locator("aside.drawer").count()) === 0 && (await p.evaluate(() => document.activeElement?.getAttribute("data-person-row"))) === "ad_ron", "Esc closes the drawer, focus returns to the row");
 
-  const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA });
   await phone.addCookies(app.cookies(app.personal));
   const pp = await phone.newPage();
   await pp.goto(`${app.base}/admin/people/ad_ron`);
@@ -112,7 +113,7 @@ try {
     await x(`INSERT INTO "user" (id, name, email, email_verified, role, created_at, updated_at) VALUES ${chunk.map(() => "(?, ?, ?, 1, 'user', 0, 0)").join(", ")}`, chunk.flat());
   }
   for (const [vw, ctx] of [[1366, desk], [360, null]]) {
-    const c = ctx ?? (await browser.newContext({ viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true }));
+    const c = ctx ?? (await browser.newContext({ viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA }));
     if (!ctx) await c.addCookies(app.cookies(app.personal));
     const q = await c.newPage();
     const t0 = Date.now();

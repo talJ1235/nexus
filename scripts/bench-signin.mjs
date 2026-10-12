@@ -7,6 +7,7 @@
 // Usage: BASE=https://nexus-ashen-beta.vercel.app RUNS=10 GAP_MS=7000 node scripts/bench-signin.mjs
 //        (prod: keep RUNS × 60/GAP under the sign-in rate limit; each run leaves one expired-in-10-min state row)
 import { chromium } from "playwright";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const BASE = process.env.BASE || "http://localhost:3100";
 const RUNS = Number(process.env.RUNS || 10);
@@ -17,7 +18,7 @@ const isIdp = (u) => u.hostname === "accounts.google.com" || u.pathname.startsWi
 const browser = await chromium.launch();
 const rows = [];
 for (let i = 0; i < RUNS; i++) {
-  const ctx = await browser.newContext(process.env.MOBILE ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : {});
+  const ctx = await browser.newContext(process.env.MOBILE ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA } : {});
   const page = await ctx.newPage();
   let navAt = 0;
   let timing = "";

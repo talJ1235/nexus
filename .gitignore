@@ -91,3 +91,6 @@ ci-*.db
 /shots-test.db*
 /ci-settings.db*
 /check-now-test.db*
+/adblock-test.db*
+/device-test.db*
+/smoke-out/

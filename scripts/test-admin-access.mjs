@@ -10,6 +10,7 @@ import { walkAdmin } from "./lib/admin-walk.mjs";
 import { seedAdmin } from "./lib/seed-admin.mjs";
 import { startApp } from "./lib/test-app.mjs";
 import webpush from "web-push";
+import { PHONE } from "./lib/phone.mjs";
 
 let fails = 0;
 const ok = (c, m, extra = "") => {
@@ -82,7 +83,7 @@ try {
   try {
     for (const [w, h] of [[1366, 768], [390, 844]])
       for (const locale of ["en", "he"]) {
-        const ctx = await browser.newContext({ viewport: { width: w, height: h }, timezoneId: "Asia/Jerusalem", locale: locale === "he" ? "he-IL" : "en-US", colorScheme: "dark" });
+        const ctx = await browser.newContext({ viewport: { width: w, height: h }, ...(w < 640 ? PHONE : {}), timezoneId: "Asia/Jerusalem", locale: locale === "he" ? "he-IL" : "en-US", colorScheme: "dark" });
         await ctx.addCookies(app.cookies(app.personal, locale));
         const page = await ctx.newPage();
         const res = await walkAdmin(page, app.base, { locale });
@@ -100,7 +101,7 @@ try {
     await x("INSERT INTO push_subscription (id, user_id, endpoint, p256dh, auth, device, label, created_at, last_fail_at, last_code, fail_count) VALUES ('ps_u1a', 'ad_noa', 'https://fcm.googleapis.com/fcm/send/u1-noa', 'k', 'a', 'phone', 'Chrome · Android', ?, ?, 500, 1)", [now, now - 60_000]);
     await x("INSERT INTO push_subscription (id, user_id, endpoint, p256dh, auth, device, label, created_at, fail_count) VALUES ('ps_u1b', ?, 'https://example.com/not-a-push-service', 'k', 'a', 'computer', 'Chrome · Windows', ?, 0)", [app.admin, now]);
     for (const [w, h] of [[1366, 768], [390, 844]]) {
-      const ctx = await browser.newContext({ viewport: { width: w, height: h }, timezoneId: "Asia/Jerusalem" });
+      const ctx = await browser.newContext({ viewport: { width: w, height: h }, ...(w < 640 ? PHONE : {}), timezoneId: "Asia/Jerusalem" });
       await ctx.addCookies(app.cookies(app.personal, "en"));
       const page = await ctx.newPage();
       await page.goto(`${app.base}/admin/system`);

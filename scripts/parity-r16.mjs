@@ -9,6 +9,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { mkdirSync, statSync } from "node:fs";
 import { chromium } from "playwright";
 import { renderBoard } from "./lib/board.mjs";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
 const OUT = process.env.OUT || "docs/design/parity-r16";
@@ -60,7 +61,7 @@ async function mockShot(name, props, viewport) {
 }
 export async function appPage(viewport, { dark, plum, he, space, reduce } = {}) {
   const phone = viewport.width < 640;
-  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, ...(phone ? { isMobile: true, hasTouch: true } : {}), colorScheme: dark ? "dark" : "light", reducedMotion: reduce ? "reduce" : "no-preference" });
+  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, ...(phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA } : {}), colorScheme: dark ? "dark" : "light", reducedMotion: reduce ? "reduce" : "no-preference" });
   await ctx.addInitScript((m) => {
     localStorage.setItem("theme", m);
     const d = new Date();

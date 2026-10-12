@@ -7,6 +7,7 @@
 // Frame gaps come from requestAnimationFrame deltas in the page (CPU throttled via CDP). Prints JSON per run + a summary.
 import { signIn } from "./lib/sign-in.mjs";
 import { chromium } from "playwright";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
 const args = process.argv.slice(2);
@@ -17,7 +18,7 @@ const RUNS = opt("--runs", 5);
 const phone = scenario === "plus" || (scenario === "suggest" && !args.includes("--desktop"));
 
 const browser = await chromium.launch();
-const ctx = await browser.newContext(phone ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : { viewport: { width: 1366, height: 768 } });
+const ctx = await browser.newContext(phone ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2 } : { viewport: { width: 1366, height: 768 } });
 const page = await ctx.newPage();
 await signIn(page, BASE); // R17 E1: scripts/lib/sign-in.mjs
 await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 30000 });

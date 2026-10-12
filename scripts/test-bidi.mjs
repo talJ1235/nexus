@@ -11,6 +11,7 @@ import { chromium } from "playwright";
 import { seedAdmin } from "./lib/seed-admin.mjs";
 import { seedInbox } from "./lib/seed-notify.mjs";
 import { startApp } from "./lib/test-app.mjs";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const PORT = Number(process.env.PORT || 3114);
 const ONLY = (process.env.BIDI_ONLY || "").split(",").filter(Boolean);
@@ -24,7 +25,7 @@ const browser = await chromium.launch();
 const fails = [];
 const fail = (where, msg) => fails.push(`${where}: ${msg}`);
 const boot = async ({ w, h, phone, locale, space }) => {
-  const ctx = await browser.newContext({ viewport: { width: w, height: h }, reducedMotion: "reduce", ...(phone ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) });
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, reducedMotion: "reduce", ...(phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2 } : {}) });
   ctx.setDefaultTimeout(30_000);
   await ctx.addCookies(app.cookies(space, locale));
   await ctx.addInitScript(() => {

@@ -32,7 +32,7 @@ jobs:
         run: npx eslint --quiet .
       - name: unit tests
         run: |
-          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles status feed assistant-context short-name ai-quota blocked delete-account notify check-now; do
+          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles status feed assistant-context short-name ai-quota blocked delete-account notify check-now device-width; do
             echo "::group::test:$t"; npm run -s test:$t; echo "::endgroup::"
           done
       - name: authz coverage · data scope · SSRF · query plans
@@ -103,6 +103,8 @@ jobs:
         run: npm run -s test:auth-flow
       - name: admin panel — 404 for everyone else + every admin action refuses, counts never content (R17 G0; built app)
         run: npm run -s test:admin-access && npm run -s test:admin-privacy
+      - name: a computer never gets the phone UI — zoomed / narrow windows, phones portrait + landscape, tablet, first paint, the Layout override (R17 S7 W3; built app)
+        run: npm run -s test:device
       - name: no ad blocker hides the app — EasyList generic cosmetic rules on every screen + /admin tab, computer + phone (R17 S7 X1; built app)
         run: npm run -s test:adblock
       - name: admin Live — presence on phone + desktop, shopping chip, 75 s, activity counts, requests per 5 s (R17 G1; built app)

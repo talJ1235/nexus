@@ -9,6 +9,7 @@ import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
 const OUT = process.env.SHOTS_OUT || join(tmpdir(), "nexus-shots");
@@ -18,8 +19,8 @@ const themes = (process.env.SHOTS_THEMES || "graphite:light,graphite:dark,plum:l
 const sizes = (process.env.SHOTS_SIZES || "desktop,phone").split(",");
 const SIZE = {
   desktop: { viewport: { width: 1366, height: 860 } },
-  phone: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
-  phone360: { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+  phone: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2 },
+  phone360: { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2 },
 };
 const host = new URL(BASE).hostname;
 

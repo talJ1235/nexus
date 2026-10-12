@@ -7,6 +7,7 @@ import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 import { startApp } from "./lib/test-app.mjs";
 import { seedInbox } from "./lib/seed-notify.mjs";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const SHOTS = process.env.SHOTS || "test-data/inbox";
 mkdirSync(SHOTS, { recursive: true });
@@ -90,7 +91,7 @@ try {
     ["he", "dark", "plum"],
     ["en", "light", "graphite"],
   ]) {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, colorScheme: scheme });
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2, colorScheme: scheme });
     await ctx.addCookies([...app.cookies(app.personal, locale), { name: "nexus_palette", value: palette, url: app.base }]);
     const page = await ctx.newPage();
     await page.goto(app.base);
@@ -157,7 +158,7 @@ try {
 
   // /inbox (a grouped push) opens the page directly; closing leaves "/".
   {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA });
     await ctx.addCookies(app.cookies(app.personal, "en"));
     const page = await ctx.newPage();
     await page.goto(`${app.base}/inbox`);
@@ -183,7 +184,7 @@ try {
   ]) {
     await app.db.execute({ sql: `INSERT INTO user_pref (user_id, key, value, updated_at) VALUES (?, 'pref:notify-ask', ?, ?) ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value`, args: [app.admin, JSON.stringify({ count: 1, lastNo: Date.now() - 4 * 86_400_000, shown: null }), Date.now()] });
     await app.db.execute({ sql: `DELETE FROM user_pref WHERE user_id = ? AND key = 'pref:onboarding'`, args: [app.admin] });
-    const ctx = await browser.newContext({ viewport: { width: w, height: h }, ...(phone ? { isMobile: true, hasTouch: true } : {}) });
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, ...(phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA } : {}) });
     await ctx.addCookies(app.cookies(app.personal, "en"));
     const page = await ctx.newPage();
     await page.goto(app.base);
@@ -220,7 +221,7 @@ try {
   // ---------- N1 / N2: Settings ----------
   {
     await app.db.execute({ sql: `UPDATE space_member SET role = 'viewer' WHERE space_id = 'pa_big' AND user_id = 'pa_u4'` });
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA });
     await ctx.addCookies(app.cookies("pa_big", "en"));
     // Today's opening animation already played (it would cover the first screenshot).
     await ctx.addInitScript(() => {
@@ -287,7 +288,7 @@ try {
   await app.db.execute({ sql: "DELETE FROM notification WHERE user_id = ?", args: [app.admin] });
   await seedInbox(app.db, { userId: app.admin, spaceId: app.personal });
   for (const z of [{ name: "desktop", w: 1366, h: 768, bell: "[data-nt-bell=desk]", host: "[data-nt-popover]" }, { name: "phone", w: 390, h: 844, bell: "[data-nt-bell=phone]", host: "[data-nt-page]", phone: true }]) {
-    const ctx = await browser.newContext({ viewport: { width: z.w, height: z.h }, reducedMotion: "no-preference", ...(z.phone ? { isMobile: true, hasTouch: true } : {}) });
+    const ctx = await browser.newContext({ viewport: { width: z.w, height: z.h }, reducedMotion: "no-preference", ...(z.phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA } : {}) });
     await ctx.addCookies(app.cookies(app.personal, z.phone ? "he" : "en"));
     await ctx.addInitScript(watch);
     const page = await ctx.newPage();

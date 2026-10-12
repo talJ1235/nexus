@@ -9,6 +9,7 @@ import { renderBoard } from "./lib/board.mjs";
 import { seedAdmin } from "./lib/seed-admin.mjs";
 import { seedInbox } from "./lib/seed-notify.mjs";
 import { startApp } from "./lib/test-app.mjs";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const OUT = process.env.OUT || "docs/design/parity-r17";
 const MOCK = "docs/design/r17";
@@ -49,7 +50,7 @@ async function mockShot(name, props, viewport) {
 async function appShot(path, viewport, opts = {}) {
   await freshen();
   const phone = viewport.width < 640;
-  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, ...(phone ? { isMobile: true, hasTouch: true } : {}), ...(opts.ua ? { userAgent: opts.ua } : {}), colorScheme: opts.dark ? "dark" : "light", reducedMotion: "reduce" });
+  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, ...(phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA } : {}), ...(opts.ua ? { userAgent: opts.ua } : {}), colorScheme: opts.dark ? "dark" : "light", reducedMotion: "reduce" });
   await ctx.addInitScript((m) => {
     localStorage.setItem("theme", m);
     const d = new Date();

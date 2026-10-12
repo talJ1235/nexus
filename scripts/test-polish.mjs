@@ -8,6 +8,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { createHmac, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { chromium } from "playwright";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const PORT = Number(process.env.PORT || 3108);
 const BASE = `http://localhost:${PORT}`;
@@ -85,7 +86,7 @@ for (let i = 0; ; i++) {
 
 const browser = await chromium.launch();
 async function open({ phone = false, he = false, space = "pa_big", reduce = false } = {}) {
-  const ctx = await browser.newContext({ reducedMotion: reduce ? "reduce" : "no-preference", viewport: phone ? { width: 390, height: 844 } : { width: 1366, height: 860 }, ...(phone ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) });
+  const ctx = await browser.newContext({ reducedMotion: reduce ? "reduce" : "no-preference", viewport: phone ? { width: 390, height: 844 } : { width: 1366, height: 860 }, ...(phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2 } : {}) });
   ctx.setDefaultTimeout(180_000);
   await ctx.addCookies([
     { name: "nexus_session_dev", value: cookie, url: BASE },
@@ -469,7 +470,7 @@ if (want("A3")) {
 // ---------- R17 P6: "Nexus suggests" keeps one height while it slides (phone 360 / 390) ----------
 if (want("P6")) {
   for (const width of [360, 390]) {
-    const ctx = await browser.newContext({ viewport: { width, height: 800 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, reducedMotion: "no-preference" });
+    const ctx = await browser.newContext({ viewport: { width, height: 800 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2, reducedMotion: "no-preference" });
     ctx.setDefaultTimeout(180_000);
     await ctx.addCookies([
       { name: "nexus_session_dev", value: cookie, url: BASE },
@@ -620,7 +621,7 @@ if (want("S3")) {
 if (want("P7")) {
   for (const he of [false, true])
     for (const touch of [false, true]) {
-      const ctx = await browser.newContext({ viewport: touch ? { width: 390, height: 844 } : { width: 1366, height: 860 }, ...(touch ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}), reducedMotion: "no-preference" });
+      const ctx = await browser.newContext({ viewport: touch ? { width: 390, height: 844 } : { width: 1366, height: 860 }, ...(touch ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2 } : {}), reducedMotion: "no-preference" });
       ctx.setDefaultTimeout(180_000);
       await ctx.addCookies([
         { name: "nexus_session_dev", value: cookie, url: BASE },

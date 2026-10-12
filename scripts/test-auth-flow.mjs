@@ -8,6 +8,7 @@ import { createClient } from "@libsql/client";
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
 import { chromium } from "playwright";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const PORT = Number(process.env.PORT || 3104);
 const BASE = `http://localhost:${PORT}`;
@@ -98,7 +99,7 @@ try {
   // ---- R16 A8: on a phone the first screen after the IdP callback is the phone layout (no desktop sidebar, the dock),
   // with no reload.
   {
-    const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2 });
     const pp = await signIn(phone, ADMIN);
     await pp.waitForURL((u) => u.pathname === "/" || u.pathname === "/welcome" || u.pathname === "/passkey", { timeout: 120_000 });
     if (new URL(pp.url()).pathname === "/passkey") await pp.click("[data-auth=not-now]").catch(() => {});

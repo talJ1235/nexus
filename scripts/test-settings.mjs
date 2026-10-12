@@ -9,6 +9,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 import sharp from "sharp";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
 const SECRET = process.env.BETTER_AUTH_SECRET;
@@ -50,7 +51,7 @@ const cookies = { owner: await session(admin.id), member: await session("tset_no
 const browser = await chromium.launch();
 async function open(viewport, { who = "owner", he = false, dark = false, space = SPACE } = {}) {
   const phone = viewport.width < 640;
-  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, ...(phone ? { isMobile: true, hasTouch: true } : {}), colorScheme: dark ? "dark" : "light" });
+  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, ...(phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA } : {}), colorScheme: dark ? "dark" : "light" });
   await ctx.addInitScript(() => {
     const d = new Date();
     localStorage.setItem("nexus.bootDay", `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);

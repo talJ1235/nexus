@@ -6,6 +6,7 @@
 //   npm run build && npm run test:onboarding
 import { chromium } from "playwright";
 import { startApp } from "./lib/test-app.mjs";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 let fails = 0;
 const ok = (c, m, extra = "") => {
@@ -33,7 +34,7 @@ async function person(opts = {}) {
   const s = await app.sessionFor(id, { locale: opts.he ? "he" : "en" });
   const ctx = await browser.newContext({
     viewport: opts.phone ? { width: 390, height: 844 } : { width: 1366, height: 768 },
-    ...(opts.phone ? { isMobile: true, hasTouch: true } : {}),
+    ...(opts.phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA } : {}),
     ...(opts.ua ? { userAgent: opts.ua } : {}),
     reducedMotion: opts.reduce ? "reduce" : "no-preference",
   });

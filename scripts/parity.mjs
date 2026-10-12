@@ -5,6 +5,7 @@
 import { signIn } from "./lib/sign-in.mjs";
 import { readFileSync, statSync } from "node:fs";
 import { chromium } from "playwright";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 const BASE = (process.env.BASE || "http://localhost:3100").replace(/\/$/, "");
 const OUT = "docs/design/parity-r14";
@@ -28,7 +29,7 @@ const dayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()
 /** A logged-in context in one theme, with the opening already seen (the small loader goes as soon as data is in). */
 async function appContext(viewport, mode, cookies = {}, opening = false, dpr = 1) {
   const phone = viewport.width < 640;
-  const ctx = await browser.newContext({ viewport, deviceScaleFactor: dpr, ...(phone ? { isMobile: true, hasTouch: true } : {}) });
+  const ctx = await browser.newContext({ viewport, deviceScaleFactor: dpr, ...(phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA } : {}) });
   await ctx.addInitScript(
     ([m, k, open]) => {
       localStorage.setItem("theme", m);

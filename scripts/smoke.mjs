@@ -29,6 +29,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import sharp from "sharp";
+import { PHONE_UA } from "./lib/phone.mjs";
 
 // Service-worker fetches only see context.setOffline() with this flag (the offline check needs the SW fallback).
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS ??= "1";
@@ -50,7 +51,7 @@ const OUT = process.env.SMOKE_OUT || (TRACE ? join(tmpdir(), "nexus-smoke") : ""
 if (OUT) mkdirSync(OUT, { recursive: true });
 const SUFFIX = MOBILE ? "-m" : "";
 const VIEWPORT = MOBILE ? { width: 390, height: 844 } : { width: 1366, height: 860 };
-const DEVICE = MOBILE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {};
+const DEVICE = MOBILE ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2 } : {};
 
 let failed = 0;
 const ok = (cond, msg, extra = "") => {
@@ -2128,8 +2129,8 @@ try {
         await c.close();
         return { docs, settled, ...r };
       };
-      const wide = await run({ viewport: { width: 1100, height: 844 }, screen: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-      const phone = await run({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+      const wide = await run({ viewport: { width: 1100, height: 844 }, screen: { width: 390, height: 844 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA });
+      const phone = await run({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2 });
       const desk = await run({ viewport: { width: 1366, height: 860 } });
       const recent = (f) => /^\d{13}$/.test(f ?? "") && Math.abs(Date.now() - Number(f)) < 120_000;
       ok(
@@ -2145,7 +2146,7 @@ try {
       const bad = [];
       for (const [w, h] of [[360, 740], [390, 844], [1280, 720], [1366, 768], [1920, 1080]]) {
         const phone = w < 900;
-        const c = await browser.newContext({ viewport: { width: w, height: h }, ...(phone ? { isMobile: true, hasTouch: true } : {}), reducedMotion: "reduce" });
+        const c = await browser.newContext({ viewport: { width: w, height: h }, ...(phone ? { isMobile: true, hasTouch: true, userAgent: PHONE_UA } : {}), reducedMotion: "reduce" });
         const p = await c.newPage();
         await p.goto(`${BASE}/login`);
         const m = await p.evaluate(() => {
@@ -2173,7 +2174,7 @@ try {
       const bad = [];
       for (const w of [360, 390])
         for (const lang of ["en", "he"]) {
-          const c = await browser.newContext({ storageState: state, viewport: { width: w, height: 800 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+          const c = await browser.newContext({ storageState: state, viewport: { width: w, height: 800 }, isMobile: true, hasTouch: true, userAgent: PHONE_UA, deviceScaleFactor: 2 });
           await c.addCookies([{ name: "nexus_locale", value: lang, url: BASE }]);
           const p = await c.newPage();
           await p.goto(`${BASE}/`);

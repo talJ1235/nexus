@@ -1,0 +1,20 @@
+# R17 S7 W3 — width checks that stay: they only size things inside a layout, or narrow a phone-only rule further.
+# "Is this the phone UI" is never one of these (useDevice / isPhone / phone: / desk:). Format: path | snippet of the line.
+# Narrow phone (portrait) only — the List/Grid layout variants and bottom sheets also require [data-device=phone]:
+src/app/globals.css | @media (width < 40rem) {
+src/app/globals.css | @media (max-width: 639px) {
+src/app/globals.css | @media (min-width: 640px) { .actions-sheet
+src/components/ui/use-media.ts | export const PHONE = "(max-width: 639px)";
+# Sizing only (also: .cv-auto under the 639 px line above):
+src/components/app/projects-view.tsx | lg:grid-cols-3
+src/components/app/skeletons.tsx | lg:grid-cols-3
+src/components/app/spending-view.tsx | lg:grid-cols-4
+src/components/app/spending-view.tsx | lg:grid-cols-2
+src/components/app/settings/nx16.css | @media (max-width:1023px){.nx .sx-tiles
+src/components/app/settings/nx16.css | @media (max-width:420px){
+src/components/onboarding/onboarding.css | @media (max-width:359px){
+# A narrow computer window keeps the computer UI with the sidebar on its icon rail (not saved):
+src/components/app/store.tsx | const narrowDesk = useMedia("(max-width: 1023px)");
+# Sign-in / welcome screens (outside the app shell): the art column beside the form only when there's room for it.
+src/components/auth/nx.css | @media (max-width:899px){
+src/components/auth/nx.css | @media (min-width:900px){

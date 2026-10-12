@@ -72,7 +72,9 @@
     "test:notify": "tsx --conditions=react-server scripts/test-notify.ts",
     "test:inbox": "node scripts/test-inbox.mjs",
     "test:push": "tsx --conditions=react-server scripts/test-push.ts",
-    "test:adblock": "node scripts/test-adblock.mjs"
+    "test:adblock": "node scripts/test-adblock.mjs",
+    "test:device": "node scripts/test-device.mjs",
+    "test:device-width": "node scripts/test-device-width.mjs"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",

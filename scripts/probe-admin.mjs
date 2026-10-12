@@ -5,6 +5,7 @@
 import { chromium } from "playwright";
 import { walkAdmin } from "./lib/admin-walk.mjs";
 import { signIn } from "./lib/sign-in.mjs";
+import { PHONE } from "./lib/phone.mjs";
 
 const base = process.env.BASE || "http://localhost:3000";
 const browser = await chromium.launch();
@@ -16,7 +17,7 @@ try {
   await first.close();
   for (const [w, h] of [[1366, 768], [390, 844]])
     for (const locale of ["en", "he"]) {
-      const ctx = await browser.newContext({ storageState, viewport: { width: w, height: h }, locale: locale === "he" ? "he-IL" : "en-US", timezoneId: "Asia/Jerusalem", colorScheme: "dark" });
+      const ctx = await browser.newContext({ storageState, viewport: { width: w, height: h }, ...(w < 640 ? PHONE : {}), locale: locale === "he" ? "he-IL" : "en-US", timezoneId: "Asia/Jerusalem", colorScheme: "dark" });
       const r = await walkAdmin(await ctx.newPage(), base, { locale });
       for (const p of r.problems) console.log(`FAIL ${w} ${locale} ${p}`);
       if (!r.problems.length) console.log(`PASS ${w} ${locale} /admin: ${r.tabs} tabs, no console error / hydration warning / 5xx / blank`);
