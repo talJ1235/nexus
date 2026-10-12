@@ -16,6 +16,8 @@ env:
   NEXT_TELEMETRY_DISABLED: "1"
   # R17 S6 U3: test servers keep their seeded data — no opportunistic notification sweeps on beats (test:push forces it).
   NOTIFY_AUTO_DISPATCH: "0"
+  # R18 S1: never live search on test servers (compare stores → the mock offers).
+  SEARCH_OFF: "1"
 jobs:
   guards:
     runs-on: ubuntu-24.04 # pinned: ubuntu-latest moves to 26.04 on 2026-10-19
@@ -32,7 +34,7 @@ jobs:
         run: npx eslint --quiet .
       - name: unit tests
         run: |
-          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles status feed assistant-context short-name ai-quota blocked delete-account notify check-now device-width; do
+          for t in sug actions ship budget receipt weekly barcode receipt-check import-vat receipt-track help gestures home reports memory pictures picture-style ics auth otp roles status feed assistant-context short-name ai-quota blocked delete-account notify check-now device-width grocery staples add trips; do
             echo "::group::test:$t"; npm run -s test:$t; echo "::endgroup::"
           done
       - name: authz coverage · data scope · SSRF · query plans
@@ -115,6 +117,8 @@ jobs:
         run: npm run -s test:onboarding
       - name: web push — fake push service + decrypt, 410 / failures, endpoint allow-list, service worker handlers, a real push, the test push + opportunistic dispatch (R17 S3 J2, S6 U1/U3; built app)
         run: npm run -s test:push
+      - name: supermarket outbox — offline checks / unchecks / adds / a price, a second session's note kept, resend is a no-op (R18 D1; built app)
+        run: npm run -s test:shop-offline
       - name: inbox — popover + phone page, read / mark all / swipe / Received, media inside rows, RTL, the reminder card, Settings → Notifications, budget recipients (R17 S3 K–N; built app)
         run: npm run -s test:inbox
       - name: settings shell, space look, switch moment, Home customise (R16 D1–D5, E1)

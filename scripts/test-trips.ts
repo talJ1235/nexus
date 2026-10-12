@@ -43,13 +43,30 @@ async function db() {
   const G = await import("../src/lib/db-scoped/grocery");
   const S = await import("../src/lib/notify/senders");
   const { replayTrip } = await import("../src/lib/grocery/trip");
-  const { eq } = await import("drizzle-orm");
+  const { eq, inArray } = await import("drizzle-orm");
   const d = new Date(T0);
   for (const [id, name] of [["noa", "Noa"], ["yoav", "Yoav"]]) await db.insert(schema.user).values({ id, name, email: `${id}@test.example`, emailVerified: true, createdAt: d, updatedAt: d });
   await db.insert(schema.space).values({ id: "home", name: "Home", slug: "home", kind: "shared", createdBy: "noa", createdAt: d } as never);
   await db.insert(schema.space).values({ id: "other", name: "Other", slug: "other", kind: "personal", createdBy: "yoav", createdAt: d } as never);
   for (const [i, u, r] of [["m1", "noa", "owner"], ["m2", "yoav", "member"]]) await db.insert(schema.member).values({ id: i, organizationId: "home", userId: u, role: r, createdAt: d } as never);
   const s = new Scoped({ spaceId: "home", userId: "noa", by: "noa" });
+
+  // ---- A1: the grocery move (once): a collection named like groceries → its items go to the Supermarket list.
+  await db.insert(schema.collections).values([{ id: "c-groc", spaceId: "home", name: "מצרכים לבית" }, { id: "c-desk", spaceId: "home", name: "Desk setup" }] as never);
+  await db.insert(schema.items).values([{ id: "g1", spaceId: "home", collectionId: "c-groc", title: "חלב 3%" }, { id: "g2", spaceId: "home", collectionId: "c-groc", title: "Something odd" }, { id: "p1", spaceId: "home", collectionId: "c-desk", title: "Monitor arm" }] as never);
+  await db.delete(schema.kv).where(eq(schema.kv.key, "migrate:r18:groceries"));
+  execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", "src/db/migrate.ts"], { env: process.env, stdio: "ignore" });
+  const lists = Object.fromEntries((await db.select().from(schema.items)).map((i) => [i.id, [i.list, i.section, i.productKey]]));
+  assert.deepEqual(lists.g1, ["supermarket", "dairy", "milk 3%"], "a grocery item moves with section + product key");
+  assert.equal(lists.g2[0], "supermarket");
+  assert.equal(lists.g2[1], "other", "unknown → other");
+  assert.deepEqual(lists.p1, ["products", null, null], "other collections stay Products");
+  const marker = JSON.parse((await db.select().from(schema.kv).where(eq(schema.kv.key, "migrate:r18:groceries")))[0].value);
+  assert.deepEqual(marker.moved, { home: 2 }, "counts per space recorded");
+  await db.update(schema.items).set({ list: "products" }).where(eq(schema.items.id, "g2"));
+  execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", "src/db/migrate.ts"], { env: process.env, stdio: "ignore" });
+  assert.equal((await s.byId(schema.items, "g2"))!.list, "products", "once only: a later run moves nothing");
+  await db.delete(schema.items).where(inArray(schema.items.id, ["g1", "g2", "p1"]));
 
   // ---- A3: a branch override applies to that branch only.
   await G.saveStore(s, "Shufersal", "Modiin", { isDefault: true });
@@ -172,6 +189,7 @@ async function db() {
 
 (async () => {
   await sections();
+  console.log("ok A1 grocery move: grocery-named collections → Supermarket (section + key), counts per space, once only");
   console.log("ok A3 sections: 16 keys, default order, override per branch, cleaned orders");
   await db();
   console.log("ok A2 trips: 10 actions replay to the same counts + order, notifications read the trip row, R17 pref trip ends, trip prices carry chain + branch");

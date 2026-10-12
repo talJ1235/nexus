@@ -22,12 +22,12 @@ node scripts/seed-worst.mjs > /dev/null || { echo "FAIL seed-worst"; exit 1; }
 # R17 E1: the smoke signs in with a fresh session row per sign-in (scripts/lib/sign-in.mjs) — no password.
 mkdir -p .next
 if [ -n "$WIN" ]; then
-  powershell.exe -NoProfile -Command "Start-Process cmd -ArgumentList '/c set TURSO_DATABASE_URL=file:$DB&& set NEXUS_AI_MOCK=1&& set AUTH_FULL_LOCAL=0&& set NOTIFY_AUTO_DISPATCH=0&& ${EXTRA_ENV:-} npx next start -p $PORT > .next\serve.log 2>&1' -WindowStyle Hidden" < /dev/null
+  powershell.exe -NoProfile -Command "Start-Process cmd -ArgumentList '/c set TURSO_DATABASE_URL=file:$DB&& set NEXUS_AI_MOCK=1&& set AUTH_FULL_LOCAL=0&& set NOTIFY_AUTO_DISPATCH=0&& set SEARCH_OFF=1&& ${EXTRA_ENV:-} npx next start -p $PORT > .next\serve.log 2>&1' -WindowStyle Hidden" < /dev/null
 else
-  NEXUS_AI_MOCK=1 AUTH_FULL_LOCAL=0 NOTIFY_AUTO_DISPATCH=0 nohup npx next start -p "$PORT" > .next/serve.log 2>&1 < /dev/null &
+  NEXUS_AI_MOCK=1 AUTH_FULL_LOCAL=0 NOTIFY_AUTO_DISPATCH=0 SEARCH_OFF=1 nohup npx next start -p "$PORT" > .next/serve.log 2>&1 < /dev/null &
 fi
 for _ in $(seq 1 60); do
-  curl -s -o /dev/null --noproxy '*' "http://localhost:$PORT/login" && { echo "OK serving a fresh $DB on :$PORT (mock AI)"; exit 0; }
+  curl -s -o /dev/null --noproxy '*' "http://localhost:$PORT/login" && { echo "OK serving a fresh $DB on :$PORT (mock AI, no live search)"; exit 0; }
   sleep 0.5
 done
 echo "FAIL server did not start"; tail -15 .next/serve.log; exit 1

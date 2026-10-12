@@ -37,6 +37,8 @@ export async function startApp({ db: file, port, dev = false, env: extra = {} })
     NEXUS_AI_MOCK: "1",
     // R17 S6 U3: seeded test data stays as seeded — no opportunistic sweeps on beats (test:push covers maybeDispatch).
     NOTIFY_AUTO_DISPATCH: "0",
+    // R18 S1: no live search even when .env.local has a key (compare stores → the two mock offers).
+    SEARCH_OFF: "1",
     REALTIME_FAKE: dev ? "1" : "",
     NEXT_DIST_DIR: undefined,
     ...extra,

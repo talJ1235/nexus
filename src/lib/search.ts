@@ -8,6 +8,9 @@ export type ImageResult = { image: string; page: string | null; title: string | 
 export type ShoppingResult = { title: string; url: string; price: string | null; source: string | null; image: string | null };
 
 export function searchProvider(): "brave" | "serper" | null {
+  // R18 S1: smoke / test servers run with SEARCH_OFF=1 — no live search even when .env.local has a key (next start loads
+  // it), so "compare stores" shows the two mock offers on every machine.
+  if (process.env.SEARCH_OFF === "1") return null;
   if (process.env.BRAVE_SEARCH_API_KEY) return "brave";
   if (process.env.SERPER_API_KEY) return "serper";
   return null;
