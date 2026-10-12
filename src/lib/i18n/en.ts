@@ -438,7 +438,7 @@ export const en = {
       closest: "Closest to the limit today",
       noneToday: "No AI calls today.",
       noCalls: "No AI calls in this period.",
-      features: { assistant: "Assistant", receipt: "Receipts", suggestions: "Suggestions", short_name: "Short names", extract: "Adding links", categorize: "Categories", barcode: "Barcodes", compare: "Compare", pictures: "Pictures", chat: "Chat", memory: "Memory", debug: "Debug" },
+      features: { assistant: "Assistant", receipt: "Receipts", suggestions: "Suggestions", short_name: "Short names", extract: "Adding links", categorize: "Categories", barcode: "Barcodes", compare: "Compare", pictures: "Pictures", chat: "Chat", memory: "Memory", grocery: "Supermarket", debug: "Debug" },
     },
     rep: {
       open: "Open {n}",

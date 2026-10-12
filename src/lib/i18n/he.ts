@@ -438,7 +438,7 @@ export const he: Dict = {
       closest: "הכי קרובים למגבלה היום",
       noneToday: "אין קריאות AI היום.",
       noCalls: "אין קריאות AI בתקופה הזו.",
-      features: { assistant: "העוזר", receipt: "קבלות", suggestions: "הצעות", short_name: "שמות קצרים", extract: "הוספת קישורים", categorize: "קטגוריות", barcode: "ברקודים", compare: "השוואה", pictures: "תמונות", chat: "צ׳אט", memory: "זיכרון", debug: "דיבאג" },
+      features: { assistant: "העוזר", receipt: "קבלות", suggestions: "הצעות", short_name: "שמות קצרים", extract: "הוספת קישורים", categorize: "קטגוריות", barcode: "ברקודים", compare: "השוואה", pictures: "תמונות", chat: "צ׳אט", memory: "זיכרון", grocery: "סופרמרקט", debug: "דיבאג" },
     },
     rep: {
       open: "פתוחים {n}",

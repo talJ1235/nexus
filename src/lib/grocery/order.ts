@@ -29,11 +29,16 @@ export function mergeOrder(current: SectionKey[], seqs: SectionKey[][]): Section
   const seen = new Set(seqs.flat());
   const edges = new Map<SectionKey, Set<SectionKey>>();
   const indeg = new Map<SectionKey, number>();
-  for (const s of seen) (edges.set(s, new Set()), indeg.set(s, 0));
+  for (const s of seen) {
+    edges.set(s, new Set());
+    indeg.set(s, 0);
+  }
   for (const q of seqs)
     for (let i = 0; i + 1 < q.length; i++) {
       const [a, b] = [q[i], q[i + 1]];
-      if (!edges.get(a)!.has(b)) (edges.get(a)!.add(b), indeg.set(b, indeg.get(b)! + 1));
+      if (edges.get(a)!.has(b)) continue;
+      edges.get(a)!.add(b);
+      indeg.set(b, indeg.get(b)! + 1);
     }
   const rank = (k: SectionKey) => current.indexOf(k);
   const ready = [...seen].filter((s) => indeg.get(s) === 0);

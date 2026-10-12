@@ -31,6 +31,7 @@ export type AiFeature =
   | "pictures"
   | "chat"
   | "memory"
+  | "grocery"
   | "debug";
 
 /** Who a model call is for. `system` = cron / backfill / health checks: recorded, never counted against a person. */

@@ -53,7 +53,12 @@ export function cleanOrder(raw: unknown): SectionKey[] {
   }
   const seen = new Set<SectionKey>();
   const out: SectionKey[] = [];
-  if (Array.isArray(v)) for (const k of v) if (isSection(k) && !seen.has(k)) (seen.add(k), out.push(k));
+  if (Array.isArray(v))
+    for (const k of v)
+      if (isSection(k) && !seen.has(k)) {
+        seen.add(k);
+        out.push(k);
+      }
   for (const k of DEFAULT_ORDER) if (!seen.has(k)) out.push(k);
   return out;
 }

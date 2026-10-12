@@ -75,7 +75,8 @@
     "test:adblock": "node scripts/test-adblock.mjs",
     "test:device": "node scripts/test-device.mjs",
     "test:device-width": "node scripts/test-device-width.mjs",
-    "test:trips": "tsx --conditions=react-server scripts/test-trips.ts"
+    "test:trips": "tsx --conditions=react-server scripts/test-trips.ts",
+    "test:grocery": "tsx --conditions=react-server scripts/test-grocery.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",

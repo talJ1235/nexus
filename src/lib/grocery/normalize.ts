@@ -10,6 +10,7 @@ export function normalize(text: string): string {
   return String(text ?? "")
     .normalize("NFC")
     .toLowerCase()
+    .replace(/־/g, " ") // maqaf (inside the niqqud block) is a hyphen
     .replace(NIQQUD, "")
     .replace(QUOTES, "")
     .replace(/[ךםןףץ]/g, (c) => FINALS[c])
