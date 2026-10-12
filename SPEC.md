@@ -855,6 +855,57 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
   override both ways + reload; 0 hydration warnings), `test:device-width` (a new width check that may choose the UI
   fails unless allow-listed). Phone test contexts carry a mobile UA (`scripts/lib/phone.mjs`).
 
+## Round 18 — Session 1: supermarket data + engines (no new screens)
+(brief `docs/ROUND18.md` "Session 1", screens `docs/R18-SCREENS.md`, boards `docs/design/r18/`, notes: `docs/ROUND18.md` "## Open" → "### Session 1")
+- **One supermarket list per space, in `items`** (`list` = `products` | `supermarket`, default Products) with `section`,
+  `unit` (u / kg / g / L) + `amount`, `product_key` (the same product across trips: gtin, else the dictionary type + the
+  words that tell it apart — `milk 3%` ≠ `milk 1%`, same key in Hebrew and English), `staple` (off / suggest / auto),
+  `pinned_store`, `prefer_brand`, `substitutes`, `art_key`. Every Products view excludes supermarket rows and the reverse
+  (`loadItems` defaults to Products; `AppData.supermarket` + the feed's `supermarket` carry the list; `test:scope`
+  guards it). Migration (additive): items in a collection named like groceries (`groceries`, `מצרכים`, `סופר`,
+  `supermarket`) move to the list once (kv `migrate:r18:groceries` keeps the counts) — prod had none.
+- **Sections** (`lib/grocery/sections.ts`): 16 keys + the default Israeli walking order (produce first, bread / dairy
+  at the back, frozen last), he + en names, the boards' icon keys; `other` = not classified yet. Per space + store:
+  `space_store` (default store, confirmed `section_order`, learned `suggested_order`).
+- **Product dictionary + classify** (`lib/grocery/dictionary.ts`, `classify.ts`, `classify-server.ts`): 237 product
+  types (he + en + spellings, section, default unit, picture key). Hebrew normalisation (final letters, niqqud,
+  geresh / gershayim, maqaf). Dictionary first (longest synonym; qualifiers after "with" / "ללא" ignored), then Open
+  Food Facts categories for a barcode, then one batched AI call for unknowns (feature `grocery`, quota, cached per
+  text) — adding never waits: unknown → `other`, fixed when the answer arrives.
+- **Trips** (`trip`, `trip_check`; `lib/db-scoped/trips.ts`, `lib/grocery/trip.ts`): a trip row per shopping trip
+  (store, counts, totals, receipt) and every action in it in order (`seq`); counts are rebuilt by replaying the log.
+  The R17 trip notifications read / write the trip row (the `pref:shop-trip` pref is read only, for trips open across
+  the release); check-offs in R17's shopping mode during a trip become checks. Prices seen in a trip are price points
+  with chain + branch + gtin.
+- **Learned walking order** (`lib/grocery/order.ts`): ≥ 2 recent trips in a branch that agree and differ from the
+  current order → `suggested_order` (never applied; a dismiss waits 3 more trips).
+- **Staples + "Build my list" engine** (`lib/grocery/staples.ts`, `holidays.ts`, `lib/db-scoped/grocery.ts`): history
+  per product (usual quantity, interval = median gap with ≥ 3 purchases, last bought where / price, usual stores) and the
+  usual shop day + hour (≥ 3 trips). Suggestions with a reason — Shabbat (Wed noon → Fri 14:00: challah, wine, what
+  this home buys on Thu / Fri), a holiday in the next 3 days (table to Oct 2027), "usually with X" (≥ 60 % of ≥ 3
+  trips), due ("every ~9 days"); never what's on the list or dismissed this cycle (`suggest_dismiss`); accept merges
+  (an existing quantity stays). `auto` staples are added by Nexus on their due day, once, undoable (`staple_add`).
+  Templates (`template`): apply merges, never duplicates; a trip can be saved as one.
+- **Evening-before draft**: hourly sweep — a space whose usual day is tomorrow, 19:00–21:00 local, not quiet → the draft
+  is computed once (kv `sm:draft:<space>:<day>`) and each member who shops gets one push (kind `draft`, Open list →
+  `/supermarket?draft=1`; `/supermarket` redirects to To buy until S2). Pref `pref:sm:draft` (on unless "off").
+- **Fast add** (`lib/grocery/parse.ts`, `search.ts`, `voice.ts`, `/api/grocery/search`): `parseLine` (quantities,
+  units he + en, decimals, half, pack sizes stay in the name), add with merge + Undo (other units noted on the row),
+  type-ahead ranked household → dictionary → Open Food Facts IL with the typed letters' range per hit, "did you mean"
+  (edit distance ≤ ⌊len/3⌋), `splitList` for WhatsApp pastes / voice lines (sender prefixes, bullets, emoji, "!!", `ו`
+  as "and" only between items; sentences come back as unchecked notes), Web Speech helper with "not supported".
+- **Offline + live in the store**: every trip action is queued on the phone (`lib/shop-outbox.ts`: rev + time per action,
+  client ids for offline adds) and merged per field on the server (`lib/db-scoped/trip-sync.ts`: a check never touches a
+  note, two checks = one, a later edit by someone else wins, adds merge by product key once). An add by another member
+  during a trip is logged in the shopper's trip (`isLiveAdd`) and pushed (kind `trip_add`: first at once, then ≤ 1 per
+  10 min per trip). S1 has no screens: `components/app/supermarket/sm-bridge.tsx` keeps the outbox flowing (and exposes
+  the engines to tests behind localStorage `nexus.smBridge`).
+- Server actions for S2: `app/supermarket-actions.ts`. Admin → System → Supermarket: trips / week, items / trip,
+  receipts, suggestions taken, week-4 retention (counts only; activity kinds `suggest_accepted` / `suggest_dismissed`).
+- Guards: `test:grocery`, `test:staples`, `test:add`, `test:trips` (unit), `test:shop-offline` (browser), `test:scope`
+  list split, `test:tenancy` with supermarket rows, `scripts/r18-rehearsal.mjs`. Smoke / test servers run with
+  `SEARCH_OFF=1` (no live search; compare stores shows the mock offers).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.

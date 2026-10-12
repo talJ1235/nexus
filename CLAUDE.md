@@ -83,6 +83,16 @@
   CSS `:where([data-device=phone])`. `lg:` / width media only size things — new ones fail `test:device-width` unless
   listed in `scripts/device-width-allow.txt`. Phone test contexts: `PHONE` / `PHONE_UA` from `scripts/lib/phone.mjs`.
   Admin shell classes are `ops-*` (never `ad-*`: ad blockers hide them; `test:adblock`, EasyList snapshot in `scripts/fixtures/`).
+- R18 S1 supermarket (data + engines; screens in S2): list = `items.list` (`products` | `supermarket`; `loadItems`
+  defaults to Products, `listIs()`; `test:scope` guards the split). Client-safe `lib/grocery/`: `sections.ts` (16 keys,
+  default order), `dictionary.ts` (237 types) + `normalize.ts` + `classify.ts`, `parse.ts` (parseLine, splitList),
+  `search.ts` (type-ahead, did-you-mean), `staples.ts` (history, suggest, due staples), `holidays.ts`, `order.ts`
+  (learned walking order), `trip.ts` (replay, TripOp), `voice.ts`; server `grocery/classify-server.ts` (Open Food Facts,
+  batched AI). Data: `lib/db-scoped/grocery.ts` (stores, order, add + merge, history, suggestions, staples,
+  templates), `trips.ts` (trip + trip_check), `trip-sync.ts` (outbox merge). Actions `app/supermarket-actions.ts`,
+  route `/api/grocery/search`; senders `eveningDrafts` / `autoStaples` / `liveAdd` (kinds `draft`, `trip_add`);
+  client outbox `lib/shop-outbox.ts` (trip ops) + `components/app/supermarket/sm-bridge.tsx`. Tests: `test:grocery`,
+  `test:staples`, `test:add`, `test:trips`, `test:shop-offline`; rehearsal `scripts/r18-rehearsal.mjs`.
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)

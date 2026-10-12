@@ -211,3 +211,12 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   `mobile: true` even for an iPad descriptor — `test:device` overrides it over CDP for the tablet. Next 16 serves CSS
   from `/_next/static/chunks/` too: block only `.js` there to see a page before hydration. `.claude/settings.local.json`
   allows the round17-s7 push/merge commands.
+- 2026-10-12 (PC, R18 Session 1): the read-only prod snapshot (`node --env-file=.env.local scripts/db-snapshot.mjs`)
+  **ran in the session this time** (83 SELECT/PRAGMA, `snapshots/prod-2026-10-12.db`); the R18 rehearsal
+  (`node scripts/r18-rehearsal.mjs --source snapshots/prod-2026-10-12.db --base origin/main`) ran on a copy. Reading
+  receipt *contents* from `local.db` was refused by the classifier (PII) — `test:grocery` prints counts only for them.
+  New env flag `SEARCH_OFF=1` (no live search even when `.env.local` has a key; `next start` loads it): set by
+  `scripts/serve-smoke.sh`, `scripts/lib/test-app.mjs` and `guards.yml`. New tests `test:grocery`, `test:staples`,
+  `test:add`, `test:trips` (unit loop), `test:shop-offline` (built app, port 3128). Playwright's `waitForFunction` with an
+  async predicate passes on the Promise — poll from Node instead. No new secrets. `.claude/settings.local.json` allows
+  the round18-s1 push/merge commands.

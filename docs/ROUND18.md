@@ -28,12 +28,12 @@ P4–P8, P12–P13, P16–P17, D1, D3) · **S3 = fixes after Tal's first real sh
   deterministic on Tal's PC too.
 
 ## Part 0
-### 0.1 [ ] Commit the boards
+### 0.1 [x] Commit the boards
 Tal saves `docs/design/r18/` (6 boards + `nx-sm.css` + copies of the R17 css) into the checkout before the run.
 Commit them as `R18.0: boards part 1` (no other change). If the folder is missing, note it in Open and continue.
 
 ## Part A — data foundation
-### A1. [ ] Supermarket items in the existing `items` table
+### A1. [x] Supermarket items in the existing `items` table
 Today one list mixes everything; R18 needs a supermarket list per space (`R18-SCREENS.md` §0 Q15) next to Products.
 Add to `items` (nullable / defaulted): `list` (`products` | `supermarket`, default `products`), `section` (one of the 16
 keys in A3), `unit` (`u` | `kg` | `g` | `l`, null = units), `amount` (real, for kg / g / L; `quantity` stays the unit
@@ -45,7 +45,7 @@ Record what moved (counts per space) in Open. Every query that lists Products ex
 reverse — guard in `test:scope`.
 Acceptance: rehearsal on the prod copy shows counts before / after equal in total; `test:tenancy` green.
 
-### A2. [ ] Trips and the check log
+### A2. [x] Trips and the check log
 Today a trip is a pref (`pref:shop-trip`) and the order of checks is lost. New tables:
 - `trip`: id, space_id, user_id, chain, branch, started_at, finished_at, est_total, total, currency, planned, bought,
   not_found, receipt_id, rev.
@@ -57,14 +57,14 @@ branch (R19 matches transparency files by gtin + chain + branch).
 Acceptance: unit test replays a trip (start → 10 checks incl. uncheck / not found → finish) and gets the same counts
 and order; `test:notify` still green.
 
-### A3. [ ] Sections and the default walking order
+### A3. [x] Sections and the default walking order
 16 section keys and the default Israeli order from `R18-SCREENS.md` §2 (produce … dairy & eggs, frozen last) as one
 client-safe module with he + en names and the icon names the boards use. Per space + store: `space_store` (space_id,
 chain, branch, is_default, section_order json | null, suggested_order json | null, suggested_at, dismissed_at). The
 list order for a trip = the branch's confirmed order, else the default.
 Acceptance: unit test for the default order and for an override.
 
-### A4. [ ] Product dictionary: section, product type, picture key
+### A4. [x] Product dictionary: section, product type, picture key
 One dictionary of grocery **product types** (start with ~200: tomatoes, cucumbers, milk 3%, cottage, challah, pita,
 eggs, tahini, hummus, toilet paper …) with he + en names, common spellings and synonyms, section, default unit, and an
 `art_key` (the picture the S2 illustration set draws — Tal chose 2026-10-11: an illustration of the product type by
@@ -77,18 +77,18 @@ matching: final letters (ך ם ן ף ץ), niqqud and geresh / gershayim removed,
 Acceptance: `test:grocery` (new) — 100 real Hebrew / English lines from the boards' worst-case data and Tal's past
 receipts (read from the local DB, no content committed) classify to the expected section ≥ 90 %.
 
-### A5. [ ] Learn the branch's order (suggest, never apply)
+### A5. [x] Learn the branch's order (suggest, never apply)
 From `trip_check` (checks only, in `seq` order) per space + branch: the median position of each section. After ≥ 2
 finished trips that agree and differ from the current order, store `suggested_order` (the S2 banner asks "use this
 order?"). Never reorders by itself; a dismiss waits for 3 more trips.
 Acceptance: unit test with synthetic trips (dairy before bread twice → suggestion; once → none; dismissed → quiet).
 
 ## Part B — staples and "Build my list" (engine only)
-### B1. [ ] Learn from history
+### B1. [x] Learn from history
 Per space + product_key from purchases (`trip_check` + existing purchased items + receipts): usual quantity / amount,
 interval (median gap, ≥ 3 purchases; show "every ~9 days"), last bought (when, where, price), usual store(s); per space:
 usual shop weekday + hour from trips (≥ 3 trips, else none).
-### B2. [ ] Suggestions — rules from `R18-SCREENS.md` §3
+### B2. [x] Suggestions — rules from `R18-SCREENS.md` §3
 `suggest(space, now)` → [{ product_key, title, qty, section, art_key, reason_key, reason_args }] with reasons: due
 (interval), weekday/holiday (Shabbat items before Friday; holidays from a small Israeli calendar table for the next 12
 months), usual companion (bought together ≥ 60 % of trips). Never suggests what is already on the list (any quantity)
@@ -96,31 +96,31 @@ or what was dismissed this cycle (`suggest_dismiss`: space, product_key, until).
 rule: an existing quantity stays the user's). Staple `auto` items are added by the engine on their due day (as an add
 by "Nexus", undoable, shown with the reason). The AI only phrases reasons when the space allows AI (rules-only setting
 respected); S1 ships fixed phrases.
-### B3. [ ] Evening-before draft
+### B3. [x] Evening-before draft
 In the hourly sender: for a space whose usual day is tomorrow, between 19:00 and 21:00 local and not in night quiet,
 compute the draft once and send one push to the members who shop ("Your list for tomorrow: 18 items, Nexus suggests 4",
 action Open list → `/supermarket?draft=1`). New notification kind `draft` (on by default; switch in Settings →
 Supermarket arrives in S2 — store the pref now). Never changes the list.
-### B4. [ ] Templates and past trips (data)
+### B4. [x] Templates and past trips (data)
 `template` (id, space_id, name, items json [{product_key, title, qty, amount, unit, section}], created_by, rev) and
 "apply" = merge into the list (never duplicates; existing quantities stay). "Save trip as template" from a `trip`.
 Acceptance (B): `test:staples` (new) — synthetic 8-week history: due items, no duplicates with the list, dismiss
 honoured, Shabbat rule, companion rule, auto staple added once with undo, draft computed once per evening.
 
 ## Part C — fast add (server + libs, used by S2's Add screen)
-### C1. [ ] Parse a typed line
+### C1. [x] Parse a typed line
 `parseLine("2 חלב 3%")` → qty 2 + "חלב 3%"; units in he + en (`ק"ג`, `ק״ג`, `קילו`, `גרם`, `ליטר`, `kg`, `g`, `l`), decimals with
 `.` or `,`, "חצי"/"half". Numbers that are part of the name stay (`3%`, `500 גרם` after the name = pack size).
-### C2. [ ] Duplicate merge on add
+### C2. [x] Duplicate merge on add
 Adding a product_key already on the supermarket list (to_buy) adds to its quantity / amount instead of a new row and
 returns `{ merged: true, now }` for the toast "Milk is already on the list — now ×3" with Undo (undo restores the old
 quantity). Different units of the same product → keep one row, note the second amount.
-### C3. [ ] Type-ahead and "did you mean"
+### C3. [x] Type-ahead and "did you mean"
 Endpoint ranked by this household first (count × recency), then the dictionary, then Open Food Facts IL. Matching on
 normalised text; the response marks the matched character range so S2 bolds only the typed letters (Tal 2026-10-11).
 When nothing matches: up to 3 "did you mean" candidates by edit distance on the normalised form (threshold ≈ length/3),
 household products first; "add as new" always offered.
-### C4. [ ] Split a pasted list / a voice line
+### C4. [x] Split a pasted list / a voice line
 `splitList(text)` for WhatsApp pastes (lines, commas, bullets, "X:" sender prefixes, emoji, "!!") and voice
 transcripts ("milk, eggs and two breads" / "חלב, ביצים ושני לחמים" — `ו` as "and" only between items). Each part →
 parse + classify + "already on the list" flag; lines that aren't products ("something nice for Shabbat") come back
@@ -130,12 +130,12 @@ Acceptance (C): `test:add` (new) — parse table (40 lines he + en), merge + und
 `tomatos` → Tomatoes, `חלאב` → חלב), split table (the boards' WhatsApp and voice examples).
 
 ## Part D — offline and live in the store
-### D1. [ ] Outbox for everything in a trip
+### D1. [x] Outbox for everything in a trip
 Today only "bought" marks are queued and the last write wins. Queue every trip action (check, uncheck, not found,
 substitute, qty / amount, price, add) with the item's `rev` at the time; the server merges per field (a check never
 undoes someone else's later edit of the note; two people checking the same row = one check). Adds made offline get a
 client id and merge by product_key when they arrive (no duplicates).
-### D2. [ ] Live adds during a trip
+### D2. [x] Live adds during a trip
 An item added by another member while a trip runs reaches the shopper live (Ably or the 10 s poll), flagged `live` for
 the highlight, and one push to the shopper ("Noa added milk") — activity rule: first at once, then grouped ≤ 1 / 10 min
 per trip.
@@ -143,15 +143,58 @@ Acceptance (D): `test:shop-offline` (new, browser) — go offline, check 5, unch
 price, come back → server state equals the expected one; a second session edits a note meanwhile → kept.
 
 ## Part E — admin numbers, guards, docs
-### E1. [ ] Admin
+### E1. [x] Admin
 Admin → Metrics (counts only, never content): trips per week, items per trip, share of trips with a receipt, share of
 suggestions accepted, week-4 retention of shopping spaces.
-### E2. [ ] Guards
+### E2. [x] Guards
 New tests in `guards.yml`: `test:grocery`, `test:staples`, `test:add` (unit), `test:shop-offline` (browser); `test:scope`
 covers the Products / Supermarket split; `test:authz-coverage` covers the new actions. Migration rehearsal script
 extended for R18 (counts, no NULL `list`, re-run is a no-op).
-### E3. [ ] Docs
+### E3. [x] Docs
 `SPEC.md` R18 S1 section; `CLAUDE.md` map (grocery dictionary, trip tables, engines); `docs/ENVIRONMENT.md` new
 scripts / env (none expected).
 
 ## Open
+
+### Session 1
+Run 2026-10-12 on `round18-s1` (from `main` 0976c97, after R17 S6 + S7). All items done; commits `R18.0` … `R18.E3`.
+- **Prod snapshot + rehearsal:** the read-only snapshot ran in the session (`snapshots/prod-2026-10-12.db`, 83
+  SELECT / PRAGMA, integrity ok). `node scripts/r18-rehearsal.mjs --source snapshots/prod-2026-10-12.db --base origin/main`:
+  PASS — nothing dropped, every new column nullable / defaulted, row counts equal in all 44 tables (kv + its one
+  marker row), integrity ok, second run a no-op (whole-DB hash), To buy 17 / On the way 10 / History 11 + this
+  month's budget unchanged, 38 items before = 38 after (Products 38, Supermarket 0), no NULL `list`.
+- **Grocery move (A1) on prod: nothing moved** — 0 collections named like groceries, so 0 items per space. Tal's
+  groceries today live in Products (the R17 shopping mode); S2 decides whether to offer "move these to Supermarket".
+- **Decisions taken (unattended):**
+  1. `trip_check` also has `space_id` (the scoped layer needs it); `trip` also has `notify_key` (the inbox row of the
+     trip) and `left_count` (the live "6 left"). `price_points` gained `trip_id`, `chain`, `branch`, `gtin`; a trip's
+     price point has `source_id = trip:<id>`.
+  2. Staple meanings: `off` = no special behaviour (the engine still suggests a product it learned is due, ≥ 3
+     purchases), `suggest` = suggested when due already after 2 purchases, `auto` = added by Nexus on its due day (never
+     shown as a suggestion). **Tal: confirm, or say if `off` should mean "never suggest".**
+  3. Reason precedence when several fit: Shabbat → holiday → "usually with X" → due.
+  4. Holiday table (`lib/grocery/holidays.ts`, eves): Hanukkah 2026-12-04, Tu BiShvat 2027-01-22, Purim 2027-03-22,
+     Pesach 2027-04-21, Independence Day 2027-05-11, Shavuot 2027-06-10, Rosh Hashana 2027-10-01, Yom Kippur
+     2027-10-10, Sukkot 2027-10-15 — written from memory: **planner, please verify the dates** before S2 shows them.
+  5. An auto staple is added on its due day (the gap's last day), not the evening before — the draft push shows it as a
+     suggestion count, never adds it.
+  6. Admin → "Metrics" doesn't exist: the numbers are a **Supermarket card in Admin → System** (counts only).
+  7. No screens: `/supermarket` (the draft push's target) redirects to To buy until S2; inbox rows of the new kinds
+     (`draft`, `trip_add`) use the generic icon and open To buy. `components/app/supermarket/sm-bridge.tsx` flushes the
+     trip outbox and, only with localStorage `nexus.smBridge = "1"`, puts the engines on `window.__nexusSm` for tests —
+     S2 replaces it. It also keeps the supermarket actions in the build's action manifest, so `test:tenancy` sweeps them.
+  8. Lines of a paste that aren't products come back unchecked; if the user ticks one, it is added as a text row
+     (`product_key` `note:…`, section `other`).
+  9. `half watermelon` = amount 0.5 in units (`unit` u); integer quantities stay ≥ 1.
+- **Found and fixed on the way:** a server-action call cut off by the reconnect (net::ERR_ABORTED) resolves without an
+  answer — the outbox now checks the answer before dropping actions, retries every 3 s, and its IndexedDB reads fail
+  loudly instead of looking empty (an empty read followed by a save would have lost queued actions).
+- **Privacy:** reading Tal's receipt *contents* from `local.db` was refused by the classifier (PII). `test:grocery`
+  scores 160 committed lines (the boards' worst-case + demo data in he + en, and receipt-style lines written for the
+  test): 160 / 160; for the local receipts it prints counts only (164 / 430 lines matched a product type — most lines
+  there are not groceries).
+- **For S2 / later:** kv caches without a purge yet — `grocery:ai:*`, `grocery:off:*`, `grocery:offq:*`, `sm:draft:*`,
+  `sm:op:*:cid:*` (offline add ids) → add to the daily cron's clean-up. The AI classify runs after an add (feature
+  `grocery`, counts in the person's quota) — S2's Add screen should show `other` rows settling into their section.
+  Locally `test:ai-quota` / `test:delete-account` exit non-zero after printing OK on Windows (same on `main`; the
+  native DB client on exit) — CI on Linux is the judge.
