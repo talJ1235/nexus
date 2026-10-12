@@ -77,6 +77,12 @@
   `/api/cron/notify` = `runDispatcher("cron")`. Test push `sendTestPush` (`dispatch.ts`); admin System → Push
   `components/admin/push.tsx` (`pushDiagnostics` in `db-scoped/notify.ts`, `adminTestPush`); Settings device state /
   Fix / test (`pushHere`, `testPushHere` in `notify-actions.ts`, `currentEndpoint` in `lib/notify/client.ts`).
+- R17 S7 device class: phone vs computer UI = `<html data-device>` (`lib/device.ts`: server guess + `DEVICE_SCRIPT` in
+  the boot screen, cookie `nexus_device`, override Settings → Display → Layout), never the window's width. In components:
+  Tailwind `phone:` / `desk:` (globals.css), `useDevice()` / `isPhone()` / `usePhoneNarrow()` (`components/ui/use-device.ts`),
+  CSS `:where([data-device=phone])`. `lg:` / width media only size things — new ones fail `test:device-width` unless
+  listed in `scripts/device-width-allow.txt`. Phone test contexts: `PHONE` / `PHONE_UA` from `scripts/lib/phone.mjs`.
+  Admin shell classes are `ops-*` (never `ad-*`: ad blockers hide them; `test:adblock`, EasyList snapshot in `scripts/fixtures/`).
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)

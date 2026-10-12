@@ -1018,3 +1018,39 @@ route for Cloudflare-challenged stores like cwc and ksp (the Worker's Cloudflare
   clip quick (278, 0) — OK. Phone smoke: 2 FAILs (item sheet morph, quick actions click timeout) — the known S4/S5
   phone flake, paths untouched here.
 - **Prod after deploy:** not seen yet (Tal didn't share); the prod smoke now reports the dispatcher age and oldest row.
+
+### Session 7 (2026-10-12) — a computer never turns into the phone UI (brief `docs/ROUND17-S7.md`)
+- **Before:** Session 6 was unmerged (its guards run failed only on the `test:polish` A1 loop-fade timing check). Tal
+  chose "merge S6 first": re-run green → `origin/main` merged into `round17-s6`, main fast-forwarded to `0f913bd`.
+- **Done:** X1 (admin classes `ad-*` → `ops-*`, `test:adblock`), W1 (device class + Settings → Display → Layout), W2
+  (every switch reads it), W3 (`test:device`, `test:device-width`, phone contexts with a mobile UA), Y (SPEC, help,
+  CLAUDE.md, ENVIRONMENT.md).
+- **X1 — renamed:** `ad-side`, `ad-main`, `ad-top`, `ad-body` → `ops-*` (all four are EasyList generic rules).
+  `id="admin-main"` stays (no rule). The snapshot (EasyList 202610112006, 13,634 generic rules) caught **nothing else**
+  in the app — statically over `src/` and live on every screen / admin tab, computer + phone, en + he. Left as is: the
+  design mockups (`docs/design/r17/Admin-desktop.dc.html`, `docs/design/r18/nx17.css`) still say `ad-*` — **R18 S1 must
+  use `ops-*`** when it copies board CSS. Prod with Tal's ad blocker on: not seen yet.
+- **Decisions (W):** cookie values `auto.phone` / `auto.computer` (the boot script's last detection) and `phone` /
+  `computer` (override). Phone = UA-CH `mobile: true` or a phone UA (iPad / "Tablet" excluded even with "Mobile"), or a
+  coarse + hover-less pointer on a screen with short side < 600; `Sec-CH-UA-Mobile: ?0` / UA-CH `mobile: false` never
+  overrule a phone UA. Tablets → computer (planner's choice, unchanged). The opening animation's "phone / installed"
+  rule reads the class. The 640 px phone-only bits (bottom sheets, List / Grid rows, swipe rows, the Cards / Table vs
+  List / Grid switch, Back-closes-sheet) = phone **and** narrow, so a phone in landscape keeps exactly its old layout and
+  a computer never gets them. `presence-keys.deviceOf` removed: beats, push device labels and diagnostics use the class.
+  Narrow computer: the rail state lives in the store (`narrowDesk`, `railOpen`), so the sidebar, its edge, Ctrl+B and
+  the add bar agree; `min-width: 720px` on computer pages.
+- **Kept width checks** (`scripts/device-width-allow.txt`): `lg:grid-cols-*` in projects / skeletons / spending (column
+  counts), `max-sm:` icon-only labels and the item card's compact look (sizing; not flagged — the guard watches `lg:`,
+  width `useMedia`/`matchMedia` and CSS `@media` width), the narrow-phone media in globals.css (each rule also needs
+  `[data-device=phone]`), Settings tiles (`nx16.css` 1023 / 420), onboarding stores at 359, the store's narrow-computer
+  rail query, and the sign-in / welcome art column (`auth/nx.css` 899 / 900 — outside the app shell, two columns only
+  when there's room; a zoomed computer gets the single column there).
+- **Local:** check; test:device (111 PASS), test:device-width, test:adblock, test:admin-access, test:admin-people,
+  test:admin-live, test:inbox, test:onboarding, test:bidi, test:help, clip quick (278, 0) — OK. Desktop smoke ALL PASSED
+  (83). Phone smoke: run 1 had 6 FAILs (assistant ×2 click timeouts, offline logout, boot `ERR_NETWORK_IO_SUSPENDED`,
+  boot frame trace, compare); run 2 only **compare stores** (1 offer: `.env.local` has a search key, so the live search
+  answers instead of the two mock offers — data, not layout).
+- **Error log / reports** read at start: nothing about the device or the admin layout (the two big `viewport · layout`
+  groups are the prod smoke's own 1100-on-390 check, 0 people); 3 older open reports untouched.
+- **For Tal:** after deploy, open `/admin` with the ad blocker on, and zoom any page on the PC — it should stay the
+  computer layout. Settings → Display → Layout is the escape hatch either way.

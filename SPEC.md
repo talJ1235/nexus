@@ -827,6 +827,34 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
   row goes with the next request), `test:admin-access` (System → Push), `test:inbox` (Not arriving?), the prod smoke
   (fails when a waiting row is > 70 min old or the dispatcher's last run > 3 h).
 
+## Round 17 — Session 7: a computer never turns into the phone UI
+(brief `docs/ROUND17-S7.md`, notes: `docs/ROUND17.md` "## Open" → "### Session 7")
+- **Admin with an ad blocker on**: the admin shell's classes were `ad-main` / `ad-top` / `ad-body` / `ad-side` — generic
+  EasyList rules, so uBlock Origin / AdBlock / Adblock Plus / Brave hid the whole panel silently. Renamed `ops-*`.
+  Guard `test:adblock`: a vendored snapshot of EasyList's generic cosmetic selectors
+  (`scripts/fixtures/easylist-generic.txt`, refresh by hand: `node scripts/refresh-easylist.mjs`) checked against every
+  class / id in `src/` and run on Home, Shopping, Settings, Inbox, onboarding and every admin tab (computer + phone).
+- **Device class** (`src/lib/device.ts`): phone or computer, decided by real signals — never the window's width
+  (browser zoom divides it: a 2544 px window at 250 % is 1017 px). Server's first guess: `Sec-CH-UA-Mobile: ?1` or a
+  phone UA (iPhone, iPod, Android … Mobile, Mobi — not iPad / tablets); the boot script, before the first paint, adds
+  UA-CH `mobile` and "a coarse pointer with no hover on a screen whose short side is < 600". Phone = a phone UA/hint or
+  that touch screen; everything else (tablets, touchscreen laptops) = computer. Written once per page load as
+  `<html data-device>` + the `nexus_device` cookie (`auto.phone` / `auto.computer`) so the next server render matches;
+  never changes on resize, zoom or rotation. No permission prompt, nothing stored server-side.
+- **Settings → Display → Layout**: Automatic (default) · Phone · Computer — the same cookie (`phone` / `computer`);
+  the page reloads.
+- Every phone/computer switch reads it: Tailwind `phone:` / `desk:` variants, `useDevice()` / `isPhone()`
+  (`components/ui/use-device.ts`), CSS `:where([data-device=…])` (admin, inbox, onboarding, toasts, Home grid), the
+  opening animation, the presence beat / push device kind and the diagnostics. Phone-only bits that also need a narrow
+  screen (bottom sheets, List / Grid rows, swipe rows) = phone **and** < 640 px, so a phone in landscape keeps its layout.
+  Width queries stay only where they size things inside a layout (`scripts/device-width-allow.txt`).
+- **Narrow computer window** (zoom, half a screen): the computer UI; under 1024 px the sidebar sits on its icon rail by
+  itself (opening it lasts until the window widens, never saved); under 720 px the page scrolls sideways.
+- Guards: `test:device` (computers at 1366 / 1024 / 1017 / 900 / 768 and 1017 at 250 % zoom, Pixel 7 portrait +
+  landscape, iPhone 13, iPad → computer; Home, Shopping, Settings, Inbox, admin; the first paint before hydration; the
+  override both ways + reload; 0 hydration warnings), `test:device-width` (a new width check that may choose the UI
+  fails unless allow-listed). Phone test contexts carry a mobile UA (`scripts/lib/phone.mjs`).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.
@@ -842,7 +870,7 @@ same product from another store → added as another source). `#name` in the mes
 linked chat. The webhook is (re)set after linking, whenever the alerts state loads, and by the daily cron.
 
 ## Non-goals (for now)
-Carrier API tracking sync. (Multi-user accounts arrived in Round 15; onboarding and the admin panel shipped in R17 Session 2, push + inbox in Session 3, Profile + fixes in Session 4, push diagnostics + "at once" timing in Session 6. No email channel.)
+Carrier API tracking sync. (Multi-user accounts arrived in Round 15; onboarding and the admin panel shipped in R17 Session 2, push + inbox in Session 3, Profile + fixes in Session 4, push diagnostics + "at once" timing in Session 6, the device class (phone / computer by real signals) in Session 7. No email channel.)
 
 ## Stack (all free tier)
 Next.js 16 (App Router) on Vercel · Turso (libSQL) + Drizzle · Gemini Flash-Lite (+ optional Groq/OpenRouter) ·

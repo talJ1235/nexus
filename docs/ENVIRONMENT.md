@@ -201,3 +201,13 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   only) fails when System → Push shows a waiting row older than 70 min or no dispatcher run for 3 h. A fresh prod
   snapshot was again refused by the permission classifier ("production reads"); the rehearsal ran on
   `snapshots/prod-2026-10-10.db`. `.claude/settings.local.json` allows the round17-s6 push/merge commands.
+
+- 2026-10-12 (PC, R17 Session 7): new checks `test:adblock` (built app, port 3126: EasyList generic cosmetic rules from
+  the vendored `scripts/fixtures/easylist-generic.txt` — refresh by hand with `node scripts/refresh-easylist.mjs`, it
+  downloads easylist.to), `test:device` (built app, port 3127: computer / phone / tablet contexts, first paint with the
+  app's JS blocked, the Layout override) and `test:device-width` (no build; in the guards unit loop). **Phone test
+  contexts now need a mobile UA** besides `isMobile` + `hasTouch` (a bare 390 px window is a narrow computer):
+  `import { PHONE, PHONE_UA } from "./lib/phone.mjs"`. Playwright's `isMobile` makes Chromium report UA-CH
+  `mobile: true` even for an iPad descriptor — `test:device` overrides it over CDP for the tablet. Next 16 serves CSS
+  from `/_next/static/chunks/` too: block only `.js` there to see a page before hydration. `.claude/settings.local.json`
+  allows the round17-s7 push/merge commands.

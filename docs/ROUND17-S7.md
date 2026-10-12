@@ -24,7 +24,7 @@ motion-extras, sidebar-edge, assistant-panel, item-card, sheet-drag), CSS `@medi
 `lib/client-diag.ts` reports `device` by width too, so admin Live counts a zoomed PC as a phone.
 
 ## Part W — one device class, decided by real signals
-### W1. [ ] `deviceClass`: phone | computer, fixed for the page's life
+### W1. [x] `deviceClass`: phone | computer, fixed for the page's life
 - **Signals (no permission prompts, no fingerprinting, nothing stored server-side beyond one cookie):**
   1. Server: `Sec-CH-UA-Mobile: ?1` (Chromium sends it by default); otherwise the UA (`iPhone`, `iPod`, `Android … Mobile`,
      `Mobi`). → first guess, used for SSR so the first paint is already right (no flash).
@@ -39,7 +39,7 @@ motion-extras, sidebar-edge, assistant-panel, item-card, sheet-drag), CSS `@medi
 - **Override:** Settings → Display → "Layout: Automatic · Phone · Computer" (default Automatic; stored in the same
   cookie). Escape hatch for odd devices and for testing.
 
-### W2. [ ] Every phone/computer switch reads the device class
+### W2. [x] Every phone/computer switch reads the device class
 - New Tailwind v4 variants `phone:` / `desk:` keyed on `[data-device]` (`@custom-variant`, like `dark`), and one hook
   `useDevice()` (server snapshot = the SSR guess, so no hydration mismatch). Replace every **layout-choosing** use listed
   above: `lg:`/`max-lg:` that pick shell / dock / sidebar / sheet-vs-dialog, all `useMedia`/`matchMedia` width checks
@@ -52,7 +52,7 @@ motion-extras, sidebar-edge, assistant-panel, item-card, sheet-drag), CSS `@medi
   rail.
 - Phone UI unchanged on real phones (portrait **and** landscape — landscape phones must not get the computer UI).
 
-### W3. [ ] Guards
+### W3. [x] Guards
 - New `test:device` (built app, own DB; in `guards.yml`): computer contexts (no touch, fine pointer, desktop UA) at
   1366×768, 1017×496, 900×600, 768×500, plus `deviceScaleFactor` 2.5 — Home, Shopping, Settings, Inbox, `/admin` show
   the sidebar / admin side nav, **no dock, no admin tab bar**; phone contexts (Playwright `devices["Pixel 7"]`,

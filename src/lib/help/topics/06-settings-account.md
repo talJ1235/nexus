@@ -19,10 +19,13 @@
   ownership, deleting a space or changing passkeys. Tal (admin): Account → **Invite codes**.
 
 ## Look and language
-<!-- spec: Design system, Box logo, Mixed Hebrew/English text, Mixed Hebrew + English, Dark mode depth, One picture style, Solid tags, Ask button, Card borders, Sidebar v4, Phone shell v4, Calmer light theme -->
+<!-- spec: Device class, Settings → Display → Layout, Narrow computer window, Design system, Box logo, Mixed Hebrew/English text, Mixed Hebrew + English, Dark mode depth, One picture style, Solid tags, Ask button, Card borders, Sidebar v4, Phone shell v4, Calmer light theme -->
 - Settings → **Display** (תצוגה): theme Light / Dark / Match device, colour **Graphite** (default) or **Plum** (שזיף),
   language (English / עברית, full right-to-left), currency, Motion (Match device / Reduced). Per device, instant.
   **Reduced** keeps soft fades (sheets and menus fade in and out) but nothing moves or slides.
+- **Layout** (פריסה, in Display): **Automatic** picks the phone or computer layout from the device itself — zooming
+  the page or a narrow window never switches a computer to the phone layout. Choose **Phone** or **Computer** to force
+  one on this device; **Automatic** gives it back.
 <!-- spec: Polish fixes, No cut-off text -->
 - Text that doesn't fit ends with "…": hover it (computer) to read it all, or tap the row/card to open it; long
   notices open in place when tapped.
@@ -32,7 +35,7 @@
 - Pictures share one style; "Ask Nexus" is always a rounded pill; mixed Hebrew/English titles keep their direction.
 
 ## Settings
-<!-- spec: Settings, Settings → Profile, Admin -->
+<!-- spec: Settings, Settings → Profile, Admin, Admin with an ad blocker on -->
 - Desktop: a large window — sections on the side (You, then the current space), search with `/`, Esc closes. Phone: a
   list of sections, each opens as its own page (Back returns). Each section has an address (e.g. /settings/display)
   and a command-menu entry ("Settings: Budget").
