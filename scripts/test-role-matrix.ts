@@ -44,6 +44,14 @@ assert.equal(pickSpace(mine("viewer"), "A")?.role, "viewer");
 // "edit" or "owner", so a viewer's write is refused before any query.
 const VIEW_OK = new Set([
   "actions.ts#reloadAll",
+  // R18: supermarket reads (the split preview, suggestions, the evening draft, templates, stores) + the caller's own
+  // draft-push switch (a personal pref, like Settings → Notifications).
+  "supermarket-actions.ts#previewSplit",
+  "supermarket-actions.ts#supermarketSuggestions",
+  "supermarket-actions.ts#setDraftPush",
+  "supermarket-actions.ts#eveningDraft",
+  "supermarket-actions.ts#supermarketTemplates",
+  "supermarket-actions.ts#supermarketStores",
   "ai-actions.ts#ask",
   // R17 S3: the inbox, its count and the permission card's memory — the caller's own rows only (everyone has one).
   "notify-actions.ts#*",
