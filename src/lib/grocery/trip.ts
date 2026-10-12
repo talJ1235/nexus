@@ -58,3 +58,27 @@ export function replayTrip(rows: CheckRow[]): Replayed {
 
 /** Only checks, in `seq` order, with their section (A5's input). */
 export const checkSequence = (rows: CheckRow[]) => replayTrip(rows).order.map((k) => ({ key: k, section: [...rows].reverse().find((r) => keyOf(r) === k && r.section)?.section ?? null }));
+
+/** D2: a row added by someone else after the trip started → highlighted for the shopper ("live"). */
+export const isLiveAdd = (item: { createdAt: number; addedByUserId: string | null }, trip: { startedAt: number; userId: string } | null) =>
+  !!trip && item.createdAt > trip.startedAt && item.addedByUserId !== trip.userId;
+
+/**
+ * D1: one queued action of a trip (the client outbox). `rev` = the item's revision when the action was made (offline);
+ * `clientId` = the id an offline add got on the device (applied once). `at` = when it happened on the device.
+ */
+export type TripOp = {
+  id: string;
+  kind: CheckAction | "note";
+  itemId?: string;
+  clientId?: string;
+  title?: string;
+  productKey?: string;
+  qty?: number;
+  amount?: number | null;
+  unit?: "u" | "kg" | "g" | "l" | null;
+  price?: number;
+  notes?: string | null;
+  rev?: number;
+  at: number;
+};

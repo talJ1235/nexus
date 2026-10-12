@@ -47,6 +47,7 @@ import { ReceiptCamera } from "./receipt-camera";
 import { CompareSheet } from "./compare-sheet";
 import { Celebration, PullToRefresh } from "./motion-extras";
 import { ShoppingMode, ShopOutboxSync } from "./shopping-mode";
+import { SupermarketBridge } from "./supermarket/sm-bridge";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
@@ -186,6 +187,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
         <CompareSheet />
       </PanelBoundary>
       <ShopOutboxSync />
+      <SupermarketBridge />
 
       <ItemSheet />
       <ItemActionSheet />
