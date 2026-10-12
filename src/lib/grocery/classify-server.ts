@@ -120,3 +120,31 @@ export function fromAi(text: string, a: AiAnswer, gtin?: string | null): Classif
   const type = a.type ? TYPE_BY_KEY.get(a.type) ?? null : null;
   return { type: type?.key ?? null, section: (isSection(a.section) ? a.section : "other") as Classified["section"], unit: type?.unit ?? "u", art: type?.art ?? null, productKey: productKeyFor(text, type, gtin), confidence: 0.6, via: "ai" };
 }
+
+/** C3: Open Food Facts Israel product names for a typed query (5 at most; cached a week per query). */
+export async function offSearch(query: string): Promise<{ title: string; productKey: string; section: string }[]> {
+  const q = normalize(query);
+  if (q.length < 3 || mockAi()) return [];
+  const key = `grocery:offq:${q.slice(0, 60)}`;
+  const cached = await kvGet(key).catch(() => null);
+  if (cached) {
+    const c = JSON.parse(cached) as { v: { title: string; productKey: string; section: string }[]; at: number };
+    if (Date.now() - c.at < 7 * 86_400_000) return c.v;
+  }
+  let v: { title: string; productKey: string; section: string }[] = [];
+  try {
+    const res = await safeFetch(`https://il.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&json=1&page_size=5&fields=code,product_name,product_name_he,categories_tags`, { headers: UA, timeoutMs: 2500, maxBytes: 500_000 });
+    const r = res.ok ? (JSON.parse(res.text) as { products?: { code?: string; product_name?: string; product_name_he?: string; categories_tags?: string[] }[] }) : null;
+    v = (r?.products ?? [])
+      .map((p) => ({ title: (p.product_name_he || p.product_name || "").trim(), code: p.code ?? "", tags: p.categories_tags ?? [] }))
+      .filter((p) => p.title)
+      .map((p) => {
+        const local = classifyLocal(p.title, p.code || null);
+        return { title: p.title.slice(0, 120), productKey: local.productKey, section: local.type ? local.section : (sectionFromOff(p.tags) ?? "other") };
+      });
+  } catch {
+    return [];
+  }
+  await kvSet(key, JSON.stringify({ v, at: Date.now() })).catch(() => {});
+  return v;
+}
