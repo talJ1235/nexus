@@ -38,6 +38,9 @@ export const ACTIVITY_KINDS = [
   "onboarding_step",
   "assistant_asked",
   "deletion_requested",
+  // R18 E1: Nexus suggests — accepted / "not now" (counts only: the share accepted in Admin → System).
+  "suggest_accepted",
+  "suggest_dismissed",
 ] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 

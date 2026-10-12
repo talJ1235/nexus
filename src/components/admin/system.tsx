@@ -120,6 +120,28 @@ export function SystemTab({ phone, go }: { phone: boolean; go: Go }) {
             </section>
           </div>
           <PushPanel data={data} phone={phone} />
+          {/* R18 E1: the supermarket in numbers (counts only). */}
+          <section className="panel" data-system-sm>
+            <div className="ph">
+              <h2>{S.sm}</h2>
+              <span className="tiny">{S.smHint}</span>
+            </div>
+            <div className="pb">
+              {(() => {
+                const sm = data.sm;
+                const pct = (a: number, b: number) => (b ? f(S.smOf, { pct: Math.round((a / b) * 100), n: num(b) }) : S.smNone);
+                return (
+                  <>
+                    {hl(sm.trips ? "ok" : "off", S.smTrips, sm.trips ? String(sm.tripsPerWeek) : S.smNone, "sm-trips")}
+                    {hl(sm.itemsPerTrip != null ? "ok" : "off", S.smItems, sm.itemsPerTrip != null ? String(sm.itemsPerTrip) : S.smNone, "sm-items")}
+                    {hl(sm.receiptShare != null ? "ok" : "off", S.smReceipt, pct(Math.round((sm.receiptShare ?? 0) * sm.trips), sm.trips), "sm-receipt")}
+                    {hl(sm.accepted + sm.dismissed ? "ok" : "off", S.smAccepted, pct(sm.accepted, sm.accepted + sm.dismissed), "sm-accepted")}
+                    {hl(sm.cohort ? "ok" : "off", S.smRetention, pct(sm.retained, sm.cohort), "sm-retention")}
+                  </>
+                );
+              })()}
+            </div>
+          </section>
           <section className="panel" data-system-keys>
             <div className="ph">
               <h2>{S.keys}</h2>

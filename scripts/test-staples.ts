@@ -159,6 +159,18 @@ const DAY = 86_400_000;
   assert.equal(list.find((i) => i.productKey === milkKey)!.quantity, 1, "an existing quantity stays");
   assert.equal((await db.select().from(schema.stapleAdd).where(and(eq(schema.stapleAdd.spaceId, "home")))).length, 1);
 
+  // ---- E1: Admin → System → Supermarket (counts only).
+  const { supermarketMetrics } = await import("../src/lib/db-scoped/admin");
+  await db.insert(schema.activity).values([{ userId: "noa", spaceId: "home", kind: "suggest_accepted", n: 3, at: sat }, { userId: "noa", spaceId: "home", kind: "suggest_dismissed", n: 1, at: sat }]);
+  const mm = await supermarketMetrics(IL(10, 10, 20));
+  assert.equal(mm.trips, 7, "4 Sundays + 3 Thursdays in the last 4 weeks");
+  assert.equal(mm.tripsPerWeek, 1.8);
+  assert.ok(mm.itemsPerTrip! > 1);
+  assert.equal(mm.receiptShare, 0);
+  assert.deepEqual([mm.accepted, mm.dismissed], [3, 1]);
+  assert.deepEqual([mm.cohort, mm.retained], [1, 1], "first trip 8 weeks ago, shopped again in week 4");
+  assert.ok(!JSON.stringify(mm).includes("חלב"), "never content");
+  console.log("ok E1 admin numbers: trips / week, items / trip, receipts, suggestions taken, week-4 retention");
   console.log("ok B1 history: interval, usual quantity, usual day + hour, last store");
   console.log("ok B2 suggestions: due, not on the list, dismissed, Shabbat, companion, holiday; accept merges; auto staple once + undo");
   console.log("ok B3 evening draft: 19–21 before the usual day, once, shoppers only, list untouched, switch off");

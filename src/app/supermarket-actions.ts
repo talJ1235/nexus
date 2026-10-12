@@ -132,13 +132,16 @@ const PickZ = z.object({ productKey: Key, title: Title, qty: z.number().int().mi
 
 export async function acceptSuggestions(picks: z.input<typeof PickZ>[]) {
   const ctx = await requireCtx("edit");
-  return G.acceptSuggestions(scoped(ctx), z.array(PickZ).max(60).parse(picks), ctx.user.id);
+  const list = z.array(PickZ).max(60).parse(picks);
+  noteActivity({ userId: ctx.user.id, spaceId: ctx.space.id }, "suggest_accepted", list.length);
+  return G.acceptSuggestions(scoped(ctx), list, ctx.user.id);
 }
 
 export async function dismissSuggestion(productKey: string, until: number) {
   const ctx = await requireCtx("edit");
   const u = z.number().int().min(Date.now()).max(Date.now() + 120 * 86_400_000).parse(until);
   await G.dismissSuggestion(scoped(ctx), Key.parse(productKey), u);
+  noteActivity({ userId: ctx.user.id, spaceId: ctx.space.id }, "suggest_dismissed");
 }
 
 export async function undoAutoStaple(productKey: string, dueDay: string) {

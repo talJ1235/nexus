@@ -7,7 +7,7 @@ import { forgetSessions } from "@/lib/auth/session";
 import { logSecurityEvent } from "@/lib/auth/events";
 import { AccessError, isAdmin, requireCtx, type Ctx } from "@/lib/ctx";
 import { markAccountDeletion, soleOwnerBlocks } from "@/lib/db-scoped/account";
-import { adminAiStats, adminLive, adminPeople, adminPerson, adminSystemDb, revokeUserSession, revokeUserSessions, setUserBanned, userExists } from "@/lib/db-scoped/admin";
+import { adminAiStats, adminLive, adminPeople, adminPerson, adminSystemDb, supermarketMetrics, revokeUserSession, revokeUserSessions, setUserBanned, userExists } from "@/lib/db-scoped/admin";
 import { dayStart, logActivity, recordBeat } from "@/lib/db-scoped/presence";
 import { notifyCounts, pushDiagnostics } from "@/lib/db-scoped/notify";
 import { kvGet } from "@/lib/kv";
@@ -144,9 +144,9 @@ export async function getAiStats(days: 7 | 30) {
 /** Services, the daily job's last run, DB size + rows per table, keys set / missing (names only, never values). */
 export async function getSystem() {
   await admin();
-  const [dbInfo, cron, notify, diag, last] = await Promise.all([adminSystemDb(), cronSummary(), notifyCounts(dayStart()), pushDiagnostics(), kvGet(LAST_NOTIFY_KEY)]);
+  const [dbInfo, cron, notify, diag, last, sm] = await Promise.all([adminSystemDb(), cronSummary(), notifyCounts(dayStart()), pushDiagnostics(), kvGet(LAST_NOTIFY_KEY), supermarketMetrics()]);
   const keys = KEYS.map(([name, group]) => ({ name, group, set: !!process.env[name] }));
-  return { db: dbInfo, cron, keys, notify: { ...notify, configured: pushConfigured(), ...diag, last: lastNotify(last) }, storeReader: !!process.env.CF_FETCH_URL, realtime: !!process.env.ABLY_API_KEY, issues: !!process.env.GITHUB_ISSUES_TOKEN };
+  return { db: dbInfo, cron, keys, notify: { ...notify, configured: pushConfigured(), ...diag, last: lastNotify(last) }, storeReader: !!process.env.CF_FETCH_URL, realtime: !!process.env.ABLY_API_KEY, issues: !!process.env.GITHUB_ISSUES_TOKEN, sm };
 }
 
 /** R17 S6 U1: the dispatcher's last run (`/api/cron/notify` or an opportunistic run) — when, how long, sent / failed. */

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, desc, eq, gte, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { aiDay, aiAllowance, type Allowance } from "../ai-gate";
 import { ONLINE_MS, type Device } from "../presence-keys";
@@ -296,4 +296,60 @@ export async function adminSystemDb() {
       .groupBy(schema.aiUsage.provider),
   ]);
   return { ping, rows, bytes, checksHour: Number(checks ?? 0), ai: lastOk.map((r) => ({ provider: r.p ?? "other", at: Number(r.at), ms: Math.round(Number(r.ms ?? 0)) })) };
+}
+
+// ---------- R18 E1: supermarket numbers (counts only, never content) ----------
+
+export type SupermarketMetrics = {
+  tripsPerWeek: number;
+  trips: number;
+  itemsPerTrip: number | null;
+  receiptShare: number | null;
+  accepted: number;
+  dismissed: number;
+  /** Spaces whose first trip was 4–8 weeks ago, and how many of them shopped again in their week 4. */
+  cohort: number;
+  retained: number;
+};
+
+export async function supermarketMetrics(now = Date.now()): Promise<SupermarketMetrics> {
+  const W = 7 * 86_400_000;
+  const since = now - 4 * W;
+  const [t] = await db
+    .select({ n: sql<number>`count(*)`, bought: sql<number>`coalesce(sum(${schema.trip.bought}), 0)`, receipts: sql<number>`sum(${schema.trip.receiptId} IS NOT NULL)` })
+    .from(schema.trip)
+    .where(and(gte(schema.trip.finishedAt, since)));
+  const acts = await db
+    .select({ kind: schema.activity.kind, n: sql<number>`coalesce(sum(${schema.activity.n}), 0)` })
+    .from(schema.activity)
+    .where(and(gte(schema.activity.at, since), inArray(schema.activity.kind, ["suggest_accepted", "suggest_dismissed"])))
+    .groupBy(schema.activity.kind);
+  const firsts = await db
+    .select({ spaceId: schema.trip.spaceId, first: sql<number>`min(${schema.trip.startedAt})` })
+    .from(schema.trip)
+    .groupBy(schema.trip.spaceId);
+  let cohort = 0;
+  let retained = 0;
+  for (const f of firsts) {
+    const first = Number(f.first);
+    if (first > now - 4 * W || first < now - 8 * W) continue;
+    cohort++;
+    const [w4] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(schema.trip)
+      .where(and(eq(schema.trip.spaceId, f.spaceId), gte(schema.trip.startedAt, first + 3 * W), lt(schema.trip.startedAt, first + 4 * W)));
+    if (Number(w4?.n ?? 0) > 0) retained++;
+  }
+  const trips = Number(t?.n ?? 0);
+  const n = (k: string) => Number(acts.find((a) => a.kind === k)?.n ?? 0);
+  return {
+    trips,
+    tripsPerWeek: Math.round((trips / 4) * 10) / 10,
+    itemsPerTrip: trips ? Math.round((Number(t.bought) / trips) * 10) / 10 : null,
+    receiptShare: trips ? Number(t.receipts ?? 0) / trips : null,
+    accepted: n("suggest_accepted"),
+    dismissed: n("suggest_dismissed"),
+    cohort,
+    retained,
+  };
 }
