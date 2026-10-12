@@ -19,6 +19,13 @@ P4–P8, P12–P13, P16–P17, D1, D3) · **S3 = fixes after Tal's first real sh
 - Read open reports and the error log first; don't touch power settings.
 - Every user-visible string goes through the i18n dictionaries (he + en). No new screens in S1 — where a feature needs
   UI to be testable, use a test, a script or an admin row.
+- **Since R17 S7 (applies to every R18 session):** phone vs computer is `useDevice()` / the `phone:` / `desk:` variants
+  on `html[data-device]` — never a width check for layout (`test:device-width` fails it); phone test contexts carry a
+  mobile UA. No class or id may match an ad-blocker list (`test:adblock`): when board CSS is copied from
+  `docs/design/r17/` or `docs/design/r18/`, rename `ad-*` → `ops-*` (and anything else the snapshot catches).
+- The phone smoke's "compare stores" step reads `SERPER_API_KEY` from `.env.local` and gets live results instead of the
+  two test offers → in S1, make the smoke/test server start without search keys (stub provider), so the step is
+  deterministic on Tal's PC too.
 
 ## Part 0
 ### 0.1 [ ] Commit the boards

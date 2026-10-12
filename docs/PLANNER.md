@@ -7,6 +7,12 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-12:** **R17 S6 + S7 merged and live** (S6 `0f913bd` after a green re-run; S7 `cba203b`, CI green).
+  S7: admin `ad-*` → `ops-*` + `test:adblock`; device class (`html[data-device]`, `useDevice()`, `phone:`/`desk:`,
+  Layout override, 222 tokens + ~25 JS checks moved) + `test:device` (111) + `test:device-width`. Not yet verified by
+  Tal on prod: `/admin` with the ad blocker on, zoom stays computer, phone unchanged, S6 push panel + test push.
+  `docs/ROUND18.md` "How to run" got the S7 rules + a deterministic compare-stores smoke. `docs/design/r18/` still
+  untracked on Tal's PC → R18 S1 Part 0 commits it. **Next:** Tal checks → R18 S1 (prompt below in the 2026-10-11 entry).
 - **2026-10-11 (later):** Tal: zooming the page on the PC switches to the phone UI (admin showed the phone tab bar);
   `/admin` content area empty on his PC (both layouts, no console error; planner couldn't reproduce locally, see brief
   X1). → **R17 Session 7 brief `docs/ROUND17-S7.md`** (W: one device class from real signals — client hints / UA, primary
@@ -405,6 +411,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-12 · this chat · Reviewed R17 S6 + S7 results (both merged, CI green; S7 X1/W/Y as briefed, 111 device checks). Added the S7 rules and a no-search-key smoke fix to `docs/ROUND18.md` "How to run". Gave Tal the prod checks; R18 S1 next.
 - 2026-10-11 · this chat · Tal: admin menu won't open on PC. Found `round17-s6` can't fast-forward onto `main` (3 docs commits; the merge is clean) → gave the merge steps. Rebuilt the S5 code in the sandbox (2560 / 1366 / zoom-sized viewports, dark, he, installed-app mode): admin always renders. Tal's screenshot showed the zoomed PC in the phone layout → Tal: phone UI only on real phones → wrote `docs/ROUND17-S7.md`. Empty admin content then diagnosed from Tal's console: `#admin-main` / `.ad-top` / `.ad-body` computed `display:none`, no inline style, no external sheet → ad blocker; EasyList has `##.ad-main`, `##.ad-top`, `##.ad-body`, `##.ad-side` → S7 X1 rewritten (rename `ad-*`, new `test:adblock` with a vendored EasyList generic snapshot), X1 runs first. Tal confirmed: ad blocker off → panel shows.
 - 2026-10-11 · this chat · Tal approved all R18 part-1 boards and asked to start the round → wrote `docs/ROUND18.md` Session 1 (data + engines, no screens; additive migration + prod-snapshot rehearsal). Treated "illustration by default, real photo when the exact product is known" as approved.
 - 2026-10-11 · this chat · R18 boards part 1 on new canvas "Nexus R18 — Supermarket" (P1, P2, P3, P9, P11, P15, P18; skills bar). Three passes with Tal: v2 bolder names, borders, section colours, progress hero, confetti; v3 product illustrations + tiles layout; v4 stronger edges, typed-letters-only bold, "did you mean". Approved → zip for `docs/design/r18/` (sandbox can't push). Not done: rendering self-check (the Design type forbids it).
