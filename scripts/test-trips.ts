@@ -132,6 +132,37 @@ async function db() {
   assert.equal(await learnTrip(500, [tomato, milk, pita]), null, "dismissed: quiet (1 trip since)");
   assert.equal(await learnTrip(600, [tomato, milk, pita]), null, "dismissed: quiet (2 trips since)");
   assert.ok(await learnTrip(700, [tomato, milk, pita]), "3 more trips → may suggest again");
+  // ---- D2: an add by Yoav while Noa shops → an `add` in Noa's trip (live highlight) + "Yoav added milk": the first at
+  // once, then grouped, ≤ 1 per 10 min per trip.
+  const { isLiveAdd } = await import("../src/lib/grocery/trip");
+  const L0 = Date.now();
+  await S.tripStarted("noa", "home", 3, L0);
+  const live = (await T.openTripOf("noa"))!;
+  const ys = new Scoped({ spaceId: "home", userId: "yoav", by: "yoav" });
+  const m1 = (await G.addToList(ys, { title: "חלב 1%", by: "yoav" })).item;
+  assert.equal(await S.liveAdd("yoav", "home", [{ itemId: m1.id, title: m1.title, productKey: m1.productKey, section: m1.section }], L0 + MIN), 1);
+  assert.ok(isLiveAdd(m1, live), "flagged live for the shopper");
+  assert.equal(isLiveAdd(m1, { startedAt: live.startedAt, userId: "yoav" }), false, "not for the one who added it");
+  const addLog = (await T.tripChecks(s, live.id)).filter((c) => c.action === "add");
+  assert.equal(addLog.length, 1);
+  assert.equal(addLog[0].byUser, "yoav");
+  const liveRow = async () => (await db.select().from(schema.notification).where(eq(schema.notification.groupKey, `tripadd:${live.id}`)))[0];
+  let lr = await liveRow();
+  assert.equal(lr.userId, "noa", "only the shopper");
+  assert.equal(lr.sendAfter, L0 + MIN, "the first add: at once");
+  assert.equal(JSON.parse(lr.data).titles[0], "חלב 1%");
+  await db.update(schema.notification).set({ sentAt: L0 + MIN, pushState: "sent" }).where(eq(schema.notification.id, lr.id)); // dispatched
+  await S.liveAdd("yoav", "home", [{ itemId: "x1", title: "ביצים", productKey: "eggs", section: "dairy" }], L0 + 3 * MIN);
+  lr = await liveRow();
+  assert.equal(lr.sendAfter, L0 + 11 * MIN, "the next one waits 10 min after the last push");
+  assert.deepEqual(JSON.parse(lr.data).titles, ["ביצים"], "a new group after a push");
+  await S.liveAdd("yoav", "home", [{ itemId: "x2", title: "לחם", productKey: "bread", section: "bread" }], L0 + 5 * MIN);
+  lr = await liveRow();
+  assert.equal(lr.sendAfter, L0 + 11 * MIN, "grouped into the waiting push");
+  assert.equal(JSON.parse(lr.data).n, 2);
+  assert.equal(await S.liveAdd("noa", "home", [{ itemId: "x3", title: "x", productKey: "x", section: "other" }], L0 + 6 * MIN), 0, "the shopper's own adds aren't news");
+  await S.tripFinished("noa", 0, L0 + 20 * MIN);
+
   // Scoping: another space sees none of it.
   const o = new Scoped({ spaceId: "other", userId: "yoav", by: "yoav" });
   assert.equal((await T.finishedTrips(o)).length, 0);
@@ -145,6 +176,7 @@ async function db() {
   await db();
   console.log("ok A2 trips: 10 actions replay to the same counts + order, notifications read the trip row, R17 pref trip ends, trip prices carry chain + branch");
   console.log("ok A5 order: 2 agreeing trips → suggestion, 1 → none, dismissed → 3 more trips, never applied, scoped");
+  console.log("ok D2 live adds: logged in the shopper's trip, flagged live, push at once then ≤ 1 / 10 min grouped");
   process.exit(0);
 })().catch((e) => {
   console.error("FAIL", e);
