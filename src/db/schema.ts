@@ -83,10 +83,24 @@ export const items = sqliteTable(
     addedByName: text("added_by_name"),
     // R15: who added it (shown as a small avatar in shared spaces).
     addedByUserId: text("added_by_user_id"),
+    // R18 A1: which list — the stores' Products (default) or the space's one Supermarket list.
+    list: text("list", { enum: ["products", "supermarket"] }).notNull().default("products"),
+    // Supermarket fields (lib/grocery): section key, unit (null = units) + amount for kg / g / L (quantity stays the
+    // unit count), the product across trips, staple behaviour, a store it must be bought in, brand + substitutes, picture key.
+    section: text("section"),
+    unit: text("unit", { enum: ["u", "kg", "g", "l"] }),
+    amount: real("amount"),
+    productKey: text("product_key"),
+    staple: text("staple", { enum: ["off", "suggest", "auto"] }).notNull().default("off"),
+    pinnedStore: text("pinned_store"),
+    preferBrand: text("prefer_brand"),
+    substitutes: text("substitutes", { mode: "json" }).$type<string[] | null>(),
+    artKey: text("art_key"),
     createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
     updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
   (t) => [
+    index("items_space_list_idx").on(t.spaceId, t.list, t.status),
     index("items_collection_idx").on(t.collectionId),
     index("items_status_idx").on(t.status),
     index("items_alt_idx").on(t.altGroupId),
@@ -150,6 +164,11 @@ export const pricePoints = sqliteTable(
     price: real("price").notNull(),
     currency: text("currency").notNull(),
     recordedAt: integer("recorded_at").notNull().default(sql`(unixepoch() * 1000)`),
+    // R18 A2: a price seen in a store during a trip (source_id = "trip:<id>") carries the branch and the barcode.
+    tripId: text("trip_id"),
+    chain: text("chain"),
+    branch: text("branch"),
+    gtin: text("gtin"),
   },
   (t) => [index("price_points_source_idx").on(t.sourceId), index("price_points_item_idx").on(t.itemId), index("price_points_space_idx").on(t.spaceId)],
 );
@@ -506,3 +525,113 @@ export const pushSubscription = sqliteTable(
 
 export type Notification = typeof notification.$inferSelect;
 export type PushSubscriptionRow = typeof pushSubscription.$inferSelect;
+
+// ---------- R18 S1: supermarket mode v2 (data + engines) ----------
+
+/** A shopping trip (replaces the `pref:shop-trip` user pref). Counts are kept up to date by the trip's checks. */
+export const trip = sqliteTable(
+  "trip",
+  {
+    id: text("id").primaryKey(),
+    spaceId: text("space_id").notNull(),
+    userId: text("user_id").notNull(),
+    chain: text("chain"),
+    branch: text("branch"),
+    startedAt: integer("started_at").notNull(),
+    finishedAt: integer("finished_at"),
+    estTotal: real("est_total"),
+    total: real("total"),
+    currency: text("currency").notNull().default("ILS"),
+    planned: integer("planned").notNull().default(0),
+    bought: integer("bought").notNull().default(0),
+    notFound: integer("not_found").notNull().default(0),
+    receiptId: text("receipt_id"),
+    /** The inbox group key of the "Noa is shopping" rows (one row per trip, updated in place). */
+    notifyKey: text("notify_key"),
+    /** Items left at the last beat (the members' live "6 of 15 left"). */
+    left: integer("left_count"),
+    rev: integer("rev").notNull().default(0),
+  },
+  (t) => [index("trip_space_started_idx").on(t.spaceId, t.startedAt), index("trip_user_open_idx").on(t.userId, t.finishedAt)],
+);
+
+/** One action in a trip, in order (`seq` per trip): the check order teaches the branch's walking order (A5). */
+export const tripCheck = sqliteTable(
+  "trip_check",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    spaceId: text("space_id").notNull(),
+    tripId: text("trip_id").notNull(),
+    itemId: text("item_id"),
+    productKey: text("product_key"),
+    section: text("section"),
+    action: text("action", { enum: ["check", "uncheck", "not_found", "substitute", "qty", "price", "add"] }).notNull(),
+    qty: real("qty"),
+    amount: real("amount"),
+    unit: text("unit"),
+    price: real("price"),
+    gtin: text("gtin"),
+    byUser: text("by_user"),
+    at: integer("at").notNull(),
+    seq: integer("seq").notNull(),
+  },
+  (t) => [uniqueIndex("trip_check_seq_idx").on(t.tripId, t.seq), index("trip_check_space_idx").on(t.spaceId, t.productKey)],
+);
+
+/** A store (chain + branch) a space shops at: default flag, the confirmed section order, the learned suggestion. */
+export const spaceStore = sqliteTable(
+  "space_store",
+  {
+    spaceId: text("space_id").notNull(),
+    chain: text("chain").notNull(),
+    branch: text("branch").notNull().default(""),
+    isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+    sectionOrder: text("section_order"),
+    suggestedOrder: text("suggested_order"),
+    suggestedAt: integer("suggested_at"),
+    dismissedAt: integer("dismissed_at"),
+  },
+  (t) => [primaryKey({ columns: [t.spaceId, t.chain, t.branch] })],
+);
+
+/** "Not now" on a suggestion: quiet until `until` (the end of this cycle). */
+export const suggestDismiss = sqliteTable(
+  "suggest_dismiss",
+  { spaceId: text("space_id").notNull(), productKey: text("product_key").notNull(), until: integer("until").notNull() },
+  (t) => [primaryKey({ columns: [t.spaceId, t.productKey] })],
+);
+
+export type TemplateItem = { productKey: string; title: string; qty: number; amount?: number | null; unit?: string | null; section?: string | null };
+/** A named supermarket list ("Basic weekly basket", a saved trip); apply = merge into the list. */
+export const template = sqliteTable(
+  "template",
+  {
+    id: text("id").primaryKey(),
+    spaceId: text("space_id").notNull(),
+    name: text("name").notNull(),
+    items: text("items", { mode: "json" }).$type<TemplateItem[]>().notNull(),
+    createdBy: text("created_by"),
+    createdAt: integer("created_at").notNull(),
+    rev: integer("rev").notNull().default(0),
+  },
+  (t) => [index("template_space_idx").on(t.spaceId)],
+);
+
+/** B2: an `auto` staple added by the engine on its due day — once per product per due day, undoable. */
+export const stapleAdd = sqliteTable(
+  "staple_add",
+  {
+    spaceId: text("space_id").notNull(),
+    productKey: text("product_key").notNull(),
+    dueDay: text("due_day").notNull(),
+    itemId: text("item_id"),
+    at: integer("at").notNull(),
+    undoneAt: integer("undone_at"),
+  },
+  (t) => [primaryKey({ columns: [t.spaceId, t.productKey, t.dueDay] })],
+);
+
+export type Trip = typeof trip.$inferSelect;
+export type TripCheck = typeof tripCheck.$inferSelect;
+export type SpaceStore = typeof spaceStore.$inferSelect;
+export type Template = typeof template.$inferSelect;

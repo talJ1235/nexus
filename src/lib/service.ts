@@ -7,7 +7,7 @@ import { joins, type Scoped } from "@/lib/db-scoped";
 import { categorize, extractWithAi, extractWithUrlContext } from "@/lib/ai";
 import { aiUseOf } from "@/lib/ai-gate";
 import { needsShort, pickShortName } from "@/lib/short-name";
-import { getItem, recordPrice } from "@/lib/data";
+import { getItem, listIs, recordPrice } from "@/lib/data";
 import { extractFromUrl, hintsFromUrl, type Extracted } from "@/lib/extract";
 import { reportError } from "@/lib/errors/record";
 import { domainOf } from "@/lib/errors/shape";
@@ -39,7 +39,7 @@ export async function findDuplicate(s: Scoped, normalizedUrl: string, title: str
   const exact = await joins.sourceWithItemTitle(s, normalizedUrl);
   if (exact) return { itemId: exact.itemId, title: exact.title, reason: "url" };
   if (!title) return null;
-  const candidates = await s.pick({ id: schema.items.id, title: schema.items.title }, schema.items);
+  const candidates = await s.pick({ id: schema.items.id, title: schema.items.title }, schema.items, listIs("products"));
   let best: { id: string; title: string; score: number } | null = null;
   for (const c of candidates) {
     const score = titleSimilarity(title, c.title);
@@ -115,7 +115,7 @@ export async function buildDraft(s: Scoped, ex: Extracted, hintCollectionId: str
   let aiQty: number | null = null;
 
   if (rawTitle) {
-    const tagRows = await s.pick({ tags: schema.items.tags }, schema.items);
+    const tagRows = await s.pick({ tags: schema.items.tags }, schema.items, listIs("products"));
     const counts = new Map<string, number>();
     for (const r of tagRows) for (const t of r.tags ?? []) counts.set(t, (counts.get(t) ?? 0) + 1);
     const knownTags = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);

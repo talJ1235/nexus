@@ -9,6 +9,8 @@ export type ItemWithSources = Item & { sources: Source[]; points: PricePoint[]; 
 export type AppData = {
   collections: Collection[];
   items: ItemWithSources[];
+  /** R18 A1: the space's supermarket list (never mixed into `items` = Products); missing in older offline snapshots. */
+  supermarket?: ItemWithSources[];
   altGroups: AltGroup[];
   storeSettings: StoreSetting[];
   /** Monthly spending cap per month it was set (see lib/budget). */

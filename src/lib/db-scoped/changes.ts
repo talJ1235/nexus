@@ -15,6 +15,8 @@ export type Changes = {
   /** The client is too far behind (tombstones purged) or a bulk move happened: reload the data instead. */
   reset?: true;
   items: ItemWithSources[];
+  /** R18 A1: changed supermarket rows (Products' `items` never carries them). */
+  supermarket: ItemWithSources[];
   collections: Collection[];
   altGroups: AltGroup[];
   storeSettings: StoreSetting[];
@@ -25,7 +27,7 @@ export type Changes = {
   removed: Removed[];
 };
 
-const EMPTY = { items: [], collections: [], altGroups: [], storeSettings: [], alerts: [], removed: [] };
+const EMPTY = { items: [], supermarket: [], collections: [], altGroups: [], storeSettings: [], alerts: [], removed: [] };
 /** More changed items than this → reload instead (cheaper than a huge diff). */
 const MAX_ITEMS = 400;
 
@@ -46,10 +48,12 @@ export async function changesFor(s: Scoped, since: number): Promise<Changes> {
       .where(and(eq(schema.tombstone.spaceId, s.spaceId), gt(schema.tombstone.rev, since))),
   ]);
   if (itemRows.length > MAX_ITEMS) return { rev: meta.rev, reset: true, ...EMPTY };
-  const items = itemRows.length ? await loadItems(s, itemRows.map((r) => r.id)) : [];
+  const changed = itemRows.length ? await loadItems(s, itemRows.map((r) => r.id), "any") : [];
+  const items = changed.filter((i) => i.list !== "supermarket");
+  const supermarket = changed.filter((i) => i.list === "supermarket");
   const prefsChanged = prefs.length > 0 || removed.some((r) => r.tbl === "space_pref");
   const [budget, importLimitUsd, budgetWarn] = prefsChanged ? await Promise.all([loadBudgetHistory(s), loadImportLimit(s), loadBudgetWarn(s)]) : [undefined, undefined, undefined];
-  return { rev: meta.rev, items, collections, altGroups, storeSettings, alerts, removed, ...(budget ? { budget, importLimitUsd, budgetWarn } : {}) };
+  return { rev: meta.rev, items, supermarket, collections, altGroups, storeSettings, alerts, removed, ...(budget ? { budget, importLimitUsd, budgetWarn } : {}) };
 }
 
 /** Just the space's revision (the polling fallback's cheap check). */

@@ -94,3 +94,8 @@ ci-*.db
 /adblock-test.db*
 /device-test.db*
 /smoke-out/
+/trips-test.db*
+/grocery-test.db*
+/staples-test.db*
+/add-test.db*
+/shop-offline-test.db*

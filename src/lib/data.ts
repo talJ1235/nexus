@@ -1,5 +1,5 @@
 import "server-only";
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { schema } from "@/db";
 import { aiEnabled } from "./ai";
 import { BUDGET_KV_PREFIX, type BudgetHistory } from "./budget";
@@ -25,10 +25,18 @@ function groupBy<T extends { itemId: string }>(rows: T[]) {
   return m;
 }
 
-export async function loadItems(s: Scoped, ids?: string[]): Promise<ItemWithSources[]> {
+/** R18 A1: which list a query wants. "any" = both (reloading rows by id after an action). */
+export type ItemList = "products" | "supermarket" | "any";
+/** R18 A1: the list condition — every query that lists Products excludes supermarket items and the reverse (test:scope). */
+export const listIs = (list: "products" | "supermarket") => eq(schema.items.list, list);
+
+/** Items with their links, prices and files. No ids → one list (Products by default); ids → those rows, any list. */
+export async function loadItems(s: Scoped, ids?: string[], list: ItemList = ids ? "any" : "products"): Promise<ItemWithSources[]> {
   if (ids && !ids.length) return [];
+  const byIds = ids ? inArray(schema.items.id, ids) : undefined;
+  const cond = list === "any" ? byIds : byIds ? and(byIds, listIs(list)) : listIs(list);
   const [items, sources, points, attachments] = await Promise.all([
-    s.select(schema.items, ids ? inArray(schema.items.id, ids) : undefined).orderBy(desc(schema.items.createdAt)),
+    s.select(schema.items, cond).orderBy(desc(schema.items.createdAt)),
     s.select(schema.sources, ids ? inArray(schema.sources.itemId, ids) : undefined).orderBy(asc(schema.sources.createdAt)),
     s.select(schema.pricePoints, ids ? inArray(schema.pricePoints.itemId, ids) : undefined).orderBy(asc(schema.pricePoints.recordedAt)),
     s.select(schema.attachments, ids ? inArray(schema.attachments.itemId, ids) : undefined).orderBy(asc(schema.attachments.createdAt)),
@@ -44,9 +52,10 @@ export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo, m
   const rev = (await readRev(s.spaceId)).rev;
   // R17 P3: name / photo / member since straight from the user row (the session is cached up to a minute per instance).
   const fresh = me?.id ? myProfile(me.id) : Promise.resolve(null);
-  const [collections, items, altGroups, storeSettings, budget, rates, importLimitUsd, alerts, home, budgetWarn] = await Promise.all([
+  const [collections, items, supermarket, altGroups, storeSettings, budget, rates, importLimitUsd, alerts, home, budgetWarn] = await Promise.all([
     s.select(schema.collections).orderBy(asc(schema.collections.sortOrder), asc(schema.collections.createdAt)),
-    loadItems(s),
+    loadItems(s, undefined, "products"),
+    loadItems(s, undefined, "supermarket"),
     s.select(schema.altGroups),
     s.select(schema.storeSettings),
     loadBudgetHistory(s),
@@ -56,7 +65,7 @@ export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo, m
     loadHomePrefs(userId, s.spaceId),
     loadBudgetWarn(s),
   ]);
-  return { collections, items, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, budgetWarn, alerts, home, rev, ...(space ? { space } : {}), ...(me ? { me: { ...me, ...(await fresh) } } : {}) };
+  return { collections, items, supermarket, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, budgetWarn, alerts, home, rev, ...(space ? { space } : {}), ...(me ? { me: { ...me, ...(await fresh) } } : {}) };
 }
 
 /** R16 D2: Space settings → Budget → "Warn everyone at 80%" (space pref; on unless turned off). */
@@ -116,6 +125,6 @@ export async function getSharedCollection(token: string) {
   const collection = await collectionByShareToken(token);
   if (!collection) return null;
   const s = new Scoped({ spaceId: collection.spaceId, userId: null });
-  const items = (await loadItems(s)).filter((i) => i.collectionId === collection.id);
+  const items = (await loadItems(s, undefined, "products")).filter((i) => i.collectionId === collection.id);
   return { collection, items, rates: await getRates() };
 }

@@ -40,4 +40,36 @@ for (const file of walk(join(ROOT, "src"))) {
 }
 for (const b of bad) console.log(`FAIL raw db outside the data layer: ${b}`);
 console.log(bad.length ? `FAIL scope: ${bad.length} raw queries` : `OK scope: ${files} DB-importing files, raw access only in the data layer / allow-list`);
-process.exit(bad.length ? 1 : 0);
+
+// R18 A1 — Products / Supermarket split. A scoped query that lists items (no id / collection / group condition) must say
+// which list it wants (`listIs(...)`, `loadItems(s, …, list)`), or be listed here with the reason it serves both.
+const BOTH: [RegExp, string][] = [
+  [/^src\/app\/barcode-actions\.ts$/, "a scanned barcode finds the product in either list"],
+  [/^src\/lib\/db-scoped\/short-names\.ts$/, "long-title backfill: any list"],
+  [/^src\/lib\/picture-backfill\.ts$/, "picture backfill: any list"],
+  [/^src\/lib\/product-pictures\.ts$/, "picture search: any list"],
+  [/^src\/lib\/data\.ts$/, "loadItems builds its list condition (checked below)"],
+  [/^src\/lib\/db-scoped\/changes\.ts$/, "the change feed loads changed rows of both lists and splits them (items / supermarket)"],
+  [/^src\/lib\/db-scoped\/(admin|admin-health|account|backup|system|spaces|grocery|trips)\.ts$/, "counts / export / delete / moves / the grocery layer itself: whole space, never a Products view"],
+];
+const LISTING = /\b(select|pick|count)\(\s*(\{[^}]*\},\s*)?schema\.items\b/;
+const NARROW = /schema\.items\.(id|collectionId|altGroupId|list)\b|listIs\(|inArray\(schema\.items\.id/;
+const split: string[] = [];
+for (const file of walk(join(ROOT, "src"))) {
+  const rel = relative(ROOT, file).replace(/\\/g, "/");
+  if (BOTH.some(([re]) => re.test(rel))) continue;
+  readFileSync(file, "utf8")
+    .split("\n")
+    .forEach((line, i) => {
+      if (LISTING.test(line) && !NARROW.test(line)) split.push(`${rel}:${i + 1}  ${line.trim().slice(0, 100)}`);
+    });
+}
+// The two loaders every Products view reads must filter by list.
+const data = readFileSync(join(ROOT, "src/lib/data.ts"), "utf8");
+if (!/list: ItemList = ids \? "any" : "products"/.test(data)) split.push("src/lib/data.ts  loadItems() must default to the Products list");
+if (!/loadItems\(s, undefined, "products"\)/.test(data) || !/loadItems\(s, undefined, "supermarket"\)/.test(data)) split.push("src/lib/data.ts  getAppData must load Products and Supermarket separately");
+const changes = readFileSync(join(ROOT, "src/lib/db-scoped/changes.ts"), "utf8");
+if (!/i\.list !== "supermarket"/.test(changes)) split.push("src/lib/db-scoped/changes.ts  the feed's items must exclude supermarket rows");
+for (const b of split) console.log(`FAIL list split: ${b}`);
+console.log(split.length ? `FAIL list split: ${split.length}` : "OK list split: every item listing names its list (Products / Supermarket) or is allow-listed");
+process.exit(bad.length || split.length ? 1 : 0);
