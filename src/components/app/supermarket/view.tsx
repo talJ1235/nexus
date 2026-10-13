@@ -1,16 +1,35 @@
 "use client";
 
 import "./sm.css";
-import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
+import { Menu, MenuContent, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuTrigger } from "@/components/ui/overlays";
+import { acceptSuggestions, addToSupermarket, dismissSuggestion, setSupermarketLayout, undoSupermarketAdd } from "@/app/supermarket-actions";
+import { basketFor, WEEKLY_BASKET_SIZE, type BasketItem } from "@/lib/grocery/basket";
+import { parseLine } from "@/lib/grocery/parse";
 import { DEFAULT_ORDER, sectionName } from "@/lib/grocery/sections";
+import { STORES } from "@/lib/onboarding";
+import { capFor, monthForecast, monthKeyIn, monthStartIn, nextMonthKey } from "@/lib/budget";
+import { formatMoney } from "@/lib/money";
+import { toast } from "@/lib/toast";
 import type { ItemWithSources } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { useStore } from "../store";
 import { ProductTile, SectionIcon, sectionColor } from "./art";
+import { patchSmHome, useSmHome, type SmHome } from "./data";
+import { onSmIntent, takeSmIntent, type SmIntent } from "./intent";
 import { qtyLabel } from "./qty";
+import { useOutboxCount } from "./outbox-count";
 
-// R18 S2 — the Supermarket tab (board Supermarket-phone `Main`): the list by sections in walking order.
+// R18 S2 A2 — the Supermarket tab (board Supermarket-phone `Main`): store chip + estimate vs budget, the aisle rail, the
+// add field, "Nexus suggests", the list by sections in the branch's order (rows or tiles, the ⋯ menu, per person),
+// first-time state, viewer and offline. Section colours are always on.
+
+type Sug = SmHome["suggestions"][number] | (BasketItem & { reasonKey: "basket"; reasonArgs: Record<string, never>; quietUntil: number });
+
+/** A server row → the store's item shape (supermarket rows carry no links / prices / files). */
+export const asItem = (r: Omit<ItemWithSources, "sources" | "points" | "attachments">): ItemWithSources => ({ ...r, sources: [], points: [], attachments: [] }) as ItemWithSources;
 
 /** The list grouped by section in `order` (unknown / `other` last). */
 export function bySection(items: ItemWithSources[], order: readonly string[] = DEFAULT_ORDER) {
@@ -22,48 +41,433 @@ export function bySection(items: ItemWithSources[], order: readonly string[] = D
   return [...order, "other"].filter((k) => m.has(k)).map((k) => [k, m.get(k)!] as const);
 }
 
+/** Store monogram colours (the onboarding tiles, nx17 `.m1`–`.m9`). */
+const MONO: Record<string, string> = { m1: "#c0392b", m2: "#1f7a4d", m3: "#1d5fa8", m4: "#b8860b", m5: "#6c3fb5", m6: "#d1495b", m7: "#2a7f8f", m8: "#5b5a56", m9: "#e07a24" };
+export const monoColor = (c: string | null | undefined) => MONO[c ?? ""] ?? MONO.m8;
+
+export const chainDef = (chain: string | null | undefined) => (chain ? STORES.find((x) => x.id === chain || x.en === chain || x.he === chain) ?? null : null);
+
 export function SupermarketView() {
   const s = useStore();
-  const { t } = useI18n();
-  const groups = useMemo(() => bySection(s.sm), [s.sm]);
+  const { t, f, locale } = useI18n();
+  const { home } = useSmHome();
+  const viewer = s.space?.role === "viewer";
+  const ro = viewer || s.offlineAt != null;
+  const [layout, setLayout] = useState<"rows" | "tiles" | null>(null);
+  const shown = layout ?? home?.layout ?? "rows";
+  const order = home?.order ?? DEFAULT_ORDER;
+  const groups = useMemo(() => bySection(s.sm, order), [s.sm, order]);
+  const [basketOn, setBasketOn] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+  const [draft] = useState(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("draft") === "1" : false));
+
+  // A1 intents (the dock's long-press menu, app-icon shortcuts): "add" focuses the field; the rest arrive with B3 / D3.
+  useEffect(() => {
+    const take = () => {
+      const k = takeSmIntent();
+      if (k) runIntent(k);
+    };
+    const runIntent = (k: SmIntent) => {
+      if (k === "add") input.current?.focus();
+    };
+    take();
+    return onSmIntent(take);
+  }, []);
+
+  const first = !s.sm.length && (home ? home.trips === 0 && !home.suggestions.length : false) && !basketOn;
+  const basket = useMemo(() => basketFor({ who: s.obWho, locale }), [s.obWho, locale]);
+  const pickLayout = (l: "rows" | "tiles") => {
+    setLayout(l);
+    if (home) patchSmHome(s.spaceId || "-", (h) => ({ ...h, layout: l }));
+    void setSupermarketLayout(l).catch(() => {});
+  };
+
   return (
-    <div className="flex flex-col gap-3 pb-6" data-sm-view>
-      <h1 className="text-[26px] font-extrabold tracking-[-0.02em]">{t.sm.title}</h1>
-      <div className="flex flex-col gap-1.5">
-        {groups.map(([k, list]) => (
-          <Section key={k} section={k} items={list} />
-        ))}
+    <div className="flex flex-col gap-3 pb-28" data-sm-view data-sm-layout={shown}>
+      <div className="flex items-center gap-2">
+        <h1 className="me-auto text-[26px] font-extrabold tracking-[-0.02em] desk:text-[28px]">{t.sm.title}</h1>
+        <Menu>
+          <MenuTrigger asChild>
+            <button type="button" className="grid size-10 place-items-center rounded-full text-ink transition-transform duration-150 ease-[var(--ease-out)] active:scale-95" aria-label={t.sm.main.more} data-sm-more>
+              <MoreHorizontal className="size-5" />
+            </button>
+          </MenuTrigger>
+          <MenuContent align="end">
+            <MenuLabel>{t.sm.main.showAs}</MenuLabel>
+            <MenuRadioGroup value={shown} onValueChange={(v) => pickLayout(v as "rows" | "tiles")}>
+              <MenuRadioItem value="rows" data-sm-layout-pick="rows">{t.sm.main.rows}</MenuRadioItem>
+              <MenuRadioItem value="tiles" data-sm-layout-pick="tiles">{t.sm.main.tiles}</MenuRadioItem>
+            </MenuRadioGroup>
+          </MenuContent>
+        </Menu>
+      </div>
+      <Badges viewer={viewer} />
+      <StoreLine home={home} />
+      {s.sm.length > 0 && <Rail groups={groups} />}
+      {!ro && <AddField inputRef={input} />}
+      {first ? (
+        <FirstTime basketSize={Math.min(WEEKLY_BASKET_SIZE, basket.length)} onBasket={() => void addBasket(basket.slice(0, WEEKLY_BASKET_SIZE))} onBuild={() => setBasketOn(true)} onPaste={() => input.current?.focus()} />
+      ) : (
+        <>
+          <Suggestions home={home} basket={basketOn ? basket : null} draft={draft} ro={ro} />
+          {s.sm.length > 0 && <p className="tabular px-1 pt-1 text-[13px] font-semibold text-muted">{s.sm.length === 1 ? t.sm.main.itemsOne : f(t.sm.main.items, { n: s.sm.length })}</p>}
+          <div className="flex flex-col gap-1.5" data-sm-list>
+            {groups.map(([k, list]) => (
+              <Section key={k} section={k} items={list} tiles={shown === "tiles"} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  async function addBasket(items: BasketItem[]) {
+    try {
+      const rows = await acceptSuggestions(items.map((b) => ({ productKey: b.productKey, title: b.title, qty: b.qty, amount: b.amount, unit: b.unit, section: b.section, art: b.art })));
+      s.upsertSm(rows.map(asItem));
+      toast.success(f(t.sm.main.addedN, { n: rows.length }));
+    } catch {
+      toast.error(t.sm.main.failed);
+    }
+  }
+}
+
+function Badges({ viewer }: { viewer: boolean }) {
+  const s = useStore();
+  const { t, f } = useI18n();
+  const waiting = useOutboxCount();
+  if (!viewer && s.offlineAt == null) return null;
+  return (
+    <div className="-mt-1 flex flex-wrap gap-1.5">
+      {viewer && (
+        <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-surface-2 px-2.5 text-[12.5px] font-semibold text-muted" data-sm-viewer>
+          <Eye className="size-3.5" />
+          {t.sm.main.viewOnly}
+        </span>
+      )}
+      {s.offlineAt != null && (
+        <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-warn-soft px-2.5 text-[12.5px] font-semibold text-warn" data-sm-offline>
+          <CloudOff className="size-3.5" />
+          {waiting ? f(t.sm.main.offlineWaiting, { n: waiting }) : t.sm.main.offline}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Store chip (chain monogram, chain, branch) + the list's estimate against what's left of this month's budget. */
+function StoreLine({ home }: { home: SmHome | null }) {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const store = home?.store ?? null;
+  const def = chainDef(store?.chain);
+  const est = useMemo(() => {
+    if (!home) return null;
+    let sum = 0;
+    let priced = 0;
+    for (const i of s.sm) {
+      const p = i.productKey ? home.prices[i.productKey] : undefined;
+      if (p == null) continue;
+      priced++;
+      sum += p * (i.unit && i.unit !== "u" && i.amount ? i.amount : i.quantity);
+    }
+    return priced ? sum : null;
+  }, [home, s.sm]);
+  const left = useMemo(() => {
+    const key = monthKeyIn(s.clock.now, s.clock.tz);
+    const cap = capFor(key, s.budget);
+    if (!cap?.cap) return null;
+    const fc = monthForecast({ items: s.items, altGroups: s.altGroups, rates: s.rates, currency: s.currency, from: monthStartIn(key, s.clock.tz), to: monthStartIn(nextMonthKey(key), s.clock.tz), cap, includeNormal: false });
+    return (fc.cap ?? 0) - fc.spent - fc.committed - (home?.monthSpent ?? 0);
+  }, [s.items, s.altGroups, s.rates, s.currency, s.clock, s.budget, home?.monthSpent]);
+  const name = def ? (locale === "he" ? def.he : def.en) : store?.chain;
+  const pct = est != null && left != null && left > 0 ? Math.min(1, est / left) : null;
+  return (
+    <div className="flex items-stretch gap-3">
+      <button type="button" className="flex min-h-14 min-w-0 flex-1 items-center gap-2.5 rounded-[16px] border border-line-strong bg-surface px-2.5 text-start shadow-card transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]" aria-label={store ? `${t.sm.main.changeStore}: ${name}` : t.sm.main.chooseStore} data-sm-store>
+        {store ? (
+          <span className="grid size-9 shrink-0 place-items-center rounded-[10px] text-[14px] font-extrabold text-white" style={{ background: def ? monoColor(def.color) : "var(--muted)" }}>
+            {(locale === "he" ? def?.monoHe : def?.mono)?.slice(0, 1) ?? name?.slice(0, 1)}
+          </span>
+        ) : (
+          <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-surface-2 text-muted">
+            <ShoppingBasket className="size-[18px]" />
+          </span>
+        )}
+        <span className="min-w-0 flex-1">
+          <b className="bidi block truncate text-[15px] font-extrabold">{store ? name : t.sm.main.chooseStore}</b>
+          {store?.branch && <span className="bidi block truncate text-[12.5px] text-muted">{store.branch}</span>}
+        </span>
+        <ChevronDown className="size-4 shrink-0 text-muted" />
+      </button>
+      <div className="flex min-w-[118px] flex-col items-end justify-center gap-1 text-end" data-sm-estimate>
+        <b className="tabular text-[19px] font-extrabold tracking-[-0.01em]">{est != null ? f(t.sm.main.estimate, { amount: formatMoney(Math.round(est), s.currency, locale) }) : "—"}</b>
+        {left != null && (
+          <>
+            <span className="h-1 w-24 overflow-hidden rounded-full bg-line-in" aria-hidden>
+              <i className={cn("block h-full rounded-full", left < 0 ? "bg-warn" : "bg-ink")} style={{ width: `${Math.round((pct ?? (left < 0 ? 1 : 0)) * 100)}%` }} />
+            </span>
+            <small className="tabular text-[11.5px] text-muted">{left >= 0 ? f(t.sm.main.leftMonth, { amount: formatMoney(Math.round(left), s.currency, locale) }) : f(t.sm.main.overMonth, { amount: formatMoney(Math.round(-left), s.currency, locale) })}</small>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function Section({ section, items }: { section: string; items: ItemWithSources[] }) {
-  const { locale } = useI18n();
-  const [shut, setShut] = useState(false);
+/** One bar per section on the list, in walking order, as wide as its count. */
+function Rail({ groups }: { groups: readonly (readonly [string, ItemWithSources[]])[] }) {
   return (
-    <section className="gro-sec" style={{ "--k": sectionColor(section) } as React.CSSProperties} data-shut={shut ? "" : undefined} data-sm-section={section}>
-      <button type="button" className="gro-sec-h" onClick={() => setShut(!shut)} aria-expanded={!shut}>
-        <SectionIcon section={section} />
-        <span className="gro-nm">{sectionName(section, locale)}</span>
-        <span className="gro-n">{items.length}</span>
-        <ChevronDown className="gro-cv size-4" />
+    <div className="gro-rail" aria-hidden data-sm-rail>
+      {groups.map(([k, list]) => (
+        <i key={k} style={{ "--k": sectionColor(k), "--n": list.length } as React.CSSProperties} />
+      ))}
+    </div>
+  );
+}
+
+/** The add field (B2 makes it open the Add screen): Enter adds the line, merging with what's there. */
+function AddField({ inputRef }: { inputRef: React.RefObject<HTMLInputElement | null> }) {
+  const s = useStore();
+  const { t } = useI18n();
+  const [text, setText] = useState("");
+  const add = async () => {
+    const line = text.trim();
+    if (!line) return;
+    const p = parseLine(line);
+    setText("");
+    try {
+      const r = await addToSupermarket({ title: p.name || line, qty: p.qty, amount: p.amount, unit: p.unit });
+      s.upsertSm([asItem(r.item)]);
+      toast(r.item.title, {
+        description: t.sm.main.added,
+        action: { label: t.sm.main.undo, onClick: () => void undoSupermarketAdd(r.item.id, r.before).then((u) => (u.item ? s.upsertSm([asItem(u.item)]) : s.removeSm(r.item.id))) },
+      });
+    } catch {
+      setText(line);
+      toast.error(t.sm.main.failed);
+    }
+  };
+  const icon = "grid size-10 shrink-0 place-items-center rounded-full text-ink transition-transform duration-150 ease-[var(--ease-out)] active:scale-90 [&_svg]:size-[19px] [&_svg]:stroke-[1.8]";
+  return (
+    <form
+      className="flex h-14 items-center gap-1 rounded-[16px] border border-line-strong bg-surface pe-1.5 ps-3.5 shadow-card focus-within:border-ink"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void add();
+      }}
+      data-sm-add
+    >
+      <Plus className="size-[18px] shrink-0 text-muted" />
+      <input
+        ref={inputRef}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={t.sm.main.addPh}
+        aria-label={t.sm.main.addPh}
+        enterKeyHint="done"
+        className="h-full min-w-0 flex-1 bg-transparent ps-1.5 text-[16px] text-ink outline-none placeholder:text-muted"
+        data-sm-add-input
+      />
+      <button type="button" className={icon} aria-label={t.sm.main.scan} title={t.sm.main.scan} data-sm-add-scan>
+        <ScanBarcode />
       </button>
-      <div className="gro-sec-b">
+      <button type="button" className={icon} aria-label={t.sm.main.photo} title={t.sm.main.photo} data-sm-add-photo>
+        <Camera />
+      </button>
+      <button type="button" className={icon} aria-label={t.sm.main.voice} title={t.sm.main.voice} data-sm-add-voice>
+        <Mic />
+      </button>
+    </form>
+  );
+}
+
+/** "Nexus suggests" (or "Ready for Thursday" from the evening draft): + adds, × skips for this cycle, Add all. */
+function Suggestions({ home, basket, draft, ro }: { home: SmHome | null; basket: BasketItem[] | null; draft: boolean; ro: boolean }) {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const [open, setOpen] = useState(true);
+  const [gone, setGone] = useState<Set<string>>(() => new Set());
+  const onList = useMemo(() => new Set(s.sm.map((i) => i.productKey).filter(Boolean)), [s.sm]);
+  const list: Sug[] = useMemo(() => {
+    const base: Sug[] = home?.suggestions ?? [];
+    const extra: Sug[] = (basket ?? []).map((b) => ({ ...b, reasonKey: "basket" as const, reasonArgs: {}, quietUntil: 0 }));
+    const seen = new Set<string>();
+    return [...base, ...extra].filter((x) => !gone.has(x.productKey) && !onList.has(x.productKey) && !seen.has(x.productKey) && !!seen.add(x.productKey));
+  }, [home, basket, gone, onList]);
+  if (!list.length) return null;
+  const reason = (x: Sug) => {
+    const a = x.reasonArgs as Record<string, string | number>;
+    if (x.reasonKey === "due") return Number(a.days) >= 14 ? f(t.sm.sug.dueWeeks, { weeks: Math.round(Number(a.days) / 7) }) : f(t.sm.sug.due, { days: a.days });
+    if (x.reasonKey === "shabbat") return t.sm.sug.shabbat;
+    if (x.reasonKey === "holiday") return (t.sm.sug.holiday as Record<string, string>)[String(a.holiday)] ?? String(a.holiday);
+    if (x.reasonKey === "with") return f(t.sm.sug.with, { title: a.title });
+    return t.sm.sug.basket;
+  };
+  const accept = async (xs: Sug[]) => {
+    setGone((g) => new Set([...g, ...xs.map((x) => x.productKey)]));
+    try {
+      const rows = await acceptSuggestions(xs.map((x) => ({ productKey: x.productKey, title: x.title, qty: x.qty, amount: x.amount, unit: x.unit, section: x.section, art: x.art })));
+      s.upsertSm(rows.map(asItem));
+      if (xs.length > 1) toast.success(f(t.sm.main.addedN, { n: rows.length }));
+    } catch {
+      setGone((g) => new Set([...g].filter((k) => !xs.some((x) => x.productKey === k))));
+      toast.error(t.sm.main.failed);
+    }
+  };
+  const skip = (x: Sug) => {
+    setGone((g) => new Set([...g, x.productKey]));
+    if (x.reasonKey !== "basket") skipOnServer(x.productKey, x.quietUntil);
+  };
+  const day = new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { weekday: "long", timeZone: s.clock.tz }).format(new Date(s.clock.now + 86_400_000));
+  return (
+    <section className="gro-sug" data-sm-suggest>
+      <button type="button" className="flex min-h-[60px] w-full items-center gap-3 px-3.5 text-start" onClick={() => setOpen(!open)} aria-expanded={open} aria-label={t.sm.sug.open}>
+        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-spark text-white">
+          <Sparkles className="size-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <b className="block text-[15.5px] font-extrabold">{draft ? f(t.sm.sug.readyFor, { day }) : t.sm.sug.title}</b>
+          <span className="block truncate text-[12.5px] text-muted">{draft ? f(t.sm.sug.readySub, { n: list.length, m: s.sm.length }) : list.length === 1 ? t.sm.sug.subOne : f(t.sm.sug.sub, { n: list.length })}</span>
+        </span>
+        <ChevronDown className={cn("size-4 shrink-0 text-muted transition-transform duration-200 ease-[var(--ease-out)]", !open && "-rotate-90 rtl:rotate-90")} />
+      </button>
+      <div className="gro-sec-b" style={{ gridTemplateRows: open ? "1fr" : "0fr" }}>
         <div>
-          <div className="gro-box">
-            {items.map((i) => (
-              <Row key={i.id} item={i} />
-            ))}
-          </div>
+          {list.map((x) => (
+            <div key={x.productKey} className="gro-sug-row flex min-h-[64px] items-center gap-3 px-3.5 py-2" data-sm-sug={x.productKey}>
+              <ProductTile art={x.art} section={x.section} size={44} />
+              <span className="min-w-0 flex-1">
+                <b className="bidi block truncate text-[15px] font-extrabold">
+                  {x.title} {x.unit && x.unit !== "u" && x.amount ? qtyLabel({ quantity: x.qty, amount: x.amount, unit: x.unit }, locale) : `×${x.qty}`}
+                </b>
+                <span className="block truncate text-[12.5px] text-muted">{reason(x)}</span>
+              </span>
+              {!ro && (
+                <>
+                  <button type="button" className="grid size-10 shrink-0 place-items-center rounded-full text-muted transition-transform duration-150 ease-[var(--ease-out)] active:scale-90" aria-label={f(t.sm.sug.skip, { title: x.title })} onClick={() => skip(x)} data-sm-sug-skip>
+                    <X className="size-[18px]" />
+                  </button>
+                  <button type="button" className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-ink text-bg transition-transform duration-150 ease-[var(--ease-out)] active:scale-90" aria-label={f(t.sm.sug.add, { title: x.title })} onClick={() => void accept([x])} data-sm-sug-add>
+                    <Plus className="size-5" strokeWidth={2.4} />
+                  </button>
+                </>
+              )}
+            </div>
+          ))}
+          {!ro && (
+            <div className="gro-sug-foot flex min-h-14 items-center gap-3 px-3.5 py-2">
+              <span className="min-w-0 flex-1 text-[13px] text-muted">{t.sm.sug.foot}</span>
+              <button type="button" className="h-10 shrink-0 rounded-[12px] bg-ink px-3.5 text-[14px] font-bold text-bg transition-transform duration-150 ease-[var(--ease-out)] active:scale-95" onClick={() => void accept(list)} data-sm-sug-all>
+                {t.sm.sug.addAll}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </section>
   );
 }
 
+/** "Not this time": quiet until the end of the product's cycle (the server caps it at 120 days). */
+function skipOnServer(productKey: string, until: number) {
+  const now = Date.now();
+  if (until > now) void dismissSuggestion(productKey, Math.min(until, now + 119 * 86_400_000)).catch(() => {});
+}
+
+function FirstTime({ basketSize, onBasket, onBuild, onPaste }: { basketSize: number; onBasket: () => void; onBuild: () => void; onPaste: () => void }) {
+  const { t, f } = useI18n();
+  const card = "flex min-h-[76px] w-full items-center gap-3.5 rounded-[18px] border border-line-strong bg-surface px-3.5 text-start shadow-card transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]";
+  const ART = ["produce", "dairy", "drink", "cans", "clean"];
+  return (
+    <div className="flex flex-col gap-3" data-sm-first>
+      <div className="relative flex h-40 items-end justify-center gap-3 overflow-hidden rounded-[22px] border border-line bg-[radial-gradient(120%_90%_at_80%_20%,color-mix(in_srgb,var(--orange,#fb7a3c)_14%,var(--surface)),var(--surface))] pb-4" aria-hidden>
+        {ART.map((k, i) => (
+          <span key={k} className="grid w-11 place-items-center rounded-[12px] bg-surface shadow-card" style={{ height: [70, 96, 82, 60, 104][i] }}>
+            <SectionIcon section={k} size={30} />
+          </span>
+        ))}
+      </div>
+      <h2 className="px-1 pt-1 text-[19px] font-extrabold">{t.sm.first.title}</h2>
+      <button type="button" className={card} onClick={onBasket} data-sm-first-basket>
+        <span className="grid size-11 shrink-0 place-items-center rounded-[13px] bg-surface-2 text-ink">
+          <ShoppingBasket className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <b className="block text-[15.5px] font-extrabold">{t.sm.first.basket}</b>
+          <span className="block text-[13px] text-muted">{f(t.sm.first.basketSub, { n: basketSize })}</span>
+        </span>
+        <ChevronRight className="size-4 shrink-0 text-muted rtl:-scale-x-100" />
+      </button>
+      <button type="button" className={card} onClick={onBuild} data-sm-first-build>
+        <span className="grid size-11 shrink-0 place-items-center rounded-[13px] bg-spark text-white">
+          <Sparkles className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <b className="block text-[15.5px] font-extrabold">{t.sm.first.build}</b>
+          <span className="block text-[13px] text-muted">{t.sm.first.buildSub}</span>
+        </span>
+        <ChevronRight className="size-4 shrink-0 text-muted rtl:-scale-x-100" />
+      </button>
+      <button type="button" className={card} onClick={onPaste} data-sm-first-paste>
+        <span className="grid size-11 shrink-0 place-items-center rounded-[13px] bg-surface-2 text-ink">
+          <ClipboardPaste className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <b className="block text-[15.5px] font-extrabold">{t.sm.first.paste}</b>
+          <span className="block text-[13px] text-muted">{t.sm.first.pasteSub}</span>
+        </span>
+        <ChevronRight className="size-4 shrink-0 text-muted rtl:-scale-x-100" />
+      </button>
+    </div>
+  );
+}
+
+function Section({ section, items, tiles }: { section: string; items: ItemWithSources[]; tiles: boolean }) {
+  const { t, f, locale } = useI18n();
+  const [shut, setShut] = useState(false);
+  const name = section === "other" ? t.sm.main.other : sectionName(section, locale);
+  return (
+    <section className="gro-sec" style={{ "--k": sectionColor(section) } as React.CSSProperties} data-shut={shut ? "" : undefined} data-sm-section={section}>
+      <button type="button" className="gro-sec-h" onClick={() => setShut(!shut)} aria-expanded={!shut} aria-label={f(t.sm.main.sectionToggle, { section: name })}>
+        <SectionIcon section={section} />
+        <span className="gro-nm">{name}</span>
+        <span className="gro-n">{items.length}</span>
+        <ChevronDown className="gro-cv size-4" />
+      </button>
+      <div className="gro-sec-b">
+        <div>
+          {tiles ? (
+            <div className="gro-tiles">
+              {items.map((i) => (
+                <Tile key={i.id} item={i} />
+              ))}
+            </div>
+          ) : (
+            <div className="gro-box">
+              {items.map((i) => (
+                <Row key={i.id} item={i} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Who added a row (shared spaces): a dot in the person's colour. */
+const WHO = ["#7c5ad9", "#21938f", "#3b7fc4", "#d17a22", "#c94673", "#3f9d5a"];
+function useWhoColor(item: ItemWithSources) {
+  const s = useStore();
+  if (s.space?.kind !== "shared" || !item.addedByUserId) return null;
+  const k = s.people.findIndex((p) => p.id === item.addedByUserId);
+  return k < 0 ? null : WHO[k % WHO.length];
+}
+
 function Row({ item }: { item: ItemWithSources }) {
   const { locale } = useI18n();
+  const who = useWhoColor(item);
   return (
     <div className="gro-row" data-sm-row={item.id}>
       <ProductTile art={item.artKey} section={item.section} />
@@ -71,6 +475,18 @@ function Row({ item }: { item: ItemWithSources }) {
         <span className="gro-t bidi">{item.title}</span>
         {item.notes && <span className="gro-s bidi truncate">{item.notes}</span>}
       </span>
+      {who && <i className="gro-who" style={{ background: who }} aria-hidden />}
+      <span className="gro-q">{qtyLabel(item, locale)}</span>
+    </div>
+  );
+}
+
+function Tile({ item }: { item: ItemWithSources }) {
+  const { locale } = useI18n();
+  return (
+    <div className="gro-tile" data-sm-row={item.id}>
+      <ProductTile art={item.artKey} section={item.section} size={56} />
+      <span className="gro-t bidi">{item.title}</span>
       <span className="gro-q">{qtyLabel(item, locale)}</span>
     </div>
   );

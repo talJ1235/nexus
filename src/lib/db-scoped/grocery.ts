@@ -172,6 +172,9 @@ export async function purchasesOf(s: Scoped): Promise<{ purchases: Purchase[]; t
   const purchases: Purchase[] = [];
   const seenItems = new Set<string>();
   const items = new Map((await s.select(schema.items, SM)).map((i) => [i.id, i]));
+  // A check without a row (an add in the store, a product bought before) is named by the latest row of that product.
+  const nameOf = new Map<string, { title: string; art: string | null; at: number }>();
+  for (const i of items.values()) if (i.productKey && (nameOf.get(i.productKey)?.at ?? -1) < i.updatedAt) nameOf.set(i.productKey, { title: i.title, art: i.artKey, at: i.updatedAt });
   const tripsOut: { id: string; startedAt: number; keys: Set<string> }[] = [];
   for (const t of trips) {
     const r = replayTrip(t.checks);
@@ -189,7 +192,7 @@ export async function purchasesOf(s: Scoped): Promise<{ purchases: Purchase[]; t
       keys.add(productKey);
       purchases.push({
         productKey,
-        title: it?.title ?? productKey,
+        title: it?.title ?? nameOf.get(productKey)?.title ?? productKey,
         at: last.at,
         qty: qtyc?.qty ?? it?.quantity ?? 1,
         amount: qtyc?.amount ?? it?.amount ?? null,
@@ -198,7 +201,7 @@ export async function purchasesOf(s: Scoped): Promise<{ purchases: Purchase[]; t
         chain: t.chain,
         branch: t.branch,
         section: last.section ?? it?.section ?? null,
-        art: it?.artKey ?? null,
+        art: it?.artKey ?? nameOf.get(productKey)?.art ?? null,
         tripId: t.id,
       });
     }
@@ -236,6 +239,45 @@ export async function suggestFor(s: Scoped, o: { now?: number; tz: string; local
   const onList = new Set(list.map((i) => i.productKey).filter((k): k is string => !!k));
   const listTitles = new Map(list.filter((i) => i.productKey).map((i) => [i.productKey!, i.title]));
   return suggest({ history, onList, listTitles, dismissed, staples, baskets, now, tz: o.tz, locale: o.locale });
+}
+
+// ---------- S2 A2: everything the Supermarket tab shows besides the list rows ----------
+
+export type HomeState = {
+  stores: (typeof schema.spaceStore.$inferSelect)[];
+  /** The main store (null = none chosen yet). */
+  store: { chain: string; branch: string } | null;
+  /** The list's section order (the main store's confirmed order, else the default). */
+  order: SectionKey[];
+  suggestions: Suggestion[];
+  /** productKey → the last price paid (the estimate on the store chip). */
+  prices: Record<string, number>;
+  /** What finished trips cost this calendar month (local), for "left this month". */
+  monthSpent: number;
+  trips: number;
+};
+
+export async function homeState(s: Scoped, o: { tz: string; locale?: string; now?: number }): Promise<HomeState> {
+  const now = o.now ?? Date.now();
+  const [stores, { purchases, trips }, list, dismissed, staples, tripRows] = await Promise.all([
+    storesOf(s),
+    purchasesOf(s),
+    supermarketList(s),
+    dismissedOf(s, now),
+    staplesOf(s),
+    s.pick({ total: schema.trip.total, at: schema.trip.finishedAt }, schema.trip, isNotNull(schema.trip.finishedAt)),
+  ]);
+  const def = stores.find((x) => x.isDefault) ?? null;
+  const history = learnHistory(purchases, trips, { tz: o.tz, staples });
+  const onList = new Set(list.map((i) => i.productKey).filter((k): k is string => !!k));
+  const listTitles = new Map(list.filter((i) => i.productKey).map((i) => [i.productKey!, i.title]));
+  const suggestions = suggest({ history, onList, listTitles, dismissed, staples, baskets: trips.map((t) => t.keys), now, tz: o.tz, locale: o.locale });
+  const prices: Record<string, number> = {};
+  for (const p of [...purchases].sort((a, b) => a.at - b.at)) if (p.price != null && p.price > 0) prices[p.productKey] = p.price;
+  const ym = (t: number) => new Intl.DateTimeFormat("en-CA", { timeZone: o.tz, year: "numeric", month: "2-digit" }).format(new Date(t));
+  const month = ym(now);
+  const monthSpent = tripRows.reduce((a, r) => a + (r.at != null && r.total != null && ym(r.at) === month ? r.total : 0), 0);
+  return { stores, store: def ? { chain: def.chain, branch: def.branch } : null, order: tripOrder(def), suggestions, prices, monthSpent, trips: trips.length };
 }
 
 /** "Not now": quiet until the end of this cycle. */

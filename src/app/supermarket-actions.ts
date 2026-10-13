@@ -7,7 +7,7 @@ import { requireCtx, AccessError } from "@/lib/ctx";
 import { scoped, type Scoped } from "@/lib/db-scoped";
 import * as G from "@/lib/db-scoped/grocery";
 import * as T from "@/lib/db-scoped/trips";
-import { userPrefSet } from "@/lib/db-scoped/prefs";
+import { userPrefGet, userPrefSet } from "@/lib/db-scoped/prefs";
 import { kvGet, kvSet } from "@/lib/kv";
 import { noteActivity } from "@/lib/activity";
 import { aiUseOf } from "@/lib/ai-gate";
@@ -117,6 +117,24 @@ export async function addParts(parts: z.input<typeof PartsZ>) {
   classifyAfter(s, fresh);
   announceAdd(s, ctx.user.id, fresh);
   return out.map((r) => ({ item: r.item, merged: r.merged, before: r.before }));
+}
+
+// ---------- S2 A2: the Supermarket tab ----------
+
+const SM_LAYOUT_KEY = "pref:sm-layout";
+
+/** Store chip, section order, suggestions, prices for the estimate, this month's trips, the person's rows/tiles. */
+export async function supermarketHome(locale?: "he" | "en") {
+  const ctx = await requireCtx("view");
+  const { tz } = await notifyPrefs(ctx.user.id);
+  const [state, layout] = await Promise.all([G.homeState(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale) }), userPrefGet(ctx.user.id, SM_LAYOUT_KEY)]);
+  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const) };
+}
+
+/** Rows or tiles — remembered per person (the list's ⋯ menu, never in Settings). */
+export async function setSupermarketLayout(layout: "rows" | "tiles") {
+  const ctx = await requireCtx("view");
+  await userPrefSet(ctx.user.id, SM_LAYOUT_KEY, z.enum(["rows", "tiles"]).parse(layout) === "tiles" ? "tiles" : null);
 }
 
 // ---------- B2: suggestions ----------

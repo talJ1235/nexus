@@ -425,7 +425,9 @@ function PlusMenuSheet() {
             // Bottom row rises first, then the top row (polish #12: 20 ms steps, settled by ~280 ms — it opens all day).
             style={{ transitionDelay: open ? `${((i < 2 ? 2 : 0) + (i % 2)) * 20}ms` : "0ms", backgroundColor: "var(--surface)", backgroundImage: `var(--act-${a.tone})` }}
             className={cn(
-              "relative flex min-h-[124px] flex-col items-start justify-between overflow-hidden rounded-[24px] border border-line p-3.5 text-start shadow-[0_14px_32px_color-mix(in_srgb,var(--ink)_16%,transparent)] transition-[opacity,transform] active:scale-[0.97] disabled:opacity-50",
+              // Disabled dims only while open: `disabled:opacity-50` would beat the closed `opacity-0` (a ghost card).
+              "relative flex min-h-[124px] flex-col items-start justify-between overflow-hidden rounded-[24px] border border-line p-3.5 text-start shadow-[0_14px_32px_color-mix(in_srgb,var(--ink)_16%,transparent)] transition-[opacity,transform] active:scale-[0.97]",
+              open && "disabled:opacity-50",
               // Open: 220 ms ease-out, no overshoot (polish #12); close: the same pair on --ease-out, ≤ 280 ms (R16 A11).
               open ? "translate-y-0 scale-100 opacity-100 duration-[220ms] ease-[var(--ease-out)]" : "translate-y-6 scale-[0.92] opacity-0 duration-[180ms,260ms] ease-[var(--ease-out)]",
             )}

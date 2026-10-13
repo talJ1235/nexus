@@ -45,7 +45,7 @@ way · Projects. Long-press + → Add to list · Scan · Photo · Start shopping
 Tab 4 is chosen **by itself**: Projects if onboarding said "projects" and the person uses Projects more than the
 Supermarket in the last 30 days, else Supermarket — no setting. Desktop sidebar: "Supermarket" near the top with a count.
 **Acceptance:** smoke: dock order, long-press menu, shortcuts in the manifest, tab-4 rule unit-tested.
-### A2. [ ] Supermarket tab (P2, `Main`)
+### A2. [x] Supermarket tab (P2, `Main`)
 As the board: store chip + estimate vs budget, add field with Scan/Photo/Voice/Recipe icons, "Nexus suggests" block,
 sections in the branch's order with colours, rows / tiles (switch in the ⋯ menu, remembered per person — **not** in
 Settings), first-time state, viewer, offline badge. Section colours always on (no switch). `/supermarket` stops
@@ -151,10 +151,15 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 ### Progress
 - 0.1 done — part-2 boards (9 boards + `nx-sm2.css`) committed to `docs/design/r18/`; pointers in ROUND18 + PLANNER.
 - A1 done — dock Home · Products · + · Supermarket/Projects · Insights, long-press + menu, manifest shortcuts, Products segments (To buy · On the way · Projects), sidebar Supermarket + count, tab-4 rule `lib/dock-tab.ts` + `test:dock`; phone smoke steps updated + new.
+- A2 done — Supermarket tab (`supermarket/view.tsx`, kit `sm.css`, board pictures ported to `art-data.ts`): store chip + estimate vs this month's budget, aisle rail, add field, Nexus suggests (+ / × / Add all, draft header with `?draft=1`), sections in the main store's order, rows/tiles in the ⋯ menu (`pref:sm-layout` per person), first-time state (basic basket `lib/grocery/basket.ts`), viewer + offline badges; `/supermarket` renders the tab; action `supermarketHome`; demo data `scripts/lib/seed-sm.mjs` (seed-local); smoke step + `scripts/parity-r18.mjs` (a2-*.png). Fixed on the way: the closed + menu showed its disabled Plan card at 50 %.
 ### Decisions
 - A1: The board's flat bottom bar is not taken: the app keeps its floating dock (R14) with the new tabs/icons.
 - A1: Tab-4 use counts live on the device (localStorage `nexus.tabUse`, 30 days); the tab is chosen once per page load so it never swaps under a finger; a tie keeps the Supermarket.
 - A1: Products segments are plain labels + counts (board); the To buy total moved to the toolbar line.
 - A1: The board's List · Recipes switch is not built: recipes are R18b.
+- A2: The client store keeps only to-buy supermarket rows (`s.sm`); bought rows stay server-side (trips / history).
+- A2: The S1 `sm-bridge` stays until D1 (it flushes the trip outbox); D1 replaces it with the trip API.
+- A2: Chain monograms use the onboarding store colours (Shufersal = green m2), not the board's red.
+- A2: Rows open nothing yet — the item sheet is C2; the Start shopping bar arrives with store mode (D3).
 ### For Tal
 - Prod snapshot was refused to the agent at session start (2026-10-13). Run in `nexus/`: `node --env-file=.env.local scripts/db-snapshot.mjs` → `snapshots/prod-2026-10-13.db`; the S2 rehearsal uses the newest `snapshots/prod-*.db`.

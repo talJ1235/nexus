@@ -153,4 +153,8 @@ await db.execute({ sql: "INSERT INTO alerts (id, space_id, item_id, source_id, k
 await db.execute({ sql: "INSERT OR REPLACE INTO store_settings (space_id, store_key, free_shipping_min, currency, shipping_fee, updated_at) VALUES (?, ?, ?, ?, ?, ?)", args: [SPACE, "raspberrypi", 100, "USD", 9, now] });
 const month = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit" }).format(new Date(now)).slice(0, 7);
 await db.execute({ sql: "INSERT OR REPLACE INTO space_pref (space_id, key, value, updated_at) VALUES (?, ?, ?, ?)", args: [SPACE, `pref:budget:${month}`, JSON.stringify({ cap: 9000, currency: "ILS" }), now] });
-console.log(`OK seeded ${items.length} demo items`);
+// R18 S2: the supermarket demo (main store, the boards' list, past trips + prices).
+const { seedSupermarket } = await import("./lib/seed-sm.mjs");
+const owner = (await db.execute({ sql: "SELECT created_by AS id FROM space WHERE id = ?", args: [SPACE] })).rows[0]?.id ?? null;
+const sm = await seedSupermarket(db, { spaceId: SPACE, userId: owner, now });
+console.log(`OK seeded ${items.length} demo items + supermarket (${sm.list} on the list, ${sm.trips} trips)`);

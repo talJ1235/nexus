@@ -1,6 +1,9 @@
-import { redirect } from "next/navigation";
+// R18 S2 A2: /supermarket — the same app as "/", opened on the Supermarket tab (the evening draft push, live adds and
+// "Send to phone" open here; `?draft=1` shows the draft's "Ready for …" header). Replaces S1's redirect to To buy.
+import Home from "../page";
 
-// R18 S1: the Supermarket screen arrives in S2. Until then its links (the evening draft push, live adds) open To buy.
-export default function SupermarketPage() {
-  redirect("/?v=to_buy");
+export const maxDuration = 60;
+
+export default async function SupermarketPage() {
+  return Home({ searchParams: Promise.resolve({ v: "supermarket" }) });
 }

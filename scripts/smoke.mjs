@@ -1159,6 +1159,56 @@ try {
       });
     }
 
+    // R18 S2 A2: the Supermarket tab on the seeded list (scripts/lib/seed-sm.mjs): sections in walking order with their
+    // colours, store chip + estimate, "Nexus suggests" (eggs every ~9 days, toilet paper, parmesan with pasta), an add
+    // through the field, accepting a suggestion, rows ⇄ tiles from the ⋯ menu remembered after a reload.
+    await step("supermarket tab (R18 A2): sections, store + estimate, suggestions, add, accept, rows/tiles kept", async () => {
+      await page.goto(`${BASE}/supermarket`);
+      await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+      await page.waitForSelector("[data-sm-suggest]", { timeout: 15000 });
+      const r = await page.evaluate(() => ({
+        url: location.pathname === "/supermarket" ? "supermarket" : new URL(location.href).searchParams.get("v"),
+        sections: [...document.querySelectorAll("[data-sm-section]")].map((e) => e.getAttribute("data-sm-section")),
+        rows: document.querySelectorAll("[data-sm-list] [data-sm-row]").length,
+        colours: new Set([...document.querySelectorAll("[data-sm-section]")].map((e) => getComputedStyle(e).getPropertyValue("--k").trim())).size,
+        store: document.querySelector("[data-sm-store]")?.textContent ?? "",
+        estimate: document.querySelector("[data-sm-estimate] b")?.textContent ?? "",
+        sug: [...document.querySelectorAll("[data-sm-sug]")].map((e) => e.getAttribute("data-sm-sug")),
+        rail: document.querySelectorAll("[data-sm-rail] > i").length,
+      }));
+      await shot(page, "sm-tab");
+      // A name of its own each run (the step can run twice on one DB: phone, then computer).
+      const fresh = `Smoke fruit ${Date.now().toString(36)}`;
+      await page.locator("[data-sm-add-input]").fill(`2 ${fresh}`);
+      await page.keyboard.press("Enter");
+      await page.waitForFunction((n) => [...document.querySelectorAll("[data-sm-row] .gro-t")].some((e) => e.textContent === n), fresh, { timeout: 8000 });
+      r.added = true;
+      const first = r.sug.find((k) => k.startsWith("eggs")) ?? r.sug[0];
+      await page.locator(`[data-sm-sug="${first}"] [data-sm-sug-add]`).click();
+      await page.waitForFunction((n) => document.querySelectorAll("[data-sm-list] [data-sm-row]").length >= n, r.rows + 2, { timeout: 8000 });
+      r.afterAccept = await page.locator("[data-sm-list] [data-sm-row]").count();
+      await page.locator("[data-sm-more]").click();
+      await page.locator('[data-sm-layout-pick="tiles"]').click();
+      await page.waitForSelector('[data-sm-layout="tiles"] .gro-tiles');
+      await page.waitForTimeout(800);
+      await page.reload();
+      await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+      await page.waitForTimeout(1200);
+      r.kept = await page.locator("[data-sm-view]").getAttribute("data-sm-layout");
+      await shot(page, "sm-tab-tiles");
+      await page.locator("[data-sm-more]").click();
+      await page.locator('[data-sm-layout-pick="rows"]').click();
+      await page.waitForTimeout(600);
+      const order = ["produce", "meat", "deli", "dry", "cans", "spice", "bfast", "snack", "drink", "clean", "toil", "baby", "pets", "bread", "dairy", "frozen", "other"];
+      const inOrder = r.sections.every((k, i) => i === 0 || order.indexOf(r.sections[i - 1]) < order.indexOf(k));
+      ok(
+        r.url === "supermarket" && r.rows >= 23 && r.sections.length >= 12 && inOrder && r.colours === r.sections.length && /Shufersal|שופרסל/.test(r.store) && /≈/.test(r.estimate) &&
+          (r.rows > 23 || (r.sug.some((k) => k.startsWith("eggs")) && r.sug.some((k) => k.startsWith("toilet-paper")) && r.sug.includes("parmesan"))) && r.sug.length > 0 && r.rail === r.sections.length && r.afterAccept >= r.rows + 2 && r.kept === "tiles",
+        "supermarket tab (R18 A2): sections, store + estimate, suggestions, add, accept, rows/tiles kept",
+        JSON.stringify({ ...r, inOrder }),
+      );
+    });
+
     if (MOBILE) {
       // Round 8 C: the hero summarizes, the products are the page.
       // Round 10 B1: tap → first video frame → decoder ready, on a mid-phone profile (CPU ×4), first open and a reopen;
