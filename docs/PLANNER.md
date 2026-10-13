@@ -7,6 +7,7 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- 2026-10-13: S2 brief `docs/ROUND18-S2.md` written; Tal runs it.
 - **2026-10-13:** **R18 boards part 2 made** on canvas "Nexus R18 — Supermarket" (second row "phone, part 2" + third row
   "computer"): `ItemSheet-phone` (P6), `Capture-phone` (P4 + P5), `Store-phone` (P7 + P8), `Lists-phone` (P12 + P13),
   `TripBar-phone` (P10), `Push-phone` (P16), `Settings-phone` (P17), `Supermarket-desktop` (D1), `Settings-desktop` (D3);

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Supermarket pushes · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+<link rel="stylesheet" href="./nx-sm.css">
+<link rel="stylesheet" href="./nx-sm2.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+<div class="phone">
+
+  <sc-if value="{{onLock}}" hint-placeholder-val="{{ true }}">
+    <div class="wall2" style="position:absolute;inset:0"></div>
+    <div class="lock2">
+      <svg class="s" viewBox="0 0 24 24" style="margin-top:22px;opacity:.9"><path d="M6 11h12v10H6z M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+      <div class="clk">20:00</div>
+      <div class="dte">{{t.date}}</div>
+    </div>
+    <div class="nst">
+      <sc-if value="{{expanded}}" hint-placeholder-val="{{ false }}">
+        <div class="notif big" role="article">
+          <div class="head"><span class="app"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg></span><span class="nm">{{t.app}}</span><span class="when">{{t.now}}</span></div>
+          <span class="t" style="margin-top:8px"><b>{{t.draftT}}</b><span class="s2">{{t.draftS}}</span></span>
+          <div class="npv" aria-hidden="true"><sc-for list="{{prev}}" as="a" hint-placeholder-count="4"><span class="{{a.tile}}"><svg class="art" viewBox="0 0 48 48"><path d="{{a.art.d0}}" fill="{{a.art.f0}}"></path><path d="{{a.art.d1}}" fill="{{a.art.f1}}"></path><path d="{{a.art.d2}}" fill="{{a.art.f2}}"></path><path d="{{a.art.d3}}" fill="{{a.art.f3}}"></path></svg></span></sc-for><span class="more">+14</span></div>
+          <div class="acts"><span>{{t.open}}</span></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{stack}}" hint-placeholder-val="{{ true }}">
+        <button class="notif" onClick="{{expand}}" style="border:0;font:inherit;color:var(--ink)">
+          <span class="app"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg></span>
+          <span class="t"><b>{{t.draftT}}</b>{{t.draftS}}</span><span class="when">{{t.now}}</span>
+        </button>
+        <div class="notif">
+          <span class="app"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg></span>
+          <span class="t"><b class="bidi">{{t.sentT}}</b>{{t.sentS}}</span><span class="when">{{t.m25}}</span>
+        </div>
+        <div class="notif">
+          <span class="app"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 3 7v10l9 5 9-5V7z M3 7l9 5 9-5 M12 12v10"></path></svg></span>
+          <span class="t"><b class="bidi">{{t.finT}}</b>{{t.finS}}</span><span class="when">{{t.h2}}</span>
+        </div>
+      </sc-if>
+    </div>
+    <span class="tiny" style="position:absolute;bottom:26px;inset-inline:0;text-align:center;color:rgba(255,255,255,.8)">{{lockNote}}</span>
+  </sc-if>
+
+  <sc-if value="{{onStore}}" hint-placeholder-val="{{ false }}">
+    <div class="sm-top" style="padding:16px 20px 12px">
+      <div class="prog-h"><span class="big">14</span><span class="of">/ 24</span><span style="flex:1"></span><span class="pc"><b>58%</b><span>₪238</span></span></div>
+      <div class="rail" style="margin-top:10px"><i class="k-produce full"><u style="width:100%"></u></i><i class="k-meat full"><u style="width:100%"></u></i><i class="k-dry"><u style="width:50%"></u></i><i class="k-bread"><u style="width:0%"></u></i><i class="k-dairy cur"><u style="width:25%"></u></i><i class="k-frozen"><u style="width:0%"></u></i></div>
+    </div>
+    <div class="ssec-h" style="padding:14px 20px 6px;display:flex;align-items:center;gap:10px"><span class="si k-dairy"><svg viewBox="0 0 24 24"><path d="M7 6l2-4h6l2 4 M7 6v15a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6z M7 6l5 4 5-4 M12 10v12"></path></svg></span><span class="nm" style="flex:1;font-weight:750">{{t.dairy}}</span><span class="n">1/5</span></div>
+    <div class="sbox" style="margin:0 12px;border:1px solid var(--line-strong);border-radius:16px;background:var(--raised);overflow:hidden">
+      <sc-for list="{{srows}}" as="r" hint-placeholder-count="5">
+        <div class="{{r.cls}}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;min-height:68px;border-top:1px solid var(--line-in)"><span class="{{r.tile}}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path></svg></span><span class="tx" style="flex:1;min-width:0"><b class="bidi" style="display:block;font-size:17px;font-weight:700">{{r.n}}</b><sc-if value="{{r.isNew}}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:var(--ok);font-weight:650;display:flex;align-items:center;gap:5px"><span class="av xs c2" style="position:static">{{iniN}}</span>{{t.justAdded}}</span></sc-if></span><span class="q" style="font-weight:700">{{r.q}}</span></div>
+      </sc-for>
+    </div>
+    <div class="toast2 show" style="top:14px;bottom:auto;background:var(--raised);color:var(--ink);border:1px solid var(--line-strong)" role="status"><span class="av sm c2" style="position:static;flex-shrink:0">{{iniN}}</span><span class="grow" style="line-height:1.3"><b style="display:block;font-size:14px">{{t.addT}}</b><span style="font-size:12.5px;color:var(--muted)">{{t.addS}}</span></span><button style="color:var(--ink)">{{t.show}}</button></div>
+    <span class="tiny" style="position:absolute;bottom:20px;inset-inline:20px;text-align:center">{{t.inAppNote}}</span>
+  </sc-if>
+
+  <sc-if value="{{onInbox}}" hint-placeholder-val="{{ false }}">
+    <div class="pg">
+      <div class="top2"><button class="ico-b" aria-label="{{t.back}}"><svg class="s lg flip" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><b></b></div>
+      <div class="bd" style="padding:0">
+        <h1 class="h1b" style="margin:4px 20px 8px">{{t.inbox}}</h1>
+        <div class="gh" style="padding-inline:20px">{{t.today}}</div>
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+          <div class="{{r.cls}}" style="display:flex;gap:12px;padding:12px 20px;align-items:flex-start;border-bottom:1px solid var(--line-in)">
+            <span class="{{r.ic}}" style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;{{r.icStyle}}"><svg class="s" viewBox="0 0 24 24"><path d="{{r.d}}"></path></svg></span>
+            <span style="flex:1;min-width:0;line-height:1.35"><b class="bidi" style="display:block;font-size:15px">{{r.t}}</b><span class="sub" style="display:block">{{r.s}}</span><sc-if value="{{r.btn}}" hint-placeholder-val="{{ false }}"><button class="btn" style="height:36px;margin-top:8px;font-size:13.5px;border-radius:10px">{{r.btn}}</button></sc-if></span>
+            <span class="tiny" style="flex-shrink:0;display:flex;align-items:center;gap:6px">{{r.w}}<sc-if value="{{r.unread}}" hint-placeholder-val="{{ false }}"><span class="udot"></span></sc-if></span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"state":{"editor":"enum","options":["lock screen","draft push opened","live add during my trip","inbox"],"default":"lock screen"},"section colours":{"editor":"boolean","default":true},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const st = p.state ?? 'lock screen';
+    const expanded = st === 'draft push opened' || !!s.exp;
+    const C_ = (x, y, r) => 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z';
+    const E_ = (x, y, a, b) => 'M' + (x - a) + ' ' + y + 'a' + a + ' ' + b + ' 0 1 0 ' + (2 * a) + ' 0a' + a + ' ' + b + ' 0 1 0 ' + (-2 * a) + ' 0z';
+    const R_ = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + 'h' + (w - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r + 'v' + (h - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r + 'h' + (-(w - 2 * r)) + 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + (-r) + 'v' + (-(h - 2 * r)) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + (-r) + 'z';
+    const ART = {
+      egg: [[R_(5,26,38,14,4),'#d9c3a0'],[E_(13,25,5,6.5)+E_(24,23,5,6.5)+E_(35,25,5,6.5),'#f7ecdc'],[E_(11.5,22,1.5,2.2)+E_(22.5,20,1.5,2.2)+E_(33.5,22,1.5,2.2),'#ffffff']],
+      chl: [[E_(24,29,20,9),'#bf7428'],[E_(13,26,7.5,6)+E_(24,24,8,6.5)+E_(35,26,7.5,6),'#df9c4a'],[C_(15,23,.9)+C_(25,21,.9)+C_(33,24,.9),'#fbe7c2']],
+      prm: [['M6 34L36 12l6 6v20H6z','#efdca0'],['M6 34L36 12l6 6z','#f8ecc4'],[R_(6,34,36,4,1),'#c9a24a']],
+      tp: [[R_(8,12,22,28,5),'#ffffff'],[E_(19,12,11,4),'#ecebe6'],[R_(30,26,12,14,2),'#ffffff']],
+      mlk: [['M14 16l4-8h12l4 8z','#dfe9f5'],[R_(14,16,20,28,2),'#ffffff'],[R_(14,27,20,10,1),'#3b7fc4']],
+      cot: [['M10 18h28l-3 22c0 2-2 3-4 3H17c-2 0-4-1-4-3z','#ffffff'],[E_(24,18,15,4.5),'#3b7fc4'],[R_(14,26,20,8,2),'#cfe0f3']],
+      yog: [['M12 14h24l-3 26c0 2-2 3-4 3H19c-2 0-4-1-4-3z','#ffffff'],[R_(11,10,26,5,2),'#e86f8f'],[R_(14,22,20,8,1),'#f9c9d6']]
+    };
+    const art = (k) => { const a = ART[k] || []; const o = {}; for (let i = 0; i < 4; i++) { const x = i === 0 ? [E_(24,44.5,13,2.2),'rgba(0,0,0,.10)'] : a[i - 1]; o['d' + i] = x ? x[0] : ''; o['f' + i] = x ? x[1] : 'none'; } return o; };
+    const t = {
+      date: L('Wednesday, 15 October','יום רביעי, 15 באוקטובר'), app: L('Nexus · Supermarket','Nexus · סופר'), now: L('now','עכשיו'), m25: L('25m','25 ד׳'), h2: L('2h','שעתיים'),
+      draftT: L('Your list for tomorrow is ready','הרשימה למחר מוכנה'), draftS: L('18 items · Nexus suggests 4 · your list didn’t change','18 פריטים · Nexus מציע 4 · הרשימה שלכם לא השתנתה'),
+      open: L('Open the list','פתיחת הרשימה'),
+      sentT: L('Tal sent the list to your phone','טל שלח את הרשימה לטלפון'), sentS: L('23 items · Shufersal Deal','23 פריטים · שופרסל דיל'),
+      finT: L('Noa finished at Rami Levy','נועה סיימה ברמי לוי'), finS: L('Bought 21 · 2 left for next time','נקנו 21 · 2 נשארו לפעם הבאה'),
+      dairy: L('Dairy & eggs','חלב וביצים'), justAdded: L('Noa just added this','נועה הוסיפה עכשיו'),
+      addT: L('Noa added Milk 1% ×2','נועה הוסיפה חלב 1% ×2'), addS: L('In Dairy & eggs — you’re there now','בחלב וביצים — אתם שם עכשיו'), show: L('Show','הצגה'),
+      inAppNote: L('While you shop, adds show in the app — no push on top of it.','בזמן קנייה ההוספות מופיעות באפליקציה — בלי פוש מעליה.'),
+      back: L('Back','חזרה'), inbox: L('Notifications','התראות'), today: L('Today','היום')
+    };
+    const SP = 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z';
+    const rows = [
+      { t: t.draftT, s: t.draftS, w: '20:00', unread: true, btn: t.open, d: SP, ic: 'ic3 sp', icStyle: '', cls: 'nt unread' },
+      { t: L('Noa added 3 items while you shopped','נועה הוסיפה 3 פריטים בזמן הקנייה שלך'), s: L('Milk 1%, challah, dish soap','חלב 1%, חלה, סבון כלים'), w: '18:52', unread: false, btn: '', d: 'M12 5v14 M5 12h14', ic: 'ic3', icStyle: 'background:var(--ok-t);color:var(--ok)', cls: 'nt' },
+      { t: t.sentT, s: t.sentS, w: '19:35', unread: false, btn: '', d: 'M4 5h16v11H4z M8 20h8 M12 16v4', ic: 'ic3', icStyle: '', cls: 'nt' },
+      { t: t.finT, s: t.finS, w: '18:05', unread: false, btn: '', d: 'M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6', ic: 'ic3', icStyle: '', cls: 'nt' }
+    ];
+    const srows = [['mlk',L('Milk 1%','חלב 1%'),'×2',true],['mlk',L('Milk 3%','חלב 3%'),'×2',false],['cot',L('Cottage cheese 5%','קוטג׳ 5%'),'×3',false],['yog',L('Yogurt','יוגורט'),'×4',false],['egg',L('Eggs, size L','ביצים L'),'×12',false]].map(([k, n, q, isNew]) => ({ art: art(k), tile: 'pt k-dairy', n, q, isNew, cls: isNew ? 'irow live' : 'irow' }));
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') + ((p.motion ?? 'full') === 'reduced' ? ' rm' : '') + (p['section colours'] === false ? ' mono' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      onLock: st === 'lock screen' || st === 'draft push opened', onStore: st === 'live add during my trip', onInbox: st === 'inbox',
+      expanded, stack: !expanded, expand: () => this.setState({ exp: true }),
+      prev: ['egg','chl','prm','tp'].map(k => ({ art: art(k), tile: 'pt k-' + (k === 'chl' ? 'bread' : (k === 'tp' ? 'clean' : 'dairy')) })),
+      lockNote: expanded ? L('One push the evening before your usual day. Off in Settings → Supermarket.','פוש אחד בערב שלפני היום הרגיל. כיבוי בהגדרות ← סופר.') : L('Long-press for a preview','לחיצה ארוכה לתצוגה מקדימה'),
+      srows, iniN: L('N','נ'), rows
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Onboarding store step, Supermarket settings, what Nexus learned · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+<link rel="stylesheet" href="./nx-sm.css">
+<link rel="stylesheet" href="./nx-sm2.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+<div class="phone">
+
+  <sc-if value="{{onOb}}" hint-placeholder-val="{{ false }}">
+  <div class="pg">
+    <div class="ob-top"><button class="ico-b" aria-label="{{t.back}}"><svg class="s lg flip" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><div class="ob-prog" aria-label="{{t.step}}"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div><button class="btn" style="height:36px;border:0;box-shadow:none;background:transparent;color:var(--muted);font-size:14px">{{t.skip}}</button></div>
+    <div class="bd" style="padding:0 0 110px">
+      <div class="ob-scene brandband" aria-hidden="true">
+        <sc-for list="{{fronts}}" as="f" hint-placeholder-count="5"><span class="{{f.cls}}" style="height:{{f.h}}"><span>{{f.i}}</span><i></i></span></sc-for>
+      </div>
+      <sc-if value="{{obChain}}" hint-placeholder-val="{{ true }}">
+        <h2 class="ob-q">{{t.qChain}}</h2>
+        <span class="sub" style="display:block;margin:0 20px">{{t.qChainS}}</span>
+        <div class="chg2" style="margin:14px 16px 0">
+          <sc-for list="{{chains}}" as="c" hint-placeholder-count="9">
+            <button class="{{c.cls}}" onClick="{{c.tog}}" aria-pressed="{{c.on}}"><span class="{{c.ch}}">{{c.i}}</span><span class="bidi">{{c.n}}</span><sc-if value="{{c.main}}" hint-placeholder-val="{{ false }}"><span class="mk">{{t.main}}</span></sc-if><sc-if value="{{c.tick}}" hint-placeholder-val="{{ false }}"><span class="ok3"><svg class="s" viewBox="0 0 24 24" style="stroke-width:3"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if></button>
+          </sc-for>
+        </div>
+        <span class="tiny" style="display:block;margin:12px 20px 0">{{t.mainNote}}</span>
+      </sc-if>
+      <sc-if value="{{obBranch}}" hint-placeholder-val="{{ false }}">
+        <h2 class="ob-q">{{t.qBranch}}</h2>
+        <span class="sub" style="display:block;margin:0 20px">{{t.qBranchS}}</span>
+        <label class="addf focus" style="margin:14px 16px 0"><svg class="s lead" viewBox="0 0 24 24"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.3-4.3"></path></svg><input type="text" defaultValue="{{t.city}}" aria-label="{{t.cityPh}}"></label>
+        <div class="cardl" style="margin:12px 16px 0">
+          <sc-for list="{{branches}}" as="b" hint-placeholder-count="4">
+            <button class="{{b.cls}}" onClick="{{b.pick}}" role="radio" aria-checked="{{b.on}}"><span class="chain ch-a">{{shIni}}</span><span class="tx"><b class="bidi">{{b.n}}</b><span class="bidi">{{b.s}}</span></span><span class="radio"></span></button>
+          </sc-for>
+        </div>
+        <div class="cardl" style="margin:12px 16px 0"><div class="li"><span class="grow"><b>{{t.several}}</b><span>{{t.severalS}}</span></span><button class="{{sevCls}}" onClick="{{togSev}}" aria-pressed="{{sev}}" aria-label="{{t.several}}"></button></div></div>
+      </sc-if>
+    </div>
+    <div class="botbar"><button class="btn pri" onClick="{{obNext}}">{{t.next}}</button></div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{onSm}}" hint-placeholder-val="{{ true }}">
+  <div class="pg">
+    <div class="top2"><button class="ico-b" aria-label="{{t.toSettings}}"><svg class="s lg flip" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><b></b></div>
+    <div class="bd">
+      <h1 class="h1b">{{t.sm}}</h1>
+      <span class="sub" style="display:block;padding:0 4px">{{t.smFor}}</span>
+      <div class="cardl" style="margin-top:18px">
+        <a class="li" href="Store-phone.dc.html"><span class="chain ch-a" style="width:34px;height:34px;border-radius:10px">{{shIni}}</span><span class="grow"><b>{{t.defStore}}</b><span class="bidi">{{curStore}}</span></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+        <a class="li" href="Store-phone.dc.html"><span class="ic3"><svg class="s" viewBox="0 0 24 24"><path d="M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01"></path></svg></span><span class="grow"><b>{{t.order}}</b><span>{{t.orderS}}</span></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+      </div>
+      <div class="cardl" style="margin-top:12px">
+        <button class="li" onClick="{{toHidden}}"><span class="ic3"><svg class="s" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M5.6 5.6l12.8 12.8"></path></svg></span><span class="grow"><b>{{t.hidden}}</b><span>{{t.hiddenS}}</span></span><span class="v">{{nHidden}}</span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+        <button class="li" onClick="{{toLearned}}"><span class="ic3 sp"><svg class="s" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg></span><span class="grow"><b>{{t.learned}}</b><span>{{t.learnedS}}</span></span><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+      </div>
+      <span class="tiny" style="display:block;padding:12px 6px 0">{{t.smFoot}}</span>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{onHid}}" hint-placeholder-val="{{ false }}">
+  <div class="pg push">
+    <div class="top2"><button class="ico-b" onClick="{{toSm}}" aria-label="{{t.sm}}"><svg class="s lg flip" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><b></b></div>
+    <div class="bd">
+      <h1 class="h1b">{{t.hidden}}</h1>
+      <span class="sub" style="display:block;padding:0 4px">{{t.hidExplain}}</span>
+      <sc-if value="{{hasHidden}}" hint-placeholder-val="{{ true }}">
+        <div class="cardl" style="margin-top:16px">
+          <sc-for list="{{hid}}" as="r" hint-placeholder-count="3">
+            <div class="li"><span class="{{r.tile}}" style="width:40px;height:40px;border-radius:11px"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path></svg></span><span class="grow"><b class="bidi">{{r.n}}</b><span>{{r.s}}</span></span><button class="btn" style="height:38px;border-radius:10px;font-size:13.5px" onClick="{{r.back}}">{{t.unhide}}</button></div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{noHidden}}" hint-placeholder-val="{{ false }}">
+        <div class="ft rise" style="margin-top:36px;align-items:center;text-align:center;gap:8px"><span class="ic" style="width:56px;height:56px;border-radius:16px"><svg class="s lg" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span><b style="font-size:17px">{{t.noHidT}}</b><span class="sub" style="max-width:270px">{{t.noHidS}}</span></div>
+      </sc-if>
+    </div>
+    <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="toast2 show" style="bottom:24px" role="status"><span class="grow">{{toastText}}</span></div></sc-if>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{onLrn}}" hint-placeholder-val="{{ false }}">
+  <div class="pg push">
+    <div class="top2"><button class="ico-b" onClick="{{toSm}}" aria-label="{{t.sm}}"><svg class="s lg flip" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><b></b></div>
+    <div class="bd">
+      <h1 class="h1b">{{t.learned}}</h1>
+      <span class="sub" style="display:block;padding:0 4px">{{t.lrnExplain}}</span>
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+        <div class="gh">{{g.t}}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <sc-for list="{{g.chips}}" as="c" hint-placeholder-count="3">
+            <span class="kchip"><span class="bidi">{{c.t}}</span><span class="src">{{c.src}}</span><button onClick="{{c.act}}" aria-label="{{c.aria}}"><svg class="s sm" viewBox="0 0 24 24"><path d="{{c.d}}"></path></svg></button></span>
+          </sc-for>
+        </div>
+      </sc-for>
+      <button class="btn" style="width:100%;margin-top:24px;color:var(--danger)">{{t.forgetAll}}</button>
+      <span class="tiny" style="display:block;padding:10px 6px 0;text-align:center">{{t.forgetAllS}}</span>
+    </div>
+    <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="toast2 show" style="bottom:24px" role="status"><span class="grow">{{toastText}}</span><button onClick="{{undo}}">{{t.undo}}</button></div></sc-if>
+  </div>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"state":{"editor":"enum","options":["onboarding · chain","onboarding · branch","settings · supermarket","settings · hidden products","settings · hidden · none","settings · what Nexus learned"],"default":"settings · supermarket"},"data":{"editor":"enum","options":["demo","worst case"],"default":"demo"},"section colours":{"editor":"boolean","default":true},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const worst = (p.data ?? 'demo') === 'worst case';
+    const st = s.st || (p.state ?? 'settings · supermarket');
+    const C_ = (x, y, r) => 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z';
+    const E_ = (x, y, a, b) => 'M' + (x - a) + ' ' + y + 'a' + a + ' ' + b + ' 0 1 0 ' + (2 * a) + ' 0a' + a + ' ' + b + ' 0 1 0 ' + (-2 * a) + ' 0z';
+    const R_ = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + 'h' + (w - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r + 'v' + (h - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r + 'h' + (-(w - 2 * r)) + 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + (-r) + 'v' + (-(h - 2 * r)) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + (-r) + 'z';
+    const ART = {
+      mlk: [['M14 16l4-8h12l4 8z','#dfe9f5'],[R_(14,16,20,28,2),'#ffffff'],[R_(14,27,20,10,1),'#3b7fc4']],
+      egg: [[R_(5,26,38,14,4),'#d9c3a0'],[E_(13,25,5,6.5)+E_(24,23,5,6.5)+E_(35,25,5,6.5),'#f7ecdc'],[E_(11.5,22,1.5,2.2)+E_(22.5,20,1.5,2.2)+E_(33.5,22,1.5,2.2),'#ffffff']],
+      pit: [[E_(24,26,18,13),'#e3b97f'],[E_(24,24,15,10),'#f2d7a8'],[C_(18,22,1.2)+C_(28,27,1.2)+C_(25,20,1),'#c79a5e']],
+      tom: [[C_(24,27,14),'#e5483b'],[E_(18,22,4,2.5),'#ff9a8c'],['M24 9l2.2 4.6 4.8-1.6-2.8 4 4.2 2.6-5.2-.2-1.4 4.4-1.6-4.4-5.2.2 4.2-2.6-2.8-4 4.8 1.6z','#3f9d5a']],
+      cof: [['M13 12h22l3 30H10z','#6b4a2b'],['M13 12l3-5h16l3 5z','#4e3520'],[E_(24,27,4,6),'#c79a5e']],
+      tp: [[R_(8,12,22,28,5),'#ffffff'],[E_(19,12,11,4),'#ecebe6'],[R_(30,26,12,14,2),'#ffffff']],
+      cot: [['M10 18h28l-3 22c0 2-2 3-4 3H17c-2 0-4-1-4-3z','#ffffff'],[E_(24,18,15,4.5),'#3b7fc4'],[R_(14,26,20,8,2),'#cfe0f3']],
+      prm: [['M6 34L36 12l6 6v20H6z','#efdca0'],['M6 34L36 12l6 6z','#f8ecc4'],[R_(6,34,36,4,1),'#c9a24a']],
+      ban: [['M8 13c1 14 12 24 27 24 3 0 4 2 1 3C19 44 5 33 6 15c0-3 2-4 2-2z','#f5c542'],['M10 14c2 11 10 19 21 21-12 1-21-8-22-20z','#e0a92a'],[R_(5,9,4,6,1.5),'#6b4a2b']]
+    };
+    const art = (k) => { const a = ART[k] || []; const o = {}; for (let i = 0; i < 4; i++) { const x = i === 0 ? [E_(24,44.5,13,2.2),'rgba(0,0,0,.10)'] : a[i - 1]; o['d' + i] = x ? x[0] : ''; o['f' + i] = x ? x[1] : 'none'; } return o; };
+    const t = {
+      back: L('Back','חזרה'), step: L('Step 5 of 7','שלב 5 מתוך 7'), skip: L('Later','אחר כך'), next: L('Continue','המשך'), main: L('Main','ראשי'),
+      qChain: L('Where do you usually shop?','איפה אתם קונים בדרך כלל?'), qChainS: L('Pick one or more. The branch comes next.','בוחרים אחת או יותר. את הסניף בוחרים בשלב הבא.'),
+      mainNote: L('The first one you pick is your main store — the list follows its walking order.','הראשונה שבוחרים היא החנות הראשית — הרשימה מסודרת לפי המסלול בה.'),
+      qBranch: L('Which Shufersal?','איזה שופרסל?'), qBranchS: L('Search by city or street. No location needed.','מחפשים לפי עיר או רחוב. בלי מיקום.'),
+      city: L('Modi’in','מודיעין'), cityPh: L('City or street','עיר או רחוב'),
+      several: L('I shop at several branches','אני קונה בכמה סניפים'), severalS: L('You choose the branch when you start a trip','בוחרים סניף כשמתחילים קנייה'),
+      toSettings: L('Settings','הגדרות'), sm: L('Supermarket','סופר'), smFor: L('For Jacoby Home','לבית ג׳קובי'),
+      defStore: L('Main store','חנות ראשית'), order: L('Section order','סדר מחלקות'), orderS: L('Learned in 2 branches','נלמד ב-2 סניפים'),
+      hidden: L('Products you hid','מוצרים שהסתרתם'), hiddenS: L('Nexus won’t suggest these','Nexus לא מציע אותם'),
+      learned: L('What Nexus learned','מה Nexus למד'), learnedS: L('Your rhythm, days and habits — fix or forget','הקצב, הימים וההרגלים שלכם — לתקן או לשכוח'),
+      smFoot: L('Everything else Nexus figures out by itself from how you shop.','את כל השאר Nexus מבין לבד מהדרך שבה אתם קונים.'),
+      hidExplain: L('Hidden from “Nexus suggests” and from templates Nexus makes. You can still add them yourself.','מוסתרים מ״Nexus מציע״ ומתבניות ש-Nexus יוצר. עדיין אפשר להוסיף אותם בעצמכם.'),
+      unhide: L('Suggest again','להחזיר'), noHidT: L('Nothing hidden','אין מוצרים מוסתרים'), noHidS: L('Tap “Don’t suggest this again” on any suggestion to hide it.','נוגעים ב״לא להציע את זה יותר״ בכל הצעה כדי להסתיר.'),
+      lrnExplain: L('Nexus uses this only to suggest the right things at the right time. Tap to fix or forget.','Nexus משתמש בזה רק כדי להציע את הדבר הנכון בזמן הנכון. נוגעים כדי לתקן או לשכוח.'),
+      forgetAll: L('Forget everything and start fresh','לשכוח הכול ולהתחיל מחדש'), forgetAllS: L('Your lists, trips and receipts stay.','הרשימות, הקניות והקבלות נשארות.'), undo: L('Undo','ביטול')
+    };
+    const CH = [['a','ch-a',L('S','ש'),L('Shufersal','שופרסל')],['b','ch-b',L('R','ר'),L('Rami Levy','רמי לוי')],['c','ch-c',L('V','ו'),L('Victory','ויקטורי')],['d','ch-d',L('Y','י'),L('Yochananof','יוחננוף')],['e','ch-e',L('O','א'),L('Osher Ad','אושר עד')],['f','ch-f',L('T','ט'),L('Tiv Taam','טיב טעם')],['g','ch-b',L('H','ח'),L('Hatzi Hinam','חצי חינם')],['h','ch-c',L('M','מ'),worst ? L('Machsanei HaShuk — the big one near the train','מחסני השוק — הגדול ליד הרכבת') : L('Machsanei HaShuk','מחסני השוק')],['x','',L('+','+'),L('Other','אחר')]];
+    const picked = s.picked || ['a','b'];
+    const chains = CH.map(([k, ch, i, n]) => { const idx = picked.indexOf(k); return { cls: idx >= 0 ? 'on' : '', on: idx >= 0, ch: k === 'x' ? 'ic3' : 'chain ' + ch, i, n, main: idx === 0, tick: idx > 0, tog: () => { const a = picked.slice(); if (idx >= 0) a.splice(idx, 1); else a.push(k); this.setState({ picked: a }); } }; });
+    const fronts = CH.slice(0, 5).map(([k, ch, i], j) => ({ cls: 'fr ' + ch + (picked.indexOf(k) === 0 ? ' pick' : (picked.indexOf(k) > 0 ? '' : ' dim')), i, h: [96, 112, 88, 104, 92][j] + 'px' }));
+    const br = s.br || 'b1';
+    const branches = [['b1',L('Shufersal Deal · Herzl St.','שופרסל דיל · רח׳ הרצל'),L('Modi’in · open till 23:00','מודיעין · פתוח עד 23:00')],['b2',L('Shufersal Sheli · Azrieli Mall','שופרסל שלי · קניון עזריאלי'),worst ? L('Modi’in · 2nd floor, next to the parking, entrance from Emek Dotan','מודיעין · קומה 2, ליד החניון, כניסה מעמק דותן') : L('Modi’in · 2nd floor','מודיעין · קומה 2')],['b3',L('Shufersal Express · Buchman','שופרסל אקספרס · בוכמן'),L('Modi’in · small branch','מודיעין · סניף קטן')],['b4',L('Shufersal Online','שופרסל אונליין'),L('Delivery — no walking order','משלוח — בלי מסלול בחנות')]].map(([k, n, s2]) => ({ cls: 'str' + (br === k ? ' on' : ''), on: br === k, n, s: s2, pick: () => this.setState({ br: k }) }));
+    const hidAll = [['prm','dairy',L('Grated parmesan','פרמזן מגורר'),L('Hidden by Noa · 3 Oct','הוסתר ע״י נועה · 3.10')],['tp','clean',worst ? L('Toilet paper, 32 rolls, extra-soft 3-ply, the big family pack','נייר טואלט, 32 גלילים, תלת-שכבתי רך במיוחד, מארז משפחתי') : L('Toilet paper, 32 rolls','נייר טואלט, 32 גלילים'),L('Hidden by you · 28 Sep','הוסתר על ידך · 28.9')],['ban','produce',L('Bananas','בננות'),L('Hidden by Yoav · 12 Sep','הוסתר ע״י יואב · 12.9')]];
+    const back = s.back || {};
+    const none = st === 'settings · hidden · none';
+    const hid = none ? [] : hidAll.filter(x => !back[x[0]]).map(([k, sec, n, s2]) => ({ art: art(k), tile: 'pt k-' + sec, n, s: s2, back: () => { this.setState({ back: Object.assign({}, back, { [k]: true }), toast: L(n + ' will be suggested again', n + ' יוצע שוב') }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: null }), 3500); } }));
+    const forgot = s.forgot || {};
+    const X = 'M18 6 6 18 M6 6l12 12', PEN = 'M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z';
+    const chip = (id, tt, src, edit) => ({ id, t: tt, src, d: edit ? PEN : X, aria: (edit ? L('Fix: ','תיקון: ') : L('Forget: ','לשכוח: ')) + tt,
+      act: () => { if (edit) return; this.setState({ forgot: Object.assign({}, forgot, { [id]: true }), toast: L('Forgotten','נשכח') }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: null }), 3500); } });
+    const fromYou = L('you told us','מההצטרפות'), learnt = L('learned','נלמד');
+    const groups = [
+      { t: L('Your home','הבית'), chips: [chip('h1', L('3 people','3 אנשים'), fromYou, true), chip('h2', L('No baby, no pets','בלי תינוק, בלי חיות'), fromYou, true), chip('h3', L('Budget ₪4,000 a month','תקציב ₪4,000 בחודש'), fromYou, true)] },
+      { t: L('When and where','מתי ואיפה'), chips: [chip('w1', L('Usually shop Thursday evening','קונים בדרך כלל ביום חמישי בערב'), learnt), chip('w2', worst ? L('Main store: Shufersal Sheli · Azrieli Mall Modi’in, 2nd floor','חנות ראשית: שופרסל שלי · קניון עזריאלי מודיעין, קומה 2') : L('Main store: Shufersal Deal · Herzl','חנות ראשית: שופרסל דיל · הרצל'), fromYou, true), chip('w3', L('Sometimes Rami Levy','לפעמים רמי לוי'), learnt)] },
+      { t: L('Regular products','מוצרים קבועים'), chips: [chip('r1', L('Milk 3% · every ~6 days','חלב 3% · כל ~6 ימים'), learnt), chip('r2', L('Pita · weekly','פיתות · כל שבוע'), learnt), chip('r3', L('Eggs · every ~9 days','ביצים · כל ~9 ימים'), learnt), chip('r4', L('Tomatoes · weekly','עגבניות · כל שבוע'), learnt), chip('r5', L('+ 14 more','+ עוד 14'), '')] },
+      { t: L('Habits','הרגלים'), chips: [chip('b1', L('Challah and eggs before Shabbat','חלה וביצים לפני שבת'), learnt), chip('b2', L('Parmesan with pasta','פרמזן עם פסטה'), learnt), chip('b3', L('Bigger shop before holidays','קנייה גדולה לפני חגים'), learnt)] }
+    ].map(g => Object.assign({}, g, { chips: g.chips.filter(c => !forgot[c.id]) }));
+    const obChain = st === 'onboarding · chain';
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') + ((p.motion ?? 'full') === 'reduced' ? ' rm' : '') + (p['section colours'] === false ? ' mono' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      onOb: st.indexOf('onboarding') === 0, obChain, obBranch: st === 'onboarding · branch',
+      obNext: () => this.setState({ st: obChain ? 'onboarding · branch' : 'settings · supermarket' }),
+      fronts, chains, branches, shIni: L('S','ש'),
+      sev: !!s.sev, sevCls: 'tg' + (s.sev ? ' on' : ''), togSev: () => this.setState({ sev: !s.sev }),
+      onSm: st === 'settings · supermarket', onHid: st.indexOf('settings · hidden') === 0, onLrn: st === 'settings · what Nexus learned',
+      curStore: worst ? L('Shufersal Sheli · Azrieli Mall Modi’in, 2nd floor, next to the parking','שופרסל שלי · קניון עזריאלי מודיעין, קומה 2, ליד החניון') : L('Shufersal Deal · Herzl St.','שופרסל דיל · רח׳ הרצל'),
+      nHidden: String(hid.length), hid, hasHidden: hid.length > 0, noHidden: hid.length === 0, groups,
+      toHidden: () => this.setState({ st: 'settings · hidden products' }), toLearned: () => this.setState({ st: 'settings · what Nexus learned' }), toSm: () => this.setState({ st: 'settings · supermarket' }),
+      toast: !!s.toast, toastText: s.toast || '', undo: () => this.setState({ forgot: {}, toast: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Store picker and section order · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+<link rel="stylesheet" href="./nx-sm.css">
+<link rel="stylesheet" href="./nx-sm2.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+<div class="phone">
+
+  <sc-if value="{{onPicker}}" hint-placeholder-val="{{ true }}">
+    <div class="scroll">
+      <div class="sm-head"><h1>{{t.title}}</h1></div>
+      <div class="storebar">
+        <button class="chip-s"><span class="chain ch-a">{{ini.a}}</span><span class="nm"><b class="bidi">{{cur.c}}</b><span class="bidi">{{cur.b}}</span></span><svg class="s sm" viewBox="0 0 24 24" style="color:var(--faint)"><path d="m6 9 6 6 6-6"></path></svg></button>
+        <div class="est"><b>≈ ₪376</b><span>{{t.left}}</span></div>
+      </div>
+    </div>
+    <div class="scrim2"></div>
+    <section class="bsheet" role="dialog" aria-label="{{t.pickT}}" style="height:700px;display:flex;flex-direction:column;padding-bottom:16px">
+      <div class="grab"></div>
+      <h3>{{t.pickT}}</h3>
+      <div class="scope" style="margin-top:10px">
+        <button class="{{scope1}}" onClick="{{once}}"><b>{{t.once}}</b><span class="bidi">{{t.onceS}}</span></button>
+        <button class="{{scope2}}" onClick="{{always}}"><b>{{t.always}}</b><span>{{t.alwaysS}}</span></button>
+      </div>
+      <label class="{{searchCls}}" style="margin:12px 0 0"><svg class="s lead" viewBox="0 0 24 24"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.3-4.3"></path></svg><input type="text" defaultValue="{{q}}" placeholder="{{t.searchPh}}" aria-label="{{t.searchPh}}" onFocus="{{toSearch}}"></label>
+      <div style="flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px">
+        <sc-if value="{{searching}}" hint-placeholder-val="{{ false }}">
+          <div class="gh">{{t.results}}<span class="r">{{t.resultsR}}</span></div>
+          <div class="cardl">
+            <sc-for list="{{results}}" as="r" hint-placeholder-count="4">
+              <button class="{{r.cls}}" onClick="{{r.pick}}" role="radio" aria-checked="{{r.on}}"><span class="{{r.ch}}">{{r.i}}</span><span class="tx"><b class="bidi"><mark style="background:transparent;color:var(--ink);font-weight:800">{{r.hit}}</mark>{{r.rest}}</b><span class="bidi">{{r.b}}</span></span><span class="radio"></span></button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{notSearching}}" hint-placeholder-val="{{ true }}">
+          <div class="gh">{{t.recent}}</div>
+          <div class="cardl">
+            <sc-for list="{{recent}}" as="r" hint-placeholder-count="4">
+              <button class="{{r.cls}}" onClick="{{r.pick}}" role="radio" aria-checked="{{r.on}}"><span class="{{r.ch}}">{{r.i}}</span><span class="tx"><b class="bidi">{{r.c}}</b><span class="bidi">{{r.b}}</span></span><sc-if value="{{r.def}}" hint-placeholder-val="{{ false }}"><span class="badge" style="height:20px;font-size:11px">{{t.def}}</span></sc-if><span class="radio"></span></button>
+            </sc-for>
+          </div>
+          <span class="tiny" style="display:block;padding:10px 6px 0">{{t.learnNote}}</span>
+        </sc-if>
+      </div>
+      <button class="btn pri" style="width:100%;margin-top:12px">{{pickBtn}}</button>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{onOrder}}" hint-placeholder-val="{{ false }}">
+    <div class="pg push">
+      <div class="top2"><button class="ico-b" aria-label="{{t.back}}"><svg class="s lg flip" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><b>{{t.orderT}}</b><button class="btn" style="height:36px;border-radius:10px;font-size:13.5px;border:0;box-shadow:none;background:transparent;color:var(--muted)" onClick="{{reset}}">{{t.reset}}</button></div>
+      <div class="bd">
+        <button class="chip-s" style="max-width:none;width:100%;margin-top:2px"><span class="chain ch-a">{{ini.a}}</span><span class="nm"><b class="bidi">{{cur.c}}</b><span class="bidi">{{cur.b}}</span></span><span class="tiny" style="margin-inline-start:auto">{{t.perBranch}}</span><svg class="s sm" viewBox="0 0 24 24" style="color:var(--faint)"><path d="m6 9 6 6 6-6"></path></svg></button>
+
+        <sc-if value="{{showLearn}}" hint-placeholder-val="{{ false }}">
+          <div class="lrn rise" style="margin-top:12px">
+            <div class="r1"><span class="ic3" style="background:var(--info-t);color:var(--info)"><svg class="s" viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"></path></svg></span><span style="flex:1"><b>{{t.lrnT}}</b><span class="sub">{{t.lrnS}}</span></span></div>
+            <div class="mini-ord" aria-hidden="true"><span class="si k-dairy"><svg viewBox="0 0 24 24"><path d="{{P.dairy}}"></path></svg></span><svg class="s sm flip" viewBox="0 0 24 24" style="color:var(--faint)"><path d="m9 18 6-6-6-6"></path></svg><span class="si k-bread"><svg viewBox="0 0 24 24"><path d="{{P.bread}}"></path></svg></span><span class="sub" style="flex:1;margin-inline-start:6px">{{t.lrnMini}}</span></div>
+            <div style="display:flex;gap:8px"><button class="btn pri" style="flex:1;height:44px" onClick="{{useIt}}">{{t.use}}</button><button class="btn" style="flex:1;height:44px" onClick="{{notNow}}">{{t.notNow}}</button></div>
+          </div>
+        </sc-if>
+
+        <div class="gh">{{t.walk}}<span class="r">{{t.drag}}</span></div>
+        <div class="ordl" role="list">
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="16">
+            <div class="{{r.cls}}" role="listitem">
+              <sc-if value="{{r.real}}" hint-placeholder-val="{{ true }}">
+                <span class="n">{{r.n}}</span>
+                <span class="{{r.si}}"><svg viewBox="0 0 24 24"><path d="{{r.d}}"></path></svg></span>
+                <span class="nm">{{r.name}}</span>
+                <sc-if value="{{r.mv}}" hint-placeholder-val="{{ false }}"><span class="mv">{{r.mv}}</span></sc-if>
+                <button class="hd2" aria-label="{{r.dragA}}"><svg class="s" viewBox="0 0 24 24"><path d="M9 6h.01 M15 6h.01 M9 12h.01 M15 12h.01 M9 18h.01 M15 18h.01" style="stroke-width:3"></path></svg></button>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <span class="tiny" style="display:block;padding:12px 6px 0">{{t.foot}}</span>
+      </div>
+      <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+        <div class="toast2 show" style="bottom:24px" role="status"><span class="grow">{{t.applied}}</span><button onClick="{{undo}}">{{t.undo}}</button></div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"state":{"editor":"enum","options":["store picker","store picker · search","section order","section order · learned suggestion","section order · dragging"],"default":"store picker"},"data":{"editor":"enum","options":["demo","worst case"],"default":"demo"},"section colours":{"editor":"boolean","default":true},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const worst = (p.data ?? 'demo') === 'worst case';
+    const st = s.st || (p.state ?? 'store picker');
+    const onPicker = st.indexOf('store picker') === 0, onOrder = !onPicker;
+    const searching = st === 'store picker · search';
+    const P = {
+      produce:'M12 7c-3-2-7 0-7 5s3 9 7 9 7-4 7-9-4-7-7-5z M12 7c0-2 1-4 3-4', meat:'M3 12c3-5 9-6 13-2l5-3v10l-5-3c-4 4-10 3-13-2z M8 11h.01',
+      deli:'M3 11h18a9 9 0 0 1-18 0z M7 7c1-2 3-2 4 0 M12 6c1-2 3-2 4 0', dry:'M7 3h10 M8 3v3l-3 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10l-3-4V3 M5 13h14',
+      cans:'M6 5c0-1 2.7-2 6-2s6 1 6 2v14c0 1-2.7 2-6 2s-6-1-6-2z M6 5c0 1 2.7 2 6 2s6-1 6-2 M6 10h12', spice:'M9 3h6l1 4H8z M8 7h8v13a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1z M11 11h.01 M13 13h.01 M11 15h.01',
+      bfast:'M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z M17 10h1.5a2.5 2.5 0 0 1 0 5H17 M8 3v3 M12 3v3', snack:'M12 3a9 9 0 1 0 9 9 3 3 0 0 1-3-3 3 3 0 0 1-3-3 3 3 0 0 1-3-3z M8.5 11.5h.01 M12 16h.01 M15.5 14h.01',
+      drink:'M10 2h4 M10 2v4l-2 3v12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V9l-2-3V2 M8 13h8', clean:'M9 9h6v12H9z M10 9V6h4 M14 6l4-2 M17 7h2',
+      toil:'M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7z M7 10l7 7', baby:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M9 10h.01 M15 10h.01 M9.5 14.5a3.5 3.5 0 0 0 5 0',
+      pets:'M12 14c-2.8 0-5 2.6-5 4.4 0 1.6 2.2 1.6 5 1.6s5 0 5-1.6c0-1.8-2.2-4.4-5-4.4z M7.6 10a1.6 1.6 0 1 0-3.2 0 1.6 1.6 0 1 0 3.2 0 M11 6.5a1.6 1.6 0 1 0-3.2 0 1.6 1.6 0 1 0 3.2 0 M16 6.5a1.6 1.6 0 1 0-3.2 0 1.6 1.6 0 1 0 3.2 0 M19.6 10a1.6 1.6 0 1 0-3.2 0 1.6 1.6 0 1 0 3.2 0',
+      bread:'M6 11a4 4 0 0 1 0-8h12a4 4 0 0 1 0 8v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z', dairy:'M7 6l2-4h6l2 4 M7 6v15a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6z M7 6l5 4 5-4 M12 10v12',
+      frozen:'M12 2v20 M3.3 7l17.4 10 M3.3 17 20.7 7 M9 4l3 3 3-3 M9 20l3-3 3 3'
+    };
+    const SEC = [['produce','Fruit & vegetables','פירות וירקות'],['meat','Meat, poultry & fish','בשר, עוף ודגים'],['deli','Deli & salads','מעדנייה וסלטים'],['dry','Dry goods','יבשים'],['cans','Cans & sauces','שימורים ורטבים'],['spice','Spices & baking','תבלינים ואפייה'],['bfast','Breakfast & spreads','ארוחת בוקר וממרחים'],['snack','Snacks & sweets','חטיפים ומתוקים'],['drink','Drinks','משקאות'],['clean','Cleaning & disposables','ניקיון וחד־פעמי'],['toil','Toiletries & pharm','טואלטיקה ופארם'],['baby','Baby','תינוקות'],['pets','Pets','חיות מחמד'],['bread','Bread & bakery','לחם ומאפים'],['dairy','Dairy & eggs','חלב וביצים'],['frozen','Frozen','קפואים']];
+    const t = {
+      title: L('Supermarket','סופר'), left: L('₪1,140 left this month','נשארו ₪1,140 החודש'),
+      pickT: L('Where are you shopping?','איפה קונים הפעם?'),
+      once: L('This trip only','לקנייה הזאת בלבד'), onceS: L('Default stays Shufersal Deal','ברירת המחדל נשארת שופרסל דיל'),
+      always: L('Make it my default','לקבוע כברירת מחדל'), alwaysS: L('For the next trips too','גם לקניות הבאות'),
+      searchPh: L('Chain, city or street','רשת, עיר או רחוב'), results: L('Branches','סניפים'), resultsR: L('4 found','נמצאו 4'),
+      recent: L('Recent','אחרונים'), def: L('Default','ברירת מחדל'),
+      learnNote: L('Each branch keeps its own section order. A new branch starts with the usual Israeli order.','לכל סניף סדר מחלקות משלו. סניף חדש מתחיל בסדר הרגיל בארץ.'),
+      back: L('Back','חזרה'), orderT: L('Section order','סדר מחלקות'), reset: L('Reset','איפוס'), perBranch: L('this branch','לסניף הזה'),
+      lrnT: L('In this branch, dairy comes before bread','בסניף הזה החלב מגיע לפני הלחם'), lrnS: L('From the order you checked items on your last 4 trips here.','לפי הסדר שבו סימנתם פריטים ב-4 הקניות האחרונות כאן.'),
+      lrnMini: L('2 sections swap places','2 מחלקות מחליפות מקום'), use: L('Use this order','להשתמש בסדר הזה'), notNow: L('Not now','לא עכשיו'),
+      walk: L('Your walk through the store','המסלול שלכם בחנות'), drag: L('drag to move','גוררים כדי להזיז'),
+      foot: L('Frozen stays last so it stays cold — you can still move it.','קפואים בסוף כדי שיישארו קרים — אפשר בכל זאת להזיז.'),
+      applied: L('Order updated for Shufersal Deal · Herzl','הסדר עודכן לשופרסל דיל · הרצל'), undo: L('Undo','ביטול')
+    };
+    const cur = worst ? { c: L('Shufersal Sheli','שופרסל שלי'), b: L('Azrieli Mall Modi’in, 2nd floor, next to the parking','קניון עזריאלי מודיעין, קומה 2, ליד החניון') } : { c: L('Shufersal Deal','שופרסל דיל'), b: L('Herzl St.','רח׳ הרצל') };
+    const ini = { a: L('S','ש'), b: L('R','ר'), c: L('V','ו'), d: L('Y','י'), e: L('O','א') };
+    const sel = s.sel || 'a';
+    const scope = s.scope || 'once';
+    const R = [
+      ['a','ch-a',ini.a,cur.c,cur.b,true],
+      ['b','ch-b',ini.b,L('Rami Levy','רמי לוי'),worst ? L('Modi’in industrial zone, Ha-Tsoran 4 · last trip 30 Sep · learned order','אזור התעשייה מודיעין, הצורן 4 · קנייה אחרונה 30.9 · סדר נלמד') : L('Modi’in · last trip 30 Sep','מודיעין · קנייה אחרונה 30.9'),false],
+      ['d','ch-d',ini.d,L('Yochananof','יוחננוף'),L('Rehovot · twice','רחובות · פעמיים'),false],
+      ['c','ch-c',ini.c,L('Victory','ויקטורי'),L('Ness Ziona · once','נס ציונה · פעם אחת'),false]
+    ];
+    const recent = R.map(([k, ch, i, c, b, def]) => ({ cls: 'str' + (sel === k ? ' on' : ''), on: sel === k, ch: 'chain ' + ch, i, c, b, def, pick: () => this.setState({ sel: k }) }));
+    const RS = [['r1',L('Rami Levy','רמי לוי'),L('Modi’in · Ha-Tsoran 4','מודיעין · הצורן 4')],['r2',L('Rami Levy','רמי לוי'),L('Rehovot · Bilu Center','רחובות · מרכז בילו')],['r3',L('Rami Levy','רמי לוי'),L('Rishon LeZion · Golda Meir 3','ראשון לציון · גולדה מאיר 3')],['r4',L('Rami Levy','רמי לוי'),L('Lod · Ha-Melacha 12','לוד · המלאכה 12')]];
+    const hitN = he ? 3 : 4;
+    const results = RS.map(([k, c, b]) => ({ cls: 'str' + (sel === k ? ' on' : ''), on: sel === k, ch: 'chain ch-b', i: ini.b, hit: c.slice(0, hitN), rest: c.slice(hitN), b, pick: () => this.setState({ sel: k }) }));
+    const learnedSt = st === 'section order · learned suggestion' && !s.used && !s.dismissed;
+    const order = SEC.map(x => x[0]);
+    const applied = !!s.used;
+    if (applied) { const i = order.indexOf('bread'); order.splice(i, 1); order.splice(order.indexOf('dairy') + 1, 0, 'bread'); }
+    const dragging = st === 'section order · dragging';
+    const nameOf = (k) => { const x = SEC.find(z => z[0] === k); return he ? x[2] : x[1]; };
+    let rows = order.map((k, i) => ({ real: true, n: String(i + 1), si: 'si k-' + k, d: P[k], name: nameOf(k), mv: learnedSt && k === 'dairy' ? L('↑ 1 · learned','↑ 1 · נלמד') : (learnedSt && k === 'bread' ? L('↓ 1','↓ 1') : ''), cls: 'ord k-' + k, dragA: L('Move ','הזזה: ') + nameOf(k) }));
+    if (dragging) {
+      const di = rows.findIndex(r => r.si === 'si k-drink');
+      const lifted = Object.assign({}, rows[di], { cls: 'ord lift k-drink' });
+      rows.splice(di, 1);
+      rows.splice(6, 0, { real: false, cls: 'ord slot2' });
+      rows.splice(6, 0, lifted);
+      rows = rows.map((r, i) => r.real ? Object.assign({}, r, { n: r.cls.indexOf('lift') > 0 ? '7' : r.n }) : r);
+    }
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') + ((p.motion ?? 'full') === 'reduced' ? ' rm' : '') + (p['section colours'] === false ? ' mono' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t, P, ini, cur,
+      onPicker, onOrder, searching, notSearching: !searching,
+      searchCls: 'addf' + (searching ? ' focus' : ''), q: searching ? (he ? 'רמי' : 'Rami') : '', toSearch: () => this.setState({ st: 'store picker · search' }),
+      scope1: scope === 'once' ? 'on' : '', scope2: scope === 'always' ? 'on' : '',
+      once: () => this.setState({ scope: 'once' }), always: () => this.setState({ scope: 'always' }),
+      recent, results,
+      pickBtn: scope === 'always' ? L('Make default and continue','לקבוע ולהמשיך') : L('Shop here this time','לקנות כאן הפעם'),
+      showLearn: learnedSt, rows,
+      useIt: () => { this.setState({ used: true, toast: true }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: false }), 4000); },
+      notNow: () => this.setState({ dismissed: true }),
+      reset: () => this.setState({ used: false }), toast: !!s.toast, undo: () => this.setState({ used: false, toast: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

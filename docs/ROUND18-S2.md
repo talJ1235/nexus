@@ -32,7 +32,7 @@ Tal's usage is short. Work so that a session can stop at any moment and the next
   — easing tokens, press feedback, gated hover, reduced motion, safe areas.
 
 ## Part 0
-### 0.1 [ ] Boards + pointers
+### 0.1 [x] Boards + pointers
 Commit the new boards Tal put in `docs/design/r18/` (`R18.0`). If part-2 boards are missing, note it in Open and build
 from this brief + part-1 boards. Add one line under `docs/ROUND18.md` header: "Session 2 → `docs/ROUND18-S2.md`", and
 one line at the top of `docs/PLANNER.md` "Current state & handoff": "2026-10-13: S2 brief `docs/ROUND18-S2.md` written;
@@ -149,5 +149,7 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 
 ## Open
 ### Progress
+- 0.1 done — part-2 boards (9 boards + `nx-sm2.css`) committed to `docs/design/r18/`; pointers in ROUND18 + PLANNER.
 ### Decisions
 ### For Tal
+- Prod snapshot was refused to the agent at session start (2026-10-13). Run in `nexus/`: `node --env-file=.env.local scripts/db-snapshot.mjs` → `snapshots/prod-2026-10-13.db`; the S2 rehearsal uses the newest `snapshots/prod-*.db`.

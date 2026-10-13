@@ -1,5 +1,7 @@
 # Round 18 — supermarket mode v2
 
+Session 2 → `docs/ROUND18-S2.md`
+
 Source: Tal (2026-10-10/11) via the planning chat. Source of truth for what the screens do: `docs/R18-SCREENS.md`
 (approved) + boards `docs/design/r18/` (approved 2026-10-11; interactive — use their Tweaks). Context and answers:
 `docs/R18-PLANNING.md`; decisions: `docs/PLANNER.md` "Decisions that stand" (R18 entries). R18b (recipes + AI shop

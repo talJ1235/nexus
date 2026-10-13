@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Scan and photo · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+<link rel="stylesheet" href="./nx-sm.css">
+<link rel="stylesheet" href="./nx-sm2.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+<div class="phone">
+  <div class="cam">
+    <div class="vf">
+      <div style="position:absolute;top:14px;inset-inline:12px;display:flex;align-items:center;gap:8px;z-index:2">
+        <button class="ico-b" style="color:#fff;background:rgba(255,255,255,.12);border-radius:50%" aria-label="{{t.close}}"><svg class="s" viewBox="0 0 24 24"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button>
+        <span style="flex:1"></span>
+        <div class="seg2" style="width:200px;background:rgba(255,255,255,.14)" role="tablist" aria-label="{{t.mode}}">
+          <span class="pill" style="inset-inline-start:3px;width:calc(50% - 3px);transform:{{pillTf}};background:#fff"></span>
+          <button role="tab" aria-selected="{{isScan}}" onClick="{{toScan}}" style="color:{{scanC}}">{{t.scan}}</button>
+          <button role="tab" aria-selected="{{isPhoto}}" onClick="{{toPhoto}}" style="color:{{photoC}}">{{t.photo}}</button>
+        </div>
+        <span style="flex:1"></span>
+        <button class="ico-b" style="color:#fff;background:rgba(255,255,255,.12);border-radius:50%" aria-label="{{t.torch}}"><svg class="s" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"></path></svg></button>
+      </div>
+
+      <svg viewBox="0 0 200 260" aria-hidden="true" style="position:absolute;left:50%;top:44%;width:230px;transform:translate(-50%,-50%) rotate(-4deg);filter:drop-shadow(0 24px 30px rgba(0,0,0,.55))">
+        <path d="M24 46h152l-14 196c-1 10-9 16-18 16H56c-9 0-17-6-18-16z" fill="#fbfbf8"></path>
+        <ellipse cx="100" cy="46" rx="78" ry="18" fill="#3b7fc4"></ellipse>
+        <ellipse cx="100" cy="42" rx="70" ry="12" fill="#5d97d3"></ellipse>
+        <path d="M34 92h132l-4 56H38z" fill="#3b7fc4"></path>
+        <text x="100" y="128" text-anchor="middle" font-family="Heebo,sans-serif" font-size="28" font-weight="800" fill="#fff">{{pkgName}}</text>
+        <rect x="64" y="178" width="72" height="44" rx="4" fill="#fff" stroke="#d6d6d0"></rect>
+        <path d="M70 184v30M74 184v30M77 184v30M82 184v30M85 184v30M90 184v30M94 184v30M97 184v30M102 184v30M107 184v30M110 184v30M114 184v30M118 184v30M121 184v30M126 184v30M130 184v30" stroke="#111" stroke-width="2"></path>
+      </svg>
+
+      <sc-if value="{{isScan}}" hint-placeholder-val="{{ true }}">
+        <div class="guide" style="inset:auto 54px auto;top:432px;height:120px"><b></b><b></b><b></b><b></b></div>
+        <sc-if value="{{looking}}" hint-placeholder-val="{{ true }}"><div class="scanl" style="top:490px"></div></sc-if>
+        <div class="hint2" style="top:auto;bottom:130px">{{scanHint}}</div>
+      </sc-if>
+      <sc-if value="{{isPhoto}}" hint-placeholder-val="{{ false }}">
+        <div class="guide" style="inset:96px 40px 150px"><b></b><b></b><b></b><b></b></div>
+        <div class="hint2" style="top:auto;bottom:118px">{{t.photoHint}}</div>
+        <sc-if value="{{reading}}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:96px 40px 150px;border-radius:14px;background:linear-gradient(110deg,transparent 30%,rgba(245,158,11,.28) 50%,transparent 70%);background-size:220% 100%;animation:shine 1.4s linear infinite"></div>
+          <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.6);color:#fff;border-radius:999px;padding:0 16px;height:40px;font-weight:650;font-size:14px"><svg class="s sm" viewBox="0 0 24 24" style="color:var(--spark)"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>{{t.reading}}</div>
+        </sc-if>
+      </sc-if>
+    </div>
+    <div class="ctrl">
+      <button class="lbl">{{t.type}}</button>
+      <sc-if value="{{isPhoto}}" hint-placeholder-val="{{ false }}"><button class="shutter" onClick="{{shoot}}" aria-label="{{t.shoot}}"><i></i></button></sc-if>
+      <sc-if value="{{isScan}}" hint-placeholder-val="{{ true }}"><span style="color:rgba(255,255,255,.7);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"><span class="{{contCls}}" style="transform:scale(.8)"></span>{{t.cont}}</span></sc-if>
+      <span class="lbl" style="display:flex;align-items:center;gap:6px;font-size:12.5px;opacity:.8"><svg class="s sm" viewBox="0 0 24 24" style="color:var(--spark)"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>{{quota}}</span>
+    </div>
+  </div>
+
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{ true }}">
+    <div class="scrim2" style="background:rgba(0,0,0,.25)"></div>
+    <section class="bsheet" role="dialog" aria-label="{{sheetTitle}}">
+      <div class="grab"></div>
+
+      <sc-if value="{{found}}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;gap:14px;align-items:center;padding:6px 0 4px">
+          <span class="pt lg k-dairy" style="width:64px;height:64px;border-radius:18px"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{cot.d0}}" fill="{{cot.f0}}"></path><path d="{{cot.d1}}" fill="{{cot.f1}}"></path><path d="{{cot.d2}}" fill="{{cot.f2}}"></path><path d="{{cot.d3}}" fill="{{cot.f3}}"></path></svg></span>
+          <span style="flex:1;min-width:0;line-height:1.3"><b class="bidi" style="display:block;font-size:19px;font-weight:800;letter-spacing:-.02em;overflow-wrap:anywhere">{{prod}}</b><span class="sub" style="display:flex;align-items:center;gap:6px;margin-top:3px"><span class="badge ok" style="height:20px;font-size:11px">{{t.known}}</span><span class="bidi">{{t.homeName}}</span></span></span>
+        </div>
+        <sc-if value="{{dup}}" hint-placeholder-val="{{ false }}"><div class="alert info" style="margin-top:8px"><svg class="s" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 16v-4 M12 8h.01"></path></svg><span>{{t.dupLine}}</span></div></sc-if>
+        <div class="stepper" style="margin-top:12px"><button onClick="{{minus}}" aria-label="{{t.less}}"><svg class="s lg" viewBox="0 0 24 24"><path d="M5 12h14"></path></svg></button><b>{{qty}}</b><button onClick="{{plus}}" aria-label="{{t.more}}"><svg class="s lg" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button></div>
+        <div style="display:flex;gap:10px;margin-top:12px"><button class="btn" style="flex:0 0 auto" onClick="{{rescan}}">{{t.again}}</button><button class="btn pri" style="flex:1">{{addLabel}}</button></div>
+      </sc-if>
+
+      <sc-if value="{{unknown}}" hint-placeholder-val="{{ false }}">
+        <h3>{{t.unkT}}</h3>
+        <span class="sub" style="display:block">{{t.unkS}}</span>
+        <div class="lbl2">{{t.name}}</div>
+        <label class="input" style="height:52px;border-radius:13px;border-color:var(--brand);box-shadow:var(--focus)"><input defaultValue="{{t.unkVal}}" aria-label="{{t.name}}" style="border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);width:100%"></label>
+        <div class="lbl2">{{t.sec}}<span class="r" style="display:flex;align-items:center;gap:4px"><svg class="s xs" viewBox="0 0 24 24" style="color:var(--spark)"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>{{t.guess}}</span></div>
+        <div class="chips"><span class="chipb on"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>{{t.secA}}</span><span class="chipb">{{t.secB}}</span><span class="chipb">{{t.secC}}</span></div>
+        <span class="tiny" style="display:block;margin-top:12px">{{t.unkKeep}}</span>
+        <div style="display:flex;gap:10px;margin-top:12px"><button class="btn" style="flex:0 0 auto" onClick="{{toPhoto}}">{{t.photoInstead}}</button><button class="btn pri" style="flex:1">{{t.add}}</button></div>
+      </sc-if>
+
+      <sc-if value="{{matched}}" hint-placeholder-val="{{ false }}">
+        <span class="sub" style="display:flex;align-items:center;gap:6px;padding-top:4px"><svg class="s xs" viewBox="0 0 24 24" style="color:var(--spark)"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>{{t.looks}}</span>
+        <h3 class="bidi">{{aiName}}</h3>
+        <div class="cardl" style="margin-top:12px">
+          <div class="li"><span class="pt k-dairy" style="width:40px;height:40px;border-radius:11px"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{cot.d0}}" fill="{{cot.f0}}"></path><path d="{{cot.d1}}" fill="{{cot.f1}}"></path><path d="{{cot.d2}}" fill="{{cot.f2}}"></path><path d="{{cot.d3}}" fill="{{cot.f3}}"></path></svg></span><span class="grow"><b class="bidi">{{t.yourProd}}</b><span>{{t.yourProdS}}</span></span><span class="ckb on"><svg class="s" viewBox="0 0 24 24" style="stroke-width:3"><path d="M20 6 9 17l-5-5"></path></svg></span></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px"><button class="btn" style="flex:0 0 auto" onClick="{{notThis}}">{{t.notThis}}</button><button class="btn pri" style="flex:1">{{t.addOne}}</button></div>
+      </sc-if>
+
+      <sc-if value="{{unsure}}" hint-placeholder-val="{{ false }}">
+        <h3>{{t.unsureT}}</h3>
+        <span class="sub" style="display:block">{{t.unsureS}}</span>
+        <div class="sugl" style="margin:12px 0 0">
+          <sc-for list="{{alts}}" as="a" hint-placeholder-count="3">
+            <button class="ta" style="width:100%;border:0;background:transparent;display:flex;align-items:center;gap:12px;position:relative;color:var(--ink);text-align:start"><span class="{{a.tile}}" style="width:40px;height:40px;border-radius:11px"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{a.art.d0}}" fill="{{a.art.f0}}"></path><path d="{{a.art.d1}}" fill="{{a.art.f1}}"></path><path d="{{a.art.d2}}" fill="{{a.art.f2}}"></path><path d="{{a.art.d3}}" fill="{{a.art.f3}}"></path></svg></span><span class="tx"><b class="bidi" style="font-weight:600;color:var(--ink)">{{a.n}}</b><span>{{a.s}}</span></span><span class="plusb"><svg class="s" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></span></button>
+          </sc-for>
+        </div>
+        <button class="btn" style="width:100%;margin-top:12px">{{t.noneType}}</button>
+      </sc-if>
+
+      <sc-if value="{{quotaOut}}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:12px;align-items:flex-start;padding-top:6px"><span class="ic3 sp" style="width:44px;height:44px;border-radius:13px"><svg class="s lg" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2"></path></svg></span><span style="flex:1"><h3 style="margin-top:0">{{t.qT}}</h3><span class="sub" style="display:block">{{t.qS}}</span></span></div>
+        <label class="addf" style="margin:14px 0 0"><svg class="s lead" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg><input type="text" placeholder="{{t.typeIt}}" aria-label="{{t.typeIt}}"></label>
+        <button class="btn" style="width:100%;margin-top:10px" onClick="{{toScan}}">{{t.scanInstead}}</button>
+      </sc-if>
+    </section>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"state":{"editor":"enum","options":["scan · looking","scan · found","scan · already on the list","scan · unknown barcode","photo · aiming","photo · reading","photo · matched","photo · not sure","photo · daily limit reached"],"default":"scan · found"},"data":{"editor":"enum","options":["demo","worst case"],"default":"demo"},"section colours":{"editor":"boolean","default":true},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const worst = (p.data ?? 'demo') === 'worst case';
+    const st = s.st || (p.state ?? 'scan · found');
+    const isPhoto = st.indexOf('photo') === 0, isScan = !isPhoto;
+    const C_ = (x, y, r) => 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z';
+    const E_ = (x, y, a, b) => 'M' + (x - a) + ' ' + y + 'a' + a + ' ' + b + ' 0 1 0 ' + (2 * a) + ' 0a' + a + ' ' + b + ' 0 1 0 ' + (-2 * a) + ' 0z';
+    const R_ = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + 'h' + (w - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r + 'v' + (h - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r + 'h' + (-(w - 2 * r)) + 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + (-r) + 'v' + (-(h - 2 * r)) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + (-r) + 'z';
+    const ART = {
+      cot: [['M10 18h28l-3 22c0 2-2 3-4 3H17c-2 0-4-1-4-3z','#ffffff'],[E_(24,18,15,4.5),'#3b7fc4'],[R_(14,26,20,8,2),'#cfe0f3']],
+      yog: [['M12 14h24l-3 26c0 2-2 3-4 3H19c-2 0-4-1-4-3z','#ffffff'],[R_(11,10,26,5,2),'#e86f8f'],[R_(14,22,20,8,1),'#f9c9d6']],
+      ylc: [['M6 34L36 12l6 6v20H6z','#f4c84a'],['M6 34L36 12l6 6z','#fbe08a'],[C_(20,32,3)+C_(32,28,2.5)+C_(28,35,1.8),'#dba62a']],
+      hum: [['M6 24h36c0 10-8 17-18 17S6 34 6 24z','#5d86b5'],[E_(24,24,18,5),'#ecd39c'],[E_(24,24,7,2.2),'#c9a032']]
+    };
+    const art = (k) => { const a = ART[k] || []; const o = {}; for (let i = 0; i < 4; i++) { const x = i === 0 ? [E_(24,44.5,13,2.2),'rgba(0,0,0,.10)'] : a[i - 1]; o['d' + i] = x ? x[0] : ''; o['f' + i] = x ? x[1] : 'none'; } return o; };
+    const prod = worst ? L('Tnuva cottage cheese 5% fat, extra-creamy, family pack 750 g','קוטג׳ תנובה 5% שומן, אקסטרה קרמי, מארז משפחתי 750 גרם') : L('Tnuva cottage 5%, 250 g','קוטג׳ תנובה 5%, 250 גרם');
+    const t = {
+      close: L('Close','סגירה'), mode: L('Mode','מצב'), scan: L('Barcode','ברקוד'), photo: L('Photo','צילום'), torch: L('Flashlight','פנס'),
+      photoHint: L('The whole package, front side','כל האריזה, הצד הקדמי'), reading: L('Reading the package…','קורא את האריזה…'),
+      type: L('Type','הקלדה'), shoot: L('Take the photo','צילום'), cont: L('Keep scanning','להמשיך לסרוק'),
+      known: L('Known','מוכר'), homeName: L('At home: “Cottage cheese 5%”','בבית: ״קוטג׳ 5%״'),
+      dupLine: L('Already on the list ×3 — adding makes it ×4.','כבר ברשימה ×3 — ההוספה תהפוך ל-×4.'),
+      less: L('Less','פחות'), more: L('More','יותר'), again: L('Scan another','סריקה נוספת'),
+      unkT: L('New barcode','ברקוד חדש'), unkS: L('Name it once — next time it’s found right away.','נותנים שם פעם אחת — בפעם הבאה הוא מזוהה מיד.'),
+      name: L('Name','שם'), unkVal: L('Rice crackers','פריכיות אורז'), sec: L('Section','מחלקה'), guess: L('Nexus’ guess','ניחוש של Nexus'),
+      secA: L('Snacks & sweets','חטיפים ומתוקים'), secB: L('Breakfast & spreads','ארוחת בוקר וממרחים'), secC: L('Dry goods','יבשים'),
+      unkKeep: L('Barcode 7290 0123 4567 8 is kept for this home.','הברקוד 7290 0123 4567 8 נשמר לבית הזה.'),
+      photoInstead: L('Photo instead','צילום במקום'), add: L('Add to list','הוספה לרשימה'),
+      looks: L('Looks like','נראה כמו'), yourProd: L('Your “Cottage cheese 5%”','״קוטג׳ 5%״ שלכם'), yourProdS: L('Bought 6 times · on the list ×3','נקנה 6 פעמים · ברשימה ×3'),
+      notThis: L('Not this','לא זה'), addOne: L('Add — now ×4','הוספה — עכשיו ×4'),
+      unsureT: L('Which one is it?','איזה מהם?'), unsureS: L('The photo was blurry. Pick one, or take another photo.','התמונה יצאה מטושטשת. בוחרים אחד, או מצלמים שוב.'),
+      noneType: L('None of these — type it','אף אחד — הקלדה'),
+      qT: L('Today’s 40 AI uses are spent','40 השימושים היומיים ב-AI נוצלו'), qS: L('Photo reading comes back at midnight. Barcode and typing always work.','קריאת צילום חוזרת בחצות. ברקוד והקלדה עובדים תמיד.'),
+      typeIt: L('Type the product','הקלדת המוצר'), scanInstead: L('Scan the barcode','סריקת הברקוד')
+    };
+    const qty = s.qty || 1;
+    const dup = st === 'scan · already on the list';
+    const found = st === 'scan · found' || dup;
+    const reading = st === 'photo · reading';
+    const go = (x) => this.setState({ st: x });
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') + ((p.motion ?? 'full') === 'reduced' ? ' rm' : '') + (p['section colours'] === false ? ' mono' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      isScan, isPhoto, looking: st === 'scan · looking', reading,
+      pillTf: 'translateX(' + (isPhoto ? (he ? '-100%' : '100%') : '0') + ')', scanC: isScan ? '#111' : '#fff', photoC: isPhoto ? '#111' : '#fff',
+      toScan: () => go('scan · looking'), toPhoto: () => go('photo · aiming'),
+      shoot: () => { go('photo · reading'); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ st: 'photo · matched' }), 1600); },
+      rescan: () => go('scan · looking'), notThis: () => go('photo · not sure'),
+      scanHint: L('Point at the barcode','מכוונים לברקוד'), pkgName: L('Cottage','קוטג׳'),
+      contCls: 'tg on', quota: isPhoto ? (st === 'photo · daily limit reached' ? '40/40' : L('7 of 40 today','7 מתוך 40 היום')) : L('free','חינם'),
+      sheet: ['scan · looking','photo · aiming','photo · reading'].indexOf(st) < 0,
+      sheetTitle: found ? prod : t.unkT,
+      found, dup, unknown: st === 'scan · unknown barcode', matched: st === 'photo · matched', unsure: st === 'photo · not sure', quotaOut: st === 'photo · daily limit reached',
+      prod, cot: art('cot'), aiName: prod,
+      qty: String(qty), minus: () => this.setState({ qty: Math.max(1, qty - 1) }), plus: () => this.setState({ qty: qty + 1 }),
+      addLabel: dup ? L('Add — now ×' + (3 + qty), 'הוספה — עכשיו ×' + (3 + qty)) : t.add,
+      alts: [['cot', L('Cottage cheese 5%','קוטג׳ 5%'), L('Yours · bought 6 times','שלכם · נקנה 6 פעמים')], ['yog', L('Greek yogurt','יוגורט יווני'), L('Yours · bought twice','שלכם · נקנה פעמיים')], ['hum', L('Labneh','לבנה'), L('New for this home','חדש לבית הזה')]].map(([k, n, s2]) => ({ art: art(k), n, s: s2, tile: 'pt k-' + (k === 'hum' ? 'deli' : 'dairy') }))
+    };
+  }
+}
+</script>
+</body>
+</html>

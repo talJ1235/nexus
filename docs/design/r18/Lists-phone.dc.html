@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Templates and past trips · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+<link rel="stylesheet" href="./nx-sm.css">
+<link rel="stylesheet" href="./nx-sm2.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+<div class="phone">
+
+  <sc-if value="{{onIndex}}" hint-placeholder-val="{{ true }}">
+  <div class="pg">
+    <div class="top2"><button class="ico-b" aria-label="{{t.back}}"><svg class="s lg flip" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><b></b></div>
+    <div class="bd">
+      <h1 class="h1b">{{pageTitle}}</h1>
+      <div class="seg2" role="tablist" style="margin:10px 0 4px">
+        <span class="pill" style="inset-inline-start:3px;width:calc(50% - 3px);transform:{{pillTf}}"></span>
+        <button role="tab" class="{{tabA}}" aria-selected="{{onTpl}}" onClick="{{toTpl}}">{{t.tpl}}</button>
+        <button role="tab" class="{{tabB}}" aria-selected="{{onTrips}}" onClick="{{toTrips}}">{{t.trips}}</button>
+      </div>
+
+      <sc-if value="{{tplList}}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px" class="stg">
+          <sc-if value="{{showNew}}" hint-placeholder-val="{{ true }}">
+            <div class="sug" style="margin:0"><div class="sug-h" style="cursor:default"><span class="sp"><svg class="s sm" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg></span><span class="tt"><b>{{t.newFound}}</b><span>{{t.newFoundS}}</span></span></div>
+            <div style="display:flex;gap:8px;padding:0 14px 14px"><button class="btn pri" style="flex:1;height:42px" onClick="{{keepNew}}">{{t.keep}}</button><button class="btn" style="flex:1;height:42px" onClick="{{dropNew}}">{{t.noThanks}}</button></div></div>
+          </sc-if>
+          <sc-for list="{{tpls}}" as="c" hint-placeholder-count="4">
+            <button class="tcard sm-press" onClick="{{c.open}}">
+              <div class="r1"><span class="tx"><b class="bidi">{{c.n}}</b><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><sc-if value="{{c.byN}}" hint-placeholder-val="{{ false }}"><span class="byn"><svg class="s" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg>{{t.byN}}</span></sc-if>{{c.s}}</span></span><span class="qty">{{c.c}}</span></div>
+              <div class="crail" aria-hidden="true"><sc-for list="{{c.rail}}" as="r" hint-placeholder-count="6"><i class="{{r.k}}" style="flex-grow:{{r.w}}"></i></sc-for></div>
+              <div class="pts"><sc-for list="{{c.pics}}" as="a" hint-placeholder-count="5"><span class="{{a.tile}}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{a.art.d0}}" fill="{{a.art.f0}}"></path><path d="{{a.art.d1}}" fill="{{a.art.f1}}"></path><path d="{{a.art.d2}}" fill="{{a.art.f2}}"></path><path d="{{a.art.d3}}" fill="{{a.art.f3}}"></path></svg></span></sc-for><span class="more">{{c.more}}</span></div>
+            </button>
+          </sc-for>
+          <button class="opt sm-press" onClick="{{toSave}}" style="min-height:64px;border-style:dashed"><span class="ic3"><svg class="s" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></span><span class="tx"><b>{{t.newTpl}}</b><span>{{t.newTplS}}</span></span></button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+        <div class="ft rise" style="margin-top:28px;align-items:center;text-align:center;gap:10px">
+          <span class="ic" style="width:64px;height:64px;border-radius:20px"><svg class="s lg" viewBox="0 0 24 24" style="width:28px;height:28px"><path d="M4 4h16v6H4z M4 14h7v6H4z M15 14h5v6h-5z"></path></svg></span>
+          <b style="font-size:19px;font-weight:800">{{t.emptyT}}</b>
+          <span class="sub" style="max-width:280px">{{t.emptyS}}</span>
+          <button class="btn pri" style="margin-top:6px;padding:0 20px" onClick="{{toSave}}">{{t.saveNow}}</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{tripList}}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{months}}" as="m" hint-placeholder-count="2">
+          <div class="gh">{{m.n}}<span class="r">{{m.tot}}</span></div>
+          <div class="cardl">
+            <sc-for list="{{m.trips}}" as="r" hint-placeholder-count="3">
+              <button class="ptrip" onClick="{{r.open}}"><span class="dt"><b>{{r.d}}</b><span>{{r.mo}}</span></span><span class="tx"><b class="bidi">{{r.st}}</b><span>{{r.s}}</span></span><sc-if value="{{r.rc}}" hint-placeholder-val="{{ false }}"><svg class="s sm" viewBox="0 0 24 24" style="color:var(--faint)" aria-label="{{t.hasRc}}"><path d="M5 3v18l2-1.5L9 21l2-1.5L13 21l2-1.5L17 21l2-1.5V3l-2 1.5L15 3l-2 1.5L11 3 9 4.5 7 3z M9 9h6 M9 13h6"></path></svg></sc-if><span class="am">{{r.am}}</span></button>
+            </sc-for>
+          </div>
+        </sc-for>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{onDetail}}" hint-placeholder-val="{{ false }}">
+  <div class="pg push">
+    <div class="top2"><button class="ico-b" onClick="{{back}}" aria-label="{{t.back}}"><svg class="s lg flip" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button><b></b><button class="ico-b" aria-label="{{t.more}}"><svg class="s lg" viewBox="0 0 24 24" style="stroke-width:2.6"><path d="M5 12h.01 M12 12h.01 M19 12h.01"></path></svg></button></div>
+    <div class="bd" style="padding-bottom:110px">
+      <h1 class="h1b bidi">{{dTitle}}</h1>
+      <span class="sub" style="display:block;padding:0 4px">{{dSub}}</span>
+      <sc-if value="{{isTrip}}" hint-placeholder-val="{{ false }}">
+        <div class="sumb" style="margin-top:14px"><div><b>{{tripTot}}</b><span>{{t.total}}</span></div><div><b>{{tripN}}</b><span>{{t.items}}</span></div><div><b>2</b><span>{{t.nf}}</span></div></div>
+        <div class="gh">{{t.pick}}<span class="r">{{pickedLine}}</span></div>
+      </sc-if>
+      <sc-if value="{{tplNexus}}" hint-placeholder-val="{{ false }}"><div class="alert info" style="margin-top:12px;background:color-mix(in srgb,var(--spark) 10%,var(--raised))"><svg class="s" viewBox="0 0 24 24" style="color:var(--spark)"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg><span>{{t.nexusKeeps}}</span></div></sc-if>
+      <sc-if value="{{editing}}" hint-placeholder-val="{{ false }}">
+        <div class="lbl2">{{t.name}}</div>
+        <label class="input" style="height:50px;border-radius:13px"><input defaultValue="{{dTitle}}" aria-label="{{t.name}}" style="border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);width:100%"></label>
+        <label class="addf" style="margin:12px 0 0"><svg class="s lead" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg><input type="text" placeholder="{{t.addItem}}" aria-label="{{t.addItem}}"></label>
+      </sc-if>
+      <sc-if value="{{isTpl}}" hint-placeholder-val="{{ false }}"><div class="gh">{{t.inTpl}}<span class="r">{{tplCount}}</span></div></sc-if>
+      <div class="cardl">
+        <sc-for list="{{dRows}}" as="r" hint-placeholder-count="8">
+          <div class="mg">
+            <sc-if value="{{isTrip}}" hint-placeholder-val="{{ false }}"><button class="{{r.ck}}" onClick="{{r.tog}}" aria-label="{{r.n}}" aria-pressed="{{r.on}}"><svg class="s" viewBox="0 0 24 24" style="stroke-width:3"><path d="M20 6 9 17l-5-5"></path></svg></button></sc-if>
+            <span class="{{r.tile}}" style="width:40px;height:40px;border-radius:11px"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path></svg></span>
+            <span class="tx"><b class="bidi">{{r.n}}</b><span>{{r.s}}</span></span>
+            <span class="q">{{r.q}}</span>
+            <sc-if value="{{editing}}" hint-placeholder-val="{{ false }}"><button class="ico-b" onClick="{{r.del}}" aria-label="{{r.delA}}" style="width:36px;height:36px"><svg class="s" viewBox="0 0 24 24"><path d="M18 6 6 18 M6 6l12 12"></path></svg></button></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div class="botbar">
+      <sc-if value="{{tplView}}" hint-placeholder-val="{{ false }}"><button class="btn" style="flex:0 0 auto" onClick="{{toEdit}}">{{t.editBtn}}</button><button class="btn pri" onClick="{{toApply}}">{{t.apply}}</button></sc-if>
+      <sc-if value="{{editing}}" hint-placeholder-val="{{ false }}"><button class="btn pri" onClick="{{doneEdit}}">{{t.saveEdit}}</button></sc-if>
+      <sc-if value="{{isTrip}}" hint-placeholder-val="{{ false }}"><button class="btn" style="flex:0 0 auto" onClick="{{toSave}}">{{t.asTpl}}</button><button class="btn pri">{{reAdd}}</button></sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{onApply}}" hint-placeholder-val="{{ false }}">
+    <div class="scrim2"></div>
+    <section class="bsheet" role="dialog" aria-label="{{t.applyT}}">
+      <div class="grab"></div>
+      <h3 class="bidi">{{t.applyT}}</h3>
+      <span class="sub" style="display:block">{{t.applyS}}</span>
+      <div class="sumb" style="margin-top:12px"><div><b>16</b><span>{{t.newOnes}}</span></div><div><b>6</b><span>{{t.already}}</span></div><div><b>2</b><span>{{t.offNow}}</span></div></div>
+      <div class="cardl" style="margin-top:12px">
+        <sc-for list="{{applyRows}}" as="r" hint-placeholder-count="3">
+          <div class="{{r.cls}}"><span class="{{r.tile}}" style="width:36px;height:36px;border-radius:10px"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path></svg></span><span class="tx"><b class="bidi">{{r.n}}</b><span>{{r.s}}</span></span><span class="q">{{r.q}}</span></div>
+        </sc-for>
+      </div>
+      <button class="btn pri" style="width:100%;margin-top:14px">{{t.addN}}</button>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{onSave}}" hint-placeholder-val="{{ false }}">
+    <div class="scrim2"></div>
+    <section class="bsheet" role="dialog" aria-label="{{t.saveT}}">
+      <div class="grab"></div>
+      <h3>{{t.saveT}}</h3>
+      <div class="lbl2">{{t.name}}</div>
+      <label class="input" style="height:52px;border-radius:13px;border-color:var(--brand);box-shadow:var(--focus)"><input defaultValue="{{t.nameVal}}" aria-label="{{t.name}}" style="border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);width:100%"></label>
+      <div class="cardl" style="margin-top:12px">
+        <div class="li"><span class="ic3"><svg class="s" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span><span class="grow"><b>{{t.bought}}</b><span>{{t.boughtS}}</span></span><span class="tg on"></span></div>
+        <div class="li"><span class="ic3"><svg class="s" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M15 9l-6 6 M9 9l6 6"></path></svg></span><span class="grow"><b>{{t.notFound}}</b><span>{{t.notFoundS}}</span></span><span class="tg"></span></div>
+        <div class="li"><span class="ic3"><svg class="s" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></span><span class="grow"><b>{{t.qtys}}</b><span>{{t.qtysS}}</span></span><span class="tg on"></span></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px"><button class="btn" style="flex:0 0 auto" onClick="{{back}}">{{t.cancel}}</button><button class="btn pri" style="flex:1">{{t.saveBtn}}</button></div>
+    </section>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"state":{"editor":"enum","options":["templates","template open","edit a template","apply a template","save a trip as template","past trips","past trip open","no templates yet"],"default":"templates"},"data":{"editor":"enum","options":["demo","worst case"],"default":"demo"},"section colours":{"editor":"boolean","default":true},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const worst = (p.data ?? 'demo') === 'worst case';
+    const st = s.st || (p.state ?? 'templates');
+    const C_ = (x, y, r) => 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z';
+    const E_ = (x, y, a, b) => 'M' + (x - a) + ' ' + y + 'a' + a + ' ' + b + ' 0 1 0 ' + (2 * a) + ' 0a' + a + ' ' + b + ' 0 1 0 ' + (-2 * a) + ' 0z';
+    const R_ = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + 'h' + (w - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r + 'v' + (h - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r + 'h' + (-(w - 2 * r)) + 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + (-r) + 'v' + (-(h - 2 * r)) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + (-r) + 'z';
+    const ART = {
+      tom: [[C_(24,27,14),'#e5483b'],[E_(18,22,4,2.5),'#ff9a8c'],['M24 9l2.2 4.6 4.8-1.6-2.8 4 4.2 2.6-5.2-.2-1.4 4.4-1.6-4.4-5.2.2 4.2-2.6-2.8-4 4.8 1.6z','#3f9d5a']],
+      cuc: [['M9 36c-3-3-1-9 5-15l7-7c6-6 12-8 15-5s1 9-5 15l-7 7c-6 6-12 8-15 5z','#3d8b47'],[C_(17,28,1.4)+C_(23,22,1.4)+C_(29,16,1.4),'#93d48f']],
+      ban: [['M8 13c1 14 12 24 27 24 3 0 4 2 1 3C19 44 5 33 6 15c0-3 2-4 2-2z','#f5c542'],['M10 14c2 11 10 19 21 21-12 1-21-8-22-20z','#e0a92a'],[R_(5,9,4,6,1.5),'#6b4a2b']],
+      chk: [['M10 30c0-10 8-18 18-18 7 0 11 5 11 11 0 10-10 17-20 17-6 0-9-4-9-10z','#f3b9a3'],['M20 34c6-1 12-6 14-12 1 4-3 11-10 13-2 .5-4 0-4-1z','#e49a83'],[E_(22,20,4,2),'#fbd9cc']],
+      pit: [[E_(24,26,18,13),'#e3b97f'],[E_(24,24,15,10),'#f2d7a8'],[C_(18,22,1.2)+C_(28,27,1.2)+C_(25,20,1),'#c79a5e']],
+      chl: [[E_(24,29,20,9),'#bf7428'],[E_(13,26,7.5,6)+E_(24,24,8,6.5)+E_(35,26,7.5,6),'#df9c4a'],[C_(15,23,.9)+C_(25,21,.9)+C_(33,24,.9),'#fbe7c2']],
+      mlk: [['M14 16l4-8h12l4 8z','#dfe9f5'],[R_(14,16,20,28,2),'#ffffff'],[R_(14,27,20,10,1),'#3b7fc4']],
+      cot: [['M10 18h28l-3 22c0 2-2 3-4 3H17c-2 0-4-1-4-3z','#ffffff'],[E_(24,18,15,4.5),'#3b7fc4'],[R_(14,26,20,8,2),'#cfe0f3']],
+      egg: [[R_(5,26,38,14,4),'#d9c3a0'],[E_(13,25,5,6.5)+E_(24,23,5,6.5)+E_(35,25,5,6.5),'#f7ecdc'],[E_(11.5,22,1.5,2.2)+E_(22.5,20,1.5,2.2)+E_(33.5,22,1.5,2.2),'#ffffff']],
+      pen: [['M8 30l14-14 5 5-14 14z','#f0c35a'],['M20 36l14-14 5 5-14 14z','#e6ad3c'],['M14 20l12-12 4 4-12 12z','#f6d684']],
+      wat: [['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#8fd0f2'],[R_(15,22,18,9,1),'#2f7fc1'],[R_(18,4,12,5,1.5),'#2f7fc1']],
+      dis: [['M18 10h12l2 6v24c0 2-2 4-4 4h-8c-2 0-4-2-4-4V16z','#4cc3a0'],[C_(24,28,5.5),'#ffffff'],[R_(22,4,4,6,1),'#1f7f62']],
+      tp: [[R_(8,12,22,28,5),'#ffffff'],[E_(19,12,11,4),'#ecebe6'],[R_(30,26,12,14,2),'#ffffff']]
+    };
+    const art = (k) => { const a = ART[k] || []; const o = {}; for (let i = 0; i < 4; i++) { const x = i === 0 ? [E_(24,44.5,13,2.2),'rgba(0,0,0,.10)'] : a[i - 1]; o['d' + i] = x ? x[0] : ''; o['f' + i] = x ? x[1] : 'none'; } return o; };
+    const KOF = { tom:'produce',cuc:'produce',ban:'produce',chk:'meat',pit:'bread',chl:'bread',mlk:'dairy',cot:'dairy',egg:'dairy',pen:'dry',wat:'drink',dis:'clean',tp:'clean' };
+    const pic = (k) => ({ art: art(k), tile: 'pt k-' + KOF[k] });
+    const t = {
+      back: L('Back','חזרה'), more: L('More','עוד'), tpl: L('Templates','תבניות'), trips: L('Past trips','קניות קודמות'),
+      newTpl: L('Save the current list as a template','שמירת הרשימה הנוכחית כתבנית'), newTplS: L('23 items · or from any past trip','23 פריטים · או מכל קנייה קודמת'),
+      emptyT: L('No templates yet','עוד אין תבניות'), emptyS: L('Save a trip as a template on the finish screen, or save the list you have now.','שומרים קנייה כתבנית במסך הסיום, או את הרשימה שיש עכשיו.'), saveNow: L('Save the current list','שמירת הרשימה הנוכחית'),
+      hasRc: L('Receipt saved','קבלה שמורה'), total: L('total','סה״כ'), items: L('items','פריטים'), nf: L('not found','לא נמצאו'),
+      pick: L('Add again','הוספה מחדש'), inTpl: L('In this template','בתבנית'), edit: L('tap an item to edit','נוגעים בפריט לעריכה'),
+      apply: L('Add to my list','הוספה לרשימה שלי'), asTpl: L('Save as template','שמירה כתבנית'),
+      applyT: L('Add “Weekly basket” to the list','הוספת ״סל שבועי״ לרשימה'), applyS: L('Nothing on your list changes. What’s already there keeps your quantity.','שום דבר ברשימה לא משתנה. מה שכבר שם נשאר בכמות שלכם.'),
+      newOnes: L('new','חדשים'), already: L('already on it','כבר ברשימה'), offNow: L('skipped','מדלגים'),
+      addN: L('Add 16 items','הוספת 16 פריטים'),
+      byN: L('Made by Nexus','נוצר ע״י Nexus'), newFound: L('Nexus spotted a new routine','Nexus זיהה שגרה חדשה'),
+      newFoundS: L('Before a barbecue you buy the same 14 things. Keep it as a template?','לפני על האש אתם קונים את אותם 14 דברים. לשמור כתבנית?'),
+      keep: L('Keep it','לשמור'), noThanks: L('No thanks','לא תודה'),
+      nexusKeeps: L('Nexus keeps this one up to date from your trips. Once you edit it, it’s yours and Nexus won’t change it.','Nexus מעדכן את התבנית הזו לפי הקניות שלכם. ברגע שעורכים אותה, היא שלכם ו-Nexus לא ישנה אותה.'),
+      addItem: L('Add an item to the template','הוספת פריט לתבנית'), editBtn: L('Edit','עריכה'), saveEdit: L('Save — it’s yours now','שמירה — עכשיו היא שלכם'),
+      saveT: L('Save as a template','שמירה כתבנית'), name: L('Name','שם'), nameVal: L('Thursday shop','קנייה של חמישי'),
+      bought: L('What was bought','מה שנקנה'), boughtS: L('21 items','21 פריטים'), notFound: L('Also what wasn’t found','גם מה שלא נמצא'), notFoundS: L('2 items','2 פריטים'),
+      qtys: L('Keep the quantities','לשמור את הכמויות'), qtysS: L('Off = quantities left empty','כבוי = הכמויות נשארות ריקות'),
+      cancel: L('Cancel','ביטול'), saveBtn: L('Save template','שמירת התבנית')
+    };
+    const tpls = [
+      [L('Usual weekly shop','הקנייה השבועית הרגילה'), L('From your last 6 Thursdays','מ-6 ימי החמישי האחרונים'), '24', ['tom','cuc','mlk','cot','pit'], '+19', [['produce',6],['meat',2],['dry',3],['bread',2],['dairy',7],['frozen',2],['clean',2]]],
+      [worst ? L('Friday morning for the whole family including grandma and grandpa from Haifa','שישי בבוקר לכל המשפחה כולל סבא וסבתא מחיפה') : L('Friday morning','שישי בבוקר'), L('From your Friday trips','מהקניות של שישי'), '9', ['chl','egg','cot','tom','cuc'], '+4', [['produce',3],['bread',2],['dairy',4]]],
+      [L('Barbecue','על האש'), L('Yours · used in May','שלכם · שימוש במאי'), '14', ['chk','pit','tom','wat','cuc'], '+9', [['produce',4],['meat',5],['bread',2],['drink',3]]],
+      [L('Monthly cleaning','ניקיון חודשי'), L('Yours · never used','שלכם · עוד לא בשימוש'), '7', ['dis','tp'], '+5', [['clean',5],['toil',2]]]
+    ].map(([n, s2, c, pics, more, rail], i) => ({ n, s: s2, c, byN: i < 2 && !(this.state || {}).owned, pics: pics.map(pic), more, rail: rail.map(([k, w]) => ({ k: 'k-' + k, w })), open: () => this.setState({ st: 'template open', tpl: i }) }));
+    const trip = (d, mo, st2, s2, am, rc) => ({ d, mo, st: st2, s: s2, am, rc, open: () => this.setState({ st: 'past trip open' }) });
+    const months = [
+      { n: L('October','אוקטובר'), tot: L('₪788 · 2 trips','₪788 · 2 קניות'), trips: [
+        trip('9', L('Oct','אוק׳'), worst ? L('Shufersal Sheli · Azrieli Mall Modi’in, 2nd floor, next to the parking','שופרסל שלי · קניון עזריאלי מודיעין, קומה 2, ליד החניון') : L('Shufersal Deal · Herzl St.','שופרסל דיל · הרצל'), L('23 items · Tal and Noa · 42 min','23 פריטים · טל ונועה · 42 דק׳'), '₪412', true),
+        trip('2', L('Oct','אוק׳'), L('Rami Levy · Modi’in','רמי לוי · מודיעין'), L('31 items · Noa · 55 min','31 פריטים · נועה · 55 דק׳'), '₪376', true) ] },
+      { n: L('September','ספטמבר'), tot: L('₪1,105 · 3 trips','₪1,105 · 3 קניות'), trips: [
+        trip('30', L('Sep','ספט׳'), L('Rami Levy · Modi’in','רמי לוי · מודיעין'), L('18 items · Tal','18 פריטים · טל'), '₪284', false),
+        trip('21', L('Sep','ספט׳'), L('Shufersal Deal · Herzl St.','שופרסל דיל · הרצל'), L('27 items · Tal and Noa','27 פריטים · טל ונועה'), '₪498', true),
+        trip('14', L('Sep','ספט׳'), L('Yochananof · Rehovot','יוחננוף · רחובות'), L('19 items · Yoav','19 פריטים · יואב'), '₪323', false) ] }
+    ];
+    const picked = s.picked || { mlk: true, cot: true, tom: true, egg: true, pit: true };
+    const TRIPR = [['tom',L('Tomatoes','עגבניות'),L('₪7.90/kg','₪7.90 לק״ג'),'₪9.50'],['cuc',L('Cucumbers','מלפפונים'),L('₪5.90/kg','₪5.90 לק״ג'),'₪6.20'],['chk',L('Chicken breast','חזה עוף'),L('1 kg','1 ק״ג'),'₪39.90'],['pen',L('Penne 500 g ×2','פסטה פנה 500 גרם ×2'),L('not found','לא נמצא'),'—'],['mlk',L('Milk 3% ×2','חלב 3% ×2'),'₪6.90','₪13.80'],['cot',L('Cottage cheese 5% ×3','קוטג׳ 5% ×3'),'₪5.40','₪16.20'],['egg',L('Eggs, size L ×12','ביצים L ×12'),'','₪14.90'],['pit',L('Pita ×10','פיתות ×10'),'','₪8.90']];
+    const TPLR = [['tom',L('Tomatoes','עגבניות'),L('Fruit & vegetables','פירות וירקות'),L('1 kg','1 ק״ג')],['cuc',L('Cucumbers','מלפפונים'),L('Fruit & vegetables','פירות וירקות'),L('1 kg','1 ק״ג')],['ban',L('Bananas','בננות'),L('Fruit & vegetables','פירות וירקות'),'×6'],['chk',L('Chicken breast','חזה עוף'),L('Meat, poultry & fish','בשר, עוף ודגים'),L('1 kg','1 ק״ג')],['pen',L('Penne 500 g','פסטה פנה 500 גרם'),L('Dry goods','יבשים'),'×2'],['pit',L('Pita','פיתות'),L('Bread & bakery','לחם ומאפים'),'×10'],['mlk',L('Milk 3%','חלב 3%'),L('Dairy & eggs','חלב וביצים'),'×2'],['cot',L('Cottage cheese 5%','קוטג׳ 5%'),L('Dairy & eggs','חלב וביצים'),'×3']];
+    const viaTrip = st === 'save a trip as template' && !!s.fromTrip;
+    const editing = st === 'edit a template';
+    const isTrip = st === 'past trip open' || viaTrip, isTpl = st === 'template open' || editing;
+    const delS = s.del || {};
+    const dRows = (isTrip ? TRIPR : TPLR).filter(([k]) => !delS[k]).map(([k, n, s2, q]) => ({ del: () => this.setState({ del: Object.assign({}, delS, { [k]: true }) }), delA: L('Remove ','הסרת ') + n, art: art(k), tile: 'pt k-' + KOF[k], n, s: s2, q, on: !!picked[k], ck: 'ckb' + (picked[k] ? ' on' : ''), tog: () => this.setState({ picked: Object.assign({}, picked, { [k]: !picked[k] }) }) }));
+    const nPicked = Object.keys(picked).filter(k => picked[k]).length;
+    const onIndex = ['templates','past trips','no templates yet'].indexOf(st) >= 0 || st === 'apply a template' && false;
+    const onTrips = st === 'past trips';
+    const tplIdx = s.tpl || 0;
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') + ((p.motion ?? 'full') === 'reduced' ? ' rm' : '') + (p['section colours'] === false ? ' mono' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      onIndex: onIndex || st === 'save a trip as template' && !s.fromTrip, onDetail: isTrip || isTpl || st === 'apply a template',
+      onApply: st === 'apply a template', onSave: st === 'save a trip as template',
+      pageTitle: onTrips ? t.trips : t.tpl, onTpl: !onTrips, onTrips,
+      tabA: onTrips ? '' : 'on', tabB: onTrips ? 'on' : '', pillTf: 'translateX(' + (onTrips ? (he ? '-100%' : '100%') : '0') + ')',
+      toTpl: () => this.setState({ st: 'templates' }), toTrips: () => this.setState({ st: 'past trips' }),
+      tplList: st === 'templates' || (st === 'save a trip as template'), empty: st === 'no templates yet', tripList: onTrips,
+      tpls, months, isTrip, isTpl: isTpl || st === 'apply a template', editing, tplView: (isTpl && !editing) || st === 'apply a template',
+      tplNexus: (isTpl || st === 'apply a template') && !editing && tplIdx < 2 && !s.owned, tplCount: L((8 - Object.keys(delS).length) + ' items', (8 - Object.keys(delS).length) + ' פריטים'),
+      toEdit: () => this.setState({ st: 'edit a template' }), doneEdit: () => this.setState({ st: 'template open', owned: true }),
+      showNew: st === 'templates' && !s.newDone, keepNew: () => this.setState({ newDone: true }), dropNew: () => this.setState({ newDone: true }),
+      dTitle: isTrip ? (worst ? L('Shufersal Sheli · Azrieli Mall Modi’in','שופרסל שלי · קניון עזריאלי מודיעין') : L('Shufersal Deal · Herzl St.','שופרסל דיל · הרצל')) : tpls[tplIdx].n,
+      dSub: isTrip ? L('Thursday 9 Oct · 18:40 · Tal and Noa','יום חמישי 9.10 · 18:40 · טל ונועה') : tpls[tplIdx].s,
+      tripTot: '₪412', tripN: '23', dRows,
+      pickedLine: L(nPicked + ' picked', nPicked + ' נבחרו'), reAdd: L('Add ' + nPicked + ' to the list', 'הוספת ' + nPicked + ' לרשימה'),
+      back: () => this.setState({ st: viaTrip ? 'past trip open' : (isTrip ? 'past trips' : 'templates'), fromTrip: false }), toApply: () => this.setState({ st: 'apply a template' }), toSave: () => this.setState({ st: 'save a trip as template', fromTrip: isTrip }),
+      applyRows: [['mlk',L('Milk 3%','חלב 3%'),L('Already on the list — stays ×2','כבר ברשימה — נשאר ×2'),'×2','mg dim'],['cot',L('Cottage cheese 5%','קוטג׳ 5%'),L('Already on the list — stays ×1','כבר ברשימה — נשאר ×1'),'×1','mg dim'],['ban',L('Bananas','בננות'),L('New','חדש'),'×6','mg']].map(([k, n, s2, q, c]) => ({ art: art(k), tile: 'pt k-' + KOF[k], n, s: s2, q, cls: c }))
+    };
+  }
+}
+</script>
+</body>
+</html>

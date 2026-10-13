@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Trip bar on every screen · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx.css">
+<link rel="stylesheet" href="./nx16.css">
+<link rel="stylesheet" href="./nx17.css">
+<link rel="stylesheet" href="./nx18.css">
+<link rel="stylesheet" href="./nx-sm.css">
+<link rel="stylesheet" href="./nx-sm2.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+<div class="phone">
+  <div class="scroll" style="padding-bottom:170px">
+    <div class="sm-head"><h1>{{screenTitle}}</h1></div>
+
+    <sc-if value="{{onProducts}}" hint-placeholder-val="{{ true }}">
+      <div style="padding:10px 16px 0"><div class="seg2" role="tablist"><span class="pill" style="inset-inline-start:3px;width:calc(33.33% - 2px)"></span><button class="on" role="tab" aria-selected="true">{{t.tobuy}}</button><button role="tab">{{t.ontheway}}</button><button role="tab">{{t.projects}}</button></div></div>
+      <div class="sbox" style="margin:14px 12px 0;border:1px solid var(--line-strong);border-radius:16px;background:var(--raised)">
+        <sc-for list="{{prods}}" as="r" hint-placeholder-count="6">
+          <div class="prow"><span class="ic" style="width:44px;height:44px;border-radius:12px"><svg class="s" viewBox="0 0 24 24"><path d="{{r.d}}"></path></svg></span><span class="tx"><b class="bidi">{{r.n}}</b><span class="bidi">{{r.s}}</span></span><span class="pr">{{r.p}}</span></div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{onInsights}}" hint-placeholder-val="{{ false }}">
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:14px 12px 0">
+        <div class="dcard" style="padding:14px"><span class="sub">{{t.month}}</span><b style="font-size:24px;font-weight:800;letter-spacing:-.02em">₪2,860</b><div class="meter"><i style="width:72%"></i></div></div>
+        <div class="dcard" style="padding:14px"><span class="sub">{{t.trips}}</span><b style="font-size:24px;font-weight:800;letter-spacing:-.02em">5</b><span class="tiny">{{t.avg}}</span></div>
+        <div class="dcard" style="grid-column:span 2;height:210px;padding:14px"><span class="sub">{{t.bySec}}</span><div style="flex:1;display:flex;align-items:flex-end;gap:8px">
+          <sc-for list="{{bars}}" as="b" hint-placeholder-count="8"><i class="{{b.k}}" style="flex:1;border-radius:6px 6px 2px 2px;background:var(--k);height:{{b.h}}"></i></sc-for>
+        </div></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{onSuper}}" hint-placeholder-val="{{ false }}">
+      <div class="storebar"><button class="chip-s"><span class="chain ch-a">{{ini}}</span><span class="nm"><b class="bidi">{{chain}}</b><span class="bidi">{{branch}}</span></span></button><span class="stp live" style="margin-inline-start:auto;background:var(--ok-t);color:var(--ok)"><span class="av xs c2" style="position:static">{{iniN}}</span>{{t.liveNow}}</span></div>
+      <div class="sec k-dairy" style="margin-top:10px">
+        <div class="sec-h"><span class="si k-dairy"><svg viewBox="0 0 24 24"><path d="M7 6l2-4h6l2 4 M7 6v15a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6z M7 6l5 4 5-4 M12 10v12"></path></svg></span><span class="nm">{{t.dairy}}</span><span class="n">2/4</span></div>
+        <div class="sec-b"><div class="box-l">
+          <sc-for list="{{live}}" as="r" hint-placeholder-count="4">
+            <div class="srow"><span class="tx"><b class="bidi" style="{{r.st}}">{{r.n}}</b><sc-if value="{{r.got}}" hint-placeholder-val="{{ false }}"><span class="nt2"><span style="color:var(--ok);font-weight:650">{{r.by}}</span></span></sc-if></span><span class="qty">{{r.q}}</span></div>
+          </sc-for>
+        </div></div>
+      </div>
+    </sc-if>
+  </div>
+
+  <a class="tripbar" href="StoreMode-phone.dc.html" style="{{barStyle}}" aria-label="{{barAria}}">
+    <span class="mr" style="--p:{{pct}};{{ringStyle}}"><span style="{{ringIn}}">{{ringTxt}}</span></span>
+    <span class="tx"><b class="bidi">{{barT}}</b><span>{{barS}}</span></span>
+    <span class="go" style="{{goStyle}}">{{goTxt}}<svg class="s sm flip" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></span>
+  </a>
+
+  <nav class="dock5" aria-label="{{t.nav}}">
+    <button class="tab-b"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span>{{t.home}}</span></button>
+    <button class="{{tabP}}"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg><span>{{t.products}}</span></button>
+    <a class="plus" href="Add-phone.dc.html" aria-label="{{t.add}}"><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></a>
+    <button class="{{tabS}}"><svg viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg><span>{{t.super}}</span></button>
+    <button class="{{tabI}}"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg><span>{{t.insights}}</span></button>
+  </nav>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"screen":{"editor":"enum","options":["Products","Insights","Supermarket"],"default":"Products"},"trip":{"editor":"enum","options":["I am shopping","Noa is shopping","offline · changes waiting","everything checked"],"default":"I am shopping"},"data":{"editor":"enum","options":["demo","worst case"],"default":"demo"},"section colours":{"editor":"boolean","default":true},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const worst = (p.data ?? 'demo') === 'worst case';
+    const scr = p.screen ?? 'Products';
+    const trip = p.trip ?? 'I am shopping';
+    const other = trip === 'Noa is shopping', off = trip === 'offline · changes waiting', all = trip === 'everything checked';
+    const t = {
+      tobuy: L('To buy','לקנות'), ontheway: L('On the way','בדרך'), projects: L('Projects','פרויקטים'),
+      month: L('October so far','אוקטובר עד עכשיו'), trips: L('Trips','קניות'), avg: L('avg ₪394','ממוצע ₪394'), bySec: L('By section','לפי מחלקה'),
+      dairy: L('Dairy & eggs','חלב וביצים'), liveNow: L('Noa is shopping','נועה בקנייה'),
+      home: L('Home','בית'), products: L('Products','מוצרים'), super: L('Supermarket','סופר'), insights: L('Insights','תובנות'), add: L('Add','הוספה'), nav: L('Main','ראשי')
+    };
+    const chain = worst ? L('Shufersal Sheli','שופרסל שלי') : L('Shufersal Deal','שופרסל דיל');
+    const branch = worst ? L('Azrieli Mall Modi’in, 2nd floor, next to the parking','קניון עזריאלי מודיעין, קומה 2, ליד החניון') : L('Herzl St.','רח׳ הרצל');
+    const store = chain + ' · ' + branch;
+    const left = worst ? 31 : 9, n = worst ? 40 : 23;
+    const pct = all ? '100%' : Math.round((n - left) / n * 100) + '%';
+    let barT = store, barS, goTxt = L('Back','חזרה'), barStyle = '', ringStyle = '', ringIn = '', ringTxt = String(n - left), goStyle = '';
+    if (other) {
+      barT = L('Noa is shopping · ', 'נועה בקנייה · ') + chain;
+      barS = L('6 left · what you add now shows up for her', 'נשארו 6 · מה שתוסיפו עכשיו יופיע אצלה');
+      goTxt = L('Watch','צפייה');
+      barStyle = 'background:var(--raised);color:var(--ink);border:1px solid var(--line-strong)';
+      ringStyle = 'background:conic-gradient(var(--ok) 74%,var(--s3) 0)'; ringIn = 'background:#7c5ad9;color:#fff'; ringTxt = L('N','נ');
+      goStyle = 'background:var(--s2)';
+    } else if (off) {
+      barS = L('Offline · 3 changes waiting · they send by themselves', 'לא מקוון · 3 שינויים ממתינים · יישלחו לבד');
+    } else if (all) {
+      barT = L('Everything’s in the cart', 'הכול בעגלה'); barS = (worst ? '₪1,912' : '₪398') + L(' · tap to finish', ' · נוגעים כדי לסיים');
+      goTxt = L('Finish','סיום'); ringStyle = 'background:conic-gradient(var(--ok) 100%,transparent 0)'; ringTxt = '✓';
+    } else {
+      barS = L(left + ' left · ₪' + (worst ? '1,204' : '238') + ' so far', 'נשארו ' + left + ' · ₪' + (worst ? '1,204' : '238') + ' עד עכשיו');
+    }
+    const PR = [
+      ['M4 7h16v10H4z M8 21h8 M12 17v4', L('Monitor arm, dual','זרוע כפולה למסך'), L('Amazon · drop ₪24 this week','אמזון · ירד ₪24 השבוע'), '₪189'],
+      ['M6 2h12v20H6z M11 18h2', L('Phone case','כיסוי לטלפון'), L('KSP','KSP'), '₪49'],
+      ['M3 7h18v13H3z M8 7V4h8v3', L('Drill bits set','סט מקדחים'), L('Project: shelves','פרויקט: מדפים'), '₪79'],
+      ['M12 3v18 M3 12h18', L('Wall plugs 8 mm','דיבלים 8 מ״מ'), L('Project: shelves','פרויקט: מדפים'), '₪12'],
+      ['M5 12h14 M12 5v14', L('Air fryer basket liners','נייר אפייה לסיר טיגון'), L('AliExpress','AliExpress'), '₪23']
+    ].map(([d, n2, s2, p2]) => ({ d, n: n2, s: s2, p: p2 }));
+    const bars = [['produce','62%'],['meat','80%'],['deli','30%'],['dry','44%'],['drink','38%'],['clean','26%'],['bread','34%'],['dairy','70%']].map(([k, h]) => ({ k: 'k-' + k, h }));
+    const live = [[L('Milk 3%','חלב 3%'),'×2',true],[L('Cottage cheese 5%','קוטג׳ 5%'),'×3',true],[L('Yogurt','יוגורט'),'×4',false],[L('Eggs, size L','ביצים L'),'×12',false]].map(([n2, q, got]) => ({ n: n2, q, got, by: L('In Noa’s cart','בעגלה של נועה'), st: got ? 'text-decoration:line-through;color:var(--muted)' : '' }));
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : '') + ((p.motion ?? 'full') === 'reduced' ? ' rm' : '') + (p['section colours'] === false ? ' mono' : ''),
+      dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      onProducts: scr === 'Products', onInsights: scr === 'Insights', onSuper: scr === 'Supermarket',
+      screenTitle: scr === 'Products' ? t.products : (scr === 'Insights' ? t.insights : t.super),
+      tabP: 'tab-b' + (scr === 'Products' ? ' on' : ''), tabS: 'tab-b' + (scr === 'Supermarket' ? ' on' : ''), tabI: 'tab-b' + (scr === 'Insights' ? ' on' : ''),
+      prods: PR, bars, live, chain, branch, ini: L('S','ש'), iniN: L('N','נ'),
+      pct, barT, barS, goTxt, barStyle, ringStyle, ringIn, ringTxt, goStyle,
+      barAria: barT + ', ' + barS
+    };
+  }
+}
+</script>
+</body>
+</html>
