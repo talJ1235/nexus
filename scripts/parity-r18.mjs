@@ -74,6 +74,17 @@ const tiles = async (p) => {
   await p.click("[data-sm-more]");
   await p.click('[data-sm-layout-pick="tiles"]');
 };
+const addType = (text, steppers = false) => async (p) => {
+  await p.click("[data-sm-add-open]");
+  await p.fill("[data-add-input]", text);
+  await p.waitForSelector("[data-add-hit]", { timeout: 8000 }).catch(() => {});
+  if (steppers) await p.click("[data-add-measure]").catch(() => {});
+};
+const addPaste = async (p) => {
+  await p.click("[data-sm-add-open]");
+  await p.click("[data-add-chip=paste]");
+  await p.fill("[data-add-paste]", ["Noa: for tomorrow", "milk", "2 cucumbers", "toilet paper!!", "something nice for Shabbat"].join(String.fromCharCode(10)));
+};
 const SHOTS = [
   // A2 — the Supermarket tab.
   ["a2-main-phone", [["board · normal", "Supermarket-phone", { ...EN, state: "normal" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM }], ["board · he dark plum", "Supermarket-phone", { ...HE, state: "normal", dark: true, palette: "plum" }, PHONE], ["app · he dark plum", "/supermarket", PHONE, { wait: SM, he: true, dark: true, plum: true }]], 300],
@@ -81,6 +92,8 @@ const SHOTS = [
   // A3 — Home "Next shop" card + the trip bar (a trip of 23 with 12 checked, ₪187.40 so far).
   ["a3-home-card", [["board · normal", "HomeCard-phone", { ...EN, state: "normal" }, PHONE], ["app", "/", PHONE, { wait: "[data-next-card]" }], ["board · trip in progress", "HomeCard-phone", { ...EN, state: "trip in progress" }, PHONE], ["app · trip", "/", PHONE, { wait: "[data-trip-card]", trip: true }]], 300],
   ["a3-trip-bar", [["board · mine", "TripBar-phone", { ...EN, trip: "I am shopping" }, PHONE], ["app · Products", "/?v=to_buy", PHONE, { wait: "[data-trip-bar]", trip: true }], ["board · he dark", "TripBar-phone", { ...HE, trip: "I am shopping", dark: true }, PHONE], ["app · he dark Insights", "/?v=spending", PHONE, { wait: "[data-trip-bar]", trip: true, he: true, dark: true }]], 300],
+  // B2 — the Add screen: type-ahead, a quantity merged into a row on the list, a pasted list.
+  ["b2-add", [["board · type-ahead", "Add-phone", { ...EN, state: "type-ahead" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: addType("mil") }], ["board · quantity", "Add-phone", { ...EN, state: "quantity parse" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: addType("2 milk 3%", true) }], ["board · paste", "Add-phone", { ...EN, state: "paste a list" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: addPaste }], ["board · he dark", "Add-phone", { ...HE, state: "type-ahead", dark: true }, PHONE], ["app · he dark", "/supermarket", PHONE, { wait: SM, he: true, dark: true, act: addType("חל") }]], 240],
 ];
 
 /** A trip of mine in the personal space: 23 planned, the first 12 listed rows checked with their prices. */

@@ -125,3 +125,9 @@
 @media (prefers-reduced-motion: reduce) {
   .gro-sec-b, .gro-row, .gro-tile, .gro-sec-h .gro-cv, .gro-pt .gro-art { transition: none; }
 }
+
+/* B2 — the Add screen's rows (hits, split preview) and the voice wave. */
+.gro-hit + .gro-hit { border-top: 1px solid var(--line-in); }
+.gro-wave { animation: gro-wave 900ms var(--ease-out) infinite alternate; transform-origin: bottom; }
+@keyframes gro-wave { from { transform: scaleY(0.35); } to { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .gro-wave { animation: none; } }

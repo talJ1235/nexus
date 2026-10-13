@@ -1179,8 +1179,10 @@ try {
       await shot(page, "sm-tab");
       // A name of its own each run (the step can run twice on one DB: phone, then computer).
       const fresh = `Smoke fruit ${Date.now().toString(36)}`;
-      await page.locator("[data-sm-add-input]").fill(`2 ${fresh}`);
+      await page.locator("[data-sm-add-open]").click();
+      await page.locator("[data-add-input]").fill(`2 ${fresh}`);
       await page.keyboard.press("Enter");
+      await page.locator("[data-add-back]").click();
       await page.waitForFunction((n) => [...document.querySelectorAll("[data-sm-row] .gro-t")].some((e) => e.textContent === n), fresh, { timeout: 8000 });
       r.added = true;
       const first = r.sug.find((k) => k.startsWith("eggs")) ?? r.sug[0];
@@ -1208,6 +1210,54 @@ try {
         JSON.stringify({ ...r, inOrder }),
       );
     });
+
+    // R18 S2 B2: the Add screen — type-ahead (household first, typed letters bold), "Did you mean", a quantity read from the
+    // line merged into the existing row with a toast + Undo, a pasted list split into a checked preview (notes unchecked).
+    if (WRITE)
+      await step("add screen (R18 B2): type-ahead, did you mean, merge toast + Undo, paste preview", async () => {
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        await page.locator("[data-sm-add-open]").click();
+        const input = page.locator("[data-add-input]");
+        await input.waitFor();
+        const r = {};
+        r.focused = await input.evaluate((e) => e === document.activeElement);
+        await input.fill("mil");
+        await page.waitForSelector("[data-add-hit]", { timeout: 8000 });
+        r.first = await page.locator("[data-add-hit]").first().getAttribute("data-add-hit-source");
+        r.bold = await page.locator("[data-add-hit] b").first().textContent();
+        r.onList = await page.locator('[data-add-hit="milk 3%"]').textContent().catch(() => "");
+        await shot(page, "add-typeahead");
+        await input.fill("tomatos");
+        await page.waitForFunction(() => document.querySelector("[data-add-results]")?.textContent?.includes("Tomatoes"), null, { timeout: 8000 }).catch(() => {});
+        r.dym = await page.locator("[data-add-results]").textContent();
+        r.asNew = await page.locator("[data-add-new]").count();
+        await input.fill("2 milk 3%");
+        await page.waitForSelector("[data-add-parse]", { timeout: 5000 });
+        r.parse = await page.locator("[data-add-parse]").textContent();
+        await page.keyboard.press("Enter");
+        await page.waitForSelector("[data-sonner-toast]", { timeout: 8000 });
+        r.toast = await page.locator("[data-sonner-toast]").last().textContent();
+        await shot(page, "add-merged");
+        await page.locator("[data-sonner-toast] button").filter({ hasText: /Undo|ביטול/ }).last().click();
+        await page.waitForTimeout(1200);
+        await page.locator("[data-add-chip=paste]").click();
+        await page.locator("[data-add-paste]").fill("Noa: for tomorrow\nmilk\n2 cucumbers\ntoilet paper!!\nsomething nice for Shabbat");
+        await page.waitForSelector("[data-add-split] [data-add-part]");
+        r.parts = await page.locator("[data-add-part]").count();
+        r.checkedParts = await page.locator("[data-add-part] input:checked").count();
+        r.button = await page.locator("[data-add-parts]").textContent();
+        await shot(page, "add-paste");
+        await page.locator("[data-add-back]").click();
+        await page.waitForTimeout(400);
+        const milk = await page.locator('[data-sm-row]:has-text("Milk 3%") .gro-q').textContent().catch(() => "");
+        ok(
+          r.focused && r.first === "household" && r.bold?.toLowerCase() === "mil" && /On list/.test(r.onList) && /Tomatoes/.test(r.dym) && r.asNew === 1 && /×2/.test(r.parse) &&
+            /Milk 3%/.test(r.toast) && /Already on the list — now ×4/.test(r.toast) && milk === "×2" && r.parts >= 4 && r.checkedParts === 3 && /Add 3/.test(r.button),
+          "add screen (R18 B2): type-ahead, did you mean, merge toast + Undo, paste preview",
+          JSON.stringify({ ...r, milk }),
+        );
+      });
 
     // R18 S2 A3: a trip running → the bar above the dock on Products / Insights / Supermarket and the trip card on Home;
     // after Finish both are gone (the trip is started / finished through the actions, like the store mode does).

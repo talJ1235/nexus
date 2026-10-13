@@ -62,7 +62,7 @@ Parser (S1 `lib/grocery` parse): "6 עגבניות" → count 6; "קילו עג�
 weight learned per product per home from receipts/trips (fallback table for common produce); shown as "≈ 0.9 ק״ג" when
 only a count is set (and the reverse). Store mode and the list show both ("6 · ≈ 1 ק״ג").
 **Acceptance:** `test:grocery` gains count/weight lines (he + en); rehearsal shows the new column, nothing else changed.
-### B2. [ ] Add screen (P3, `Add-phone`)
+### B2. [x] Add screen (P3, `Add-phone`)
 As the board + count/weight from B1 (the qty sheet has the two steppers side by side as `ItemSheet-phone`). Duplicate →
 "Milk is already on the list — now ×3" with Undo. Paste/voice split preview.
 ### B3. [ ] Scan + photo (P4, P5, `Capture-phone`)
@@ -154,6 +154,7 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 - A2 done — Supermarket tab (`supermarket/view.tsx`, kit `sm.css`, board pictures ported to `art-data.ts`): store chip + estimate vs this month's budget, aisle rail, add field, Nexus suggests (+ / × / Add all, draft header with `?draft=1`), sections in the main store's order, rows/tiles in the ⋯ menu (`pref:sm-layout` per person), first-time state (basic basket `lib/grocery/basket.ts`), viewer + offline badges; `/supermarket` renders the tab; action `supermarketHome`; demo data `scripts/lib/seed-sm.mjs` (seed-local); smoke step + `scripts/parity-r18.mjs` (a2-*.png). Fixed on the way: the closed + menu showed its disabled Plan card at 50 %.
 - A3 done — Home "Next shop" card (`supermarket/trip.tsx` NextShopCard: next shop day / today is your shop, items + estimate, left this month, section chips, suggestions count; my trip: progress ring, Finish/Resume; someone else's: Add for them; first list: basic basket / build my list) and the trip bar above the dock on every phone screen (mine / other / offline / everything checked). Server: `openTripsOf` + usual day in `homeState`; client `SmHomeSync` refreshes on list changes, feed updates and every 20 s during a trip. Smoke step + parity a3-*.png.
 - B1 done — nullable `items.count` (`db/migrate-r18s2.ts`); parser: "6 עגבניות" → count 6, "קילו עגבניות" → 1 kg, "קילו עגבניות, בערך 6" / "about 6" / "כ־6" → both; `lib/grocery/weights.ts` (unit weight learned per product per home from rows with both, fallback table); rows read "6 · 1 kg", "6 · ≈ 0.9 kg", "1 kg · ≈ 7"; add/merge/undo carry count; `test:grocery` +B1 lines (he + en); rehearsal `scripts/r18s2-rehearsal.mjs` (dry run on a local copy: only items.count added, nothing else changed).
+- B2 done — Add screen `supermarket/add-screen.tsx` (full screen on phones, dialog on computers): type-ahead with the typed letters bold + On list badges, Did you mean + Add as new, quantity read from the line with the count + weight steppers (`qty-steppers.tsx`, shared with C2) and "×2 now → ×4 after adding", merge toast "Already on the list — now ×4" with Undo, voice (Web Speech) and paste → checked split preview (notes unchecked) → Add N; You usually buy chips. Smoke step + parity b2-add.png.
 ### Decisions
 - A1: The board's flat bottom bar is not taken: the app keeps its floating dock (R14) with the new tabs/icons.
 - A1: Tab-4 use counts live on the device (localStorage `nexus.tabUse`, 30 days); the tab is chosen once per page load so it never swaps under a finger; a tie keeps the Supermarket.
@@ -168,5 +169,7 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 - A3: The bar hides on Home for someone else's trip (the card shows it there).
 - B1: A number is a count only for products sold by weight (dictionary unit kg / g); for packs (milk, eggs, bananas) it stays the quantity (×2). A count-only row keeps quantity 1.
 - B1: Unit weights are learned from purchases that carry both a count and a weight (trip checks with qty + amount, rows with count + amount); receipts give weights only, so they teach nothing alone.
+- B2: The Add field on the tab opens the Add screen (no inline typing); Enter adds the household's match when the typed name is it, else the line as typed.
+- B2: The mic is shown only where the browser has speech recognition (decided after hydration).
 ### For Tal
 - Prod snapshot was refused to the agent at session start (2026-10-13). Run in `nexus/`: `node --env-file=.env.local scripts/db-snapshot.mjs` → `snapshots/prod-2026-10-13.db`; the S2 rehearsal uses the newest `snapshots/prod-*.db`.

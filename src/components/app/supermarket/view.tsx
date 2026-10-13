@@ -1,13 +1,12 @@
 "use client";
 
 import "./sm.css";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuTrigger } from "@/components/ui/overlays";
-import { acceptSuggestions, addToSupermarket, dismissSuggestion, setSupermarketLayout, undoSupermarketAdd } from "@/app/supermarket-actions";
+import { acceptSuggestions, dismissSuggestion, setSupermarketLayout } from "@/app/supermarket-actions";
 import { basketFor, WEEKLY_BASKET_SIZE, type BasketItem } from "@/lib/grocery/basket";
-import { parseLine } from "@/lib/grocery/parse";
 import { DEFAULT_ORDER, sectionName } from "@/lib/grocery/sections";
 import { formatMoney } from "@/lib/money";
 import { toast } from "@/lib/toast";
@@ -18,6 +17,8 @@ import { ProductTile, SectionIcon, sectionColor } from "./art";
 import { patchSmHome, useSmHome, type SmHome } from "./data";
 import { asItem, chainDef, monoColor, useAddMany, useEstimate, useMonthLeft } from "./numbers";
 import { onSmIntent, takeSmIntent, type SmIntent } from "./intent";
+import { AddScreen, type AddMode } from "./add-screen";
+import { useVoiceSupported } from "./add-screen";
 import { qtyLabel } from "./qty";
 import { useOutboxCount } from "./outbox-count";
 
@@ -50,7 +51,12 @@ export function SupermarketView() {
   const groups = useMemo(() => bySection(s.sm, order), [s.sm, order]);
   const [basketOn, setBasketOn] = useState(false);
   const addMany = useAddMany();
-  const input = useRef<HTMLInputElement>(null);
+  // B2: the Add screen (typing / voice / paste); scan + photo arrive with B3.
+  const [adding, setAdding] = useState<AddMode | null>(null);
+  const openAdd = (m: AddMode | "scan" | "photo") => {
+    if (m === "scan" || m === "photo") return capture(m);
+    setAdding(m);
+  };
   const [draft] = useState(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("draft") === "1" : false));
 
   // A1 intents (the dock's long-press menu, app-icon shortcuts): "add" focuses the field; the rest arrive with B3 / D3.
@@ -60,7 +66,7 @@ export function SupermarketView() {
       if (k) runIntent(k);
     };
     const runIntent = (k: SmIntent) => {
-      if (k === "add") input.current?.focus();
+      if (k === "add") setAdding("type");
       if (k === "build") setBasketOn(true);
     };
     take();
@@ -97,9 +103,10 @@ export function SupermarketView() {
       <Badges viewer={viewer} />
       <StoreLine home={home} />
       {s.sm.length > 0 && <Rail groups={groups} />}
-      {!ro && <AddField inputRef={input} />}
+      {!ro && <AddField onOpen={openAdd} />}
+      <AddScreen open={adding != null} mode={adding ?? "type"} onClose={() => setAdding(null)} onCapture={(k) => (setAdding(null), capture(k))} />
       {first ? (
-        <FirstTime basketSize={Math.min(WEEKLY_BASKET_SIZE, basket.length)} onBasket={() => void addBasket(basket.slice(0, WEEKLY_BASKET_SIZE))} onBuild={() => setBasketOn(true)} onPaste={() => input.current?.focus()} />
+        <FirstTime basketSize={Math.min(WEEKLY_BASKET_SIZE, basket.length)} onBasket={() => void addBasket(basket.slice(0, WEEKLY_BASKET_SIZE))} onBuild={() => setBasketOn(true)} onPaste={() => setAdding("paste")} />
       ) : (
         <>
           <Suggestions home={home} basket={basketOn ? basket : null} draft={draft} ro={ro} />
@@ -113,6 +120,11 @@ export function SupermarketView() {
       )}
     </div>
   );
+
+  /** B3: the scanner / the package photo (wired in B3). */
+  function capture(k: "scan" | "photo") {
+    void k;
+  }
 
   async function addBasket(items: BasketItem[]) {
     await addMany(items, { done: (n) => f(t.sm.main.addedN, { n }), failed: t.sm.main.failed });
@@ -196,59 +208,29 @@ function Rail({ groups }: { groups: readonly (readonly [string, ItemWithSources[
   );
 }
 
-/** The add field (B2 makes it open the Add screen): Enter adds the line, merging with what's there. */
-function AddField({ inputRef }: { inputRef: React.RefObject<HTMLInputElement | null> }) {
-  const s = useStore();
+/** The add field: opens the Add screen (B2) — typing, voice, scan / photo (B3). */
+function AddField({ onOpen }: { onOpen: (mode: AddMode | "scan" | "photo") => void }) {
   const { t } = useI18n();
-  const [text, setText] = useState("");
-  const add = async () => {
-    const line = text.trim();
-    if (!line) return;
-    const p = parseLine(line);
-    setText("");
-    try {
-      const r = await addToSupermarket({ title: p.name || line, qty: p.qty, amount: p.amount, unit: p.unit, count: p.count });
-      s.upsertSm([asItem(r.item)]);
-      toast(r.item.title, {
-        description: t.sm.main.added,
-        action: { label: t.sm.main.undo, onClick: () => void undoSupermarketAdd(r.item.id, r.before).then((u) => (u.item ? s.upsertSm([asItem(u.item)]) : s.removeSm(r.item.id))) },
-      });
-    } catch {
-      setText(line);
-      toast.error(t.sm.main.failed);
-    }
-  };
+  const voice = useVoiceSupported();
   const icon = "grid size-10 shrink-0 place-items-center rounded-full text-ink transition-transform duration-150 ease-[var(--ease-out)] active:scale-90 [&_svg]:size-[19px] [&_svg]:stroke-[1.8]";
   return (
-    <form
-      className="flex h-14 items-center gap-1 rounded-[16px] border border-line-strong bg-surface pe-1.5 ps-3.5 shadow-card focus-within:border-ink"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void add();
-      }}
-      data-sm-add
-    >
-      <Plus className="size-[18px] shrink-0 text-muted" />
-      <input
-        ref={inputRef}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={t.sm.main.addPh}
-        aria-label={t.sm.main.addPh}
-        enterKeyHint="done"
-        className="h-full min-w-0 flex-1 bg-transparent ps-1.5 text-[16px] text-ink outline-none placeholder:text-muted"
-        data-sm-add-input
-      />
-      <button type="button" className={icon} aria-label={t.sm.main.scan} title={t.sm.main.scan} data-sm-add-scan>
+    <div className="flex h-14 items-center gap-1 rounded-[16px] border border-line-strong bg-surface pe-1.5 shadow-card" data-sm-add>
+      <button type="button" className="flex h-full min-w-0 flex-1 items-center gap-2.5 ps-3.5 text-start text-[16px] text-muted" onClick={() => onOpen("type")} data-sm-add-open>
+        <Plus className="size-[18px] shrink-0" />
+        <span className="truncate">{t.sm.main.addPh}</span>
+      </button>
+      <button type="button" className={icon} aria-label={t.sm.main.scan} title={t.sm.main.scan} onClick={() => onOpen("scan")} data-sm-add-scan>
         <ScanBarcode />
       </button>
-      <button type="button" className={icon} aria-label={t.sm.main.photo} title={t.sm.main.photo} data-sm-add-photo>
+      <button type="button" className={icon} aria-label={t.sm.main.photo} title={t.sm.main.photo} onClick={() => onOpen("photo")} data-sm-add-photo>
         <Camera />
       </button>
-      <button type="button" className={icon} aria-label={t.sm.main.voice} title={t.sm.main.voice} data-sm-add-voice>
-        <Mic />
-      </button>
-    </form>
+      {voice && (
+        <button type="button" className={icon} aria-label={t.sm.main.voice} title={t.sm.main.voice} onClick={() => onOpen("voice")} data-sm-add-voice>
+          <Mic />
+        </button>
+      )}
+    </div>
   );
 }
 
