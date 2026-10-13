@@ -6,19 +6,22 @@ import { flushTrip, loadTripOps, onTripAnswer, queueTripOp, tripApi } from "@/li
 import type { ItemWithSources } from "@/lib/types";
 import { useStore } from "../store";
 import { asItem } from "./numbers";
+import { readTrip, writeTrip } from "./local-trip";
 
 // R18 S2 D1 — keeps the trip outbox flowing (queued actions go out whenever the app is online, also after a reload) and
 // puts the server's answers into the store. Replaces S1's sm-bridge. Tests: with localStorage `nexus.smBridge` = "1" the
 // actions + the trip API are on `window.__nexusSm` (test:shop-offline, test:capture).
 export function TripSync() {
   const s = useStore();
-  const { upsertSm, removeSm } = s;
+  const { upsertSm, removeSm, spaceId } = s;
   useEffect(() => {
     const off = onTripAnswer((r) => {
       const rows = (r.items ?? []) as Omit<ItemWithSources, "sources" | "points" | "attachments">[];
       upsertSm(rows.filter((i) => i.list === "supermarket").map(asItem));
       // Offline adds showed under their client id until the server named them.
       for (const cid of Object.keys(r.idMap ?? {})) removeSm(cid);
+      // No trip of mine on the server and nothing left to send: a trip this device remembers was finished elsewhere.
+      if (!r.trip) void loadTripOps().then((left) => !left.length && readTrip(spaceId || "-") && writeTrip(spaceId || "-", null), () => {});
       window.dispatchEvent(new Event("nexus:feed"));
     });
     const run = () => void flushTrip();
@@ -33,6 +36,6 @@ export function TripSync() {
       off();
       window.removeEventListener("online", run);
     };
-  }, [upsertSm, removeSm]);
+  }, [upsertSm, removeSm, spaceId]);
   return null;
 }

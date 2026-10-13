@@ -141,3 +141,9 @@
 .gro-switch:disabled { opacity: 0.5; cursor: default; }
 .gro-switch:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .gro-switch, .gro-switch::after { transition: none; } }
+
+/* D3 — store mode rows: checked rows go quiet, rows someone added during the trip glow once. */
+.gro-row.gro-done { background: color-mix(in srgb, var(--ok) 5%, transparent); }
+.gro-row.gro-live { background: color-mix(in srgb, var(--spark) 9%, transparent); animation: gro-live 1.2s var(--ease-out) 1; }
+@keyframes gro-live { from { background: color-mix(in srgb, var(--spark) 28%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .gro-row.gro-live { animation: none; } }

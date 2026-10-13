@@ -96,6 +96,14 @@ const openRow = (title) => async (p) => {
   await p.locator(`[data-sm-row]:has-text("${title}")`).first().click();
   await p.waitForSelector("[data-sm-sheet] [data-learned]", { timeout: 10000 }).catch(() => {});
 };
+const storeIn = async (p) => {
+  await p.click("[data-sm-start]");
+  await p.click("[data-store-go]");
+  await p.waitForSelector("[data-store-row]");
+  const rows = p.locator("[data-store-row]");
+  await rows.nth(3).click();
+  await rows.nth(4).click();
+};
 const SHOTS = [
   // A2 — the Supermarket tab.
   ["a2-main-phone", [["board · normal", "Supermarket-phone", { ...EN, state: "normal" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM }], ["board · he dark plum", "Supermarket-phone", { ...HE, state: "normal", dark: true, palette: "plum" }, PHONE], ["app · he dark plum", "/supermarket", PHONE, { wait: SM, he: true, dark: true, plum: true }]], 300],
@@ -111,6 +119,8 @@ const SHOTS = [
   ["c2-item-sheet", [["board · item sheet", "ItemSheet-phone", { ...EN, view: "item sheet", product: "tomatoes (count + weight)", "what Nexus knows": "regular" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: openRow("Tomatoes") }], ["board · suggestion actions", "ItemSheet-phone", { ...EN, view: "suggestion actions" }, PHONE], ["app", "/supermarket", PHONE, { wait: "[data-sm-sug]", act: async (p) => { await p.locator("[data-sm-sug-open]").first().click(); } }], ["board · he dark", "ItemSheet-phone", { ...HE, view: "item sheet", dark: true }, PHONE], ["app · he dark", "/supermarket", PHONE, { wait: SM, he: true, dark: true, act: openRow("Tomatoes") }]], 280],
   // D2 — the store picker and the section order with the learned suggestion.
   ["d2-store-order", [["board · picker", "Store-phone", { ...EN, state: "store picker" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: async (p) => { await p.click("[data-sm-store]"); await p.waitForSelector("[data-store-picker]"); } }], ["board · learned order", "Store-phone", { ...EN, state: "section order · learned suggestion" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: async (p) => { await p.click("[data-sm-more]"); await p.click("[data-sm-menu-order]"); await p.waitForSelector("[data-order-list]"); } }], ["app · he dark search", "/supermarket", PHONE, { wait: SM, he: true, dark: true, act: async (p) => { await p.click("[data-sm-store]"); await p.fill("[data-store-search]", "רמי לוי רחובות"); } }]], 280],
+  // D3 — store mode: the start screen, in progress (two rows checked), the finish summary.
+  ["d3-store-mode", [["board · start", "StoreMode-phone", { ...EN, state: "start" }, PHONE], ["app", "/supermarket", PHONE, { wait: "[data-sm-start]", act: async (p) => { await p.click("[data-sm-start]"); await p.waitForSelector("[data-store-start]"); } }], ["board · in progress", "StoreMode-phone", { ...EN, state: "in progress" }, PHONE], ["app", "/supermarket", PHONE, { wait: "[data-sm-start]", act: storeIn }], ["board · summary", "Finish-phone", { ...EN, step: "summary" }, PHONE], ["app", "/supermarket", PHONE, { wait: "[data-sm-start]", act: async (p) => { await storeIn(p); await p.click("[data-store-finish]"); await p.click("[data-store-finish-confirm]"); await p.waitForSelector("[data-store-summary]"); } }]], 260],
 ];
 
 /** A trip of mine in the personal space: 23 planned, the first 12 listed rows checked with their prices. */

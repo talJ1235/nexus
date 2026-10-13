@@ -16,6 +16,7 @@ import { SectionIcon } from "./art";
 import { useSmHome, type OpenTrip } from "./data";
 import { storeLabel, tripLeft, tripTotal, useAddMany, useEstimate, useMonthLeft, useOpenSm, useTrips } from "./numbers";
 import { useOutboxCount } from "./outbox-count";
+import { useLocalTrip, type LocalTrip } from "./local-trip";
 import { bySection } from "./view";
 
 // R18 S2 A3 — the Home "Next shop" card (board HomeCard-phone) and the trip bar above the dock (board TripBar-phone):
@@ -61,7 +62,10 @@ function TripBarInner() {
   const s = useStore();
   const { t, f, locale } = useI18n();
   const { home } = useSmHome();
-  const { mine, others } = useTrips(home);
+  const { mine: serverMine, others } = useTrips(home);
+  // My trip as this device knows it (instant counts; also when it started offline and the server doesn't know yet).
+  const local = useLocalTrip(s.spaceId || "-");
+  const mine = local ? localAsOpen(local, s.me?.id ?? "", serverMine) : serverMine;
   const open = useOpenSm();
   const name = useName();
   const waiting = useOutboxCount();
@@ -116,12 +120,22 @@ function TripBarInner() {
   );
 }
 
+/** The local trip in the server's shape (counts from this device's checks). */
+function localAsOpen(t: LocalTrip, me: string, server: OpenTrip | null): OpenTrip {
+  const bought = Object.keys(t.checked).length;
+  const notFound = Object.keys(t.notFound).filter((id) => !t.checked[id]).length;
+  const spent = Object.values(t.prices).reduce((a, p) => a + p, 0);
+  return { id: server?.id ?? "local", userId: me, chain: t.chain, branch: t.branch, startedAt: t.startedAt, planned: t.rows.length, bought, notFound, added: 0, spent: Math.max(spent, server?.spent ?? 0) };
+}
+
 // ---------- the Home card ----------
 
 export function NextShopCard({ className }: { className?: string }) {
   const s = useStore();
   const { home } = useSmHome();
-  const { mine, others } = useTrips(home);
+  const { mine: serverMine, others } = useTrips(home);
+  const local = useLocalTrip(s.spaceId || "-");
+  const mine = local ? localAsOpen(local, s.me?.id ?? "", serverMine) : serverMine;
   if (!home || s.loading) return null;
   const trip = mine ?? others[0] ?? null;
   return (

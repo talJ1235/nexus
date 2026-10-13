@@ -2,7 +2,7 @@
 
 import "./sm.css";
 import { useEffect, useMemo, useState } from "react";
-import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, Sparkles, X } from "lucide-react";
+import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, ShoppingCart, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { acceptSuggestions, dismissSuggestion, setSupermarketLayout } from "@/app/supermarket-actions";
@@ -15,12 +15,14 @@ import { cn } from "@/lib/utils";
 import { useStore } from "../store";
 import { ProductTile, SectionIcon, sectionColor } from "./art";
 import { patchSmHome, useSmHome, type SmHome } from "./data";
-import { asItem, chainDef, monoColor, useAddMany, useEstimate, useMonthLeft } from "./numbers";
+import { asItem, chainDef, monoColor, useAddMany, useEstimate, useMonthLeft, useTrips } from "./numbers";
 import { onSmIntent, takeSmIntent, type SmIntent } from "./intent";
 import { AddScreen, type AddMode } from "./add-screen";
 import { Capture } from "./capture";
 import { SectionOrder, StorePicker } from "./store-picker";
 import { useTripStore } from "./trip-store";
+import { StoreMode } from "./store-mode";
+import { useLocalTrip } from "./local-trip";
 import { SmItemSheet, SuggestionActions } from "./item-sheet";
 import { useVoiceSupported } from "./add-screen";
 import { qtyLabel } from "./qty";
@@ -53,8 +55,12 @@ export function SupermarketView() {
   const shown = layout ?? home?.layout ?? "rows";
   // D2: this trip's store (a trip-only pick, else the default) and its branch's order.
   const trip = useTripStore(s.spaceId || "-", home);
+  const serverTrip = useTrips(home).mine;
+  const localTrip = useLocalTrip(s.spaceId || "-");
+  const mineRunning = serverTrip != null || localTrip != null;
   const order = trip.order;
   const [picking, setPicking] = useState(false);
+  const [shopping, setShopping] = useState(false);
   const [ordering, setOrdering] = useState(false);
   const groups = useMemo(() => bySection(s.sm, order), [s.sm, order]);
   const [basketOn, setBasketOn] = useState(false);
@@ -84,6 +90,7 @@ export function SupermarketView() {
       if (k === "add") setAdding("type");
       if (k === "build") setBasketOn(true);
       if (k === "scan" || k === "photo") setCapturing(k);
+      if (k === "shop") setShopping(true);
     };
     take();
     return onSmIntent(take);
@@ -131,6 +138,16 @@ export function SupermarketView() {
       {!ro && <AddField onOpen={openAdd} />}
       {!ro && <Capture open={capturing != null} mode={capturing ?? "scan"} onClose={() => setCapturing(null)} onType={() => (setCapturing(null), setAdding("type"))} />}
       <SmItemSheet itemId={openId} onClose={closeSheet} />
+      <StoreMode open={shopping} onClose={() => setShopping(false)} onPickStore={() => setPicking(true)} />
+      {!ro && s.sm.length > 0 && !mineRunning && (
+        <div className="pointer-events-none fixed inset-x-3 bottom-[calc(90px+env(safe-area-inset-bottom))] z-30 desk:static desk:mt-2" data-sm-start-bar>
+          <button type="button" className="pointer-events-auto flex h-14 w-full items-center justify-center gap-2.5 rounded-[18px] bg-ink text-[16px] font-extrabold text-bg shadow-[0_10px_28px_color-mix(in_srgb,var(--ink)_24%,transparent)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]" onClick={() => setShopping(true)} data-sm-start>
+            <ShoppingCart className="size-5" />
+            {t.sm.start}
+            <span className="tabular font-bold opacity-70">{s.sm.length}</span>
+          </button>
+        </div>
+      )}
       <AddScreen open={adding != null} mode={adding ?? "type"} onClose={() => setAdding(null)} onCapture={(k) => (setAdding(null), capture(k))} />
       {first ? (
         <FirstTime basketSize={Math.min(WEEKLY_BASKET_SIZE, basket.length)} onBasket={() => void addBasket(basket.slice(0, WEEKLY_BASKET_SIZE))} onBuild={() => setBasketOn(true)} onPaste={() => setAdding("paste")} />

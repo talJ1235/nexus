@@ -1351,6 +1351,66 @@ try {
         );
       });
 
+    // R18 S2 D3: a full trip on the phone through store mode — start, check two rows (the picture fills), "not in the
+    // store" on a third, a price, collapse (the trip bar takes over on Products), back, finish → summary → skip → saved;
+    // the checked rows leave the list, the one not found stays.
+    if (MOBILE && WRITE)
+      await step("store mode (R18 D3): start, check, not found, price, collapse + back, finish → summary → saved", async () => {
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        const before = await page.locator("[data-sm-list] [data-sm-row]").count();
+        const r = {};
+        await page.locator("[data-sm-start]").click();
+        await page.waitForSelector("[data-store-start]");
+        await shot(page, "store-start");
+        await page.locator("[data-store-go]").click();
+        await page.waitForSelector("[data-store-shop] [data-store-row]");
+        const ids = await page.locator("[data-store-row]").evaluateAll((els) => els.slice(0, 3).map((e) => e.getAttribute("data-store-row")));
+        // A price first (a row that's checked with its whole section folds away), then two checks, then "not found".
+        await page.locator(`[data-store-row="${ids[0]}"]`).dispatchEvent("contextmenu");
+        await page.locator('[data-store-act="price"]').click();
+        await page.locator("[data-store-input]").fill("12.5");
+        await page.locator("[data-store-input-save]").click();
+        await page.waitForTimeout(300);
+        await page.locator(`[data-store-row="${ids[0]}"]`).click();
+        r.done = await page.locator(`[data-store-row="${ids[0]}"]`).getAttribute("data-done").catch(() => "");
+        await page.locator(`[data-store-row="${ids[1]}"]`).click();
+        r.count = await page.locator("[data-store-count]").textContent();
+        await page.locator(`[data-store-row="${ids[2]}"]`).dispatchEvent("contextmenu");
+        await page.waitForSelector(`[data-store-actions="${ids[2]}"]`);
+        await page.locator('[data-store-act="not_found"]').click();
+        await page.waitForTimeout(400);
+        r.spent = await page.locator("[data-store-spent]").textContent();
+        await shot(page, "store-in-progress");
+        await page.locator("[data-store-collapse]").click();
+        await page.waitForTimeout(400);
+        await page.locator('[data-dock-target="shopping"]').click();
+        await page.waitForSelector("[data-trip-bar]", { timeout: 8000 });
+        r.bar = await page.locator("[data-trip-bar]").getAttribute("data-trip-bar");
+        r.barText = await page.locator("[data-trip-bar]").textContent();
+        await page.locator("[data-trip-bar-go]").click();
+        await page.waitForSelector("[data-store-shop]", { timeout: 8000 });
+        r.backCount = await page.locator("[data-store-count]").textContent();
+        await page.locator("[data-store-finish]").click();
+        await page.locator("[data-store-finish-confirm]").click();
+        await page.waitForSelector("[data-store-summary]", { timeout: 8000 });
+        r.total = await page.locator("[data-summary-total]").textContent();
+        await shot(page, "store-summary");
+        await page.locator("[data-summary-skip]").click();
+        await page.waitForSelector("[data-store-saved]");
+        await page.locator("[data-saved-list]").click();
+        await page.waitForTimeout(2500);
+        const after = await page.locator("[data-sm-list] [data-sm-row]").count();
+        r.listDrop = before - after;
+        r.notFoundStays = (await page.locator(`[data-sm-row="${ids[2]}"]`).count()) === 1;
+        r.barGone = (await page.locator("[data-trip-bar]").count()) === 0;
+        ok(
+          r.count === "2" && r.done === "" && /[0-9]/.test(r.spent) && r.spent !== "₪0" && r.bar === "mine" && /left/.test(r.barText) && r.backCount === "2" && r.total === r.spent && r.listDrop === 2 && r.notFoundStays && r.barGone,
+          "store mode (R18 D3): start, check, not found, price, collapse + back, finish → summary → saved",
+          JSON.stringify(r),
+        );
+      });
+
     // R18 S2 A3: a trip running → the bar above the dock on Products / Insights / Supermarket and the trip card on Home;
     // after Finish both are gone (the trip is started / finished through the actions, like the store mode does).
     if (MOBILE && WRITE)
