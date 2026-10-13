@@ -8,6 +8,7 @@ import { scoped, type Scoped } from "@/lib/db-scoped";
 import * as G from "@/lib/db-scoped/grocery";
 import * as T from "@/lib/db-scoped/trips";
 import { userPrefGet, userPrefSet } from "@/lib/db-scoped/prefs";
+import { ONBOARDING_KEY, parseOnboarding } from "@/lib/onboarding";
 import { kvGet, kvSet } from "@/lib/kv";
 import { noteActivity } from "@/lib/activity";
 import { aiAllowance, aiGate, aiUse, aiUseOf, recordAiUsage } from "@/lib/ai-gate";
@@ -18,7 +19,6 @@ import { classifyLocal } from "@/lib/grocery/classify";
 import { typeAhead } from "@/lib/grocery/search";
 import { classifyUnknown, fromAi } from "@/lib/grocery/classify-server";
 import { splitList } from "@/lib/grocery/parse";
-import { DRAFT_PREF_KEY } from "@/lib/notify/kinds";
 import { notifyPrefs } from "@/lib/notify/enqueue";
 import { mergeOps } from "@/lib/db-scoped/trip-sync";
 import type { TripOp } from "@/lib/grocery/trip";
@@ -129,11 +129,17 @@ export async function addParts(parts: z.input<typeof PartsZ>) {
 
 const SM_LAYOUT_KEY = "pref:sm-layout";
 
+/** The onboarding "who" answer (me / partner / family) — sizes the cold-start basket. */
+async function whoOf(userId: string) {
+  return parseOnboarding(await userPrefGet(userId, ONBOARDING_KEY))?.who ?? null;
+}
+
 /** Store chip, section order, suggestions, prices for the estimate, this month's trips, the person's rows/tiles. */
 export async function supermarketHome(locale?: "he" | "en") {
   const ctx = await requireCtx("view");
   const { tz } = await notifyPrefs(ctx.user.id);
-  const [state, layout] = await Promise.all([G.homeState(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale) }), userPrefGet(ctx.user.id, SM_LAYOUT_KEY)]);
+  const who = await whoOf(ctx.user.id);
+  const [state, layout] = await Promise.all([G.homeState(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who }), userPrefGet(ctx.user.id, SM_LAYOUT_KEY)]);
   return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const) };
 }
 
@@ -148,8 +154,8 @@ export async function setSupermarketLayout(layout: "rows" | "tiles") {
 /** `locale` = the reader's language (holiday products are named in it). */
 export async function supermarketSuggestions(locale?: "he" | "en") {
   const ctx = await requireCtx("view");
-  const { tz } = await notifyPrefs(ctx.user.id);
-  return G.suggestFor(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale) });
+  const [{ tz }, who] = await Promise.all([notifyPrefs(ctx.user.id), whoOf(ctx.user.id)]);
+  return G.suggestFor(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who });
 }
 
 const PickZ = z.object({ productKey: Key, title: Title, qty: z.number().int().min(1).max(999), amount: z.number().nullable(), unit: z.string().max(4).nullable(), section: z.string().max(20), art: z.string().max(20).nullable() }).strip();
@@ -161,32 +167,39 @@ export async function acceptSuggestions(picks: z.input<typeof PickZ>[]) {
   return G.acceptSuggestions(scoped(ctx), list, ctx.user.id);
 }
 
+/** × "Not this time": quiet for this cycle + one more skip in a row (3 → half the rate, 5 → until bought again). */
 export async function dismissSuggestion(productKey: string, until: number) {
   const ctx = await requireCtx("edit");
   const u = z.number().int().min(Date.now()).max(Date.now() + 120 * 86_400_000).parse(until);
-  await G.dismissSuggestion(scoped(ctx), Key.parse(productKey), u);
+  const skips = await G.dismissSuggestion(scoped(ctx), Key.parse(productKey), u);
   noteActivity({ userId: ctx.user.id, spaceId: ctx.space.id }, "suggest_dismissed");
+  return { skips };
 }
 
-export async function undoAutoStaple(productKey: string, dueDay: string) {
+// ---------- C1: "Don't suggest this again" and what Nexus learned ----------
+
+/** "Don't suggest this again" (the suggestion's menu, the item sheet). Viewers can't (edit). */
+export async function hideProduct(productKey: string) {
   const ctx = await requireCtx("edit");
-  return G.undoStapleAdd(scoped(ctx), Key.parse(productKey), z.string().regex(/^\d{4}-\d{2}-\d{2}$/).parse(dueDay));
+  await G.hideProduct(scoped(ctx), Key.parse(productKey), ctx.user.id);
 }
 
-export async function setStaple(itemId: string, staple: "off" | "suggest" | "auto") {
+/** "Suggest it again" (Settings → Supermarket → Products you hid, the item sheet). */
+export async function unhideProduct(productKey: string) {
   const ctx = await requireCtx("edit");
-  const s = scoped(ctx);
-  const id = Id.parse(itemId);
-  const it = await s.byId(schema.items, id);
-  if (!it || it.list !== "supermarket") throw new AccessError("not_found");
-  await s.update(schema.items, { staple: z.enum(["off", "suggest", "auto"]).parse(staple), updatedAt: Date.now() }, eq(schema.items.id, id));
-  return s.byId(schema.items, id);
+  await G.unhideProduct(scoped(ctx), Key.parse(productKey));
 }
 
-/** B3: the evening-before draft push on / off (Settings → Supermarket in S2). */
-export async function setDraftPush(on: boolean) {
+export async function hiddenProducts(locale?: "he" | "en") {
   const ctx = await requireCtx("view");
-  await userPrefSet(ctx.user.id, DRAFT_PREF_KEY, z.boolean().parse(on) ? null : "off");
+  return G.hiddenOf(scoped(ctx), z.enum(["he", "en"]).optional().parse(locale));
+}
+
+/** The item sheet's "What Nexus learned" card for one product. */
+export async function productKnowledge(productKey: string) {
+  const ctx = await requireCtx("view");
+  const { tz } = await notifyPrefs(ctx.user.id);
+  return G.knowledgeFor(scoped(ctx), Key.parse(productKey), tz);
 }
 
 /** The draft computed for tomorrow (opened by /supermarket?draft=1). */

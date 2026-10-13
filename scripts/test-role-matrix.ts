@@ -44,11 +44,16 @@ assert.equal(pickSpace(mine("viewer"), "A")?.role, "viewer");
 // "edit" or "owner", so a viewer's write is refused before any query.
 const VIEW_OK = new Set([
   "actions.ts#reloadAll",
-  // R18: supermarket reads (the split preview, suggestions, the evening draft, templates, stores) + the caller's own
-  // draft-push switch (a personal pref, like Settings → Notifications).
+  // R18: supermarket reads (the split preview, suggestions, the evening draft, templates, stores); S2: the tab's state,
+  // the caller's own rows/tiles choice, a barcode lookup, the AI counter, hidden products, what Nexus learned.
   "supermarket-actions.ts#previewSplit",
   "supermarket-actions.ts#supermarketSuggestions",
-  "supermarket-actions.ts#setDraftPush",
+  "supermarket-actions.ts#supermarketHome",
+  "supermarket-actions.ts#setSupermarketLayout",
+  "supermarket-actions.ts#smScan",
+  "supermarket-actions.ts#smAiAllowance",
+  "supermarket-actions.ts#hiddenProducts",
+  "supermarket-actions.ts#productKnowledge",
   "supermarket-actions.ts#eveningDraft",
   "supermarket-actions.ts#supermarketTemplates",
   "supermarket-actions.ts#supermarketStores",

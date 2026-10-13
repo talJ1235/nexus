@@ -54,6 +54,8 @@ const META = {
 };
 
 const ART_OF = { "toilet-paper 32": "tp", parmesan: "prm", "eggs l": "egg" };
+/** When those older rows were bought (days ago) — on each product's own rhythm, so the steady ones stay regular. */
+const FIRST = { "eggs l": 39, "toilet-paper 32": 84, parmesan: 58 };
 
 export async function seedSupermarket(db, { spaceId, userId, now = Date.now(), list = true }) {
   const run = (sql, args = []) => db.execute({ sql, args });
@@ -83,7 +85,7 @@ export async function seedSupermarket(db, { spaceId, userId, now = Date.now(), l
     await run(
       `INSERT INTO items (id, space_id, title, list, status, priority, quantity, product_key, section, art_key, watch, purchased_at, purchased_price, purchased_currency, created_at, updated_at)
        VALUES (?, ?, ?, 'supermarket', 'purchased', 'normal', 1, ?, ?, ?, 0, ?, ?, 'ILS', ?, ?)`,
-      [`demo-sm-p-${k.replace(/[^a-z0-9]+/g, "-")}`, spaceId, title, k, section, ART_OF[k] ?? null, now - 70 * DAY, price, now - 71 * DAY, now - 70 * DAY],
+      [`demo-sm-p-${k.replace(/[^a-z0-9]+/g, "-")}`, spaceId, title, k, section, ART_OF[k] ?? null, now - (FIRST[k] ?? 70) * DAY, price, now - (FIRST[k] ?? 70) * DAY - DAY, now - (FIRST[k] ?? 70) * DAY],
     );
   }
   // Thursday-ish evening trips.

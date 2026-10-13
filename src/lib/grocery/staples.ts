@@ -1,13 +1,17 @@
-// R18 B1 + B2 — learn from what the household bought, and suggest (pure; the server feeds it rows from trip_check,
-// purchased supermarket items and receipts). Rules from R18-SCREENS §3: suggestions never change the list; never what is
-// already on it (any quantity) or was dismissed this cycle; each carries a short reason.
-//   (first reason wins: shabbat, holiday, with, due)
-//   due      — bought ≥ 3 times (≥ 2 for a `suggest` / `auto` staple) and the usual gap has (almost) passed: "every ~9 days"
-//   shabbat  — Wednesday afternoon → Friday 14:00: challah / wine, or what this home buys mostly on Thursday / Friday
-//   holiday  — the 3 days before a holiday's eve: its typical products (lib/grocery/holidays.ts)
-//   with     — bought together with something on the list in ≥ 60 % of the trips that had it (≥ 3 such trips)
+// R18 — learn from what the household bought, and suggest (pure; the server feeds it rows from trip_check, purchased
+// supermarket items and receipts). R18 S2 C1 (Tal 2026-10-13, "Supermarket simplified"): the person never sees staple
+// states and Nexus only *suggests* — nothing is ever added to the list by itself.
+//   regular    — ≥ 3 purchases with a steady gap (low variance) → suggested when due: "every ~9 days"
+//   occasional — anything else → only in context: Shabbat, a holiday, "usually with X"
+//   skips      — × = "not this time" (quiet for this cycle); 3 skips in a row → suggested at half the rate (twice the gap);
+//                5 → not suggested until bought again. A purchase starts the count over.
+//   hidden     — "Don't suggest this again": never suggested (undone in Settings → Supermarket → Products you hid)
+//   cold start — until the home has 4 trips, the basic household basket (lib/grocery/basket.ts) fills in; after that the
+//                home's own history takes over and basket items it never bought fade out.
+// Reason precedence when several fit: Shabbat → holiday → "usually with X" → due → basket.
 
 import { local } from "../notify/schedule";
+import type { BasketItem } from "./basket";
 import { TYPE_BY_KEY } from "./dictionary";
 import { holidayAhead, SHABBAT_TYPES } from "./holidays";
 import type { SectionOrOther } from "./sections";
@@ -41,8 +45,12 @@ export type ProductHistory = {
   usualQty: number;
   usualAmount: number | null;
   unit: string | null;
-  /** Median gap in days between purchases (≥ 3 purchase days; ≥ 2 when `minDays` says so), else null. */
+  /** Median gap in days between purchase days (≥ 3 days bought), else null. */
   intervalDays: number | null;
+  /** C1: a steady rhythm — ≥ 3 purchase days and the gaps vary little (coefficient of variation ≤ 0.5). */
+  regular: boolean;
+  /** Purchase days (local "YYYY-MM-DD"), oldest first — the item sheet's timeline. */
+  days: string[];
   last: { at: number; chain: string | null; branch: string | null; price: number | null };
   /** Chains, most used first. */
   stores: string[];
@@ -51,6 +59,9 @@ export type ProductHistory = {
 };
 
 export type History = { products: Map<string, ProductHistory>; usualDay: { weekday: number; hour: number } | null };
+
+/** What the space told Nexus about one product (suggest_dismiss): quiet until, skips in a row, hidden. */
+export type ProductPref = { until?: number | null; skips?: number | null; skippedAt?: number | null; hiddenAt?: number | null };
 
 const median = (xs: number[]) => {
   if (!xs.length) return null;
@@ -64,28 +75,42 @@ const ymd = (ts: number, tz: string) => {
 };
 const dayNo = (d: string) => Math.round(Date.parse(`${d}T12:00:00Z`) / DAY);
 
+/** Gaps (days) between distinct purchase days. */
+function gapsOf(ats: number[], tz: string) {
+  const days = [...new Set(ats.map((a) => ymd(a, tz)))].sort();
+  return { days, gaps: days.slice(1).map((d, i) => dayNo(d) - dayNo(days[i])) };
+}
+
 /** Median gap (days) between distinct purchase days; needs ≥ `min` days. */
 export function intervalOf(ats: number[], tz: string, min = 3) {
-  const days = [...new Set(ats.map((a) => ymd(a, tz)))].sort();
+  const { days, gaps } = gapsOf(ats, tz);
   if (days.length < min) return null;
-  const gaps = days.slice(1).map((d, i) => dayNo(d) - dayNo(days[i]));
   const m = median(gaps);
   return m == null ? null : Math.max(1, Math.round(m));
 }
 
-export function learnHistory(purchases: Purchase[], trips: { startedAt: number }[], o: { tz: string; staples?: Map<string, string> } = { tz: "Asia/Jerusalem" }): History {
+/** Steady: ≥ 2 gaps whose spread is small next to their mean (stdev / mean ≤ 0.5). */
+export function isSteady(gaps: number[]) {
+  if (gaps.length < 2) return false;
+  const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+  if (mean <= 0) return false;
+  const sd = Math.sqrt(gaps.reduce((a, g) => a + (g - mean) ** 2, 0) / gaps.length);
+  return sd / mean <= 0.5;
+}
+
+export function learnHistory(purchases: Purchase[], trips: { startedAt: number }[], o: { tz: string } = { tz: "Asia/Jerusalem" }): History {
   const by = new Map<string, Purchase[]>();
   for (const p of purchases) if (p.productKey) by.set(p.productKey, [...(by.get(p.productKey) ?? []), p]);
   const products = new Map<string, ProductHistory>();
   for (const [key, ps] of by) {
     ps.sort((a, b) => a.at - b.at);
     const last = ps[ps.length - 1];
-    const staple = o.staples?.get(key);
     const chains = new Map<string, number>();
     for (const p of ps) if (p.chain) chains.set(p.chain, (chains.get(p.chain) ?? 0) + 1);
-    const days = [...new Set(ps.map((p) => ymd(p.at, o.tz)))];
+    const { days, gaps } = gapsOf(ps.map((p) => p.at), o.tz);
     const tf = days.filter((d) => [4, 5].includes(new Date(`${d}T12:00:00Z`).getUTCDay())).length;
     const amounts = ps.map((p) => p.amount).filter((x): x is number => x != null && x > 0);
+    const interval = days.length >= 3 ? Math.max(1, Math.round(median(gaps)!)) : null;
     products.set(key, {
       productKey: key,
       title: last.title,
@@ -95,7 +120,9 @@ export function learnHistory(purchases: Purchase[], trips: { startedAt: number }
       usualQty: Math.max(1, Math.round(median(ps.map((p) => p.qty ?? 1)) ?? 1)),
       usualAmount: median(amounts),
       unit: last.unit ?? null,
-      intervalDays: intervalOf(ps.map((p) => p.at), o.tz, staple === "suggest" || staple === "auto" ? 2 : 3),
+      intervalDays: interval,
+      regular: interval != null && isSteady(gaps),
+      days,
       last: { at: last.at, chain: last.chain ?? null, branch: last.branch ?? null, price: [...ps].reverse().find((p) => p.price != null)?.price ?? null },
       stores: [...chains.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c),
       thuFri: days.length ? tf / days.length : 0,
@@ -104,18 +131,19 @@ export function learnHistory(purchases: Purchase[], trips: { startedAt: number }
   return { products, usualDay: usualDay(trips, o.tz) };
 }
 
-/** The usual shopping weekday + hour from ≥ 3 trips (the most common weekday; the median hour on that day). */
+/** The usual shopping weekday + hour: a weekday with ≥ 3 trips (the most common one; the median hour on that day). */
 export function usualDay(trips: { startedAt: number }[], tz: string) {
   if (trips.length < 3) return null;
   const ls = trips.map((t) => local(t.startedAt, tz));
   const counts = new Map<number, number>();
   for (const l of ls) counts.set(l.weekday, (counts.get(l.weekday) ?? 0) + 1);
-  const [weekday] = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0];
+  const [weekday, n] = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0];
+  if (n < 3) return null;
   const hour = Math.round(median(ls.filter((l) => l.weekday === weekday).map((l) => l.hour)) ?? 10);
   return { weekday, hour };
 }
 
-export type ReasonKey = "due" | "shabbat" | "holiday" | "with";
+export type ReasonKey = "due" | "shabbat" | "holiday" | "with" | "basket";
 export type Suggestion = {
   productKey: string;
   title: string;
@@ -126,7 +154,7 @@ export type Suggestion = {
   art: string | null;
   reasonKey: ReasonKey;
   reasonArgs: Record<string, string | number>;
-  /** Until when a "Not now" keeps it quiet (end of this cycle). */
+  /** Until when a "Not this time" keeps it quiet (end of this cycle). */
   quietUntil: number;
 };
 
@@ -136,24 +164,43 @@ export type SuggestInput = {
   onList: Set<string>;
   /** Their titles (for "usually with pasta"). */
   listTitles?: Map<string, string>;
-  /** productKey → until (ms). */
-  dismissed: Map<string, number>;
-  /** productKey → staple behaviour. */
-  staples?: Map<string, string>;
+  /** productKey → what the space said (quiet until, skips, hidden). */
+  prefs: Map<string, ProductPref>;
   /** Each past trip's bought product keys (companions). */
   baskets: Set<string>[];
   now: number;
   tz: string;
   locale?: string;
   limit?: number;
+  /** Cold start: the basic basket for this home and how many trips it has had. */
+  basket?: BasketItem[];
+  trips?: number;
 };
 
-/** Is the product due by tomorrow (its usual gap has passed, minus a day)? */
-export const isDue = (p: ProductHistory, now: number) => p.intervalDays != null && (now - p.last.at) / DAY >= p.intervalDays - 1;
+/** Trips before the home's own history takes over from the basic basket. */
+export const COLD_TRIPS = 4;
+export const HALF_RATE_SKIPS = 3;
+export const STOP_SKIPS = 5;
+
+/** Skips in a row that still count: a purchase after the last skip starts over. */
+export function activeSkips(pref: ProductPref | undefined, lastBought: number | null) {
+  if (!pref?.skips || !pref.skippedAt) return 0;
+  return lastBought != null && lastBought > pref.skippedAt ? 0 : pref.skips;
+}
+
+/** Due by tomorrow? Regular products only; after 3 skips in a row the gap counts double. */
+export const isDue = (p: ProductHistory, now: number, skips = 0) => p.regular && p.intervalDays != null && (now - p.last.at) / DAY >= p.intervalDays * (skips >= HALF_RATE_SKIPS ? 2 : 1) - 1;
 
 export function suggest(i: SuggestInput): Suggestion[] {
   const out = new Map<string, Suggestion>();
-  const ok = (key: string) => !i.onList.has(key) && !out.has(key) && !((i.dismissed.get(key) ?? 0) > i.now);
+  const last = (key: string) => i.history.products.get(key)?.last.at ?? null;
+  const ok = (key: string) => {
+    if (i.onList.has(key) || out.has(key)) return false;
+    const pref = i.prefs.get(key);
+    if (pref?.hiddenAt) return false;
+    if ((pref?.until ?? 0) > i.now) return false;
+    return activeSkips(pref, last(key)) < STOP_SKIPS;
+  };
   const l = local(i.now, i.tz);
   const add = (p: Pick<ProductHistory, "productKey" | "title" | "usualQty" | "usualAmount" | "unit" | "section" | "art">, reasonKey: ReasonKey, reasonArgs: Record<string, string | number>, quietUntil: number) => {
     if (!ok(p.productKey)) return;
@@ -162,7 +209,7 @@ export function suggest(i: SuggestInput): Suggestion[] {
   // 1. Shabbat (the more specific reason wins over "due"): Wednesday from noon until Friday 14:00, unless bought since Sunday.
   const shabbatWindow = (l.weekday === 3 && l.hour >= 12) || l.weekday === 4 || (l.weekday === 5 && l.hour < 14);
   if (shabbatWindow) {
-    const sinceSunday = i.now - ((l.weekday * 24 + l.hour) * 3_600_000);
+    const sinceSunday = i.now - (l.weekday * 24 + l.hour) * 3_600_000;
     const untilSat = i.now + ((6 - l.weekday) * 24 + (21 - l.hour)) * 3_600_000;
     for (const p of i.history.products.values()) {
       const type = p.productKey.split(" ")[0];
@@ -193,24 +240,50 @@ export function suggest(i: SuggestInput): Suggestion[] {
       if (p && n / withA.length >= 0.6) add(p, "with", { title: i.listTitles?.get(a) ?? i.history.products.get(a)?.title ?? a }, i.now + 7 * DAY);
     }
   }
-  // 4. Due by the usual gap.
+  // 4. Regular products, due by their usual gap (twice the gap after 3 skips in a row).
   for (const p of [...i.history.products.values()].sort((a, b) => b.count - a.count)) {
-    if (i.staples?.get(p.productKey) === "auto") continue; // the engine adds those itself (dueStaples)
-    if (isDue(p, i.now)) add(p, "due", { days: p.intervalDays! }, i.now + Math.max(1, p.intervalDays! - 1) * DAY);
+    if (isDue(p, i.now, activeSkips(i.prefs.get(p.productKey), p.last.at))) add(p, "due", { days: p.intervalDays! }, i.now + Math.max(1, p.intervalDays! - 1) * DAY);
   }
+  // 5. Cold start: the basic basket fills in until the home has its own rhythm; never-bought basket items then fade out.
+  if (i.basket && (i.trips ?? 0) < COLD_TRIPS)
+    for (const b of i.basket) {
+      if (i.history.products.has(b.productKey)) continue;
+      add({ productKey: b.productKey, title: b.title, usualQty: b.qty, usualAmount: b.amount, unit: b.unit, section: b.section, art: b.art }, "basket", {}, i.now + 7 * DAY);
+    }
   return [...out.values()].slice(0, i.limit ?? 12);
 }
 
-/** `auto` staples that are due: the engine adds each once on its due day (`dueDay` = local date the gap ends). */
-export function dueStaples(h: History, staples: Map<string, string>, onList: Set<string>, now: number, tz: string) {
-  const out: { product: ProductHistory; dueDay: string }[] = [];
-  for (const [key, mode] of staples) {
-    if (mode !== "auto" || onList.has(key)) continue;
-    const p = h.products.get(key);
-    if (!p || p.intervalDays == null || now < p.last.at + p.intervalDays * DAY - DAY / 2) continue;
-    out.push({ product: p, dueDay: ymd(p.last.at + p.intervalDays * DAY, tz) });
+/** "What Nexus learned" about one product (the item sheet, Settings): never a staple state, only what was seen. */
+export type Knowledge =
+  | { state: "hidden" }
+  | { state: "new"; count: number }
+  | { state: "learning"; count: number; of: number }
+  | { state: "regular"; count: number; intervalDays: number; days: string[]; next: number; since: string | null }
+  | { state: "occasional"; count: number; days: string[]; contexts: ("shabbat" | "with")[]; withTitle: string | null };
+
+export function knowledgeOf(p: ProductHistory | undefined, pref: ProductPref | undefined, o: { baskets?: Set<string>[]; titleOf?: (k: string) => string | null } = {}): Knowledge {
+  if (pref?.hiddenAt) return { state: "hidden" };
+  if (!p || p.days.length <= 1) return { state: "new", count: p?.count ?? 0 };
+  if (p.days.length < 3) return { state: "learning", count: p.days.length, of: 3 };
+  if (p.regular && p.intervalDays) {
+    const skips = activeSkips(pref, p.last.at);
+    return { state: "regular", count: p.count, intervalDays: p.intervalDays, days: p.days, next: p.last.at + p.intervalDays * (skips >= HALF_RATE_SKIPS ? 2 : 1) * DAY, since: p.days[0] ?? null };
   }
-  return out;
+  const contexts: ("shabbat" | "with")[] = [];
+  if (SHABBAT_TYPES.includes(p.productKey.split(" ")[0]) || (p.count >= 2 && p.thuFri >= 0.6)) contexts.push("shabbat");
+  // The product it's most often bought with (≥ 60 % of its trips, ≥ 3 trips).
+  let withTitle: string | null = null;
+  const mine = (o.baskets ?? []).filter((b) => b.has(p.productKey));
+  if (mine.length >= 3) {
+    const counts = new Map<string, number>();
+    for (const b of mine) for (const k of b) if (k !== p.productKey) counts.set(k, (counts.get(k) ?? 0) + 1);
+    const best = [...counts].sort((a, b) => b[1] - a[1])[0];
+    if (best && best[1] / mine.length >= 0.6) {
+      contexts.push("with");
+      withTitle = o.titleOf?.(best[0]) ?? best[0];
+    }
+  }
+  return { state: "occasional", count: p.count, days: p.days, contexts, withTitle };
 }
 
 /** "Accept" merges into the list: an existing quantity stays the user's unless it was empty (B4 / C2 rule). */
@@ -218,4 +291,26 @@ export function mergeQty(existing: { quantity: number | null; amount: number | n
   if (!existing) return { quantity: add.qty, amount: add.amount, merged: false };
   const emptyQty = !existing.quantity || existing.quantity < 1;
   return { quantity: emptyQty ? add.qty : existing.quantity!, amount: existing.amount ?? add.amount, merged: true };
+}
+
+// ---------- the evening draft's gate (no setting: only the global notifications switch) ----------
+
+export type DraftGate = {
+  usualWeekday: number | null;
+  tomorrowWeekday: number;
+  suggestions: number;
+  listItems: number;
+  /** Rows added to the list since the last trip finished. */
+  addedSinceTrip: number;
+  /** Drafts sent since the last trip that were never opened. */
+  unopenedDrafts: number;
+};
+
+/** Send the evening draft? A usual shopping day (≥ 3 trips on that weekday) is tomorrow, there's something to suggest, the
+ *  list isn't empty-and-unused, and fewer than 3 drafts in a row went unopened (then quiet until the next trip). */
+export function draftAllowed(g: DraftGate) {
+  if (g.usualWeekday == null || g.usualWeekday !== g.tomorrowWeekday) return false;
+  if (!g.suggestions) return false;
+  if (!g.listItems && !g.addedSinceTrip) return false;
+  return g.unopenedDrafts < 3;
 }

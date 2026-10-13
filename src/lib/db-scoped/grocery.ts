@@ -5,7 +5,9 @@ import { schema } from "@/db";
 import { classifyLocal } from "@/lib/grocery/classify";
 import { learnOrder } from "@/lib/grocery/order";
 import { cleanOrder, DEFAULT_ORDER, tripOrder, type SectionKey } from "@/lib/grocery/sections";
-import { dueStaples, learnHistory, mergeQty, suggest, type History, type Purchase, type Suggestion } from "@/lib/grocery/staples";
+import { activeSkips, knowledgeOf, learnHistory, mergeQty, suggest, type History, type ProductPref, type Purchase, type Suggestion } from "@/lib/grocery/staples";
+import { basketFor } from "@/lib/grocery/basket";
+import { TYPE_BY_KEY } from "@/lib/grocery/dictionary";
 import { replayTrip } from "@/lib/grocery/trip";
 import { learnUnitWeights, unitKgFor } from "@/lib/grocery/weights";
 import type { Unit } from "@/lib/grocery/dictionary";
@@ -226,31 +228,32 @@ export async function purchasesOf(s: Scoped): Promise<{ purchases: Purchase[]; t
   return { purchases, trips: tripsOut };
 }
 
-export async function staplesOf(s: Scoped) {
-  const rows = await s.pick({ k: schema.items.productKey, st: schema.items.staple }, schema.items, and(SM, isNotNull(schema.items.productKey)));
-  const m = new Map<string, string>();
-  for (const r of rows) if (r.k && r.st !== "off") m.set(r.k, r.st);
-  return m;
-}
-
-export async function historyOf(s: Scoped, tz: string): Promise<{ history: History; baskets: Set<string>[] }> {
+export async function historyOf(s: Scoped, tz: string): Promise<{ history: History; baskets: Set<string>[]; trips: number }> {
   const { purchases, trips } = await purchasesOf(s);
-  return { history: learnHistory(purchases, trips, { tz, staples: await staplesOf(s) }), baskets: trips.map((t) => t.keys) };
+  return { history: learnHistory(purchases, trips, { tz }), baskets: trips.map((t) => t.keys), trips: trips.length };
 }
 
-// ---------- B2: suggestions ----------
+// ---------- C1: what the space told Nexus per product (quiet until, skips in a row, hidden) ----------
 
-export async function dismissedOf(s: Scoped, now = Date.now()) {
-  const rows = await s.select(schema.suggestDismiss);
-  return new Map(rows.filter((r) => r.until > now).map((r) => [r.productKey, r.until]));
+type PrefRow = typeof schema.suggestDismiss.$inferSelect;
+const prefOf = (r: PrefRow): ProductPref => ({ until: r.until, skips: r.skips, skippedAt: r.skippedAt, hiddenAt: r.hiddenAt });
+
+export async function prefsOf(s: Scoped) {
+  return new Map((await s.select(schema.suggestDismiss)).map((r) => [r.productKey, prefOf(r)]));
 }
 
-export async function suggestFor(s: Scoped, o: { now?: number; tz: string; locale?: string }): Promise<Suggestion[]> {
+/** The cold-start basket for this home: sized by the onboarding answer; baby / pet items once the home bought some. */
+export function basketForHome(history: History, who: string | null | undefined, locale?: string) {
+  const sections = new Set([...history.products.values()].map((p) => p.section));
+  return basketFor({ who, baby: sections.has("baby"), pets: sections.has("pets"), locale });
+}
+
+export async function suggestFor(s: Scoped, o: { now?: number; tz: string; locale?: string; who?: string | null }): Promise<Suggestion[]> {
   const now = o.now ?? Date.now();
-  const [{ history, baskets }, list, dismissed, staples] = await Promise.all([historyOf(s, o.tz), supermarketList(s), dismissedOf(s, now), staplesOf(s)]);
+  const [{ history, baskets, trips }, list, prefs] = await Promise.all([historyOf(s, o.tz), supermarketList(s), prefsOf(s)]);
   const onList = new Set(list.map((i) => i.productKey).filter((k): k is string => !!k));
   const listTitles = new Map(list.filter((i) => i.productKey).map((i) => [i.productKey!, i.title]));
-  return suggest({ history, onList, listTitles, dismissed, staples, baskets, now, tz: o.tz, locale: o.locale });
+  return suggest({ history, onList, listTitles, prefs, baskets, now, tz: o.tz, locale: o.locale, basket: basketForHome(history, o.who, o.locale), trips });
 }
 
 // ---------- S2 A2: everything the Supermarket tab shows besides the list rows ----------
@@ -267,7 +270,7 @@ export type HomeState = {
   /** What finished trips cost this calendar month (local), for "left this month". */
   monthSpent: number;
   trips: number;
-  /** The usual shopping weekday (0 = Sunday) + hour, from ≥ 3 trips; null until then. */
+  /** The usual shopping weekday (0 = Sunday) + hour, from ≥ 3 trips on that weekday; null until then. */
   usualDay: { weekday: number; hour: number } | null;
   /** Trips running in this space now (anyone's): the trip bar + the Home card. */
   open: OpenTrip[];
@@ -292,22 +295,21 @@ export async function openTripsOf(s: Scoped, now = Date.now()): Promise<OpenTrip
   return out.sort((a, b) => b.startedAt - a.startedAt);
 }
 
-export async function homeState(s: Scoped, o: { tz: string; locale?: string; now?: number }): Promise<HomeState> {
+export async function homeState(s: Scoped, o: { tz: string; locale?: string; now?: number; who?: string | null }): Promise<HomeState> {
   const now = o.now ?? Date.now();
-  const [stores, { purchases, trips }, list, dismissed, staples, tripRows] = await Promise.all([
+  const [stores, { purchases, trips }, list, prefs, tripRows] = await Promise.all([
     storesOf(s),
     purchasesOf(s),
     supermarketList(s),
-    dismissedOf(s, now),
-    staplesOf(s),
+    prefsOf(s),
     s.pick({ total: schema.trip.total, at: schema.trip.finishedAt }, schema.trip, isNotNull(schema.trip.finishedAt)),
   ]);
   const open = await openTripsOf(s, now);
   const def = stores.find((x) => x.isDefault) ?? null;
-  const history = learnHistory(purchases, trips, { tz: o.tz, staples });
+  const history = learnHistory(purchases, trips, { tz: o.tz });
   const onList = new Set(list.map((i) => i.productKey).filter((k): k is string => !!k));
   const listTitles = new Map(list.filter((i) => i.productKey).map((i) => [i.productKey!, i.title]));
-  const suggestions = suggest({ history, onList, listTitles, dismissed, staples, baskets: trips.map((t) => t.keys), now, tz: o.tz, locale: o.locale });
+  const suggestions = suggest({ history, onList, listTitles, prefs, baskets: trips.map((t) => t.keys), now, tz: o.tz, locale: o.locale, basket: basketForHome(history, o.who, o.locale), trips: trips.length });
   const prices: Record<string, number> = {};
   for (const p of [...purchases].sort((a, b) => a.at - b.at)) if (p.price != null && p.price > 0) prices[p.productKey] = p.price;
   const ym = (t: number) => new Intl.DateTimeFormat("en-CA", { timeZone: o.tz, year: "numeric", month: "2-digit" }).format(new Date(t));
@@ -322,12 +324,59 @@ export async function homeState(s: Scoped, o: { tz: string; locale?: string; now
   return { stores, store: def ? { chain: def.chain, branch: def.branch } : null, order: tripOrder(def), suggestions, prices, monthSpent, trips: trips.length, usualDay: history.usualDay, open, unitKg };
 }
 
-/** "Not now": quiet until the end of this cycle. */
-export async function dismissSuggestion(s: Scoped, productKey: string, until: number) {
-  await s.insert(schema.suggestDismiss, { productKey, until }).onConflictDoUpdate({ target: [schema.suggestDismiss.spaceId, schema.suggestDismiss.productKey], set: { until } });
+/** When the space last bought this product (trip checks, purchased rows), or null. */
+async function lastBought(s: Scoped, productKey: string) {
+  const [c] = await s.pick({ at: sql<number>`max(${schema.tripCheck.at})` }, schema.tripCheck, and(eq(schema.tripCheck.productKey, productKey), inArray(schema.tripCheck.action, ["check", "substitute"])));
+  const [i] = await s.pick({ at: sql<number>`max(${schema.items.purchasedAt})` }, schema.items, and(SM, eq(schema.items.productKey, productKey), eq(schema.items.status, "purchased")));
+  const at = Math.max(Number(c?.at ?? 0), Number(i?.at ?? 0));
+  return at || null;
 }
 
-/** Accept one or all: merged into the list (an existing quantity stays the user's unless it was empty). */
+/**
+ * × "Not this time": quiet until the end of this cycle, and one more skip in a row (a purchase since the last skip starts
+ * the count over). 3 in a row → half the rate; 5 → not suggested until bought again (lib/grocery/staples.ts).
+ */
+export async function dismissSuggestion(s: Scoped, productKey: string, until: number, now = Date.now()) {
+  const [cur] = await s.select(schema.suggestDismiss, eq(schema.suggestDismiss.productKey, productKey)).limit(1);
+  const skips = activeSkips(cur ? prefOf(cur) : undefined, await lastBought(s, productKey)) + 1;
+  await s
+    .insert(schema.suggestDismiss, { productKey, until, skips, skippedAt: now })
+    .onConflictDoUpdate({ target: [schema.suggestDismiss.spaceId, schema.suggestDismiss.productKey], set: { until, skips, skippedAt: now } });
+  return skips;
+}
+
+/** "Don't suggest this again" (suggestion menu, item sheet): never suggested until "Suggest it again" in Settings. */
+export async function hideProduct(s: Scoped, productKey: string, by: string | null, now = Date.now()) {
+  await s
+    .insert(schema.suggestDismiss, { productKey, until: 0, hiddenAt: now, hiddenBy: by })
+    .onConflictDoUpdate({ target: [schema.suggestDismiss.spaceId, schema.suggestDismiss.productKey], set: { hiddenAt: now, hiddenBy: by } });
+}
+
+/** "Suggest it again": back to normal (the skip count starts over too). */
+export async function unhideProduct(s: Scoped, productKey: string) {
+  await s.update(schema.suggestDismiss, { hiddenAt: null, hiddenBy: null, skips: null, skippedAt: null, until: 0 }, eq(schema.suggestDismiss.productKey, productKey));
+}
+
+/** Settings → Supermarket → Products you hid: newest first, named by the home's latest row (else the dictionary). */
+export async function hiddenOf(s: Scoped, locale?: string) {
+  const rows = (await s.select(schema.suggestDismiss, isNotNull(schema.suggestDismiss.hiddenAt))).sort((a, b) => (b.hiddenAt ?? 0) - (a.hiddenAt ?? 0));
+  if (!rows.length) return [];
+  const items = await s.select(schema.items, and(SM, inArray(schema.items.productKey, rows.map((r) => r.productKey))));
+  return rows.map((r) => {
+    const it = items.filter((i) => i.productKey === r.productKey).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    const type = TYPE_BY_KEY.get(r.productKey.split(" ")[0]);
+    return {
+      productKey: r.productKey,
+      title: it?.title ?? (type ? (locale === "he" ? type.he : type.en) : r.productKey),
+      section: it?.section ?? type?.section ?? "other",
+      art: it?.artKey ?? type?.art ?? null,
+      hiddenAt: r.hiddenAt!,
+      hiddenBy: r.hiddenBy,
+    };
+  });
+}
+
+/** Accept one or all: merged into the list (an existing quantity stays the user's unless it was empty). Breaks a skip run. */
 export async function acceptSuggestions(s: Scoped, picks: Pick<Suggestion, "productKey" | "title" | "qty" | "amount" | "unit" | "section" | "art">[], by: string) {
   const out: ItemRow[] = [];
   for (const p of picks) {
@@ -336,37 +385,18 @@ export async function acceptSuggestions(s: Scoped, picks: Pick<Suggestion, "prod
       const m = mergeQty({ quantity: cur.quantity, amount: cur.amount }, { qty: p.qty, amount: p.amount });
       if (m.quantity !== cur.quantity || m.amount !== cur.amount) await s.update(schema.items, { quantity: m.quantity, amount: m.amount, updatedAt: Date.now() }, eq(schema.items.id, cur.id));
       out.push((await s.byId(schema.items, cur.id))!);
-      continue;
-    }
-    const r = await addToList(s, { title: p.title, qty: p.qty, amount: p.amount, unit: (p.unit as Unit | null) ?? null, productKey: p.productKey, section: p.section, art: p.art, by });
-    out.push(r.item);
+    } else out.push((await addToList(s, { title: p.title, qty: p.qty, amount: p.amount, unit: (p.unit as Unit | null) ?? null, productKey: p.productKey, section: p.section, art: p.art, by })).item);
   }
+  const keys = picks.map((p) => p.productKey);
+  if (keys.length) await s.update(schema.suggestDismiss, { skips: null, skippedAt: null }, and(inArray(schema.suggestDismiss.productKey, keys), isNotNull(schema.suggestDismiss.skips)));
   return out;
 }
 
-/** `auto` staples due today → added by Nexus, once per product per due day (undoable). Returns the added items. */
-export async function addDueStaples(s: Scoped, o: { now?: number; tz: string }) {
-  const now = o.now ?? Date.now();
-  const [{ history }, staples, list] = await Promise.all([historyOf(s, o.tz), staplesOf(s), supermarketList(s)]);
-  const onList = new Set(list.map((i) => i.productKey).filter((k): k is string => !!k));
-  const added: { item: ItemRow; dueDay: string; reasonArgs: { days: number } }[] = [];
-  for (const d of dueStaples(history, staples, onList, now, o.tz)) {
-    const [done] = await s.select(schema.stapleAdd, and(eq(schema.stapleAdd.productKey, d.product.productKey), eq(schema.stapleAdd.dueDay, d.dueDay))).limit(1);
-    if (done) continue;
-    const r = await addToList(s, { title: d.product.title, qty: d.product.usualQty, amount: d.product.usualAmount, unit: (d.product.unit as Unit | null) ?? null, productKey: d.product.productKey, section: d.product.section, art: d.product.art, by: null }, now);
-    await s.insert(schema.stapleAdd, { productKey: d.product.productKey, dueDay: d.dueDay, itemId: r.item.id, at: now }).onConflictDoNothing();
-    added.push({ item: r.item, dueDay: d.dueDay, reasonArgs: { days: d.product.intervalDays ?? 0 } });
-  }
-  return added;
-}
-
-/** Undo an auto staple: the row goes (if still untouched on the list); the day stays marked so it isn't re-added. */
-export async function undoStapleAdd(s: Scoped, productKey: string, dueDay: string, now = Date.now()) {
-  const [r] = await s.select(schema.stapleAdd, and(eq(schema.stapleAdd.productKey, productKey), eq(schema.stapleAdd.dueDay, dueDay))).limit(1);
-  if (!r || r.undoneAt) return false;
-  if (r.itemId) await s.delete(schema.items, and(eq(schema.items.id, r.itemId), onListCond));
-  await s.update(schema.stapleAdd, { undoneAt: now }, and(eq(schema.stapleAdd.productKey, productKey), eq(schema.stapleAdd.dueDay, dueDay)));
-  return true;
+/** C2: "What Nexus learned" about one product of this home. */
+export async function knowledgeFor(s: Scoped, productKey: string, tz: string) {
+  const [{ history, baskets }, prefs] = await Promise.all([historyOf(s, tz), prefsOf(s)]);
+  const p = history.products.get(productKey);
+  return knowledgeOf(p, prefs.get(productKey), { baskets, titleOf: (k) => history.products.get(k)?.title ?? null });
 }
 
 // ---------- B4: templates ----------

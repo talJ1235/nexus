@@ -596,10 +596,19 @@ export const spaceStore = sqliteTable(
   (t) => [primaryKey({ columns: [t.spaceId, t.chain, t.branch] })],
 );
 
-/** "Not now" on a suggestion: quiet until `until` (the end of this cycle). */
+/** A product's suggestion state per space: "Not this time" (quiet until `until`, skips in a row), hidden (R18 S2 C1). */
 export const suggestDismiss = sqliteTable(
   "suggest_dismiss",
-  { spaceId: text("space_id").notNull(), productKey: text("product_key").notNull(), until: integer("until").notNull() },
+  {
+    spaceId: text("space_id").notNull(),
+    productKey: text("product_key").notNull(),
+    until: integer("until").notNull(),
+    // R18 S2 C1: skips in a row (since the last purchase) and "Don't suggest this again".
+    skips: integer("skips"),
+    skippedAt: integer("skipped_at"),
+    hiddenAt: integer("hidden_at"),
+    hiddenBy: text("hidden_by"),
+  },
   (t) => [primaryKey({ columns: [t.spaceId, t.productKey] })],
 );
 

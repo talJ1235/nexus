@@ -76,7 +76,9 @@ export function SupermarketView() {
     return onSmIntent(take);
   }, []);
 
-  const first = !s.sm.length && (home ? home.trips === 0 && !home.suggestions.length : false) && !basketOn;
+  // First time: nothing on the list, no trips yet, and nothing learned to suggest (the cold-start basket waits for "Build
+  // my list" — the server sends it as `basket` suggestions until the home has 4 trips).
+  const first = !s.sm.length && (home ? home.trips === 0 && home.suggestions.every((x) => x.reasonKey === "basket") : false) && !basketOn;
   const basket = useMemo(() => basketFor({ who: s.obWho, locale }), [s.obWho, locale]);
   const pickLayout = (l: "rows" | "tiles") => {
     setLayout(l);
@@ -113,7 +115,7 @@ export function SupermarketView() {
         <FirstTime basketSize={Math.min(WEEKLY_BASKET_SIZE, basket.length)} onBasket={() => void addBasket(basket.slice(0, WEEKLY_BASKET_SIZE))} onBuild={() => setBasketOn(true)} onPaste={() => setAdding("paste")} />
       ) : (
         <>
-          <Suggestions home={home} basket={basketOn ? basket : null} draft={draft} ro={ro} />
+          <Suggestions home={home} basket={null} draft={draft} ro={ro} />
           {s.sm.length > 0 && <p className="tabular px-1 pt-1 text-[13px] font-semibold text-muted">{s.sm.length === 1 ? t.sm.main.itemsOne : f(t.sm.main.items, { n: s.sm.length })}</p>}
           <div className="flex flex-col gap-1.5" data-sm-list>
             {groups.map(([k, list]) => (

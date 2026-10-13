@@ -72,7 +72,7 @@ choices) → daily AI limit reached (type / scan still work). Photo counts in th
 **Acceptance:** tests with a fixture barcode + AI mock for each state.
 
 ## Part C — the item sheet and the simplified learning
-### C1. [ ] Learning model (engine change; replaces S1 staple states)
+### C1. [x] Learning model (engine change; replaces S1 staple states)
 - The user never sees staple states. Nexus **only suggests**; nothing is ever added to the list by itself (remove the S1
   `auto` behaviour). + accepts, × skips for this cycle; 3 skips in a row → suggest it at half the rate; 5 → stop until
   bought again.
@@ -156,6 +156,7 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 - B1 done — nullable `items.count` (`db/migrate-r18s2.ts`); parser: "6 עגבניות" → count 6, "קילו עגבניות" → 1 kg, "קילו עגבניות, בערך 6" / "about 6" / "כ־6" → both; `lib/grocery/weights.ts` (unit weight learned per product per home from rows with both, fallback table); rows read "6 · 1 kg", "6 · ≈ 0.9 kg", "1 kg · ≈ 7"; add/merge/undo carry count; `test:grocery` +B1 lines (he + en); rehearsal `scripts/r18s2-rehearsal.mjs` (dry run on a local copy: only items.count added, nothing else changed).
 - B2 done — Add screen `supermarket/add-screen.tsx` (full screen on phones, dialog on computers): type-ahead with the typed letters bold + On list badges, Did you mean + Add as new, quantity read from the line with the count + weight steppers (`qty-steppers.tsx`, shared with C2) and "×2 now → ×4 after adding", merge toast "Already on the list — now ×4" with Undo, voice (Web Speech) and paste → checked split preview (notes unchecked) → Add N; You usually buy chips. Smoke step + parity b2-add.png.
 - B3 done — supermarket capture `supermarket/capture.tsx` (Barcode | Photo, the existing camera + decoder): scan → the home's own product (found / already on the list with the merged count "Add — now ×4"), a public one (Open Food Facts, shared cache) or an unknown barcode named once (section guess, the barcode kept on the home's row); photo → `smPhoto` (AI feature `grocery`, counts in the quota) matched to the home's product, else 3 choices (home first), or the daily limit (type / scan still work); `smAiAllowance` counter. `test:capture` (fixture barcodes + AI mock, every state + the UI). Parity b3-capture.png.
+- C1 done — engine rewrite (`lib/grocery/staples.ts`): only suggests (S1 `auto` + its sweep, `addDueStaples`, `setStaple`, `setDraftPush` removed; `staple` column left, not read), regular (≥ 3 days, steady gaps) suggested when due / occasional only in context, × skips (3 in a row → twice the gap, 5 → until bought again, a purchase or + starts over), "Don't suggest this again" (`hideProduct` / `unhideProduct` / `hiddenProducts`), cold start = basic basket sized by onboarding `who` (+ baby / pets once the home bought some) until 4 trips, then it fades; `knowledgeOf` for the item sheet; evening draft gate `draftAllowed` (usual day = ≥ 3 trips on that weekday, something to suggest, list not empty-and-unused, < 3 unopened drafts since the last trip; no switch). Additive columns on `suggest_dismiss`: skips, skipped_at, hidden_at, hidden_by. `test:staples` rewritten.
 ### Decisions
 - A1: The board's flat bottom bar is not taken: the app keeps its floating dock (R14) with the new tabs/icons.
 - A1: Tab-4 use counts live on the device (localStorage `nexus.tabUse`, 30 days); the tab is chosen once per page load so it never swaps under a finger; a tie keeps the Supermarket.
@@ -174,5 +175,9 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 - B2: The mic is shown only where the browser has speech recognition (decided after hydration).
 - B3: The mock photo reader takes its answer from the image bytes ("mock:<title>|<confidence>|…") so tests can drive matched / unsure.
 - B3: A public product found by barcode for the first time is shown as "New for this home"; it becomes known (Known · At home) once added (its barcode stays on the row).
+- C1: hidden_at / hidden_by live on `suggest_dismiss` (already one row per product per space) next to the new skip count — no new table.
+- C1: "Half the rate" = suggested at twice the usual gap; context reasons (Shabbat, holiday, with) still apply until 5 skips.
+- C1: "Opened" for the draft streak = the inbox row was read (`notification.read_at`); opening one breaks the streak.
+- C1: Cold-start sizing uses the reading person's onboarding `who`; baby / pet basket items appear only once the home bought something from those sections (onboarding doesn't ask).
 ### For Tal
 - Prod snapshot was refused to the agent at session start (2026-10-13). Run in `nexus/`: `node --env-file=.env.local scripts/db-snapshot.mjs` → `snapshots/prod-2026-10-13.db`; the S2 rehearsal uses the newest `snapshots/prod-*.db`.

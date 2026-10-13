@@ -10,10 +10,12 @@ import { ownerPrefs } from "../tracker";
 import type { Alert } from "../types";
 import type { BudgetData, DeliveryData, PriceData, ShopData, WeekData } from "./kinds";
 import { notify, notifyPrefs, sendNow } from "./enqueue";
-import { addCheck, finishTrip, openTripOf, openTrips, openTripsIn, SAME_TRIP_MS, setTripLeft, shoppingSpaces, spacesWithAutoStaples, startTrip, tripScope, type TripRow } from "../db-scoped/trips";
-import { addDueStaples, defaultStore, historyOf, refreshSuggestedOrder, suggestFor, supermarketList } from "../db-scoped/grocery";
+import { addCheck, finishTrip, openTripOf, openTrips, openTripsIn, SAME_TRIP_MS, setTripLeft, draftGateOf, shoppingSpaces, startTrip, tripScope, type TripRow } from "../db-scoped/trips";
+import { defaultStore, historyOf, refreshSuggestedOrder, suggestFor, supermarketList } from "../db-scoped/grocery";
 import { kvGet, kvSet } from "../kv";
-import { DRAFT_PREF_KEY, type DraftData, type TripAddData } from "./kinds";
+import { type DraftData, type TripAddData } from "./kinds";
+import { draftAllowed } from "../grocery/staples";
+import { ONBOARDING_KEY, parseOnboarding } from "../onboarding";
 import { isQuiet } from "./schedule";
 import { local, nextLocal } from "./schedule";
 
@@ -286,9 +288,11 @@ const DRAFT_FROM = 19;
 const DRAFT_TO = 21;
 
 /**
- * For a space whose usual shopping day (≥ 3 trips) is tomorrow, between 19:00 and 21:00 in the shopper's zone and not
- * in quiet hours: the draft (list + suggestions) is computed once per space per day and each member who shops gets one
- * push "Your list for tomorrow: 18 items, Nexus suggests 4". Never changes the list.
+ * For a space whose usual shopping day (≥ 3 trips on that weekday) is tomorrow, between 19:00 and 21:00 in the shopper's
+ * zone and not in quiet hours: the draft (list + suggestions) is computed once per space per day and each member who
+ * shops gets one push "Your list for tomorrow: 18 items, Nexus suggests 4". Never changes the list. R18 S2 C1: no switch
+ * of its own (only the global notifications switch, in notify()); only when there's something to suggest and the list
+ * isn't empty-and-unused; after 3 drafts in a row that weren't opened, quiet until the next trip (draftAllowed).
  */
 export async function eveningDrafts(now = Date.now()) {
   let n = 0;
@@ -297,7 +301,6 @@ export async function eveningDrafts(now = Date.now()) {
     if (!sp || sp.deletedAt) continue;
     const members = new Set((await spaceAudience(spaceId, null)).filter((m) => m.role !== "viewer").map((m) => m.userId));
     for (const userId of shoppers.filter((u) => members.has(u))) {
-      if ((await userPrefGet(userId, DRAFT_PREF_KEY)) === "off") continue;
       const p = await notifyPrefs(userId, now);
       const l = local(now, p.tz);
       if (l.hour < DRAFT_FROM || l.hour >= DRAFT_TO || isQuiet(now, p.tz)) continue;
@@ -312,12 +315,13 @@ export async function eveningDrafts(now = Date.now()) {
       const cacheKey = `sm:draft:${spaceId}:${day}`;
       let draft = parse<{ items: number; suggestions: unknown[] }>(await kvGet(cacheKey));
       if (!draft) {
-        const [list, sug] = await Promise.all([supermarketList(s), suggestFor(s, { now, tz: p.tz })]);
+        const who = parseOnboarding(await userPrefGet(userId, ONBOARDING_KEY))?.who ?? null;
+        const [list, sug] = await Promise.all([supermarketList(s), suggestFor(s, { now, tz: p.tz, who })]);
         draft = { items: list.length, suggestions: sug };
         await kvSet(cacheKey, JSON.stringify({ ...draft, at: now }));
       }
-      // Nothing on the list and nothing to suggest (a home still shopping from Products) → no push.
-      if (!draft.items && !draft.suggestions.length) continue;
+      const gate = await draftGateOf(spaceId, userId);
+      if (!draftAllowed({ usualWeekday: history.usualDay.weekday, tomorrowWeekday: tomorrow.weekday, suggestions: draft.suggestions.length, listItems: draft.items, ...gate })) continue;
       const data: DraftData = { space: sp.name, items: draft.items, suggested: draft.suggestions.length, day };
       await notify([userId], "draft", key, data, { actor: null, spaceId, now });
       n++;
@@ -329,18 +333,6 @@ export async function eveningDrafts(now = Date.now()) {
 /** The draft computed for a space's evening (S2 opens /supermarket?draft=1 with it). */
 export async function draftOf(spaceId: string, day: string) {
   return parse<{ items: number; suggestions: unknown[]; at: number }>(await kvGet(`sm:draft:${spaceId}:${day}`));
-}
-
-/** B2: `auto` staples due today are added by Nexus (once per product per due day; undoable). */
-export async function autoStaples(now = Date.now()) {
-  let n = 0;
-  for (const spaceId of await spacesWithAutoStaples()) {
-    const sp = await spaceBrief(spaceId);
-    if (!sp || sp.deletedAt) continue;
-    const tz = (await notifyPrefs(sp.ownerId ?? "", now)).tz;
-    n += (await addDueStaples(new Scoped({ spaceId, userId: null, by: "system" }), { now, tz })).length;
-  }
-  return n;
 }
 
 // ---------- R18 D2: an add reaches the shopper in the store ----------
@@ -400,7 +392,6 @@ export async function runNotifySweeps(now = Date.now()) {
     budget: await step(() => budgetAlerts(now)),
     week: await step(() => weeklySummaries(now)),
     drafts: await step(() => eveningDrafts(now)),
-    staples: await step(() => autoStaples(now)),
   };
 }
 

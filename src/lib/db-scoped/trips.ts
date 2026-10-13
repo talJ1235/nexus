@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNotNull, isNull, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { replayTrip, type CheckAction } from "@/lib/grocery/trip";
 import { Scoped } from "./index";
@@ -181,13 +181,16 @@ export async function shoppingSpaces(min = 3) {
   return [...out.entries()].filter(([, v]) => v.trips >= min).map(([spaceId, v]) => ({ spaceId, shoppers: v.shoppers }));
 }
 
-/** Spaces whose supermarket list has an `auto` staple (the hourly sweep adds the due ones). */
-export async function spacesWithAutoStaples() {
-  const rows = await db
-    .selectDistinct({ spaceId: schema.items.spaceId })
-    .from(schema.items)
-    .where(and(eq(schema.items.list, "supermarket"), eq(schema.items.staple, "auto")));
-  return rows.map((r) => r.spaceId);
+/** Since the space's last finished trip: rows added to its supermarket list, and this person's drafts never opened. */
+export async function draftGateOf(spaceId: string, userId: string) {
+  const [last] = await db.select({ at: sql<number>`max(${schema.trip.finishedAt})` }).from(schema.trip).where(and(eq(schema.trip.spaceId, spaceId), isNotNull(schema.trip.finishedAt)));
+  const since = Number(last?.at ?? 0);
+  const [added] = await db.select({ n: sql<number>`count(*)` }).from(schema.items).where(and(eq(schema.items.spaceId, spaceId), eq(schema.items.list, "supermarket"), gt(schema.items.createdAt, since)));
+  const drafts = await db
+    .select({ readAt: schema.notification.readAt })
+    .from(schema.notification)
+    .where(and(eq(schema.notification.userId, userId), eq(schema.notification.spaceId, spaceId), eq(schema.notification.kind, "draft"), gt(schema.notification.createdAt, since)));
+  return { addedSinceTrip: Number(added?.n ?? 0), unopenedDrafts: drafts.filter((d) => d.readAt == null).length };
 }
 
 /** Other members' open trips in a space (D2: an add reaches them live). */
