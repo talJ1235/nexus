@@ -1,0 +1,153 @@
+# Round 18 — Session 2: the supermarket screens
+
+Source: Tal (2026-10-10 → 10-13) via the planning chat. Source of truth: this file + boards `docs/design/r18/`
+(part 1: `Supermarket-phone`/`Main`, `StoreMode-phone`, `Add-phone`, `Finish-phone`, `HomeCard-phone`, `Nav-phone`;
+part 2: `ItemSheet-phone`, `Capture-phone`, `Store-phone`, `Lists-phone`, `TripBar-phone`, `Push-phone`,
+`Settings-phone`, `Supermarket-desktop`, `Settings-desktop`, css `nx-sm.css` + `nx-sm2.css`) — interactive, use their
+Tweaks. Screens script `docs/R18-SCREENS.md`; **where it differs, the decisions of 2026-10-13 in `docs/PLANNER.md`
+("Supermarket simplified", "Templates made by Nexus", "Count + weight", "No knobs", "My answers dropped", "Galaxy Watch
+app") win.** S1 (data + engines) is merged; its results are in `docs/ROUND18.md` "## Open" → "### Session 1".
+Results of this session go to **"## Open" at the end of this file**.
+
+## How to run (Session 2) — progress must never be lost
+Tal's usage is short. Work so that a session can stop at any moment and the next one continues with nothing lost:
+- Branch **`round18-s2`** from `main`. **Commit and push after every single item** (not per part): `R18.<part><k>: …`,
+  then `git push origin round18-s2`. Never keep more than one item of work uncommitted.
+- After each item: tick it here (`[x]`) **and** append one line to "## Open" → "### Progress" (`A3 done — <one line>`),
+  in the same commit. Decisions go to "### Decisions" right away, not at the end.
+- **Resuming:** at session start, `git fetch` and check out `round18-s2` if it exists; read "### Progress" + `git log`;
+  continue from the first unticked item. Never redo a ticked item.
+- Order = the order of the parts below (most valuable first). If a session ends mid-part, the next continues there.
+- Unattended; never stop to ask. Read open reports and the error log first; don't touch power settings.
+- **DB changes are additive only** (new nullable columns / tables). Merge `--ff-only` to `main` only when **all** parts
+  are ticked, CI is green **and** the migration rehearsal on a copy of the prod snapshot passes (as in S1:
+  `node --env-file=.env.local scripts/db-snapshot.mjs`, then the rehearsal script extended for S2). If the snapshot is
+  refused, stop before merging and write the exact command for Tal in Open.
+- Rules from S1 "How to run" still apply: i18n for every string (he + en), `useDevice()` / `phone:` / `desk:` (never a
+  width check), phone test contexts with a mobile UA, no class/id matching ad-block lists (`test:adblock`; rename `ad-*`
+  from board css), `SEARCH_OFF=1` for test servers.
+- Visual items: phone 360/390 + desktop 1366, light + dark, Graphite + Plum, he + en, worst-case data. Parity PNGs
+  (board vs app) into `docs/design/parity-r18/` with a `scripts/parity-r18.mjs` like `parity-r17.mjs`.
+- Design bar: the project skills in `.claude/skills/` (emil-design-eng, apple-design, mobile-native, animate + RECIPES)
+  — easing tokens, press feedback, gated hover, reduced motion, safe areas.
+
+## Part 0
+### 0.1 [ ] Boards + pointers
+Commit the new boards Tal put in `docs/design/r18/` (`R18.0`). If part-2 boards are missing, note it in Open and build
+from this brief + part-1 boards. Add one line under `docs/ROUND18.md` header: "Session 2 → `docs/ROUND18-S2.md`", and
+one line at the top of `docs/PLANNER.md` "Current state & handoff": "2026-10-13: S2 brief `docs/ROUND18-S2.md` written;
+Tal runs it." (docs only, same commit).
+
+## Part A — the Supermarket tab and the shell
+### A1. [ ] Navigation (P15, P18, `Nav-phone`)
+Phone dock = Home · Products · + · **Supermarket** · Insights. Products (renamed Shopping) has segments To buy · On the
+way · Projects. Long-press + → Add to list · Scan · Photo · Start shopping; app-icon shortcuts (manifest `shortcuts`).
+Tab 4 is chosen **by itself**: Projects if onboarding said "projects" and the person uses Projects more than the
+Supermarket in the last 30 days, else Supermarket — no setting. Desktop sidebar: "Supermarket" near the top with a count.
+**Acceptance:** smoke: dock order, long-press menu, shortcuts in the manifest, tab-4 rule unit-tested.
+### A2. [ ] Supermarket tab (P2, `Main`)
+As the board: store chip + estimate vs budget, add field with Scan/Photo/Voice/Recipe icons, "Nexus suggests" block,
+sections in the branch's order with colours, rows / tiles (switch in the ⋯ menu, remembered per person — **not** in
+Settings), first-time state, viewer, offline badge. Section colours always on (no switch). `/supermarket` stops
+redirecting (S1 bridge `sm-bridge.tsx` is replaced). **Acceptance:** smoke on the seeded list; parity PNGs.
+### A3. [ ] Home "Next shop" card + trip bar (P1, P10, `HomeCard-phone`, `TripBar-phone`)
+Card states as the board. Trip bar above the dock on every screen while a trip runs: mine (count, total, Back), someone
+else's (watch, what you add shows for them), offline (changes waiting), everything checked (Finish).
+**Acceptance:** smoke: bar visible on Products/Insights/Supermarket during a trip, gone after Finish.
+
+## Part B — adding
+### B1. [ ] Count + weight (data + parser)
+New nullable `count` on supermarket items (additive). An item holds a count, a weight (`amount` + `unit` kg/g) or both.
+Parser (S1 `lib/grocery` parse): "6 עגבניות" → count 6; "קילו עגבניות" → 1 kg; "קילו עגבניות, בערך 6" → both. Unit
+weight learned per product per home from receipts/trips (fallback table for common produce); shown as "≈ 0.9 ק״ג" when
+only a count is set (and the reverse). Store mode and the list show both ("6 · ≈ 1 ק״ג").
+**Acceptance:** `test:grocery` gains count/weight lines (he + en); rehearsal shows the new column, nothing else changed.
+### B2. [ ] Add screen (P3, `Add-phone`)
+As the board + count/weight from B1 (the qty sheet has the two steppers side by side as `ItemSheet-phone`). Duplicate →
+"Milk is already on the list — now ×3" with Undo. Paste/voice split preview.
+### B3. [ ] Scan + photo (P4, P5, `Capture-phone`)
+Existing scanner. States: found (known to this home), already on the list (shows the merged count), unknown barcode
+(name it once, section guess, barcode kept for the home), photo reading → matched to the home's product → not sure (3
+choices) → daily AI limit reached (type / scan still work). Photo counts in the AI quota (feature `grocery`).
+**Acceptance:** tests with a fixture barcode + AI mock for each state.
+
+## Part C — the item sheet and the simplified learning
+### C1. [ ] Learning model (engine change; replaces S1 staple states)
+- The user never sees staple states. Nexus **only suggests**; nothing is ever added to the list by itself (remove the S1
+  `auto` behaviour). + accepts, × skips for this cycle; 3 skips in a row → suggest it at half the rate; 5 → stop until
+  bought again.
+- One explicit control: **"Don't suggest this again"** → new nullable `hidden_at` + `hidden_by` per product per space
+  (additive). **Do not reuse S1 `staple`** (S1 stored `off` as the default for every row) — leave the column, stop
+  reading it.
+- Cold start: a basic Israeli household basket (~40 products, adapted to onboarding: household size, baby, pets)
+  suggested until the home has ~3–4 trips; then the home's history takes over and basket items never bought fade out.
+- Regular vs occasional: steady interval (low variance, ≥ 3 purchases) → suggested when due; otherwise only in context
+  (Shabbat, holiday, "usually with X").
+- Evening draft: **no setting.** Sent only when a usual shopping weekday is known (≥ 3 trips on the same weekday), there
+  is something to suggest, the list isn't empty-and-unused; after 3 drafts in a row with no open → stop until the next
+  trip. Only the global notifications switch applies.
+**Acceptance:** `test:staples` rewritten for these rules (cold start, fade, skip decay, hidden never suggested, no auto
+add, draft gate).
+### C2. [ ] Item sheet (P6, `ItemSheet-phone`)
+Count + weight, note, photo of the exact product, section, "What Nexus learned" card (new / learning 2 of 3 / regular
+with the purchase timeline and next date / occasional with its context chips / hidden with "Suggest it again"), "Don't
+suggest this again", preferred brand + substitutes, pinned store, history (date, store, price, cheapest). Suggestion
+action sheet: Add · Not this time · Never suggest this (with Undo toast). Viewer: read-only. Fix the phone smoke
+failure "item sheet morph — nothing behind the sheet moves on open" (also on `main`, S1 Open).
+
+## Part D — in the store
+### D1. [ ] One trip API (needed for the Galaxy Watch later)
+Every store-mode action (start, check, uncheck, not found, substitute, quantity/price, add during trip, finish) goes
+through one typed trip API on top of the S1 outbox (same per-field merge). No screen may write trip data another way.
+Document it in `SPEC.md` (a later Wear OS app will call it). **Acceptance:** a unit test that walks a whole trip through
+the API only; `test:shop-offline` still green.
+### D2. [ ] Store picker + section order (P7, P8, `Store-phone`)
+"This trip only" vs "make it my default", search by chain/city/street (no location), recent branches. Section order per
+branch: drag, learned suggestion banner (Use · Not now, moved sections marked), reset.
+### D3. [ ] Store mode + finish (P9, P11, `StoreMode-phone`, `Finish-phone`)
+As the boards (S1 engines). Live adds during my trip appear in place with an in-app toast — no push while the app is in
+front.
+### D4. [ ] Pushes (P16, `Push-phone`)
+Evening draft push (text from data, opens the list), "Noa added …" during your trip (grouped), "sent from the computer"
+(D1 desktop). Own inbox icons for `draft` and `trip_add` (S1 used the generic one).
+
+## Part E — templates and past trips (P12, P13, `Lists-phone`)
+### E1. [ ] Templates made by Nexus
+Detect repeating trips (items bought together + weekday, ≥ 3 occurrences) → offer "Nexus spotted a new routine — keep it
+as a template?"; kept ones show "Made by Nexus" and are updated from new trips **until the user edits one** — then it is
+theirs (flag) and Nexus never changes it. Hidden products never enter a Nexus template. Apply = merge, never duplicate,
+the user's quantities win ("already on it — stays ×2").
+### E2. [ ] Template edit + past trips
+Rename, remove/add items; past trips by month with totals, open → re-add selected / save as template.
+
+## Part F — settings, onboarding, computer
+### F1. [ ] Settings → Supermarket (minimal) + "What Nexus learned" (P17, D3, `Settings-phone`, `Settings-desktop`)
+Supermarket section has only: main store (+ "also shop at"), section order, products you hid (restore), link to "What
+Nexus learned". Desktop layout = label column + control column (board). **No** draft switch, no colours switch, no
+tab-4 setting, no "My answers". "What Nexus learned" (Settings, also from Supermarket): chips grouped Your home / When
+and where / Regular products / Habits; onboarding answers marked "you told us" (✎ opens the place it is changed: store
+chip, Space → Budget, People…), learned facts marked "learned" (✕ forgets: the engine drops that fact and relearns),
+"Forget everything" (learning only; lists, trips, receipts stay). Counts only in admin, never content.
+### F2. [ ] Onboarding store step
+New step: chains (multi, first = main) → branch search; "I shop at several branches".
+### F3. [ ] Computer Supermarket page (D1, `Supermarket-desktop`)
+List by sections + side panel (store + estimate, Nexus suggests, templates, past trips), item drawer (same content as
+C2), "Send to phone" popover with recipients (default: me + members with push on) → push that opens the list.
+Keyboard: `/` add, Esc closes.
+
+## Part G — guards and docs
+### G1. [ ] Cleanups from S1 Open
+Daily cron purge for `grocery:ai:*`, `grocery:off:*`, `grocery:offq:*`, `sm:draft:*`, `sm:op:*:cid:*`; the AI classify
+after an add shows `other` rows settling into their section.
+### G2. [ ] Guards
+Smoke: Supermarket tab, add with count + weight, item sheet hide/unhide, a full trip on the phone through store mode,
+desktop page + send to phone. `test:tenancy` covers `hidden_at`, `count`, Nexus templates; `test:roles` viewer can't
+hide/edit. Parity PNGs for every board.
+### G3. [ ] Docs
+`SPEC.md` R18 S2 section (incl. the trip API), `CLAUDE.md` map lines, help topic Supermarket updated (how suggestions
+learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new script/env.
+
+## Open
+### Progress
+### Decisions
+### For Tal
