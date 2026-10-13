@@ -7,6 +7,12 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-13:** **R18 boards part 2 made** on canvas "Nexus R18 — Supermarket" (second row "phone, part 2" + third row
+  "computer"): `ItemSheet-phone` (P6), `Capture-phone` (P4 + P5), `Store-phone` (P7 + P8), `Lists-phone` (P12 + P13),
+  `TripBar-phone` (P10), `Push-phone` (P16), `Settings-phone` (P17), `Supermarket-desktop` (D1), `Settings-desktop` (D3);
+  shared `nx-sm2.css`. Tal then simplified the model (decisions "Supermarket simplified (Tal 2026-10-13)" below) and the
+  boards were reworked the same day. **Next:** Tal reviews / approves the boards → zip into `docs/design/r18/` (builder
+  commits) → planner writes `docs/ROUND18.md` Session 2 (new chat).
 - **2026-10-12 (later):** **R18 S1 done on `round18-s1`** (all parts ticked; prod snapshot + rehearsal passed, no items
   moved — prod has no grocery-named collection; CI was running on `11e3df8`). Planner checked the holiday table
   (`src/lib/grocery/holidays.ts`, Oct 2026 → Oct 2027) against a computed Hebrew calendar: all dates correct (5787 is a
@@ -378,7 +384,7 @@ to setup, tooling or workflow is recorded there in the same session.
   gets the computer UI (narrow window → collapsed sidebar, not the phone UI); tablets get the computer UI (planner's
   choice); a Settings → Display → Layout override exists. Nexus opts out of browser machine translation (`translate="no"`).
 - **Class names (2026-10-11):** no CSS class or id may match ad-blocker cosmetic lists (EasyList generic `##` rules, e.g. `ad-*`, `ads`, `sponsor`); guarded by `test:adblock`.
-- **Staples (Tal 2026-10-12):** three states per product. **Not set** (default): Nexus suggests it by itself once it has
+- **Staples (Tal 2026-10-12) — superseded 2026-10-13, see "Supermarket simplified":** three states per product. **Not set** (default): Nexus suggests it by itself once it has
   learned the rhythm (≥ 3 purchases). **Suggest / Add by itself**: chosen by the user. **Off**: only when the user picks it
   (e.g. "don't suggest this") → never suggested again. S1 stores `staple = off` as the default and still suggests → S2
   adds the "not set" state (e.g. null default; existing `off` rows migrate to not set, since no user could choose yet).
@@ -391,6 +397,32 @@ to setup, tooling or workflow is recorded there in the same session.
   Product names lead (bigger, bolder; quantity as a chip); stronger borders, less white (screen `#ecebe6`). Hebrew is
   the default board language. Add: full product name, only the typed letters bold; spelling mistakes → "Did you mean"
   (edit distance against the household's products), with "add as new" still offered.
+- **Supermarket simplified (Tal 2026-10-13), replaces the staple states:** the user never sees staple states. Nexus
+  only *suggests* (never adds to the list by itself — "add by itself" is dropped); + accepts, × skips (soft signal, several
+  skips in a row → suggested less). One explicit control: **"Don't suggest this again"** (suggestion menu + item sheet),
+  undone from Settings → Supermarket → "Products you hid". Cold start: a basic Israeli household basket adapted to the
+  onboarding answers; after ~3–4 trips the home's own history takes over and never-bought basket items fade. Nexus tells
+  regular items (steady interval → suggested when due) from occasional ones (suggested only in context: Shabbat, holiday,
+  "usually with"). Data: `staple` keeps only hidden vs normal (`off` = hidden; `suggest`/`auto` unused, no drop).
+- **Templates made by Nexus (Tal 2026-10-13):** Nexus detects repeating trips (items bought together + weekday) and offers
+  them as templates marked "Made by Nexus"; it keeps them updated until the user edits one — then it is the user's and
+  Nexus stops changing it. Hidden products never enter a Nexus template (they may stay in a template the user edited).
+  Applying a template merges, never duplicates.
+- **Count + weight (Tal 2026-10-13):** a supermarket item can hold a count **and** a weight ("Tomatoes · 6 · ~1 kg"). The
+  weight is estimated from the household's learned unit weight when not set; store mode shows both. Parser accepts
+  "6 עגבניות", "קילו עגבניות", "קילו עגבניות, בערך 6". Data: new nullable `count` (additive).
+- **No knobs (Tal 2026-10-13):** no evening-draft switch (Nexus sends it only after it learned a usual shopping day — ≥ 3
+  trips on the same weekday — and has something to suggest; it stops after being ignored a few times; only the global
+  notifications switch), section colours always on, rows/tiles moves to the list's ⋯ menu, dock tab 4 is chosen by itself
+  from onboarding + use. Settings → **Supermarket** stays, minimal: main store, section order, products you hid, link to
+  "What Nexus learned".
+- **"My answers" dropped (Tal 2026-10-13):** each onboarding answer is changed where it acts (store chip, Space → Budget,
+  People, Home layout). New **"What Nexus learned"** page (Settings, also reachable from Supermarket): chips of what Nexus
+  knows — from onboarding ("you told us", editable) and learned ("learned", forgettable) — plus "Forget everything".
+- **Galaxy Watch app (Tal 2026-10-13):** wanted. Galaxy Watch4+ run Wear OS → a small native Kotlin app shipped with the
+  Android app on Google Play (older Tizen watches not supported); store-mode list by sections, tap to check + haptic,
+  not found, live adds, tile, offline. **After R20** (needs the Android app). R18 S2 requirement now: every store-mode
+  action goes through one trip API (the S1 trip outbox shape) so a watch client can reuse it.
 
 ## Product direction (discussed 2026-10-03, not started)
 - Toward a multi-user product: sign-up on web or app, short onboarding questionnaire (habits, stores), Google sign-in,
@@ -421,6 +453,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-13 · this chat · R18 S1 confirmed merged. Boards part 2 on the R18 canvas (9 boards, `nx-sm2.css`). Tal simplified the supermarket (no staple states, only "don't suggest again"; Nexus-made templates; count + weight; no knobs; "My answers" → "What Nexus learned"; Galaxy Watch app after R20) → boards reworked, decisions recorded. S2 brief waits for Tal's board approval.
 - 2026-10-12 · this chat · Reviewed R18 S1 (all parts done, rehearsal on the prod snapshot passed). Verified the holiday table with a computed Hebrew calendar (all correct). Tal chose the staple states (not set → suggests; off = only by choice, never).
 - 2026-10-12 · this chat · Reviewed R17 S6 + S7 results (both merged, CI green; S7 X1/W/Y as briefed, 111 device checks). Added the S7 rules and a no-search-key smoke fix to `docs/ROUND18.md` "How to run". Gave Tal the prod checks; R18 S1 next.
 - 2026-10-11 · this chat · Tal: admin menu won't open on PC. Found `round17-s6` can't fast-forward onto `main` (3 docs commits; the merge is clean) → gave the merge steps. Rebuilt the S5 code in the sandbox (2560 / 1366 / zoom-sized viewports, dark, he, installed-app mode): admin always renders. Tal's screenshot showed the zoomed PC in the phone layout → Tal: phone UI only on real phones → wrote `docs/ROUND17-S7.md`. Empty admin content then diagnosed from Tal's console: `#admin-main` / `.ad-top` / `.ad-body` computed `display:none`, no inline style, no external sheet → ad blocker; EasyList has `##.ad-main`, `##.ad-top`, `##.ad-body`, `##.ad-side` → S7 X1 rewritten (rename `ad-*`, new `test:adblock` with a vendored EasyList generic snapshot), X1 runs first. Tal confirmed: ad blocker off → panel shows.
