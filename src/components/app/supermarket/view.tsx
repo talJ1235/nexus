@@ -18,6 +18,7 @@ import { patchSmHome, useSmHome, type SmHome } from "./data";
 import { asItem, chainDef, monoColor, useAddMany, useEstimate, useMonthLeft } from "./numbers";
 import { onSmIntent, takeSmIntent, type SmIntent } from "./intent";
 import { AddScreen, type AddMode } from "./add-screen";
+import { Capture } from "./capture";
 import { useVoiceSupported } from "./add-screen";
 import { qtyLabel } from "./qty";
 import { useOutboxCount } from "./outbox-count";
@@ -53,6 +54,7 @@ export function SupermarketView() {
   const addMany = useAddMany();
   // B2: the Add screen (typing / voice / paste); scan + photo arrive with B3.
   const [adding, setAdding] = useState<AddMode | null>(null);
+  const [capturing, setCapturing] = useState<"scan" | "photo" | null>(null);
   const openAdd = (m: AddMode | "scan" | "photo") => {
     if (m === "scan" || m === "photo") return capture(m);
     setAdding(m);
@@ -68,6 +70,7 @@ export function SupermarketView() {
     const runIntent = (k: SmIntent) => {
       if (k === "add") setAdding("type");
       if (k === "build") setBasketOn(true);
+      if (k === "scan" || k === "photo") setCapturing(k);
     };
     take();
     return onSmIntent(take);
@@ -104,6 +107,7 @@ export function SupermarketView() {
       <StoreLine home={home} />
       {s.sm.length > 0 && <Rail groups={groups} />}
       {!ro && <AddField onOpen={openAdd} />}
+      {!ro && <Capture open={capturing != null} mode={capturing ?? "scan"} onClose={() => setCapturing(null)} onType={() => (setCapturing(null), setAdding("type"))} />}
       <AddScreen open={adding != null} mode={adding ?? "type"} onClose={() => setAdding(null)} onCapture={(k) => (setAdding(null), capture(k))} />
       {first ? (
         <FirstTime basketSize={Math.min(WEEKLY_BASKET_SIZE, basket.length)} onBasket={() => void addBasket(basket.slice(0, WEEKLY_BASKET_SIZE))} onBuild={() => setBasketOn(true)} onPaste={() => setAdding("paste")} />
@@ -121,9 +125,9 @@ export function SupermarketView() {
     </div>
   );
 
-  /** B3: the scanner / the package photo (wired in B3). */
+  /** B3: the scanner / the package photo. */
   function capture(k: "scan" | "photo") {
-    void k;
+    setCapturing(k);
   }
 
   async function addBasket(items: BasketItem[]) {

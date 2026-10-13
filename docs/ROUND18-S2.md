@@ -65,7 +65,7 @@ only a count is set (and the reverse). Store mode and the list show both ("6 · 
 ### B2. [x] Add screen (P3, `Add-phone`)
 As the board + count/weight from B1 (the qty sheet has the two steppers side by side as `ItemSheet-phone`). Duplicate →
 "Milk is already on the list — now ×3" with Undo. Paste/voice split preview.
-### B3. [ ] Scan + photo (P4, P5, `Capture-phone`)
+### B3. [x] Scan + photo (P4, P5, `Capture-phone`)
 Existing scanner. States: found (known to this home), already on the list (shows the merged count), unknown barcode
 (name it once, section guess, barcode kept for the home), photo reading → matched to the home's product → not sure (3
 choices) → daily AI limit reached (type / scan still work). Photo counts in the AI quota (feature `grocery`).
@@ -155,6 +155,7 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 - A3 done — Home "Next shop" card (`supermarket/trip.tsx` NextShopCard: next shop day / today is your shop, items + estimate, left this month, section chips, suggestions count; my trip: progress ring, Finish/Resume; someone else's: Add for them; first list: basic basket / build my list) and the trip bar above the dock on every phone screen (mine / other / offline / everything checked). Server: `openTripsOf` + usual day in `homeState`; client `SmHomeSync` refreshes on list changes, feed updates and every 20 s during a trip. Smoke step + parity a3-*.png.
 - B1 done — nullable `items.count` (`db/migrate-r18s2.ts`); parser: "6 עגבניות" → count 6, "קילו עגבניות" → 1 kg, "קילו עגבניות, בערך 6" / "about 6" / "כ־6" → both; `lib/grocery/weights.ts` (unit weight learned per product per home from rows with both, fallback table); rows read "6 · 1 kg", "6 · ≈ 0.9 kg", "1 kg · ≈ 7"; add/merge/undo carry count; `test:grocery` +B1 lines (he + en); rehearsal `scripts/r18s2-rehearsal.mjs` (dry run on a local copy: only items.count added, nothing else changed).
 - B2 done — Add screen `supermarket/add-screen.tsx` (full screen on phones, dialog on computers): type-ahead with the typed letters bold + On list badges, Did you mean + Add as new, quantity read from the line with the count + weight steppers (`qty-steppers.tsx`, shared with C2) and "×2 now → ×4 after adding", merge toast "Already on the list — now ×4" with Undo, voice (Web Speech) and paste → checked split preview (notes unchecked) → Add N; You usually buy chips. Smoke step + parity b2-add.png.
+- B3 done — supermarket capture `supermarket/capture.tsx` (Barcode | Photo, the existing camera + decoder): scan → the home's own product (found / already on the list with the merged count "Add — now ×4"), a public one (Open Food Facts, shared cache) or an unknown barcode named once (section guess, the barcode kept on the home's row); photo → `smPhoto` (AI feature `grocery`, counts in the quota) matched to the home's product, else 3 choices (home first), or the daily limit (type / scan still work); `smAiAllowance` counter. `test:capture` (fixture barcodes + AI mock, every state + the UI). Parity b3-capture.png.
 ### Decisions
 - A1: The board's flat bottom bar is not taken: the app keeps its floating dock (R14) with the new tabs/icons.
 - A1: Tab-4 use counts live on the device (localStorage `nexus.tabUse`, 30 days); the tab is chosen once per page load so it never swaps under a finger; a tie keeps the Supermarket.
@@ -171,5 +172,7 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 - B1: Unit weights are learned from purchases that carry both a count and a weight (trip checks with qty + amount, rows with count + amount); receipts give weights only, so they teach nothing alone.
 - B2: The Add field on the tab opens the Add screen (no inline typing); Enter adds the household's match when the typed name is it, else the line as typed.
 - B2: The mic is shown only where the browser has speech recognition (decided after hydration).
+- B3: The mock photo reader takes its answer from the image bytes ("mock:<title>|<confidence>|…") so tests can drive matched / unsure.
+- B3: A public product found by barcode for the first time is shown as "New for this home"; it becomes known (Known · At home) once added (its barcode stays on the row).
 ### For Tal
 - Prod snapshot was refused to the agent at session start (2026-10-13). Run in `nexus/`: `node --env-file=.env.local scripts/db-snapshot.mjs` → `snapshots/prod-2026-10-13.db`; the S2 rehearsal uses the newest `snapshots/prod-*.db`.

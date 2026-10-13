@@ -17,7 +17,7 @@ import { haptic, photoToDataUrl, useCamera } from "./use-camera";
 import { getBarcodeReader, prewarmScanners } from "@/lib/barcode-reader";
 
 /** Reads barcodes from the live video: native BarcodeDetector where available, else zxing-wasm (lazy, self-hosted). */
-function useBarcodeReader(videoRef: React.RefObject<HTMLVideoElement | null>, active: boolean, onCode: (code: string) => void) {
+export function useBarcodeReader(videoRef: React.RefObject<HTMLVideoElement | null>, active: boolean, onCode: (code: string) => void) {
   const cb = useRef(onCode);
   useEffect(() => {
     cb.current = onCode;

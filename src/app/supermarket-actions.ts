@@ -1,6 +1,6 @@
 "use server";
 import { after } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import { schema } from "@/db";
 import { requireCtx, AccessError } from "@/lib/ctx";
@@ -10,7 +10,12 @@ import * as T from "@/lib/db-scoped/trips";
 import { userPrefGet, userPrefSet } from "@/lib/db-scoped/prefs";
 import { kvGet, kvSet } from "@/lib/kv";
 import { noteActivity } from "@/lib/activity";
-import { aiUseOf } from "@/lib/ai-gate";
+import { aiAllowance, aiGate, aiUse, aiUseOf, recordAiUsage } from "@/lib/ai-gate";
+import { generateJson } from "@/lib/ai";
+import { mockAi } from "@/lib/assistant";
+import { classifyBarcode } from "@/lib/barcode";
+import { classifyLocal } from "@/lib/grocery/classify";
+import { typeAhead } from "@/lib/grocery/search";
 import { classifyUnknown, fromAi } from "@/lib/grocery/classify-server";
 import { splitList } from "@/lib/grocery/parse";
 import { DRAFT_PREF_KEY } from "@/lib/notify/kinds";
@@ -68,7 +73,7 @@ function announceAdd(s: Scoped, userId: string, rows: { id: string; title: strin
 // ---------- C2: add with merge, undo ----------
 
 const Count = z.number().int().min(1).max(999).nullish();
-const AddZ = z.object({ title: Title, qty: Qty, amount: Amount, unit: Unit, count: Count, gtin: z.string().regex(/^\d{8,14}$/).nullish(), productKey: Key.nullish(), notes: z.string().max(500).nullish() }).strict();
+const AddZ = z.object({ title: Title, qty: Qty, amount: Amount, unit: Unit, count: Count, section: z.string().max(20).nullish(), gtin: z.string().regex(/^\d{8,14}$/).nullish(), productKey: Key.nullish(), notes: z.string().max(500).nullish() }).strict();
 
 /** Add to the supermarket list. Already there (to buy) → its quantity grows: `{ merged: true, now }` for the toast + Undo. */
 export async function addToSupermarket(input: z.input<typeof AddZ>) {
@@ -300,4 +305,140 @@ export async function syncTripOps(ops: z.input<typeof OpZ>[]) {
   classifyAfter(s, r.added);
   announceAdd(s, ctx.user.id, r.added);
   return { applied: r.applied, skipped: r.skipped, idMap: r.idMap, items: r.items };
+}
+
+// ---------- S2 B3: scan + photo ----------
+
+export type CaptureProduct = { title: string; productKey: string; section: string; art: string | null; gtin: string | null; mine: boolean; count: number };
+export type ScanResult =
+  | { state: "found"; code: string; product: CaptureProduct; listed: ItemRow | null; known: "home" | "public" }
+  | { state: "unknown"; code: string; guess: CaptureProduct | null; sections: string[] };
+type ItemRow = typeof schema.items.$inferSelect;
+
+/** The supermarket rows that carry this barcode (any status: a product bought once is known to the home). */
+async function homeByGtin(s: Scoped, code: string) {
+  const cls = classifyBarcode(code);
+  const key = cls.kind === "gtin" ? cls.key : cls.code;
+  const rows = await s.select(schema.items, and(eq(schema.items.list, "supermarket"), isNotNull(schema.items.gtin)));
+  return rows.filter((r) => r.gtin === code || (cls.kind === "gtin" && r.gtin && classifyBarcode(r.gtin).kind === "gtin" && (classifyBarcode(r.gtin) as { key: string }).key === key)).sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+/** Public product databases (Open Food Facts), the shared cache the Products scanner uses too. Mock: nothing. */
+async function publicTitle(code: string): Promise<string | null> {
+  const cls = classifyBarcode(code);
+  if (cls.kind !== "gtin") return null;
+  const cacheKey = `barcode:${cls.key}`;
+  const cached = await kvGet(cacheKey).catch(() => null);
+  if (cached) return (JSON.parse(cached) as { hit: { title?: string } | null }).hit?.title ?? null;
+  if (mockAi()) return null;
+  try {
+    const { safeFetch } = await import("@/lib/safe-fetch");
+    const res = await safeFetch(`https://world.openfoodfacts.org/api/v2/product/${cls.code}.json?fields=product_name,product_name_he,product_name_en,brands`, { headers: { "user-agent": "Nexus/1.0 (personal shopping list)" }, timeoutMs: 5000, maxBytes: 1_000_000 });
+    const p = res.ok ? (JSON.parse(res.text) as { status?: number; product?: { product_name?: string; product_name_he?: string; product_name_en?: string; brands?: string } }) : null;
+    const title = p?.status === 1 ? (p.product?.product_name_he || p.product?.product_name || p.product?.product_name_en || "").trim() : "";
+    await kvSet(cacheKey, JSON.stringify({ hit: title ? { source: "off", title } : null, at: Date.now() })).catch(() => {});
+    return title || null;
+  } catch {
+    return null;
+  }
+}
+
+const asProduct = (title: string, gtin: string | null, mine: boolean, count = 0, row?: ItemRow): CaptureProduct => {
+  const c = classifyLocal(title, gtin);
+  return { title, productKey: row?.productKey ?? c.productKey, section: row?.section ?? c.section, art: row?.artKey ?? c.art, gtin, mine, count };
+};
+
+/** Scan in the supermarket: the home's own product (found / already on the list), a public one, or unknown (name it once). */
+export async function smScan(raw: string): Promise<ScanResult> {
+  const ctx = await requireCtx("view");
+  const code = z.string().trim().regex(/^[\d\s-]{6,20}$/).parse(raw).replace(/[\s-]/g, "");
+  const s = scoped(ctx);
+  const own = await homeByGtin(s, code);
+  if (own.length) {
+    const r = own[0];
+    const listed = own.find((x) => x.status === "to_buy") ?? (r.productKey ? ((await s.select(schema.items, and(eq(schema.items.list, "supermarket"), eq(schema.items.status, "to_buy"), eq(schema.items.productKey, r.productKey))).limit(1))[0] ?? null) : null);
+    return { state: "found", code, product: asProduct(r.title, code, true, own.length, r), listed, known: "home" };
+  }
+  const title = await publicTitle(code);
+  if (title) {
+    const p = asProduct(title, code, false);
+    const [listed] = await s.select(schema.items, and(eq(schema.items.list, "supermarket"), eq(schema.items.status, "to_buy"), eq(schema.items.productKey, p.productKey))).limit(1);
+    return { state: "found", code, product: p, listed: listed ?? null, known: "public" };
+  }
+  return { state: "unknown", code, guess: null, sections: ["snack", "bfast", "dry"] };
+}
+
+export type PhotoResult =
+  | { state: "matched"; product: CaptureProduct; listed: ItemRow | null }
+  | { state: "unsure"; choices: CaptureProduct[] }
+  | { state: "limit" }
+  | { state: "failed" };
+
+type PhotoGuess = { title: string; confidence: number; others: string[] };
+
+/** Mock (tests): the image's base64 decodes to "mock:<title>|<confidence>|<other>|<other>". */
+function mockGuess(data: string): PhotoGuess | null {
+  try {
+    const text = Buffer.from(data, "base64").toString("utf8");
+    if (!text.startsWith("mock:")) return { title: "Mock product", confidence: 0.4, others: [] };
+    const [title, conf, ...others] = text.slice(5).split("|");
+    return { title, confidence: Number(conf) || 0, others };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Photo of a package → the product, matched to this home's own products: one sure match ("matched"), else three choices
+ * (the home's first, then the dictionary), or the daily AI limit (typing and scanning still work). Counts in the
+ * person's AI quota (feature `grocery`).
+ */
+export async function smPhoto(input: { image: string }): Promise<PhotoResult> {
+  const ctx = await requireCtx("edit");
+  const { image } = z.object({ image: z.string().max(6_000_000) }).strict().parse(input);
+  const m = image.match(/^data:(image\/[\w+.-]+);base64,(.+)$/);
+  if (!m) throw new Error("invalid_image");
+  const use = aiUse(ctx, "grocery");
+  const gate = await aiGate(use);
+  if (!gate.ok) return gate.reason === "quota" ? { state: "limit" } : { state: "failed" };
+  let guess: PhotoGuess | null;
+  if (mockAi()) {
+    guess = mockGuess(m[2]);
+    await recordAiUsage(use, { provider: "mock", model: "mock", ok: true, ms: 0 });
+  } else
+    guess = await generateJson<PhotoGuess>(
+      'This photo shows one grocery product (a package, a fruit, a bottle). Name it the way a shopping list would: product + variant/size, in the language printed on it (Hebrew stays Hebrew). "confidence": 0–1, how sure you are. "others": up to 2 other products it could be.',
+      { type: "object", properties: { title: { type: "string" }, confidence: { type: "number" }, others: { type: "array", items: { type: "string" } } }, required: ["title", "confidence", "others"] },
+      { use, file: { mimeType: m[1], data: m[2] }, budgetMs: 25_000 },
+    );
+  if (!guess?.title) return { state: "failed" };
+  const s = scoped(ctx);
+  const household = await G.householdProducts(s);
+  const pick = (title: string) => {
+    const hit = typeAhead(title, household, { limit: 3 }).hits.find((h) => h.source === "household");
+    return hit ? asProduct(hit.title, null, true, household.find((x) => x.productKey === hit.productKey)?.count ?? 0) : null;
+  };
+  const best = pick(guess.title);
+  const listedOf = async (p: CaptureProduct) => (await s.select(schema.items, and(eq(schema.items.list, "supermarket"), eq(schema.items.status, "to_buy"), eq(schema.items.productKey, p.productKey))).limit(1))[0] ?? null;
+  if (best && guess.confidence >= 0.75) return { state: "matched", product: best, listed: await listedOf(best) };
+  if (!best && guess.confidence >= 0.85) {
+    const p = asProduct(guess.title, null, false);
+    return { state: "matched", product: p, listed: await listedOf(p) };
+  }
+  const seen = new Set<string>();
+  const choices: CaptureProduct[] = [];
+  for (const t of [guess.title, ...guess.others]) {
+    const p = pick(t) ?? asProduct(t, null, false);
+    if (seen.has(p.productKey)) continue;
+    seen.add(p.productKey);
+    choices.push(p);
+  }
+  return { state: "unsure", choices: choices.slice(0, 3) };
+}
+
+/** The photo counter ("7 of 40 today"): this person's AI uses left today (null limit = unlimited). */
+export async function smAiAllowance() {
+  const ctx = await requireCtx("view");
+  const a = await aiAllowance(ctx.user.id);
+  return { used: a.used, limit: a.limit, left: a.left, on: a.on };
 }

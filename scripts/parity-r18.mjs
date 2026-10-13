@@ -85,6 +85,13 @@ const addPaste = async (p) => {
   await p.click("[data-add-chip=paste]");
   await p.fill("[data-add-paste]", ["Noa: for tomorrow", "milk", "2 cucumbers", "toilet paper!!", "something nice for Shabbat"].join(String.fromCharCode(10)));
 };
+const scanCode = (code) => async (p) => {
+  await p.click("[data-sm-add-scan]");
+  await p.click("[data-cap-type-code]").catch(() => {});
+  await p.fill("[data-cap-code]", code);
+  await p.click("[data-cap-lookup]");
+  await p.waitForSelector("[data-cap-sheet=unknown], [data-cap-sheet=found]", { timeout: 8000 }).catch(() => {});
+};
 const SHOTS = [
   // A2 — the Supermarket tab.
   ["a2-main-phone", [["board · normal", "Supermarket-phone", { ...EN, state: "normal" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM }], ["board · he dark plum", "Supermarket-phone", { ...HE, state: "normal", dark: true, palette: "plum" }, PHONE], ["app · he dark plum", "/supermarket", PHONE, { wait: SM, he: true, dark: true, plum: true }]], 300],
@@ -94,6 +101,8 @@ const SHOTS = [
   ["a3-trip-bar", [["board · mine", "TripBar-phone", { ...EN, trip: "I am shopping" }, PHONE], ["app · Products", "/?v=to_buy", PHONE, { wait: "[data-trip-bar]", trip: true }], ["board · he dark", "TripBar-phone", { ...HE, trip: "I am shopping", dark: true }, PHONE], ["app · he dark Insights", "/?v=spending", PHONE, { wait: "[data-trip-bar]", trip: true, he: true, dark: true }]], 300],
   // B2 — the Add screen: type-ahead, a quantity merged into a row on the list, a pasted list.
   ["b2-add", [["board · type-ahead", "Add-phone", { ...EN, state: "type-ahead" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: addType("mil") }], ["board · quantity", "Add-phone", { ...EN, state: "quantity parse" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: addType("2 milk 3%", true) }], ["board · paste", "Add-phone", { ...EN, state: "paste a list" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: addPaste }], ["board · he dark", "Add-phone", { ...HE, state: "type-ahead", dark: true }, PHONE], ["app · he dark", "/supermarket", PHONE, { wait: SM, he: true, dark: true, act: addType("חל") }]], 240],
+  // B3 — capture: an unknown barcode (name it once) and the photo mode at rest (headless has no camera: dark frame).
+  ["b3-capture", [["board · unknown barcode", "Capture-phone", { ...EN, state: "scan · unknown barcode" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: scanCode("7290000002025") }], ["board · photo aiming", "Capture-phone", { ...EN, state: "photo · aiming" }, PHONE], ["app · photo", "/supermarket", PHONE, { wait: SM, act: async (p) => { await p.click("[data-sm-add-photo]"); } }]], 300],
 ];
 
 /** A trip of mine in the personal space: 23 planned, the first 12 listed rows checked with their prices. */
