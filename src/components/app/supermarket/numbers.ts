@@ -89,11 +89,14 @@ export const monoColor = (c: string | null | undefined) => MONO[c ?? ""] ?? MONO
 
 export const chainDef = (chain: string | null | undefined) => (chain ? STORES.find((x) => x.id === chain || x.en === chain || x.he === chain) ?? null : null);
 
+const FSI = String.fromCharCode(0x2068);
+const PDI = String.fromCharCode(0x2069);
+
 /** "Shufersal · Herzl St." in the reader's language (null = no store chosen). */
 export function storeLabel(chain: string | null | undefined, branch: string | null | undefined, locale: string) {
   if (!chain) return null;
   const d = chainDef(chain);
   const name = d ? (locale === "he" ? d.he : d.en) : chain;
   // First-strong isolates: an English branch inside a Hebrew sentence keeps its own order ("Herzl St." stays whole).
-  return `⁨${branch ? `${name} · ${branch}` : name}⁩`;
+  return `${FSI}${branch ? `${name} · ${branch}` : name}${PDI}`;
 }
