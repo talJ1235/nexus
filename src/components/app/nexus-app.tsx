@@ -48,6 +48,7 @@ import { CompareSheet } from "./compare-sheet";
 import { Celebration, PullToRefresh } from "./motion-extras";
 import { ShoppingMode, ShopOutboxSync } from "./shopping-mode";
 import { SupermarketBridge } from "./supermarket/sm-bridge";
+import { SupermarketView } from "./supermarket/view";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
@@ -159,7 +160,13 @@ function Shell({ incoming }: { incoming?: Incoming }) {
               ) : s.view.type === "spending" ? (
                 <SpendingView />
               ) : s.view.type === "projects" ? (
-                s.loading ? <ContentSkeleton /> : <ProjectsView />
+                <>
+                  {/* R18 S2 A1: on phones Projects is the third segment of Products (unless the dock's tab 4 is Projects). */}
+                  {s.tab4 === "supermarket" && <ShoppingHeader className="desk:hidden" />}
+                  {s.loading ? <ContentSkeleton /> : <ProjectsView inProducts={s.tab4 === "supermarket"} />}
+                </>
+              ) : s.view.type === "supermarket" ? (
+                <SupermarketView />
               ) : (
                 <>
                   <ViewHeader />
@@ -289,6 +296,7 @@ function ReceiptDrop() {
 const isShop = (v: ReturnType<typeof useStore>["view"]) => v.type === "to_buy" || v.type === "ordered";
 function viewKey(v: ReturnType<typeof useStore>["view"], phone = false) {
   if (phone && isShop(v)) return "shop";
+  if (phone && v.type === "projects") return "shop-projects";
   return v.type === "collection" ? `c:${v.id}` : v.type === "store" ? `s:${v.key}` : v.type;
 }
 

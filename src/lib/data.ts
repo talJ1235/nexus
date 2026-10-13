@@ -65,7 +65,8 @@ export async function getAppData(s: Scoped, userId: string, space?: SpaceInfo, m
     loadHomePrefs(userId, s.spaceId),
     loadBudgetWarn(s),
   ]);
-  return { collections, items, supermarket, altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, budgetWarn, alerts, home, rev, ...(space ? { space } : {}), ...(me ? { me: { ...me, ...(await fresh) } } : {}) };
+  // R18 S2: the client shows the list to buy; bought rows live on in trips / history (server reads).
+  return { collections, items, supermarket: supermarket.filter((i) => i.status === "to_buy"), altGroups, storeSettings, budget, rates, aiEnabled: aiEnabled(), importLimitUsd, budgetWarn, alerts, home, rev, ...(space ? { space } : {}), ...(me ? { me: { ...me, ...(await fresh) } } : {}) };
 }
 
 /** R16 D2: Space settings → Budget → "Warn everyone at 80%" (space pref; on unless turned off). */

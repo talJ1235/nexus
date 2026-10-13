@@ -1,3 +1,4 @@
+import { smEn } from "./sm-en";
 export const en = {
   appName: "Nexus",
   tagline: "Everything you plan to buy, in one place",
@@ -2536,6 +2537,7 @@ export const en = {
     legal: "Privacy · Terms",
     formerMember: "Former member",
   },
+  sm: smEn,
 } as const;
 
 type Widen<T> = { [K in keyof T]: T[K] extends string ? string : Widen<T[K]> };

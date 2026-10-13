@@ -19,6 +19,13 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icons/icon-512.png?v=3", sizes: "512x512", type: "image/png" },
       { src: "/icons/maskable-512.png?v=3", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
+    // R18 S2 A1: long-press the app icon → the supermarket's quick actions (the dock's long-press menu, same targets).
+    shortcuts: [
+      { name: "Add to list", short_name: "Add", url: "/?v=supermarket&do=add", icons: [{ src: "/icons/icon-192.png?v=3", sizes: "192x192" }] },
+      { name: "Scan a barcode", short_name: "Scan", url: "/?v=supermarket&do=scan", icons: [{ src: "/icons/icon-192.png?v=3", sizes: "192x192" }] },
+      { name: "Photo of a product", short_name: "Photo", url: "/?v=supermarket&do=photo", icons: [{ src: "/icons/icon-192.png?v=3", sizes: "192x192" }] },
+      { name: "Start shopping", short_name: "Shop", url: "/?v=supermarket&do=shop", icons: [{ src: "/icons/icon-192.png?v=3", sizes: "192x192" }] },
+    ],
     share_target: {
       action: "/share",
       method: "GET",

@@ -1,34 +1,35 @@
 "use client";
 
 import { startTransition, useMemo, useState } from "react";
-import { ChevronDown, LayoutGrid, List, ShoppingCart, Truck } from "lucide-react";
+import { ChevronDown, LayoutGrid, List } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { countable, lineTotal } from "@/lib/calc";
 import { dayKeyIn, deliveryTrack } from "@/lib/home";
-import { formatMoney, formatMoneyShort } from "@/lib/money";
-import { FitMoney } from "@/components/ui/fit-money";
+import { formatMoney } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BuyFilterChips } from "./buy-filters";
 import { useStore, type SortKey } from "./store";
+import { rememberShopTab } from "./phone-shell";
 import { COLLECTION_COLORS } from "./view-items";
 
 /**
- * Phone "Shopping" tab (Round 13 B2): To buy ⇄ On the way as two big segmented cards with a sliding thumb, then a
- * toolbar (sort, a muted summary, list ⇄ grid). Shown < 1024 px on the To buy and On the way views; desktop keeps its
- * own headers. The list below slides in from the end side (going to On the way) or the start side (back).
+ * Phone "Products" tab (R18 S2 A1, was Shopping — Round 13 B2): the title, To buy · On the way · Projects as one
+ * segmented control with a sliding thumb, then (To buy / On the way) a toolbar (sort, a muted summary, list ⇄ grid).
+ * Phones only; desktop keeps its own headers. The list below slides in from the end side (forward) or the start side.
  */
 export function ShoppingHeader({ className }: { className?: string }) {
   const s = useStore();
   const { t } = useI18n();
+  const projects = s.view.type === "projects";
   return (
-    <div className={cn("mb-3 flex flex-col gap-2", className)} data-shop-header>
-      <h1 className="sr-only">{s.view.type === "ordered" ? t.shopTab.onTheWay : t.shopTab.toBuy}</h1>
+    <div className={cn("mb-3 flex flex-col gap-2.5", className)} data-shop-header>
+      <h1 className="text-[26px] font-extrabold tracking-[-0.02em]">{t.sm.products}</h1>
       <ShopSwitch />
       {/* R14 B4: the same filter chips as the desktop toolbar, To buy side only. */}
       {s.view.type === "to_buy" && <BuyFilterChips className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none]" />}
-      <ShopToolbar />
+      {!projects && <ShopToolbar />}
     </div>
   );
 }
@@ -48,56 +49,56 @@ function useShopNumbers() {
   }, [s.items, s.altGroups, s.rates, s.currency, s.clock]);
 }
 
+type Seg = "to_buy" | "ordered" | "projects";
+const SEGS: Seg[] = ["to_buy", "ordered", "projects"];
+
+/**
+ * R18 S2 A1 (Nav-phone): Products = To buy · On the way · Projects as one segmented control with a sliding thumb (was two
+ * big cards). The thumb moves on the tap itself (a compositor transition); the list renders in a transition after it.
+ */
 function ShopSwitch() {
   const s = useStore();
-  const { t, f, locale, dir } = useI18n();
+  const { t, dir } = useI18n();
   const n = useShopNumbers();
-  // The thumb moves on the tap itself (a compositor transition); the list renders in a transition after it, so a long
-  // list never holds the thumb back.
-  const actual = s.view.type === "ordered";
-  const [pending, setPending] = useState<boolean | null>(null);
+  const actual: Seg = s.view.type === "ordered" ? "ordered" : s.view.type === "projects" ? "projects" : "to_buy";
+  const [pending, setPending] = useState<Seg | null>(null);
   if (pending != null && pending === actual) setPending(null);
-  const way = pending ?? actual;
-  const day = n.next != null ? new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { weekday: "short", timeZone: s.clock.tz }).format(new Date(n.next)) : null;
-  const waySub = day ? (n.late ? f(t.shopTab.waySubLate, { day, n: n.late }) : f(t.shopTab.waySub, { day })) : n.late ? f(t.shopTab.wayLate, { n: n.late }) : n.ordered ? t.shopTab.noDate : t.shopTab.wayNone;
-  // Polish #23: the amount turns compact (₪62.2B) when the line doesn't fit — never an ellipsis on the number.
-  const money = <FitMoney full={formatMoney(Math.round(n.total), s.currency, locale)} short={formatMoneyShort(Math.round(n.total), s.currency, locale)} />;
-  const [subA, subB] = t.shopTab.buySub.split("{amount}");
-  const cards = [
-    { v: "to_buy" as const, icon: <ShoppingCart />, label: t.shopTab.toBuy, count: n.toBuy, sub: n.urgent ? <>{subA}{money}{f(subB, { n: n.urgent })}</> : money, tone: "bg-warn-soft text-warn" },
-    { v: "ordered" as const, icon: <Truck />, label: t.shopTab.onTheWay, count: n.ordered, sub: waySub, tone: "bg-info-soft text-info" },
+  const on = pending ?? actual;
+  const projects = s.collections.filter((c) => !c.archived).length;
+  const segs: { v: Seg; label: string; count: number }[] = [
+    { v: "to_buy", label: t.shopTab.toBuy, count: n.toBuy },
+    { v: "ordered", label: t.shopTab.onTheWay, count: n.ordered },
+    { v: "projects", label: t.sm.projectsSeg, count: projects },
   ];
+  const k = SEGS.indexOf(on);
   return (
-    <div className="relative grid grid-cols-2 rounded-2xl border border-card-line bg-surface-2 p-1" role="tablist" aria-label={t.shopTab.switchLabel} data-shop-switch={way ? "ordered" : "to_buy"}>
+    <div className="relative grid grid-cols-3 rounded-[14px] border border-card-line bg-surface-2 p-1" role="tablist" aria-label={t.sm.segLabel} data-shop-switch={on}>
       {/* The thumb slides with a soft spring; RTL slides the other way. */}
       <span
         aria-hidden
-        className="shop-thumb absolute bottom-1 start-1 top-1 w-[calc(50%-4px)] rounded-xl border border-card-line bg-surface shadow-[0_2px_10px_rgb(0_0_0/0.08)]"
-        style={{ transform: way ? `translateX(${dir === "rtl" ? "-100%" : "100%"})` : "translateX(0)" }}
+        className="shop-thumb absolute bottom-1 start-1 top-1 w-[calc((100%-8px)/3)] rounded-[11px] border border-card-line bg-surface shadow-[0_2px_10px_rgb(0_0_0/0.08)]"
+        style={{ transform: `translateX(${dir === "rtl" ? -k * 100 : k * 100}%)` }}
         data-shop-thumb
       />
-      {cards.map((c) => {
-        const on = (c.v === "ordered") === way;
+      {segs.map((c) => {
+        const active = c.v === on;
         return (
           <button
             key={c.v}
             type="button"
             role="tab"
-            aria-selected={on}
+            aria-selected={active}
             onClick={() => {
-              if (on) return;
-              setPending(c.v === "ordered");
+              if (active) return;
+              setPending(c.v);
+              rememberShopTab(c.v);
               requestAnimationFrame(() => startTransition(() => s.setView({ type: c.v })));
             }}
-            className={cn("relative z-[1] flex min-w-0 flex-col gap-px rounded-xl px-3 py-2.5 text-start transition-colors duration-300", on ? "text-ink" : "text-muted")}
+            className={cn("relative z-[1] flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-[11px] px-1.5 text-[13.5px] font-bold transition-colors duration-300", active ? "text-ink" : "text-muted")}
             data-shop-tab={c.v}
           >
-            <span className="flex items-center gap-[7px] text-[12.5px] font-semibold">
-              <span className={cn("grid size-[22px] place-items-center rounded-[7px] transition-colors duration-300 [&_svg]:size-[13px]", on ? c.tone : "bg-surface-2")}>{c.icon}</span>
-              {c.label}
-            </span>
-            <b className={cn("tabular text-[22px] font-extrabold leading-tight tracking-[-0.02em] transition-colors duration-300", on ? "text-ink" : "text-muted")}>{c.count}</b>
-            <small className="truncate text-[11.5px]">{c.sub}</small>
+            <span className="truncate">{c.label}</span>
+            {c.count > 0 && <small className={cn("tabular shrink-0 text-[11.5px] font-semibold", active ? "text-muted" : "text-faint")}>{c.count}</small>}
           </button>
         );
       })}
@@ -107,13 +108,15 @@ function ShopSwitch() {
 
 function ShopToolbar() {
   const s = useStore();
-  const { t, f, dir } = useI18n();
+  const { t, f, dir, locale } = useI18n();
   const n = useShopNumbers();
   const way = s.view.type === "ordered";
   const sortLabels: Record<SortKey, string> = { newest: t.view.sortNewest, price: t.view.sortPrice, priority: t.view.sortPriority, name: t.view.sortName };
   const special = way ? s.shopSort.way === "arrival" : s.shopSort.buy === "project";
   const label = special ? (way ? t.shopTab.byArrival : t.shopTab.byProject) : sortLabels[s.sort];
-  const summary = way ? (n.late ? f(t.shopTab.wayLate, { n: n.late }) : "") : n.projects === 1 ? t.shopTab.projectsOne : n.projects ? f(t.shopTab.projectsN, { n: n.projects }) : "";
+  // R18 S2 A1: the To buy total moved here from the old switch cards.
+  const projectsLine = n.projects === 1 ? t.shopTab.projectsOne : n.projects ? f(t.shopTab.projectsN, { n: n.projects }) : "";
+  const summary = way ? (n.late ? f(t.shopTab.wayLate, { n: n.late }) : "") : [n.total > 0 ? formatMoney(Math.round(n.total), s.currency, locale) : "", projectsLine].filter(Boolean).join(" · ");
   const value = special ? "special" : s.sort;
   const grid = s.phoneLayout === "cards";
   return (

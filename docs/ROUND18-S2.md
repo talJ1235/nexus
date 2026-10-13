@@ -39,7 +39,7 @@ one line at the top of `docs/PLANNER.md` "Current state & handoff": "2026-10-13:
 Tal runs it." (docs only, same commit).
 
 ## Part A — the Supermarket tab and the shell
-### A1. [ ] Navigation (P15, P18, `Nav-phone`)
+### A1. [x] Navigation (P15, P18, `Nav-phone`)
 Phone dock = Home · Products · + · **Supermarket** · Insights. Products (renamed Shopping) has segments To buy · On the
 way · Projects. Long-press + → Add to list · Scan · Photo · Start shopping; app-icon shortcuts (manifest `shortcuts`).
 Tab 4 is chosen **by itself**: Projects if onboarding said "projects" and the person uses Projects more than the
@@ -150,6 +150,11 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 ## Open
 ### Progress
 - 0.1 done — part-2 boards (9 boards + `nx-sm2.css`) committed to `docs/design/r18/`; pointers in ROUND18 + PLANNER.
+- A1 done — dock Home · Products · + · Supermarket/Projects · Insights, long-press + menu, manifest shortcuts, Products segments (To buy · On the way · Projects), sidebar Supermarket + count, tab-4 rule `lib/dock-tab.ts` + `test:dock`; phone smoke steps updated + new.
 ### Decisions
+- A1: The board's flat bottom bar is not taken: the app keeps its floating dock (R14) with the new tabs/icons.
+- A1: Tab-4 use counts live on the device (localStorage `nexus.tabUse`, 30 days); the tab is chosen once per page load so it never swaps under a finger; a tie keeps the Supermarket.
+- A1: Products segments are plain labels + counts (board); the To buy total moved to the toolbar line.
+- A1: The board's List · Recipes switch is not built: recipes are R18b.
 ### For Tal
 - Prod snapshot was refused to the agent at session start (2026-10-13). Run in `nexus/`: `node --env-file=.env.local scripts/db-snapshot.mjs` → `snapshots/prod-2026-10-13.db`; the S2 rehearsal uses the newest `snapshots/prod-*.db`.

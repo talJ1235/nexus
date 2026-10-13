@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { ChartColumn, ChevronDown, Folder, House, Plus, Search, ShoppingBag, X } from "lucide-react";
+import { Camera, ChartColumn, ChevronDown, Folder, House, Plus, ScanBarcode, Search, ShoppingBasket, ShoppingCart, Tag, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ import { AskButton } from "./top-bar";
 import { PhoneSearchResults, rememberSearch } from "./phone-search";
 import { SpaceLook, useMeName } from "./spaces/space-ui";
 import { initialOf } from "@/lib/initial";
+import { requestSm, type SmIntent } from "./supermarket/intent";
 
 /** Phone / tablet (<1024 px) top bar = home-v4 (R14 B2): Box + "Nexus", then the search circle, the Ask circle and the
  *  bell (the inbox, R17 S3), avatar (Me), 36 px controls with ≥ 40 px tap areas. Search expands in place. */
@@ -111,30 +112,57 @@ export function PhoneTopBar() {
   );
 }
 
-type DockTarget = "home" | "shopping" | "projects" | "spending";
-const DOCK: { id: DockTarget; icon: React.ReactNode; label: (t: ReturnType<typeof useI18n>["t"]) => string }[] = [
-  { id: "home", icon: <House />, label: (t) => t.dash.title },
-  // Shopping (Round 13 B1): To buy ⇄ On the way in one tab; opens the sub-tab used last.
-  { id: "shopping", icon: <ShoppingBag />, label: (t) => t.shopTab.title },
-  { id: "projects", icon: <Folder />, label: (t) => t.projects.title },
+type DockTarget = "home" | "shopping" | "supermarket" | "projects" | "spending";
+type Dict = ReturnType<typeof useI18n>["t"];
+const DOCK: Record<DockTarget, { icon: React.ReactNode; label: (t: Dict) => string }> = {
+  home: { icon: <House />, label: (t) => t.dash.title },
+  // R18 S2 A1: "Products" (was Shopping) — To buy · On the way · Projects; opens the segment used last.
+  shopping: { icon: <Tag />, label: (t) => t.sm.products },
+  supermarket: { icon: <ShoppingBasket />, label: (t) => t.sm.title },
+  projects: { icon: <Folder />, label: (t) => t.projects.title },
   // "Insights": Spending · History (Round 11 B2).
-  { id: "spending", icon: <ChartColumn />, label: (t) => t.insights.title },
-];
+  spending: { icon: <ChartColumn />, label: (t) => t.insights.title },
+};
 
 const SHOP_TAB_KEY = "nexus.shopTab";
-/** The Shopping tab's last sub-tab (per device; default To buy). */
-export function lastShopTab(): "to_buy" | "ordered" {
+/** The Products tab's last segment (per device; default To buy). */
+export function lastShopTab(): "to_buy" | "ordered" | "projects" {
   try {
-    return localStorage.getItem(SHOP_TAB_KEY) === "ordered" ? "ordered" : "to_buy";
+    const v = localStorage.getItem(SHOP_TAB_KEY);
+    return v === "ordered" || v === "projects" ? v : "to_buy";
   } catch {
     return "to_buy";
   }
 }
-const dockOf = (v: View): DockTarget | null =>
-  v.type === "home" ? "home" : v.type === "to_buy" || v.type === "ordered" ? "shopping" : v.type === "collection" || v.type === "projects" ? "projects" : v.type === "orders" || v.type === "history" || v.type === "spending" ? "spending" : null;
+export function rememberShopTab(v: "to_buy" | "ordered" | "projects") {
+  try {
+    localStorage.setItem(SHOP_TAB_KEY, v);
+  } catch {}
+}
+/** Which dock tab a view lights. Projects belong to Products unless tab 4 is Projects (R18 S2 A1). */
+function dockOf(v: View, tab4: "supermarket" | "projects"): DockTarget | null {
+  switch (v.type) {
+    case "home":
+      return "home";
+    case "supermarket":
+      return "supermarket";
+    case "to_buy":
+    case "ordered":
+      return "shopping";
+    case "collection":
+    case "projects":
+      return tab4 === "projects" ? "projects" : "shopping";
+    case "orders":
+    case "history":
+    case "spending":
+      return "spending";
+    default:
+      return null;
+  }
+}
 
 /**
- * Floating dock: Home · Shopping · + · Projects · Insights (Round 13 B1) — physically left to right in every language
+ * Floating dock: Home · Products · + · Supermarket or Projects (R18 S2 A1) · Insights — physically left to right in every language
  * (Tal's decision: not mirrored in Hebrew; labels keep their own direction). Rendered into document.body so no animated
  * or transformed ancestor can move it; safe-area aware; hidden while items are selected.
  */
@@ -148,63 +176,184 @@ function DockBar() {
   const s = useStore();
   const { t } = useI18n();
   const plusOpen = usePlusOpen();
-  const active = dockOf(s.view);
+  const active = dockOf(s.view, s.tab4);
   const urgent = s.items.filter((i) => i.status === "to_buy" && i.priority === "urgent").length;
+  const [quick, setQuick] = useState(false);
+  const order: DockTarget[] = ["home", "shopping", s.tab4, "spending"];
   const go = (id: DockTarget) => s.setView(id === "shopping" ? { type: lastShopTab() } : { type: id });
-  const item = (d: (typeof DOCK)[number]) => (
-    <button
-      key={d.id}
-      type="button"
-      onClick={() => go(d.id)}
-      data-dock-target={d.id}
-      aria-label={d.id === "shopping" && urgent ? `${d.label(t)} (${urgent})` : d.label(t)}
-      aria-current={active === d.id ? "page" : undefined}
-      data-carry={`view:${d.id === "shopping" ? "to_buy" : d.id}`}
-      // R14 B2: icons with labels under them (Tal), active = ink, others muted.
-      className={cn(
-        "flex h-full min-w-0 flex-col items-center justify-center gap-[3px] text-[10.5px] font-semibold leading-none transition-[color,transform] duration-200 active:scale-95 [&_svg]:size-[21px] [&_svg]:stroke-[1.8]",
-        active === d.id ? "text-ink" : "text-muted",
-      )}
-    >
-      <span className="relative">
-        {d.icon}
-        {d.id === "shopping" && urgent > 0 && (
-          <span className="tabular absolute -end-2.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-warn px-1 text-[10px] font-bold leading-none text-bg" data-dock-badge>
-            {urgent}
-          </span>
-        )}
-      </span>
-      <span className="max-w-full truncate px-0.5" dir="auto" data-dock-label>
-        {d.label(t)}
-      </span>
-    </button>
-  );
-  return (
-    <nav
-      dir="ltr"
-      className="fixed inset-x-3 bottom-[calc(18px+env(safe-area-inset-bottom))] z-40 grid h-[62px] grid-cols-5 items-center rounded-full border border-line bg-surface px-1 text-ink shadow-[0_8px_28px_color-mix(in_srgb,var(--ink)_12%,transparent)] transition-[transform,opacity] duration-[320ms] ease-[var(--ease-out)] desk:hidden [[data-selecting]_&]:pointer-events-none [[data-selecting]_&]:translate-y-[140%] [[data-selecting]_&]:opacity-0"
-      aria-label="Main"
-      data-dock
-    >
-      {DOCK.slice(0, 2).map(item)}
-      {/* R15 C1: viewers get no "+" (nothing they could add). */}
-      {s.space?.role === "viewer" ? (
-        <span aria-hidden />
-      ) : (
+  const item = (id: DockTarget) => {
+    const d = DOCK[id];
+    return (
       <button
+        key={id}
         type="button"
-        onClick={() => s.setPlusOpen(!plusOpen)}
-        aria-label={plusOpen ? t.phone.closeMenu : t.phone.add}
-        aria-expanded={plusOpen}
-        data-plus
-        data-dock-target="plus"
-        className="grid size-[52px] place-items-center justify-self-center rounded-full bg-brand text-on-brand shadow-[0_8px_20px_color-mix(in_srgb,var(--brand)_40%,transparent)] active:scale-95"
+        onClick={() => go(id)}
+        data-dock-target={id}
+        aria-label={id === "shopping" && urgent ? `${d.label(t)} (${urgent})` : d.label(t)}
+        aria-current={active === id ? "page" : undefined}
+        data-carry={`view:${id === "shopping" ? "to_buy" : id}`}
+        // R14 B2: icons with labels under them (Tal), active = ink, others muted.
+        className={cn(
+          "flex h-full min-w-0 flex-col items-center justify-center gap-[3px] text-[10.5px] font-semibold leading-none transition-[color,transform] duration-200 active:scale-95 [&_svg]:size-[21px] [&_svg]:stroke-[1.8]",
+          active === id ? "text-ink" : "text-muted",
+        )}
       >
-        <Plus className={cn("size-6 transition-transform duration-200 ease-[var(--ease-out)]", plusOpen && "rotate-[135deg]")} strokeWidth={2.4} />
+        <span className="relative">
+          {d.icon}
+          {id === "shopping" && urgent > 0 && (
+            <span className="tabular absolute -end-2.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-warn px-1 text-[10px] font-bold leading-none text-bg" data-dock-badge>
+              {urgent}
+            </span>
+          )}
+        </span>
+        <span className="max-w-full truncate px-0.5" dir="auto" data-dock-label>
+          {d.label(t)}
+        </span>
       </button>
-      )}
-      {DOCK.slice(2).map(item)}
-    </nav>
+    );
+  };
+  // Long-press "+" (R18 S2 A1, Nav-phone): the quick supermarket menu; a plain tap keeps the "+" menu.
+  const press = useLongPress(() => {
+    s.setPlusOpen(false);
+    setQuick(true);
+    try {
+      navigator.vibrate?.(8);
+    } catch {}
+  });
+  return (
+    <>
+      <nav
+        dir="ltr"
+        className="fixed inset-x-3 bottom-[calc(18px+env(safe-area-inset-bottom))] z-40 grid h-[62px] grid-cols-5 items-center rounded-full border border-line bg-surface px-1 text-ink shadow-[0_8px_28px_color-mix(in_srgb,var(--ink)_12%,transparent)] transition-[transform,opacity] duration-[320ms] ease-[var(--ease-out)] desk:hidden [[data-selecting]_&]:pointer-events-none [[data-selecting]_&]:translate-y-[140%] [[data-selecting]_&]:opacity-0"
+        aria-label="Main"
+        data-dock
+      >
+        {order.slice(0, 2).map(item)}
+        {/* R15 C1: viewers get no "+" (nothing they could add). */}
+        {s.space?.role === "viewer" ? (
+          <span aria-hidden />
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              if (press.fired()) return;
+              if (quick) return setQuick(false);
+              s.setPlusOpen(!plusOpen);
+            }}
+            {...press.handlers}
+            onContextMenu={(e) => e.preventDefault()}
+            aria-label={plusOpen || quick ? t.phone.closeMenu : t.phone.add}
+            aria-expanded={plusOpen || quick}
+            aria-haspopup="menu"
+            data-plus
+            data-dock-target="plus"
+            className="grid size-[52px] select-none place-items-center justify-self-center rounded-full bg-brand text-on-brand shadow-[0_8px_20px_color-mix(in_srgb,var(--brand)_40%,transparent)] [-webkit-touch-callout:none] active:scale-95"
+          >
+            <Plus className={cn("size-6 transition-transform duration-200 ease-[var(--ease-out)]", (plusOpen || quick) && "rotate-[135deg]")} strokeWidth={2.4} />
+          </button>
+        )}
+        {order.slice(2).map(item)}
+      </nav>
+      <QuickMenu open={quick} onClose={() => setQuick(false)} />
+    </>
+  );
+}
+
+/** Press and hold (450 ms) → `fn`; `fired()` tells the click that follows to do nothing. */
+function useLongPress(fn: () => void, ms = 450) {
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const done = useRef(false);
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const cancel = () => {
+    clearTimeout(timer.current);
+    start.current = null;
+  };
+  return {
+    fired: () => {
+      const f = done.current;
+      done.current = false;
+      return f;
+    },
+    handlers: {
+      onPointerDown: (e: React.PointerEvent) => {
+        done.current = false;
+        start.current = { x: e.clientX, y: e.clientY };
+        clearTimeout(timer.current);
+        timer.current = setTimeout(() => {
+          done.current = true;
+          fn();
+        }, ms);
+      },
+      onPointerMove: (e: React.PointerEvent) => {
+        if (start.current && Math.hypot(e.clientX - start.current.x, e.clientY - start.current.y) > 10) cancel();
+      },
+      onPointerUp: cancel,
+      onPointerCancel: cancel,
+      onPointerLeave: cancel,
+    },
+  };
+}
+
+/** The long-press menu: Add to list · Scan · Photo · Start shopping — each opens the Supermarket doing it. */
+function QuickMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const s = useStore();
+  const { t } = useI18n();
+  useBackClose(open, onClose, isPhone);
+  useEffect(() => {
+    if (!open) return;
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", key, true);
+    return () => window.removeEventListener("keydown", key, true);
+  }, [open, onClose]);
+  const rows: { k: SmIntent; icon: React.ReactNode; label: string }[] = [
+    { k: "add", icon: <Plus />, label: t.sm.quick.add },
+    { k: "scan", icon: <ScanBarcode />, label: t.sm.quick.scan },
+    { k: "photo", icon: <Camera />, label: t.sm.quick.photo },
+    { k: "shop", icon: <ShoppingCart />, label: t.sm.quick.shop },
+  ];
+  const pick = (k: SmIntent) => {
+    onClose();
+    if (s.view.type !== "supermarket") s.setView({ type: "supermarket" });
+    // The screen mounts first (a view switch), then takes the intent.
+    setTimeout(() => requestSm(k), 30);
+  };
+  return (
+    <div className="desk:hidden" data-quick-menu={open ? "open" : "closed"}>
+      <div
+        aria-hidden
+        onClick={onClose}
+        className={cn("fixed inset-0 z-[35] bg-[color-mix(in_srgb,var(--bg)_55%,transparent)] backdrop-blur-[6px] transition-opacity duration-200 ease-[var(--ease-out)]", open ? "opacity-100" : "pointer-events-none opacity-0")}
+      />
+      <div
+        role="menu"
+        aria-label={t.sm.quick.label}
+        aria-hidden={!open}
+        className={cn(
+          "fixed inset-x-0 bottom-[calc(96px+env(safe-area-inset-bottom))] z-[36] mx-auto w-[min(300px,calc(100%-40px))] origin-bottom rounded-[22px] border border-line bg-surface p-2 shadow-[0_18px_40px_color-mix(in_srgb,var(--ink)_18%,transparent)] transition-[opacity,transform] duration-200 ease-[var(--ease-out)]",
+          open ? "scale-100 opacity-100" : "pointer-events-none translate-y-3 scale-[0.96] opacity-0",
+        )}
+      >
+        {rows.map((r) => (
+          <button
+            key={r.k}
+            type="button"
+            role="menuitem"
+            tabIndex={open ? 0 : -1}
+            onClick={() => pick(r.k)}
+            data-quick={r.k}
+            className="flex min-h-[52px] w-full items-center gap-3.5 rounded-[14px] px-2.5 text-start text-[15px] font-semibold text-ink transition-[background-color,transform] duration-150 ease-[var(--ease-out)] active:scale-[0.98] active:bg-surface-2"
+          >
+            <span className={cn("grid size-9 shrink-0 place-items-center rounded-[11px] [&_svg]:size-[18px] [&_svg]:stroke-[1.9]", r.k === "shop" ? "bg-ink text-bg" : "bg-surface-2 text-ink")}>{r.icon}</span>
+            {r.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

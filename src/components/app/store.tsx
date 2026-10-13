@@ -22,6 +22,7 @@ import { cacheShell, saveSnapshot } from "@/lib/offline";
 import type { BudgetHistory } from "@/lib/budget";
 import type { ShopScope } from "@/lib/shop-outbox";
 import { isPhone } from "@/components/ui/use-device";
+import { dockTab4, noteTabUse, parseTabUse, type Tab4 } from "@/lib/dock-tab";
 import { useMedia } from "@/components/ui/use-media";
 
 export type { View };
@@ -45,7 +46,7 @@ export type SortKey = "newest" | "price" | "priority" | "name";
 type Editor = { mode: "create"; kind: "project" | "list" } | { mode: "edit"; collection: Collection } | null;
 
 /** Server-known state for the first paint: prefs from cookies, `?v=` from the URL. */
-export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; filter?: string | null; /** R17 A3: /settings[/<section>] — Settings is open from the first paint ("" = the section list). */ settings?: string | null; /** R17 S3: /inbox — the inbox is open from the first paint. */ inbox?: boolean; sidebarCollapsed?: boolean; phoneLayout?: PhoneLayout | null; homeLayout?: string | null; now?: number; tz?: string | null };
+export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; filter?: string | null; /** R17 A3: /settings[/<section>] — Settings is open from the first paint ("" = the section list). */ settings?: string | null; /** R17 S3: /inbox — the inbox is open from the first paint. */ inbox?: boolean; sidebarCollapsed?: boolean; phoneLayout?: PhoneLayout | null; homeLayout?: string | null; now?: number; tz?: string | null; /** R18 S2 A1: the onboarding "why" answers (the dock's tab 4). */ why?: string[] | null };
 
 /** Home's clock: the first paint uses the server's time + the saved time zone (same HTML on both sides), then the
  *  device's. weekStartsOn from the browser locale (Monday-first where it says so). */
@@ -69,6 +70,12 @@ type Store = {
   /** True while the shell is streamed before the data: content regions render skeletons. */
   loading: boolean;
   items: ItemWithSources[];
+  /** R18 S2: the space's supermarket list (to buy), kept apart from Products' `items`. */
+  sm: ItemWithSources[];
+  upsertSm: (rows: ItemWithSources[]) => void;
+  removeSm: (id: string) => void;
+  /** R18 S2 A1: the phone dock's fourth tab, chosen once per page load (lib/dock-tab). */
+  tab4: Tab4;
   collections: Collection[];
   altGroups: AltGroup[];
   setAltGroups: (g: AltGroup[]) => void;
@@ -275,7 +282,17 @@ export function useDataStore() {
 }
 
 /** Sidebar order: view switches slide forward/back along it. */
-const VIEW_ORDER: View["type"][] = ["home", "to_buy", "ordered", "orders", "history", "spending", "projects", "collection", "store"];
+const VIEW_ORDER: View["type"][] = ["home", "supermarket", "to_buy", "ordered", "orders", "history", "spending", "projects", "collection", "store"];
+
+/** R18 S2 A1: this device's per-day opens of Projects vs the Supermarket (the dock's tab 4, lib/dock-tab). */
+const TAB_USE_KEY = "nexus.tabUse";
+function noteTab(v: View) {
+  const side = v.type === "supermarket" ? "s" : v.type === "projects" || v.type === "collection" ? "p" : null;
+  if (!side) return;
+  try {
+    localStorage.setItem(TAB_USE_KEY, JSON.stringify(noteTabUse(parseTabUse(localStorage.getItem(TAB_USE_KEY)), side, Date.now())));
+  } catch {}
+}
 
 function viewToParam(v: View) {
   switch (v.type) {
@@ -322,6 +339,28 @@ export function StoreProvider({
   children: React.ReactNode;
 }) {
   const [items, setItems] = useState(initial.items);
+  const [sm, setSm] = useState<ItemWithSources[]>(initial.supermarket ?? []);
+  const upsertSm = useCallback((rows: ItemWithSources[]) => {
+    if (!rows.length) return;
+    setSm((prev) => {
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      const next = prev.map((p) => byId.get(p.id) ?? p).filter((p) => p.status === "to_buy");
+      const have = new Set(prev.map((p) => p.id));
+      return [...next, ...rows.filter((r) => !have.has(r.id) && r.status === "to_buy")];
+    });
+  }, []);
+  const removeSm = useCallback((id: string) => setSm((prev) => prev.filter((p) => p.id !== id)), []);
+  // The dock's tab 4 is decided once per load from the onboarding answer + this device's 30-day use (never mid-session,
+  // so it can't swap under a finger).
+  const [tab4, setTab4] = useState<Tab4>("supermarket");
+  useEffect(() => {
+    let use = {};
+    try {
+      use = parseTabUse(localStorage.getItem(TAB_USE_KEY));
+    } catch {}
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only counts */
+    setTab4(dockTab4(ui.why, use, Date.now()));
+  }, [ui.why]);
   const [collections, setCollections] = useState(initial.collections);
   const [altGroups, setAltGroups] = useState(initial.altGroups);
   const [storeSettings, setStoreSettings] = useState(initial.storeSettings);
@@ -477,9 +516,9 @@ export function StoreProvider({
   }, [loading, offline]);
   useEffect(() => {
     if (loading || offline || !online) return;
-    const t = setTimeout(() => void saveSnapshot({ data: { ...base, alerts, items, collections, altGroups, storeSettings, budget, importLimitUsd, home: homePrefs }, at: Date.now(), currency }), 1200);
+    const t = setTimeout(() => void saveSnapshot({ data: { ...base, alerts, items, supermarket: sm, collections, altGroups, storeSettings, budget, importLimitUsd, home: homePrefs }, at: Date.now(), currency }), 1200);
     return () => clearTimeout(t);
-  }, [loading, offline, online, base, alerts, items, collections, altGroups, storeSettings, budget, currency, importLimitUsd, homePrefs]);
+  }, [loading, offline, online, base, alerts, items, sm, collections, altGroups, storeSettings, budget, currency, importLimitUsd, homePrefs]);
 
   // Recent client errors, for problem reports and the assistant's troubleshooting (lib/client-errors).
   useEffect(() => {
@@ -533,6 +572,7 @@ export function StoreProvider({
 
   const applyView = useCallback((v: View) => {
     recordNav(v.type);
+    noteTab(v);
     if (v.type === "to_buy" || v.type === "ordered") {
       try {
         localStorage.setItem("nexus.shopTab", v.type);
@@ -587,6 +627,7 @@ export function StoreProvider({
     (next: AppData, opts?: { keepView?: boolean }) => {
       revRef.current = next.rev ?? 0;
       setItems(next.items);
+      setSm(next.supermarket ?? []);
       setCollections(next.collections);
       setAltGroups(next.altGroups);
       setStoreSettings(next.storeSettings);
@@ -652,6 +693,15 @@ export function StoreProvider({
         setOpenItemId(null);
       }
     }
+    // R18 S2: supermarket rows (a row leaves the list once it's no longer to buy).
+    const smRows = ch.supermarket ?? [];
+    if (smRows.length || goneItems.size)
+      setSm((prev) => {
+        const byId = new Map(smRows.map((i) => [i.id, i]));
+        const next = prev.filter((p) => !goneItems.has(p.id)).map((p) => byId.get(p.id) ?? p);
+        const have = new Set(prev.map((p) => p.id));
+        return [...next, ...smRows.filter((i) => !have.has(i.id))].filter((i) => i.status === "to_buy");
+      });
     const merge = <T,>(prev: T[], rows: T[], drop: Set<string>, key: (x: T) => string) => {
       if (!rows.length && !drop.size) return prev;
       const byKey = new Map(rows.map((r) => [key(r), r]));
@@ -811,6 +861,10 @@ export function StoreProvider({
     () => ({
       loading,
       items,
+      sm,
+      upsertSm,
+      removeSm,
+      tab4,
       collections,
       altGroups,
       setAltGroups,
@@ -937,7 +991,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [openSettings, settingsFrom, setSettingsOpen, loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, budgetWarn, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, settingsSection, switching, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [openSettings, settingsFrom, setSettingsOpen, loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, sm, upsertSm, removeSm, tab4, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, budgetWarn, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, settingsSection, switching, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(

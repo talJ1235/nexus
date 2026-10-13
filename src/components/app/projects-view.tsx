@@ -20,7 +20,8 @@ import { useStore } from "./store";
  * bottom. Creating either is one pattern: the "New" pill in the header (New project / New list) and the bottom card's
  * two halves look like one family — the same plan gradient chips, folder and list marks.
  */
-export function ProjectsView() {
+/** `inProducts`: shown under the phone Products tab's title + segments (R18 S2 A1) — the page title hides there. */
+export function ProjectsView({ inProducts = false }: { inProducts?: boolean }) {
   const s = useStore();
   const { t } = useI18n();
   const projects = s.collections.filter((c) => c.kind === "project" && !c.archived);
@@ -30,7 +31,7 @@ export function ProjectsView() {
     <div className="flex flex-col gap-8 pb-4" data-projects-view>
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-[26px] font-extrabold tracking-[-0.02em] desk:text-[28px]">{t.projects.title}</h1>
+          <h1 className={cn("text-[26px] font-extrabold tracking-[-0.02em] desk:text-[28px]", inProducts && "phone:sr-only")}>{t.projects.title}</h1>
           <NewMenu />
         </div>
         {projects.length > 0 && <Summary projects={projects} />}

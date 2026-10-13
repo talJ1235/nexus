@@ -12,12 +12,15 @@ export type View =
   | { type: "orders" }
   | { type: "spending" }
   | { type: "projects" }
+  /** R18 S2: the space's supermarket list (its rows are not Products' `items`). */
+  | { type: "supermarket" }
   | { type: "collection"; id: string }
   | { type: "store"; key: string };
 
 export function itemsForView(items: ItemWithSources[], view: View) {
   switch (view.type) {
     case "home":
+    case "supermarket":
       return [];
     case "to_buy":
       return items.filter((i) => i.status === "to_buy" && buyFilter(i, view.f));
@@ -54,6 +57,6 @@ export function paramToView(p: string | null, f?: string | null): View {
   if (p === "urgent") return { type: "to_buy", f: "urgent" };
   if (p === "unsorted") return { type: "to_buy", f: "none" };
   if (p === "to_buy") return BUY_FILTERS.includes(f as BuyFilter) ? { type: "to_buy", f: f as BuyFilter } : { type: "to_buy" };
-  if (["history", "ordered", "orders", "spending", "projects"].includes(p)) return { type: p } as View;
+  if (["history", "ordered", "orders", "spending", "projects", "supermarket"].includes(p)) return { type: p } as View;
   return { type: "home" };
 }

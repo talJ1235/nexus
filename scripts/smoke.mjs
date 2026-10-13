@@ -1085,7 +1085,7 @@ try {
         await page.waitForSelector("[data-dock]");
         await page.waitForTimeout(300);
         const moves = [];
-        for (const target of ["home", "projects", "spending", "shopping", "plus", "home", "shopping"]) {
+        for (const target of ["home", "supermarket", "spending", "shopping", "plus", "home", "shopping"]) {
           const d = await page.evaluate(async (target) => {
             const dock = document.querySelector("[data-dock]");
             const top = [...document.querySelectorAll("[data-app-header]")].find((e) => e.offsetHeight > 0);
@@ -1114,8 +1114,48 @@ try {
           }, target);
           if (d > 0.5) moves.push(`${target}: ${d.toFixed(1)} px`);
         }
-        const want = ["home", "shopping", "plus", "projects", "spending"];
+        const want = ["home", "shopping", "plus", "supermarket", "spending"];
         ok(JSON.stringify(en) === JSON.stringify(want) && JSON.stringify(he) === JSON.stringify(want) && !moves.length, "phone dock: fixed order in en + he, dock and top bar perfectly still while switching", JSON.stringify({ en, he, moves }));
+      });
+
+      // R18 S2 A1: long-press "+" → Add to list · Scan · Photo · Start shopping (a tap keeps the "+" menu); each opens the
+      // Supermarket; the manifest carries the same four as app-icon shortcuts; Products = To buy · On the way · Projects.
+      await step("phone nav (R18 A1): long-press + menu, Supermarket tab, Products segments, manifest shortcuts", async () => {
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector(READY);
+        const plus = page.locator('[data-dock-target="plus"]');
+        const box = await plus.boundingBox();
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.down();
+        await page.waitForTimeout(650);
+        await page.mouse.up();
+        await page.waitForTimeout(300);
+        const r = {};
+        r.quick = await page.locator('[data-quick-menu="open"] [data-quick]').evaluateAll((els) => els.map((e) => e.getAttribute("data-quick")));
+        r.plusMenuStayedShut = (await page.locator('[data-plus-menu="open"]').count()) === 0;
+        await shot(page, "phone-quick-menu");
+        await page.locator('[data-quick="add"]').click();
+        await page.waitForSelector("[data-sm-view]", { timeout: 8000 });
+        r.view = new URL(page.url()).searchParams.get("v");
+        r.dockOn = await page.locator('[data-dock] [aria-current="page"]').getAttribute("data-dock-target");
+        await page.locator('[data-dock-target="shopping"]').click();
+        await page.waitForSelector("[data-shop-switch]");
+        r.segs = await page.locator("[data-shop-tab]").evaluateAll((els) => els.map((e) => e.getAttribute("data-shop-tab")));
+        await page.locator('[data-shop-tab="projects"]').click();
+        await page.waitForSelector("[data-projects-view]", { timeout: 8000 });
+        r.projectsDock = await page.locator('[data-dock] [aria-current="page"]').getAttribute("data-dock-target");
+        r.projectsUrl = new URL(page.url()).searchParams.get("v");
+        const man = await page.evaluate(async () => (await fetch("/manifest.webmanifest")).json());
+        r.shortcuts = (man.shortcuts ?? []).map((x) => x.url);
+        await page.locator('[data-shop-tab="to_buy"]').click();
+        await page.waitForTimeout(500);
+        ok(
+          JSON.stringify(r.quick) === '["add","scan","photo","shop"]' && r.plusMenuStayedShut && r.view === "supermarket" && r.dockOn === "supermarket" &&
+            JSON.stringify(r.segs) === '["to_buy","ordered","projects"]' && r.projectsDock === "shopping" && r.projectsUrl === "projects" &&
+            ["add", "scan", "photo", "shop"].every((k) => r.shortcuts.includes(`/?v=supermarket&do=${k}`)),
+          "phone nav (R18 A1): long-press + menu, Supermarket tab, Products segments, manifest shortcuts",
+          JSON.stringify(r),
+        );
       });
     }
 
@@ -1212,13 +1252,16 @@ try {
           const check = async (want) => {
             await page.waitForTimeout(650);
             const r = await page.evaluate(() => {
-              const sw = document.querySelector("[data-shop-switch]").getBoundingClientRect();
               const th = document.querySelector("[data-shop-thumb]").getBoundingClientRect();
-              return { mid: th.left + th.width / 2 - (sw.left + sw.width / 2), v: new URL(location.href).searchParams.get("v"), sw: document.querySelector("[data-shop-switch]").getAttribute("data-shop-switch") };
+              const mid = th.left + th.width / 2;
+              // R18 S2 A1: three segments — the thumb sits under the segment nearest its centre.
+              const under = [...document.querySelectorAll("[data-shop-tab]")].map((b) => ({ k: b.getAttribute("data-shop-tab"), d: Math.abs(b.getBoundingClientRect().left + b.getBoundingClientRect().width / 2 - mid), x: b.getBoundingClientRect().left })).sort((a, b) => a.d - b.d)[0];
+              const xs = [...document.querySelectorAll("[data-shop-tab]")].map((b) => b.getBoundingClientRect().left);
+              return { under: under.k, v: new URL(location.href).searchParams.get("v"), sw: document.querySelector("[data-shop-switch]").getAttribute("data-shop-switch"), startLeft: xs[0] < xs[2] };
             });
-            // To buy is the start card: left in English, right in Hebrew.
-            const startSide = (want === "to_buy") === (loc === "en") ? r.mid < 0 : r.mid > 0;
-            if (r.v !== want || r.sw !== want || !startSide) bad.push(`${loc}→${want}:${JSON.stringify(r)}`);
+            // To buy is the start segment: left in English, right in Hebrew.
+            const startSide = r.startLeft === (loc === "en");
+            if (r.v !== want || r.sw !== want || r.under !== want || !startSide) bad.push(`${loc}→${want}:${JSON.stringify(r)}`);
           };
           await page.locator('[data-shop-tab="ordered"]').click();
           await check("ordered");
@@ -1613,7 +1656,9 @@ try {
         requestAnimationFrame(tick);
         document.querySelector(target)?.click();
       }), [name, target]);
-      const back = MOBILE ? '[data-dock-target="projects"]' : null;
+      // R18 S2 A1: on phones Projects is the Products tab's third segment (the tab reopens the segment used last).
+      if (MOBILE) await page.evaluate(() => localStorage.setItem("nexus.shopTab", "projects"));
+      const back = MOBILE ? '[data-dock-target="shopping"]' : null;
       if (!back) {
         // Desktop: the sidebar's Projects label.
         await page.evaluate(() => [...document.querySelectorAll("aside button")].find((b) => /^(Projects|פרויקטים)$/.test(b.textContent.trim()))?.setAttribute("data-smoke-projects", ""));

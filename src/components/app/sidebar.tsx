@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChartColumn, History, House, PanelLeftClose, Plus, Settings, ShieldCheck, ShoppingCart, Store, Truck } from "lucide-react";
+import { ChartColumn, History, House, PanelLeftClose, Plus, Settings, ShieldCheck, ShoppingBasket, ShoppingCart, Store, Truck } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { Ring } from "@/components/ui/ring";
@@ -180,6 +180,8 @@ export function Sidebar({ collapsed, onToggle, floating = true }: { collapsed?: 
         </div>
         <div className="flex flex-col gap-px">
           <NavItem collapsed={c} active={active({ type: "home" })} onClick={() => s.setView({ type: "home" })} carry="view:home" icon={<House />} label={t.dash.title} />
+          {/* R18 S2 A1: the Supermarket near the top, with its count (to buy). */}
+          <NavItem collapsed={c} active={active({ type: "supermarket" })} onClick={() => s.setView({ type: "supermarket" })} carry="view:supermarket" icon={<ShoppingBasket />} label={t.sm.title} count={n(s.sm.length)} />
           <NavItem collapsed={c} active={active({ type: "to_buy" })} onClick={() => s.setView({ type: "to_buy" })} carry="view:to_buy" icon={<ShoppingCart />} label={t.nav.toBuy} count={n(counts.to_buy)} />
           <NavItem collapsed={c} active={active({ type: "ordered" })} onClick={() => s.setView({ type: "ordered" })} carry="view:ordered" icon={<Truck />} label={t.nav.onTheWay} count={n(counts.ordered)} />
           <NavItem collapsed={c} active={active({ type: "orders" })} onClick={() => s.setView({ type: "orders" })} carry="view:orders" icon={<Store />} label={t.nav.orders} />

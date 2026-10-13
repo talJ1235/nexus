@@ -31,13 +31,14 @@ export default async function Home({ searchParams, settings, inbox }: { searchPa
   // R17 E4: signed in again during the 7 days after "Delete account" → offer to restore it first.
   if ((await deletionRequestedAt(ctx.user.id)) != null) redirect("/restore-account");
   // R17 H1: an onboarding that was started and not finished or skipped resumes first.
-  if (parseOnboarding(await userPrefGet(ctx.user.id, ONBOARDING_KEY))?.status === "active") redirect("/welcome");
+  const ob = parseOnboarding(await userPrefGet(ctx.user.id, ONBOARDING_KEY));
+  if (ob?.status === "active") redirect("/welcome");
   const [{ v, f }, currency, prefs] = await Promise.all([searchParams, getCurrencyPref(), getUiPrefs()]);
   const jar = await cookies();
   const tz = decodeURIComponent(jar.get("nexus_tz")?.value ?? "").slice(0, 60) || null;
   // `now` + `tz`: Home's first paint matches on server and client (store.tsx Clock). A server component renders once.
   // eslint-disable-next-line react-hooks/purity
-  const boot: AppBoot = { currency, ...prefs, settings: settings ?? null, inbox: !!inbox, view: typeof v === "string" ? v : null, filter: typeof f === "string" ? f : null, aiEnabled: aiEnabled(), now: Date.now(), tz: tz && isTimeZone(tz) ? tz : null };
+  const boot: AppBoot = { currency, ...prefs, settings: settings ?? null, inbox: !!inbox, view: typeof v === "string" ? v : null, filter: typeof f === "string" ? f : null, aiEnabled: aiEnabled(), now: Date.now(), tz: tz && isTimeZone(tz) ? tz : null, why: ob?.why ?? null };
   // The user's language and currency for what the cron writes (it has no cookies).
   const locale = jar.get(LOCALE_COOKIE)?.value === "he" ? "he" : "en";
   after(() => rememberOwner(ctx.user.id, locale, currency).catch(() => {}));

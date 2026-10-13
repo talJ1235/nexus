@@ -1,3 +1,4 @@
+import { smHe } from "./sm-he";
 import type { Dict } from "./en";
 
 export const he: Dict = {
@@ -2532,4 +2533,5 @@ export const he: Dict = {
     legal: "פרטיות · תנאי שימוש",
     formerMember: "חבר/ה לשעבר",
   },
+  sm: smHe,
 };

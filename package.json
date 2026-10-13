@@ -79,7 +79,8 @@
     "test:grocery": "tsx --conditions=react-server scripts/test-grocery.ts",
     "test:staples": "tsx --conditions=react-server scripts/test-staples.ts",
     "test:add": "tsx --conditions=react-server scripts/test-add.ts",
-    "test:shop-offline": "node scripts/test-shop-offline.mjs"
+    "test:shop-offline": "node scripts/test-shop-offline.mjs",
+    "test:dock": "tsx scripts/test-dock.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.7",
