@@ -49,6 +49,8 @@ import { Celebration, PullToRefresh } from "./motion-extras";
 import { ShoppingMode, ShopOutboxSync } from "./shopping-mode";
 import { SupermarketBridge } from "./supermarket/sm-bridge";
 import { SupermarketView } from "./supermarket/view";
+import { SmHomeSync } from "./supermarket/data";
+import { TripBar } from "./supermarket/trip";
 import { ItemSheet } from "./item-sheet";
 import { ItemTable } from "./item-table";
 import { Sidebar } from "./sidebar";
@@ -183,6 +185,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
         <>
           <Dock />
           <PlusMenu />
+          <TripBar />
         </>
       )}
       <BarcodeScanner open={s.scanner === "barcode"} onClose={() => s.setScanner(null)} />
@@ -195,6 +198,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       </PanelBoundary>
       <ShopOutboxSync />
       <SupermarketBridge />
+      <SmHomeSync />
 
       <ItemSheet />
       <ItemActionSheet />

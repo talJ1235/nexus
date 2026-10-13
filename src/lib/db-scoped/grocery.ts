@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { schema } from "@/db";
 import { classifyLocal } from "@/lib/grocery/classify";
@@ -255,7 +255,28 @@ export type HomeState = {
   /** What finished trips cost this calendar month (local), for "left this month". */
   monthSpent: number;
   trips: number;
+  /** The usual shopping weekday (0 = Sunday) + hour, from ≥ 3 trips; null until then. */
+  usualDay: { weekday: number; hour: number } | null;
+  /** Trips running in this space now (anyone's): the trip bar + the Home card. */
+  open: OpenTrip[];
 };
+
+export type OpenTrip = { id: string; userId: string; chain: string | null; branch: string | null; startedAt: number; planned: number; bought: number; notFound: number; added: number; spent: number };
+
+/** Trips running in the space (≤ 6 h old), each with its counts and what the checked rows cost so far. */
+export async function openTripsOf(s: Scoped, now = Date.now()): Promise<OpenTrip[]> {
+  const rows = (await s.select(schema.trip, isNull(schema.trip.finishedAt))).filter((t) => now - t.startedAt < 6 * 3_600_000);
+  const out: OpenTrip[] = [];
+  for (const t of rows) {
+    const checks = await s.select(schema.tripCheck, eq(schema.tripCheck.tripId, t.id)).orderBy(asc(schema.tripCheck.seq));
+    const r = replayTrip(checks);
+    const priceOf = new Map<string, number>();
+    for (const c of checks) if (c.price != null) priceOf.set(c.itemId ?? c.productKey ?? "", c.price);
+    const spent = r.order.reduce((a, k) => a + (priceOf.get(k) ?? 0), 0);
+    out.push({ id: t.id, userId: t.userId, chain: t.chain, branch: t.branch, startedAt: t.startedAt, planned: t.planned, bought: r.bought, notFound: r.notFound, added: r.added, spent });
+  }
+  return out.sort((a, b) => b.startedAt - a.startedAt);
+}
 
 export async function homeState(s: Scoped, o: { tz: string; locale?: string; now?: number }): Promise<HomeState> {
   const now = o.now ?? Date.now();
@@ -267,6 +288,7 @@ export async function homeState(s: Scoped, o: { tz: string; locale?: string; now
     staplesOf(s),
     s.pick({ total: schema.trip.total, at: schema.trip.finishedAt }, schema.trip, isNotNull(schema.trip.finishedAt)),
   ]);
+  const open = await openTripsOf(s, now);
   const def = stores.find((x) => x.isDefault) ?? null;
   const history = learnHistory(purchases, trips, { tz: o.tz, staples });
   const onList = new Set(list.map((i) => i.productKey).filter((k): k is string => !!k));
@@ -277,7 +299,7 @@ export async function homeState(s: Scoped, o: { tz: string; locale?: string; now
   const ym = (t: number) => new Intl.DateTimeFormat("en-CA", { timeZone: o.tz, year: "numeric", month: "2-digit" }).format(new Date(t));
   const month = ym(now);
   const monthSpent = tripRows.reduce((a, r) => a + (r.at != null && r.total != null && ym(r.at) === month ? r.total : 0), 0);
-  return { stores, store: def ? { chain: def.chain, branch: def.branch } : null, order: tripOrder(def), suggestions, prices, monthSpent, trips: trips.length };
+  return { stores, store: def ? { chain: def.chain, branch: def.branch } : null, order: tripOrder(def), suggestions, prices, monthSpent, trips: trips.length, usualDay: history.usualDay, open };
 }
 
 /** "Not now": quiet until the end of this cycle. */

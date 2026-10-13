@@ -3,8 +3,9 @@
 // R18 S2 A1 — what the Supermarket screen should do when it opens: the dock's long-press menu and the app-icon shortcuts
 // (`/?v=supermarket&do=…`) ask for one of these; the screen takes it once (module state + an event, no store re-render).
 
-export type SmIntent = "add" | "scan" | "photo" | "shop";
-export const SM_INTENTS: readonly SmIntent[] = ["add", "scan", "photo", "shop"];
+/** `build` = show the cold-start suggestions ("Build my list", Home's first-list card). */
+export type SmIntent = "add" | "scan" | "photo" | "shop" | "build";
+export const SM_INTENTS: readonly SmIntent[] = ["add", "scan", "photo", "shop", "build"];
 const EVENT = "nexus:sm-intent";
 
 let pending: SmIntent | null = null;

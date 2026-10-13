@@ -9,8 +9,6 @@ import { acceptSuggestions, addToSupermarket, dismissSuggestion, setSupermarketL
 import { basketFor, WEEKLY_BASKET_SIZE, type BasketItem } from "@/lib/grocery/basket";
 import { parseLine } from "@/lib/grocery/parse";
 import { DEFAULT_ORDER, sectionName } from "@/lib/grocery/sections";
-import { STORES } from "@/lib/onboarding";
-import { capFor, monthForecast, monthKeyIn, monthStartIn, nextMonthKey } from "@/lib/budget";
 import { formatMoney } from "@/lib/money";
 import { toast } from "@/lib/toast";
 import type { ItemWithSources } from "@/lib/types";
@@ -18,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useStore } from "../store";
 import { ProductTile, SectionIcon, sectionColor } from "./art";
 import { patchSmHome, useSmHome, type SmHome } from "./data";
+import { asItem, chainDef, monoColor, useAddMany, useEstimate, useMonthLeft } from "./numbers";
 import { onSmIntent, takeSmIntent, type SmIntent } from "./intent";
 import { qtyLabel } from "./qty";
 import { useOutboxCount } from "./outbox-count";
@@ -28,8 +27,6 @@ import { useOutboxCount } from "./outbox-count";
 
 type Sug = SmHome["suggestions"][number] | (BasketItem & { reasonKey: "basket"; reasonArgs: Record<string, never>; quietUntil: number });
 
-/** A server row → the store's item shape (supermarket rows carry no links / prices / files). */
-export const asItem = (r: Omit<ItemWithSources, "sources" | "points" | "attachments">): ItemWithSources => ({ ...r, sources: [], points: [], attachments: [] }) as ItemWithSources;
 
 /** The list grouped by section in `order` (unknown / `other` last). */
 export function bySection(items: ItemWithSources[], order: readonly string[] = DEFAULT_ORDER) {
@@ -40,12 +37,6 @@ export function bySection(items: ItemWithSources[], order: readonly string[] = D
   }
   return [...order, "other"].filter((k) => m.has(k)).map((k) => [k, m.get(k)!] as const);
 }
-
-/** Store monogram colours (the onboarding tiles, nx17 `.m1`–`.m9`). */
-const MONO: Record<string, string> = { m1: "#c0392b", m2: "#1f7a4d", m3: "#1d5fa8", m4: "#b8860b", m5: "#6c3fb5", m6: "#d1495b", m7: "#2a7f8f", m8: "#5b5a56", m9: "#e07a24" };
-export const monoColor = (c: string | null | undefined) => MONO[c ?? ""] ?? MONO.m8;
-
-export const chainDef = (chain: string | null | undefined) => (chain ? STORES.find((x) => x.id === chain || x.en === chain || x.he === chain) ?? null : null);
 
 export function SupermarketView() {
   const s = useStore();
@@ -58,6 +49,7 @@ export function SupermarketView() {
   const order = home?.order ?? DEFAULT_ORDER;
   const groups = useMemo(() => bySection(s.sm, order), [s.sm, order]);
   const [basketOn, setBasketOn] = useState(false);
+  const addMany = useAddMany();
   const input = useRef<HTMLInputElement>(null);
   const [draft] = useState(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("draft") === "1" : false));
 
@@ -69,6 +61,7 @@ export function SupermarketView() {
     };
     const runIntent = (k: SmIntent) => {
       if (k === "add") input.current?.focus();
+      if (k === "build") setBasketOn(true);
     };
     take();
     return onSmIntent(take);
@@ -122,13 +115,7 @@ export function SupermarketView() {
   );
 
   async function addBasket(items: BasketItem[]) {
-    try {
-      const rows = await acceptSuggestions(items.map((b) => ({ productKey: b.productKey, title: b.title, qty: b.qty, amount: b.amount, unit: b.unit, section: b.section, art: b.art })));
-      s.upsertSm(rows.map(asItem));
-      toast.success(f(t.sm.main.addedN, { n: rows.length }));
-    } catch {
-      toast.error(t.sm.main.failed);
-    }
+    await addMany(items, { done: (n) => f(t.sm.main.addedN, { n }), failed: t.sm.main.failed });
   }
 }
 
@@ -161,25 +148,8 @@ function StoreLine({ home }: { home: SmHome | null }) {
   const { t, f, locale } = useI18n();
   const store = home?.store ?? null;
   const def = chainDef(store?.chain);
-  const est = useMemo(() => {
-    if (!home) return null;
-    let sum = 0;
-    let priced = 0;
-    for (const i of s.sm) {
-      const p = i.productKey ? home.prices[i.productKey] : undefined;
-      if (p == null) continue;
-      priced++;
-      sum += p * (i.unit && i.unit !== "u" && i.amount ? i.amount : i.quantity);
-    }
-    return priced ? sum : null;
-  }, [home, s.sm]);
-  const left = useMemo(() => {
-    const key = monthKeyIn(s.clock.now, s.clock.tz);
-    const cap = capFor(key, s.budget);
-    if (!cap?.cap) return null;
-    const fc = monthForecast({ items: s.items, altGroups: s.altGroups, rates: s.rates, currency: s.currency, from: monthStartIn(key, s.clock.tz), to: monthStartIn(nextMonthKey(key), s.clock.tz), cap, includeNormal: false });
-    return (fc.cap ?? 0) - fc.spent - fc.committed - (home?.monthSpent ?? 0);
-  }, [s.items, s.altGroups, s.rates, s.currency, s.clock, s.budget, home?.monthSpent]);
+  const est = useEstimate(home);
+  const left = useMonthLeft(home);
   const name = def ? (locale === "he" ? def.he : def.en) : store?.chain;
   const pct = est != null && left != null && left > 0 ? Math.min(1, est / left) : null;
   return (

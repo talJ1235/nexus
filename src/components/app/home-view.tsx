@@ -1,5 +1,6 @@
 "use client";
 
+import { NextShopCard } from "./supermarket/trip";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Package, RefreshCw, Sparkles, Tag, TrendingDown, TrendingUp, Truck, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
@@ -224,6 +225,8 @@ export function HomeView() {
   return (
     <div className="flex flex-col gap-3 pb-4 desk:grid desk:grid-cols-12 desk:gap-[14px]" data-home dir="auto">
       <HomeHeader model={model} onCustomize={() => setEditing(s.homeLayout)} />
+      {/* R18 S2 A3: the supermarket's next shop / the running trip, first on Home. */}
+      <NextShopCard />
       <WidgetGrid layout={s.homeLayout} render={render} stagger={stagger} />
     </div>
   );
@@ -1729,6 +1732,7 @@ function HomeEmpty({ model }: { model: HomeModel }) {
         <p className="mt-2 text-[15px] font-semibold">{t.dash.emptyTitle}</p>
         <p className="mt-0.5 max-w-[52ch] text-[13.5px] text-muted">{t.dash.emptyHint}</p>
       </div>
+      <NextShopCard />
       <div className="grid grid-cols-2 gap-2.5 desk:grid-cols-4 desk:gap-3.5">
         {actions.map((a, k) => (
           <button

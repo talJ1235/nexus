@@ -23,7 +23,7 @@
 //     into $SMOKE_OUT/visual/, for judging a visual change by screenshot. SMOKE_VISUAL_FULL=1 takes full-page shots.
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { canSignIn, signIn as signInAs } from "./lib/sign-in.mjs";
-import { actionTable } from "./lib/actions.mjs";
+import { actionTable, callAction } from "./lib/actions.mjs";
 import { walkAdmin } from "./lib/admin-walk.mjs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -1208,6 +1208,39 @@ try {
         JSON.stringify({ ...r, inOrder }),
       );
     });
+
+    // R18 S2 A3: a trip running → the bar above the dock on Products / Insights / Supermarket and the trip card on Home;
+    // after Finish both are gone (the trip is started / finished through the actions, like the store mode does).
+    if (MOBILE && WRITE)
+      await step("trip bar (R18 A3): on Products, Insights, Supermarket + Home card during a trip, gone after Finish", async () => {
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        const r = { start: (await callAction(BASE, cookie, act("startSupermarketTrip"), [{ planned: 23 }])).failed ? "failed" : "ok" };
+        const bar = async () => (await page.locator("[data-trip-bar]").count()) ? await page.locator("[data-trip-bar]").getAttribute("data-trip-bar") : null;
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector("[data-trip-bar]", { timeout: 15000 }).catch(() => {});
+        r.products = await bar();
+        await shot(page, "trip-bar-products");
+        await page.locator('[data-dock-target="spending"]').click();
+        await page.waitForTimeout(500);
+        r.insights = await bar();
+        await page.locator('[data-dock-target="supermarket"]').click();
+        await page.waitForTimeout(500);
+        r.supermarket = await bar();
+        await page.locator('[data-dock-target="home"]').click();
+        await page.waitForSelector("[data-trip-card]", { timeout: 8000 }).catch(() => {});
+        r.card = await page.locator("[data-trip-card]").getAttribute("data-trip-card").catch(() => null);
+        await shot(page, "trip-card-home");
+        r.finish = (await callAction(BASE, cookie, act("finishSupermarketTrip"), [null])).failed ? "failed" : "ok";
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector(READY);
+        await page.waitForTimeout(2500);
+        r.after = await bar();
+        await page.goto(`${BASE}/`);
+        await page.waitForSelector("[data-next-shop]", { timeout: 15000 }).catch(() => {});
+        r.homeAfter = await page.locator("[data-next-shop]").getAttribute("data-next-shop").catch(() => null);
+        ok(r.start === "ok" && r.products === "mine" && r.insights === "mine" && r.supermarket === "mine" && r.card === "mine" && r.finish === "ok" && r.after === null && r.homeAfter === "next", "trip bar (R18 A3): on Products, Insights, Supermarket + Home card during a trip, gone after Finish", JSON.stringify(r));
+      });
 
     if (MOBILE) {
       // Round 8 C: the hero summarizes, the products are the page.

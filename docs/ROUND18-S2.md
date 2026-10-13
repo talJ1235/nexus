@@ -50,7 +50,7 @@ As the board: store chip + estimate vs budget, add field with Scan/Photo/Voice/R
 sections in the branch's order with colours, rows / tiles (switch in the ⋯ menu, remembered per person — **not** in
 Settings), first-time state, viewer, offline badge. Section colours always on (no switch). `/supermarket` stops
 redirecting (S1 bridge `sm-bridge.tsx` is replaced). **Acceptance:** smoke on the seeded list; parity PNGs.
-### A3. [ ] Home "Next shop" card + trip bar (P1, P10, `HomeCard-phone`, `TripBar-phone`)
+### A3. [x] Home "Next shop" card + trip bar (P1, P10, `HomeCard-phone`, `TripBar-phone`)
 Card states as the board. Trip bar above the dock on every screen while a trip runs: mine (count, total, Back), someone
 else's (watch, what you add shows for them), offline (changes waiting), everything checked (Finish).
 **Acceptance:** smoke: bar visible on Products/Insights/Supermarket during a trip, gone after Finish.
@@ -152,6 +152,7 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 - 0.1 done — part-2 boards (9 boards + `nx-sm2.css`) committed to `docs/design/r18/`; pointers in ROUND18 + PLANNER.
 - A1 done — dock Home · Products · + · Supermarket/Projects · Insights, long-press + menu, manifest shortcuts, Products segments (To buy · On the way · Projects), sidebar Supermarket + count, tab-4 rule `lib/dock-tab.ts` + `test:dock`; phone smoke steps updated + new.
 - A2 done — Supermarket tab (`supermarket/view.tsx`, kit `sm.css`, board pictures ported to `art-data.ts`): store chip + estimate vs this month's budget, aisle rail, add field, Nexus suggests (+ / × / Add all, draft header with `?draft=1`), sections in the main store's order, rows/tiles in the ⋯ menu (`pref:sm-layout` per person), first-time state (basic basket `lib/grocery/basket.ts`), viewer + offline badges; `/supermarket` renders the tab; action `supermarketHome`; demo data `scripts/lib/seed-sm.mjs` (seed-local); smoke step + `scripts/parity-r18.mjs` (a2-*.png). Fixed on the way: the closed + menu showed its disabled Plan card at 50 %.
+- A3 done — Home "Next shop" card (`supermarket/trip.tsx` NextShopCard: next shop day / today is your shop, items + estimate, left this month, section chips, suggestions count; my trip: progress ring, Finish/Resume; someone else's: Add for them; first list: basic basket / build my list) and the trip bar above the dock on every phone screen (mine / other / offline / everything checked). Server: `openTripsOf` + usual day in `homeState`; client `SmHomeSync` refreshes on list changes, feed updates and every 20 s during a trip. Smoke step + parity a3-*.png.
 ### Decisions
 - A1: The board's flat bottom bar is not taken: the app keeps its floating dock (R14) with the new tabs/icons.
 - A1: Tab-4 use counts live on the device (localStorage `nexus.tabUse`, 30 days); the tab is chosen once per page load so it never swaps under a finger; a tie keeps the Supermarket.
@@ -161,5 +162,8 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 - A2: The S1 `sm-bridge` stays until D1 (it flushes the trip outbox); D1 replaces it with the trip API.
 - A2: Chain monograms use the onboarding store colours (Shufersal = green m2), not the board's red.
 - A2: Rows open nothing yet — the item sheet is C2; the Start shopping bar arrives with store mode (D3).
+- A3: Home's card sits right under the header (before the widgets), not as a Customise widget — it's the supermarket's entry on Home.
+- A3: Trip progress comes from the server's trip log (refreshed on feed updates + a 20 s poll while a trip runs); store mode (D3) will feed my own trip instantly.
+- A3: The bar hides on Home for someone else's trip (the card shows it there).
 ### For Tal
 - Prod snapshot was refused to the agent at session start (2026-10-13). Run in `nexus/`: `node --env-file=.env.local scripts/db-snapshot.mjs` → `snapshots/prod-2026-10-13.db`; the S2 rehearsal uses the newest `snapshots/prod-*.db`.

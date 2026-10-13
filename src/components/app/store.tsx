@@ -724,6 +724,8 @@ export function StoreProvider({
     if (ch.importLimitUsd != null) setImportLimitUsd(ch.importLimitUsd);
     if (ch.budgetWarn != null) setBudgetWarn(ch.budgetWarn);
     revRef.current = Math.max(revRef.current, ch.rev);
+    // R18 S2: the Supermarket's server state (trips, suggestions) refreshes after any feed update (supermarket/data.ts).
+    window.dispatchEvent(new Event("nexus:feed"));
     return summary;
   }, []);
 
