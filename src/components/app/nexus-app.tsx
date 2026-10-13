@@ -47,7 +47,7 @@ import { ReceiptCamera } from "./receipt-camera";
 import { CompareSheet } from "./compare-sheet";
 import { Celebration, PullToRefresh } from "./motion-extras";
 import { ShoppingMode, ShopOutboxSync } from "./shopping-mode";
-import { SupermarketBridge } from "./supermarket/sm-bridge";
+import { TripSync } from "./supermarket/trip-sync";
 import { SupermarketView } from "./supermarket/view";
 import { SmHomeSync } from "./supermarket/data";
 import { TripBar } from "./supermarket/trip";
@@ -197,7 +197,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
         <CompareSheet />
       </PanelBoundary>
       <ShopOutboxSync />
-      <SupermarketBridge />
+      <TripSync />
       <SmHomeSync />
 
       <ItemSheet />

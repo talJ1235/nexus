@@ -906,6 +906,32 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
   list split, `test:tenancy` with supermarket rows, `scripts/r18-rehearsal.mjs`. Smoke / test servers run with
   `SEARCH_OFF=1` (no live search; compare stores shows the mock offers).
 
+## Round 18 — Session 2: the supermarket screens
+
+Brief: `docs/ROUND18-S2.md` (decisions in its "## Open"). Screens: `src/components/app/supermarket/`.
+
+### Trip API (D1) — the only way trip data is written
+Every store-mode action is a typed op, queued on the device and merged by the server. A later Wear OS client sends the
+same ops to the same action.
+
+- **Ops** (`src/lib/grocery/trip-api.ts`, `tripOps.*`; type `TripOp` in `lib/grocery/trip.ts`):
+  `start {chain?, branch?, planned}` · `check {itemId, rev?}` · `uncheck` · `not_found` · `substitute {notes?}` ·
+  `qty {qty?, count?, amount?, unit?}` · `price {price}` · `add {title, qty?, count?, amount?, unit?, productKey?}`
+  (gets a `clientId`) · `note {notes}` · `finish {total?}`. Each op also has `id` (unique) and `at` (when it happened on
+  the device); row ops carry the row's `rev` when the action was made.
+- **Client** (`src/lib/trip-client.ts`): `tripApi.start(…)`, `.check(row)`, … queue the op in IndexedDB
+  (`lib/shop-outbox.ts`, `tripops`) and send the whole queue, oldest first, in one call whenever online (retry every 3 s
+  while anything is left; a failed or cut-off call keeps everything queued). Answers go to `onTripAnswer` listeners
+  (`supermarket/trip-sync.tsx` puts changed rows into the store).
+- **Server**: the action `syncTripOps(ops)` (`src/app/supermarket-actions.ts`, member / owner) → `mergeOps`
+  (`lib/db-scoped/trip-sync.ts`), per field: a check never touches the note; two people checking the same row = one
+  check; an uncheck loses to someone else's later check; qty / price / note lose to a later edit by someone else
+  (`rev` + time); adds merge by product key and apply once per `clientId`; `start` / `finish` apply once per op id
+  (`start` reuses my open trip in this space; `finish` sets the total, ends the trip, refreshes the branch's learned
+  order and the trip notifications). Every row op is also the trip's next `trip_check` (the log). Answer:
+  `{ applied, skipped, idMap (clientId → row id), items (changed rows), trip (my open trip or null) }`.
+- Guard: `test:trip-api` walks a whole trip through the API only; `test:shop-offline` (the browser outbox offline).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.

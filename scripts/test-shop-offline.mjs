@@ -1,13 +1,16 @@
 // R18 D1 — the trip outbox in a real browser (built app, port 3128, throwaway DB). The phone goes offline, checks 5,
 // unchecks 1, adds 2 (one already on the list), changes a price; meanwhile a second session edits a note; the phone comes
 // back → the server state equals the expected one (the note kept, the duplicate merged, no double rows), and sending
-// the same actions again changes nothing. Drives the engines through the S1 bridge (`window.__nexusSm`).
+// the same actions again changes nothing. Drives the engines through the trip API (`window.__nexusSm`, R18 S2 D1).
 //   npm run build && npm run test:shop-offline
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { startApp } from "./lib/test-app.mjs";
 
 const app = await startApp({ db: "shop-offline-test.db", port: Number(process.env.PORT || 3128) });
+// The demo seed has a supermarket list (scripts/lib/seed-sm.mjs): this test starts from an empty one.
+for (const t of ["trip_check", "trip"]) await app.db.execute({ sql: `DELETE FROM ${t} WHERE space_id = ?`, args: [app.personal] });
+await app.db.execute({ sql: "DELETE FROM items WHERE space_id = ? AND list = 'supermarket'", args: [app.personal] });
 const browser = await chromium.launch();
 let failed = false;
 try {
@@ -27,7 +30,8 @@ try {
     const sm = window.__nexusSm;
     const out = [];
     for (const title of names) out.push((await sm.addToSupermarket({ title })).item);
-    await sm.startSupermarketTrip({ chain: "Shufersal", branch: "Test" });
+    await sm.tripApi.start({ chain: "Shufersal", branch: "Test", planned: out.length });
+    await sm.flush();
     return out.map((i) => ({ id: i.id, rev: i.rev, title: i.title }));
   }, names);
   assert.equal(items.length, 8);

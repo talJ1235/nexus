@@ -1311,7 +1311,9 @@ try {
       await step("trip bar (R18 A3): on Products, Insights, Supermarket + Home card during a trip, gone after Finish", async () => {
         const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
         const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
-        const r = { start: (await callAction(BASE, cookie, act("startSupermarketTrip"), [{ planned: 23 }])).failed ? "failed" : "ok" };
+        // R18 S2 D1: start / finish are ops of the one trip API (syncTripOps).
+        const op = (o) => ({ id: `smoke-${o.kind}-${Date.now()}`, at: Date.now(), ...o });
+        const r = { start: (await callAction(BASE, cookie, act("syncTripOps"), [[op({ kind: "start", planned: 23 })]])).failed ? "failed" : "ok" };
         const bar = async () => (await page.locator("[data-trip-bar]").count()) ? await page.locator("[data-trip-bar]").getAttribute("data-trip-bar") : null;
         await page.goto(`${BASE}/?v=to_buy`);
         await page.waitForSelector("[data-trip-bar]", { timeout: 15000 }).catch(() => {});
@@ -1327,7 +1329,7 @@ try {
         await page.waitForSelector("[data-trip-card]", { timeout: 8000 }).catch(() => {});
         r.card = await page.locator("[data-trip-card]").getAttribute("data-trip-card").catch(() => null);
         await shot(page, "trip-card-home");
-        r.finish = (await callAction(BASE, cookie, act("finishSupermarketTrip"), [null])).failed ? "failed" : "ok";
+        r.finish = (await callAction(BASE, cookie, act("syncTripOps"), [[op({ kind: "finish", total: null })]])).failed ? "failed" : "ok";
         await page.goto(`${BASE}/?v=to_buy`);
         await page.waitForSelector(READY);
         await page.waitForTimeout(2500);

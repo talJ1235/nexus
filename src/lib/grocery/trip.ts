@@ -69,7 +69,8 @@ export const isLiveAdd = (item: { createdAt: number; addedByUserId: string | nul
  */
 export type TripOp = {
   id: string;
-  kind: CheckAction | "note";
+  /** R18 S2 D1: `start` / `finish` go through the same queue (a trip can start and end offline). */
+  kind: CheckAction | "note" | "start" | "finish";
   itemId?: string;
   clientId?: string;
   title?: string;
@@ -79,6 +80,14 @@ export type TripOp = {
   unit?: "u" | "kg" | "g" | "l" | null;
   price?: number;
   notes?: string | null;
+  /** B1: pieces (qty / add). */
+  count?: number | null;
+  /** start: where, and how many rows were on the list. */
+  chain?: string | null;
+  branch?: string | null;
+  planned?: number;
+  /** finish: what the trip cost (the receipt / the person's number), null = unknown. */
+  total?: number | null;
   rev?: number;
   at: number;
 };

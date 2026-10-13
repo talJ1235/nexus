@@ -266,30 +266,10 @@ export async function dismissSectionOrder(chain: string, branch: string) {
 
 // ---------- A2 / D1: trips ----------
 
-/** Start shopping (S2's Start button; the presence beat does the same for R17's shopping mode). */
-export async function startSupermarketTrip(o: { chain?: string | null; branch?: string | null; planned?: number }) {
-  const ctx = await requireCtx("edit");
-  const i = z.object({ chain: Store.nullish(), branch: Branch.nullish(), planned: z.number().int().min(0).max(999).optional() }).strict().parse(o);
-  const { tripStarted } = await import("@/lib/notify/senders");
-  await tripStarted(ctx.user.id, ctx.space.id, i.planned ?? null, Date.now(), i.chain ? { chain: i.chain, branch: i.branch ?? "" } : undefined);
-  return T.openTripOf(ctx.user.id);
-}
-
-export async function finishSupermarketTrip(total: number | null) {
-  const ctx = await requireCtx("edit");
-  const t = await T.openTripOf(ctx.user.id);
-  if (!t || t.spaceId !== ctx.space.id) throw new AccessError("not_found");
-  const s = scoped(ctx);
-  if (total != null) await s.update(schema.trip, { total: z.number().min(0).max(1_000_000).parse(total) }, eq(schema.trip.id, t.id));
-  const { tripFinished } = await import("@/lib/notify/senders");
-  await tripFinished(ctx.user.id, null);
-  return T.tripById(s, t.id);
-}
-
 const OpZ = z
   .object({
     id: z.string().min(1).max(80),
-    kind: z.enum(["check", "uncheck", "not_found", "substitute", "qty", "price", "add", "note"]),
+    kind: z.enum(["start", "check", "uncheck", "not_found", "substitute", "qty", "price", "add", "note", "finish"]),
     itemId: Id.optional(),
     clientId: z.string().min(1).max(64).optional(),
     title: Title.optional(),
@@ -299,25 +279,45 @@ const OpZ = z
     unit: Unit,
     price: z.number().min(0).max(100_000).optional(),
     notes: z.string().max(500).nullable().optional(),
+    count: z.number().int().min(1).max(999).nullable().optional(),
+    chain: Store.nullish(),
+    branch: Branch.nullish(),
+    planned: z.number().int().min(0).max(999).optional(),
+    total: z.number().min(0).max(1_000_000).nullable().optional(),
     rev: z.number().int().min(0).optional(),
     at: z.number().int().min(0),
   })
   .strict();
 
 /**
- * D1: the outbox of a trip, sent when back online. The server merges per field: a check never touches the note, two
- * people checking the same row = one check, an edit made later by someone else wins, adds merge by product key (an add
- * made offline is applied once, by its client id).
+ * D1 / S2 D1 — THE trip API: every store-mode action (start, check, uncheck, not found, substitute, quantity, price, add
+ * during the trip, note, finish) arrives here as a typed op from the outbox (lib/grocery/trip-api.ts). The server merges
+ * per field: a check never touches the note, two people checking the same row = one check, an edit made later by someone
+ * else wins, adds merge by product key (an add made offline is applied once, by its client id), start / finish once per
+ * op id. Returns the rows it changed (+ the ids the offline adds got) and my open trip after it.
  */
 export async function syncTripOps(ops: z.input<typeof OpZ>[]) {
   const ctx = await requireCtx("edit");
   const list = z.array(OpZ).max(300).parse(ops);
   const s = scoped(ctx);
-  const trip = await T.openTripOf(ctx.user.id);
-  const r = await mergeOps(s, ctx.user.id, trip && trip.spaceId === ctx.space.id ? trip : null, list as TripOp[], { seen: (k) => kvGet(`sm:op:${ctx.space.id}:${k}`), mark: (k, v) => kvSet(`sm:op:${ctx.space.id}:${k}`, v) });
+  const open = await T.openTripOf(ctx.user.id);
+  const { tripStarted, tripFinished } = await import("@/lib/notify/senders");
+  const hooks = {
+    start: async (op: TripOp) => {
+      await tripStarted(ctx.user.id, ctx.space.id, op.planned ?? null, op.at, op.chain ? { chain: op.chain, branch: op.branch ?? "" } : undefined);
+      const t = await T.openTripOf(ctx.user.id);
+      return t && t.spaceId === ctx.space.id ? t : null;
+    },
+    finish: async (op: TripOp, trip: T.TripRow) => {
+      if (op.total != null) await s.update(schema.trip, { total: op.total }, eq(schema.trip.id, trip.id));
+      await tripFinished(ctx.user.id, null, op.at);
+    },
+  };
+  const r = await mergeOps(s, ctx.user.id, open && open.spaceId === ctx.space.id ? open : null, list as TripOp[], { seen: (k) => kvGet(`sm:op:${ctx.space.id}:${k}`), mark: (k, v) => kvSet(`sm:op:${ctx.space.id}:${k}`, v) }, hooks);
   classifyAfter(s, r.added);
   announceAdd(s, ctx.user.id, r.added);
-  return { applied: r.applied, skipped: r.skipped, idMap: r.idMap, items: r.items };
+  const after = await T.openTripOf(ctx.user.id);
+  return { applied: r.applied, skipped: r.skipped, idMap: r.idMap, items: r.items, trip: after && after.spaceId === ctx.space.id ? after : null };
 }
 
 // ---------- S2 B3: scan + photo ----------
