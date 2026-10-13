@@ -7,6 +7,7 @@ import { learnOrder } from "@/lib/grocery/order";
 import { cleanOrder, DEFAULT_ORDER, tripOrder, type SectionKey } from "@/lib/grocery/sections";
 import { dueStaples, learnHistory, mergeQty, suggest, type History, type Purchase, type Suggestion } from "@/lib/grocery/staples";
 import { replayTrip } from "@/lib/grocery/trip";
+import { learnUnitWeights, unitKgFor } from "@/lib/grocery/weights";
 import type { Unit } from "@/lib/grocery/dictionary";
 import type { TemplateItem } from "@/db/schema";
 import { finishedTrips } from "./trips";
@@ -90,6 +91,8 @@ export type AddInput = {
   qty?: number;
   amount?: number | null;
   unit?: Unit | null;
+  /** B1: pieces (with or without a weight). */
+  count?: number | null;
   gtin?: string | null;
   productKey?: string | null;
   section?: string | null;
@@ -99,7 +102,7 @@ export type AddInput = {
   by: string | null;
   byName?: string | null;
 };
-export type Before = { quantity: number; amount: number | null; unit: string | null; notes: string | null };
+export type Before = { quantity: number; amount: number | null; unit: string | null; notes: string | null; count?: number | null };
 export type AddResult = { item: ItemRow; merged: boolean; before: Before | null };
 
 const unitLabel = (amount: number, unit: string) => `${Math.round(amount * 1000) / 1000} ${unit === "l" ? "L" : unit}`;
@@ -114,11 +117,16 @@ export async function addToList(s: Scoped, i: AddInput, now = Date.now()): Promi
   const qty = Math.max(1, Math.round(i.qty ?? 1));
   const unit = i.unit && i.unit !== "u" ? i.unit : null;
   const amount = unit && i.amount != null && i.amount > 0 ? i.amount : null;
+  const count = i.count != null && i.count >= 1 ? Math.min(999, Math.round(i.count)) : null;
   const [cur] = await s.select(schema.items, and(onListCond, eq(schema.items.productKey, productKey))).orderBy(asc(schema.items.createdAt)).limit(1);
   if (cur) {
-    const before: Before = { quantity: cur.quantity, amount: cur.amount, unit: cur.unit, notes: cur.notes };
+    const before: Before = { quantity: cur.quantity, amount: cur.amount, unit: cur.unit, notes: cur.notes, count: cur.count };
     const patch: Partial<ItemRow> = { updatedAt: now };
-    if (!unit && !cur.unit) patch.quantity = cur.quantity + qty;
+    // B1: pieces add up on their own; a count-only add never touches the weight or the packs.
+    if (count != null) patch.count = (cur.count ?? 0) + count;
+    if (count != null && !unit) {
+      // the count was the whole add
+    } else if (!unit && !cur.unit) patch.quantity = cur.quantity + qty;
     else if (unit && cur.unit === unit) patch.amount = Math.round(((cur.amount ?? 0) + (amount ?? 0)) * 1000) / 1000;
     else {
       // Different units: keep one row, note the second amount ("+ 2 kg" / "+ ×3").
@@ -134,9 +142,11 @@ export async function addToList(s: Scoped, i: AddInput, now = Date.now()): Promi
     title: i.title.trim().slice(0, 300),
     list: "supermarket",
     status: "to_buy",
-    quantity: qty,
+    // A count of pieces is the row's measure (packs stay 1).
+    quantity: count != null ? 1 : qty,
     amount,
     unit,
+    count,
     gtin: i.gtin ?? null,
     productKey,
     section: i.section ?? cls.section,
@@ -155,7 +165,7 @@ export async function addToList(s: Scoped, i: AddInput, now = Date.now()): Promi
 export async function undoMerge(s: Scoped, itemId: string, before: Before) {
   const cur = await s.byId(schema.items, itemId);
   if (!cur || cur.list !== "supermarket") return null;
-  await s.update(schema.items, { quantity: before.quantity, amount: before.amount, unit: before.unit as Unit | null, notes: before.notes, updatedAt: Date.now() }, eq(schema.items.id, itemId));
+  await s.update(schema.items, { quantity: before.quantity, amount: before.amount, unit: before.unit as Unit | null, notes: before.notes, ...(before.count !== undefined ? { count: before.count } : {}), updatedAt: Date.now() }, eq(schema.items.id, itemId));
   return s.byId(schema.items, itemId);
 }
 
@@ -197,6 +207,8 @@ export async function purchasesOf(s: Scoped): Promise<{ purchases: Purchase[]; t
         qty: qtyc?.qty ?? it?.quantity ?? 1,
         amount: qtyc?.amount ?? it?.amount ?? null,
         unit: qtyc?.unit ?? it?.unit ?? null,
+        // B1: a check with both a quantity and a weight counted pieces; else the row's own count.
+        count: qtyc?.qty != null && qtyc?.amount != null ? qtyc.qty : (it?.count ?? null),
         price: priced?.price ?? null,
         chain: t.chain,
         branch: t.branch,
@@ -209,7 +221,7 @@ export async function purchasesOf(s: Scoped): Promise<{ purchases: Purchase[]; t
   }
   for (const it of items.values()) {
     if (it.status !== "purchased" || seenItems.has(it.id) || !it.productKey) continue;
-    purchases.push({ productKey: it.productKey, title: it.title, at: it.purchasedAt ?? it.updatedAt, qty: it.quantity, amount: it.amount, unit: it.unit, price: it.purchasedPrice, section: it.section, art: it.artKey, tripId: null });
+    purchases.push({ productKey: it.productKey, title: it.title, at: it.purchasedAt ?? it.updatedAt, qty: it.quantity, amount: it.amount, unit: it.unit, count: it.count, price: it.purchasedPrice, section: it.section, art: it.artKey, tripId: null });
   }
   return { purchases, trips: tripsOut };
 }
@@ -259,6 +271,8 @@ export type HomeState = {
   usualDay: { weekday: number; hour: number } | null;
   /** Trips running in this space now (anyone's): the trip bar + the Home card. */
   open: OpenTrip[];
+  /** B1: kg per piece for the products on the list / suggested (the home's learned weight, else the fallback). */
+  unitKg: Record<string, number>;
 };
 
 export type OpenTrip = { id: string; userId: string; chain: string | null; branch: string | null; startedAt: number; planned: number; bought: number; notFound: number; added: number; spent: number };
@@ -299,7 +313,13 @@ export async function homeState(s: Scoped, o: { tz: string; locale?: string; now
   const ym = (t: number) => new Intl.DateTimeFormat("en-CA", { timeZone: o.tz, year: "numeric", month: "2-digit" }).format(new Date(t));
   const month = ym(now);
   const monthSpent = tripRows.reduce((a, r) => a + (r.at != null && r.total != null && ym(r.at) === month ? r.total : 0), 0);
-  return { stores, store: def ? { chain: def.chain, branch: def.branch } : null, order: tripOrder(def), suggestions, prices, monthSpent, trips: trips.length, usualDay: history.usualDay, open };
+  const learned = learnUnitWeights(purchases);
+  const unitKg: Record<string, number> = {};
+  for (const k of [...onList, ...suggestions.map((x) => x.productKey)]) {
+    const w = unitKgFor(k, learned);
+    if (w != null) unitKg[k] = w;
+  }
+  return { stores, store: def ? { chain: def.chain, branch: def.branch } : null, order: tripOrder(def), suggestions, prices, monthSpent, trips: trips.length, usualDay: history.usualDay, open, unitKg };
 }
 
 /** "Not now": quiet until the end of this cycle. */

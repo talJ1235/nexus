@@ -90,6 +90,8 @@ export const items = sqliteTable(
     section: text("section"),
     unit: text("unit", { enum: ["u", "kg", "g", "l"] }),
     amount: real("amount"),
+    // R18 S2 B1: pieces ("6 tomatoes"), next to the weight (amount + unit) or alone; null = not given.
+    count: integer("count"),
     productKey: text("product_key"),
     staple: text("staple", { enum: ["off", "suggest", "auto"] }).notNull().default("off"),
     pinnedStore: text("pinned_store"),

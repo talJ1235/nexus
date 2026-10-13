@@ -14,7 +14,12 @@ export type Parsed = {
   amount: number | null;
   unit: Unit | null;
   name: string;
+  /** R18 S2 B1: pieces of a product sold by weight ("6 עגבניות", "קילו עגבניות, בערך 6"); null = not said. */
+  count: number | null;
 };
+
+/** ", about 6" / ", בערך 6" / "כ־6" / "~6" at the end: an approximate count of pieces. */
+const ABOUT = /(?:^|[\s,،]+)(?:about|approx\.?|around|roughly|~|בערך|בסביבות|כ[-־]?)\s*(\d{1,3})\s*$/i;
 
 const UNIT_RE: [RegExp, Unit, number][] = [
   [/^(ק["״']?ג|קילו(?:גרם)?|kg|kgs|kilo(?:s|gram|grams)?)$/i, "kg", 1],
@@ -41,13 +46,25 @@ const unitOf = (w: string): [Unit, number] | null => {
 };
 
 export function parseLine(raw: string): Parsed {
-  let words = String(raw ?? "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  let text = String(raw ?? "").replace(/\s+/g, " ").trim();
+  let count: number | null = null;
+  const about = ABOUT.exec(text);
+  if (about && about.index > 0) {
+    count = Number(about[1]) || null;
+    text = text.slice(0, about.index).replace(/[\s,،]+$/, "");
+  }
+  // "about 5 …" / "כ־5 …" first: the number is the count (approximate).
+  const lead = /^(?:about|approx\.?|around|roughly|~|בערך|בסביבות|כ[-־]?)\s*(\d{1,3})\s+(?=\S)/i.exec(text);
+  if (lead) text = `${lead[1]} ${text.slice(lead[0].length)}`;
+  let words = text.split(" ").filter(Boolean);
+  let explicit = false;
   let qty = 1;
   let amount: number | null = null;
   let unit: Unit | null = null;
   // "×2" / "x2" / "* 2" at the end.
   const tail = words.length > 1 ? /^(?:[x×*])\s*(\d+)$/i.exec(words[words.length - 1]) ?? (/^[x×*]$/i.test(words[words.length - 2] ?? "") ? /^(\d+)$/.exec(words[words.length - 1]) : null) : null;
   if (tail) {
+    explicit = true;
     qty = Number(tail[1]);
     words = words.slice(0, /^[x×*]$/i.test(words[words.length - 2] ?? "") ? -2 : -1);
   }
@@ -60,6 +77,12 @@ export function parseLine(raw: string): Parsed {
       unit = u[0];
       words = words.slice(1);
     }
+  } else if (words.length > 1 && num(words[0]) == null && unitOf(words[0])) {
+    // "קילו עגבניות" / "kilo tomatoes": a unit word alone means one of it.
+    const u = unitOf(words[0])!;
+    amount = Math.round(u[1] * 1000) / 1000;
+    unit = u[0];
+    words = words.slice(1);
   } else if (words.length > 1 && !/%$/.test(words[0])) {
     // "a dozen eggs", "חצי קילו"
     let n = num(words[0]);
@@ -75,8 +98,10 @@ export function parseLine(raw: string): Parsed {
         unit = u[0];
         words = words.slice(used + 1);
       } else if (!(words[0] === "a" || words[0] === "an") || used === 2) {
-        if (n >= 1 && Number.isInteger(n)) qty = n;
-        else {
+        if (n >= 1 && Number.isInteger(n)) {
+          qty = n;
+          explicit = true;
+        } else {
           amount = n;
           unit = "u";
         }
@@ -85,7 +110,13 @@ export function parseLine(raw: string): Parsed {
     }
   }
   if (!(qty >= 1) || qty > 999) qty = 1;
-  return { qty, amount, unit, name: words.join(" ").trim() };
+  const name = words.join(" ").trim();
+  // A number of something sold by weight is a count of pieces ("6 עגבניות" → 6, weighed at the till).
+  if (count == null && explicit && amount == null && unit == null) {
+    const u = classifyLocal(name).unit;
+    if (u === "kg" || u === "g") count = qty;
+  }
+  return { qty, amount, unit, name, count };
 }
 
 // ---------- C4: split a paste / a voice line ----------

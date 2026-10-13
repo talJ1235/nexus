@@ -6,6 +6,7 @@ import { migrateR15 } from "./migrate-r15";
 import { migrateR16 } from "./migrate-r16";
 import { migrateR17, migrateR17s2, migrateR17s3, migrateR17s6 } from "./migrate-r17";
 import { migrateR18 } from "./migrate-r18";
+import { migrateR18s2 } from "./migrate-r18s2";
 
 async function main() {
   const url = process.env.TURSO_DATABASE_URL ?? "file:local.db";
@@ -112,6 +113,8 @@ async function main() {
   await migrateR17s6(client, (m) => console.log(`[migrate-r17s6] ${m}`));
   // Round 18 Session 1: supermarket list, trips + check log, stores, suggestions, templates (additive).
   await migrateR18(client, (m) => console.log(`[migrate-r18] ${m}`));
+  // Round 18 Session 2: count next to the weight, hidden products, Nexus-made templates (additive).
+  await migrateR18s2(client, (m) => console.log(`[migrate-r18s2] ${m}`));
   console.log("[migrate] done:", url.replace(/\/\/.*@/, "//***@").split("?")[0]);
   client.close();
 }

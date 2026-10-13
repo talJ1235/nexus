@@ -106,7 +106,7 @@ export function SupermarketView() {
           {s.sm.length > 0 && <p className="tabular px-1 pt-1 text-[13px] font-semibold text-muted">{s.sm.length === 1 ? t.sm.main.itemsOne : f(t.sm.main.items, { n: s.sm.length })}</p>}
           <div className="flex flex-col gap-1.5" data-sm-list>
             {groups.map(([k, list]) => (
-              <Section key={k} section={k} items={list} tiles={shown === "tiles"} />
+              <Section key={k} section={k} items={list} tiles={shown === "tiles"} unitKg={home?.unitKg} />
             ))}
           </div>
         </>
@@ -207,7 +207,7 @@ function AddField({ inputRef }: { inputRef: React.RefObject<HTMLInputElement | n
     const p = parseLine(line);
     setText("");
     try {
-      const r = await addToSupermarket({ title: p.name || line, qty: p.qty, amount: p.amount, unit: p.unit });
+      const r = await addToSupermarket({ title: p.name || line, qty: p.qty, amount: p.amount, unit: p.unit, count: p.count });
       s.upsertSm([asItem(r.item)]);
       toast(r.item.title, {
         description: t.sm.main.added,
@@ -393,7 +393,7 @@ function FirstTime({ basketSize, onBasket, onBuild, onPaste }: { basketSize: num
   );
 }
 
-function Section({ section, items, tiles }: { section: string; items: ItemWithSources[]; tiles: boolean }) {
+function Section({ section, items, tiles, unitKg }: { section: string; items: ItemWithSources[]; tiles: boolean; unitKg?: Record<string, number> }) {
   const { t, f, locale } = useI18n();
   const [shut, setShut] = useState(false);
   const name = section === "other" ? t.sm.main.other : sectionName(section, locale);
@@ -410,13 +410,13 @@ function Section({ section, items, tiles }: { section: string; items: ItemWithSo
           {tiles ? (
             <div className="gro-tiles">
               {items.map((i) => (
-                <Tile key={i.id} item={i} />
+                <Tile key={i.id} item={i} unitKg={i.productKey ? unitKg?.[i.productKey] ?? null : null} />
               ))}
             </div>
           ) : (
             <div className="gro-box">
               {items.map((i) => (
-                <Row key={i.id} item={i} />
+                <Row key={i.id} item={i} unitKg={i.productKey ? unitKg?.[i.productKey] ?? null : null} />
               ))}
             </div>
           )}
@@ -435,7 +435,7 @@ function useWhoColor(item: ItemWithSources) {
   return k < 0 ? null : WHO[k % WHO.length];
 }
 
-function Row({ item }: { item: ItemWithSources }) {
+function Row({ item, unitKg }: { item: ItemWithSources; unitKg: number | null }) {
   const { locale } = useI18n();
   const who = useWhoColor(item);
   return (
@@ -446,18 +446,18 @@ function Row({ item }: { item: ItemWithSources }) {
         {item.notes && <span className="gro-s bidi truncate">{item.notes}</span>}
       </span>
       {who && <i className="gro-who" style={{ background: who }} aria-hidden />}
-      <span className="gro-q">{qtyLabel(item, locale)}</span>
+      <span className="gro-q">{qtyLabel(item, locale, unitKg)}</span>
     </div>
   );
 }
 
-function Tile({ item }: { item: ItemWithSources }) {
+function Tile({ item, unitKg }: { item: ItemWithSources; unitKg: number | null }) {
   const { locale } = useI18n();
   return (
     <div className="gro-tile" data-sm-row={item.id}>
       <ProductTile art={item.artKey} section={item.section} size={56} />
       <span className="gro-t bidi">{item.title}</span>
-      <span className="gro-q">{qtyLabel(item, locale)}</span>
+      <span className="gro-q">{qtyLabel(item, locale, unitKg)}</span>
     </div>
   );
 }

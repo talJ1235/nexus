@@ -56,7 +56,7 @@ else's (watch, what you add shows for them), offline (changes waiting), everythi
 **Acceptance:** smoke: bar visible on Products/Insights/Supermarket during a trip, gone after Finish.
 
 ## Part B — adding
-### B1. [ ] Count + weight (data + parser)
+### B1. [x] Count + weight (data + parser)
 New nullable `count` on supermarket items (additive). An item holds a count, a weight (`amount` + `unit` kg/g) or both.
 Parser (S1 `lib/grocery` parse): "6 עגבניות" → count 6; "קילו עגבניות" → 1 kg; "קילו עגבניות, בערך 6" → both. Unit
 weight learned per product per home from receipts/trips (fallback table for common produce); shown as "≈ 0.9 ק״ג" when
@@ -153,6 +153,7 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 - A1 done — dock Home · Products · + · Supermarket/Projects · Insights, long-press + menu, manifest shortcuts, Products segments (To buy · On the way · Projects), sidebar Supermarket + count, tab-4 rule `lib/dock-tab.ts` + `test:dock`; phone smoke steps updated + new.
 - A2 done — Supermarket tab (`supermarket/view.tsx`, kit `sm.css`, board pictures ported to `art-data.ts`): store chip + estimate vs this month's budget, aisle rail, add field, Nexus suggests (+ / × / Add all, draft header with `?draft=1`), sections in the main store's order, rows/tiles in the ⋯ menu (`pref:sm-layout` per person), first-time state (basic basket `lib/grocery/basket.ts`), viewer + offline badges; `/supermarket` renders the tab; action `supermarketHome`; demo data `scripts/lib/seed-sm.mjs` (seed-local); smoke step + `scripts/parity-r18.mjs` (a2-*.png). Fixed on the way: the closed + menu showed its disabled Plan card at 50 %.
 - A3 done — Home "Next shop" card (`supermarket/trip.tsx` NextShopCard: next shop day / today is your shop, items + estimate, left this month, section chips, suggestions count; my trip: progress ring, Finish/Resume; someone else's: Add for them; first list: basic basket / build my list) and the trip bar above the dock on every phone screen (mine / other / offline / everything checked). Server: `openTripsOf` + usual day in `homeState`; client `SmHomeSync` refreshes on list changes, feed updates and every 20 s during a trip. Smoke step + parity a3-*.png.
+- B1 done — nullable `items.count` (`db/migrate-r18s2.ts`); parser: "6 עגבניות" → count 6, "קילו עגבניות" → 1 kg, "קילו עגבניות, בערך 6" / "about 6" / "כ־6" → both; `lib/grocery/weights.ts` (unit weight learned per product per home from rows with both, fallback table); rows read "6 · 1 kg", "6 · ≈ 0.9 kg", "1 kg · ≈ 7"; add/merge/undo carry count; `test:grocery` +B1 lines (he + en); rehearsal `scripts/r18s2-rehearsal.mjs` (dry run on a local copy: only items.count added, nothing else changed).
 ### Decisions
 - A1: The board's flat bottom bar is not taken: the app keeps its floating dock (R14) with the new tabs/icons.
 - A1: Tab-4 use counts live on the device (localStorage `nexus.tabUse`, 30 days); the tab is chosen once per page load so it never swaps under a finger; a tie keeps the Supermarket.
@@ -165,5 +166,7 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 - A3: Home's card sits right under the header (before the widgets), not as a Customise widget — it's the supermarket's entry on Home.
 - A3: Trip progress comes from the server's trip log (refreshed on feed updates + a 20 s poll while a trip runs); store mode (D3) will feed my own trip instantly.
 - A3: The bar hides on Home for someone else's trip (the card shows it there).
+- B1: A number is a count only for products sold by weight (dictionary unit kg / g); for packs (milk, eggs, bananas) it stays the quantity (×2). A count-only row keeps quantity 1.
+- B1: Unit weights are learned from purchases that carry both a count and a weight (trip checks with qty + amount, rows with count + amount); receipts give weights only, so they teach nothing alone.
 ### For Tal
 - Prod snapshot was refused to the agent at session start (2026-10-13). Run in `nexus/`: `node --env-file=.env.local scripts/db-snapshot.mjs` → `snapshots/prod-2026-10-13.db`; the S2 rehearsal uses the newest `snapshots/prod-*.db`.

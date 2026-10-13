@@ -12,6 +12,9 @@ import { classifyLocal, productKeyFor } from "../src/lib/grocery/classify";
 import { PRODUCT_TYPES } from "../src/lib/grocery/dictionary";
 import { normalize } from "../src/lib/grocery/normalize";
 import { SECTION_KEYS } from "../src/lib/grocery/sections";
+import { parseLine } from "../src/lib/grocery/parse";
+import { learnUnitWeights, measure, unitKgFor } from "../src/lib/grocery/weights";
+import { qtyLabel } from "../src/components/app/supermarket/qty";
 
 // [line, expected section] — boards (Supermarket-phone WORST / DEMO / SUG, Add-phone paste + voice) in both languages.
 const BOARD: [string, string][] = [
@@ -110,6 +113,59 @@ console.log(`${pct >= 90 ? "ok" : "FAIL"} sections: ${ok}/${lines.length} = ${pc
     const a = srv.fromAi("קרקר אורז בטעם פיצה", { section: "snack", type: "crackers" });
     assert.ok(a.section === "snack" && a.productKey.startsWith("crackers") && a.via === "ai");
     console.log("ok Open Food Facts categories → sections; AI answers → classifications");
+  }
+  // ---- R18 S2 B1: count + weight (he + en): the parser, the unit weights, how a row reads
+  {
+    const P: [string, number | null, number | null, string | null, string][] = [
+      // [line, count, amount, unit, name]
+      ["6 עגבניות", 6, null, null, "עגבניות"],
+      ["6 tomatoes", 6, null, null, "tomatoes"],
+      ["קילו עגבניות", null, 1, "kg", "עגבניות"],
+      ["kilo tomatoes", null, 1, "kg", "tomatoes"],
+      ["קילו עגבניות, בערך 6", 6, 1, "kg", "עגבניות"],
+      ["1 kg tomatoes, about 6", 6, 1, "kg", "tomatoes"],
+      ["חצי קילו מלפפונים, כ־4", 4, 0.5, "kg", "מלפפונים"],
+      ["cucumbers ~5", 5, null, null, "cucumbers"],
+      ["כ-5 מלפפונים", 5, null, null, "מלפפונים"],
+      ["about 3 onions", 3, null, null, "onions"],
+      ["3 חזה עוף", 3, null, null, "חזה עוף"],
+      // packs keep their quantity (no count): milk, eggs, bananas are counted, not weighed
+      ["2 חלב 3%", null, null, null, "חלב 3%"],
+      ["6 eggs", null, null, null, "eggs"],
+      ["6 בננות", null, null, null, "בננות"],
+    ];
+    for (const [line, count, amount, unit, name] of P) {
+      const p = parseLine(line);
+      assert.deepEqual([p.count, p.amount, p.unit, p.name], [count, amount, unit, name], `count/weight parse ${JSON.stringify(line)}`);
+    }
+    // Unit weights: the home's own (median of rows with both), else the fallback table, else unknown.
+    const learned = learnUnitWeights([
+      { productKey: "tomatoes", count: 6, amount: 1, unit: "kg" },
+      { productKey: "tomatoes", count: 5, amount: 900, unit: "g" },
+      { productKey: "tomatoes", count: 7, amount: 1.2, unit: "kg" },
+      { productKey: "cucumbers", count: 0, amount: 1, unit: "kg" },
+      { productKey: "onions", count: 3, amount: null, unit: null },
+      { productKey: "bananas", count: 1, amount: 50, unit: "kg" },
+    ]);
+    assert.equal(learned.get("tomatoes"), 0.171, "median of 0.167 / 0.18 / 0.171");
+    assert.equal(learned.has("cucumbers") || learned.has("onions") || learned.has("bananas"), false, "rows without both, or implausible, teach nothing");
+    assert.equal(unitKgFor("tomatoes", learned), 0.171);
+    assert.equal(unitKgFor("cucumbers", learned), 0.12, "fallback table");
+    assert.equal(unitKgFor("milk 3%", learned), null, "packs: unknown");
+    // How a row reads (he + en): both said, count → ≈ weight, weight → ≈ count, packs.
+    const R: [Parameters<typeof qtyLabel>[0], string, number | null, string][] = [
+      [{ quantity: 1, count: 6, amount: 1, unit: "kg" }, "en", 0.15, "6 · 1 kg"],
+      [{ quantity: 1, count: 6, amount: null, unit: null }, "en", 0.15, "6 · ≈ 0.9 kg"],
+      [{ quantity: 1, count: 6, amount: null, unit: null }, "he", 0.15, "6 · ≈ 0.9 ק״ג"],
+      [{ quantity: 1, count: null, amount: 1, unit: "kg" }, "he", 0.15, "1 ק״ג · ≈ 7"],
+      [{ quantity: 1, count: null, amount: 500, unit: "g" }, "en", 0.12, "500 g · ≈ 4"],
+      [{ quantity: 1, count: 4, amount: null, unit: null }, "en", null, "4"],
+      [{ quantity: 3, count: null, amount: null, unit: null }, "he", null, "×3"],
+      [{ quantity: 1, count: null, amount: 1.5, unit: "l" }, "en", null, "1.5 L"],
+    ];
+    for (const [q, locale, kg, want] of R) assert.equal(qtyLabel(q, locale, kg), want, `reads ${JSON.stringify(q)} ${locale}`);
+    assert.deepEqual(measure({ count: 6 }, 0.15), { count: 6, kg: 0.9, approx: "kg" });
+    console.log(`ok B1 count + weight: ${P.length} parse lines (he + en), learned unit weights + fallback, ${R.length} readings`);
   }
   // ---- Tal's own receipts (local DB only, counts only)
   if (existsSync("local.db") && !process.env.CI) {

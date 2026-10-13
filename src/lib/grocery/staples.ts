@@ -21,6 +21,8 @@ export type Purchase = {
   qty?: number | null;
   amount?: number | null;
   unit?: string | null;
+  /** R18 S2 B1: pieces (with the weight when both were known). */
+  count?: number | null;
   price?: number | null;
   chain?: string | null;
   branch?: string | null;

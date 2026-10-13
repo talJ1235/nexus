@@ -67,7 +67,8 @@ function announceAdd(s: Scoped, userId: string, rows: { id: string; title: strin
 
 // ---------- C2: add with merge, undo ----------
 
-const AddZ = z.object({ title: Title, qty: Qty, amount: Amount, unit: Unit, gtin: z.string().regex(/^\d{8,14}$/).nullish(), productKey: Key.nullish(), notes: z.string().max(500).nullish() }).strict();
+const Count = z.number().int().min(1).max(999).nullish();
+const AddZ = z.object({ title: Title, qty: Qty, amount: Amount, unit: Unit, count: Count, gtin: z.string().regex(/^\d{8,14}$/).nullish(), productKey: Key.nullish(), notes: z.string().max(500).nullish() }).strict();
 
 /** Add to the supermarket list. Already there (to buy) → its quantity grows: `{ merged: true, now }` for the toast + Undo. */
 export async function addToSupermarket(input: z.input<typeof AddZ>) {
@@ -79,10 +80,10 @@ export async function addToSupermarket(input: z.input<typeof AddZ>) {
     classifyAfter(s, [r.item]);
     announceAdd(s, ctx.user.id, [r.item]);
   }
-  return { item: r.item, merged: r.merged, before: r.before, now: { quantity: r.item.quantity, amount: r.item.amount, unit: r.item.unit, notes: r.item.notes } };
+  return { item: r.item, merged: r.merged, before: r.before, now: { quantity: r.item.quantity, amount: r.item.amount, unit: r.item.unit, notes: r.item.notes, count: r.item.count } };
 }
 
-const BeforeZ = z.object({ quantity: z.number().int().min(0).max(9999), amount: z.number().nullable(), unit: z.string().nullable(), notes: z.string().max(500).nullable() }).strict();
+const BeforeZ = z.object({ quantity: z.number().int().min(0).max(9999), amount: z.number().nullable(), unit: z.string().nullable(), notes: z.string().max(500).nullable(), count: z.number().int().min(0).max(9999).nullish() }).strict();
 
 /** Undo of a merge toast: the old quantity comes back. Undo of a new row: it goes. */
 export async function undoSupermarketAdd(itemId: string, before: z.input<typeof BeforeZ> | null) {
@@ -105,14 +106,14 @@ export async function previewSplit(text: string) {
   return splitList(t, list.map((i) => i.productKey).filter((k): k is string => !!k));
 }
 
-const PartsZ = z.array(z.object({ title: Title, qty: Qty, amount: Amount, unit: Unit, note: z.boolean().optional() }).strict()).max(60);
+const PartsZ = z.array(z.object({ title: Title, qty: Qty, amount: Amount, unit: Unit, count: Count, note: z.boolean().optional() }).strict()).max(60);
 
 /** Add the checked parts of a split preview (merging like a single add); notes go on the list as text-only rows. */
 export async function addParts(parts: z.input<typeof PartsZ>) {
   const ctx = await requireCtx("edit");
   const s = scoped(ctx);
   const out: G.AddResult[] = [];
-  for (const p of PartsZ.parse(parts)) out.push(await G.addToList(s, { title: p.title, qty: p.qty, amount: p.amount, unit: p.unit ?? null, by: ctx.user.id, ...(p.note ? { productKey: `note:${p.title.toLowerCase().slice(0, 100)}`, section: "other" } : {}) }));
+  for (const p of PartsZ.parse(parts)) out.push(await G.addToList(s, { title: p.title, qty: p.qty, amount: p.amount, unit: p.unit ?? null, count: p.count ?? null, by: ctx.user.id, ...(p.note ? { productKey: `note:${p.title.toLowerCase().slice(0, 100)}`, section: "other" } : {}) }));
   const fresh = out.filter((r) => !r.merged).map((r) => r.item);
   classifyAfter(s, fresh);
   announceAdd(s, ctx.user.id, fresh);
