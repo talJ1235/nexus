@@ -1259,6 +1259,52 @@ try {
         );
       });
 
+    // R18 S2 C2: the supermarket item sheet — quantity (count + weight) saved on the row, a note, "What Nexus learned",
+    // "Don't suggest this again" + Undo; a suggestion's action sheet (Never suggest this hides it).
+    if (WRITE)
+      await step("item sheet (R18 C2): steppers, note, what Nexus learned, hide + undo, suggestion actions", async () => {
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        const row = page.locator('[data-sm-row]:has-text("Tomatoes")').first();
+        const id = await row.getAttribute("data-sm-row");
+        await row.click();
+        await page.waitForSelector(`[data-sm-sheet="${id}"] [data-learned]`, { timeout: 10000 });
+        const r = {};
+        r.learned = await page.locator("[data-learned]").getAttribute("data-learned");
+        r.weight0 = await page.locator("[data-qty-weight]").textContent();
+        await page.locator("[data-qty-count-more]").click();
+        await page.waitForTimeout(700);
+        r.count = await page.locator("[data-qty-count]").textContent();
+        await page.locator("[data-sheet-note]").fill("Ripe ones");
+        await page.locator("[data-sheet-title]").click();
+        await page.waitForTimeout(500);
+        await shot(page, "sm-item-sheet");
+        await page.locator("[data-sheet-hide]").click();
+        await page.waitForSelector('[data-learned="hidden"]', { timeout: 5000 });
+        r.hiddenToast = await page.locator("[data-sonner-toast]").last().textContent();
+        await page.locator("[data-sheet-unhide]").click();
+        await page.waitForTimeout(600);
+        r.afterUnhide = await page.locator("[data-learned]").getAttribute("data-learned");
+        await page.locator("[data-sheet-done]").click();
+        await page.waitForTimeout(500);
+        r.rowQty = await page.locator(`[data-sm-row="${id}"] .gro-q`).textContent();
+        r.rowNote = await page.locator(`[data-sm-row="${id}"] .gro-s`).textContent().catch(() => "");
+        // A suggestion's actions: Never suggest this → gone from the card.
+        const sug = page.locator("[data-sm-sug]").first();
+        const key = await sug.getAttribute("data-sm-sug");
+        await sug.locator("[data-sm-sug-open]").click();
+        await page.waitForSelector(`[data-sug-actions="${key}"]`);
+        r.actions = await page.locator("[data-sug-act]").evaluateAll((els) => els.map((e) => e.getAttribute("data-sug-act")));
+        await page.locator('[data-sug-act="never"]').click();
+        await page.waitForTimeout(700);
+        r.gone = (await page.locator(`[data-sm-sug="${key}"]`).count()) === 0;
+        ok(
+          !!r.learned && /1 · 1 kg|kg/.test(r.weight0) && /^[0-9]+$/.test(r.count) && /won't suggest|לא יציע/.test(r.hiddenToast) && r.afterUnhide !== "hidden" && r.rowQty === `${r.count} · 1 kg` && r.rowNote === "Ripe ones" && JSON.stringify(r.actions) === '["add","skip","never"]' && r.gone,
+          "item sheet (R18 C2): steppers, note, what Nexus learned, hide + undo, suggestion actions",
+          JSON.stringify(r),
+        );
+      });
+
     // R18 S2 A3: a trip running → the bar above the dock on Products / Insights / Supermarket and the trip card on Home;
     // after Finish both are gone (the trip is started / finished through the actions, like the store mode does).
     if (MOBILE && WRITE)

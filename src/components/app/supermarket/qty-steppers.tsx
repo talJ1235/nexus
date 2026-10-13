@@ -55,9 +55,9 @@ export function QtySteppers({ value, onChange, unitKg, title, learned }: { value
         <b className="text-[13.5px] font-bold">{t.sm.qty.title}</b>
         {weighed && <span className="text-[12.5px] text-muted">{t.sm.qty.either}</span>}
       </div>
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className={cn("grid gap-2.5", weighed ? "grid-cols-2" : "grid-cols-1")}>
         <div>
-          <span className="mb-1 block text-[12.5px] font-semibold text-muted">{t.sm.qty.howMany}</span>
+          {weighed && <span className="mb-1 block text-[12.5px] font-semibold text-muted">{t.sm.qty.howMany}</span>}
           <div className={box}>
             <button type="button" className={step} aria-label={`${t.sm.qty.howMany}: ${t.sm.qty.less}`} onClick={() => stepCount(-1)} disabled={!weighed && value.quantity <= 1} data-qty-count-less>
               <Minus className="size-5" />
@@ -70,6 +70,7 @@ export function QtySteppers({ value, onChange, unitKg, title, learned }: { value
             </button>
           </div>
         </div>
+        {weighed && (
         <div>
           <span className="mb-1 block text-[12.5px] font-semibold text-muted">{t.sm.qty.weight}</span>
           <div className={box}>
@@ -84,6 +85,7 @@ export function QtySteppers({ value, onChange, unitKg, title, learned }: { value
             </button>
           </div>
         </div>
+        )}
       </div>
       {g != null && (m.approx === "kg" || m.approx === "count") && <p className="mt-1.5 text-[12.5px] text-muted">{learned ? f(t.sm.qty.estimated, { title: title.toLowerCase(), g }) : f(t.sm.qty.estimatedFallback, { g })}</p>}
     </div>

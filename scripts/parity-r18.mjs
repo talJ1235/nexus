@@ -92,6 +92,10 @@ const scanCode = (code) => async (p) => {
   await p.click("[data-cap-lookup]");
   await p.waitForSelector("[data-cap-sheet=unknown], [data-cap-sheet=found]", { timeout: 8000 }).catch(() => {});
 };
+const openRow = (title) => async (p) => {
+  await p.locator(`[data-sm-row]:has-text("${title}")`).first().click();
+  await p.waitForSelector("[data-sm-sheet] [data-learned]", { timeout: 10000 }).catch(() => {});
+};
 const SHOTS = [
   // A2 — the Supermarket tab.
   ["a2-main-phone", [["board · normal", "Supermarket-phone", { ...EN, state: "normal" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM }], ["board · he dark plum", "Supermarket-phone", { ...HE, state: "normal", dark: true, palette: "plum" }, PHONE], ["app · he dark plum", "/supermarket", PHONE, { wait: SM, he: true, dark: true, plum: true }]], 300],
@@ -103,6 +107,8 @@ const SHOTS = [
   ["b2-add", [["board · type-ahead", "Add-phone", { ...EN, state: "type-ahead" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: addType("mil") }], ["board · quantity", "Add-phone", { ...EN, state: "quantity parse" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: addType("2 milk 3%", true) }], ["board · paste", "Add-phone", { ...EN, state: "paste a list" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: addPaste }], ["board · he dark", "Add-phone", { ...HE, state: "type-ahead", dark: true }, PHONE], ["app · he dark", "/supermarket", PHONE, { wait: SM, he: true, dark: true, act: addType("חל") }]], 240],
   // B3 — capture: an unknown barcode (name it once) and the photo mode at rest (headless has no camera: dark frame).
   ["b3-capture", [["board · unknown barcode", "Capture-phone", { ...EN, state: "scan · unknown barcode" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: scanCode("7290000002025") }], ["board · photo aiming", "Capture-phone", { ...EN, state: "photo · aiming" }, PHONE], ["app · photo", "/supermarket", PHONE, { wait: SM, act: async (p) => { await p.click("[data-sm-add-photo]"); } }]], 300],
+  // C2 — the item sheet (tomatoes: count + weight, regular) and a suggestion's actions.
+  ["c2-item-sheet", [["board · item sheet", "ItemSheet-phone", { ...EN, view: "item sheet", product: "tomatoes (count + weight)", "what Nexus knows": "regular" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: openRow("Tomatoes") }], ["board · suggestion actions", "ItemSheet-phone", { ...EN, view: "suggestion actions" }, PHONE], ["app", "/supermarket", PHONE, { wait: "[data-sm-sug]", act: async (p) => { await p.locator("[data-sm-sug-open]").first().click(); } }], ["board · he dark", "ItemSheet-phone", { ...HE, view: "item sheet", dark: true }, PHONE], ["app · he dark", "/supermarket", PHONE, { wait: SM, he: true, dark: true, act: openRow("Tomatoes") }]], 280],
 ];
 
 /** A trip of mine in the personal space: 23 planned, the first 12 listed rows checked with their prices. */

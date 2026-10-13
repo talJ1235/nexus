@@ -453,3 +453,17 @@ export async function listRows(s: Scoped, ids: string[]) {
 }
 
 export const DAY_MS = DAY;
+
+// ---------- S2 C2: the item sheet ----------
+
+/** One product's purchases (newest first, ≤ 8) with the store and price, and the cheapest store seen. */
+export async function productHistory(s: Scoped, productKey: string) {
+  const { purchases } = await purchasesOf(s);
+  const mine = purchases.filter((p) => p.productKey === productKey).sort((a, b) => b.at - a.at);
+  const priced = mine.filter((p) => p.price != null && p.price > 0);
+  const cheapest = priced.length ? priced.reduce((a, b) => (b.price! < a.price! ? b : a)) : null;
+  return {
+    rows: mine.slice(0, 8).map((p) => ({ at: p.at, chain: p.chain ?? null, branch: p.branch ?? null, price: p.price ?? null })),
+    cheapest: cheapest ? { chain: cheapest.chain ?? null, branch: cheapest.branch ?? null, price: cheapest.price! } : null,
+  };
+}

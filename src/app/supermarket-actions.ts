@@ -455,3 +455,55 @@ export async function smAiAllowance() {
   const a = await aiAllowance(ctx.user.id);
   return { used: a.used, limit: a.limit, left: a.left, on: a.on };
 }
+
+// ---------- S2 C2: the item sheet ----------
+
+/** Everything the sheet shows besides the row: what Nexus learned, the history, the cheapest store. */
+export async function smItemDetail(itemId: string) {
+  const ctx = await requireCtx("view");
+  const s = scoped(ctx);
+  const it = await s.byId(schema.items, Id.parse(itemId));
+  if (!it || it.list !== "supermarket") throw new AccessError("not_found");
+  const { tz } = await notifyPrefs(ctx.user.id);
+  const key = it.productKey ?? "";
+  const [knowledge, history] = await Promise.all([key ? G.knowledgeFor(s, key, tz) : Promise.resolve({ state: "new" as const, count: 0 }), key ? G.productHistory(s, key) : Promise.resolve({ rows: [], cheapest: null })]);
+  return { item: it, knowledge, history };
+}
+
+const PatchZ = z
+  .object({
+    title: Title.optional(),
+    section: z.string().max(20).optional(),
+    quantity: z.number().int().min(1).max(999).optional(),
+    count: z.number().int().min(1).max(999).nullable().optional(),
+    amount: z.number().positive().max(100_000).nullable().optional(),
+    unit: z.enum(["kg", "g", "l"]).nullable().optional(),
+    notes: z.string().max(500).nullable().optional(),
+    preferBrand: z.string().trim().max(80).nullable().optional(),
+    substitutes: z.array(z.string().trim().min(1).max(80)).max(8).nullable().optional(),
+    pinnedStore: z.string().trim().max(120).nullable().optional(),
+  })
+  .strict();
+
+/** The sheet's edits (one field or several). Members and owners; viewers are refused. */
+export async function updateSmItem(itemId: string, patch: z.input<typeof PatchZ>) {
+  const ctx = await requireCtx("edit");
+  const s = scoped(ctx);
+  const id = Id.parse(itemId);
+  const it = await s.byId(schema.items, id);
+  if (!it || it.list !== "supermarket") throw new AccessError("not_found");
+  const p = PatchZ.parse(patch);
+  const set: Partial<typeof schema.items.$inferInsert> = { ...p, updatedAt: Date.now() };
+  if (p.section && p.section !== it.section) set.artKey = it.artKey; // a moved row keeps its picture
+  if (p.amount === null) set.unit = null;
+  await s.update(schema.items, set, eq(schema.items.id, id));
+  return s.byId(schema.items, id);
+}
+
+/** Remove a row from the list (to buy only). */
+export async function removeSmItem(itemId: string) {
+  const ctx = await requireCtx("edit");
+  const s = scoped(ctx);
+  const id = Id.parse(itemId);
+  await s.delete(schema.items, and(eq(schema.items.id, id), eq(schema.items.list, "supermarket"), eq(schema.items.status, "to_buy")));
+}

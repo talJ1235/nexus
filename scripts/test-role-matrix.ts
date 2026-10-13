@@ -54,6 +54,7 @@ const VIEW_OK = new Set([
   "supermarket-actions.ts#smAiAllowance",
   "supermarket-actions.ts#hiddenProducts",
   "supermarket-actions.ts#productKnowledge",
+  "supermarket-actions.ts#smItemDetail",
   "supermarket-actions.ts#eveningDraft",
   "supermarket-actions.ts#supermarketTemplates",
   "supermarket-actions.ts#supermarketStores",

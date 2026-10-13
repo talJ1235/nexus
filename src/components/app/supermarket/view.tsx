@@ -19,6 +19,7 @@ import { asItem, chainDef, monoColor, useAddMany, useEstimate, useMonthLeft } fr
 import { onSmIntent, takeSmIntent, type SmIntent } from "./intent";
 import { AddScreen, type AddMode } from "./add-screen";
 import { Capture } from "./capture";
+import { SmItemSheet, SuggestionActions } from "./item-sheet";
 import { useVoiceSupported } from "./add-screen";
 import { qtyLabel } from "./qty";
 import { useOutboxCount } from "./outbox-count";
@@ -55,6 +56,12 @@ export function SupermarketView() {
   // B2: the Add screen (typing / voice / paste); scan + photo arrive with B3.
   const [adding, setAdding] = useState<AddMode | null>(null);
   const [capturing, setCapturing] = useState<"scan" | "photo" | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  useEffect(() => {
+    const on = (e: Event) => setOpenId((e as CustomEvent<string>).detail);
+    window.addEventListener(OPEN_ITEM, on);
+    return () => window.removeEventListener(OPEN_ITEM, on);
+  }, []);
   const openAdd = (m: AddMode | "scan" | "photo") => {
     if (m === "scan" || m === "photo") return capture(m);
     setAdding(m);
@@ -110,6 +117,7 @@ export function SupermarketView() {
       {s.sm.length > 0 && <Rail groups={groups} />}
       {!ro && <AddField onOpen={openAdd} />}
       {!ro && <Capture open={capturing != null} mode={capturing ?? "scan"} onClose={() => setCapturing(null)} onType={() => (setCapturing(null), setAdding("type"))} />}
+      <SmItemSheet itemId={openId} onClose={closeSheet} />
       <AddScreen open={adding != null} mode={adding ?? "type"} onClose={() => setAdding(null)} onCapture={(k) => (setAdding(null), capture(k))} />
       {first ? (
         <FirstTime basketSize={Math.min(WEEKLY_BASKET_SIZE, basket.length)} onBasket={() => void addBasket(basket.slice(0, WEEKLY_BASKET_SIZE))} onBuild={() => setBasketOn(true)} onPaste={() => setAdding("paste")} />
@@ -126,6 +134,10 @@ export function SupermarketView() {
       )}
     </div>
   );
+
+  function closeSheet() {
+    setOpenId(null);
+  }
 
   /** B3: the scanner / the package photo. */
   function capture(k: "scan" | "photo") {
@@ -246,6 +258,7 @@ function Suggestions({ home, basket, draft, ro }: { home: SmHome | null; basket:
   const { t, f, locale } = useI18n();
   const [open, setOpen] = useState(true);
   const [gone, setGone] = useState<Set<string>>(() => new Set());
+  const [acting, setActing] = useState<Sug | null>(null);
   const onList = useMemo(() => new Set(s.sm.map((i) => i.productKey).filter(Boolean)), [s.sm]);
   const list: Sug[] = useMemo(() => {
     const base: Sug[] = home?.suggestions ?? [];
@@ -280,6 +293,7 @@ function Suggestions({ home, basket, draft, ro }: { home: SmHome | null; basket:
   const day = new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { weekday: "long", timeZone: s.clock.tz }).format(new Date(s.clock.now + 86_400_000));
   return (
     <section className="gro-sug" data-sm-suggest>
+      <SuggestionActions sug={acting && acting.reasonKey !== "basket" ? acting : null} reason={acting ? reason(acting) : ""} onClose={() => setActing(null)} />
       <button type="button" className="flex min-h-[60px] w-full items-center gap-3 px-3.5 text-start" onClick={() => setOpen(!open)} aria-expanded={open} aria-label={t.sm.sug.open}>
         <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-spark text-white">
           <Sparkles className="size-4" />
@@ -294,6 +308,7 @@ function Suggestions({ home, basket, draft, ro }: { home: SmHome | null; basket:
         <div>
           {list.map((x) => (
             <div key={x.productKey} className="gro-sug-row flex min-h-[64px] items-center gap-3 px-3.5 py-2" data-sm-sug={x.productKey}>
+              <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-start" onClick={() => !ro && x.reasonKey !== "basket" && setActing(x)} aria-label={f(t.sm.sugAct.open, { title: x.title })} data-sm-sug-open>
               <ProductTile art={x.art} section={x.section} size={44} />
               <span className="min-w-0 flex-1">
                 <b className="bidi block truncate text-[15px] font-extrabold">
@@ -301,6 +316,7 @@ function Suggestions({ home, basket, draft, ro }: { home: SmHome | null; basket:
                 </b>
                 <span className="block truncate text-[12.5px] text-muted">{reason(x)}</span>
               </span>
+              </button>
               {!ro && (
                 <>
                   <button type="button" className="grid size-10 shrink-0 place-items-center rounded-full text-muted transition-transform duration-150 ease-[var(--ease-out)] active:scale-90" aria-label={f(t.sm.sug.skip, { title: x.title })} onClick={() => skip(x)} data-sm-sug-skip>
@@ -414,6 +430,12 @@ function Section({ section, items, tiles, unitKg }: { section: string; items: It
   );
 }
 
+/** Rows open the item sheet (C2): an event, so the memoised rows don't take a callback. */
+const OPEN_ITEM = "nexus:sm-item";
+export function openSmItem(id: string) {
+  window.dispatchEvent(new CustomEvent(OPEN_ITEM, { detail: id }));
+}
+
 /** Who added a row (shared spaces): a dot in the person's colour. */
 const WHO = ["#7c5ad9", "#21938f", "#3b7fc4", "#d17a22", "#c94673", "#3f9d5a"];
 function useWhoColor(item: ItemWithSources) {
@@ -427,25 +449,25 @@ function Row({ item, unitKg }: { item: ItemWithSources; unitKg: number | null })
   const { locale } = useI18n();
   const who = useWhoColor(item);
   return (
-    <div className="gro-row" data-sm-row={item.id}>
-      <ProductTile art={item.artKey} section={item.section} />
+    <button type="button" className="gro-row" onClick={() => openSmItem(item.id)} data-sm-row={item.id}>
+      <ProductTile art={item.artKey} section={item.section} photo={item.imageUrl} />
       <span className="min-w-0 flex-1">
         <span className="gro-t bidi">{item.title}</span>
         {item.notes && <span className="gro-s bidi truncate">{item.notes}</span>}
       </span>
       {who && <i className="gro-who" style={{ background: who }} aria-hidden />}
       <span className="gro-q">{qtyLabel(item, locale, unitKg)}</span>
-    </div>
+    </button>
   );
 }
 
 function Tile({ item, unitKg }: { item: ItemWithSources; unitKg: number | null }) {
   const { locale } = useI18n();
   return (
-    <div className="gro-tile" data-sm-row={item.id}>
-      <ProductTile art={item.artKey} section={item.section} size={56} />
+    <button type="button" className="gro-tile" onClick={() => openSmItem(item.id)} data-sm-row={item.id}>
+      <ProductTile art={item.artKey} section={item.section} photo={item.imageUrl} size={56} />
       <span className="gro-t bidi">{item.title}</span>
       <span className="gro-q">{qtyLabel(item, locale, unitKg)}</span>
-    </div>
+    </button>
   );
 }

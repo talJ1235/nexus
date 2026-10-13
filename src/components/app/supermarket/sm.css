@@ -131,3 +131,13 @@
 .gro-wave { animation: gro-wave 900ms var(--ease-out) infinite alternate; transform-origin: bottom; }
 @keyframes gro-wave { from { transform: scaleY(0.35); } to { transform: scaleY(1); } }
 @media (prefers-reduced-motion: reduce) { .gro-wave { animation: none; } }
+
+/* C2 — a switch (a checkbox styled as one): 44 × 26, the knob slides on the compositor. */
+.gro-switch { appearance: none; position: relative; flex-shrink: 0; width: 46px; height: 28px; border-radius: 999px; background: var(--line-strong); transition: background-color 180ms ease; cursor: pointer; }
+.gro-switch::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.25); transition: transform 200ms var(--ease-out); }
+.gro-switch:checked { background: var(--ink); }
+.gro-switch:checked::after { transform: translateX(18px); }
+[dir="rtl"] .gro-switch:checked::after { transform: translateX(-18px); }
+.gro-switch:disabled { opacity: 0.5; cursor: default; }
+.gro-switch:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .gro-switch, .gro-switch::after { transition: none; } }
