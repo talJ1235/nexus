@@ -276,6 +276,8 @@ export type HomeState = {
   open: OpenTrip[];
   /** B1: kg per piece for the products on the list / suggested (the home's learned weight, else the fallback). */
   unitKg: Record<string, number>;
+  /** D2: finished trips per store ("chain|branch" → count + last), for the picker's recent list. */
+  visits: Record<string, { trips: number; last: number }>;
 };
 
 export type OpenTrip = { id: string; userId: string; chain: string | null; branch: string | null; startedAt: number; planned: number; bought: number; notFound: number; added: number; spent: number };
@@ -302,11 +304,17 @@ export async function homeState(s: Scoped, o: { tz: string; locale?: string; now
     purchasesOf(s),
     supermarketList(s),
     prefsOf(s),
-    s.pick({ total: schema.trip.total, at: schema.trip.finishedAt }, schema.trip, isNotNull(schema.trip.finishedAt)),
+    s.pick({ total: schema.trip.total, at: schema.trip.finishedAt, chain: schema.trip.chain, branch: schema.trip.branch }, schema.trip, isNotNull(schema.trip.finishedAt)),
   ]);
   const open = await openTripsOf(s, now);
   const def = stores.find((x) => x.isDefault) ?? null;
   const history = learnHistory(purchases, trips, { tz: o.tz });
+  const visits: Record<string, { trips: number; last: number }> = {};
+  for (const r of tripRows) {
+    if (!r.chain || r.at == null) continue;
+    const k = `${r.chain}|${r.branch ?? ""}`;
+    visits[k] = { trips: (visits[k]?.trips ?? 0) + 1, last: Math.max(visits[k]?.last ?? 0, r.at) };
+  }
   const onList = new Set(list.map((i) => i.productKey).filter((k): k is string => !!k));
   const listTitles = new Map(list.filter((i) => i.productKey).map((i) => [i.productKey!, i.title]));
   const suggestions = suggest({ history, onList, listTitles, prefs, baskets: trips.map((t) => t.keys), now, tz: o.tz, locale: o.locale, basket: basketForHome(history, o.who, o.locale), trips: trips.length });
@@ -321,7 +329,7 @@ export async function homeState(s: Scoped, o: { tz: string; locale?: string; now
     const w = unitKgFor(k, learned);
     if (w != null) unitKg[k] = w;
   }
-  return { stores, store: def ? { chain: def.chain, branch: def.branch } : null, order: tripOrder(def), suggestions, prices, monthSpent, trips: trips.length, usualDay: history.usualDay, open, unitKg };
+  return { stores, store: def ? { chain: def.chain, branch: def.branch } : null, order: tripOrder(def), suggestions, prices, monthSpent, trips: trips.length, usualDay: history.usualDay, open, unitKg, visits };
 }
 
 /** When the space last bought this product (trip checks, purchased rows), or null. */

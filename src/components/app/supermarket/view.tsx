@@ -2,9 +2,9 @@
 
 import "./sm.css";
 import { useEffect, useMemo, useState } from "react";
-import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, Sparkles, X } from "lucide-react";
+import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
-import { Menu, MenuContent, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuTrigger } from "@/components/ui/overlays";
+import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { acceptSuggestions, dismissSuggestion, setSupermarketLayout } from "@/app/supermarket-actions";
 import { basketFor, WEEKLY_BASKET_SIZE, type BasketItem } from "@/lib/grocery/basket";
 import { DEFAULT_ORDER, sectionName } from "@/lib/grocery/sections";
@@ -19,6 +19,8 @@ import { asItem, chainDef, monoColor, useAddMany, useEstimate, useMonthLeft } fr
 import { onSmIntent, takeSmIntent, type SmIntent } from "./intent";
 import { AddScreen, type AddMode } from "./add-screen";
 import { Capture } from "./capture";
+import { SectionOrder, StorePicker } from "./store-picker";
+import { useTripStore } from "./trip-store";
 import { SmItemSheet, SuggestionActions } from "./item-sheet";
 import { useVoiceSupported } from "./add-screen";
 import { qtyLabel } from "./qty";
@@ -49,7 +51,11 @@ export function SupermarketView() {
   const ro = viewer || s.offlineAt != null;
   const [layout, setLayout] = useState<"rows" | "tiles" | null>(null);
   const shown = layout ?? home?.layout ?? "rows";
-  const order = home?.order ?? DEFAULT_ORDER;
+  // D2: this trip's store (a trip-only pick, else the default) and its branch's order.
+  const trip = useTripStore(s.spaceId || "-", home);
+  const order = trip.order;
+  const [picking, setPicking] = useState(false);
+  const [ordering, setOrdering] = useState(false);
   const groups = useMemo(() => bySection(s.sm, order), [s.sm, order]);
   const [basketOn, setBasketOn] = useState(false);
   const addMany = useAddMany();
@@ -109,11 +115,18 @@ export function SupermarketView() {
               <MenuRadioItem value="rows" data-sm-layout-pick="rows">{t.sm.main.rows}</MenuRadioItem>
               <MenuRadioItem value="tiles" data-sm-layout-pick="tiles">{t.sm.main.tiles}</MenuRadioItem>
             </MenuRadioGroup>
+            <MenuSeparator />
+            <MenuItem onSelect={() => setOrdering(true)} data-sm-menu-order>
+              <ListOrdered className="size-4" />
+              {t.sm.order.open}
+            </MenuItem>
           </MenuContent>
         </Menu>
       </div>
       <Badges viewer={viewer} />
-      <StoreLine home={home} />
+      <StoreLine home={home} store={trip.store} onPick={() => setPicking(true)} />
+      <StorePicker open={picking} onClose={() => setPicking(false)} />
+      <SectionOrder open={ordering} onClose={() => setOrdering(false)} onPickStore={() => setPicking(true)} />
       {s.sm.length > 0 && <Rail groups={groups} />}
       {!ro && <AddField onOpen={openAdd} />}
       {!ro && <Capture open={capturing != null} mode={capturing ?? "scan"} onClose={() => setCapturing(null)} onType={() => (setCapturing(null), setAdding("type"))} />}
@@ -173,10 +186,9 @@ function Badges({ viewer }: { viewer: boolean }) {
 }
 
 /** Store chip (chain monogram, chain, branch) + the list's estimate against what's left of this month's budget. */
-function StoreLine({ home }: { home: SmHome | null }) {
+function StoreLine({ home, store, onPick }: { home: SmHome | null; store: { chain: string; branch: string } | null; onPick: () => void }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
-  const store = home?.store ?? null;
   const def = chainDef(store?.chain);
   const est = useEstimate(home);
   const left = useMonthLeft(home);
@@ -184,7 +196,7 @@ function StoreLine({ home }: { home: SmHome | null }) {
   const pct = est != null && left != null && left > 0 ? Math.min(1, est / left) : null;
   return (
     <div className="flex items-stretch gap-3">
-      <button type="button" className="flex min-h-14 min-w-0 flex-1 items-center gap-2.5 rounded-[16px] border border-line-strong bg-surface px-2.5 text-start shadow-card transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]" aria-label={store ? `${t.sm.main.changeStore}: ${name}` : t.sm.main.chooseStore} data-sm-store>
+      <button type="button" onClick={onPick} className="flex min-h-14 min-w-0 flex-1 items-center gap-2.5 rounded-[16px] border border-line-strong bg-surface px-2.5 text-start shadow-card transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]" aria-label={store ? `${t.sm.main.changeStore}: ${name}` : t.sm.main.chooseStore} data-sm-store>
         {store ? (
           <span className="grid size-9 shrink-0 place-items-center rounded-[10px] text-[14px] font-extrabold text-white" style={{ background: def ? monoColor(def.color) : "var(--muted)" }}>
             {(locale === "he" ? def?.monoHe : def?.mono)?.slice(0, 1) ?? name?.slice(0, 1)}

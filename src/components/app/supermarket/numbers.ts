@@ -7,6 +7,7 @@ import type { BasketItem } from "@/lib/grocery/basket";
 import { toast } from "@/lib/toast";
 import type { ItemWithSources } from "@/lib/types";
 import { STORES } from "@/lib/onboarding";
+import { chainById } from "@/lib/grocery/chains";
 import { useStore } from "../store";
 import type { OpenTrip, SmHome } from "./data";
 import { requestSm, type SmIntent } from "./intent";
@@ -87,7 +88,13 @@ export const tripTotal = (t: OpenTrip) => Math.max(t.planned + t.added, t.bought
 const MONO: Record<string, string> = { m1: "#c0392b", m2: "#1f7a4d", m3: "#1d5fa8", m4: "#b8860b", m5: "#6c3fb5", m6: "#d1495b", m7: "#2a7f8f", m8: "#5b5a56", m9: "#e07a24" };
 export const monoColor = (c: string | null | undefined) => MONO[c ?? ""] ?? MONO.m8;
 
-export const chainDef = (chain: string | null | undefined) => (chain ? STORES.find((x) => x.id === chain || x.en === chain || x.he === chain) ?? null : null);
+/** A chain's names + monogram colour: the supermarket chains (lib/grocery/chains.ts), else the onboarding stores. */
+export const chainDef = (chain: string | null | undefined) => {
+  if (!chain) return null;
+  const c = chainById(chain);
+  if (c) return { en: c.en, he: c.he, color: c.color, mono: c.en.slice(0, 1), monoHe: c.he.slice(0, 1) };
+  return STORES.find((x) => x.id === chain || x.en === chain || x.he === chain) ?? null;
+};
 
 const FSI = String.fromCharCode(0x2068);
 const PDI = String.fromCharCode(0x2069);

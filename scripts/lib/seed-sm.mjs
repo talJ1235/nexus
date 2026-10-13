@@ -64,7 +64,10 @@ export async function seedSupermarket(db, { spaceId, userId, now = Date.now(), l
   await run("DELETE FROM items WHERE space_id = ? AND id LIKE 'demo-sm-%'", [spaceId]);
   await run("DELETE FROM space_store WHERE space_id = ?", [spaceId]);
   await run("DELETE FROM suggest_dismiss WHERE space_id = ?", [spaceId]);
-  await run("INSERT INTO space_store (space_id, chain, branch, is_default) VALUES (?, 'shufersal', 'Herzl St.', 1)", [spaceId]);
+  // The main store with a learned order waiting (dairy before bread: the last trips walked it that way), and a second branch.
+  const learned = ["produce", "meat", "deli", "dry", "cans", "spice", "bfast", "snack", "drink", "clean", "toil", "baby", "pets", "dairy", "bread", "frozen"];
+  await run("INSERT INTO space_store (space_id, chain, branch, is_default, suggested_order, suggested_at) VALUES (?, 'shufersal', 'Herzl St.', 1, ?, ?)", [spaceId, JSON.stringify(learned), now - DAY]);
+  await run("INSERT INTO space_store (space_id, chain, branch, is_default) VALUES (?, 'rami-levy', 'Modiin', 0)", [spaceId]);
   if (list)
     for (const [k, [id, title, key, section, art, qty, amount, unit, notes]] of SM_LIST.entries())
       await run(

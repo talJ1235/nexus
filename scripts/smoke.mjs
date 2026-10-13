@@ -1305,6 +1305,52 @@ try {
         );
       });
 
+    // R18 S2 D2: the section order of the main branch (the learned suggestion → Use this order, the moved sections; Reset)
+    // and the store picker (search a new branch → "This trip only": the chip changes, the default stays).
+    if (WRITE)
+      await step("store + order (R18 D2): learned order banner, use + reset, picker search, this trip only", async () => {
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        const r = {};
+        await page.locator("[data-sm-more]").click();
+        await page.locator("[data-sm-menu-order]").click();
+        await page.waitForSelector("[data-section-order] [data-order-list]");
+        r.banner = await page.locator("[data-order-suggestion]").textContent().catch(() => "");
+        r.movedMarks = await page.locator("[data-order-row] .bg-info-soft").count();
+        await shot(page, "sm-section-order");
+        await page.locator("[data-order-use]").click();
+        await page.waitForTimeout(800);
+        const rows = () => page.locator("[data-order-row]").evaluateAll((els) => els.map((e) => e.getAttribute("data-order-row")));
+        const after = await rows();
+        r.dairyFirst = after.indexOf("dairy") < after.indexOf("bread");
+        await page.locator("[data-order-reset]").click();
+        await page.waitForTimeout(800);
+        const reset = await rows();
+        r.reset = reset.indexOf("bread") < reset.indexOf("dairy");
+        await page.locator("[data-order-back]").click();
+        await page.waitForTimeout(300);
+        await page.locator("[data-sm-store]").click();
+        await page.waitForSelector("[data-store-picker]");
+        r.recent = await page.locator("[data-store-option]").count();
+        await page.locator("[data-store-search]").fill("rami levy rehovot");
+        await page.waitForSelector('[data-store-option="rami-levy|rehovot"]');
+        await page.locator('[data-store-option="rami-levy|rehovot"]').click();
+        await shot(page, "sm-store-picker");
+        await page.locator("[data-store-go]").click();
+        await page.waitForTimeout(1200);
+        r.chip = await page.locator("[data-sm-store]").textContent();
+        await page.reload();
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        await page.waitForTimeout(800);
+        r.chipAfterReload = await page.locator("[data-sm-store]").textContent();
+        await page.evaluate(() => Object.keys(sessionStorage).filter((k) => k.startsWith("nexus.tripStore:")).forEach((k) => sessionStorage.removeItem(k)));
+        ok(
+          /dairy|Dairy/.test(r.banner) && r.movedMarks === 2 && r.dairyFirst && r.reset && r.recent === 2 && /Rami Levy/.test(r.chip) && /rehovot/i.test(r.chip) && /Rami Levy/.test(r.chipAfterReload),
+          "store + order (R18 D2): learned order banner, use + reset, picker search, this trip only",
+          JSON.stringify(r),
+        );
+      });
+
     // R18 S2 A3: a trip running → the bar above the dock on Products / Insights / Supermarket and the trip card on Home;
     // after Finish both are gone (the trip is started / finished through the actions, like the store mode does).
     if (MOBILE && WRITE)
