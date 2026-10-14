@@ -10,6 +10,19 @@ to setup, tooling or workflow is recorded there in the same session.
 - **2026-10-15:** Tal's notes after using S2 sorted into **`docs/R18-S3-NOTES.md`** (causes found: dock tab-4 flip,
   settings discoverability, History without trips, no branch list). Groups A fixes (no boards) / B list v2 + capture
   (boards) / C Home widgets v2 + floating Ask (boards) / D R19 data / E R20 offline. **Next:** Tal picks → briefs.
+  **Same night:** Tal: "put in what you think is best", runs overnight (~8 h) → **`docs/ROUND18-S3.md`** written (Part 0
+  red runs; A dock for everyone + still chrome on segment switches + transitions audit + overscroll + admin back + "×";
+  B supermarket fixes incl. History trips, list first, voice, count→weight, reopen sections; C camera on "+", photo
+  classify product / receipt / handwritten list, template preview, Next-shop widget, row swipes with Undo, usual brand,
+  Home suggests timing; G). Not in S3: list redesign, Home widgets v2, floating Ask (boards next), R19 data, offline.
+  Prompt:
+  ```
+  Round 18, session 3 (docs/ROUND18-S3.md) — Parts 0, A, B, C, G, unattended, on branch round18-s3 from main. Step 0,
+  now while I'm here: make sure .claude/settings.local.json allows "Bash(git push origin round18-s3)", "Bash(git push
+  -u origin round18-s3)", "Bash(git merge --ff-only round18-s3)", "Bash(git push origin main)", and take a fresh
+  read-only prod snapshot for the rehearsal (if refused, tell me the exact command). Then go through all parts without
+  stopping. Merge to main only if everything is ticked, CI is green, and (if the DB changed) the rehearsal passes.
+  ```
 - **2026-10-14:** **R18 S2 merged and live** (`main` ff → `6616b25`; all items ticked; branch CI green; S2 rehearsal on
   `snapshots/prod-2026-10-14.db` copy: 13 additive columns, numbers unchanged, idempotent). Results + "For Tal" in
   `docs/ROUND18-S2.md` "## Open". **Post-merge runs on `6616b25` failed** (not in the builder's report): `guards` on
