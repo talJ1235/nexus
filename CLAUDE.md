@@ -91,8 +91,16 @@
   batched AI). Data: `lib/db-scoped/grocery.ts` (stores, order, add + merge, history, suggestions, staples,
   templates), `trips.ts` (trip + trip_check), `trip-sync.ts` (outbox merge). Actions `app/supermarket-actions.ts`,
   route `/api/grocery/search`; senders `eveningDrafts` / `autoStaples` / `liveAdd` (kinds `draft`, `trip_add`);
-  client outbox `lib/shop-outbox.ts` (trip ops) + `components/app/supermarket/sm-bridge.tsx`. Tests: `test:grocery`,
+  client outbox `lib/shop-outbox.ts` (trip ops; S2: `lib/trip-client.ts`). Tests: `test:grocery`,
   `test:staples`, `test:add`, `test:trips`, `test:shop-offline`; rehearsal `scripts/r18-rehearsal.mjs`.
+- R18 S2 supermarket screens: `components/app/supermarket/` — `view.tsx` (the tab; computer layout + `desk.tsx` Send to
+  phone / side panel), `trip.tsx` (Home card + trip bar), `add-screen.tsx`, `capture.tsx`, `item-sheet.tsx`,
+  `store-picker.tsx` (picker + section order), `store-mode.tsx`, `lists.tsx` (templates + past trips), `data.ts`
+  (`useSmHome` server state), `sm.css`; strings `lib/i18n/sm-en.ts` / `sm-he.ts`. Trip API `lib/grocery/trip-api.ts` +
+  `lib/trip-client.ts` (SPEC "Trip API"); routines `lib/grocery/routines.ts`; forget cut-offs + learned facts in
+  `lib/db-scoped/grocery.ts` (`learningOf`, `learnedFacts`); Settings `settings/supermarket.tsx`; dock quick menu in
+  `phone-shell.tsx`. Demo data `scripts/lib/seed-sm.mjs`; parity `scripts/parity-r18.mjs`; rehearsal
+  `scripts/r18s2-rehearsal.mjs`; tests `test:templates`, `test:trip-api`, `test:capture`, `test:dock`.
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)

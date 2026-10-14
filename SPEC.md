@@ -910,6 +910,40 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
 
 Brief: `docs/ROUND18-S2.md` (decisions in its "## Open"). Screens: `src/components/app/supermarket/`.
 
+Shipped (S2):
+- *Navigation* (A1): phone dock Home · Products · + · Supermarket (or Projects, chosen by use — `lib/dock-tab.ts`) ·
+  Insights; long-press "+" = Add to list · Scan · Photo · Start shopping (also the manifest's app-icon shortcuts);
+  Products = To buy · On the way · Projects; desktop sidebar "Supermarket" with a count.
+- *The Supermarket tab* (A2, `/supermarket`): store chip + estimate vs this month's budget, aisle rail, Add field, Nexus
+  suggests (+ / × / Add all), sections in the branch's order (rows / tiles per person), first time, viewer, offline.
+  On a computer (F3) two columns: the list + a side panel (store, suggests, templates, past trips), "Send to phone"
+  (a `sent` push that opens the list), `/` = Add.
+- *Home "Next shop" card + trip bar* (A3): the next shop / today / a trip (mine, someone else's); the bar above the dock
+  on every phone screen while a trip runs. The card renders from the list at once (no shift when numbers arrive).
+- *Count + weight* (B1): nullable `items.count`; "6 עגבניות" / "קילו עגבניות" / "קילו, בערך 6"; unit weights learned per
+  product per home (`lib/grocery/weights.ts`); rows read "6 · ≈ 1 kg".
+- *Add screen* (B2), *scan + photo* (B3, photo in the AI quota, feature `grocery`), *item sheet* (C2: count + weight,
+  note, photo, section, What Nexus learned, Don't suggest this again, brand + substitutes, one store, history).
+- *Learning* (C1): Nexus only suggests (no auto add); × skips (3 → half the rate, 5 → until bought); "Don't suggest this
+  again" (`suggest_dismiss.hidden_at` / `hidden_by`); cold-start basket until ~4 trips; regular vs occasional; evening
+  draft gate (usual weekday, something to suggest, 3 unopened → quiet). S1's `staple` column is no longer read.
+- *Store picker + section order per branch* (D2), *store mode + finish* (D3, everything through the trip API below).
+- *Pushes* (D4): draft "Your list for tomorrow is ready", adds while you shop (grouped; none while the app is in front —
+  the service worker reads the payload's `kind`), `sent` from the computer; own inbox badges.
+- *Templates* (E1, `lib/grocery/routines.ts`): routines = ≥ 3 look-alike trips on one weekday → an offer "Made by Nexus"
+  (Keep it / No thanks); kept ones follow new trips until edited (`template.edited_at`); hidden products never enter;
+  apply = merge (new / already on it — stays / hidden skipped). Additive `template` columns: made_by, routine_day,
+  routine_trips, kept_at, dismissed_at, edited_at, updated_at, used_at. *Edit + past trips* (E2): by month, add again
+  (merge), save a trip / the list as a template.
+- *Settings → Supermarket* (F1): main store (+ also shop at), section order, products you hid, What Nexus learned —
+  told facts (✎) and learned ones (✕ = a cut-off in space pref `pref:sm:forget`: the learning ignores what came before),
+  Forget everything (learning only). Admin counts only. *Onboarding* (F2): supermarket chains (first = main) → branch.
+- *Cleanups* (G1): daily purge of `grocery:ai:` 60 d, `grocery:off:` 30 d, `grocery:offq:` 7 d, `sm:draft:` 3 d,
+  `sm:op:` 30 d (`purgeGroceryKv`); the AI classify after an add publishes to live sync (the row settles live).
+- Guards: `test:templates` (new), `test:staples` / `test:notify` / `test:onboarding` / `test:tenancy` / `test:roles`
+  extended, smoke steps per screen (phone + desktop), parity PNGs for every board (`scripts/parity-r18.mjs` →
+  `docs/design/parity-r18/`), migration rehearsal `scripts/r18s2-rehearsal.mjs` on a copy of the prod snapshot.
+
 ### Trip API (D1) — the only way trip data is written
 Every store-mode action is a typed op, queued on the device and merged by the server. A later Wear OS client sends the
 same ops to the same action.

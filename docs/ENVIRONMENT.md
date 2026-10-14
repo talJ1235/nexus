@@ -220,3 +220,10 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   `test:add`, `test:trips` (unit loop), `test:shop-offline` (built app, port 3128). Playwright's `waitForFunction` with an
   async predicate passes on the Promise — poll from Node instead. No new secrets. `.claude/settings.local.json` allows
   the round18-s1 push/merge commands.
+- 2026-10-14 (R18 S2, second half): new test `test:templates` (unit loop in `guards.yml`, with `test:trip-api`).
+  `scripts/parity-r18.mjs` covers every R18 board (fresh un-onboarded person for /welcome via `sessionFor`).
+  `SMOKE_ONLY` / `SMOKE_DEBUG` (14 call-log lines) for single smoke steps; `POLISH_ONLY=S3,P7` for polish sections.
+  Mock AI (`NEXUS_AI_MOCK=1`): a grocery line ending in "[section]" (e.g. "Zorblax [bfast]") is classified into that
+  section after 2.5 s — the smoke uses it for the live settle. The read-only prod snapshot ran from the agent this time
+  (`node --env-file=.env.local scripts/db-snapshot.mjs`). No new env vars or secrets. `.claude/settings.local.json`
+  allows the round18-s2 push/merge commands.
