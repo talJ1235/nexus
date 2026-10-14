@@ -12,7 +12,7 @@ const PULL_AT = 72;
 
 /**
  * Phone: pull down at the top to reload. Chrome's own pull-to-refresh (the blue circle Tal saw, which reloaded the
- * page on top of ours) is off — the root has `overscroll-behavior-y: contain` — and releasing past the threshold now
+ * page on top of ours) is off — the root has `overscroll-behavior-y: none` (R18 S3 A4) — and releasing past the threshold now
  * reloads the page into the boot sequence (Round 10 A3). Offline it isn't armed (a reload would leave the snapshot).
  */
 export function PullToRefresh() {

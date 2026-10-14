@@ -1339,6 +1339,38 @@ try {
           "full-screen pages (R18 S3 A3): rise / push in, drill-ins slide, the phone's Back closes each", JSON.stringify(r));
       });
 
+    // R18 S3 A4: the dock / top bar never move on overscroll. Android Chrome stretches the root scroller's whole viewport
+    // (fixed elements included) unless the root's overscroll is `none`; `contain` (before) kept the stretch. Also: nothing
+    // above the dock re-anchors `position: fixed` (transform / filter / contain), and scrolling hard past the end of a
+    // long page leaves the dock's (phone) / top bar's (computer) box where it was.
+    await step("overscroll (R18 S3 A4): root overscroll none, the dock / top bar keep their box past the end of a page", async () => {
+      await page.goto(`${BASE}/?v=to_buy`);
+      await page.waitForSelector(READY);
+      await page.waitForTimeout(600);
+      const bar = MOBILE ? "[data-dock]" : "div[data-app-header]";
+      const r = await page.evaluate((bar) => {
+        const css = (el, p) => getComputedStyle(el).getPropertyValue(p);
+        const anchored = [];
+        for (let el = document.querySelector(bar)?.parentElement; el && el !== document.documentElement; el = el.parentElement) {
+          const st = getComputedStyle(el);
+          if (st.transform !== "none" || st.filter !== "none" || /paint|layout|strict|content/.test(st.contain) || st.willChange.includes("transform")) anchored.push(el.tagName);
+        }
+        return { html: css(document.documentElement, "overscroll-behavior-y"), body: css(document.body, "overscroll-behavior-y"), anchored };
+      }, bar);
+      const box = async () => page.locator(bar).first().boundingBox();
+      r.before = await box();
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await page.waitForTimeout(300);
+      r.atEnd = await box();
+      for (let k = 0; k < 6; k++) await page.mouse.wheel(0, 900);
+      await page.waitForTimeout(400);
+      r.past = await box();
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const same = (a, b) => a && b && Math.abs(a.y - b.y) < 1 && Math.abs(a.x - b.x) < 1;
+      ok(r.html === "none" && r.body === "none" && !r.anchored.length && same(r.before, r.past) && (MOBILE ? same(r.before, r.atEnd) : true),
+        "overscroll (R18 S3 A4): root overscroll none, the dock / top bar keep their box past the end of a page", JSON.stringify(r));
+    });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)
@@ -4090,7 +4122,7 @@ try {
           afterPull = `${await mode()}:${await p.locator("#boot .boot-small").isVisible()}`;
         }
         ok(
-          again.every((a) => a === "small:true:false") && overscroll === "contain" && ind === 1 && reloaded && afterPull === "small:true",
+          again.every((a) => a === "small:true:false") && overscroll === "none" && ind === 1 && reloaded && afterPull === "small:true",
           "boot screen: small loader on reload / later loads; pull-to-refresh shows the Box mark and reloads into it",
           `loads=${again} overscroll=${overscroll} indicator=${ind} reloaded=${reloaded} afterPull=${afterPull}`,
         );

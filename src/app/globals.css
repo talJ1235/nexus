@@ -717,8 +717,11 @@ html[data-boot="full"] #boot, html[data-boot="small"] #boot {
   animation: boot-failsafe 1ms linear 12s forwards;
 }
 #boot.boot-gone { display: none !important; }
-/* Chrome's own pull-to-refresh (a blue circle) is replaced by ours (phone-shell.tsx PullToRefresh, Round 10 A3). */
-html { overscroll-behavior-y: contain; }
+/* Chrome's own pull-to-refresh (a blue circle) is replaced by ours (motion-extras PullToRefresh, Round 10 A3).
+   R18 S3 A4: `none`, not `contain` — contain kept the root's overscroll stretch, and on Android Chrome that stretch
+   transforms the whole viewport, so the fixed dock / top bar were dragged past the end of a page. Like native apps the
+   chrome stays put; scrollers inside the page (sheets, lists) keep their own `contain`. Body too (iOS / PWA roots). */
+html, body { overscroll-behavior-y: none; }
 .pull-spin { animation: pull-spin 700ms var(--ease-out) infinite; }
 @keyframes pull-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .pull-spin { animation: none; } }

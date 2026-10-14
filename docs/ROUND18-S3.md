@@ -12,25 +12,7 @@ desktop before it is ticked.
 - Branch **`round18-s3`** from `main`. **Commit and push after every single item**: `R18.S3.<part><k>: …`, then
   `git push origin round18-s3`. Never keep more than one item uncommitted.
 - After each item: tick it here (`[x]`) **and** append one line to "## Open" → "### Progress" in the same commit.
-  Decisions you take go to "- A1 — `lib/dock.ts` (`DOCK_ORDER`, `dockOf`) replaces `lib/dock-tab.ts`; no `tab4` in the store / shell / app; Projects
-  always renders under the Products header and lights Products. `test:dock` rewritten; smoke "one dock (R18 S3 A1)"
-  samples the dock on its first frame (MutationObserver) vs after hydration, with an old heavy-Projects `nexus.tabUse`.
-- A2 — cause: on phones Projects had its own view key ("shop-projects") and every non-Products view slid in as a whole
-  (`view-in view-fwd` on the keyed wrapper, Insights' switch inside each view), so the title + segments re-mounted and
-  slid. Now `ViewSwitch` (nexus-app) keys one wrapper per phone tab (Products / Insights) with the header + `SegPill`
-  mounted once, the segment in an inner pane with `.seg-in` (180 ms, 6 px, no cascade); the wrapper's entrance class is
-  frozen while its segments change. First-open cascade faster (300 ms, done in 170 ms). Templates · Past trips use the
-  same pill + pane. Smoke "segments keep the chrome still" samples boxes every frame + node identity + layout shifts.
-- A3 — `improve-animations` audit of navigation (tab / segment switches, sheets, drawers, Settings pages, admin tabs,
-  Supermarket screens, Insights). Clean sweeps: no `ease-in`, `transition: all` or `scale(0)`; Settings pages push / pop,
-  admin phone drill-ins push, every S2 sheet uses the shared `Sheet` (drag to close + Back), back arrows flip in RTL.
-  Fixed (MEDIUM): Supermarket full-screen pages teleported on phones → Add / camera / store mode rise (`sm-rise`, 300 ms
-  drawer curve), Templates & past trips + the store's order page push in (`sm-push`), closing fades 150 ms; drill-ins in
-  Templates & past trips slide (`sm-sub-in` / `-back`); the phone's Back now closes store mode and the camera and steps
-  out of a template / trip first (was: left the page). Smoke "full-screen pages (R18 S3 A3)". LOW → Open below.
-### Decisions" right away. Anything for Tal → "- A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
-  under it, so the toolbar never moves between To buy and On the way.
-### For Tal".
+  Decisions you take go to "### Decisions" right away. Anything for Tal → "### For Tal".
 - **Resuming:** `git fetch`, check out `round18-s3` if it exists, read "### Progress" + `git log`, continue from the
   first unticked item. Never redo a ticked item.
 - Order = the order below (Part 0 first; then most painful first). Unattended; never stop to ask — take the reading
@@ -86,7 +68,7 @@ pages, admin tabs, Supermarket screens, Insights. Same rule as A2 everywhere: wh
 everything ranked high / medium in this session; list low ones in Open. Tal: "everything a user knows from phone apps"
 — platform-expected back arrows, sheet drag-to-close, press feedback.
 
-### A4 [ ] The dock never moves on overscroll
+### A4 [x] The dock never moves on overscroll
 Pulling past the end of a page drags the dock / bottom bar with the page (Android Chrome). Like native apps (Tal:
 Samsung Health), the dock stays put; only content overscrolls (glow / stretch inside the scroller is fine). Check
 `overscroll-behavior`, the fixed dock's containing block, the visual viewport; installed PWA and browser tab. Pull-to-
@@ -215,10 +197,34 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   seed — the status tiles need ≥ 2 only on demo data; the Supermarket tab step **wrote to prod** (add + accept) when it
   could → now `WRITE` only, with a read-only real-data variant. Verified locally (night run, CI-like FedCM server, smoke
   SMOKE_REAL=1 and SMOKE_WRITE=1).
+- A1 — `lib/dock.ts` (`DOCK_ORDER`, `dockOf`) replaces `lib/dock-tab.ts`; no `tab4` in the store / shell / app; Projects
+  always renders under the Products header and lights Products. `test:dock` rewritten; smoke "one dock (R18 S3 A1)"
+  samples the dock on its first frame (MutationObserver) vs after hydration, with an old heavy-Projects `nexus.tabUse`.
+- A2 — cause: on phones Projects had its own view key ("shop-projects") and every non-Products view slid in as a whole
+  (`view-in view-fwd` on the keyed wrapper, Insights' switch inside each view), so the title + segments re-mounted and
+  slid. Now `ViewSwitch` (nexus-app) keys one wrapper per phone tab (Products / Insights) with the header + `SegPill`
+  mounted once, the segment in an inner pane with `.seg-in` (180 ms, 6 px, no cascade); the wrapper's entrance class is
+  frozen while its segments change. First-open cascade faster (300 ms, done in 170 ms). Templates · Past trips use the
+  same pill + pane. Smoke "segments keep the chrome still" samples boxes every frame + node identity + layout shifts.
+- A3 — `improve-animations` audit of navigation (tab / segment switches, sheets, drawers, Settings pages, admin tabs,
+  Supermarket screens, Insights). Clean sweeps: no `ease-in`, `transition: all` or `scale(0)`; Settings pages push / pop,
+  admin phone drill-ins push, every S2 sheet uses the shared `Sheet` (drag to close + Back), back arrows flip in RTL.
+  Fixed (MEDIUM): Supermarket full-screen pages teleported on phones → Add / camera / store mode rise (`sm-rise`, 300 ms
+  drawer curve), Templates & past trips + the store's order page push in (`sm-push`), closing fades 150 ms; drill-ins in
+  Templates & past trips slide (`sm-sub-in` / `-back`); the phone's Back now closes store mode and the camera and steps
+  out of a template / trip first (was: left the page). Smoke "full-screen pages (R18 S3 A3)". LOW → Open below.
+- A4 — cause: the root had `overscroll-behavior-y: contain` (R10, to stop Chrome's pull-to-refresh), which keeps the
+  root's overscroll stretch; Android Chrome applies that stretch to the whole viewport, fixed dock and top bar included.
+  Now `none` on html + body; inner scrollers keep `contain`; the dock (portal on body) has no re-anchoring ancestor.
+  Smoke "overscroll (R18 S3 A4)" (phone dock + computer top bar past the end), boot-screen step expects `none`.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
+- A4: "Pull-to-refresh must not fire" read as Chrome's own (it can't: root overscroll is `none`). Nexus's own pull
+  at the top (the Box mark, R10 A3) stays — it never moves the dock (a fixed overlay) and Tal asked for it in R10.
 ### For Tal
+- A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
+  under it, so the toolbar never moves between To buy and On the way.
 ### Leftovers (low)
 - A3 LOW: admin computer tab switches are instant (fine for a dashboard; a 150 ms fade would match the app); admin phone
   Back from a person / report has no reverse slide; the Products / segment thumbs use a 450 ms spring (over the 300 ms UI
