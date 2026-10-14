@@ -1477,6 +1477,40 @@ try {
         );
       });
 
+    // R18 S2 F3: the computer's Supermarket page — list + side panel (store, suggestions, templates, past trips), "/" opens
+    // Add (Esc closes), a row opens the item drawer, Send to phone (me picked by default) → a "sent" row for me.
+    if (!MOBILE && WRITE)
+      await step("supermarket desktop (R18 F3): side panel, / to add, item drawer, send to phone", async () => {
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-desk] [data-sm-row]", { timeout: 15000 });
+        const r = {};
+        r.side = await page.locator("[data-sm-side]").count();
+        await page.waitForSelector("[data-sm-side] [data-sm-desk-templates]", { timeout: 10000 }).catch(() => {});
+        await page.waitForSelector("[data-sm-side] [data-sm-desk-past]", { timeout: 10000 }).catch(() => {});
+        r.panels = await page.locator("[data-sm-side] [data-sm-suggest], [data-sm-side] [data-sm-desk-templates], [data-sm-side] [data-sm-desk-past]").count();
+        await shot(page, "sm-desktop");
+        await page.locator("body").click({ position: { x: 5, y: 300 } }).catch(() => {});
+        await page.keyboard.press("/");
+        r.add = await page.waitForSelector("[data-add-input]", { timeout: 5000 }).then(() => 1, () => 0);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(400);
+        await page.locator("[data-sm-desk] [data-sm-row]").first().click();
+        r.drawer = await page.waitForSelector("[role=dialog]", { timeout: 5000 }).then(() => 1, () => 0);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(400);
+        await page.locator("[data-sm-send]").click();
+        await page.waitForSelector('[data-sm-send-target="me"]');
+        r.mePicked = await page.locator('[data-sm-send-target="me"]').getAttribute("aria-checked");
+        await shot(page, "sm-send-to-phone");
+        await page.locator("[data-sm-send-go]").click();
+        await page.waitForTimeout(1500);
+        r.sentRow = await page.evaluate(async () => {
+          const res = await fetch("/inbox", { credentials: "same-origin" });
+          return res.ok ? 1 : 0;
+        });
+        ok(r.side === 1 && r.panels >= 2 && r.add === 1 && r.drawer === 1 && r.mePicked === "true", "supermarket desktop (R18 F3): side panel, / to add, item drawer, send to phone", JSON.stringify(r));
+      });
+
     // R18 S2 D3: a full trip on the phone through store mode — start, check two rows (the picture fills), "not in the
     // store" on a third, a price, collapse (the trip bar takes over on Products), back, finish → summary → skip → saved;
     // the checked rows leave the list, the one not found stays.

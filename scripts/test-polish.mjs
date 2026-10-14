@@ -569,6 +569,9 @@ if (want("S3")) {
         const st = stack?.getBoundingClientRect();
         return { h: r(s.getBoundingClientRect().height), next: next ? r(next.getBoundingClientRect().top) : null, stack: st ? `${r(st.top - s.getBoundingClientRect().top)}/${r(st.height)}` : null, i: s.getAttribute("data-sug-index"), anims };
       });
+    // R18 S2: the Home "Next shop" card loads above the widgets after the first paint — scroll again once it's there.
+    await sec.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
     const b = await sec.boundingBox();
     await page.mouse.move(b.x + b.width * 0.6, b.y + b.height / 2, { steps: 4 }); // hover the card
     const seen = [await geo()];
@@ -645,6 +648,9 @@ if (want("P7")) {
       const cdp = touch ? await ctx.newCDPSession(page) : null;
       /** Drag the suggestion text by `dx` px (physical), as a mouse or a finger. */
       const drag = async (dx) => {
+        // R18 S2: the Home "Next shop" card sits above the widgets — bring the card into view before touching it.
+        await sec.scrollIntoViewIfNeeded();
+        await page.waitForTimeout(150);
         const b = await sec.locator("[data-sug-swipe]").boundingBox();
         const x0 = b.x + b.width / 2;
         const y0 = b.y + Math.min(14, b.height / 2);

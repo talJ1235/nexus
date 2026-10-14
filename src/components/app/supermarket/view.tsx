@@ -27,7 +27,9 @@ import { SmItemSheet, SuggestionActions } from "./item-sheet";
 import { useVoiceSupported } from "./add-screen";
 import { qtyLabel } from "./qty";
 import { useOutboxCount } from "./outbox-count";
-import { Lists, RoutineOffer } from "./lists";
+import { Lists, RoutineOffer, type ListsStart } from "./lists";
+import { DeskPast, DeskTemplates, SendToPhone } from "./desk";
+import { useDevice } from "@/components/ui/use-device";
 
 // R18 S2 A2 — the Supermarket tab (board Supermarket-phone `Main`): store chip + estimate vs budget, the aisle rail, the
 // add field, "Nexus suggests", the list by sections in the branch's order (rows or tiles, the ⋯ menu, per person),
@@ -63,7 +65,9 @@ export function SupermarketView() {
   const [picking, setPicking] = useState(false);
   const [shopping, setShopping] = useState(false);
   const [ordering, setOrdering] = useState(false);
-  const [lists, setLists] = useState(false);
+  const [lists, setLists] = useState<ListsStart | null>(null);
+  const openLists = (k: ListsStart) => setLists(k);
+  const desk = useDevice() === "computer";
   const groups = useMemo(() => bySection(s.sm, order), [s.sm, order]);
   const [basketOn, setBasketOn] = useState(false);
   const addMany = useAddMany();
@@ -71,6 +75,18 @@ export function SupermarketView() {
   const [adding, setAdding] = useState<AddMode | null>(null);
   const [capturing, setCapturing] = useState<"scan" | "photo" | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  // F3: "/" opens Add on a computer (not while typing somewhere).
+  useEffect(() => {
+    if (!desk || ro) return;
+    const k = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey || el?.closest?.("input, textarea, [contenteditable], [role=dialog]")) return;
+      e.preventDefault();
+      setAdding("type");
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [desk, ro]);
   useEffect(() => {
     const on = (e: Event) => setOpenId((e as CustomEvent<string>).detail);
     window.addEventListener(OPEN_ITEM, on);
@@ -108,70 +124,121 @@ export function SupermarketView() {
     void setSupermarketLayout(l).catch(() => {});
   };
 
-  return (
-    <div className="flex flex-col gap-3 pb-28" data-sm-view data-sm-layout={shown}>
-      <div className="flex items-center gap-2">
-        <h1 className="me-auto text-[26px] font-extrabold tracking-[-0.02em] desk:text-[28px]">{t.sm.title}</h1>
-        <Menu>
-          <MenuTrigger asChild>
-            <button type="button" className="grid size-10 place-items-center rounded-full text-ink transition-transform duration-150 ease-[var(--ease-out)] active:scale-95" aria-label={t.sm.main.more} data-sm-more>
-              <MoreHorizontal className="size-5" />
-            </button>
-          </MenuTrigger>
-          <MenuContent align="end">
-            <MenuLabel>{t.sm.main.showAs}</MenuLabel>
-            <MenuRadioGroup value={shown} onValueChange={(v) => pickLayout(v as "rows" | "tiles")}>
-              <MenuRadioItem value="rows" data-sm-layout-pick="rows">{t.sm.main.rows}</MenuRadioItem>
-              <MenuRadioItem value="tiles" data-sm-layout-pick="tiles">{t.sm.main.tiles}</MenuRadioItem>
-            </MenuRadioGroup>
-            <MenuSeparator />
-            <MenuItem onSelect={() => setOrdering(true)} data-sm-menu-order>
-              <ListOrdered className="size-4" />
-              {t.sm.order.open}
-            </MenuItem>
-            <MenuItem onSelect={() => setLists(true)} data-sm-menu-lists>
-              <LayoutList className="size-4" />
-              {t.sm.lists.open}
-            </MenuItem>
-            <MenuItem onSelect={() => s.openSettings("smLearned")} data-sm-menu-learned>
-              <Sparkles className="size-4" />
-              {t.sm.set.learned}
-            </MenuItem>
-          </MenuContent>
-        </Menu>
-      </div>
-      <Badges viewer={viewer} />
-      <StoreLine home={home} store={trip.store} onPick={() => setPicking(true)} />
+  // F3: on a computer the page is two columns — the list, and a side panel (store + estimate, Nexus suggests, templates,
+  // past trips) — with "Send to phone" in the header; phones keep one column.
+  const header = (
+    <div className="flex items-center gap-2">
+      <h1 className="me-auto text-[26px] font-extrabold tracking-[-0.02em] desk:text-[28px]">{t.sm.title}</h1>
+      {desk && <SendToPhone store={trip.store} />}
+      <Menu>
+        <MenuTrigger asChild>
+          <button type="button" className="grid size-10 place-items-center rounded-full text-ink transition-transform duration-150 ease-[var(--ease-out)] active:scale-95" aria-label={t.sm.main.more} data-sm-more>
+            <MoreHorizontal className="size-5" />
+          </button>
+        </MenuTrigger>
+        <MenuContent align="end">
+          <MenuLabel>{t.sm.main.showAs}</MenuLabel>
+          <MenuRadioGroup value={shown} onValueChange={(v) => pickLayout(v as "rows" | "tiles")}>
+            <MenuRadioItem value="rows" data-sm-layout-pick="rows">{t.sm.main.rows}</MenuRadioItem>
+            <MenuRadioItem value="tiles" data-sm-layout-pick="tiles">{t.sm.main.tiles}</MenuRadioItem>
+          </MenuRadioGroup>
+          <MenuSeparator />
+          <MenuItem onSelect={() => setOrdering(true)} data-sm-menu-order>
+            <ListOrdered className="size-4" />
+            {t.sm.order.open}
+          </MenuItem>
+          <MenuItem onSelect={() => openLists("templates")} data-sm-menu-lists>
+            <LayoutList className="size-4" />
+            {t.sm.lists.open}
+          </MenuItem>
+          <MenuItem onSelect={() => s.openSettings("smLearned")} data-sm-menu-learned>
+            <Sparkles className="size-4" />
+            {t.sm.set.learned}
+          </MenuItem>
+        </MenuContent>
+      </Menu>
+    </div>
+  );
+  const overlays = (
+    <>
       <StorePicker open={picking} onClose={() => setPicking(false)} />
       <SectionOrder open={ordering} onClose={() => setOrdering(false)} onPickStore={() => setPicking(true)} />
-      <Lists open={lists} onClose={() => setLists(false)} routine={home?.routine ?? null} />
-      {s.sm.length > 0 && <Rail groups={groups} />}
-      {!ro && <AddField onOpen={openAdd} />}
+      <Lists open={lists != null} onClose={() => setLists(null)} routine={home?.routine ?? null} start={lists ?? "templates"} />
       {!ro && <Capture open={capturing != null} mode={capturing ?? "scan"} onClose={() => setCapturing(null)} onType={() => (setCapturing(null), setAdding("type"))} />}
       <SmItemSheet itemId={openId} onClose={closeSheet} />
       <StoreMode open={shopping} onClose={() => setShopping(false)} onPickStore={() => setPicking(true)} />
-      {!ro && s.sm.length > 0 && !mineRunning && (
-        <div className="pointer-events-none fixed inset-x-3 bottom-[calc(90px+env(safe-area-inset-bottom))] z-30 desk:static desk:mt-2" data-sm-start-bar>
-          <button type="button" className="pointer-events-auto flex h-14 w-full items-center justify-center gap-2.5 rounded-[18px] bg-ink text-[16px] font-extrabold text-bg shadow-[0_10px_28px_color-mix(in_srgb,var(--ink)_24%,transparent)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]" onClick={() => setShopping(true)} data-sm-start>
-            <ShoppingCart className="size-5" />
-            {t.sm.start}
-            <span className="tabular font-bold opacity-70">{s.sm.length}</span>
-          </button>
-        </div>
-      )}
       <AddScreen open={adding != null} mode={adding ?? "type"} onClose={() => setAdding(null)} onCapture={(k) => (setAdding(null), capture(k))} />
+    </>
+  );
+  const startBar = !ro && s.sm.length > 0 && !mineRunning && (
+    <div className="pointer-events-none fixed inset-x-3 bottom-[calc(90px+env(safe-area-inset-bottom))] z-30 desk:static desk:mt-2" data-sm-start-bar>
+      <button type="button" className="pointer-events-auto flex h-14 w-full items-center justify-center gap-2.5 rounded-[18px] bg-ink text-[16px] font-extrabold text-bg shadow-[0_10px_28px_color-mix(in_srgb,var(--ink)_24%,transparent)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]" onClick={() => setShopping(true)} data-sm-start>
+        <ShoppingCart className="size-5" />
+        {t.sm.start}
+        <span className="tabular font-bold opacity-70">{s.sm.length}</span>
+      </button>
+    </div>
+  );
+  const firstTime = <FirstTime basketSize={Math.min(WEEKLY_BASKET_SIZE, basket.length)} onBasket={() => void addBasket(basket.slice(0, WEEKLY_BASKET_SIZE))} onBuild={() => setBasketOn(true)} onPaste={() => setAdding("paste")} />;
+  const list = (
+    <>
+      {s.sm.length > 0 && <p className="tabular px-1 pt-1 text-[13px] font-semibold text-muted">{s.sm.length === 1 ? t.sm.main.itemsOne : f(t.sm.main.items, { n: s.sm.length })}</p>}
+      <div className="flex flex-col gap-1.5" data-sm-list>
+        {groups.map(([k, list]) => (
+          <Section key={k} section={k} items={list} tiles={shown === "tiles"} unitKg={home?.unitKg} />
+        ))}
+      </div>
+    </>
+  );
+  const offer = !ro && home?.routine && <RoutineOffer routine={home.routine} />;
+  const suggestions = <Suggestions home={home} basket={null} draft={draft} ro={ro} />;
+
+  if (desk)
+    return (
+      <div className="flex flex-col gap-3 pb-10" data-sm-view data-sm-layout={shown} data-sm-desk>
+        {header}
+        <Badges viewer={viewer} />
+        {overlays}
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(300px,370px)] items-start gap-4">
+          <div className="flex min-w-0 flex-col gap-3">
+            {!ro && <AddField onOpen={openAdd} />}
+            {first ? firstTime : list}
+            {startBar}
+          </div>
+          <aside className="sticky top-4 flex min-w-0 flex-col gap-3" data-sm-side>
+            <div className="rounded-[18px] border border-line-strong bg-surface p-3 shadow-card">
+              <StoreLine home={home} store={trip.store} onPick={() => setPicking(true)} />
+              {s.sm.length > 0 && (
+                <div className="mt-3">
+                  <Rail groups={groups} />
+                </div>
+              )}
+            </div>
+            {!first && offer}
+            {!first && suggestions}
+            <DeskTemplates ro={ro} onOpen={() => openLists("templates")} onSave={() => openLists("save")} />
+            <DeskPast onOpen={() => openLists("past")} />
+          </aside>
+        </div>
+      </div>
+    );
+
+  return (
+    <div className="flex flex-col gap-3 pb-28" data-sm-view data-sm-layout={shown}>
+      {header}
+      <Badges viewer={viewer} />
+      <StoreLine home={home} store={trip.store} onPick={() => setPicking(true)} />
+      {overlays}
+      {s.sm.length > 0 && <Rail groups={groups} />}
+      {!ro && <AddField onOpen={openAdd} />}
+      {startBar}
       {first ? (
-        <FirstTime basketSize={Math.min(WEEKLY_BASKET_SIZE, basket.length)} onBasket={() => void addBasket(basket.slice(0, WEEKLY_BASKET_SIZE))} onBuild={() => setBasketOn(true)} onPaste={() => setAdding("paste")} />
+        firstTime
       ) : (
         <>
-          {!ro && home?.routine && <RoutineOffer routine={home.routine} />}
-          <Suggestions home={home} basket={null} draft={draft} ro={ro} />
-          {s.sm.length > 0 && <p className="tabular px-1 pt-1 text-[13px] font-semibold text-muted">{s.sm.length === 1 ? t.sm.main.itemsOne : f(t.sm.main.items, { n: s.sm.length })}</p>}
-          <div className="flex flex-col gap-1.5" data-sm-list>
-            {groups.map(([k, list]) => (
-              <Section key={k} section={k} items={list} tiles={shown === "tiles"} unitKg={home?.unitKg} />
-            ))}
-          </div>
+          {offer}
+          {suggestions}
+          {list}
         </>
       )}
     </div>

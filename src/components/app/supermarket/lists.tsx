@@ -331,7 +331,8 @@ function Head({ onBack, more }: { onBack: () => void; more?: boolean }) {
 }
 
 /** Templates + past trips: a full screen on phones, a dialog on computers; opened from the ⋯ menu. */
-export function Lists({ open, onClose, routine }: { open: boolean; onClose: () => void; routine: SmHome["routine"] }) {
+export type ListsStart = "templates" | "past" | "save";
+export function Lists({ open, onClose, routine, start = "templates" }: { open: boolean; onClose: () => void; routine: SmHome["routine"]; start?: ListsStart }) {
   const { t } = useI18n();
   useBackClose(open, onClose);
   return (
@@ -341,24 +342,24 @@ export function Lists({ open, onClose, routine }: { open: boolean; onClose: () =
         <D.Content className="fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[6vh] desk:mx-auto desk:h-[86vh] desk:max-w-[560px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in" data-sm-lists>
           <D.Title className="sr-only">{t.sm.lists.templates}</D.Title>
           <D.Description className="sr-only">{t.sm.lists.open}</D.Description>
-          {open && <ListsBody onClose={onClose} routine={routine} />}
+          {open && <ListsBody onClose={onClose} routine={routine} start={start} />}
         </D.Content>
       </D.Portal>
     </D.Root>
   );
 }
 
-function ListsBody({ onClose, routine }: { onClose: () => void; routine: SmHome["routine"] }) {
+function ListsBody({ onClose, routine, start }: { onClose: () => void; routine: SmHome["routine"]; start: ListsStart }) {
   const s = useStore();
   const { t, locale } = useI18n();
   const L = t.sm.lists;
   const ro = s.space?.role === "viewer" || s.offlineAt != null;
-  const [tab, setTab] = useState<"templates" | "past">("templates");
+  const [tab, setTab] = useState<"templates" | "past">(start === "past" ? "past" : "templates");
   const [list, setList] = useState<Template[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [tripId, setTripId] = useState<string | null>(null);
-  const [saving, setSaving] = useState<{ kind: "list" } | { kind: "trip"; trip: PastTrip } | null>(null);
+  const [saving, setSaving] = useState<{ kind: "list" } | { kind: "trip"; trip: PastTrip } | null>(start === "save" ? { kind: "list" } : null);
   const [trips, setTrips] = useState<PastTrip[] | null>(null);
   const load = useCallback(() => {
     void supermarketTemplates().then(setList, () => setList([]));
