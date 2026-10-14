@@ -1699,6 +1699,42 @@ try {
           "voice add (R18 S3 B5): he + en without commas, Stop before the final words, preview → Add; silence → Try again", JSON.stringify(r));
       });
 
+    // R18 S3 B6: the Add screen's ways to add (Scan · Photo · Voice · Paste list) all in one row at 360 px, he + en —
+    // no sideways scroll, every chip fully on screen, no label cut, ≥ 44 px tall.
+    if (MOBILE)
+      await step("add chips in one row (R18 S3 B6): 360 px, he + en, nothing cut or scrolled", async () => {
+        const res = {};
+        const vp = page.viewportSize();
+        await page.setViewportSize({ width: 360, height: 780 });
+        await page.addInitScript(() => {
+          if (!("SpeechRecognition" in window) && !("webkitSpeechRecognition" in window)) window.SpeechRecognition = function () {};
+        });
+        for (const locale of ["he", "en"]) {
+          await ctx.addCookies([{ name: "nexus_locale", value: locale, url: BASE }]);
+          await page.goto(`${BASE}/supermarket`);
+          await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
+          await page.locator("[data-sm-add-open]").click();
+          await page.waitForSelector("[data-add-chips]");
+          res[locale] = await page.evaluate(() => {
+            const row = document.querySelector("[data-add-chips]");
+            const chips = [...row.querySelectorAll("[data-add-chip]")];
+            return {
+              n: chips.length,
+              scroll: row.scrollWidth > row.clientWidth + 1,
+              off: chips.filter((c) => { const b = c.getBoundingClientRect(); return b.left < 0 || b.right > innerWidth; }).length,
+              cut: chips.filter((c) => { const sp = c.querySelector("span"); return sp && sp.scrollWidth > sp.clientWidth + 1; }).map((c) => c.textContent),
+              short: chips.filter((c) => c.getBoundingClientRect().height < 44).length,
+            };
+          });
+          if (locale === "he") await shot(page, "add-chips-he");
+          await page.locator("[data-add-back]").click();
+        }
+        await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }]);
+        await page.setViewportSize(vp);
+        const good = (x) => x && x.n >= 3 && !x.scroll && !x.off && !x.cut.length && !x.short;
+        ok(good(res.he) && good(res.en), "add chips in one row (R18 S3 B6): 360 px, he + en, nothing cut or scrolled", JSON.stringify(res));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

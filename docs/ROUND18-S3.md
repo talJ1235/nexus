@@ -110,7 +110,7 @@ Tal: tap mic, say several products with amounts, tap stop → nothing is found. 
 `splitList` + `parseLine` into the same review as Paste list. Fake SpeechRecognition in tests for he + en phrases
 ("שני חלב, לחם וחצי קילו עגבניות").
 
-### B6 [ ] Add-screen chips all visible
+### B6 [x] Add-screen chips all visible
 Scan · Photo · Voice · Paste list fit in one row at 360 px in he + en (icon + short label, or 2×2) — no horizontal
 scroll.
 
@@ -252,6 +252,9 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   Try again; `segmentSpoken` cuts a comma-less run by the dictionary (numbers before; Hebrew free forms after — "חלב
   שתיים"; products after "with / בתוספת / ללא" stay qualifiers; pack sizes stay names); `parseLine` reads "half a kilo
   of", "a kilo of", "עגבניות קילו". `test:add` (+ the brief's phrases, he + en, transcriptOf) and smoke "voice add".
+- B6 — the Add screen's Scan · Photo · Voice · Paste list are one equal-column row (icon over a short label, 58 px
+  tall; "Paste list" / "הדבקה", the full name stays the button's label for screen readers); the columns follow the chips
+  this device shows. Smoke at 360 px, he + en: no sideways scroll, all on screen, no label cut, ≥ 44 px.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

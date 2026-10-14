@@ -126,7 +126,7 @@ function AddBody({ onClose, startMode, onCapture }: { onClose: () => void; start
     }
   };
 
-  const chip = (on: boolean) => cn("flex h-10 shrink-0 items-center gap-1.5 rounded-[12px] border px-3 text-[14px] font-bold transition-transform duration-150 ease-[var(--ease-out)] active:scale-95 [&_svg]:size-4", on ? "border-ink bg-ink text-bg" : "border-line-strong bg-surface text-ink");
+  const chip = (on: boolean) => cn("flex h-[58px] min-w-0 flex-col items-center justify-center gap-1 rounded-[14px] border px-1 text-[12.5px] font-bold leading-none transition-transform duration-150 ease-[var(--ease-out)] active:scale-95 [&_svg]:size-5", on ? "border-ink bg-ink text-bg" : "border-line-strong bg-surface text-ink");
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 px-3 pt-3">
@@ -161,28 +161,30 @@ function AddBody({ onClose, startMode, onCapture }: { onClose: () => void; start
           )}
         </label>
       </div>
-      <div className="flex gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none]">
+      {/* R18 S3 B6: every way to add in one row at 360 px (he + en) — equal columns, the icon over a short label; no
+          sideways scroll. Scan / Photo only where the camera opens from here, Voice only where the browser hears. */}
+      <div className="grid gap-2 px-3 py-3" style={{ gridTemplateColumns: `repeat(${(onCapture ? 2 : 0) + (voice ? 1 : 0) + 1}, minmax(0, 1fr))` }} data-add-chips>
         {onCapture && (
           <>
             <button type="button" className={chip(false)} onClick={() => onCapture("scan")} data-add-chip="scan">
               <ScanBarcode />
-              {t.sm.add.scan}
+              <span className="max-w-full truncate">{t.sm.add.scan}</span>
             </button>
             <button type="button" className={chip(false)} onClick={() => onCapture("photo")} data-add-chip="photo">
               <Camera />
-              {t.sm.add.photo}
+              <span className="max-w-full truncate">{t.sm.add.photo}</span>
             </button>
           </>
         )}
         {voice && (
           <button type="button" className={chip(mode === "voice")} onClick={() => setMode(mode === "voice" ? "type" : "voice")} data-add-chip="voice">
             <Mic />
-            {t.sm.add.voice}
+            <span className="max-w-full truncate">{t.sm.add.voice}</span>
           </button>
         )}
-        <button type="button" className={chip(mode === "paste")} onClick={() => setMode(mode === "paste" ? "type" : "paste")} data-add-chip="paste">
+        <button type="button" className={chip(mode === "paste")} onClick={() => setMode(mode === "paste" ? "type" : "paste")} aria-label={t.sm.add.paste} data-add-chip="paste">
           <ClipboardPaste />
-          {t.sm.add.paste}
+          <span className="max-w-full truncate">{t.sm.add.pasteShort}</span>
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-[max(16px,env(safe-area-inset-bottom))]">

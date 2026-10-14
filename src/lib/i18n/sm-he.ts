@@ -134,6 +134,7 @@ export const smHe: Widen<typeof smEn> = {
     photo: "צילום",
     voice: "קול",
     paste: "הדבקת רשימה",
+    pasteShort: "הדבקה",
     usual: "אתם קונים בדרך כלל",
     didYouMean: "התכוונתם ל",
     addNew: "הוספת „{q}” כחדש",

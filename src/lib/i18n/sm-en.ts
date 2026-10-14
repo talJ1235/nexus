@@ -130,6 +130,7 @@ export const smEn = {
     photo: "Photo",
     voice: "Voice",
     paste: "Paste a list",
+    pasteShort: "Paste list",
     usual: "You usually buy",
     didYouMean: "Did you mean",
     addNew: "Add “{q}” as new",
