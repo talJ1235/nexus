@@ -429,16 +429,27 @@ body {
 /* First paint of the grid: cards rise in, one after another (Round 8 C2) — the products are the page. */
 /* Only the first 12 (R14): off-screen cards skip rendering (content-visibility), so a rise-in on them stayed parked
    at its start and played when they were scrolled to or a sheet opened — rows popped 10 px. */
-.load-in-stagger > :nth-child(-n + 12) > * { animation: rise-in 380ms var(--ease-out) both; }
-.load-in-stagger > :nth-child(2) > * { animation-delay: 35ms; }
-.load-in-stagger > :nth-child(3) > * { animation-delay: 70ms; }
-.load-in-stagger > :nth-child(4) > * { animation-delay: 105ms; }
-.load-in-stagger > :nth-child(5) > * { animation-delay: 140ms; }
-.load-in-stagger > :nth-child(6) > * { animation-delay: 165ms; }
-.load-in-stagger > :nth-child(7) > * { animation-delay: 185ms; }
-.load-in-stagger > :nth-child(8) > * { animation-delay: 200ms; }
-.load-in-stagger > :nth-child(9) > * { animation-delay: 215ms; }
-.load-in-stagger > :nth-child(n + 10) > * { animation-delay: 230ms; }
+/* R18 S3 A2: faster — 300 ms each, the cascade done in 170 ms (was 380 / 230). */
+.load-in-stagger > :nth-child(-n + 12) > * { animation: rise-in 300ms var(--ease-out) both; }
+.load-in-stagger > :nth-child(2) > * { animation-delay: 25ms; }
+.load-in-stagger > :nth-child(3) > * { animation-delay: 50ms; }
+.load-in-stagger > :nth-child(4) > * { animation-delay: 75ms; }
+.load-in-stagger > :nth-child(5) > * { animation-delay: 100ms; }
+.load-in-stagger > :nth-child(6) > * { animation-delay: 120ms; }
+.load-in-stagger > :nth-child(7) > * { animation-delay: 135ms; }
+.load-in-stagger > :nth-child(8) > * { animation-delay: 150ms; }
+.load-in-stagger > :nth-child(9) > * { animation-delay: 160ms; }
+.load-in-stagger > :nth-child(n + 10) > * { animation-delay: 170ms; }
+
+/* R18 S3 A2: a segment switch inside a phone tab (Products, Insights) — only the pane changes: one short cross-fade with
+   a 6 px shift toward the new segment, ≤ 200 ms, no card cascade. The header and the segment control never move. */
+.seg-in { animation: seg-in 180ms var(--ease-out) both; }
+.seg-fwd { --sx: 6px; }
+.seg-back { --sx: -6px; }
+[dir="rtl"] .seg-fwd { --sx: -6px; }
+[dir="rtl"] .seg-back { --sx: 6px; }
+@keyframes seg-in { from { opacity: 0; transform: translateX(var(--sx, 0)); } to { opacity: 1; transform: none; } }
+.seg-in :is(.rise-in, .grow-x, .grow-y, .r13-rise, .load-in), .seg-in .load-in-stagger > * > * { animation: none; }
 
 /* Switching views: a short, soft cross-fade of header + content together (never a blank frame). */
 .view-in { animation: view-in 220ms var(--ease-out) both; }
@@ -1063,14 +1074,6 @@ html[data-motion="reduce"] .flow-border::before, html[data-motion="reduce"] .r13
 /* ---------- Round 13 B2: phone Shopping tab ---------- */
 /* Thumbs (switch + list/grid) slide with a soft spring (~450 ms, slight overshoot). */
 .shop-thumb { transition: transform 450ms var(--ease-spring); will-change: transform; }
-/* The list pane: from the end side going forward (to On the way), from the start side coming back; rows stagger 40 ms,
-   the first 8 only. Transform + opacity only. */
-.shop-pane :is([data-card-grid] > *, .shop-group > [data-shop-group]) > *, .shop-pane [data-shop-group] { animation: shop-in 450ms var(--ease-out) both; animation-delay: var(--sd, 320ms); }
-.shop-fwd { --sx: 36px; }
-.shop-back { --sx: -36px; }
-[dir="rtl"] .shop-fwd { --sx: -36px; }
-[dir="rtl"] .shop-back { --sx: 36px; }
-@keyframes shop-in { from { opacity: 0; transform: translateX(var(--sx, 0)); } to { opacity: 1; transform: none; } }
 /* List ⇄ grid: a quick scale/fade with the same stagger (only when the pane isn't sliding). */
 .shop-zoom [data-card-grid] > * > *, .shop-zoom [data-shop-group] { animation: shop-zoom 300ms var(--ease-out) both; animation-delay: var(--sd, 320ms); }
 @keyframes shop-zoom { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
@@ -1085,7 +1088,7 @@ html[data-motion="reduce"] .flow-border::before, html[data-motion="reduce"] .r13
 [data-shop-pane] [data-shop-group] { --sd: 0ms; }
 @media (prefers-reduced-motion: reduce) {
   .shop-thumb { transition: none; }
-  .shop-pane *, .shop-zoom * { animation: none !important; }
+  .shop-zoom * { animation: none !important; }
 }
 
 /* R16 D1: Settings → Display → Motion = Reduced (per device, nexus.motion): the same as the OS setting. */

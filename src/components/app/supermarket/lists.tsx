@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Dialog as D } from "radix-ui";
 import { ArrowLeft, Check, CircleX, LayoutTemplate, MoreHorizontal, Plus, Receipt, Sparkles, Trash2, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
+import { SegPill } from "@/components/ui/seg-pill";
 import { Sheet } from "@/components/ui/overlays";
 import { useBackClose } from "@/components/ui/sheet-drag";
 import { answerRoutine, applySupermarketTemplate, deleteSupermarketTemplate, editSupermarketTemplate, readdToSupermarket, saveListAsTemplate, saveTripAsTemplate, supermarketPastTrips, supermarketTemplatePlan, supermarketTemplates } from "@/app/supermarket-actions";
@@ -355,6 +356,7 @@ function ListsBody({ onClose, routine, start }: { onClose: () => void; routine: 
   const L = t.sm.lists;
   const ro = s.space?.role === "viewer" || s.offlineAt != null;
   const [tab, setTab] = useState<"templates" | "past">(start === "past" ? "past" : "templates");
+  const [seg, setSeg] = useState("");
   const [list, setList] = useState<Template[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -412,13 +414,22 @@ function ListsBody({ onClose, routine, start }: { onClose: () => void; routine: 
       <Head onBack={onClose} />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-10">
         <h1 className="pb-3 text-[28px] font-extrabold tracking-[-0.02em]">{tab === "past" ? L.past : L.templates}</h1>
-        <div className="mb-3 grid grid-cols-2 rounded-[12px] bg-surface-2 p-1" role="tablist" aria-label={L.segLabel} data-sm-lists-seg>
-          {(["templates", "past"] as const).map((k) => (
-            <button key={k} type="button" role="tab" aria-selected={tab === k} className={cn("h-9 rounded-[9px] text-[14px] font-bold transition-colors duration-150", tab === k ? "bg-surface text-ink shadow-card" : "text-muted")} onClick={() => setTab(k)} data-sm-lists-tab={k}>
-              {k === "past" ? L.past : L.templates}
-            </button>
-          ))}
-        </div>
+        <SegPill<"templates" | "past">
+          className="mb-3"
+          label={L.segLabel}
+          value={tab}
+          onChange={(k) => {
+            setSeg(k === "past" ? "seg-in seg-fwd" : "seg-in seg-back");
+            setTab(k);
+          }}
+          options={[
+            { value: "templates", label: L.templates },
+            { value: "past", label: L.past },
+          ]}
+          data={{ root: "sm-lists-seg", tab: "sm-lists-tab" }}
+        />
+        {/* R18 S3 A2: only the list below changes — a short cross-fade, the title and the switch stay still. */}
+        <div key={tab} className={seg || undefined}>
         {tab === "templates" ? (
           <TemplateList
             list={list}
@@ -434,6 +445,7 @@ function ListsBody({ onClose, routine, start }: { onClose: () => void; routine: 
         ) : (
           <PastTrips trips={trips} onOpen={setTripId} />
         )}
+        </div>
       </div>
       {saveSheet}
     </div>

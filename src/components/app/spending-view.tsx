@@ -14,7 +14,6 @@ import { convert, formatMoney, formatMoneyCompact } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MonthBudget } from "./budget-card";
-import { InsightsSwitch } from "./insights";
 import { ProductImage } from "./item-card";
 import { useStore } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
@@ -208,7 +207,6 @@ export function SpendingView() {
 
   return (
     <div data-stats>
-      <InsightsSwitch />
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-[26px] font-extrabold tracking-[-0.02em]">{t.spending.title}</h1>

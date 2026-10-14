@@ -83,6 +83,44 @@ const READY = "[data-app-shell][data-ready] main h1 >> visible=true";
 // Esc opens the command menu once the app's key handler is attached (right after READY it can still be hydrating).
 let openPalette;
 const shot = async (page, name) => OUT && page.screenshot({ path: `${OUT}/${name}${SUFFIX}.png` });
+// R18 S3 A2: the chrome stays still while `act` switches a segment — the boxes of `sels` sampled every frame for `ms`,
+// the same DOM nodes before and after (no re-mount), no layout-shift source inside them (`calm`: the ones whose contents
+// must not shift either — a toolbar's labels may change with the segment while its box stays).
+async function stillWhile(page, sels, act, ms = 700, calm = sels) {
+  await page.evaluate(([sels, calm]) => {
+    const st = (window.__still = { boxes: [], shifts: [], nodes: sels.map((q) => document.querySelector(q)), run: true });
+    const inside = (n) => {
+      const el = n && (n.nodeType === 1 ? n : n.parentElement);
+      return !!el && calm.some((q) => el.closest(q));
+    };
+    st.po = new PerformanceObserver((l) => {
+      for (const e of l.getEntries()) for (const src of e.sources ?? []) if (inside(src.node)) st.shifts.push(`${(src.node.nodeType === 1 ? src.node : src.node.parentElement).outerHTML.slice(0, 160)} ${JSON.stringify(src.previousRect)}→${JSON.stringify(src.currentRect)}`);
+    });
+    st.po.observe({ type: "layout-shift" });
+    const tick = () => {
+      if (!st.run) return;
+      st.boxes.push(sels.map((q) => {
+        const r = document.querySelector(q)?.getBoundingClientRect();
+        return r ? [r.left, r.top, r.width, r.height].map(Math.round).join(",") : "none";
+      }));
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [sels, calm]);
+  await act();
+  await page.waitForTimeout(ms);
+  return page.evaluate((sels) => {
+    const st = window.__still;
+    st.run = false;
+    st.po.disconnect();
+    return {
+      frames: st.boxes.length,
+      moved: sels.filter((_, i) => new Set(st.boxes.map((b) => b[i])).size > 1),
+      remounted: sels.filter((q, i) => document.querySelector(q) !== st.nodes[i]),
+      shifts: st.shifts.length, shiftNodes: st.shifts,
+    };
+  }, sels);
+}
 
 // Record every frame Chromium paints (screencast only emits on change, so each saved frame is a visible state) while
 // `run` executes on `page` and for `ms` after it starts. Writes frames to $OUT/<name>[-m]/ plus a labelled contact
@@ -1219,6 +1257,46 @@ try {
         ok(r.dock === 0 && r.title, "one dock (R18 S3 A1): same tabs on first paint and after hydration, Products ⇄ Projects, Projects lights Products", JSON.stringify(r));
       }
     });
+
+    // R18 S3 A2: segment switches keep the chrome still — Products (To buy → On the way → Projects → On the way → To buy),
+    // Insights (Spending → History → Spending): the top bar, the title, the segment control (and the toolbar between To
+    // buy and On the way) keep their box on every frame, stay the same nodes, and no layout shift starts inside them.
+    if (MOBILE)
+      await step("segments keep the chrome still (R18 S3 A2): Products, Insights, Templates · Past trips — every frame, no re-mount, no shift", async () => {
+        const res = [];
+        const top = "header[data-app-header]";
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector(READY);
+        await page.waitForTimeout(800);
+        const shop = [top, "[data-shop-header] h1", "[data-shop-switch]"];
+        for (const [to, extra] of [["ordered", ["[data-shop-toolbar]"]], ["projects", []], ["ordered", []], ["to_buy", ["[data-shop-toolbar]"]]]) {
+          const r = await stillWhile(page, [...shop, ...extra], () => page.locator(`[data-shop-tab="${to}"]`).click(), 700, shop);
+          res.push({ to, ...r, pane: await page.locator("[data-seg-pane]").getAttribute("data-seg-pane") });
+        }
+        await page.locator('[data-dock-target="spending"]').click();
+        await page.waitForSelector("[data-insights-switch=spending]");
+        await page.waitForTimeout(800);
+        for (const to of ["history", "spending"]) {
+          const r = await stillWhile(page, [top, "[data-insights-switch]"], () => page.locator(`[data-insights-switch] [role=tab]`).nth(to === "history" ? 1 : 0).click());
+          res.push({ to, ...r, pane: await page.locator("[data-seg-pane]").getAttribute("data-seg-pane") });
+        }
+        if (!REAL) {
+          // Supermarket ⋯ → Templates & past trips: the title and the switch stay, only the list cross-fades.
+          await page.goto(`${BASE}/supermarket`);
+          await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+          await page.locator("[data-sm-more]").click();
+          await page.locator("[data-sm-menu-lists]").click();
+          await page.waitForSelector("[data-sm-lists] [data-sm-lists-seg]");
+          await page.waitForTimeout(600);
+          for (const to of ["past", "templates"]) {
+            const r = await stillWhile(page, ["[data-sm-lists] h1", "[data-sm-lists-seg]"], () => page.locator(`[data-sm-lists-tab="${to}"]`).click());
+            res.push({ to, ...r, pane: await page.locator("[data-sm-lists-seg]").getAttribute("data-sm-lists-seg") });
+          }
+          await page.keyboard.press("Escape");
+        }
+        const bad = res.filter((r) => r.moved.length || r.remounted.length || r.shifts || r.frames < 10 || r.pane !== r.to);
+        ok(!bad.length, "segments keep the chrome still (R18 S3 A2): Products, Insights, Templates · Past trips — every frame, no re-mount, no shift", JSON.stringify(bad.length ? bad : res.map((r) => `${r.to}:${r.frames}f`)));
+      });
 
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
@@ -2470,11 +2548,11 @@ try {
       if (MOBILE) {
         await page.locator('[data-dock-target="spending"]').click();
         await page.locator("[data-insights-switch=spending]").waitFor({ timeout: 8000 });
-        await page.locator("[data-insights-switch] [role=radio]").nth(1).click();
+        await page.locator("[data-insights-switch] [role=tab]").nth(1).click();
         await page.locator("[data-insights-switch=history]").waitFor({ timeout: 8000 });
         r.dockStays = (await page.locator('[data-dock-target="spending"]').getAttribute("aria-current")) === "page";
         r.url = new URL(page.url()).searchParams.get("v") === "history";
-        await page.locator("[data-insights-switch] [role=radio]").nth(0).click();
+        await page.locator("[data-insights-switch] [role=tab]").nth(0).click();
         await page.locator("[data-stats]").waitFor({ timeout: 8000 });
         // Me sheet → History.
         await page.locator("[data-me-open]").click();

@@ -15,7 +15,15 @@ desktop before it is ticked.
   Decisions you take go to "- A1 — `lib/dock.ts` (`DOCK_ORDER`, `dockOf`) replaces `lib/dock-tab.ts`; no `tab4` in the store / shell / app; Projects
   always renders under the Products header and lights Products. `test:dock` rewritten; smoke "one dock (R18 S3 A1)"
   samples the dock on its first frame (MutationObserver) vs after hydration, with an old heavy-Projects `nexus.tabUse`.
-### Decisions" right away. Anything for Tal → "### For Tal".
+- A2 — cause: on phones Projects had its own view key ("shop-projects") and every non-Products view slid in as a whole
+  (`view-in view-fwd` on the keyed wrapper, Insights' switch inside each view), so the title + segments re-mounted and
+  slid. Now `ViewSwitch` (nexus-app) keys one wrapper per phone tab (Products / Insights) with the header + `SegPill`
+  mounted once, the segment in an inner pane with `.seg-in` (180 ms, 6 px, no cascade); the wrapper's entrance class is
+  frozen while its segments change. First-open cascade faster (300 ms, done in 170 ms). Templates · Past trips use the
+  same pill + pane. Smoke "segments keep the chrome still" samples boxes every frame + node identity + layout shifts.
+### Decisions" right away. Anything for Tal → "- A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
+  under it, so the toolbar never moves between To buy and On the way.
+### For Tal".
 - **Resuming:** `git fetch`, check out `round18-s3` if it exists, read "### Progress" + `git log`, continue from the
   first unticked item. Never redo a ticked item.
 - Order = the order below (Part 0 first; then most painful first). Unattended; never stop to ask — take the reading
@@ -55,7 +63,7 @@ Cause of Tal's bugs (verify they're gone): tab 4 rendered "supermarket" first, t
 its own tab, so Products could never be reached. **Acceptance:** dock identical on first paint and after hydration;
 Products → Projects → Products → To buy works; Projects lights Products; desktop sidebar consistent.
 
-### A2 [ ] Segment switches keep the chrome still
+### A2 [x] Segment switches keep the chrome still
 Inside a tab, switching segments (Products: To buy / On the way / Projects; Insights: Spending / History; Supermarket
 ⋯ screens' segments; Templates · Past trips) must not move, re-mount or re-animate the header, the segment control or
 the toolbar — only the content area changes. Today To buy ↔ On the way is smooth but → Projects re-mounts the top part;

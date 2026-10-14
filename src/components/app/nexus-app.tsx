@@ -65,7 +65,7 @@ import { FALLBACK_RATES, type Currency } from "@/lib/money";
 import { DEFAULT_IMPORT_LIMIT_USD } from "@/lib/import-vat";
 import { useAiWork } from "@/lib/ai-work";
 import { useTruncationTitles } from "@/lib/trunc-title";
-import { isPhone, usePhoneNarrow } from "@/components/ui/use-device";
+import { isPhone, useDevice, usePhoneNarrow } from "@/components/ui/use-device";
 
 /** Everything the first paint needs that the server knows without loading data. */
 export type AppBoot = UiInit & { currency: Currency; aiEnabled: boolean };
@@ -153,29 +153,10 @@ function Shell({ incoming }: { incoming?: Incoming }) {
           {/* overflow-x: clip — the sliding view transition must never make the page wider than a phone (a wider page
               widens the layout viewport and moved the fixed dock, Round 9 A2). Clip keeps sticky headers working. */}
           <main className="mx-auto max-w-[1400px] px-4 pb-40 pt-2 [overflow-x:clip] sm:px-6 desk:px-0 desk:pt-2">
-            {/* Header + content switch together as one soft cross-fade; the very first paint is not animated. */}
-            <div key={viewKey(s.view, size === "phone")} className={s.navSeq > 0 && !(size === "phone" && isShop(s.view)) ? (s.navDir > 0 ? "view-in view-fwd" : "view-in view-back") : undefined}>
-              {s.view.type === "home" ? (
-                <HomeView />
-              ) : s.loading && s.view.type === "spending" ? (
-                <ContentSkeleton />
-              ) : s.view.type === "spending" ? (
-                <SpendingView />
-              ) : s.view.type === "projects" ? (
-                <>
-                  {/* On phones Projects is the third segment of Products, for everyone (R18 S3 A1). */}
-                  <ShoppingHeader className="desk:hidden" />
-                  {s.loading ? <ContentSkeleton /> : <ProjectsView inProducts />}
-                </>
-              ) : s.view.type === "supermarket" ? (
-                <SupermarketView />
-              ) : (
-                <>
-                  <ViewHeader />
-                  <Content />
-                </>
-              )}
-            </div>
+            {/* Header + content switch together as one soft cross-fade; the very first paint is not animated. Phone
+                segments (Products: To buy · On the way · Projects; Insights: Spending · History) share one wrapper per
+                tab: its header and segment control stay mounted and still, only the pane below cross-fades (R18 S3 A2). */}
+            <ViewSwitch />
           </main>
         </div>
       </div>
@@ -304,6 +285,61 @@ function viewKey(v: ReturnType<typeof useStore>["view"], phone = false) {
   return v.type === "collection" ? `c:${v.id}` : v.type === "store" ? `s:${v.key}` : v.type;
 }
 
+/** R18 S3 A2: phone tabs whose views are segments of one screen (the dock lights the same tab for all of them). */
+type SegGroup = "shop" | "insights";
+function segGroup(v: ReturnType<typeof useStore>["view"]): SegGroup | null {
+  if (v.type === "to_buy" || v.type === "ordered" || v.type === "projects") return "shop";
+  if (v.type === "spending" || v.type === "history") return "insights";
+  return null;
+}
+
+function ViewSwitch() {
+  const s = useStore();
+  // The server's device class (not the post-hydration size): the same wrapper key on the first paint and after it.
+  const phone = useDevice() === "phone";
+  const group = phone ? segGroup(s.view) : null;
+  const key = group ?? viewKey(s.view, phone);
+  // The wrapper's entrance is decided when it mounts (a tab switch) and kept while its segments change — a class that
+  // changed with every segment would restart the slide on the header.
+  const enter = s.navSeq > 0 ? (s.navDir > 0 ? "view-in view-fwd" : "view-in view-back") : undefined;
+  const [wrap, setWrap] = useState({ key, cls: enter });
+  if (wrap.key !== key) setWrap({ key, cls: enter });
+  const cls = wrap.key === key ? wrap.cls : enter;
+  // Segment pane: a short cross-fade with a small shift toward the new segment, only when switching inside the group.
+  const [pane, setPane] = useState({ type: s.view.type, key, cls: "" });
+  if (pane.type !== s.view.type) setPane({ type: s.view.type, key, cls: pane.key === key ? (s.navDir > 0 ? "seg-in seg-fwd" : "seg-in seg-back") : "" });
+  const segCls = pane.type === s.view.type && pane.key === key ? pane.cls : "";
+  return (
+    <div key={key} className={cls} data-view-wrap={key}>
+      {group === "shop" && <ShoppingHeader />}
+      {group === "insights" && <InsightsSwitch />}
+      <div key={group ? s.view.type : "one"} className={group ? segCls || undefined : "contents"} data-seg-pane={group ? s.view.type : undefined}>
+        <ViewBody />
+      </div>
+    </div>
+  );
+}
+
+function ViewBody() {
+  const s = useStore();
+  return s.view.type === "home" ? (
+    <HomeView />
+  ) : s.loading && s.view.type === "spending" ? (
+    <ContentSkeleton />
+  ) : s.view.type === "spending" ? (
+    <SpendingView />
+  ) : s.view.type === "projects" ? (
+    s.loading ? <ContentSkeleton /> : <ProjectsView inProducts />
+  ) : s.view.type === "supermarket" ? (
+    <SupermarketView />
+  ) : (
+    <>
+      <ViewHeader />
+      <Content />
+    </>
+  );
+}
+
 function ViewHeader() {
   const s = useStore();
   const ro = useReadOnly();
@@ -353,9 +389,7 @@ function ViewHeader() {
 
   return (
     <>
-    {shop && <ShoppingHeader className="desk:hidden" />}
     <div className={shop ? "contents phone:hidden" : "contents"}>
-    {s.view.type === "history" && <InsightsSwitch />}
     <div className="mb-3 flex flex-col gap-[18px]">
       <div className={cn("flex flex-wrap items-center justify-between gap-x-6 gap-y-2", s.view.type === "to_buy" && "sr-only")}>
         <div className="min-w-0">
@@ -483,11 +517,11 @@ function ShopContent({ items, pending }: { items: ItemWithSources[]; pending: Pe
   const way = s.view.type === "ordered";
   const ordered = useMemo(() => (phone && way && s.shopSort.way === "arrival" ? byArrival(items, s.clock.now, s.clock.tz) : items), [phone, way, s.shopSort.way, items, s.clock]);
   const groups = useMemo(() => (phone && !way && s.phoneLayout === "rows" && s.shopSort.buy === "project" ? groupByProject(ordered, s) : null), [phone, way, s, ordered]);
-  // What changed since the last render decides the entrance: the sub-tab slides, list ⇄ grid zooms.
-  const [last, setLast] = useState({ v: s.view.type, l: s.phoneLayout, mode: "" as "" | "slide" | "zoom" });
-  if (last.v !== s.view.type || last.l !== s.phoneLayout) setLast({ v: s.view.type, l: s.phoneLayout, mode: last.v !== s.view.type ? "slide" : "zoom" });
+  // List ⇄ grid zooms; a segment switch is the pane's cross-fade (ViewSwitch, R18 S3 A2) — no card cascade here.
+  const [last, setLast] = useState({ l: s.phoneLayout, zoom: false });
+  if (last.l !== s.phoneLayout) setLast({ l: s.phoneLayout, zoom: true });
   if (!phone) return <CardGrid items={items} pending={pending} altGroups={s.altGroups} stagger={s.navSeq === 0} />;
-  const anim = last.mode === "slide" ? `shop-pane ${s.navDir > 0 ? "shop-fwd" : "shop-back"}` : last.mode === "zoom" ? "shop-zoom" : "";
+  const anim = last.zoom ? "shop-zoom" : "";
   return (
     <div key={`${s.view.type}:${s.phoneLayout}`} className={anim} data-shop-pane={s.view.type}>
       {groups ? (

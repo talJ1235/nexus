@@ -17,7 +17,7 @@ import { COLLECTION_COLORS } from "./view-items";
 /**
  * Phone "Products" tab (R18 S2 A1, was Shopping — Round 13 B2): the title, To buy · On the way · Projects as one
  * segmented control with a sliding thumb, then (To buy / On the way) a toolbar (sort, a muted summary, list ⇄ grid).
- * Phones only; desktop keeps its own headers. The list below slides in from the end side (forward) or the start side.
+ * Phones only; desktop keeps its own headers. Mounted once for the whole tab (ViewSwitch): only the pane below changes.
  */
 export function ShoppingHeader({ className }: { className?: string }) {
   const s = useStore();
@@ -27,9 +27,10 @@ export function ShoppingHeader({ className }: { className?: string }) {
     <div className={cn("mb-3 flex flex-col gap-2.5", className)} data-shop-header>
       <h1 className="text-[26px] font-extrabold tracking-[-0.02em]">{t.sm.products}</h1>
       <ShopSwitch />
-      {/* R14 B4: the same filter chips as the desktop toolbar, To buy side only. */}
-      {s.view.type === "to_buy" && <BuyFilterChips className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none]" />}
+      {/* R18 S3 A2: the toolbar right under the switch (To buy and On the way both have it, so it never moves between
+          them); To buy's filter chips (R14 B4) come after it. */}
       {!projects && <ShopToolbar />}
+      {s.view.type === "to_buy" && <BuyFilterChips className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none]" />}
     </div>
   );
 }

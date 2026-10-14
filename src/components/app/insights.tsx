@@ -5,7 +5,7 @@ import { ChevronDown, History, Search, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuRadioGroup, MenuRadioItem, MenuTrigger } from "@/components/ui/overlays";
 import { cn } from "@/lib/utils";
-import { Segmented } from "./settings-dialog";
+import { SegPill } from "@/components/ui/seg-pill";
 import { useStore } from "./store";
 import { COLLECTION_COLORS, historyMonthOf, historyStoreOf, itemsForView, matchesQuery } from "./view-items";
 
@@ -14,14 +14,15 @@ export function monthLabel(key: string, locale: string) {
   return new Date(y, m - 1, 1).toLocaleDateString(locale === "he" ? "he-IL" : "en-GB", { month: "long", year: "numeric" });
 }
 
-/** Phone / tablet: the dock's last tab is "Insights" — Spending · History at the top of both views (Round 11 B2). */
+/** Phone: the dock's last tab is "Insights" — Spending · History at the top of both (Round 11 B2). Rendered once by the
+ *  tab's wrapper (ViewSwitch), so it stays mounted and still while the segments switch (R18 S3 A2). */
 export function InsightsSwitch() {
   const s = useStore();
   const { t } = useI18n();
   const value = s.view.type === "history" ? "history" : "spending";
   return (
     <div className="mb-4 desk:hidden" data-insights-switch={value}>
-      <Segmented<"spending" | "history">
+      <SegPill<"spending" | "history">
         label={t.insights.title}
         value={value}
         onChange={(v) => v !== value && s.setView({ type: v })}
