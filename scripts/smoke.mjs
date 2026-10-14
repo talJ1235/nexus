@@ -1735,6 +1735,46 @@ try {
         ok(good(res.he) && good(res.en), "add chips in one row (R18 S3 B6): 360 px, he + en, nothing cut or scrolled", JSON.stringify(res));
       });
 
+    // R18 S3 B7: count drives weight for produce — on the item sheet a said "8 · 1 kg" → count + → 9 and the weight
+    // follows as an estimate (≈ 9 × learned unit weight); weight + → the weight is said and the count follows (≈). The
+    // Add screen's steppers do the same ("12 tomatoes" → weight ≈).
+    if (WRITE)
+      await step("count drives weight (R18 S3 B7): sheet count + → ≈ weight, weight + → ≈ count; Add screen too", async () => {
+        const r = {};
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        const row = page.locator('[data-sm-row]:has-text("Tomatoes")').first();
+        await row.evaluate((e) => e.scrollIntoView({ block: "center" }));
+        await row.click();
+        await page.waitForSelector("[data-sm-sheet] [data-qty-steppers]", { timeout: 10000 });
+        const read = async () => ({ c: (await page.locator("[data-sm-sheet] [data-qty-count]").textContent()).trim(), w: (await page.locator("[data-sm-sheet] [data-qty-weight]").textContent()).trim() });
+        r.start = await read();
+        await page.locator("[data-sm-sheet] [data-qty-count-more]").click();
+        await page.waitForTimeout(400);
+        r.afterCount = await read();
+        await page.locator("[data-sm-sheet] [data-qty-weight-more]").click();
+        await page.waitForTimeout(400);
+        r.afterWeight = await read();
+        await page.locator("[data-sheet-done]").click();
+        await page.waitForTimeout(400);
+        await page.locator("[data-sm-add-open]").click();
+        await page.locator("[data-add-input]").fill("12 tomatoes");
+        await page.waitForSelector("[data-add-measure]");
+        r.addLabel = (await page.locator("[data-add-measure]").textContent()).trim();
+        await page.locator("[data-add-measure]").click();
+        await page.locator("[data-add-parse] [data-qty-count-more]").click();
+        await page.waitForTimeout(300);
+        r.addAfter = { c: (await page.locator("[data-add-parse] [data-qty-count]").textContent()).trim(), w: (await page.locator("[data-add-parse] [data-qty-weight]").textContent()).trim() };
+        await page.locator("[data-add-back]").click();
+        const n = (x) => Number(String(x).replace(/[^0-9.]/g, ""));
+        ok(
+          n(r.afterCount.c) === n(r.start.c) + 1 && r.afterCount.w.startsWith("≈") && n(r.afterCount.w) > n(r.start.w) &&
+            !r.afterWeight.w.startsWith("≈") && r.afterWeight.c.startsWith("≈") && /12 · ≈/.test(r.addLabel) && r.addAfter.c === "13" && r.addAfter.w.startsWith("≈"),
+          "count drives weight (R18 S3 B7): sheet count + → ≈ weight, weight + → ≈ count; Add screen too",
+          JSON.stringify(r),
+        );
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)
@@ -1892,7 +1932,7 @@ try {
         await page.waitForTimeout(700);
         r.gone = (await page.locator(`[data-sm-sug="${key}"]`).count()) === 0;
         ok(
-          !!r.learned && /1 · 1 kg|kg/.test(r.weight0) && /^[0-9]+$/.test(r.count) && /won't suggest|לא יציע/.test(r.hiddenToast) && r.afterUnhide !== "hidden" && r.rowQty === `${r.count} · 1 kg` && r.rowNote === "Ripe ones" && JSON.stringify(r.actions) === '["add","skip","never"]' && r.gone,
+          !!r.learned && /1 · 1 kg|kg/.test(r.weight0) && /^[0-9]+$/.test(r.count) && /won't suggest|לא יציע/.test(r.hiddenToast) && r.afterUnhide !== "hidden" && r.rowQty.startsWith(`${r.count} · ≈`) && r.rowNote === "Ripe ones" && JSON.stringify(r.actions) === '["add","skip","never"]' && r.gone,
           "item sheet (R18 C2): steppers, note, what Nexus learned, hide + undo, suggestion actions",
           JSON.stringify(r),
         );

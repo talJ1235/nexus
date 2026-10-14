@@ -13,7 +13,7 @@ import { PRODUCT_TYPES } from "../src/lib/grocery/dictionary";
 import { normalize } from "../src/lib/grocery/normalize";
 import { SECTION_KEYS } from "../src/lib/grocery/sections";
 import { parseLine } from "../src/lib/grocery/parse";
-import { learnUnitWeights, measure, unitKgFor } from "../src/lib/grocery/weights";
+import { learnUnitWeights, measure, unitKgFor, withCount, withWeight } from "../src/lib/grocery/weights";
 import { qtyLabel } from "../src/components/app/supermarket/qty";
 
 // [line, expected section] — boards (Supermarket-phone WORST / DEMO / SUG, Add-phone paste + voice) in both languages.
@@ -162,9 +162,20 @@ console.log(`${pct >= 90 ? "ok" : "FAIL"} sections: ${ok}/${lines.length} = ${pc
       [{ quantity: 1, count: 4, amount: null, unit: null }, "en", null, "4"],
       [{ quantity: 3, count: null, amount: null, unit: null }, "he", null, "×3"],
       [{ quantity: 1, count: null, amount: 1.5, unit: "l" }, "en", null, "1.5 L"],
+      [{ quantity: 3, count: null, amount: null, unit: null }, "en", 0.15, "3 · ≈ 0.5 kg"],
     ];
     for (const [q, locale, kg, want] of R) assert.equal(qtyLabel(q, locale, kg), want, `reads ${JSON.stringify(q)} ${locale}`);
     assert.deepEqual(measure({ count: 6 }, 0.15), { count: 6, kg: 0.9, approx: "kg" });
+    // R18 S3 B7: count drives weight too — the one changed is said, the other follows.
+    const V = { quantity: 1, count: 8, amount: 1, unit: "kg" };
+    assert.deepEqual(withCount(V, 12, 0.171), { ...V, count: 12, amount: null, unit: null }, "known unit weight → ≈ 12 × 171 g");
+    assert.deepEqual(withCount(V, 12, null), { ...V, count: 12, amount: 1.5 }, "unknown → scales: 8 · 1 kg → 12 · 1.5 kg");
+    assert.deepEqual(withCount({ ...V, amount: 800, unit: "g" }, 4, null), { ...V, count: 4, amount: 400, unit: "g" });
+    assert.deepEqual(withCount({ ...V, amount: null, unit: null }, 9, 0.15), { ...V, count: 9, amount: null, unit: null }, "count only stays count only");
+    assert.deepEqual(withWeight(V, 2, "kg", 0.171), { ...V, amount: 2, unit: "kg", count: null }, "weight → ≈ count");
+    assert.deepEqual(withWeight(V, 2, "kg", null), { ...V, amount: 2, unit: "kg", count: 16 }, "unknown → the count scales");
+    assert.deepEqual(withWeight({ ...V, count: null }, 1.2, "kg", 0.15), { ...V, count: null, amount: 1.2, unit: "kg" });
+    assert.equal(qtyLabel(withCount(V, 12, 0.171), "he", 0.171), "12 · ≈ 2.1 ק״ג", "the row after: count · ≈ weight");
     console.log(`ok B1 count + weight: ${P.length} parse lines (he + en), learned unit weights + fallback, ${R.length} readings`);
   }
   // ---- Tal's own receipts (local DB only, counts only)

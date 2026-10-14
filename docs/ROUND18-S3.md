@@ -114,7 +114,7 @@ Tal: tap mic, say several products with amounts, tap stop → nothing is found. 
 Scan · Photo · Voice · Paste list fit in one row at 360 px in he + en (icon + short label, or 2×2) — no horizontal
 scroll.
 
-### B7 [ ] Count drives weight for produce
+### B7 [x] Count drives weight for produce
 Changing the count updates the weight (count × learned unit weight, S1/S2 tables) — today only weight → count works.
 Count is the default unit for produce; weight shows as "≈ 1.8 ק״ג". Editing weight still updates count. Item sheet, Add
 screen, store mode quantity.
@@ -255,6 +255,11 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
 - B6 — the Add screen's Scan · Photo · Voice · Paste list are one equal-column row (icon over a short label, 58 px
   tall; "Paste list" / "הדבקה", the full name stays the button's label for screen readers); the columns follow the chips
   this device shows. Smoke at 360 px, he + en: no sideways scroll, all on screen, no label cut, ≥ 44 px.
+- B7 — the one you change is said, the other follows (`withCount` / `withWeight` in `lib/grocery/weights.ts`, used by
+  `QtySteppers` = item sheet, Add screen, suggestion page, store mode quantity): count + after "8 · 1 kg" → "9 · ≈ 1.5
+  kg" with a learned unit weight (or the weight scales without one); weight + → the count becomes "≈". Produce counts
+  by default: a plain row reads "3 · ≈ 0.5 kg" and its steppers start at the count; count-only rows keep quantity 1.
+  `test:grocery` (+7 cases), smoke "count drives weight" (the S2 item-sheet step now expects "9 · ≈ …").
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

@@ -60,3 +60,31 @@ export function measure(i: Measure, unitKg: number | null) {
   if (kgSaid != null) return { count: unitKg ? Math.max(1, Math.round(kgSaid / unitKg)) : null, kg: kgSaid, approx: unitKg ? ("count" as const) : null };
   return { count: null, kg: null, approx: null };
 }
+
+type Said = { quantity: number; count: number | null; amount: number | null; unit: string | null };
+const r1 = (n: number) => Math.round(n * 10) / 10;
+const kgOf = (amount: number | null, unit: string | null) => (amount == null ? null : unit === "g" ? amount / 1000 : unit === "kg" ? amount : null);
+
+/**
+ * R18 S3 B7: the count changed (produce) — the weight follows: with a known unit weight it goes back to the estimate
+ * (≈ count × unit weight), without one a said weight scales with the count (8 · 1 kg → 12 · 1.5 kg). n ≤ 0 = no count.
+ */
+export function withCount(v: Said, n: number, unitKg: number | null): Said {
+  const next = n <= 0 ? null : Math.min(999, Math.round(n));
+  const kg = kgOf(v.amount, v.unit);
+  if (next == null || kg == null) return { ...v, count: next };
+  if (unitKg != null) return { ...v, count: next, amount: null, unit: null };
+  const was = v.count ?? v.quantity;
+  if (!was) return { ...v, count: next };
+  const scaled = (v.amount! / was) * next;
+  return { ...v, count: next, amount: v.unit === "g" ? Math.max(10, Math.round(scaled / 10) * 10) : Math.max(0.1, r1(scaled)) };
+}
+
+/** The weight changed — a said count follows: back to the estimate with a known unit weight, else it scales. */
+export function withWeight(v: Said, amount: number | null, unit: "kg" | "g" | null, unitKg: number | null): Said {
+  const kg = kgOf(amount, unit);
+  if (v.count == null || kg == null) return { ...v, amount, unit };
+  if (unitKg != null) return { ...v, amount, unit, count: null };
+  const oldKg = kgOf(v.amount, v.unit) ?? measure(v, unitKg).kg;
+  return { ...v, amount, unit, count: oldKg ? Math.max(1, Math.round((v.count * kg) / oldKg)) : v.count };
+}

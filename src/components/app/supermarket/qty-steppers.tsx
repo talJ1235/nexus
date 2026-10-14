@@ -2,12 +2,13 @@
 
 import { Minus, Plus } from "lucide-react";
 import { useI18n } from "@/components/providers";
-import { measure } from "@/lib/grocery/weights";
+import { measure, withCount, withWeight } from "@/lib/grocery/weights";
 import { cn } from "@/lib/utils";
 import { unitWord } from "./qty";
 
 // R18 S2 B1/B2 — "How many" and "Weight" side by side (board ItemSheet-phone): either one, or both. When one is set and
 // the product's unit weight is known, the other shows its estimate (≈) in muted text until the person sets it.
+// R18 S3 B7: changing either one makes the other follow (count → weight too, not only weight → count).
 
 export type Measure = { quantity: number; count: number | null; amount: number | null; unit: string | null };
 
@@ -20,7 +21,9 @@ export function QtySteppers({ value, onChange, unitKg, title, learned }: { value
   const m = measure(value, unitKg);
   const liquid = value.unit === "l";
   const grams = value.unit === "g";
-  const howMany = weighed ? (value.count ?? null) : value.quantity;
+  const kgSaidAny = value.amount != null && (value.unit === "kg" || value.unit === "g");
+  // R18 S3 B7: count is produce's default unit — a row with neither count nor weight counts its quantity.
+  const howMany = weighed ? (value.count ?? (unitKg != null && !kgSaidAny ? value.quantity : null)) : value.quantity;
   const shownCount = howMany ?? (m.approx === "count" ? m.count : null);
   const kgSaid = value.amount != null && (value.unit === "kg" || value.unit === "g") ? value.amount : null;
   const weightText = liquid
@@ -31,20 +34,23 @@ export function QtySteppers({ value, onChange, unitKg, title, learned }: { value
         ? `≈ ${r1(m.kg)} ${unitWord("kg", locale)}`
         : "—";
 
+  // R18 S3 B7: the one you change is said, the other follows (lib/grocery/weights withCount / withWeight).
   const setCount = (n: number) => {
     if (!weighed) return onChange({ ...value, quantity: Math.max(1, Math.min(999, n)) });
-    onChange({ ...value, count: n <= 0 ? null : Math.min(999, n) });
+    // A count-only row keeps quantity 1 (S2 B1): the pieces live in `count`.
+    onChange(liquid ? { ...value, count: n <= 0 ? null : Math.min(999, n) } : { ...withCount(howMany != null && value.count == null ? { ...value, quantity: howMany } : value, n, unitKg), quantity: 1 });
   };
+  const followWeight = (amount: number | null, unit: "kg" | "g" | null) => onChange(withWeight(value, amount, unit, unitKg));
   const stepCount = (d: number) => setCount((shownCount ?? 0) + d);
   const stepWeight = (d: number) => {
     if (liquid) return onChange({ ...value, amount: Math.max(0.25, r1((value.amount ?? 1) + d * 0.5)) });
     if (grams) {
       const g = Math.max(0, (value.amount ?? 0) + d * 50);
-      return onChange({ ...value, amount: g || null, unit: g ? "g" : null });
+      return followWeight(g || null, g ? "g" : null);
     }
     const base = value.amount ?? (m.kg != null ? r1(m.kg) : 0);
     const kg = Math.max(0, r1(base + d * 0.1));
-    onChange({ ...value, amount: kg || null, unit: kg ? "kg" : null });
+    followWeight(kg || null, kg ? "kg" : null);
   };
   const box = "flex h-14 items-center gap-1 rounded-[14px] border border-line-strong bg-surface p-1";
   const step = "grid size-11 shrink-0 place-items-center rounded-[11px] bg-surface-2 text-ink transition-transform duration-150 ease-[var(--ease-out)] active:scale-90 disabled:opacity-40";

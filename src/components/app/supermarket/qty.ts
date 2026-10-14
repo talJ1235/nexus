@@ -20,5 +20,7 @@ export function qtyLabel(i: Q, locale: string, unitKg: number | null = null) {
   if (i.count != null && weight) return `${i.count} · ${weight}`;
   if (i.count != null) return m.kg != null ? `${i.count} · ≈ ${num(m.kg, locale)} ${unitWord("kg", locale)}` : String(i.count);
   if (weight) return m.approx === "count" && m.count != null ? `${weight} · ≈ ${m.count}` : weight;
+  // R18 S3 B7: produce counts by default — a plain row of a product with a learned unit weight reads "3 · ≈ 0.5 kg".
+  if (unitKg != null) return `${i.quantity} · ≈ ${num(Math.round(i.quantity * unitKg * 10) / 10, locale)} ${unitWord("kg", locale)}`;
   return `×${i.quantity}`;
 }
