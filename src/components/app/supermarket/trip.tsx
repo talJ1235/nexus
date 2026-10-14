@@ -136,7 +136,15 @@ export function NextShopCard({ className }: { className?: string }) {
   const { mine: serverMine, others } = useTrips(home);
   const local = useLocalTrip(s.spaceId || "-");
   const mine = local ? localAsOpen(local, s.me?.id ?? "", serverMine) : serverMine;
-  if (!home || s.loading) return null;
+  if (s.loading) return null;
+  // G2: the list is on the device before the server's numbers — show the card at once (no jump on Home when they
+  // arrive); only an empty list waits (it may be the first-time card).
+  if (!home)
+    return s.sm.length && !local ? (
+      <div className={cn("desk:col-span-12", className)} data-next-shop="next">
+        <NextCard />
+      </div>
+    ) : null;
   const trip = mine ?? others[0] ?? null;
   return (
     <div className={cn("desk:col-span-12", className)} data-next-shop={trip ? (mine ? "mine" : "other") : !s.sm.length && !home.trips ? "first" : "next"}>
@@ -187,14 +195,14 @@ function NextCard() {
           {groups.length > 4 && <span className="inline-flex h-8 items-center rounded-[10px] bg-surface-2 px-2.5 text-[13px] font-bold" title={f(t.sm.home.more, { n: groups.length - 4 })}>+{groups.length - 4}</span>}
         </div>
       )}
-      {sug > 0 && (
-        <p className="mt-3 flex items-center gap-2 text-[13.5px] font-semibold">
-          <span className="grid size-5 place-items-center rounded-[6px] bg-spark text-white">
-            <Sparkles className="size-3" />
-          </span>
-          {today ? f(t.sm.home.readySince, { n: sug }) : sug === 1 ? t.sm.home.suggestsOne : f(t.sm.home.suggestsMore, { n: sug })}
-        </p>
-      )}
+      {/* The line is always there (loading: kept blank; nothing to suggest: says so) — the card never changes height
+          when the server's numbers arrive (no shift on Home, R18 S2 G2). */}
+      <p className={cn("mt-3 flex items-center gap-2 text-[13.5px] font-semibold", !home && "invisible", home && sug === 0 && "font-medium text-muted")} aria-hidden={!home || undefined} data-next-sug={home ? sug : undefined}>
+        <span className={cn("grid size-5 place-items-center rounded-[6px]", sug > 0 || !home ? "bg-spark text-white" : "bg-surface-2 text-muted")}>
+          <Sparkles className="size-3" />
+        </span>
+        {!home ? " " : sug === 0 ? t.sm.home.suggestsNone : today ? f(t.sm.home.readySince, { n: sug }) : sug === 1 ? t.sm.home.suggestsOne : f(t.sm.home.suggestsMore, { n: sug })}
+      </p>
       <div className="mt-3.5 flex gap-2.5">
         <button type="button" className={ghost} onClick={() => open()} data-next-list>
           {t.sm.home.list}

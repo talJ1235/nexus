@@ -88,6 +88,7 @@ export const smHe: Widen<typeof smEn> = {
     est: "≈ {amount}",
     suggestsMore: "Nexus מציע עוד {n}",
     suggestsOne: "Nexus מציע עוד אחד",
+    suggestsNone: "ל-Nexus אין מה להוסיף כרגע",
     readySince: "מוכן מאתמול בערב · Nexus מציע {n}",
     list: "רשימה",
     start: "מתחילים קנייה",

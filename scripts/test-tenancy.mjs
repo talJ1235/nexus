@@ -98,6 +98,14 @@ async function seedData(space, mark, owner) {
   await q(`INSERT INTO space_store (space_id, chain, branch, is_default) VALUES (?, 'Chain', 'B', 1)`, [space]);
   await q(`INSERT INTO template (id, space_id, name, items, created_at) VALUES (?, ?, ?, ?, ?)`, [r.tpl, space, `${mark} template`, JSON.stringify([{ productKey: "milk", title: `${mark} milk`, qty: 1 }]), now]);
   await q(`INSERT INTO suggest_dismiss (space_id, product_key, until) VALUES (?, 'eggs', ?)`, [space, now + 86_400_000]);
+  // R18 S2: a count on the row, a hidden product, Nexus templates (a kept routine + an offer), a forget cut-off.
+  await q(`UPDATE items SET count = 6 WHERE id = ?`, [r.sm]);
+  await q(`INSERT INTO suggest_dismiss (space_id, product_key, until, hidden_at, hidden_by) VALUES (?, 'bread', 0, ?, ?)`, [space, now, owner]);
+  r.ntpl = "tp_" + id();
+  r.offer = "tp_" + id();
+  await q(`INSERT INTO template (id, space_id, name, items, created_at, made_by, routine_day, routine_trips, kept_at, updated_at) VALUES (?, ?, '', ?, ?, 'nexus', 4, 3, ?, ?)`, [r.ntpl, space, JSON.stringify([{ productKey: "milk", title: `${mark} routine milk`, qty: 1 }]), now, now, now]);
+  await q(`INSERT INTO template (id, space_id, name, items, created_at, made_by, routine_day, routine_trips, updated_at) VALUES (?, ?, '', ?, ?, 'nexus', 5, 3, ?)`, [r.offer, space, JSON.stringify([{ productKey: "milk", title: `${mark} offer milk`, qty: 1 }]), now, now]);
+  await q(`INSERT INTO space_pref (space_id, key, value) VALUES (?, 'pref:sm:forget', '{"day":1}')`, [space]);
   return r;
 }
 await seedUser("A", "a@tenancy.test");
@@ -132,7 +140,8 @@ async function hashSpaces(spaces) {
 }
 async function hashUser(uid) {
   const h = createHash("sha256");
-  for (const [t, c] of [["memories", "user_id"], ["user_pref", "user_id"], ["reports", "user_id"], ["space_member", "user_id"], ["session", "user_id"]]) {
+  // R18 S2 D4: the inbox too — "Send to phone" must never reach someone outside the sender's space.
+  for (const [t, c] of [["memories", "user_id"], ["user_pref", "user_id"], ["reports", "user_id"], ["space_member", "user_id"], ["session", "user_id"], ["notification", "user_id"]]) {
     const rows = await db.execute({ sql: `SELECT * FROM "${t}" WHERE ${c} = ? ORDER BY 1`, args: [uid] });
     h.update(t + JSON.stringify(t === "session" ? rows.rows.map((r) => r.id) : rows.rows));
   }
@@ -170,7 +179,7 @@ async function callAction(who, a, args, spaceCookie) {
 }
 
 function variants(r) {
-  const X = [r.item, r.item2, r.col, r.src, r.att, r.grp, r.rec, r.conv, r.alert, memA, r.sm, r.trip, r.tpl];
+  const X = [r.item, r.item2, r.col, r.src, r.att, r.grp, r.rec, r.conv, r.alert, memA, r.sm, r.trip, r.tpl, r.ntpl, r.offer];
   const patch = { title: "PWNED", quantity: 7, priority: "urgent", name: "PWNED", price: 1, archived: true, collectionId: null, watch: false, notes: "PWNED" };
   const v = [];
   for (const x of X) v.push([x], [x, patch], [[x]], [[x], { priority: "urgent", collectionId: null }], [x, 1, null], [x, "purchased"], [x, "PWNED"]);
@@ -182,6 +191,18 @@ function variants(r) {
     ["Chain", "B", ["frozen"]],
     ["Chain", "B", true],
     [r.trip, "PWNED"],
+    // R18 S2: hide / unhide, forget, keep / turn down a routine, edit a template, a trip → template, send to phone.
+    ["milk"],
+    ["bread"],
+    ["all"],
+    ["p:milk"],
+    [r.offer, true],
+    [r.offer, false],
+    [r.ntpl, { name: "PWNED", items: [{ productKey: "milk", title: "PWNED", qty: 9 }] }],
+    [r.trip, "PWNED", { missed: true, keepQty: false }],
+    [[U.A, U.B, U.V], { chain: "Chain", branch: "B" }],
+    [[U.A]],
+    [r.sm, { count: 9, amount: 2, unit: "kg" }],
     [[{ id: "o1", kind: "check", itemId: r.sm, at: 1 }, { id: "o2", kind: "note", itemId: r.sm, notes: "PWNED", at: 2 }, { id: "o3", kind: "qty", itemId: r.sm, qty: 9, at: 3 }]],
     [[{ productKey: "milk", title: "PWNED", qty: 9, amount: null, unit: null, section: "dairy", art: null }]],
     [r.item, r.item2],

@@ -329,8 +329,10 @@ function QuickMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
         onClick={onClose}
         className={cn("fixed inset-0 z-[35] bg-[color-mix(in_srgb,var(--bg)_55%,transparent)] backdrop-blur-[6px] transition-opacity duration-200 ease-[var(--ease-out)]", open ? "opacity-100" : "pointer-events-none opacity-0")}
       />
+      {/* Mounted while closed for its exit animation — a menu role only while open (Esc → the command menu checks for
+          any open menu). */}
       <div
-        role="menu"
+        role={open ? "menu" : undefined}
         aria-label={t.sm.quick.label}
         aria-hidden={!open}
         className={cn(

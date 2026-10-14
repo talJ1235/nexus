@@ -149,7 +149,10 @@ function ShopToolbar() {
           </MenuRadioGroup>
         </MenuContent>
       </Menu>
-      <span className="min-w-0 truncate text-[12px] text-muted">{summary}</span>
+      {/* R18 S2: the To buy total moved here (A1) — a cut line still reads in full (title). */}
+      <span className="min-w-0 truncate text-[12px] text-muted" title={summary || undefined}>
+        {summary}
+      </span>
       {/* List ⇄ grid with a sliding thumb (list by default, remembered). */}
       <div className="relative ms-auto flex shrink-0 rounded-full border border-card-line bg-surface-2 p-[3px]" role="radiogroup" aria-label={t.shopTab.layout} data-phone-layout-toggle>
         <span

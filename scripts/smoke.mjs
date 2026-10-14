@@ -169,7 +169,8 @@ async function homeChecks(page) {
   });
   if (MOBILE)
     await step("home phone height ≤ 1800 px and no overflow at 360/390", async () => {
-      const h = await page.locator("[data-home]").evaluate((e) => e.offsetHeight);
+      // R18 S2 A3: the supermarket's "Next shop" card sits above the widgets on purpose — the limit is for Home's own sections.
+      const h = await page.locator("[data-home]").evaluate((e) => e.offsetHeight - (e.querySelector("[data-next-shop]")?.getBoundingClientRect().height ?? 0));
       const widths = [];
       for (const w of [360, 390]) {
         await page.setViewportSize({ width: w, height: VIEWPORT.height });
@@ -428,7 +429,9 @@ try {
     failShotPage = page;
     const errors = [];
     page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
-    page.on("console", (m) => m.type() === "error" && !/Failed to load resource|favicon|net::ERR/.test(m.text()) && errors.push(`console: ${m.text().slice(0, 160)}`));
+    // A navigation that aborts the idle scanner prewarm download makes Chromium log "wasm streaming compile failed …
+    // aborted" and fall back to ArrayBuffer — network noise like the two above, not an app error.
+    page.on("console", (m) => m.type() === "error" && !/Failed to load resource|favicon|net::ERR|wasm streaming compile failed: .*aborted|falling back to ArrayBuffer instantiation/.test(m.text()) && errors.push(`console: ${m.text().slice(0, 160)}`));
 
     await step("owner login", async () => {
       await signIn(page);
@@ -1138,6 +1141,10 @@ try {
         await page.waitForSelector("[data-sm-view]", { timeout: 8000 });
         r.view = new URL(page.url()).searchParams.get("v");
         r.dockOn = await page.locator('[data-dock] [aria-current="page"]').getAttribute("data-dock-target");
+        // Since B2 "Add to list" opens the full-screen Add screen: it's there, then Back closes it.
+        r.addScreen = await page.waitForSelector("[data-add-input]", { timeout: 8000 }).then(() => 1, () => 0);
+        await page.locator("[data-add-back]").click();
+        await page.waitForSelector("[data-add-input]", { state: "detached", timeout: 8000 }).catch(() => {});
         await page.locator('[data-dock-target="shopping"]').click();
         await page.waitForSelector("[data-shop-switch]");
         r.segs = await page.locator("[data-shop-tab]").evaluateAll((els) => els.map((e) => e.getAttribute("data-shop-tab")));
@@ -1150,7 +1157,7 @@ try {
         await page.locator('[data-shop-tab="to_buy"]').click();
         await page.waitForTimeout(500);
         ok(
-          JSON.stringify(r.quick) === '["add","scan","photo","shop"]' && r.plusMenuStayedShut && r.view === "supermarket" && r.dockOn === "supermarket" &&
+          JSON.stringify(r.quick) === '["add","scan","photo","shop"]' && r.plusMenuStayedShut && r.view === "supermarket" && r.dockOn === "supermarket" && r.addScreen === 1 &&
             JSON.stringify(r.segs) === '["to_buy","ordered","projects"]' && r.projectsDock === "shopping" && r.projectsUrl === "projects" &&
             ["add", "scan", "photo", "shop"].every((k) => r.shortcuts.includes(`/?v=supermarket&do=${k}`)),
           "phone nav (R18 A1): long-press + menu, Supermarket tab, Products segments, manifest shortcuts",
@@ -1441,7 +1448,21 @@ try {
 
     // R18 S2 F1: Settings → Supermarket (main store, order, products you hid, what Nexus learned — nothing else), the
     // learned page (told chips with ✎, learned ones with ✕; one forgotten disappears), Forget everything (learning only).
-    if (WRITE)
+    // Computers: the same section as label + control columns (hidden products inline, a preview of what Nexus learned).
+    if (WRITE && !MOBILE)
+      await step("settings supermarket desktop (R18 F1): label + control columns, learned preview → page", async () => {
+        await page.goto(`${BASE}/settings/supermarket`);
+        await page.waitForSelector("[data-settings-sm] [data-sm-set-store]", { timeout: 20000 });
+        const r = {};
+        r.hidden = await page.locator("[data-settings-sm] [data-sm-hidden], [data-settings-sm] [data-sm-hidden-none]").count();
+        r.text = (await page.locator("[data-settings-sm]").textContent()) ?? "";
+        await shot(page, "sm-settings-desk");
+        await page.locator('[data-settings-sm] [data-sx-nav="smLearned"]').click();
+        r.learned = await page.waitForSelector("[data-settings-sm-learned] [data-sm-fact]", { timeout: 10000 }).then(() => 1, () => 0);
+        ok(r.hidden === 1 && r.learned === 1 && !/draft|colou?rs|tab 4|My answers/i.test(r.text), "settings supermarket desktop (R18 F1): label + control columns, learned preview → page", JSON.stringify({ ...r, text: undefined }));
+        await page.keyboard.press("Escape");
+      });
+    if (WRITE && MOBILE)
       await step("settings supermarket (R18 F1): minimal section, hidden, what Nexus learned, forget", async () => {
         await page.goto(`${BASE}/settings/supermarket`);
         await page.waitForSelector("[data-settings-sm]", { timeout: 20000 });
@@ -2234,13 +2255,21 @@ try {
           await page.goto(`${BASE}/settings/account`);
           await page.evaluate(() => {
             window.__cls = 0;
-            new PerformanceObserver((l) => l.getEntries().forEach((e) => !e.hadRecentInput && (window.__cls += e.value))).observe({ type: "layout-shift", buffered: true });
+            window.__clsSrc = [];
+            new PerformanceObserver((l) =>
+              l.getEntries().forEach((e) => {
+                if (e.hadRecentInput) return;
+                window.__cls += e.value;
+                // SMOKE_DEBUG: which elements moved.
+                window.__clsSrc.push(...(e.sources || []).map((x) => (x.node?.nodeType === 1 ? x.node.outerHTML.slice(0, 120) : String(x.node?.nodeName))));
+              }),
+            ).observe({ type: "layout-shift", buffered: true });
           });
           await page.locator("[data-device=current]").first().waitFor({ timeout: 10000 });
           await page.waitForTimeout(2500);
           page.off("request", onReq);
           page.off("response", onRes);
-          return { cls: Math.round((await page.evaluate(() => window.__cls)) * 1000) / 1000, ms: times.at(-1) ?? null };
+          return { cls: Math.round((await page.evaluate(() => window.__cls)) * 1000) / 1000, ms: times.at(-1) ?? null, ...(process.env.SMOKE_DEBUG ? { src: await page.evaluate(() => window.__clsSrc.slice(0, 4)) } : {}) };
         };
         r.cold = await visit();
         r.warm = await visit();

@@ -84,6 +84,7 @@ export const smEn = {
     est: "≈ {amount}",
     suggestsMore: "Nexus suggests {n} more",
     suggestsOne: "Nexus suggests 1 more",
+    suggestsNone: "Nothing to add from Nexus right now",
     readySince: "Ready since last night · Nexus suggests {n}",
     list: "List",
     start: "Start shopping",

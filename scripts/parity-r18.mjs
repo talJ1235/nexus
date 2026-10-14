@@ -145,7 +145,20 @@ const openPast = async (p) => {
   await p.click('[data-sm-lists-tab="past"]');
   await p.waitForSelector("[data-sm-trip]");
 };
+/** A1: hold the dock's "+" (the quick menu: Add to list · Scan · Photo · Start shopping). */
+const longPlus = async (p) => {
+  const plus = p.locator('[data-dock-target="plus"]');
+  await plus.waitFor();
+  const b = await plus.boundingBox();
+  await p.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await p.mouse.down();
+  await p.waitForTimeout(650);
+  await p.mouse.up();
+  await p.waitForSelector('[data-quick-menu="open"] [data-quick]');
+};
 const SHOTS = [
+  // A1 — navigation: the dock's long-press menu and Products' segments.
+  ["a1-nav", [["board · long-press +", "Nav-phone", { ...EN, screen: "long-press +" }, PHONE], ["app", "/?v=to_buy", PHONE, { wait: '[data-dock-target="plus"]', act: longPlus }], ["board · Products · To buy", "Nav-phone", { ...EN, screen: "Products · To buy" }, PHONE], ["app", "/?v=to_buy", PHONE, { wait: '[data-dock-target="plus"]' }], ["board · he dark", "Nav-phone", { ...HE, screen: "long-press +", dark: true }, PHONE], ["app · he dark", "/?v=to_buy", PHONE, { wait: '[data-dock-target="plus"]', he: true, dark: true, act: longPlus }]], 300],
   // A2 — the Supermarket tab.
   ["a2-main-phone", [["board · normal", "Supermarket-phone", { ...EN, state: "normal" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM }], ["board · he dark plum", "Supermarket-phone", { ...HE, state: "normal", dark: true, palette: "plum" }, PHONE], ["app · he dark plum", "/supermarket", PHONE, { wait: SM, he: true, dark: true, plum: true }]], 300],
   ["a2-tiles-first-360", [["board · tiles", "Supermarket-phone", { ...EN, layout: "tiles" }, PHONE], ["app · tiles", "/supermarket", PHONE, { wait: SM, act: tiles }], ["board · first time", "Supermarket-phone", { ...EN, state: "first time" }, PHONE], ["app · first time (empty space)", "/supermarket", PHONE, { wait: "[data-sm-first]", space: "ad_home" }], ["app · 360 dark", "/supermarket", NARROW, { wait: SM, dark: true }]], 260],

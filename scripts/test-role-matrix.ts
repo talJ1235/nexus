@@ -102,6 +102,7 @@ const VIEW_OK = new Set([
 ]);
 const dir = join(__dirname, "..", "src", "app");
 const viewUses: string[] = [];
+const needOf = new Map<string, string>();
 for (const f of readdirSync(dir).filter((x) => x.endsWith("-actions.ts") || x === "actions.ts")) {
   const text = readFileSync(join(dir, f), "utf8");
   // Every function (exported or helper) and the need it asks for.
@@ -113,8 +114,12 @@ for (const f of readdirSync(dir).filter((x) => x.endsWith("-actions.ts") || x ==
     const decls = [...upto.matchAll(/(?:function\s+(\w+)|const\s+(\w+)\s*=\s*async)/g)];
     const nearest = decls.at(-1);
     const fn = nearest ? (nearest[1] ?? nearest[2]) : name;
+    if (!needOf.has(`${f}#${fn}`)) needOf.set(`${f}#${fn}`, m[3]);
     if (m[3] === "view" && !VIEW_OK.has(`${f}#${fn}`) && !VIEW_OK.has(`${f}#*`)) viewUses.push(`${f}#${fn}`);
   }
 }
 assert.deepEqual(viewUses, [], `actions a viewer could call without being on the read list: ${viewUses.join(", ")}`);
+// R18 S2 G2: a viewer can't hide / unhide, edit or remove a row, change templates, answer a routine or forget anything.
+const S2_WRITES = ["hideProduct", "unhideProduct", "updateSmItem", "removeSmItem", "editSupermarketTemplate", "deleteSupermarketTemplate", "saveListAsTemplate", "saveTripAsTemplate", "applySupermarketTemplate", "readdToSupermarket", "answerRoutine", "forgetLearned", "syncTripOps", "addToSupermarket"];
+for (const fn of S2_WRITES) assert.equal(needOf.get(`supermarket-actions.ts#${fn}`), "edit", `${fn} asks for edit`);
 console.log(`OK role matrix: ${n} role × need cases, cookie fallback, viewer-callable actions limited to the read list`);
