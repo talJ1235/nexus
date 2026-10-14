@@ -150,6 +150,7 @@ export const smEn = {
     tapStop: "Tap to stop",
     noVoice: "Voice isn't available in this browser",
     voiceError: "Didn't catch that — try again",
+    voiceAgain: "Try again",
     pastePh: "Paste a list from WhatsApp or notes",
     split: "Nexus split it into {n} — check what to add",
     splitOne: "One item — check to add",

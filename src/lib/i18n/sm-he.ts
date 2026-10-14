@@ -154,6 +154,7 @@ export const smHe: Widen<typeof smEn> = {
     tapStop: "הקשה לעצירה",
     noVoice: "הקלטה בקול לא זמינה בדפדפן הזה",
     voiceError: "לא נקלט — אפשר לנסות שוב",
+    voiceAgain: "לנסות שוב",
     pastePh: "הדבקת רשימה מוואטסאפ או מהפתקים",
     split: "Nexus חילק ל־{n} — מסמנים מה להוסיף",
     splitOne: "פריט אחד — מסמנים כדי להוסיף",

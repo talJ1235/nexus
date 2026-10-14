@@ -104,6 +104,24 @@ const PARSE: [string, number, number | null, string | null, string][] = [
   assert.deepEqual(voice("חלב, ביצים ושני לחמים"), [["חלב", 1], ["ביצים", 1], ["לחמים", 2]]);
   assert.deepEqual(voice("חלב ויוגורט"), [["חלב", 1], ["יוגורט", 1]], "ו between two items = and");
   assert.deepEqual(voice("חלב בתוספת ויטמין"), [["חלב בתוספת ויטמין", 1]], "ו inside a word is not 'and'");
+  // R18 S3 B5: speech has no commas — products cut by the dictionary, numbers before or (Hebrew free forms) after.
+  const said = (t: string) => splitList(t).map((p) => [p.name, p.qty, p.amount, p.unit]);
+  const milkBreadTomatoes = [["חלב", 2, null, null], ["לחם", 1, null, null], ["עגבניות", 1, 0.5, "kg"]];
+  assert.deepEqual(said("שני חלב, לחם וחצי קילו עגבניות"), milkBreadTomatoes, "the brief's phrase, with commas");
+  assert.deepEqual(said("שני חלב לחם וחצי קילו עגבניות"), milkBreadTomatoes, "the same as speech gives it (no commas)");
+  assert.deepEqual(said("two milk bread and half a kilo of tomatoes"), [["milk", 2, null, null], ["bread", 1, null, null], ["tomatoes", 1, 0.5, "kg"]], "en, half a kilo of");
+  assert.deepEqual(said("חלב שתיים לחם עגבניות קילו"), [["חלב", 2, null, null], ["לחם", 1, null, null], ["עגבניות", 1, 1, "kg"]], "numbers / units after the noun");
+  assert.deepEqual(said("milk eggs bread"), [["milk", 1, null, null], ["eggs", 1, null, null], ["bread", 1, null, null]]);
+  assert.deepEqual(said("חלב 3% שתיים לחם מלא"), [["חלב 3%", 2, null, null], ["לחם מלא", 1, null, null]], "qualifiers stay with their product");
+  assert.deepEqual(said("פסטה 500 גרם"), [["פסטה 500 גרם", 1, null, null]], "a pack size stays in the name");
+  // The recognizer's results → one transcript: desktop (finals in pieces), Android (each final repeats the phrase so far,
+  // results re-sent), interim words after the finals.
+  const { transcriptOf } = await import("../src/lib/grocery/voice");
+  const R = (...xs: [string, boolean][]) => xs.map(([tx, f]) => Object.assign([{ transcript: tx }], { isFinal: f }));
+  assert.equal(transcriptOf(R(["שני חלב", true], [" לחם", true], ["וחצי קילו", false])).text, "שני חלב לחם וחצי קילו");
+  assert.equal(transcriptOf(R(["שני חלב", true], ["שני חלב לחם", true], ["שני חלב לחם וחצי קילו עגבניות", true])).text, "שני חלב לחם וחצי קילו עגבניות", "Android: cumulative finals");
+  assert.equal(transcriptOf(R(["two milk", true], ["two milk", true], ["bread", true])).text, "two milk bread", "Android: a final sent twice");
+  assert.equal(transcriptOf(R(["milk", false])).final, "", "interim only: nothing final yet");
   assert.equal(splitList("milk", ["milk"]).length, 1);
   assert.equal(splitList("חלב 3%", ["milk 3%"])[0].onList, true, "already on the list is flagged");
   assert.deepEqual(splitList("Sparkling water, 6-pack\nmilk").map((p) => p.name), ["Sparkling water, 6-pack", "milk"], "a comma inside a product stays");

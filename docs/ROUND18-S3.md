@@ -104,7 +104,7 @@ Today the + does nothing (reproduce). Tap + or the row → the item sheet (S2 `i
 from history), button **Add** — or **Update quantity** when it's already on the list (merge rule). Same in Nexus
 suggests and the Add screen's suggestions.
 
-### B5 [ ] Voice add works
+### B5 [x] Voice add works
 Tal: tap mic, say several products with amounts, tap stop → nothing is found. Reproduce with `lib/grocery/voice.ts`
 (Hebrew `he-IL`, interim vs final results, stop before final, Android Chrome / PWA), fix; the result goes through
 `splitList` + `parseLine` into the same review as Paste list. Fake SpeechRecognition in tests for he + en phrases
@@ -242,6 +242,16 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   (`SuggestionActions` → item page: reason + "Usually ×2", the quantity steppers from history — count drives weight —
   **Add**, or **Update quantity** when the product is already on the list, then Not this time / Never suggest this);
   a toast confirms. Smoke: chip and card + → page with steppers → Add → toast + row (cleans up after itself).
+- B5 — causes (reproduced with a fake SpeechRecognition + parser cases): (1) Stop before the final result read the
+  on-screen interim text or, with none yet, closed at once — unmounting (aborting) the recognizer just as the final
+  words arrived; (2) `continuous: false` ended at the first pause and a final mid-speech jumped to the preview; (3)
+  speech has no commas, so "שני חלב לחם וחצי קילו עגבניות" became one product "חלב לחם"; (4) Android re-sends finals
+  (cumulative) — `resultIndex` accumulation doubled them; (5) "half a kilo of tomatoes" parsed as 0.5 u of "a kilo of
+  tomatoes". Now: `listen()` continuous, transcript rebuilt from all results (`transcriptOf`, de-duplicated), one
+  `onEnd(text, error)`; Stop → "finishing" until the recognizer ends (≤ 2.5 s) → the preview, or "Didn't catch that" +
+  Try again; `segmentSpoken` cuts a comma-less run by the dictionary (numbers before; Hebrew free forms after — "חלב
+  שתיים"; products after "with / בתוספת / ללא" stay qualifiers; pack sizes stay names); `parseLine` reads "half a kilo
+  of", "a kilo of", "עגבניות קילו". `test:add` (+ the brief's phrases, he + en, transcriptOf) and smoke "voice add".
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

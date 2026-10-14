@@ -6,6 +6,7 @@ import { Dialog as D } from "radix-ui";
 import { ArrowLeft, Camera, Check, ClipboardPaste, Mic, Plus, ScanBarcode, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { useBackClose } from "@/components/ui/sheet-drag";
+import { Spinner } from "@/components/ui/spinner";
 import { SuggestionActions } from "./item-sheet";
 import { acceptSuggestions, addParts, addToSupermarket, undoSupermarketAdd } from "@/app/supermarket-actions";
 import { classifyLocal } from "@/lib/grocery/classify";
@@ -402,50 +403,68 @@ function Voice({ onDone }: { onDone: () => void }) {
   const { t, locale } = useI18n();
   const [text, setText] = useState("");
   const [final, setFinal] = useState<string | null>(null);
+  // listening → (Stop) finishing → the preview, or "Didn't catch that" with Try again.
+  const [phase, setPhase] = useState<"listening" | "finishing" | "missed">("listening");
   const [error, setError] = useState<string | null>(() => (voiceSupported() ? null : t.sm.add.noVoice));
+  const [round, setRound] = useState(0);
   const session = useRef<VoiceSession | null>(null);
   useEffect(() => {
     const v = listen(
       locale,
-      (txt, isFinal) => {
-        setText(txt);
-        if (isFinal) setFinal(txt);
-      },
-      (err) => {
-        if (err) setError(err === "not-allowed" ? t.sm.add.noVoice : t.sm.add.voiceError);
+      (txt) => setText(txt),
+      (txt, err) => {
+        if (txt.trim()) return setFinal(txt);
+        setPhase("missed");
+        if (err) setError(err === "not-allowed" || err === "service-not-allowed" ? t.sm.add.noVoice : t.sm.add.voiceError);
+        else setError(t.sm.add.voiceError);
       },
     );
     session.current = v;
     return () => {
       if (v.supported) v.abort();
     };
-  }, [locale, t]);
+  }, [locale, t, round]);
+  // Stop: the last words often land after it — wait for the recognizer's end (or 2.5 s, then take what's on screen).
+  useEffect(() => {
+    if (phase !== "finishing") return;
+    const id = window.setTimeout(() => (text.trim() ? setFinal(text) : setPhase("missed")), 2500);
+    return () => window.clearTimeout(id);
+  }, [phase, text]);
   const keys = useMemo(() => s.sm.map((i) => i.productKey).filter((k): k is string => !!k), [s.sm]);
   if (final) return <SplitPreview parts={splitList(final, keys)} onDone={onDone} />;
+  const missed = phase === "missed";
   return (
-    <div className="flex flex-col items-center gap-5 pt-16 text-center" data-add-voice>
+    <div className="flex flex-col items-center gap-5 pt-16 text-center" data-add-voice={phase}>
       <span className="flex h-8 items-end gap-1" aria-hidden>
         {[10, 22, 6, 14, 26, 12, 20].map((h, i) => (
-          <i key={i} className="gro-wave block w-1 rounded-full bg-ink" style={{ height: h, animationDelay: `${i * 90}ms` }} />
+          <i key={i} className={cn("block w-1 rounded-full bg-ink", !missed && "gro-wave")} style={{ height: missed ? 6 : h, animationDelay: `${i * 90}ms` }} />
         ))}
       </span>
-      <b className="bidi min-h-7 px-4 text-[20px] font-extrabold">{text}</b>
+      <b className="bidi min-h-7 px-4 text-[20px] font-extrabold" data-add-voice-text>{text}</b>
       <p className="text-[13.5px] text-muted">{error ?? t.sm.add.listening}</p>
       <button
         type="button"
-        className="grid size-20 place-items-center rounded-full bg-ink text-bg transition-transform duration-150 ease-[var(--ease-out)] active:scale-95"
+        className="grid size-20 place-items-center rounded-full bg-ink text-bg transition-transform duration-150 ease-[var(--ease-out)] active:scale-95 disabled:opacity-60"
+        disabled={phase === "finishing" || (missed && !voiceSupported())}
         onClick={() => {
+          if (missed) {
+            setText("");
+            setError(null);
+            setPhase("listening");
+            setRound((n) => n + 1);
+            return;
+          }
           const v = session.current;
-          if (v?.supported) v.stop();
-          if (text) setFinal(text);
-          else onDone();
+          if (!v?.supported) return onDone();
+          setPhase("finishing");
+          v.stop();
         }}
-        aria-label={t.sm.add.tapStop}
+        aria-label={missed ? t.sm.add.voiceAgain : t.sm.add.tapStop}
         data-add-voice-stop
       >
-        <Mic className="size-7" />
+        {phase === "finishing" ? <Spinner className="size-7" /> : <Mic className="size-7" />}
       </button>
-      <span className="text-[12.5px] text-muted">{t.sm.add.tapStop}</span>
+      <span className="text-[12.5px] text-muted">{missed ? t.sm.add.voiceAgain : t.sm.add.tapStop}</span>
     </div>
   );
 }

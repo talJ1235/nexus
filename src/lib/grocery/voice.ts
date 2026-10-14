@@ -26,36 +26,66 @@ export const voiceSupported = () => ctor() != null;
 export type VoiceSession = { supported: true; stop: () => void; abort: () => void } | { supported: false };
 
 /**
- * Listen once. `onText(text, final)` gets the transcript so far (interim) and the final one; `onEnd(error?)` when it
- * stops (error = "not-allowed" / "no-speech" / "network"…).
+ * The transcript so far from every result (not only from `resultIndex`): Android Chrome re-sends earlier finals —
+ * sometimes each final repeats the whole phrase so far — so a final already contained in the text isn't added twice,
+ * and one that extends it replaces it. Interim text follows the finals. Exported for the test.
  */
-export function listen(locale: "he" | "en", onText: (text: string, final: boolean) => void, onEnd: (error?: string) => void): VoiceSession {
+export function transcriptOf(results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }>): { text: string; final: string } {
+  let final = "";
+  let interim = "";
+  for (let i = 0; i < results.length; i++) {
+    const t = (results[i][0]?.transcript ?? "").trim();
+    if (!t) continue;
+    if (!results[i].isFinal) {
+      interim = interim ? `${interim} ${t}` : t;
+      continue;
+    }
+    if (!final || t.startsWith(final)) final = t;
+    else if (!final.includes(t)) final = `${final} ${t}`;
+  }
+  return { text: [final, interim].filter(Boolean).join(" ").trim(), final };
+}
+
+/**
+ * R18 S3 B5: listen until Stop (continuous — a pause between products doesn't end it). `onText(text)` shows the
+ * transcript so far; `onEnd(text, error?)` once, when listening has really ended (after Stop, the browser's own end
+ * after silence, or an error) with the best transcript — the final words often arrive just after Stop, so callers wait
+ * for this instead of reading the screen. error = "not-allowed" / "no-speech" / "network"… ("aborted" isn't one).
+ */
+export function listen(locale: "he" | "en", onText: (text: string) => void, onEnd: (text: string, error?: string) => void): VoiceSession {
   const C = ctor();
   if (!C) return { supported: false };
   const r = new C();
   r.lang = locale === "he" ? "he-IL" : "en-US";
   r.interimResults = true;
-  r.continuous = false;
+  r.continuous = true;
   r.maxAlternatives = 1;
-  let finalText = "";
+  let text = "";
   let failed: string | undefined;
+  let ended = false;
   r.onresult = (e) => {
-    let interim = "";
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const res = e.results[i];
-      if (res.isFinal) finalText += res[0].transcript;
-      else interim += res[0].transcript;
-    }
-    onText((finalText + interim).trim(), !interim);
+    text = transcriptOf(e.results).text;
+    onText(text);
   };
   r.onerror = (e) => {
-    failed = e.error;
+    if (e.error !== "aborted") failed = e.error;
   };
-  r.onend = () => onEnd(failed);
+  r.onend = () => {
+    if (ended) return;
+    ended = true;
+    onEnd(text, text ? undefined : failed);
+  };
   try {
     r.start();
   } catch {
     return { supported: false };
   }
-  return { supported: true, stop: () => r.stop(), abort: () => r.abort() };
+  return {
+    supported: true,
+    stop: () => r.stop(),
+    abort: () => {
+      ended = true;
+      r.abort();
+    },
+  };
 }

@@ -23,6 +23,8 @@ export type Classified = {
 };
 
 const CONNECTORS = new Set(["with", "without", "w", "in", "for", "flavor", "flavour", "flavored", "flavoured", "עמ", "בלי", "ללא", "בתוספת", "בשביל", "בטעמ", "של"]);
+/** "with" / "בתוספת" / "ללא"…: what follows qualifies the product before it (a normalised token). */
+export const isConnector = (tok: string) => CONNECTORS.has(tok);
 const STOP = new Set(["the", "a", "an", "of", "and", "or", "pack", "x", "ו", "את", "only", "רק", "size", "מידה", "new", "חדש"]);
 const UNIT_WORDS: Record<string, string> = { גרמ: "g", גר: "g", gr: "g", gram: "g", grams: "g", g: "g", קג: "kg", קילו: "kg", kg: "kg", ליטר: "l", ל: "l", l: "l", liter: "l", litre: "l", מל: "ml", ml: "ml" };
 
@@ -58,6 +60,18 @@ export function matchTokens(toks: string[]): DictMatch | null {
     const at = findRun(toks, e.toks);
     if (at < 0) continue;
     if (!best || e.len > best.len || (e.len === best.len && at < best.at)) best = { type: e.type, at, len: e.len, used: e.toks.length };
+  }
+  return best;
+}
+
+/** R18 S3 B5: the longest dictionary name that starts exactly at token `i` (voice segmentation), or null. */
+export function matchAt(toks: string[], i: number): DictMatch | null {
+  let best: DictMatch | null = null;
+  for (const e of index()) {
+    if (i + e.toks.length > toks.length) continue;
+    let hit = true;
+    for (let j = 0; j < e.toks.length && hit; j++) hit = tokenIs(toks[i + j], e.toks[j]);
+    if (hit && (!best || e.toks.length > best.used || (e.toks.length === best.used && e.len > best.len))) best = { type: e.type, at: i, len: e.len, used: e.toks.length };
   }
   return best;
 }

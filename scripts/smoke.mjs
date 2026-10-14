@@ -1624,6 +1624,81 @@ try {
           "suggestion + opens its page (R18 S3 B4): chip and card + → page with steppers, Add with a toast", JSON.stringify({ ...r, added }));
       });
 
+    // R18 S3 B5: voice add — a fake SpeechRecognition like Android Chrome: interim words, then finals that repeat the
+    // phrase so far, and the last words only 400 ms *after* Stop (the reported bug: Stop before the final result showed
+    // nothing). he + en: the preview splits into milk ×2, bread, tomatoes 0.5 kg; Add puts them on the list. Silence →
+    // "Didn't catch that" + Try again.
+    if (WRITE)
+      await step("voice add (R18 S3 B5): he + en without commas, Stop before the final words, preview → Add; silence → Try again", async () => {
+        const r = {};
+        await page.addInitScript(() => {
+          class FakeRec {
+            start() {
+              const p = window.__voicePlan ?? { words: [] };
+              const emit = (res) => this.onresult?.({ resultIndex: 0, results: res.map(([tx, f]) => Object.assign([{ transcript: tx }], { isFinal: f })) });
+              this.res = [];
+              const w = p.words;
+              if (w.length) {
+                setTimeout(() => emit((this.res = [[w[0], false]])), 120);
+                setTimeout(() => emit((this.res = [[w[0], true], [w[1], false]])), 300);
+              }
+              this.finish = () =>
+                setTimeout(() => {
+                  if (w.length) emit((this.res = [[w[0], true], [p.full, true]]));
+                  else this.onerror?.({ error: "no-speech" });
+                  this.onend?.();
+                }, 400);
+            }
+            stop() {
+              this.finish?.();
+            }
+            abort() {
+              this.onend?.();
+            }
+          }
+          window.SpeechRecognition = FakeRec;
+        });
+        const plans = {
+          he: { words: ["שני חלב", "לחם"], full: "שני חלב לחם וחצי קילו עגבניות" },
+          en: { words: ["two milk", "bread"], full: "two milk bread and half a kilo of tomatoes" },
+        };
+        for (const locale of ["he", "en"]) {
+          await ctx.addCookies([{ name: "nexus_locale", value: locale, url: BASE }]);
+          await page.goto(`${BASE}/supermarket`);
+          await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
+          await page.evaluate((p) => (window.__voicePlan = p), plans[locale]);
+          await page.locator("[data-sm-add-voice]").click();
+          await page.waitForSelector('[data-add-voice="listening"]', { timeout: 8000 });
+          await page.waitForTimeout(500);
+          await page.locator("[data-add-voice-stop]").click();
+          await page.waitForSelector("[data-add-split] [data-add-part]", { timeout: 6000 });
+          r[locale] = await page.locator("[data-add-split] [data-add-part]").evaluateAll((els) => els.map((e) => e.textContent.replace(/\s+/g, " ").trim()));
+        }
+        // Add the English three; they land on the list.
+        const before = await page.evaluate(() => 0);
+        void before;
+        await page.locator("[data-add-parts]").click();
+        r.toast = await page.waitForSelector("[data-sonner-toast]", { timeout: 8000 }).then(() => true, () => false);
+        await page.locator("[data-add-back]").click().catch(() => {});
+        await page.waitForTimeout(600);
+        r.onList = await page.evaluate(() => ["milk", "bread", "tomatoes"].filter((n) => [...document.querySelectorAll("[data-sm-list] .gro-t")].some((e) => e.textContent.trim().toLowerCase() === n)).length);
+        // Silence: nothing heard → Try again.
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
+        await page.evaluate(() => (window.__voicePlan = { words: [], full: "" }));
+        await page.locator("[data-sm-add-voice]").click();
+        await page.waitForSelector('[data-add-voice="listening"]', { timeout: 8000 });
+        await page.locator("[data-add-voice-stop]").click();
+        r.missed = await page.waitForSelector('[data-add-voice="missed"]', { timeout: 6000 }).then(() => true, () => false);
+        await page.locator("[data-add-voice-stop]").click();
+        r.again = await page.waitForSelector('[data-add-voice="listening"]', { timeout: 4000 }).then(() => true, () => false);
+        await page.locator("[data-add-back]").click().catch(() => {});
+        await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }]);
+        const three = (xs) => xs?.length === 3 && /2/.test(xs[0]) && /0\.5|½|500|חצי|half/i.test(xs[2]);
+        ok(three(r.he) && three(r.en) && r.toast && r.onList >= 2 && r.missed && r.again,
+          "voice add (R18 S3 B5): he + en without commas, Stop before the final words, preview → Add; silence → Try again", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)
