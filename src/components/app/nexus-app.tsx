@@ -163,9 +163,9 @@ function Shell({ incoming }: { incoming?: Incoming }) {
                 <SpendingView />
               ) : s.view.type === "projects" ? (
                 <>
-                  {/* R18 S2 A1: on phones Projects is the third segment of Products (unless the dock's tab 4 is Projects). */}
-                  {s.tab4 === "supermarket" && <ShoppingHeader className="desk:hidden" />}
-                  {s.loading ? <ContentSkeleton /> : <ProjectsView inProducts={s.tab4 === "supermarket"} />}
+                  {/* On phones Projects is the third segment of Products, for everyone (R18 S3 A1). */}
+                  <ShoppingHeader className="desk:hidden" />
+                  {s.loading ? <ContentSkeleton /> : <ProjectsView inProducts />}
                 </>
               ) : s.view.type === "supermarket" ? (
                 <SupermarketView />

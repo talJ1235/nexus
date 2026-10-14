@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { Camera, ChartColumn, ChevronDown, Folder, House, Plus, ScanBarcode, Search, ShoppingBasket, ShoppingCart, Tag, X } from "lucide-react";
+import { Camera, ChartColumn, ChevronDown, House, Plus, ScanBarcode, Search, ShoppingBasket, ShoppingCart, Tag, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
@@ -11,12 +11,13 @@ import { isPhone } from "@/components/ui/use-device";
 import { prewarmScanners } from "@/lib/barcode-reader";
 import { NotifyBell } from "../notify/inbox";
 import { useReadOnly } from "./offline-banner";
-import { usePlusOpen, useStore, type View } from "./store";
+import { usePlusOpen, useStore } from "./store";
 import { useAddActions } from "./add-actions";
 import { AskButton } from "./top-bar";
 import { PhoneSearchResults, rememberSearch } from "./phone-search";
 import { SpaceLook, useMeName } from "./spaces/space-ui";
 import { initialOf } from "@/lib/initial";
+import { DOCK_ORDER, dockOf, type DockTarget } from "@/lib/dock";
 import { requestSm, type SmIntent } from "./supermarket/intent";
 
 /** Phone / tablet (<1024 px) top bar = home-v4 (R14 B2): Box + "Nexus", then the search circle, the Ask circle and the
@@ -112,14 +113,12 @@ export function PhoneTopBar() {
   );
 }
 
-type DockTarget = "home" | "shopping" | "supermarket" | "projects" | "spending";
 type Dict = ReturnType<typeof useI18n>["t"];
 const DOCK: Record<DockTarget, { icon: React.ReactNode; label: (t: Dict) => string }> = {
   home: { icon: <House />, label: (t) => t.dash.title },
   // R18 S2 A1: "Products" (was Shopping) — To buy · On the way · Projects; opens the segment used last.
   shopping: { icon: <Tag />, label: (t) => t.sm.products },
   supermarket: { icon: <ShoppingBasket />, label: (t) => t.sm.title },
-  projects: { icon: <Folder />, label: (t) => t.projects.title },
   // "Insights": Spending · History (Round 11 B2).
   spending: { icon: <ChartColumn />, label: (t) => t.insights.title },
 };
@@ -139,30 +138,8 @@ export function rememberShopTab(v: "to_buy" | "ordered" | "projects") {
     localStorage.setItem(SHOP_TAB_KEY, v);
   } catch {}
 }
-/** Which dock tab a view lights. Projects belong to Products unless tab 4 is Projects (R18 S2 A1). */
-function dockOf(v: View, tab4: "supermarket" | "projects"): DockTarget | null {
-  switch (v.type) {
-    case "home":
-      return "home";
-    case "supermarket":
-      return "supermarket";
-    case "to_buy":
-    case "ordered":
-      return "shopping";
-    case "collection":
-    case "projects":
-      return tab4 === "projects" ? "projects" : "shopping";
-    case "orders":
-    case "history":
-    case "spending":
-      return "spending";
-    default:
-      return null;
-  }
-}
-
 /**
- * Floating dock: Home · Products · + · Supermarket or Projects (R18 S2 A1) · Insights — physically left to right in every language
+ * Floating dock: Home · Products · + · Supermarket · Insights for everyone (R18 S3 A1, `lib/dock.ts`) — physically left to right in every language
  * (Tal's decision: not mirrored in Hebrew; labels keep their own direction). Rendered into document.body so no animated
  * or transformed ancestor can move it; safe-area aware; hidden while items are selected.
  */
@@ -176,10 +153,9 @@ function DockBar() {
   const s = useStore();
   const { t } = useI18n();
   const plusOpen = usePlusOpen();
-  const active = dockOf(s.view, s.tab4);
+  const active = dockOf(s.view.type);
   const urgent = s.items.filter((i) => i.status === "to_buy" && i.priority === "urgent").length;
   const [quick, setQuick] = useState(false);
-  const order: DockTarget[] = ["home", "shopping", s.tab4, "spending"];
   const go = (id: DockTarget) => s.setView(id === "shopping" ? { type: lastShopTab() } : { type: id });
   const item = (id: DockTarget) => {
     const d = DOCK[id];
@@ -228,7 +204,7 @@ function DockBar() {
         aria-label="Main"
         data-dock
       >
-        {order.slice(0, 2).map(item)}
+        {DOCK_ORDER.slice(0, 2).map(item)}
         {/* R15 C1: viewers get no "+" (nothing they could add). */}
         {s.space?.role === "viewer" ? (
           <span aria-hidden />
@@ -252,7 +228,7 @@ function DockBar() {
             <Plus className={cn("size-6 transition-transform duration-200 ease-[var(--ease-out)]", (plusOpen || quick) && "rotate-[135deg]")} strokeWidth={2.4} />
           </button>
         )}
-        {order.slice(2).map(item)}
+        {DOCK_ORDER.slice(2).map(item)}
       </nav>
       <QuickMenu open={quick} onClose={() => setQuick(false)} />
     </>

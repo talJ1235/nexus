@@ -12,7 +12,10 @@ desktop before it is ticked.
 - Branch **`round18-s3`** from `main`. **Commit and push after every single item**: `R18.S3.<part><k>: …`, then
   `git push origin round18-s3`. Never keep more than one item uncommitted.
 - After each item: tick it here (`[x]`) **and** append one line to "## Open" → "### Progress" in the same commit.
-  Decisions you take go to "### Decisions" right away. Anything for Tal → "### For Tal".
+  Decisions you take go to "- A1 — `lib/dock.ts` (`DOCK_ORDER`, `dockOf`) replaces `lib/dock-tab.ts`; no `tab4` in the store / shell / app; Projects
+  always renders under the Products header and lights Products. `test:dock` rewritten; smoke "one dock (R18 S3 A1)"
+  samples the dock on its first frame (MutationObserver) vs after hydration, with an old heavy-Projects `nexus.tabUse`.
+### Decisions" right away. Anything for Tal → "### For Tal".
 - **Resuming:** `git fetch`, check out `round18-s3` if it exists, read "### Progress" + `git log`, continue from the
   first unticked item. Never redo a ticked item.
 - Order = the order below (Part 0 first; then most painful first). Unattended; never stop to ask — take the reading
@@ -41,7 +44,7 @@ make the step deterministic (it has failed once before). Real → fix. If prod s
 prod data, fix the app or the step and say which in Decisions.
 
 ## Part A — navigation and the dock
-### A1 [ ] One dock for everyone (Tal's decision)
+### A1 [x] One dock for everyone (Tal's decision)
 Dock is always **Home · Products · + · Supermarket · Insights**, every user, personal and shared spaces. Projects is a
 segment inside Products (To buy · On the way · Projects) — never a dock tab. Remove `src/lib/dock-tab.ts`
 (`dockTab4`, tab-use counting, `TAB_USE_KEY`), `tab4` in `store.tsx` and every `tab4` branch (`phone-shell.tsx`

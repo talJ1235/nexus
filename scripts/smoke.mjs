@@ -1170,6 +1170,56 @@ try {
     // R18 S2 A2: the Supermarket tab on the seeded list (scripts/lib/seed-sm.mjs): sections in walking order with their
     // colours, store chip + estimate, "Nexus suggests" (eggs every ~9 days, toilet paper, parmesan with pasta), an add
     // through the field, accepting a suggestion, rows ⇄ tiles from the ⋯ menu remembered after a reload.
+    // R18 S3 A1: one dock for everyone. The dock's tabs are sampled on its first frame (a MutationObserver from before the
+    // first script) and again after hydration + 1.5 s — identical, even for someone whose onboarding said "projects" and
+    // whose device counted many Projects opens (the old tab-4 rule). Products → Projects → Products → To buy works;
+    // Projects lights Products. Computer: no dock, Projects opens from the sidebar.
+    await step("one dock (R18 S3 A1): same tabs on first paint and after hydration, Products ⇄ Projects, Projects lights Products", async () => {
+      const r = {};
+      if (MOBILE) {
+        await page.addInitScript(() => {
+          try {
+            localStorage.setItem("nexus.tabUse", JSON.stringify({ [new Date().toISOString().slice(0, 10)]: { p: 40, s: 0 } }));
+          } catch {}
+          const read = () => [...document.querySelectorAll("[data-dock] [data-dock-target]")].map((e) => e.getAttribute("data-dock-target")).filter((x) => x !== "plus");
+          const mo = new MutationObserver(() => {
+            if (!document.querySelector("[data-dock]") || window.__dockFirst) return;
+            window.__dockFirst = read();
+            mo.disconnect();
+          });
+          mo.observe(document, { childList: true, subtree: true });
+        });
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector(READY);
+        await page.waitForTimeout(1500);
+        r.first = await page.evaluate(() => window.__dockFirst);
+        r.after = await page.evaluate(() => [...document.querySelectorAll("[data-dock] [data-dock-target]")].map((e) => e.getAttribute("data-dock-target")).filter((x) => x !== "plus"));
+        const lit = () => page.locator('[data-dock] [aria-current="page"]').getAttribute("data-dock-target");
+        await page.locator('[data-shop-tab="projects"]').click();
+        await page.waitForSelector("[data-projects-view]", { timeout: 8000 });
+        r.projectsLit = await lit();
+        await page.locator('[data-dock-target="home"]').click();
+        await page.waitForSelector("[data-home]", { timeout: 8000 });
+        await page.locator('[data-dock-target="shopping"]').click();
+        await page.waitForSelector("[data-shop-switch]", { timeout: 8000 });
+        r.backTo = new URL(page.url()).searchParams.get("v");
+        r.backLit = await lit();
+        await page.locator('[data-shop-tab="to_buy"]').click();
+        await page.waitForFunction(() => new URL(location.href).searchParams.get("v") === "to_buy", null, { timeout: 8000 });
+        r.toBuyLit = await lit();
+        await page.evaluate(() => localStorage.removeItem("nexus.tabUse"));
+        const four = JSON.stringify(["home", "shopping", "supermarket", "spending"]);
+        ok(JSON.stringify(r.first) === four && JSON.stringify(r.first) === JSON.stringify(r.after) && r.projectsLit === "shopping" && r.backLit === "shopping" && r.toBuyLit === "shopping" && ["projects", "to_buy"].includes(r.backTo),
+          "one dock (R18 S3 A1): same tabs on first paint and after hydration, Products ⇄ Projects, Projects lights Products", JSON.stringify(r));
+      } else {
+        await page.goto(`${BASE}/?v=projects`);
+        await page.waitForSelector("[data-projects-view]", { timeout: 15000 });
+        r.dock = await page.locator("[data-dock]").count();
+        r.title = await page.locator("[data-projects-view] h1").isVisible();
+        ok(r.dock === 0 && r.title, "one dock (R18 S3 A1): same tabs on first paint and after hydration, Products ⇄ Projects, Projects lights Products", JSON.stringify(r));
+      }
+    });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

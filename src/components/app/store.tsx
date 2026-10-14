@@ -22,7 +22,6 @@ import { cacheShell, saveSnapshot } from "@/lib/offline";
 import type { BudgetHistory } from "@/lib/budget";
 import type { ShopScope } from "@/lib/shop-outbox";
 import { isPhone } from "@/components/ui/use-device";
-import { dockTab4, noteTabUse, parseTabUse, type Tab4 } from "@/lib/dock-tab";
 import { useMedia } from "@/components/ui/use-media";
 
 export type { View };
@@ -74,8 +73,6 @@ type Store = {
   sm: ItemWithSources[];
   upsertSm: (rows: ItemWithSources[]) => void;
   removeSm: (id: string) => void;
-  /** R18 S2 A1: the phone dock's fourth tab, chosen once per page load (lib/dock-tab). */
-  tab4: Tab4;
   /** R18 S2: the onboarding "who" answer (me / partner / family) — sizes the cold-start basket. */
   obWho: string | null;
   collections: Collection[];
@@ -286,16 +283,6 @@ export function useDataStore() {
 /** Sidebar order: view switches slide forward/back along it. */
 const VIEW_ORDER: View["type"][] = ["home", "supermarket", "to_buy", "ordered", "orders", "history", "spending", "projects", "collection", "store"];
 
-/** R18 S2 A1: this device's per-day opens of Projects vs the Supermarket (the dock's tab 4, lib/dock-tab). */
-const TAB_USE_KEY = "nexus.tabUse";
-function noteTab(v: View) {
-  const side = v.type === "supermarket" ? "s" : v.type === "projects" || v.type === "collection" ? "p" : null;
-  if (!side) return;
-  try {
-    localStorage.setItem(TAB_USE_KEY, JSON.stringify(noteTabUse(parseTabUse(localStorage.getItem(TAB_USE_KEY)), side, Date.now())));
-  } catch {}
-}
-
 function viewToParam(v: View) {
   switch (v.type) {
     case "collection":
@@ -358,17 +345,6 @@ export function StoreProvider({
     });
   }, []);
   const removeSm = useCallback((id: string) => setSm((prev) => prev.filter((p) => p.id !== id)), []);
-  // The dock's tab 4 is decided once per load from the onboarding answer + this device's 30-day use (never mid-session,
-  // so it can't swap under a finger).
-  const [tab4, setTab4] = useState<Tab4>("supermarket");
-  useEffect(() => {
-    let use = {};
-    try {
-      use = parseTabUse(localStorage.getItem(TAB_USE_KEY));
-    } catch {}
-    /* eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only counts */
-    setTab4(dockTab4(ui.why, use, Date.now()));
-  }, [ui.why]);
   const [collections, setCollections] = useState(initial.collections);
   const [altGroups, setAltGroups] = useState(initial.altGroups);
   const [storeSettings, setStoreSettings] = useState(initial.storeSettings);
@@ -580,7 +556,6 @@ export function StoreProvider({
 
   const applyView = useCallback((v: View) => {
     recordNav(v.type);
-    noteTab(v);
     if (v.type === "to_buy" || v.type === "ordered") {
       try {
         localStorage.setItem("nexus.shopTab", v.type);
@@ -879,7 +854,6 @@ export function StoreProvider({
       sm,
       upsertSm,
       removeSm,
-      tab4,
       obWho: ui.who ?? null,
       collections,
       altGroups,
@@ -1007,7 +981,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [openSettings, settingsFrom, setSettingsOpen, loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, sm, upsertSm, removeSm, tab4, ui.who, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, budgetWarn, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, settingsSection, switching, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [openSettings, settingsFrom, setSettingsOpen, loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, sm, upsertSm, removeSm, ui.who, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, budgetWarn, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, settingsSection, switching, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(
