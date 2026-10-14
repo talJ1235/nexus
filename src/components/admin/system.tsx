@@ -4,7 +4,7 @@ import { getSystem } from "@/app/admin-actions";
 import { useI18n } from "@/components/providers";
 import type { Go } from "./admin-app";
 import { PushPanel } from "./push";
-import { Failed, PATH, Skeleton, Svg, useLoad, useNow, useTimes } from "./ui";
+import { BackToNexus, Failed, PATH, Skeleton, Svg, useLoad, useNow, useTimes } from "./ui";
 
 // R17 G7 — System (board Admin-desktop "System"): services (DB ping, the last AI success per provider, live sync, price
 // checks in the last hour, the store reader), the daily job's last run (steps + counts), DB size + rows per table,
@@ -182,6 +182,7 @@ export function SystemTab({ phone, go }: { phone: boolean; go: Go }) {
   return (
     <>
       <div className="ops-top">
+          <BackToNexus />
         <h1>{t.adm.tabs.system}</h1>
         {data && <HealthBadge data={data} />}
       </div>

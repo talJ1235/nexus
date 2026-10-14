@@ -6,7 +6,7 @@ import { useI18n } from "@/components/providers";
 import type { LiveData, LiveEvent } from "@/lib/db-scoped/admin";
 import { LIVE_POLL_MS } from "@/lib/presence-keys";
 import type { Go, Nav } from "./admin-app";
-import { Av, beatHere, DevChip, Failed, Skeleton, useScreenLabel, useTimes, useVisiblePoll } from "./ui";
+import { BackToNexus, Av, beatHere, DevChip, Failed, Skeleton, useScreenLabel, useTimes, useVisiblePoll } from "./ui";
 
 // R17 G1 — Live (board Admin-desktop "Live" tab / Admin-phone "Live" page): online now (device, where, for how long —
 // or the amber "Shopping, N left"), earlier today, people online by hour, the activity stream (kinds + counts only).
@@ -51,6 +51,7 @@ export function LiveTab({ phone, go, onNav }: { phone: boolean; go: Go; onNav: (
         </div>
       ) : (
         <div className="ops-top">
+          <BackToNexus />
           <h1>{t.adm.tabs.live}</h1>
           {data && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--ok)", fontWeight: 600 }} data-live-online={data.stats.online}>

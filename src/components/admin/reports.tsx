@@ -7,7 +7,7 @@ import { openReportIssue } from "@/app/report-actions";
 import { useI18n } from "@/components/providers";
 import type { AdminReport, AdminReportRow } from "@/lib/db-scoped/admin-health";
 import type { Go } from "./admin-app";
-import { Av, Failed, PATH, Skeleton, Svg, useLoad, useNow, useScreenLabel, useTimes } from "./ui";
+import { BackToNexus, Av, Failed, PATH, Skeleton, Svg, useLoad, useNow, useScreenLabel, useTimes } from "./ui";
 
 // R17 G5 — Reports (boards Admin-desktop "Reports" / Admin-phone "Reports"): Open / In progress / Fixed, a list and the
 // report: who sent it, the space, the screen (viewport, theme, language), installed or browser, the build, the
@@ -81,6 +81,7 @@ export function ReportsTab({ phone, go, report }: { phone: boolean; go: Go; repo
   return (
     <>
       <div className="ops-top">
+          <BackToNexus />
         <h1>{t.adm.tabs.reports}</h1>
         {segs}
       </div>

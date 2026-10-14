@@ -6,7 +6,7 @@ import { deleteUserAccount, getPerson, listPeople, resetAiToday, setAiQuota, set
 import { useI18n } from "@/components/providers";
 import type { PersonDetail, PersonRow } from "@/lib/db-scoped/admin";
 import type { Go } from "./admin-app";
-import { Av, DevChip, Failed, PATH, Skeleton, Svg, useLoad, useNow, useScreenLabel, useTimes, useVisiblePoll } from "./ui";
+import { BackToNexus, Av, DevChip, Failed, PATH, Skeleton, Svg, useLoad, useNow, useScreenLabel, useTimes, useVisiblePoll } from "./ui";
 
 // R17 G2 — People (boards Admin-desktop "People" + drawer, Admin-phone "People" / "Person"). Filters All / Online /
 // Quiet 30 days / Deleting, search by name or email. A person: desktop = a 432 px right drawer (--ease-drawer, scrim,
@@ -159,6 +159,7 @@ export function PeopleTab({ phone, go, me, person }: { phone: boolean; go: Go; m
   return (
     <>
       <div className="ops-top">
+          <BackToNexus />
         <h1>{t.adm.tabs.people}</h1>
         <span className="sub num">{counts.all}</span>
         <div style={{ marginInlineStart: "auto", display: "flex", gap: 8, alignItems: "center" }}>

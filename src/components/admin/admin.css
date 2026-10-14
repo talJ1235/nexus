@@ -93,3 +93,8 @@
 /* Scrolling bodies: their panels keep their height (a flex column bounded by the viewport would squeeze them on top of
    each other); only the Live desktop body (.fill) shares the height on purpose. */
 .nx.adm .page>*,.nx.adm .ops-body:not(.fill)>*{flex-shrink:0}
+
+/* R18 S3 A5: the phone's "back to Nexus" arrow over the top-level admin screens (their page leaves 52 px for it). */
+.nx.adm .exit-ph{display:none}
+:where(html[data-device=phone]) .nx.adm .exit-ph{display:block;position:fixed;top:calc(env(safe-area-inset-top,0px) + 6px);inset-inline-start:8px;z-index:30;border-radius:999px;background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+:where(html[data-device=phone]) .nx.adm .exit-ph .btn{width:40px;height:40px;border-radius:999px;display:grid;place-items:center}

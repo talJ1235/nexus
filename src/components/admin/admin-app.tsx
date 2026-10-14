@@ -17,7 +17,7 @@ import { PeopleTab } from "./people";
 import { ReportsTab } from "./reports";
 import { SystemTab } from "./system";
 import { parseRoute, pathOf, type Route, type Tab } from "./route";
-import { beatHere, PATH, Svg, useVisiblePoll } from "./ui";
+import { BackToNexus, beatHere, PATH, Svg, useVisiblePoll } from "./ui";
 import { useDevice } from "@/components/ui/use-device";
 
 // R17 G0 — the admin panel (boards Admin-desktop / Admin-phone). /admin and /admin/<tab>[/<id>] deep links; the server
@@ -122,6 +122,14 @@ export function AdminApp({ initial, me }: { initial: Route; me: string }) {
       <main className="ops-main" id="admin-main">
         {body}
       </main>
+
+      {/* R18 S3 A5: phones — the top-level screens (Live, People, Reports, More) get the arrow back to the app at the top
+          start; More's own screens keep "← More" and a person / a report keeps its bar (one level up each). */}
+      {phone && cur === phoneTab && !route.sub && (
+        <div className="exit-ph">
+          <BackToNexus style={{ marginInlineStart: 0 }} />
+        </div>
+      )}
 
       {!(phone && route.sub && (route.tab === "people" || route.tab === "reports")) && (
         <nav className="tabbar" aria-label={t.adm.nav}>

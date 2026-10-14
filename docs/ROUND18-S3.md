@@ -74,7 +74,7 @@ Samsung Health), the dock stays put; only content overscrolls (glow / stretch in
 `overscroll-behavior`, the fixed dock's containing block, the visual viewport; installed PWA and browser tab. Pull-to-
 refresh must not fire inside the app. Also the desktop top bar.
 
-### A5 [ ] Admin: back to Nexus
+### A5 [x] Admin: back to Nexus
 A back arrow in the admin top bar (start side, every admin screen, phone + desktop) → back to the app (same as ⋯ →
 Back to Nexus). Platform-correct direction in RTL.
 
@@ -217,11 +217,16 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   root's overscroll stretch; Android Chrome applies that stretch to the whole viewport, fixed dock and top bar included.
   Now `none` on html + body; inner scrollers keep `contain`; the dock (portal on body) has no re-anchoring ancestor.
   Smoke "overscroll (R18 S3 A4)" (phone dock + computer top bar past the end), boot-screen step expects `none`.
+- A5 — `BackToNexus` (admin `ui.tsx`, a link to `/`, arrow flipped in Hebrew) at the start of every computer top bar
+  (`ops-top`, 7 tabs) and, on phones, a round arrow at the top start of Live / People / Reports / More. Smoke "admin
+  back arrow (R18 S3 A5)" — every bar, start side in en + he, lands in the app (phone + computer).
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
 - A4: "Pull-to-refresh must not fire" read as Chrome's own (it can't: root overscroll is `none`). Nexus's own pull
   at the top (the Box mark, R10 A3) stays — it never moves the dock (a fixed overlay) and Tal asked for it in R10.
+- A5: on phones More's own screens (AI, Invites, Errors, System) keep "← More" and a person / a report keeps its bar —
+  one level up, as phone apps do; the arrow back to the app is on the four top-level screens.
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.

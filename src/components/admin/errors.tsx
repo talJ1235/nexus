@@ -6,7 +6,7 @@ import { createErrorIssue, listErrorEvents, setErrorStatus } from "@/app/error-a
 import { useI18n } from "@/components/providers";
 import type { ErrorEvent } from "@/db/schema";
 import type { Go } from "./admin-app";
-import { Failed, PATH, Skeleton, Svg, useLoad, useTimes } from "./ui";
+import { BackToNexus, Failed, PATH, Skeleton, Svg, useLoad, useTimes } from "./ui";
 
 // R17 G6 — Errors (board Admin-desktop "Errors"): the E5 grouped error log inside the panel — kinds as badges,
 // collapsible groups (blocked stores per host, viewport checks, Google sign-in), mark fixed. Counts, never people.
@@ -162,6 +162,7 @@ export function ErrorsTab({ phone, go }: { phone: boolean; go: Go }) {
   return (
     <>
       <div className="ops-top">
+          <BackToNexus />
         <h1>{t.adm.tabs.errors}</h1>
         <span className="sub">{E.kept}</span>
         {segs}

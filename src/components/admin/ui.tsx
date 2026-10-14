@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useI18n } from "@/components/providers";
 import { initialOf } from "@/lib/initial";
 import type { BeatInput, Device } from "@/lib/presence-keys";
@@ -34,6 +35,17 @@ export function Svg({ d, className = "i sm" }: { d: string; className?: string }
     <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
       <path d={d} />
     </svg>
+  );
+}
+
+/** R18 S3 A5: the arrow at the start of every admin top bar → back to the app (same as ⋯ → Back to Nexus). The arrow
+ *  points the way back in the reading direction (flipped in Hebrew). */
+export function BackToNexus({ style }: { style?: React.CSSProperties }) {
+  const { t } = useI18n();
+  return (
+    <Link href="/" className="btn icon ghost" style={{ flexShrink: 0, marginInlineStart: -8, ...style }} aria-label={t.adm.back} title={t.adm.back} data-admin-exit>
+      <Svg d={PATH.back} className="i flip" />
+    </Link>
   );
 }
 

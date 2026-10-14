@@ -6,7 +6,7 @@ import { createInviteCode, getInviteAdmin, inviteFromWaitlist, revokeInviteCode,
 import { useI18n } from "@/components/providers";
 import { initialOf } from "@/lib/initial";
 import type { Go } from "./admin-app";
-import { Failed, PATH, Skeleton, Svg, useLoad, useNow, useTimes } from "./ui";
+import { BackToNexus, Failed, PATH, Skeleton, Svg, useLoad, useNow, useTimes } from "./ui";
 
 // R17 G3 — Invites (board Admin-desktop "Invites"): sign-up codes with a usage meter, who they're for, expiry, copy /
 // revoke, who used each; the waitlist with one-tap Invite (R15 A3's actions, moved here from Settings).
@@ -268,6 +268,7 @@ export function InvitesTab({ phone, go }: { phone: boolean; go: Go }) {
   return (
     <>
       <div className="ops-top">
+          <BackToNexus />
         <h1>{t.adm.tabs.invites}</h1>
         <span className="sub">{I.sub}</span>
         {newBtn}

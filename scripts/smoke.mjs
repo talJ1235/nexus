@@ -491,6 +491,36 @@ try {
       }
     });
 
+    // R18 S3 A5: an arrow back to the app at the start of the admin top bar — every tab on the computer; on phones the
+    // top-level screens (Live, People, Reports, More; their sub-screens keep "← More"), at the start side in en and he;
+    // it lands on the app.
+    await step("admin back arrow (R18 S3 A5): every top bar, start side (en + he), lands in the app", async () => {
+      const p = await ctx.newPage();
+      const bad = [];
+      try {
+        const tabs = MOBILE ? ["/admin", "/admin/people", "/admin/reports", "/admin/more"] : ["/admin", "/admin/live", "/admin/people", "/admin/invites", "/admin/ai", "/admin/reports", "/admin/errors", "/admin/system"];
+        for (const locale of ["en", "he"]) {
+          await ctx.addCookies([{ name: "nexus_locale", value: locale, url: BASE }]);
+          for (const t of tabs) {
+            await p.goto(`${BASE}${t}`);
+            const a = p.locator("[data-admin-exit]:visible").first();
+            const box = await a.waitFor({ timeout: 10000 }).then(() => a.boundingBox(), () => null);
+            const main = await p.locator(MOBILE ? "body" : "#admin-main").boundingBox();
+            const start = box && main && (locale === "he" ? box.x + box.width > main.x + main.width - 90 : box.x < main.x + 90);
+            if (!start || box.width < 36) bad.push(`${locale}${t}:${JSON.stringify(box)}`);
+            if (t === "/admin") await shot(p, `admin-exit-${locale}`);
+          }
+        }
+        await p.locator("[data-admin-exit]:visible").first().click();
+        await p.waitForSelector("[data-app-shell]", { timeout: 15000 });
+        if (new URL(p.url()).pathname !== "/") bad.push(`landed ${p.url()}`);
+      } finally {
+        await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }]);
+        await p.close();
+      }
+      ok(!bad.length, "admin back arrow (R18 S3 A5): every top bar, start side (en + he), lands in the app", bad.join(" "));
+    });
+
     // R17 S6 U4: pushes really leave — System → Push: no waiting row older than 70 min, a dispatcher run within 3 h
     // (prod only: a seeded local server never runs the dispatcher).
     if (REAL)

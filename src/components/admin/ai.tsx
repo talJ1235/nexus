@@ -6,7 +6,7 @@ import { useI18n } from "@/components/providers";
 import { AI_PRICE_SOURCES, AI_PRICES_CHECKED, priceOf } from "@/lib/ai-prices";
 import type { AiStats } from "@/lib/db-scoped/admin";
 import type { Go } from "./admin-app";
-import { Av, Failed, PATH, Skeleton, Svg, useLoad, useTimes } from "./ui";
+import { BackToNexus, Av, Failed, PATH, Skeleton, Svg, useLoad, useTimes } from "./ui";
 
 // R17 G4 — AI usage (board Admin-desktop "AI usage") from ai_usage: calls today, the period (+ change vs the one
 // before), failure rate (every failure fell back to rules), "if it were paid", calls per day stacked by provider +
@@ -211,6 +211,7 @@ export function AiTab({ phone, go }: { phone: boolean; go: Go }) {
   return (
     <>
       <div className="ops-top">
+          <BackToNexus />
         <h1>{t.adm.tabs.ai}</h1>
         {seg}
       </div>
