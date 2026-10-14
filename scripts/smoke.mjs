@@ -1439,6 +1439,44 @@ try {
         await page.keyboard.press("Escape");
       });
 
+    // R18 S2 F1: Settings → Supermarket (main store, order, products you hid, what Nexus learned — nothing else), the
+    // learned page (told chips with ✎, learned ones with ✕; one forgotten disappears), Forget everything (learning only).
+    if (WRITE)
+      await step("settings supermarket (R18 F1): minimal section, hidden, what Nexus learned, forget", async () => {
+        await page.goto(`${BASE}/settings/supermarket`);
+        await page.waitForSelector("[data-settings-sm]", { timeout: 20000 });
+        const r = {};
+        r.rows = await page.locator("[data-settings-sm] .sx-prow").count();
+        r.text = (await page.locator("[data-settings-sm]").textContent()) ?? "";
+        await shot(page, "sm-settings");
+        await page.locator('[data-settings-sm] [data-sx-nav="smHidden"]').click();
+        await page.waitForSelector("[data-settings-sm-hidden]");
+        await page.waitForSelector("[data-sm-hidden-none], [data-sm-hidden-row]");
+        r.hiddenPage = 1;
+        await page.locator("[data-settings-back]").click();
+        await page.locator('[data-settings-sm] [data-sx-nav="smLearned"]').click();
+        await page.waitForSelector("[data-settings-sm-learned] [data-sm-fact]");
+        await page.waitForTimeout(800);
+        r.told = await page.locator('[data-sm-fact][data-told="1"]').count();
+        r.learned = await page.locator('[data-sm-fact][data-told="0"]').count();
+        await shot(page, "sm-learned");
+        if (r.learned) {
+          const key = await page.locator('[data-sm-fact][data-told="0"] [data-sm-fact-forget]').first().evaluate((b) => b.closest("[data-sm-fact]").getAttribute("data-sm-fact"));
+          await page.locator('[data-sm-fact][data-told="0"] [data-sm-fact-forget]').first().click();
+          await page.waitForTimeout(1500);
+          r.forgot = (await page.locator(`[data-sm-fact="${key}"]`).count()) === 0;
+        }
+        await page.locator("[data-sm-forget-all]").click();
+        await page.locator("[data-sm-forget-all-yes]").click();
+        await page.waitForTimeout(1800);
+        r.after = await page.locator('[data-sm-fact][data-told="0"]').count();
+        ok(
+          r.rows === 4 && !/draft|colou?rs|tab 4|My answers/i.test(r.text) && r.told >= 2 && r.learned >= 1 && r.forgot && r.after < r.learned,
+          "settings supermarket (R18 F1): minimal section, hidden, what Nexus learned, forget",
+          JSON.stringify({ ...r, text: undefined }),
+        );
+      });
+
     // R18 S2 D3: a full trip on the phone through store mode — start, check two rows (the picture fills), "not in the
     // store" on a third, a price, collapse (the trip bar takes over on Products), back, finish → summary → skip → saved;
     // the checked rows leave the list, the one not found stays.

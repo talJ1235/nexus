@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, desc, eq, gte, inArray, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, lt, ne, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { aiDay, aiAllowance, type Allowance } from "../ai-gate";
 import { ONLINE_MS, type Device } from "../presence-keys";
@@ -310,6 +310,10 @@ export type SupermarketMetrics = {
   /** Spaces whose first trip was 4–8 weeks ago, and how many of them shopped again in their week 4. */
   cohort: number;
   retained: number;
+  /** R18 S2 F1: counts only — products hidden, homes that used Forget, Nexus templates kept. */
+  hidden: number;
+  forgot: number;
+  nexusTemplates: number;
 };
 
 export async function supermarketMetrics(now = Date.now()): Promise<SupermarketMetrics> {
@@ -342,6 +346,9 @@ export async function supermarketMetrics(now = Date.now()): Promise<SupermarketM
   }
   const trips = Number(t?.n ?? 0);
   const n = (k: string) => Number(acts.find((a) => a.kind === k)?.n ?? 0);
+  const [h] = await db.select({ n: sql<number>`count(*)` }).from(schema.suggestDismiss).where(isNotNull(schema.suggestDismiss.hiddenAt));
+  const [fg] = await db.select({ n: sql<number>`count(*)` }).from(schema.spacePref).where(eq(schema.spacePref.key, "pref:sm:forget"));
+  const [nt] = await db.select({ n: sql<number>`count(*)` }).from(schema.template).where(and(eq(schema.template.madeBy, "nexus"), isNotNull(schema.template.keptAt)));
   return {
     trips,
     tripsPerWeek: Math.round((trips / 4) * 10) / 10,
@@ -351,5 +358,8 @@ export async function supermarketMetrics(now = Date.now()): Promise<SupermarketM
     dismissed: n("suggest_dismissed"),
     cohort,
     retained,
+    hidden: Number(h?.n ?? 0),
+    forgot: Number(fg?.n ?? 0),
+    nexusTemplates: Number(nt?.n ?? 0),
   };
 }

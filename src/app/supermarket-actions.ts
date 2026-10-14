@@ -591,3 +591,19 @@ export async function sendSmToPhone(to: string[], store?: { chain: string; branc
   const { sentToPhone } = await import("@/lib/notify/senders");
   return { sent: await sentToPhone(ctx.user.id, ctx.space.id, ids, { items: list.length, chain: where?.chain ?? null, branch: where?.branch ?? null }) };
 }
+
+// ---------- F1: Settings → Supermarket, What Nexus learned ----------
+
+/** The learned facts (When and where, Regular products, Habits) — each with the key that forgets it. */
+export async function smLearned() {
+  const ctx = await requireCtx("view");
+  const { tz } = await notifyPrefs(ctx.user.id);
+  return G.learnedFacts(scoped(ctx), tz);
+}
+
+/** ✕ on a learned fact (Nexus learns it again from what happens next) or "Forget everything" (`all`: learning only). */
+export async function forgetLearned(key: string) {
+  const ctx = await requireCtx("edit");
+  const k = z.union([z.literal("all"), z.literal("day"), z.string().regex(/^(store|p):.{1,160}$/)]).parse(key);
+  await G.forgetFact(scoped(ctx), k);
+}

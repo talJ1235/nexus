@@ -269,9 +269,14 @@ export function knowledgeOf(p: ProductHistory | undefined, pref: ProductPref | u
     const skips = activeSkips(pref, p.last.at);
     return { state: "regular", count: p.count, intervalDays: p.intervalDays, days: p.days, next: p.last.at + p.intervalDays * (skips >= HALF_RATE_SKIPS ? 2 : 1) * DAY, since: p.days[0] ?? null };
   }
+  const { contexts, withTitle } = contextsOf(p, o);
+  return { state: "occasional", count: p.count, days: p.days, contexts, withTitle };
+}
+
+/** When a product is bought: before Shabbat, and / or with another product (≥ 60 % of its trips, ≥ 3 trips). */
+export function contextsOf(p: ProductHistory, o: { baskets?: Set<string>[]; titleOf?: (k: string) => string | null } = {}) {
   const contexts: ("shabbat" | "with")[] = [];
   if (SHABBAT_TYPES.includes(p.productKey.split(" ")[0]) || (p.count >= 2 && p.thuFri >= 0.6)) contexts.push("shabbat");
-  // The product it's most often bought with (≥ 60 % of its trips, ≥ 3 trips).
   let withTitle: string | null = null;
   const mine = (o.baskets ?? []).filter((b) => b.has(p.productKey));
   if (mine.length >= 3) {
@@ -283,7 +288,7 @@ export function knowledgeOf(p: ProductHistory | undefined, pref: ProductPref | u
       withTitle = o.titleOf?.(best[0]) ?? best[0];
     }
   }
-  return { state: "occasional", count: p.count, days: p.days, contexts, withTitle };
+  return { contexts, withTitle };
 }
 
 /** "Accept" merges into the list: an existing quantity stays the user's unless it was empty (B4 / C2 rule). */

@@ -5,7 +5,7 @@ import { schema } from "@/db";
 import { classifyLocal } from "@/lib/grocery/classify";
 import { learnOrder } from "@/lib/grocery/order";
 import { cleanOrder, DEFAULT_ORDER, tripOrder, type SectionKey } from "@/lib/grocery/sections";
-import { activeSkips, knowledgeOf, learnHistory, mergeQty, suggest, type History, type ProductPref, type Purchase, type Suggestion } from "@/lib/grocery/staples";
+import { activeSkips, contextsOf, knowledgeOf, learnHistory, mergeQty, suggest, type History, type ProductPref, type Purchase, type Suggestion } from "@/lib/grocery/staples";
 import { basketFor } from "@/lib/grocery/basket";
 import { TYPE_BY_KEY } from "@/lib/grocery/dictionary";
 import { replayTrip } from "@/lib/grocery/trip";
@@ -14,6 +14,7 @@ import { learnUnitWeights, unitKgFor } from "@/lib/grocery/weights";
 import type { Unit } from "@/lib/grocery/dictionary";
 import type { TemplateItem } from "@/db/schema";
 import { finishedTrips } from "./trips";
+import { spacePrefGet, spacePrefSet } from "./prefs";
 import type { Scoped } from "./index";
 
 // R18 — the supermarket list's data: stores + section order (A3), the learned order (A5), add with merge (C2), history
@@ -229,9 +230,86 @@ export async function purchasesOf(s: Scoped): Promise<{ purchases: Purchase[]; t
   return { purchases, trips: tripsOut };
 }
 
+// ---------- F1: what Nexus learned can be forgotten ----------
+
+/** Cut-off times per learned fact (space pref): `all` = forget everything, `day` = the usual day, `store:<chain>`, `p:<key>`. */
+export const FORGET_KEY = "pref:sm:forget";
+export type Forget = Record<string, number>;
+
+export async function forgetOf(s: Scoped): Promise<Forget> {
+  try {
+    const v = JSON.parse((await spacePrefGet(s, FORGET_KEY)) ?? "{}") as unknown;
+    return v && typeof v === "object" ? (v as Forget) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** What the learning reads: purchases / trips after the cut-offs (lists, trips and receipts themselves never change). */
+export function applyForget<P extends { at: number; productKey: string }, T extends { startedAt: number }>(f: Forget, purchases: P[], trips: T[]) {
+  const all = f.all ?? 0;
+  const day = Math.max(all, f.day ?? 0);
+  const kept = trips.filter((t) => t.startedAt >= all);
+  return { purchases: purchases.filter((p) => p.at >= all && p.at >= (f[`p:${p.productKey}`] ?? 0)), trips: kept, dayTrips: kept.filter((t) => t.startedAt >= day) };
+}
+
+export async function learningOf(s: Scoped) {
+  const [raw, f] = await Promise.all([purchasesOf(s), forgetOf(s)]);
+  return { ...applyForget(f, raw.purchases, raw.trips), raw, forget: f };
+}
+
+/** Forget one learned fact (or `all`): Nexus learns it again from what happens next. */
+export async function forgetFact(s: Scoped, key: string, now = Date.now()) {
+  const f = await forgetOf(s);
+  const next: Forget = key === "all" ? { all: now } : { ...f, [key]: now };
+  await spacePrefSet(s, FORGET_KEY, JSON.stringify(next));
+  if (key === "all") {
+    // Learning only: the learned walking orders and the Nexus offers nobody answered go; lists, trips, receipts stay.
+    await s.update(schema.spaceStore, { suggestedOrder: null, suggestedAt: null }, isNotNull(schema.spaceStore.suggestedOrder));
+    await s.delete(schema.template, and(eq(schema.template.madeBy, "nexus"), isNull(schema.template.keptAt), isNull(schema.template.dismissedAt)));
+  }
+}
+
 export async function historyOf(s: Scoped, tz: string): Promise<{ history: History; baskets: Set<string>[]; trips: number }> {
-  const { purchases, trips } = await purchasesOf(s);
-  return { history: learnHistory(purchases, trips, { tz }), baskets: trips.map((t) => t.keys), trips: trips.length };
+  const { purchases, trips, dayTrips } = await learningOf(s);
+  return { history: learnHistory(purchases, dayTrips, { tz }), baskets: trips.map((t) => t.keys), trips: trips.length };
+}
+
+export type LearnedFact = { key: string; group: "where" | "regular" | "habits"; kind: "day" | "store" | "sometimes" | "regular" | "shabbat" | "with"; told?: boolean; args: Record<string, string | number> };
+
+/**
+ * F1: "What Nexus learned" — the learned facts (When and where, Regular products, Habits), each with the key that forgets
+ * it. The answers people gave (household, budget, main store) are told facts the screen shows from the store / Settings.
+ */
+export async function learnedFacts(s: Scoped, tz: string) {
+  const [{ purchases, trips, dayTrips, forget }, stores, prefs, tripRows] = await Promise.all([
+    learningOf(s),
+    storesOf(s),
+    prefsOf(s),
+    s.pick({ chain: schema.trip.chain, at: schema.trip.startedAt }, schema.trip, isNotNull(schema.trip.finishedAt)),
+  ]);
+  const history = learnHistory(purchases, dayTrips, { tz });
+  const baskets = trips.map((t) => t.keys);
+  const out: LearnedFact[] = [];
+  if (history.usualDay) out.push({ key: "day", group: "where", kind: "day", args: { weekday: history.usualDay.weekday, hour: history.usualDay.hour } });
+  const def = stores.find((x) => x.isDefault);
+  if (def) out.push({ key: "store", group: "where", kind: "store", told: true, args: { chain: def.chain, branch: def.branch } });
+  const visits = new Map<string, number>();
+  const all = forget.all ?? 0;
+  for (const r of tripRows) if (r.chain && r.at >= all && r.at >= (forget[`store:${r.chain}`] ?? 0)) visits.set(r.chain, (visits.get(r.chain) ?? 0) + 1);
+  for (const [chain, n] of [...visits].sort((a, b) => b[1] - a[1])) if (chain !== def?.chain && n >= 2) out.push({ key: `store:${chain}`, group: "where", kind: "sometimes", args: { chain, trips: n } });
+  const titleOf = (k: string) => history.products.get(k)?.title ?? null;
+  const products = [...history.products.values()].sort((a, b) => b.count - a.count);
+  // Before Shabbat reads as a habit (steady or not); "with X" only for products that aren't steady; the rest regular.
+  for (const p of products) {
+    const k = knowledgeOf(p, prefs.get(p.productKey), { baskets, titleOf });
+    if (k.state === "hidden" || k.state === "new" || k.state === "learning") continue;
+    const c = contextsOf(p, { baskets, titleOf });
+    if (c.contexts.includes("shabbat")) out.push({ key: `p:${p.productKey}`, group: "habits", kind: "shabbat", args: { title: p.title } });
+    else if (k.state !== "regular" && c.contexts.includes("with") && c.withTitle) out.push({ key: `p:${p.productKey}`, group: "habits", kind: "with", args: { title: p.title, with: c.withTitle } });
+    else if (k.state === "regular") out.push({ key: `p:${p.productKey}`, group: "regular", kind: "regular", args: { title: p.title, days: k.intervalDays } });
+  }
+  return out;
 }
 
 // ---------- C1: what the space told Nexus per product (quiet until, skips in a row, hidden) ----------
@@ -300,16 +378,16 @@ export async function openTripsOf(s: Scoped, now = Date.now()): Promise<OpenTrip
 
 export async function homeState(s: Scoped, o: { tz: string; locale?: string; now?: number; who?: string | null }): Promise<HomeState> {
   const now = o.now ?? Date.now();
-  const [stores, { purchases, trips }, list, prefs, tripRows] = await Promise.all([
+  const [stores, { purchases, trips, dayTrips, raw }, list, prefs, tripRows] = await Promise.all([
     storesOf(s),
-    purchasesOf(s),
+    learningOf(s),
     supermarketList(s),
     prefsOf(s),
     s.pick({ total: schema.trip.total, at: schema.trip.finishedAt, chain: schema.trip.chain, branch: schema.trip.branch }, schema.trip, isNotNull(schema.trip.finishedAt)),
   ]);
   const open = await openTripsOf(s, now);
   const def = stores.find((x) => x.isDefault) ?? null;
-  const history = learnHistory(purchases, trips, { tz: o.tz });
+  const history = learnHistory(purchases, dayTrips, { tz: o.tz });
   const visits: Record<string, { trips: number; last: number }> = {};
   for (const r of tripRows) {
     if (!r.chain || r.at == null) continue;
@@ -320,7 +398,8 @@ export async function homeState(s: Scoped, o: { tz: string; locale?: string; now
   const listTitles = new Map(list.filter((i) => i.productKey).map((i) => [i.productKey!, i.title]));
   const suggestions = suggest({ history, onList, listTitles, prefs, baskets: trips.map((t) => t.keys), now, tz: o.tz, locale: o.locale, basket: basketForHome(history, o.who, o.locale), trips: trips.length });
   const prices: Record<string, number> = {};
-  for (const p of [...purchases].sort((a, b) => a.at - b.at)) if (p.price != null && p.price > 0) prices[p.productKey] = p.price;
+  // Prices for the estimate come from every purchase (forgetting is about learning, not about what things cost).
+  for (const p of [...raw.purchases].sort((a, b) => a.at - b.at)) if (p.price != null && p.price > 0) prices[p.productKey] = p.price;
   const ym = (t: number) => new Intl.DateTimeFormat("en-CA", { timeZone: o.tz, year: "numeric", month: "2-digit" }).format(new Date(t));
   const month = ym(now);
   const monthSpent = tripRows.reduce((a, r) => a + (r.at != null && r.total != null && ym(r.at) === month ? r.total : 0), 0);
@@ -547,7 +626,7 @@ export async function answerRoutine(s: Scoped, id: string, keep: boolean, now = 
  * never enter. Runs after every finished trip. Returns the number of new offers.
  */
 export async function refreshRoutines(s: Scoped, tz: string, now = Date.now()) {
-  const [{ purchases, trips }, hidden, existing] = await Promise.all([purchasesOf(s), hiddenKeys(s), s.select(schema.template, eq(schema.template.madeBy, "nexus"))]);
+  const [{ purchases, trips }, hidden, existing] = await Promise.all([learningOf(s), hiddenKeys(s), s.select(schema.template, eq(schema.template.madeBy, "nexus"))]);
   const routines = detectRoutines(trips, tz, hidden);
   const pool = existing.map((t) => ({ row: t, routineDay: t.routineDay, keys: t.items.map((i) => i.productKey) }));
   let offers = 0;

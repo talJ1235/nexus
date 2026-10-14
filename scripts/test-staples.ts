@@ -279,6 +279,31 @@ const DAY = 86_400_000;
   console.log("ok B2 suggestions: due, not on the list, dismissed, Shabbat, companion, holiday; accept merges");
   console.log("ok B3 evening draft: 19–21 before the usual day, once, shoppers only, list untouched, 3 unopened → quiet");
   console.log("ok B4 templates: no duplicates, quantities stay, trip → template");
+
+  // ---- F1: What Nexus learned — the usual day, the main store (told), regular products, habits; ✕ forgets one fact (it is
+  // learned again from what happens next), Forget everything = learning only (the list, trips and receipts stay).
+  await G.saveStore(s, "Shufersal", "Modiin", { isDefault: true });
+  const facts = await G.learnedFacts(s, TZ);
+  const has = (k: string, kind?: string) => facts.some((x) => x.key === k && (!kind || x.kind === kind));
+  assert.ok(has("day", "day"), "usual day learned");
+  assert.ok(facts.some((x) => x.kind === "store" && x.told), "the main store is something the home told");
+  assert.ok(has(`p:${milkKey}`, "regular"), "milk is regular");
+  assert.ok(facts.some((x) => x.group === "habits"), "a habit (Shabbat / with)");
+  const tripsBefore = (await T.finishedTrips(s)).length;
+  const listNow = JSON.stringify((await G.supermarketList(s)).map((i) => i.id));
+  await G.forgetFact(s, `p:${milkKey}`, Date.now() + 1000);
+  assert.equal((await G.learnedFacts(s, TZ)).some((x) => x.key === `p:${milkKey}`), false, "milk forgotten");
+  assert.ok((await G.learnedFacts(s, TZ)).some((x) => x.key === "day"), "the rest stays");
+  const milkCount = (await G.historyOf(s, TZ)).history.products.get(milkKey)?.count ?? 0;
+  assert.ok(milkCount < milk.count, "suggestions don't use milk's purchases from before (only what came after)");
+  await G.forgetFact(s, "day", Date.now() + 2000);
+  assert.equal((await G.historyOf(s, TZ)).history.usualDay, null, "the usual day is learned again from new trips");
+  await G.forgetFact(s, "all", Date.now() + 3000);
+  assert.equal((await G.learnedFacts(s, TZ)).filter((x) => !x.told && x.group !== "where").length, 0, "no products learned are left");
+  assert.equal((await T.finishedTrips(s)).length, tripsBefore, "trips stay");
+  assert.equal(JSON.stringify((await G.supermarketList(s)).map((i) => i.id)), listNow, "the list stays");
+  assert.ok((await G.historyOf(s, TZ)).trips < tripsBefore, "learning starts over (only trips after the forget count)");
+  console.log("ok F1 what Nexus learned: day, told store, regular, habits; forget one (relearns), forget everything (learning only)");
   process.exit(0);
 })().catch((e) => {
   console.error("FAIL", e);

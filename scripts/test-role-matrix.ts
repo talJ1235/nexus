@@ -64,6 +64,8 @@ const VIEW_OK = new Set([
   "supermarket-actions.ts#supermarketTemplatePlan",
   // E2: past trips (read).
   "supermarket-actions.ts#supermarketPastTrips",
+  // F1: What Nexus learned (read).
+  "supermarket-actions.ts#smLearned",
   "ai-actions.ts#ask",
   // R17 S3: the inbox, its count and the permission card's memory — the caller's own rows only (everyone has one).
   "notify-actions.ts#*",

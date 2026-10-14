@@ -133,6 +133,10 @@ export function SupermarketView() {
               <LayoutList className="size-4" />
               {t.sm.lists.open}
             </MenuItem>
+            <MenuItem onSelect={() => s.openSettings("smLearned")} data-sm-menu-learned>
+              <Sparkles className="size-4" />
+              {t.sm.set.learned}
+            </MenuItem>
           </MenuContent>
         </Menu>
       </div>

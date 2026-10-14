@@ -137,6 +137,9 @@ export function SystemTab({ phone, go }: { phone: boolean; go: Go }) {
                     {hl(sm.receiptShare != null ? "ok" : "off", S.smReceipt, pct(Math.round((sm.receiptShare ?? 0) * sm.trips), sm.trips), "sm-receipt")}
                     {hl(sm.accepted + sm.dismissed ? "ok" : "off", S.smAccepted, pct(sm.accepted, sm.accepted + sm.dismissed), "sm-accepted")}
                     {hl(sm.cohort ? "ok" : "off", S.smRetention, pct(sm.retained, sm.cohort), "sm-retention")}
+                    {hl(sm.nexusTemplates ? "ok" : "off", S.smTemplates, num(sm.nexusTemplates), "sm-templates")}
+                    {hl(sm.hidden ? "ok" : "off", S.smHidden, num(sm.hidden), "sm-hidden")}
+                    {hl(sm.forgot ? "ok" : "off", S.smForgot, num(sm.forgot), "sm-forgot")}
                   </>
                 );
               })()}

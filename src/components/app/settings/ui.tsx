@@ -9,6 +9,11 @@ import { initialOf } from "@/lib/initial";
 
 /** The boards' line icons (24-grid paths, stroked). */
 export const P = {
+  // R18 S2 F1: Settings → Supermarket (a basket), its order, products you hid, what Nexus learned.
+  supermarket: "M5 8h14l-1.5 11a2 2 0 0 1-2 1.7H8.5a2 2 0 0 1-2-1.7z M9 8l3-5 3 5",
+  order: "M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01",
+  smHidden: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M5.6 5.6l12.8 12.8",
+  smLearned: "M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z",
   profile: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4.5 20.5c1.3-3.3 4-5 7.5-5s6.2 1.7 7.5 5",
   account: "M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z M12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z M8.5 16.5c.8-1.6 2-2.4 3.5-2.4s2.7.8 3.5 2.4",
   display: "M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4 M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",

@@ -24,10 +24,11 @@ import { isPhone, useDevice } from "@/components/ui/use-device";
  */
 
 export const YOU = ["profile", "account", "display", "ai", "calendar", "memory", "data"] as const;
-export const SPACE = ["general", "people", "budget", "danger"] as const;
+// R18 S2 F1: Supermarket (the space's stores, order, hidden products, what Nexus learned) after Budget.
+export const SPACE = ["general", "people", "budget", "supermarket", "danger"] as const;
 /** Sub-pages and their parent. */
-const SUB: Record<string, string> = { activity: "account", reports: "account", notifications: "account" };
-export type SectionId = (typeof YOU)[number] | (typeof SPACE)[number] | "activity" | "reports" | "notifications";
+const SUB: Record<string, string> = { activity: "account", reports: "account", notifications: "account", smHidden: "supermarket", smLearned: "supermarket" };
+export type SectionId = (typeof YOU)[number] | (typeof SPACE)[number] | "activity" | "reports" | "notifications" | "smHidden" | "smLearned";
 const ALL = new Set<string>([...YOU, ...SPACE, ...Object.keys(SUB)]);
 export const isSection = (v: string | null | undefined): v is SectionId => !!v && ALL.has(v);
 
