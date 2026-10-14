@@ -188,7 +188,8 @@ export function SupermarketView() {
   const list = (
     <>
       {s.sm.length > 0 && <p className="tabular px-1 pt-1 text-[13px] font-semibold text-muted">{s.sm.length === 1 ? t.sm.main.itemsOne : f(t.sm.main.items, { n: s.sm.length })}</p>}
-      <div className="flex flex-col gap-1.5" data-sm-list>
+      {/* R18 S3 B3: one list — one surface with the section headers inside it (not a card per section). */}
+      <div className="gro-one" data-sm-list>
         {groups.map(([k, list]) => (
           <Section key={k} section={k} items={list} tiles={shown === "tiles"} unitKg={home?.unitKg} />
         ))}
@@ -241,9 +242,10 @@ export function SupermarketView() {
         firstTime
       ) : (
         <>
-          {offer}
-          {suggestions}
+          {/* R18 S3 B3: the list first; "Nexus suggests" under it (one line until opened); then the routine offer. */}
           {list}
+          {suggestions}
+          {offer}
         </>
       )}
     </div>
@@ -366,10 +368,27 @@ function AddField({ onOpen }: { onOpen: (mode: AddMode | "scan" | "photo") => vo
 }
 
 /** "Nexus suggests" (or "Ready for Thursday" from the evening draft): + adds, × skips for this cycle, Add all. */
+const SUG_OPEN_KEY = "nexus.smSugOpen";
 function Suggestions({ home, basket, draft, ro }: { home: SmHome | null; basket: BasketItem[] | null; draft: boolean; ro: boolean }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
-  const [open, setOpen] = useState(true);
+  // R18 S3 B3: one line until opened on phones (open on a computer's side panel and for tonight's draft); the choice
+  // is remembered on this device.
+  const desk = useDevice() === "computer";
+  const [open, setOpenState] = useState(desk || draft);
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(SUG_OPEN_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the device's remembered choice (browser only)
+      if (v === "1" || v === "0") setOpenState(v === "1" || draft);
+    } catch {}
+  }, [draft]);
+  const setOpen = (v: boolean) => {
+    setOpenState(v);
+    try {
+      localStorage.setItem(SUG_OPEN_KEY, v ? "1" : "0");
+    } catch {}
+  };
   const [gone, setGone] = useState<Set<string>>(() => new Set());
   const [acting, setActing] = useState<Sug | null>(null);
   const onList = useMemo(() => new Set(s.sm.map((i) => i.productKey).filter(Boolean)), [s.sm]);
@@ -405,9 +424,9 @@ function Suggestions({ home, basket, draft, ro }: { home: SmHome | null; basket:
   };
   const day = new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { weekday: "long", timeZone: s.clock.tz }).format(new Date(s.clock.now + 86_400_000));
   return (
-    <section className="gro-sug" data-sm-suggest>
+    <section className="gro-sug" data-sm-suggest={open ? "open" : "closed"}>
       <SuggestionActions sug={acting && acting.reasonKey !== "basket" ? acting : null} reason={acting ? reason(acting) : ""} onClose={() => setActing(null)} />
-      <button type="button" className="flex min-h-[60px] w-full items-center gap-3 px-3.5 text-start" onClick={() => setOpen(!open)} aria-expanded={open} aria-label={t.sm.sug.open}>
+      <button type="button" className="flex min-h-[56px] w-full items-center gap-3 px-3.5 text-start" onClick={() => setOpen(!open)} aria-expanded={open} aria-label={t.sm.sug.open} data-sm-sug-toggle>
         <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-spark text-white">
           <Sparkles className="size-4" />
         </span>
@@ -517,7 +536,7 @@ function Section({ section, items, tiles, unitKg }: { section: string; items: It
   return (
     <section className="gro-sec" style={{ "--k": sectionColor(section) } as React.CSSProperties} data-shut={shut ? "" : undefined} data-sm-section={section}>
       <button type="button" className="gro-sec-h" onClick={() => setShut(!shut)} aria-expanded={!shut} aria-label={f(t.sm.main.sectionToggle, { section: name })}>
-        <SectionIcon section={section} />
+        <SectionIcon section={section} size={26} />
         <span className="gro-nm">{name}</span>
         <span className="gro-n">{items.length}</span>
         <ChevronDown className="gro-cv size-4" />
@@ -566,7 +585,7 @@ function Row({ item, unitKg }: { item: ItemWithSources; unitKg: number | null })
   const who = useWhoColor(item);
   return (
     <button type="button" className="gro-row" onClick={() => openSmItem(item.id)} data-sm-row={item.id} data-settled={useSettled(item.id)}>
-      <ProductTile art={item.artKey} section={item.section} photo={item.imageUrl} />
+      <ProductTile art={item.artKey} section={item.section} photo={item.imageUrl} size={40} />
       <span className="min-w-0 flex-1">
         <span className="gro-t bidi">{item.title}</span>
         {item.notes && <span className="gro-s bidi truncate">{item.notes}</span>}

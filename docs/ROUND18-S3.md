@@ -92,7 +92,7 @@ Insights → History gets a **Products | Supermarket** switch (A2's rules). Supe
 ⋯ → "Past trips" opens this place. Templates stay in the Supermarket tab ⋯. Check: the trip Tal finished on prod
 shows (if it doesn't, find why — e.g. finished offline / not saved — and fix).
 
-### B3 [ ] The list first, suggestions collapsed under it
+### B3 [x] The list first, suggestions collapsed under it
 Supermarket tab order: store / trip bar → **the list** → "Nexus suggests" (collapsed by default, one line with a count;
 tap to open; remembers per device) → routine offer / templates entry. The list reads as **one list** (one surface,
 section headers inside it, not floating separate cards) — keep S2's row look; the full redesign is group B later.
@@ -232,6 +232,11 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   switch stay still, the list cross-fades. Supermarket ⋯ → Past trips and the computer side panel's trips card land
   here; the ⋯ "Templates & past trips" item is now "Templates". Prod check on the 2026-10-14 snapshot copy: 4 finished
   trips, `pastTrips` returns them (6 + 3 + 3 items) — saved fine, History just never read them. Smoke phone + computer.
+- B3 — phone Supermarket tab: store / rail / add field → **the list** → "Nexus suggests" (one line with its count until
+  tapped; `nexus.smSugOpen` per device; open on the computer's side panel and for tonight's draft) → routine offer. The
+  list is one surface (`.gro-one`: one bordered box, section headers inside with a hairline between sections, no card per
+  section); rows 52 px (40 px pictures), headers 44 px. Rows ⇄ tiles now changes what's on screen. Smoke step + the
+  older steps open the suggestions first (`openSuggestions`).
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

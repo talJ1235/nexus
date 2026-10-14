@@ -90,6 +90,20 @@
 }
 .gro-who { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
+/* R18 S3 B3: the Supermarket tab's list reads as one list — one surface, section headers inside it (a hairline between
+   sections), no card per section; rows denser (52 px, still ≥ 44 px to tap). `overflow: clip` (not hidden) keeps the
+   section headers sticky. */
+.gro-one { border-radius: 18px; border: 1px solid var(--line-strong); background: var(--surface); overflow: clip; box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 5%, transparent); }
+.dark .gro-one { border-color: var(--line); box-shadow: none; }
+.gro-one .gro-sec + .gro-sec { border-top: 1px solid var(--line-in); }
+.gro-one .gro-sec-h { min-height: 44px; padding: 6px 12px 2px; background: var(--surface); }
+.gro-one .gro-box { margin-top: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.gro-one .gro-row { min-height: 52px; padding: 6px 12px; gap: 10px; }
+.gro-one .gro-row .gro-t { font-size: 15.5px; }
+.gro-one .gro-row .gro-s { font-size: 12.5px; }
+.gro-one .gro-row:first-child { border-top: 1px solid color-mix(in srgb, var(--k) 14%, var(--line-in)); }
+.gro-one .gro-tiles { margin-top: 0; padding: 4px 10px 10px; }
+
 /* Tiles layout (⋯ menu): 3 per row on phones. */
 .gro-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
 .gro-tile {

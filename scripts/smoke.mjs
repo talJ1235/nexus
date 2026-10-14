@@ -83,6 +83,16 @@ const READY = "[data-app-shell][data-ready] main h1 >> visible=true";
 // Esc opens the command menu once the app's key handler is attached (right after READY it can still be hydrating).
 let openPalette;
 const shot = async (page, name) => OUT && page.screenshot({ path: `${OUT}/${name}${SUFFIX}.png` });
+// R18 S3 B3: "Nexus suggests" is one line until opened (phones) — open it before using a suggestion.
+async function openSuggestions(page) {
+  await page.waitForSelector("[data-sm-suggest]", { timeout: 15000 });
+  if ((await page.locator("[data-sm-suggest]").first().getAttribute("data-sm-suggest")) === "closed") {
+    // At the end of the list: centre it first (the fixed Start shopping bar sits over the screen's bottom edge).
+    await page.locator("[data-sm-sug-toggle]").first().evaluate((e) => e.scrollIntoView({ block: "center" }));
+    await page.locator("[data-sm-sug-toggle]").first().click();
+    await page.waitForTimeout(300);
+  }
+}
 // R18 S3 A2: the chrome stays still while `act` switches a segment — the boxes of `sels` sampled every frame for `ms`,
 // the same DOM nodes before and after (no re-mount), no layout-shift source inside them (`calm`: the ones whose contents
 // must not shift either — a toolbar's labels may change with the segment while its box stays).
@@ -1510,6 +1520,60 @@ try {
           "history · supermarket (R18 S3 B2): trips by month, chrome still, trip → Add again, ⋯ → Past trips", JSON.stringify({ ...r, still }));
       });
 
+    // R18 S3 B3: the Supermarket tab on phones — the list comes before "Nexus suggests", which is one line until tapped
+    // and stays as left after a reload (per device); the list is one surface (one bordered box, no card per section);
+    // rows are denser (≤ 56 px, ≥ 44 px to tap); rows ⇄ tiles changes what's on screen.
+    if (MOBILE && WRITE)
+      await step("supermarket list first (R18 S3 B3): suggestions collapsed + remembered, one surface, dense rows, tiles visible", async () => {
+        await page.evaluate(() => localStorage.removeItem("nexus.smSugOpen"));
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        if ((await page.locator("[data-sm-view]").getAttribute("data-sm-layout")) !== "rows") {
+          await page.locator("[data-sm-more]").click();
+          await page.locator('[data-sm-layout-pick="rows"]').click();
+          await page.waitForTimeout(500);
+        }
+        await page.waitForSelector("[data-sm-suggest]", { timeout: 15000 });
+        const r = await page.evaluate(() => {
+          const list = document.querySelector("[data-sm-list]");
+          const sug = document.querySelector("[data-sm-suggest]");
+          const rows = [...document.querySelectorAll("[data-sm-list] [data-sm-row]")].slice(0, 6).map((e) => Math.round(e.getBoundingClientRect().height));
+          return {
+            order: !!(list && sug && list.compareDocumentPosition(sug) & Node.DOCUMENT_POSITION_FOLLOWING),
+            sug: sug?.getAttribute("data-sm-suggest"),
+            sugH: Math.round(sug?.getBoundingClientRect().height ?? 0),
+            boxes: document.querySelectorAll("[data-sm-list] .gro-box").length,
+            boxBorder: getComputedStyle(document.querySelector("[data-sm-list] .gro-box") ?? document.body).borderTopWidth,
+            listBorder: getComputedStyle(list).borderTopWidth,
+            rows,
+          };
+        });
+        await page.locator("[data-sm-sug-toggle]").evaluate((e) => e.scrollIntoView({ block: "center" }));
+        await page.locator("[data-sm-sug-toggle]").click();
+        await page.waitForTimeout(300);
+        await page.reload();
+        await page.waitForSelector("[data-sm-suggest]", { timeout: 15000 });
+        await page.waitForTimeout(400);
+        r.kept = await page.locator("[data-sm-suggest]").getAttribute("data-sm-suggest");
+        await page.locator("[data-sm-sug-toggle]").evaluate((e) => e.scrollIntoView({ block: "center" }));
+        await page.locator("[data-sm-sug-toggle]").click();
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await shot(page, "sm-list-first");
+        const firstRowY = async () => (await page.locator("[data-sm-list] [data-sm-row]").first().boundingBox())?.y ?? -1;
+        r.rowsY = await firstRowY();
+        await page.locator("[data-sm-more]").click();
+        await page.locator('[data-sm-layout-pick="tiles"]').click();
+        await page.waitForSelector('[data-sm-layout="tiles"] .gro-tiles');
+        r.tilesY = await (async () => (await page.locator("[data-sm-list] .gro-tiles").first().boundingBox())?.y ?? -1)();
+        r.tilesInView = r.tilesY > 0 && r.tilesY < 844;
+        await page.waitForTimeout(500);
+        await page.locator("[data-sm-more]").click();
+        await page.locator('[data-sm-layout-pick="rows"]').click();
+        await page.waitForTimeout(400);
+        ok(r.order && r.sug === "closed" && r.sugH <= 70 && r.listBorder === "1px" && r.boxBorder === "0px" && r.rows.every((h) => h >= 44 && h <= 56) && r.kept === "open" && r.tilesInView,
+          "supermarket list first (R18 S3 B3): suggestions collapsed + remembered, one surface, dense rows, tiles visible", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)
@@ -1530,7 +1594,7 @@ try {
     await step("supermarket tab (R18 A2): sections, store + estimate, suggestions, add, accept, rows/tiles kept", async () => {
       await page.goto(`${BASE}/supermarket`);
       await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
-      await page.waitForSelector("[data-sm-suggest]", { timeout: 15000 });
+      await openSuggestions(page);
       const r = await page.evaluate(() => ({
         url: location.pathname === "/supermarket" ? "supermarket" : new URL(location.href).searchParams.get("v"),
         sections: [...document.querySelectorAll("[data-sm-section]")].map((e) => e.getAttribute("data-sm-section")),
@@ -1655,6 +1719,7 @@ try {
         r.rowQty = await page.locator(`[data-sm-row="${id}"] .gro-q`).textContent();
         r.rowNote = await page.locator(`[data-sm-row="${id}"] .gro-s`).textContent().catch(() => "");
         // A suggestion's actions: Never suggest this → gone from the card.
+        await openSuggestions(page);
         const sug = page.locator("[data-sm-sug]").first();
         const key = await sug.getAttribute("data-sm-sug");
         await sug.locator("[data-sm-sug-open]").click();
