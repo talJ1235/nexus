@@ -48,6 +48,9 @@ const Patch = z
     who: z.enum(WHO).nullable(),
     notif: z.enum(["granted", "denied", "default"]).nullable(),
     installed: z.boolean(),
+    chains: z.array(z.string().min(1).max(40)).max(12),
+    branch: z.string().trim().max(120).nullable(),
+    several: z.boolean(),
   })
   .partial()
   .strict();
@@ -61,6 +64,7 @@ export async function saveOnboarding(raw: z.input<typeof Patch>): Promise<Onboar
   const personal = await personalSpaceId(ctx.user.id);
   if (p.why && personal) await applyPreset(ctx.user.id, personal, p.why, next.sharedSpaceId);
   if ((p.budget !== undefined || p.currency) && personal) await applyBudget(ctx.user.id, personal, next.budget, next.currency);
+  if (p.branch !== undefined || p.several !== undefined) await applyStores(ctx, next);
   if (p.step != null && p.step > cur.step) noteActivity({ userId: ctx.user.id, spaceId: ctx.space.id }, "onboarding_step", p.step - cur.step);
   return store(ctx, next);
 }
@@ -69,6 +73,25 @@ async function applyPreset(userId: string, personal: string, why: Onboarding["wh
   const preset = presetFor(why);
   const mine = serialize({ v: 2, preset, items: presetItems(preset, false) });
   await Promise.all([userPrefSet(userId, homeLayoutKey(personal), mine), userPrefSet(userId, HOME_LAYOUT_KEY, mine), shared ? userPrefSet(userId, homeLayoutKey(shared), serialize({ v: 2, preset, items: presetItems(preset, true) })) : null]);
+}
+
+/**
+ * R18 S2 F2: the supermarket chains → the current space's stores — the first chain is the main store (with its branch,
+ * or none when the person shops at several branches: they pick one when a trip starts); the others are "also shop at".
+ * A viewer's answers are kept but change nothing in the space.
+ */
+async function applyStores(ctx: Ctx, o: Onboarding) {
+  if (ctx.role === "viewer" || !o.chains?.length) return;
+  const { CHAINS } = await import("@/lib/grocery/chains");
+  const ids = o.chains.filter((c) => CHAINS.some((x) => x.id === c));
+  if (!ids.length) return;
+  const G = await import("@/lib/db-scoped/grocery");
+  const s = new Scoped({ spaceId: ctx.space.id, userId: ctx.user.id });
+  const branch = o.several ? "" : (o.branch ?? "").trim();
+  const existing = await G.storesOf(s);
+  // A main store picked before (a chain change) loses its default; the branch typed for it moves with the choice.
+  await G.saveStore(s, ids[0], branch, { isDefault: true });
+  for (const c of ids.slice(1)) if (!existing.some((x) => x.chain === c)) await G.saveStore(s, c, "", { isDefault: false });
 }
 
 async function applyBudget(userId: string, personal: string, cap: number | null, currency: Onboarding["currency"]) {

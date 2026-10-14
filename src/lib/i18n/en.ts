@@ -167,9 +167,22 @@ export const en = {
     less: "Less",
     more: "More",
     stepOf: "Step {n} of 6",
+    // R18 S2 F2: the supermarket store step (chains → branch).
+    sm: {
+      main: "Main",
+      firstMain: "The first one you pick is your main store — the list follows its walking order.",
+      branchPh: "City or street",
+      branchRow: "{chain} · {branch}",
+      branchAny: "{chain} — any branch",
+      several: "I shop at several branches",
+      severalSub: "You choose the branch when you start a trip",
+      other: "Other",
+    },
     titles: {
       why: "What brings you here?",
       stores: "Where do you shop?",
+      chains: "Where do you usually shop?",
+      branch: "Which {chain}?",
       budget: "Monthly budget",
       who: "Who do you shop with?",
       install: "Install the app",
@@ -182,6 +195,8 @@ export const en = {
     lines: {
       why: "Pick any. Home adapts to your choice.",
       stores: "{n} picked. We suggest from these.",
+      chains: "Pick one or more. The branch comes next.",
+      branch: "Search by city or street. No location needed.",
       budget: "A target, not a limit. Change it anytime.",
       who: "Shared lists update live for everyone.",
       install: "One tap, no app store.",

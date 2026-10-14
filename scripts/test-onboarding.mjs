@@ -63,6 +63,14 @@ async function primary(p) {
     throw e;
   }
 }
+/** Continue; on step 2 the supermarket's chains phase (R18 S2 F2: nothing picked) takes one more Continue. */
+async function forward(p) {
+  const at = await step(p);
+  await primary(p);
+  if (at === 2) {
+    await p.waitForSelector("[data-ob-chains]", { timeout: 5_000 }).then(() => primary(p), () => {});
+  }
+}
 const settle = (p) => p.waitForLoadState("networkidle").catch(() => {});
 
 try {
@@ -78,6 +86,15 @@ try {
     await p.click('[data-ob-store="ikea"]');
     await p.fill("[data-store-search]", "Makolet Shalom");
     await p.click("[data-ob-add-store]");
+    await primary(p);
+    // R18 S2 F2: the supermarket's chains (Shufersal picked in the stores step = main), then its branch.
+    await p.waitForSelector("[data-ob-chains]", { timeout: 10_000 }).catch(() => {});
+    ok((await step(p)) === 2 && (await p.locator('[data-ob-chain="shufersal"] [data-ob-main]').count()) === 1, "F2 chains: Shufersal from the stores step is the main store");
+    await p.click('[data-ob-chain="rami-levy"]');
+    await primary(p);
+    await p.waitForSelector("[data-ob-branch]", { timeout: 10_000 }).catch(() => {});
+    ok(/Which Shufersal\?/.test(await p.innerText("body")), "F2 branch: Which Shufersal?");
+    await p.fill("[data-ob-branch-input]", "Herzl St.");
     await primary(p);
     ok(await waitStep(p, 3), "→ step 3 (budget)");
     await p.click("[data-ob-more]");
@@ -108,6 +125,8 @@ try {
     const o = await pref(id);
     ok(o?.status === "done" && o.why.join() === "super" && o.stores.includes("shufersal") && o.stores.includes("custom:Makolet Shalom") && o.who === "family" && o.notif === "granted", "answers saved in pref:onboarding", JSON.stringify(o));
     const personal = (await x("SELECT id, currency FROM space WHERE kind = 'personal' AND created_by = ?", [id]))[0];
+    const st = await x("SELECT chain, branch, is_default FROM space_store WHERE space_id = ? ORDER BY is_default DESC, chain", [personal.id]);
+    ok(JSON.stringify(st.map((r) => [r.chain, r.branch, Number(r.is_default)])) === JSON.stringify([["shufersal", "Herzl St.", 1], ["rami-levy", "", 0]]), "F2: main store + branch and the other chain saved for the space", JSON.stringify(st));
     const month = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit" }).format(Date.now());
     const budget = (await x("SELECT value FROM space_pref WHERE space_id = ? AND key = ?", [personal.id, `pref:budget:${month}`]))[0]?.value;
     ok(personal.currency === "USD" && JSON.parse(budget ?? "{}").cap === 2750 && JSON.parse(budget ?? "{}").currency === "USD", "budget 2,750 $ set on the personal space", `${personal.currency} ${budget}`);
@@ -136,10 +155,13 @@ try {
     await primary(p);
     await waitStep(p, 2);
     await primary(p);
+    // R18 S2 F2: no chain picked → the chains phase goes straight on to the budget.
+    await p.waitForSelector("[data-ob-chains]", { timeout: 10_000 }).catch(() => {});
+    await primary(p);
     await waitStep(p, 3);
     await settle(p);
     await p.reload();
-    ok(await waitStep(p, 3), "reload on step 3 → step 3");
+    ok(await waitStep(p, 3), "reload on step 3 → step 3", `at ${await step(p)} · chains ${await p.locator("[data-ob-chains]").count()}`);
     await p.goto(`${app.base}/`);
     ok(new URL(p.url()).pathname === "/welcome" && (await waitStep(p, 3)), "\"/\" while unfinished → back to step 3", p.url());
   }
@@ -152,7 +174,7 @@ try {
     await p.goto(`${app.base}/welcome`);
     await waitStep(p, 1);
     for (const k of [1, 2]) {
-      await primary(p);
+      await forward(p);
       await waitStep(p, k + 1);
     }
     await primary(p);
@@ -167,7 +189,7 @@ try {
     await p.goto(`${app.base}/welcome`);
     await waitStep(p, 1);
     for (const k of [1, 2, 3, 4]) {
-      await primary(p);
+      await forward(p);
       await waitStep(p, k + 1);
     }
     ok((await step(p)) === 5 && (await p.locator("[data-ob-iphone-guide]").count()) === 1, "iPhone: step 5 is the Add-to-Home-Screen guide", String(await step(p)));
@@ -186,7 +208,7 @@ try {
       window.dispatchEvent(e);
     });
     for (const k of [1, 2, 3, 4]) {
-      await primary(p);
+      await forward(p);
       await waitStep(p, k + 1);
     }
     ok((await step(p)) === 5 && (await p.locator('[data-ob-install="both"]').count()) === 1 && (await p.locator("[data-ob-phone-qr]").count()) === 1, "S4 desktop that can install: step 5 with both cards", String(await step(p)));
@@ -201,7 +223,7 @@ try {
     await p.goto(`${app.base}/welcome`);
     await waitStep(p, 1);
     for (const k of [1, 2, 3]) {
-      await primary(p);
+      await forward(p);
       await waitStep(p, k + 1);
     }
     await primary(p);

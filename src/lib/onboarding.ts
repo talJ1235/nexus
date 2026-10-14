@@ -26,6 +26,10 @@ export type Onboarding = {
   /** Notification permission as the browser answered (stored for Session 3's push). */
   notif: "granted" | "denied" | "default" | null;
   installed: boolean;
+  /** R18 S2 F2: supermarket chains (lib/grocery/chains ids; the first = the main store), its branch, "several branches". */
+  chains?: string[];
+  branch?: string | null;
+  several?: boolean;
   at: number;
 };
 

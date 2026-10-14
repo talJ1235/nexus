@@ -44,7 +44,9 @@ async function appShot(path, viewport, opts = {}) {
     localStorage.setItem("nexus.bootDay", `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
     sessionStorage.setItem("nexus.opened", "1");
   }, opts.dark ? "dark" : "light");
-  await ctx.addCookies([...app.cookies(opts.space ?? app.personal, opts.he ? "he" : "en"), { name: "nexus_palette", value: opts.plum ? "plum" : "graphite", url: BASE }]);
+  // F2: `fresh` = a new person who hasn't done onboarding (the /welcome flow).
+  const who = opts.fresh ? (await freshPerson(opts.he ? "he" : "en")).cookies : app.cookies(opts.space ?? app.personal, opts.he ? "he" : "en");
+  await ctx.addCookies([...who, { name: "nexus_palette", value: opts.plum ? "plum" : "graphite", url: BASE }]);
   await tripOn(!!opts.trip);
   const page = await ctx.newPage();
   await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" }).catch(() => {});
@@ -58,6 +60,29 @@ async function appShot(path, viewport, opts = {}) {
   await ctx.close();
   return buf;
 }
+let freshN = 0;
+async function freshPerson(locale) {
+  const id = `parity_ob_${Date.now()}_${++freshN}`;
+  const now = Date.now();
+  await app.db.execute({ sql: `INSERT INTO "user" (id, name, email, email_verified, role, created_at, updated_at) VALUES (?, 'Tal', ?, 1, 'user', ?, ?)`, args: [id, `${id}@example.com`, now, now] });
+  return app.sessionFor(id, { locale });
+}
+/** Onboarding: why = supermarket → stores (Shufersal) → chains (+ Rami Levy) [→ branch]. */
+const obTo = (phase) => async (p) => {
+  await p.waitForSelector("[data-ob-step]");
+  await p.click('[data-ob-why="super"]');
+  await p.click("[data-ob-primary]");
+  await p.waitForSelector('[data-ob-store="shufersal"]');
+  await p.click('[data-ob-store="shufersal"]');
+  await p.click("[data-ob-primary]");
+  await p.waitForSelector("[data-ob-chains]");
+  await p.click('[data-ob-chain="rami-levy"]');
+  if (phase === "branch") {
+    await p.click("[data-ob-primary]");
+    await p.waitForSelector("[data-ob-branch]");
+    await p.fill("[data-ob-branch-input]", "Herzl St., Modi'in");
+  }
+};
 async function compose(file, cells, w) {
   const ctx = await browser.newContext({ viewport: { width: 400, height: 300 }, deviceScaleFactor: 1 });
   const p = await ctx.newPage();
@@ -146,6 +171,8 @@ const SHOTS = [
   // F1 — Settings → Supermarket and What Nexus learned (phone pages; desktop label + control columns).
   ["f1-settings-phone", [["board · supermarket", "Settings-phone", { ...EN, state: "settings · supermarket" }, PHONE], ["app", "/settings/supermarket", PHONE, { wait: "[data-settings-sm]" }], ["board · learned", "Settings-phone", { ...EN, state: "settings · what Nexus learned" }, PHONE], ["app", "/settings/smLearned", PHONE, { wait: "[data-sm-fact]" }], ["board · he dark", "Settings-phone", { ...HE, state: "settings · what Nexus learned", dark: true }, PHONE], ["app · he dark", "/settings/smLearned", PHONE, { wait: "[data-sm-fact]", he: true, dark: true }]], 300],
   ["f1-settings-desktop", [["board", "Settings-desktop", { ...EN, section: "Supermarket" }, DESK], ["app", "/settings/supermarket", DESK, { wait: "[data-settings-sm]" }], ["board · learned", "Settings-desktop", { ...EN, section: "What Nexus learned" }, DESK], ["app", "/settings/smLearned", DESK, { wait: "[data-sm-fact]" }]], 680],
+  // F2 — the onboarding store step: chains (first = main) → the main chain's branch.
+  ["f2-onboarding-store", [["board · chains", "Settings-phone", { ...EN, state: "onboarding · chain" }, PHONE], ["app", "/welcome", PHONE, { fresh: true, act: obTo("chains") }], ["board · branch", "Settings-phone", { ...EN, state: "onboarding · branch" }, PHONE], ["app", "/welcome", PHONE, { fresh: true, act: obTo("branch") }], ["board · he dark", "Settings-phone", { ...HE, state: "onboarding · chain", dark: true }, PHONE], ["app · he dark", "/welcome", PHONE, { fresh: true, he: true, dark: true, act: obTo("chains") }]], 300],
 ];
 
 /** A trip of mine in the personal space: 23 planned, the first 12 listed rows checked with their prices. */

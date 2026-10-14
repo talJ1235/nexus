@@ -12,6 +12,7 @@ import { useBeat } from "@/components/app/presence-beat";
 import { InviteQr } from "@/components/app/spaces/qr";
 import { useI18n } from "@/components/providers";
 import { monogram, presetFor, STORES, type Onboarding, type Who, type Why } from "@/lib/onboarding";
+import { CHAINS } from "@/lib/grocery/chains";
 import type { ScreenKey } from "@/lib/presence-keys";
 import { notifyAsk } from "@/app/notify-actions";
 import { useDevice } from "@/components/ui/use-device";
@@ -118,13 +119,47 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
     while (i > 0 && skipped(i)) i--;
     return Math.max(0, i);
   };
+  // ---- step 2 (R18 S2 F2): supermarket chains (multi, the first = main) → the main chain's branch
+  const smStep = o.why.length === 0 || o.why.includes("super") || o.why.includes("home");
+  const [phase, setPhase] = useState<"stores" | "chains" | "branch">("stores");
+  const setPhaseDir = (p: "stores" | "chains" | "branch", d: "f" | "b") => {
+    setDirn(d);
+    setPhase(p);
+  };
+  const [chains, setChains] = useState<string[]>(() => initial.chains ?? []);
+  const toggleChain = (id: string) => setChains((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
+  const [branchQ, setBranchQ] = useState(initial.branch ?? "");
+  const [several, setSeveral] = useState(!!initial.several);
+  const mainChain = CHAINS.find((c) => c.id === chains[0]) ?? null;
+  const chainMono = (c: (typeof CHAINS)[number]) => {
+    const st = STORES.find((x) => x.id === c.id);
+    return st ? (he ? st.monoHe : st.mono) : monogram(he ? c.he : c.en);
+  };
+  const chainFan = chains
+    .map((id) => CHAINS.find((c) => c.id === id))
+    .filter((c): c is (typeof CHAINS)[number] => !!c)
+    .slice(0, 5)
+    .map((c) => ({ m: chainMono(c), c: c.color }));
+
   const answers = (i: number): Parameters<typeof saveOnboarding>[0] =>
-    i === 0 ? { why: o.why } : i === 1 ? { stores: o.stores, custom: o.custom } : i === 2 ? { budget: o.budget ?? 2500, currency: o.currency } : i === 3 ? { who: o.who } : {};
+    i === 0 ? { why: o.why } : i === 1 ? { stores: o.stores, custom: o.custom, ...(phase !== "stores" ? { chains, branch: several ? null : branchQ.trim() || null, several } : {}) } : i === 2 ? { budget: o.budget ?? 2500, currency: o.currency } : i === 3 ? { who: o.who } : {};
   const go = (to: number, d: "f" | "b") => {
     setDirn(d);
     setIdx(to);
   };
   const next = async () => {
+    // R18 S2 F2: step 2 goes on to the supermarket's chains, then the main chain's branch (when the person shops for the
+    // home or the supermarket), before the budget.
+    if (idx === 1 && smStep && phase === "stores") {
+      void save({ stores: o.stores, custom: o.custom });
+      // Supermarkets picked among the stores start the chain list (the first one = main).
+      setChains((c) => (c.length ? c : o.stores.filter((x) => CHAINS.some((ch) => ch.id === x))));
+      return setPhaseDir("chains", "f");
+    }
+    if (idx === 1 && phase === "chains" && chains.length) {
+      void save({ chains });
+      return setPhaseDir("branch", "f");
+    }
     const to = nextIdx(idx);
     if (idx === 3 && o.who && o.who !== "me" && !o.sharedSpaceId) {
       await queue.current;
@@ -134,6 +169,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
     go(to, "f");
   };
   const back = () => {
+    if (idx === 1 && phase !== "stores") return setPhaseDir(phase === "branch" ? "chains" : "stores", "b");
     const to = prevIdx(idx);
     void save({ step: to + 1 });
     go(to, "b");
@@ -212,8 +248,10 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
   // ---- the step's texts and the primary button
   const titleKey = (["why", "stores", "budget", "who", "install", "notif", "done"] as const)[idx];
   const phoneOnly = desk && !env.iphone && (env.standalone || (!canInstall && !o.installed));
-  const title = idx === 4 ? (env.iphone ? O.titles.installIphone : phoneOnly ? O.titles.installPhone : desk ? O.titles.installDesk : O.titles.install) : idx === 6 ? f(O.titles.done, { name }) : O.titles[titleKey];
-  const line = idx === 4 ? (env.iphone ? O.lines.installIphone : phoneOnly ? O.lines.installPhone : desk ? O.lines.installDesk : O.lines.install) : idx === 1 ? f(O.lines.stores, { n: storeCount }) : O.lines[titleKey];
+  const smTitle = idx === 1 && phase === "chains" ? O.titles.chains : idx === 1 && phase === "branch" ? f(O.titles.branch, { chain: mainChain ? (he ? mainChain.he : mainChain.en) : "" }) : null;
+  const smLine = idx === 1 && phase === "chains" ? O.lines.chains : idx === 1 && phase === "branch" ? O.lines.branch : null;
+  const title = smTitle ?? (idx === 4 ? (env.iphone ? O.titles.installIphone : phoneOnly ? O.titles.installPhone : desk ? O.titles.installDesk : O.titles.install) : idx === 6 ? f(O.titles.done, { name }) : O.titles[titleKey]);
+  const line = smLine ?? (idx === 4 ? (env.iphone ? O.lines.installIphone : phoneOnly ? O.lines.installPhone : desk ? O.lines.installDesk : O.lines.install) : idx === 1 ? f(O.lines.stores, { n: storeCount }) : O.lines[titleKey]);
   let cta = O.continue;
   let primary: () => void = () => void next();
   let later = false;
@@ -283,7 +321,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
       )}
       {idx === 1 && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 150, width: 260 }}>
-          {fanList.map((s, i, arr) => {
+          {(phase === "stores" ? fanList : chainFan).map((s, i, arr) => {
             const k = i - (arr.length - 1) / 2;
             return (
               <span key={`${s.m}${i}`} className={`mono-t pop ${s.c}`} style={{ width: 72, height: 72, borderRadius: 20, fontSize: 24, marginInlineStart: i ? -18 : 0, transform: `rotate(${k * 7}deg) translateY(${Math.abs(k) * 6}px)`, boxShadow: "0 12px 26px -12px rgba(0,0,0,.5),0 0 0 3px var(--screen)", animationDelay: `${i * 40}ms` }}>
@@ -291,7 +329,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
               </span>
             );
           })}
-          {fanList.length === 0 && (
+          {(phase === "stores" ? fanList : chainFan).length === 0 && (
             <span className="mono-t" style={{ width: 72, height: 72, borderRadius: 20, background: "var(--s3)", color: "var(--faint)", fontSize: 28 }}>
               ?
             </span>
@@ -427,7 +465,62 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
           })}
         </div>
       )}
-      {idx === 1 && (
+      {idx === 1 && phase === "chains" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }} data-ob-chains>
+          <div className="stores" style={{ gap: desk ? 10 : 8 }}>
+            {CHAINS.map((c) => {
+              const k = chains.indexOf(c.id);
+              return (
+                <button key={c.id} type="button" className={`st${k >= 0 ? " on" : ""}`} aria-pressed={k >= 0} onClick={() => toggleChain(c.id)} data-ob-chain={c.id} style={{ position: "relative" }}>
+                  <span className={`mono-t ${c.color}`}>{chainMono(c)}</span>
+                  <span className="nm" title={he ? c.he : c.en}>
+                    {he ? c.he : c.en}
+                  </span>
+                  {k === 0 ? (
+                    <span style={{ position: "absolute", insetInlineEnd: 6, top: 6, background: "var(--ink)", color: "var(--bg)", fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 6 }} data-ob-main>
+                      {O.sm.main}
+                    </span>
+                  ) : (
+                    tick
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <p className="tiny" style={{ margin: "2px 2px 0" }}>
+            {O.sm.firstMain}
+          </p>
+        </div>
+      )}
+      {idx === 1 && phase === "branch" && mainChain && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }} data-ob-branch>
+          <label className="input">
+            {ico(PATH.search, 18)}
+            <input placeholder={O.sm.branchPh} aria-label={O.sm.branchPh} value={branchQ} maxLength={120} disabled={several} onChange={(e) => setBranchQ(e.target.value)} data-store-search data-ob-branch-input />
+          </label>
+          <div className="card" style={{ padding: 0, overflow: "hidden", opacity: several ? 0.5 : 1 }}>
+            <div className="li" data-ob-branch-row>
+              <span className={`mono-t ${mainChain.color}`} style={{ width: 36, height: 36, borderRadius: 10, fontSize: 13 }}>
+                {chainMono(mainChain)}
+              </span>
+              <span className="grow bidi">
+                <b>{branchQ.trim() ? f(O.sm.branchRow, { chain: he ? mainChain.he : mainChain.en, branch: branchQ.trim() }) : f(O.sm.branchAny, { chain: he ? mainChain.he : mainChain.en })}</b>
+              </span>
+            </div>
+          </div>
+          <div className="card" style={{ padding: 0 }}>
+            <div className="li">
+              <span className="grow">
+                <b>{O.sm.several}</b>
+                <br />
+                <span className="tiny">{O.sm.severalSub}</span>
+              </span>
+              <button type="button" role="switch" aria-checked={several} aria-label={O.sm.several} className={`tgl${several ? " on" : ""}`} onClick={() => setSeveral(!several)} data-ob-several />
+            </div>
+          </div>
+        </div>
+      )}
+      {idx === 1 && phase === "stores" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label className="input">
             {ico(PATH.search, 18)}
