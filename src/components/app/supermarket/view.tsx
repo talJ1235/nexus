@@ -553,11 +553,14 @@ function useWhoColor(item: ItemWithSources) {
   return k < 0 ? null : WHO[k % WHO.length];
 }
 
+/** G1: a row the AI just placed in its section (it was `other`) flashes once in the section's tint. */
+const useSettled = (id: string) => useStore().fresh.get(id) === "bump" || undefined;
+
 function Row({ item, unitKg }: { item: ItemWithSources; unitKg: number | null }) {
   const { locale } = useI18n();
   const who = useWhoColor(item);
   return (
-    <button type="button" className="gro-row" onClick={() => openSmItem(item.id)} data-sm-row={item.id}>
+    <button type="button" className="gro-row" onClick={() => openSmItem(item.id)} data-sm-row={item.id} data-settled={useSettled(item.id)}>
       <ProductTile art={item.artKey} section={item.section} photo={item.imageUrl} />
       <span className="min-w-0 flex-1">
         <span className="gro-t bidi">{item.title}</span>
@@ -572,7 +575,7 @@ function Row({ item, unitKg }: { item: ItemWithSources; unitKg: number | null })
 function Tile({ item, unitKg }: { item: ItemWithSources; unitKg: number | null }) {
   const { locale } = useI18n();
   return (
-    <button type="button" className="gro-tile" onClick={() => openSmItem(item.id)} data-sm-row={item.id}>
+    <button type="button" className="gro-tile" onClick={() => openSmItem(item.id)} data-sm-row={item.id} data-settled={useSettled(item.id)}>
       <ProductTile art={item.artKey} section={item.section} photo={item.imageUrl} size={56} />
       <span className="gro-t bidi">{item.title}</span>
       <span className="gro-q">{qtyLabel(item, locale, unitKg)}</span>

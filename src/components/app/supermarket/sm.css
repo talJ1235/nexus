@@ -147,3 +147,15 @@
 .gro-row.gro-live { background: color-mix(in srgb, var(--spark) 9%, transparent); animation: gro-live 1.2s var(--ease-out) 1; }
 @keyframes gro-live { from { background: color-mix(in srgb, var(--spark) 28%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .gro-row.gro-live { animation: none; } }
+
+/* R18 S2 G1: a row the AI placed (it was "Other") settles into its section with one tinted flash. */
+.gro-row[data-settled], .gro-tile[data-settled] { animation: gro-settle 1.2s var(--ease-out, ease-out) both; }
+@keyframes gro-settle {
+  0% { background: color-mix(in srgb, var(--k) 26%, var(--surface)); transform: translateY(-6px); }
+  35% { transform: none; }
+  100% { background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gro-row[data-settled], .gro-tile[data-settled] { animation-name: gro-settle-rm; }
+  @keyframes gro-settle-rm { 0% { background: color-mix(in srgb, var(--k) 26%, var(--surface)); } 100% { background: transparent; } }
+}

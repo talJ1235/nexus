@@ -34,3 +34,30 @@ export async function kvLease(key: string, ms: number, now = Date.now()) {
     .onConflictDoUpdate({ target: schema.kv.key, set: { value: String(now + ms), updatedAt: now }, setWhere: sql`CAST(${schema.kv.value} AS INTEGER) <= ${now}` });
   return r.rowsAffected > 0;
 }
+
+/** Rows under `prefix` last written before `before` are deleted (a LIKE on the primary key: an index range). */
+export async function kvPurge(prefix: string, before: number) {
+  const like = `${prefix.replace(/[!%_]/g, (c) => `!${c}`)}%`;
+  const r = await db.delete(schema.kv).where(sql`${schema.kv.key} LIKE ${like} ESCAPE '!' AND ${schema.kv.updatedAt} < ${before}`);
+  return r.rowsAffected;
+}
+
+const DAY = 86_400_000;
+/**
+ * R18 S2 G1 — the supermarket's caches and one-time marks, kept only as long as they help (daily cron): AI section answers
+ * 60 days, Open Food Facts lookups by barcode 30 days and by name 7 days, the evening drafts 3 days, trip op ids (a resend
+ * applies once) and offline-add client ids 30 days.
+ */
+export const GROCERY_KV_KEEP: [prefix: string, days: number][] = [
+  ["grocery:ai:", 60],
+  ["grocery:off:", 30],
+  ["grocery:offq:", 7],
+  ["sm:draft:", 3],
+  ["sm:op:", 30],
+];
+
+export async function purgeGroceryKv(now = Date.now()) {
+  let n = 0;
+  for (const [prefix, days] of GROCERY_KV_KEEP) n += await kvPurge(prefix, now - days * DAY);
+  return n;
+}

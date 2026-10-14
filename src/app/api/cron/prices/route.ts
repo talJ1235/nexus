@@ -18,6 +18,7 @@ import { backfillShortNames } from "@/lib/db-scoped/short-names";
 import { accountsToPurge, purgeAccount } from "@/lib/db-scoped/account";
 import { purgePresence } from "@/lib/db-scoped/presence";
 import { purgeNotifications } from "@/lib/db-scoped/notify";
+import { purgeGroceryKv } from "@/lib/kv";
 import { priceAlerts } from "@/lib/notify/senders";
 import type { Alert } from "@/lib/types";
 
@@ -111,7 +112,9 @@ export async function GET(req: NextRequest) {
   const presence = await purgePresence().catch(failed("presence-purge", { presence: 0, activity: 0 }));
   // R17 S3: inbox rows older than 30 days, push addresses that failed 5 times in a row.
   const notifyPurged = await purgeNotifications().catch(failed("notify-purge", { notifications: 0, subscriptions: 0 }));
-  const summary = { at: Date.now(), ms: Date.now() - started, presence: presence.presence + presence.activity, notifyPurged, notified, spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
+  // R18 S2 G1: the supermarket's kv caches and one-time marks (lib/kv GROCERY_KV_KEEP).
+  const groceryKv = await purgeGroceryKv().catch(failed("grocery-kv", 0));
+  const summary = { at: Date.now(), ms: Date.now() - started, presence: presence.presence + presence.activity, notifyPurged, groceryKv, notified, spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }

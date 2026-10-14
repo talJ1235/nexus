@@ -178,6 +178,23 @@ async function withDb() {
   assert.equal((await G.supermarketList(s)).length, before2 + 1);
   assert.equal((await G.supermarketList(s)).find((i) => i.title === "חלב 3%")!.quantity, 5, "the quantity on the list stays");
   console.log("ok E2 edit → theirs, rename, past trips (not found, newest first), trip / list → template, add again merges");
+
+  // ---- G1: the daily purge of the supermarket's kv caches (each prefix its own age); nothing else is touched.
+  const { purgeGroceryKv } = await import("../src/lib/kv");
+  const now = Date.now();
+  const old = (days: number) => now - days * DAY - 1000;
+  const rows: [string, number][] = [
+    ["grocery:ai:old", old(61)], ["grocery:ai:new", old(59)],
+    ["grocery:off:729000", old(31)], ["grocery:offq:milk", old(8)],
+    ["sm:draft:home:2026-10-01", old(4)], ["sm:draft:home:2026-10-13", old(1)],
+    ["sm:op:home:op1", old(31)], ["sm:op:home:cid:c1", old(31)], ["sm:op:home:cid:c2", old(2)],
+    ["grocery_ai_like", old(400)], ["pref:last_check", old(400)],
+  ];
+  for (const [key, at] of rows) await db.insert(schema.kv).values({ key, value: "x", updatedAt: at });
+  assert.equal(await purgeGroceryKv(now), 6);
+  const left = (await db.select({ key: schema.kv.key }).from(schema.kv)).map((r) => r.key).filter((k) => rows.some(([x]) => x === k)).sort();
+  assert.deepEqual(left, ["grocery:ai:new", "grocery_ai_like", "pref:last_check", "sm:draft:home:2026-10-13", "sm:op:home:cid:c2"].sort(), "only old rows under the grocery prefixes go (LIKE escapes _ and %)");
+  console.log("ok G1 daily purge: grocery:ai 60 d, grocery:off 30 d, grocery:offq 7 d, sm:draft 3 d, sm:op (+ cid) 30 d");
 }
 
 pure()

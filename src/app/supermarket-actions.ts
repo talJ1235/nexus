@@ -41,11 +41,19 @@ function classifyAfter(s: Scoped, rows: { id: string; title: string; section: st
   if (!unknown.length) return;
   const run = async () => {
     const answers = await classifyUnknown(unknown.map((r) => r.title), aiUseOf(s, "grocery"));
+    let moved = 0;
     for (const r of unknown) {
       const a = answers.get(r.title.trim());
       if (!a || a.section === "other") continue;
       const c = fromAi(r.title, a, r.gtin);
       await G.setSectionIfOther(s, r.id, c.section, c.art);
+      moved++;
+    }
+    // R18 S2 G1: this runs after the response — the action's one live-sync message has gone already, so tell the open
+    // lists again (the row settles into its section for everyone, the adder included).
+    if (moved) {
+      const { publishNow } = await import("@/lib/realtime/publish");
+      await publishNow(s.spaceId, s.actor);
     }
   };
   try {

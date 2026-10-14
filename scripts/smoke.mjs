@@ -1511,6 +1511,26 @@ try {
         ok(r.side === 1 && r.panels >= 2 && r.add === 1 && r.drawer === 1 && r.mePicked === "true", "supermarket desktop (R18 F3): side panel, / to add, item drawer, send to phone", JSON.stringify(r));
       });
 
+    // R18 S2 G1: an unknown line lands in Other; the AI's answer (mock: the bracketed section) arrives after the response and
+    // the row settles into its section live, with one tinted flash.
+    if (WRITE)
+      await step("supermarket settle (R18 G1): Other → its section after the AI answer, live", async () => {
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        await page.locator("[data-sm-add-open]").click();
+        await page.locator("[data-add-input]").fill("Zorblax [bfast]");
+        await page.locator("[data-add-input]").press("Enter");
+        const r = {};
+        r.other = await page.waitForFunction(() => [...document.querySelectorAll('[data-sm-section="other"] .gro-t')].some((e) => e.textContent?.includes("Zorblax")), null, { timeout: 8000 }).then(() => 1, () => 0);
+        const t0 = Date.now();
+        r.settledFlash = await page
+          .waitForFunction(() => [...document.querySelectorAll('[data-sm-section="bfast"] [data-sm-row]')].some((e) => e.textContent?.includes("Zorblax") && e.hasAttribute("data-settled")), null, { timeout: 25000, polling: 50 })
+          .then(() => 1, () => 0);
+        r.ms = Date.now() - t0;
+        r.inSection = await page.locator('[data-sm-section="bfast"] [data-sm-row]', { hasText: "Zorblax" }).count();
+        ok(r.inSection === 1 && r.settledFlash === 1, "supermarket settle (R18 G1): Other → its section after the AI answer, live", JSON.stringify(r));
+      });
+
     // R18 S2 D3: a full trip on the phone through store mode — start, check two rows (the picture fills), "not in the
     // store" on a third, a price, collapse (the trip bar takes over on Products), back, finish → summary → skip → saved;
     // the checked rows leave the list, the one not found stays.

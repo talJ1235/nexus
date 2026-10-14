@@ -93,7 +93,12 @@ export async function classifyUnknown(texts: string[], use: AiUse): Promise<Map<
   }
   if (!ask.length) return out;
   let answers: { i: number; section: string; type: string | null }[] | null = null;
-  if (mockAi()) answers = ask.map((_, i) => ({ i, section: "other", type: null }));
+  // Mock AI (tests): "Zorblax [bfast]" answers its bracketed section, anything else `other` (R18 S2 G1: the settle).
+  // A bracketed line answers after 2.5 s, like a real model call, so a test sees the row in Other first.
+  if (mockAi()) {
+    if (ask.some((t) => /\[\w+\]\s*$/.test(t))) await new Promise((r) => setTimeout(r, 2500));
+    answers = ask.map((t, i) => ({ i, section: /\[(\w+)\]\s*$/.exec(t)?.[1] ?? "other", type: null }));
+  }
   else {
     const prompt = `Sort these grocery-list lines (Hebrew or English, from Israeli households) into supermarket sections.
 Sections (use the key): ${SECTION_KEYS.join(", ")}. "type": the closest of these product types if one fits, else null: ${[...TYPE_BY_KEY.keys()].join(", ")}.

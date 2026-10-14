@@ -342,6 +342,12 @@ export function StoreProvider({
 }) {
   const [items, setItems] = useState(initial.items);
   const [sm, setSm] = useState<ItemWithSources[]>(initial.supermarket ?? []);
+  const [fresh, setFresh] = useState<Map<string, "new" | "bump">>(() => new Map());
+  // R18 S2 G1: the list as last applied, so a feed update can tell an `other` row that just got its section (AI classify).
+  const smRef = useRef(sm);
+  useEffect(() => {
+    smRef.current = sm;
+  }, [sm]);
   const upsertSm = useCallback((rows: ItemWithSources[]) => {
     if (!rows.length) return;
     setSm((prev) => {
@@ -697,6 +703,12 @@ export function StoreProvider({
     }
     // R18 S2: supermarket rows (a row leaves the list once it's no longer to buy).
     const smRows = ch.supermarket ?? [];
+    // G1: a row added as `other` that the AI placed (setSectionIfOther) settles into its section with a short highlight.
+    const settled = smRows.filter((r) => r.section && r.section !== "other" && smRef.current.find((p) => p.id === r.id)?.section === "other").map((r) => r.id);
+    if (settled.length) {
+      setFresh((prev) => new Map([...prev, ...settled.map((id) => [id, "bump"] as const)]));
+      setTimeout(() => setFresh((prev) => new Map([...prev].filter(([id]) => !settled.includes(id)))), 1400);
+    }
     if (smRows.length || goneItems.size)
       setSm((prev) => {
         const byId = new Map(smRows.map((i) => [i.id, i]));
@@ -828,7 +840,6 @@ export function StoreProvider({
   const addPending = useCallback((p: PendingAdd) => setPending((prev) => [p, ...prev.filter((x) => x.id !== p.id)]), []);
   const patchPending = useCallback((id: string, patch: Partial<PendingAdd>) => setPending((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x))), []);
   const dropPending = useCallback((id: string) => setPending((prev) => prev.filter((x) => x.id !== id)), []);
-  const [fresh, setFresh] = useState<Map<string, "new" | "bump">>(() => new Map());
   const markFresh = useCallback((id: string, kind: "new" | "bump" = "new") => {
     setFresh((prev) => new Map(prev).set(id, kind));
     setTimeout(
