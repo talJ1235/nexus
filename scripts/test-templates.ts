@@ -139,6 +139,45 @@ async function withDb() {
   assert.equal(list.some((i) => i.productKey === hum), false, "hidden skipped");
   assert.ok((await s.byId(schema.template, own.id))!.usedAt, "used_at set");
   console.log("ok E1 Nexus templates: offer → keep / no thanks, follows trips until edited, hidden never enters, apply merges");
+
+  // ---- E2: editing makes a template the user's (a Nexus one is also kept), rename sticks.
+  await G.unhideProduct(s, hum);
+  await G.unhideProduct(s, eggs);
+  await G.refreshRoutines(s, TZ, IL(10, 4, 0));
+  const fresh = (await s.select(schema.template, eq(schema.template.madeBy, "nexus"))).find((t) => t.editedAt == null && t.dismissedAt == null && t.routineDay === 4);
+  if (fresh) {
+    const ed = (await G.editTemplate(s, fresh.id, { name: "Our Thursday", items: fresh.items.slice(1) }, IL(10, 4, 1)))!;
+    assert.ok(ed.editedAt && ed.keptAt, "edited → theirs (and kept)");
+    assert.equal(ed.name, "Our Thursday");
+  }
+  const named = (await G.editTemplate(s, own.id, { name: "  BBQ  " }, IL(10, 4, 2)))!;
+  assert.deepEqual([named.name, named.items.length], ["BBQ", 3], "a rename keeps the items");
+  assert.equal((await G.editTemplate(s, own.id, { items: [...named.items, named.items[0]] }))!.items.length, 3, "a product once");
+
+  // ---- E2: past trips (newest first) with what wasn't found; save a trip as a template (+ missed, quantities kept or
+  // not); save the list; add again merges.
+  const t = await T.startTrip(s, "noa", { chain: "Shufersal", branch: "Modiin", now: IL(10, 8, 18) });
+  const milkRow = (await s.byId(schema.items, ids.milk))!;
+  const coffeeRow = (await s.byId(schema.items, ids.coffee))!;
+  await T.addCheck(s, t.id, { action: "check", itemId: milkRow.id, productKey: milkRow.productKey, section: milkRow.section, qty: 2, price: 13.8, at: IL(10, 8, 18, 5) });
+  await T.addCheck(s, t.id, { action: "not_found", itemId: coffeeRow.id, productKey: coffeeRow.productKey, section: coffeeRow.section, at: IL(10, 8, 18, 6) });
+  await T.finishTrip(s, t.id, { now: IL(10, 8, 18, 30) });
+  const past = await G.pastTrips(s);
+  assert.equal(past[0].id, t.id, "newest first");
+  assert.deepEqual(past[0].items.map((i) => [i.title, i.state, i.price]), [["חלב 3%", "bought", 13.8], ["קפה", "not_found", null]]);
+  assert.equal(past.length, 15, "every finished trip");
+  const a = (await G.templateFromTrip(s, t.id, "Quick", "noa"))!;
+  assert.deepEqual(a.items.map((i) => [i.title, i.qty]), [["חלב 3%", 2]], "bought only, quantities kept");
+  const b = (await G.templateFromTrip(s, t.id, "Quick 2", "noa", { missed: true, keepQty: false }))!;
+  assert.deepEqual(b.items.map((i) => [i.title, i.qty]), [["חלב 3%", 1], ["קפה", 1]], "+ not found, quantities left at 1");
+  const fromList = (await G.templateFromList(s, "Now", "noa"))!;
+  assert.equal(fromList.items.length, (await G.supermarketList(s)).filter((i) => i.productKey).length);
+  const before2 = (await G.supermarketList(s)).length;
+  const again = await G.addMissing(s, past[0].items, "noa");
+  assert.equal(again.length, 1, "milk is on the list (stays), coffee added");
+  assert.equal((await G.supermarketList(s)).length, before2 + 1);
+  assert.equal((await G.supermarketList(s)).find((i) => i.title === "חלב 3%")!.quantity, 5, "the quantity on the list stays");
+  console.log("ok E2 edit → theirs, rename, past trips (not found, newest first), trip / list → template, add again merges");
 }
 
 pure()

@@ -115,6 +115,11 @@ const openTemplate = async (p) => {
   await p.locator("[data-sm-template]").first().click();
   await p.waitForSelector("[data-sm-template-page]");
 };
+const openPast = async (p) => {
+  await openLists(p);
+  await p.click('[data-sm-lists-tab="past"]');
+  await p.waitForSelector("[data-sm-trip]");
+};
 const SHOTS = [
   // A2 — the Supermarket tab.
   ["a2-main-phone", [["board · normal", "Supermarket-phone", { ...EN, state: "normal" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM }], ["board · he dark plum", "Supermarket-phone", { ...HE, state: "normal", dark: true, palette: "plum" }, PHONE], ["app · he dark plum", "/supermarket", PHONE, { wait: SM, he: true, dark: true, plum: true }]], 300],
@@ -136,6 +141,8 @@ const SHOTS = [
   ["d4-push-inbox", [["board · inbox", "Push-phone", { ...EN, state: "inbox" }, PHONE], ["app", "/inbox", PHONE, { wait: "[data-kind=draft]" }], ["board · he dark", "Push-phone", { ...HE, state: "inbox", dark: true }, PHONE], ["app · he dark plum", "/inbox", PHONE, { wait: "[data-kind=draft]", he: true, dark: true, plum: true }]], 300],
   // E1 — templates: the list (routine offer, Made by Nexus, a person's), the Nexus template's page, the apply sheet.
   ["e1-templates", [["board · templates", "Lists-phone", { ...EN, state: "templates" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: openLists }], ["board · template open", "Lists-phone", { ...EN, state: "template open" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: openTemplate }], ["board · apply", "Lists-phone", { ...EN, state: "apply a template" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: async (p) => { await openTemplate(p); await p.click("[data-sm-template-apply]"); await p.waitForSelector("[data-sm-apply-line]"); } }], ["board · he dark plum", "Lists-phone", { ...HE, state: "templates", dark: true, palette: "plum" }, PHONE], ["app · he dark plum", "/supermarket", PHONE, { wait: SM, he: true, dark: true, plum: true, act: openLists }]], 240],
+  // E2 — past trips by month, a past trip open, editing a template.
+  ["e2-past-edit", [["board · past trips", "Lists-phone", { ...EN, state: "past trips" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: openPast }], ["board · past trip open", "Lists-phone", { ...EN, state: "past trip open" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: async (p) => { await openPast(p); await p.locator("[data-sm-trip]").first().click(); await p.waitForSelector("[data-sm-trip-page]"); } }], ["board · edit", "Lists-phone", { ...EN, state: "edit a template" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: async (p) => { await openTemplate(p); await p.click("[data-sm-template-edit]"); await p.waitForSelector("[data-sm-template-editor]"); } }], ["board · he dark", "Lists-phone", { ...HE, state: "past trips", dark: true }, PHONE], ["app · he dark", "/supermarket", PHONE, { wait: SM, he: true, dark: true, act: openPast }]], 240],
 ];
 
 /** A trip of mine in the personal space: 23 planned, the first 12 listed rows checked with their prices. */

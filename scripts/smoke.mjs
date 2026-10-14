@@ -1392,6 +1392,53 @@ try {
         await page.keyboard.press("Escape");
       });
 
+    // R18 S2 E2: past trips by month → a trip → save it as a template (named) → its page; edit the Nexus template
+    // (rename + remove one) → it's the user's (no "Made by Nexus" any more).
+    if (WRITE)
+      await step("templates (R18 E2): past trips, trip → template, edit makes it yours", async () => {
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        const r = {};
+        await page.locator("[data-sm-more]").click();
+        await page.locator("[data-sm-menu-lists]").click();
+        await page.waitForSelector("[data-sm-lists] [data-sm-template]");
+        await page.locator('[data-sm-lists-tab="past"]').click();
+        await page.waitForSelector("[data-sm-trip]");
+        r.months = await page.locator("[data-sm-month]").count();
+        r.trips = await page.locator("[data-sm-trip]").count();
+        await shot(page, "sm-past-trips");
+        await page.locator("[data-sm-trip]").first().click();
+        await page.waitForSelector("[data-sm-trip-page]");
+        r.lines = await page.locator("[data-sm-trip-item]").count();
+        await page.locator("[data-sm-trip-save]").click();
+        await page.locator("[data-sm-save-name]").fill("Smoke trip");
+        await page.locator("[data-sm-save-go]").click();
+        await page.waitForSelector("[data-sm-template-page]");
+        r.saved = (await page.locator("[data-sm-template-page] h1").textContent())?.trim();
+        r.savedItems = await page.locator("[data-sm-template-item]").count();
+        await page.locator("[data-sm-lists-back]").click();
+        await page.locator("[data-sm-template]").first().click();
+        await page.waitForSelector("[data-sm-template-page]");
+        const before = await page.locator("[data-sm-template-item]").count();
+        await page.locator("[data-sm-template-edit]").click();
+        await page.locator("[data-sm-tpl-name]").fill("Our Thursday");
+        await page.locator("[data-sm-tpl-remove]").first().click();
+        await page.locator("[data-sm-tpl-add]").fill("Halva");
+        await page.locator("[data-sm-tpl-add]").press("Enter");
+        await page.locator("[data-sm-tpl-save]").click();
+        await page.waitForSelector("[data-sm-template-page]");
+        r.renamed = (await page.locator("[data-sm-template-page] h1").textContent())?.trim();
+        r.itemsAfter = await page.locator("[data-sm-template-item]").count();
+        r.note = await page.locator("[data-sm-nexus-note]").count();
+        r.before = before;
+        ok(
+          r.months >= 2 && r.trips >= 6 && r.lines > 0 && r.saved === "Smoke trip" && r.savedItems > 0 && r.renamed === "Our Thursday" && r.itemsAfter === before && r.note === 0,
+          "templates (R18 E2): past trips, trip → template, edit makes it yours",
+          JSON.stringify(r),
+        );
+        await page.keyboard.press("Escape");
+      });
+
     // R18 S2 D3: a full trip on the phone through store mode — start, check two rows (the picture fills), "not in the
     // store" on a third, a price, collapse (the trip bar takes over on Products), back, finish → summary → skip → saved;
     // the checked rows leave the list, the one not found stays.

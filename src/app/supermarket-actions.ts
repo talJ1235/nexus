@@ -226,9 +226,10 @@ export async function createSupermarketTemplate(name: string, items: z.input<typ
   return G.createTemplate(scoped(ctx), z.string().trim().min(1).max(80).parse(name), z.array(TItemZ).max(200).parse(items), ctx.user.id);
 }
 
-export async function saveTripAsTemplate(tripId: string, name: string) {
+export async function saveTripAsTemplate(tripId: string, name: string, o?: { missed?: boolean; keepQty?: boolean }) {
   const ctx = await requireCtx("edit");
-  const t = await G.templateFromTrip(scoped(ctx), Id.parse(tripId), z.string().trim().min(1).max(80).parse(name), ctx.user.id);
+  const opts = z.object({ missed: z.boolean().optional(), keepQty: z.boolean().optional() }).strict().optional().parse(o);
+  const t = await G.templateFromTrip(scoped(ctx), Id.parse(tripId), z.string().trim().min(1).max(80).parse(name), ctx.user.id, opts);
   if (!t) throw new AccessError("not_found");
   return t;
 }
@@ -246,6 +247,45 @@ export async function applySupermarketTemplate(id: string) {
   const r = await G.applyTemplate(scoped(ctx), Id.parse(id), ctx.user.id);
   if (!r) throw new AccessError("not_found");
   return r;
+}
+
+// ---------- E2: template edit, past trips ----------
+
+/** A template item by name only (added in the editor) gets its product key, section and picture here. */
+const EditItemZ = TItemZ.extend({ productKey: Key.optional() });
+
+/** Rename / change the items: the template becomes the user's (Nexus never changes it again). */
+export async function editSupermarketTemplate(id: string, patch: { name?: string; items?: z.input<typeof EditItemZ>[] }) {
+  const ctx = await requireCtx("edit");
+  const p = z.object({ name: z.string().trim().min(1).max(80).optional(), items: z.array(EditItemZ).max(200).optional() }).strict().parse(patch);
+  const items = p.items?.map((i) => {
+    if (i.productKey) return { ...i, productKey: i.productKey };
+    const c = classifyLocal(i.title);
+    return { ...i, productKey: c.productKey, section: i.section ?? c.section, art: i.art ?? c.art };
+  });
+  const r = await G.editTemplate(scoped(ctx), Id.parse(id), { name: p.name, items });
+  if (!r) throw new AccessError("not_found");
+  return r;
+}
+
+export async function saveListAsTemplate(name: string) {
+  const ctx = await requireCtx("edit");
+  return G.templateFromList(scoped(ctx), z.string().trim().min(1).max(80).parse(name), ctx.user.id);
+}
+
+/** Past trips, newest first, with who shopped (first names) — Lists → Past trips. */
+export async function supermarketPastTrips() {
+  const ctx = await requireCtx("view");
+  const trips = await G.pastTrips(scoped(ctx));
+  const { firstNames } = await import("@/lib/db-scoped/notify");
+  const names = await firstNames([...new Set(trips.map((t) => t.userId))]);
+  return trips.map((t) => ({ ...t, who: names[t.userId] ?? "" }));
+}
+
+/** "Add again": the picked products of a past trip back on the list (merge: rows already there stay). */
+export async function readdToSupermarket(items: z.input<typeof TItemZ>[]) {
+  const ctx = await requireCtx("edit");
+  return G.addMissing(scoped(ctx), z.array(TItemZ).min(1).max(200).parse(items), ctx.user.id);
 }
 
 /** E1: "Keep it" / "No thanks" on a routine Nexus spotted. */

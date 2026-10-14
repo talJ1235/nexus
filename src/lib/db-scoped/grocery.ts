@@ -433,13 +433,74 @@ export async function createTemplate(s: Scoped, name: string, items: TemplateIte
   return s.byId(schema.template, id);
 }
 
-/** "Save this trip as a template": what was bought in it. */
-export async function templateFromTrip(s: Scoped, tripId: string, name: string, by: string | null) {
-  const trip = await s.byId(schema.trip, tripId);
-  if (!trip) return null;
-  const { purchases } = await purchasesOf(s);
-  const items: TemplateItem[] = purchases.filter((p) => p.tripId === tripId).map((p) => ({ productKey: p.productKey, title: p.title, qty: p.qty ?? 1, amount: p.amount ?? null, unit: p.unit ?? null, section: (p.section as string) ?? null, art: p.art ?? null }));
+/** "Save this trip as a template": what was bought in it (E2: + what wasn't found; quantities kept or left at 1). */
+export async function templateFromTrip(s: Scoped, tripId: string, name: string, by: string | null, o: { missed?: boolean; keepQty?: boolean } = {}) {
+  const t = (await pastTrips(s)).find((x) => x.id === tripId);
+  if (!t) return null;
+  const keep = o.keepQty !== false;
+  const items: TemplateItem[] = t.items
+    .filter((i) => i.state === "bought" || (o.missed && i.state === "not_found"))
+    .map((i) => ({ productKey: i.productKey, title: i.title, qty: keep ? i.qty : 1, amount: keep ? i.amount : null, unit: keep ? i.unit : null, section: i.section, art: i.art }));
   return createTemplate(s, name, items, by);
+}
+
+/** E2: "Save the current list as a template". */
+export async function templateFromList(s: Scoped, name: string, by: string | null) {
+  const list = (await supermarketList(s)).filter((i) => i.productKey);
+  return createTemplate(s, name, list.map((i) => ({ productKey: i.productKey!, title: i.title, qty: i.quantity, amount: i.amount, unit: i.unit, section: i.section, art: i.artKey })), by);
+}
+
+/** E2: rename / change the items — an edited template is the user's (a Nexus one stops following trips for good). */
+export async function editTemplate(s: Scoped, id: string, patch: { name?: string; items?: TemplateItem[] }, now = Date.now()) {
+  const t = await s.byId(schema.template, id);
+  if (!t) return null;
+  const seen = new Set<string>();
+  const items = patch.items?.filter((i) => i.productKey && !seen.has(i.productKey) && seen.add(i.productKey)).slice(0, 200);
+  await s.update(
+    schema.template,
+    { ...(patch.name != null ? { name: patch.name.trim().slice(0, 80) } : {}), ...(items ? { items } : {}), editedAt: now, updatedAt: now, keptAt: t.keptAt ?? (t.madeBy === "nexus" ? now : null), rev: t.rev + 1 },
+    eq(schema.template.id, id),
+  );
+  return s.byId(schema.template, id);
+}
+
+export type PastItem = { productKey: string; title: string; qty: number; amount: number | null; unit: string | null; section: string | null; art: string | null; price: number | null; state: "bought" | "not_found" };
+/** E2: finished trips, newest first, with what was bought and what wasn't found. */
+export async function pastTrips(s: Scoped, limit = 120) {
+  const [{ purchases }, trips, rows] = await Promise.all([purchasesOf(s), finishedTrips(s), s.select(schema.items, SM)]);
+  const byId = new Map(rows.map((i) => [i.id, i]));
+  const latest = new Map<string, ItemRow>();
+  for (const i of rows) if (i.productKey && (latest.get(i.productKey)?.updatedAt ?? -1) < i.updatedAt) latest.set(i.productKey, i);
+  return trips
+    .reverse()
+    .slice(0, limit)
+    .map((t) => {
+      const items: PastItem[] = purchases.filter((p) => p.tripId === t.id).map((p) => ({ productKey: p.productKey, title: p.title, qty: p.qty ?? 1, amount: p.amount ?? null, unit: p.unit ?? null, section: (p.section as string) ?? null, art: p.art ?? null, price: p.price ?? null, state: "bought" }));
+      const bought = new Set(items.map((i) => i.productKey));
+      const last = new Map<string, (typeof t.checks)[number]>();
+      for (const c of [...t.checks].sort((a, b) => a.seq - b.seq)) if (c.action === "check" || c.action === "uncheck" || c.action === "not_found" || c.action === "substitute") last.set(c.itemId ?? c.productKey ?? "", c);
+      for (const c of last.values()) {
+        if (c.action !== "not_found") continue;
+        const it = (c.itemId ? byId.get(c.itemId) : undefined) ?? (c.productKey ? latest.get(c.productKey) : undefined);
+        const key = c.productKey ?? it?.productKey;
+        if (!key || bought.has(key)) continue;
+        items.push({ productKey: key, title: it?.title ?? key, qty: it?.quantity ?? 1, amount: it?.amount ?? null, unit: it?.unit ?? null, section: c.section ?? it?.section ?? null, art: it?.artKey ?? null, price: null, state: "not_found" });
+      }
+      return { id: t.id, userId: t.userId, chain: t.chain, branch: t.branch, startedAt: t.startedAt, finishedAt: t.finishedAt ?? t.startedAt, total: t.total, currency: t.currency, receipt: !!t.receiptId, items };
+    });
+}
+
+/** E2: products back on the list — merge like a template (rows already there keep their quantity). */
+export async function addMissing(s: Scoped, items: TemplateItem[], by: string) {
+  const list = await supermarketList(s);
+  const on = new Set(list.map((i) => i.productKey).filter(Boolean));
+  const rows: ItemRow[] = [];
+  for (const i of items) {
+    if (on.has(i.productKey)) continue;
+    on.add(i.productKey);
+    rows.push((await addToList(s, { title: i.title, qty: i.qty, amount: i.amount ?? null, unit: (i.unit as Unit | null) ?? null, productKey: i.productKey, section: i.section ?? null, art: i.art ?? null, by })).item);
+  }
+  return rows;
 }
 
 const hiddenKeys = async (s: Scoped) => new Set((await s.select(schema.suggestDismiss, isNotNull(schema.suggestDismiss.hiddenAt))).map((r) => r.productKey));

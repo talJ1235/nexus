@@ -15,6 +15,7 @@ Tal's usage is short. Work so that a session can stop at any moment and the next
   then `git push origin round18-s2`. Never keep more than one item of work uncommitted.
 - After each item: tick it here (`[x]`) **and** append one line to "## Open" → "### Progress" (`A3 done — <one line>`),
   in the same commit. Decisions go to "- E1 done — routines `lib/grocery/routines.ts` (≥ 3 look-alike trips on one weekday, Jaccard ≥ 0.4; items bought in ≥ half of them, ≥ 4; hidden never), `refreshRoutines` after every finished trip (new → an offer; known → items + trip count follow until `edited_at`; turned down never again), `hideProduct` strips un-edited Nexus templates; apply = merge (`templatePlan` / `applyTemplate`: new / already on it — stays / hidden skipped, `used_at`). Additive `template` columns made_by, routine_day, routine_trips, kept_at, dismissed_at, edited_at, updated_at, used_at (rehearsal list extended). Screen `supermarket/lists.tsx` (⋯ → Templates & past trips): offer card (also on the tab), cards with Made by Nexus / Yours · used in May, the template page + Nexus note, apply sheet. `test:templates` (new, in CI with `test:trip-api`), seed (kept routine, offer, Barbecue), smoke step, parity e1-templates.png. Also fixed CI: `test:help` failed since D1 (SPEC's trip-API bullets read as features: Ops / Client / Server → italics); `test:roles` lists D4's two view actions.
+- E2 done — Templates screen gets the Templates · Past trips segment: edit (rename, remove, add by name — classified on the server; saving makes it the user's, a Nexus one stops following trips), delete; past trips by month (total · n trips; date, store, items · who · minutes, receipt mark, total) → a trip (total / items / not found, receipt, every product picked except not found + already listed → Add N again = merge) → Save as template sheet (name, what was bought, also what wasn't found, keep the quantities); Save the current list (row + empty state). Data `pastTrips` / `editTemplate` / `templateFromTrip` options / `templateFromList` / `addMissing`; actions `editSupermarketTemplate`, `saveListAsTemplate`, `supermarketPastTrips`, `readdToSupermarket`. `test:templates` +E2, smoke step, parity e2-past-edit.png.
 ### Decisions" right away, not at the end.
 - **Resuming:** at session start, `git fetch` and check out `round18-s2` if it exists; read "### Progress" + `git log`;
   continue from the first unticked item. Never redo a ticked item.
@@ -118,7 +119,7 @@ Detect repeating trips (items bought together + weekday, ≥ 3 occurrences) → 
 as a template?"; kept ones show "Made by Nexus" and are updated from new trips **until the user edits one** — then it is
 theirs (flag) and Nexus never changes it. Hidden products never enter a Nexus template. Apply = merge, never duplicate,
 the user's quantities win ("already on it — stays ×2").
-### E2. [ ] Template edit + past trips
+### E2. [x] Template edit + past trips
 Rename, remove/add items; past trips by month with totals, open → re-add selected / save as template.
 
 ## Part F — settings, onboarding, computer
@@ -198,5 +199,7 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 - E1: A Nexus template has no stored name: it reads "Thursday shop" / "קנייה של חמישי" in the reader's language until someone renames it (E2), which makes it theirs.
 - E1: A "routine" is weekday-based (the brief: items bought together + weekday). Context routines without a weekday (the board's barbecue) aren't detected; a weekday with two different baskets gives two routines.
 - E1: "skipped" in the apply sheet = products the home hid ("Don't suggest this again"); a user's template may hold them, applying never adds them.
+- E2: "Add again" pre-picks what was bought and isn't on the list now (not found ones and listed ones start unticked); adding merges like a template (a listed row keeps its quantity).
+- E2: Editing any template (also a person's) stamps `edited_at`; for a Nexus one this is the "it's yours now" moment (also kept). Delete lives at the bottom of the editor (the board's ⋯ is decorative).
 ### For Tal
 - ~~Prod snapshot was refused to the agent at session start (2026-10-13).~~ Taken 2026-10-14 (`snapshots/prod-2026-10-14.db`, read-only, integrity ok); the S2 rehearsal passes on a copy of it (state after D3).
