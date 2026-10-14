@@ -1434,6 +1434,44 @@ try {
         "overscroll (R18 S3 A4): root overscroll none, the dock / top bar keep their box past the end of a page", JSON.stringify(r));
     });
 
+    // R18 S3 B1: Supermarket settings in plain sight — phones: a row on the Settings list (under the space's name) that
+    // opens the page (with the space's name on it), Back returns to the list, Space settings doesn't repeat it; the
+    // computer: a sidebar row; /settings/supermarket opens the page on both.
+    await step("supermarket settings in plain sight (R18 S3 B1): list row, page names the space, deep link", async () => {
+      const r = {};
+      await page.goto(`${BASE}/settings`);
+      if (MOBILE) {
+        await page.waitForSelector("[data-settings-list]");
+        const row = page.locator('[data-settings-list] [data-sx-nav="supermarket"]');
+        r.row = await row.waitFor({ timeout: 8000 }).then(() => true, () => false);
+        r.inView = await row.evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight);
+        await row.click();
+        await page.waitForSelector("[data-settings-sm]");
+        r.space = (await page.locator("[data-settings-sm]").innerText()).includes("Home") || (await page.locator("[data-settings-sm] .sub").first().innerText()).length > 3;
+        await page.locator("[data-settings-back]").first().click();
+        await page.waitForSelector("[data-settings-list]");
+        r.back = true;
+        await page.locator('[data-settings-list] [data-sx-nav="space"]').click();
+        await page.waitForSelector("[data-space-hub]");
+        r.hubDup = await page.locator('[data-space-hub] [data-sx-nav="supermarket"]').count();
+      } else {
+        await page.waitForSelector("[data-settings]");
+        const row = page.locator('[data-settings] [data-sx-nav="supermarket"]');
+        r.row = await row.waitFor({ timeout: 8000 }).then(() => true, () => false);
+        r.inView = true;
+        await row.click();
+        await page.waitForSelector("[data-settings-sm]");
+        r.space = true;
+        r.back = true;
+        r.hubDup = 0;
+      }
+      await page.keyboard.press("Escape");
+      await page.goto(`${BASE}/settings/supermarket`);
+      r.deep = await page.waitForSelector("[data-settings-sm]", { timeout: 15000 }).then(() => true, () => false);
+      await page.keyboard.press("Escape");
+      ok(r.row && r.inView && r.space && r.back && r.hubDup === 0 && r.deep, "supermarket settings in plain sight (R18 S3 B1): list row, page names the space, deep link", JSON.stringify(r));
+    });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

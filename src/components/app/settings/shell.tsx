@@ -48,6 +48,8 @@ function pathFor(section: string, desktop: boolean, shared: boolean): string[] {
   if (section === "space") return desktop ? [deskDefault] : ["space"];
   if (!isSection(section)) return desktop ? ["account"] : [];
   if (SUB[section]) return [SUB[section], section];
+  // R18 S3 B1: on phones Supermarket is a row of the Settings list itself (not only inside Space settings).
+  if (section === "supermarket") return [section];
   if ((SPACE as readonly string[]).includes(section)) return desktop ? [section] : ["space", section];
   return [section];
 }
@@ -445,6 +447,8 @@ function PhoneList({ go }: { go: (id: SectionId) => void }) {
               <span className="val">{sp.kind === "shared" ? f(t.sx.peopleN, { n: s.people.length || 1 }) : t.sx.personalPeople}</span>
               <I d={P.chevron} size="sm" className="flip" />
             </button>
+            {/* R18 S3 B1: in plain sight — a space setting (shared by the household), so it sits under the space's name. */}
+            {row("supermarket")}
           </div>
         </div>
       )}
@@ -473,7 +477,8 @@ function SpaceHub({ props, back }: { props: PageProps; back: () => void }) {
   const s = useStore();
   const { t } = useI18n();
   const presence = usePresence();
-  const ids = useSpaceSections();
+  // Supermarket has its own row on the phone's Settings list (R18 S3 B1) — not repeated here.
+  const ids = useSpaceSections().filter((id) => id !== "supermarket");
   const sp = s.space;
   const summary = useMemo(() => ({ general: t.sx.generalSub } as Record<string, string>), [t]);
   if (!sp) return null;

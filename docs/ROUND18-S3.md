@@ -81,7 +81,7 @@ Back to Nexus). Platform-correct direction in RTL.
 ### A6 [x] Dock "+" → "×" while the long-press menu is open (S2 leftover, Nav board)
 
 ## Part B — Supermarket fixes
-### B1 [ ] Supermarket settings in plain sight
+### B1 [x] Supermarket settings in plain sight
 Settings top level gets its own **Supermarket** row (phone list + desktop sidebar), opening the existing page
 (`settings/supermarket.tsx`). It stays a space setting (shared by the household) — show the space name on the page.
 Remove it from under Space → only if keeping both is confusing; a deep link `/settings/supermarket` still works.
@@ -223,6 +223,9 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
 - A6 — the dock "+" follows Nav-phone `.plus.held`: while the finger is down and while the + menu or the quick menu is
   open, the whole button eases to 0.9 and turns 45° (220 ms ease-out) — it reads "×"; back to "+" on close
   (`useLongPress` exposes `pressing`). Smoke "dock + → × (R18 S3 A6)" reads `rotate` / `scale` while held, open, closed.
+- B1 — phones: a Supermarket row on the Settings list itself (in the space's card, under its name), pushing straight
+  to the page (`pathFor` → ["supermarket"]); Space settings no longer repeats it. Computer: already a sidebar row under
+  the space heading. The page already names the space ("for <space>"). Deep link unchanged. Smoke (phone + computer).
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
@@ -230,6 +233,8 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   at the top (the Box mark, R10 A3) stays — it never moves the dock (a fixed overlay) and Tal asked for it in R10.
 - A5: on phones More's own screens (AI, Invites, Errors, System) keep "← More" and a person / a report keeps its bar —
   one level up, as phone apps do; the arrow back to the app is on the four top-level screens.
+- B1: kept one place per device — the phone list row replaces the one inside Space settings (two would read as two
+  different settings); the computer keeps its sidebar row under the space's name.
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.
