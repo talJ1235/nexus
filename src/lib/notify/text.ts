@@ -3,7 +3,8 @@
 
 import { fmt, type Dict } from "../i18n";
 import { formatMoney } from "../money";
-import type { ActivityData, BudgetData, DeliveryData, DraftData, NotifyKind, PriceData, ShopData, TripAddData, WeekData } from "./kinds";
+import type { ActivityData, BudgetData, DeliveryData, DraftData, NotifyKind, PriceData, SentData, ShopData, TripAddData, WeekData } from "./kinds";
+import { chainById } from "../grocery/chains";
 
 type NT = Dict["nt"];
 export type RowText = {
@@ -80,13 +81,24 @@ export function rowText(kind: NotifyKind, raw: unknown, nt: NT, locale: string):
       return { title: nt.week, sub: fmt(nt.weekSub, { bought: d.bought, spent: money(d.spent, d.currency), drops: d.drops }) };
     }
     case "draft": {
+      // R18 S2 D4 (Push-phone): "Your list for tomorrow is ready" · "18 items · Nexus suggests 4 · your list didn't change".
       const d = raw as DraftData;
-      return { title: d.items === 1 ? nt.draftOne : fmt(nt.draft, { n: d.items }), sub: d.suggested > 0 ? fmt(nt.draftSub, { k: d.suggested, space: d.space }) : fmt(nt.draftSubNone, { space: d.space }), action: "open" };
+      const items = d.items === 1 ? nt.draftItemsOne : fmt(nt.draftItems, { n: d.items });
+      return { title: nt.draft, sub: [items, d.suggested > 0 ? fmt(nt.draftSugg, { k: d.suggested }) : null, nt.draftSame].filter(Boolean).join(" · "), action: "open" };
     }
     case "trip_add": {
+      // One add names it; several read "Noa added 3 items while you shopped" with the names underneath.
       const d = raw as TripAddData;
-      const title = d.n === 1 && d.titles[0] ? fmt(nt.tripAdd, { who: d.who || nt.someone, title: short(d.titles[0], 40) }) : fmt(nt.tripAddN, { who: d.who || nt.someone, n: d.n });
-      return { title, sub: fmt(nt.tripAddSub, { space: d.space }), action: "open" };
+      // No button on the row (Push-phone): a tap on the row opens the list.
+      if (d.n === 1 && d.titles[0]) return { title: fmt(nt.tripAdd, { who: d.who || nt.someone, title: short(d.titles[0], 40) }), sub: fmt(nt.tripAddSub, { space: d.space }) };
+      return { title: fmt(nt.tripAddN, { who: d.who || nt.someone, n: d.n }), sub: short(d.titles.join(", "), 60) || fmt(nt.tripAddSub, { space: d.space }) };
+    }
+    case "sent": {
+      const d = raw as SentData;
+      const c = chainById(d.chain);
+      const store = [c ? (locale === "he" ? c.he : c.en) : d.chain, d.branch].filter(Boolean).join(" ");
+      const items = d.items === 1 ? nt.draftItemsOne : fmt(nt.draftItems, { n: d.items });
+      return { title: d.self ? nt.sentSelf : fmt(nt.sent, { who: d.who || nt.someone }), sub: [items, store || d.space].filter(Boolean).join(" · ") };
     }
   }
 }

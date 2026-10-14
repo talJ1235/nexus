@@ -1,7 +1,7 @@
 import "server-only";
 import { schema } from "@/db";
 import { Scoped } from "../db-scoped";
-import { activePeople, countActivity, deliveriesBetween, firstNames, lastBeat, notificationByGroup, patchNotificationData, prefRows, spaceAudience, spaceBrief, spacesOf, spacesWithBudget } from "../db-scoped/notify";
+import { activePeople, countActivity, deliveriesBetween, firstNames, lastBeat, notificationByGroup, patchNotificationData, prefRows, spaceAudience, spaceBrief, spacesOf, spacesWithBudget, subscriptionsOf } from "../db-scoped/notify";
 import { spacePrefGet, userPrefGet, userPrefSet } from "../db-scoped/prefs";
 import { capFor, monthForecast, monthKeyIn, monthStartIn, nextMonthKey } from "../budget";
 import { getAppData } from "../data";
@@ -13,7 +13,7 @@ import { notify, notifyPrefs, sendNow } from "./enqueue";
 import { addCheck, finishTrip, openTripOf, openTrips, openTripsIn, SAME_TRIP_MS, setTripLeft, draftGateOf, shoppingSpaces, startTrip, tripScope, type TripRow } from "../db-scoped/trips";
 import { defaultStore, historyOf, refreshSuggestedOrder, suggestFor, supermarketList } from "../db-scoped/grocery";
 import { kvGet, kvSet } from "../kv";
-import { type DraftData, type TripAddData } from "./kinds";
+import { type DraftData, type SentData, type TripAddData } from "./kinds";
 import { draftAllowed } from "../grocery/staples";
 import { ONBOARDING_KEY, parseOnboarding } from "../onboarding";
 import { isQuiet } from "./schedule";
@@ -375,6 +375,34 @@ export async function liveAdd(userId: string, spaceId: string, added: { itemId: 
     );
   }
   return trips.length;
+}
+
+// ---------- R18 S2 D4: "sent from the computer" ----------
+
+/** Who "Send to phone" can reach in a space: every member, whether they have a device with push on, me first. */
+export async function sendTargets(spaceId: string, meId: string) {
+  const members = await spaceAudience(spaceId, null);
+  const names = await firstNames(members.map((m) => m.userId));
+  const out = await Promise.all(members.map(async (m) => ({ userId: m.userId, name: names[m.userId] ?? "", me: m.userId === meId, push: (await subscriptionsOf(m.userId)).length > 0 })));
+  return out.sort((a, b) => Number(b.me) - Number(a.me) || a.name.localeCompare(b.name));
+}
+
+/**
+ * "Tal sent the list to your phone" (23 items · Shufersal Deal): a push that opens the list, to the chosen members (me
+ * included — the point is my own phone, so the sender isn't excluded). One row per sender per space: a second send
+ * replaces the first.
+ */
+export async function sentToPhone(byId: string, spaceId: string, to: string[], list: { items: number; chain: string | null; branch: string | null }, now = Date.now()) {
+  const members = new Set((await spaceAudience(spaceId, null)).map((m) => m.userId));
+  const targets = [...new Set(to)].filter((u) => members.has(u));
+  if (!targets.length) return 0;
+  const sp = await spaceBrief(spaceId);
+  const who = (await firstNames([byId]))[byId] ?? "";
+  for (const u of targets) {
+    const data: SentData = { who, whoId: byId, self: u === byId, items: list.items, chain: list.chain, branch: list.branch || null, space: sp?.name ?? "" };
+    await notify([u], "sent", `sent:${spaceId}:${byId}`, data, { actor: null, spaceId, now });
+  }
+  return targets.length;
 }
 
 /** The hourly dispatcher's sweeps (each step on its own: one failing never stops the others). */

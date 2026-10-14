@@ -19,7 +19,7 @@ const want = (g) => !ONLY.length || ONLY.includes(g);
 const app = await startApp({ db: "bidi-test.db", port: PORT });
 const BASE = app.base;
 await seedAdmin(app.db, { adminId: app.admin, personal: app.personal });
-for (const sp of [app.personal, "pa_big"]) await seedInbox(app.db, { userId: app.admin, spaceId: sp });
+for (const sp of [app.personal, "pa_big"]) await seedInbox(app.db, { userId: app.admin, spaceId: sp, supermarket: true });
 
 const browser = await chromium.launch();
 const fails = [];

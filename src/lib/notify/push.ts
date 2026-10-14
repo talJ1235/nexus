@@ -21,6 +21,8 @@ export type PushPayload = {
   dir: "ltr" | "rtl";
   /** In-place update (shopping finished): no second sound. */
   renotify?: boolean;
+  /** R18 S2 D4: the row's kind — the service worker shows no `trip_add` while the app is in front (the app toasts it). */
+  kind?: string;
 };
 
 export type SendResult = { sent: number; failed: number; gone: number; devices: number };

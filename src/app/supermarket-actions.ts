@@ -507,3 +507,26 @@ export async function removeSmItem(itemId: string) {
   const id = Id.parse(itemId);
   await s.delete(schema.items, and(eq(schema.items.id, id), eq(schema.items.list, "supermarket"), eq(schema.items.status, "to_buy")));
 }
+
+// ---------- D4: Send to phone (the computer page, F3) ----------
+
+/** The people "Send to phone" can reach (default picks: me + members with push on). */
+export async function smSendTargets() {
+  const ctx = await requireCtx("view");
+  const { sendTargets } = await import("@/lib/notify/senders");
+  return sendTargets(ctx.space.id, ctx.user.id);
+}
+
+/** Push "Tal sent the list to your phone" to the chosen members (the list's size + the trip's store). */
+export async function sendSmToPhone(to: string[], store?: { chain: string; branch: string } | null) {
+  const ctx = await requireCtx("view");
+  const ids = z.array(Id).min(1).max(50).parse(to);
+  // A viewer may send the list to their own phone, never push others.
+  if (ctx.role === "viewer" && ids.some((u) => u !== ctx.user.id)) throw new AccessError("forbidden");
+  const pick = z.object({ chain: Store, branch: Branch }).nullable().optional().parse(store);
+  const s = scoped(ctx);
+  const [list, def] = await Promise.all([G.supermarketList(s), pick ? null : G.defaultStore(s)]);
+  const where = pick ?? (def ? { chain: def.chain, branch: def.branch } : null);
+  const { sentToPhone } = await import("@/lib/notify/senders");
+  return { sent: await sentToPhone(ctx.user.id, ctx.space.id, ids, { items: list.length, chain: where?.chain ?? null, branch: where?.branch ?? null }) };
+}

@@ -277,9 +277,68 @@ async function senders() {
   console.log("ok senders: trip start / live / finish in place, activity grouped per hour, one price row per item per run, delivery at 08:00 once, budget recipients");
 }
 
+/** R18 S2 D4: the supermarket pushes — texts from data (he + en), the payload's kind, "sent from the computer". */
+async function supermarket() {
+  const { db, schema } = await import("../src/db");
+  const { and, eq } = await import("drizzle-orm");
+  const S = await import("../src/lib/notify/senders");
+  const { rowText, pushText } = await import("../src/lib/notify/text");
+  const { payloadFor } = await import("../src/lib/notify/dispatch");
+  const { dictionaries } = await import("../src/lib/i18n");
+  const en = dictionaries.en.nt;
+  const he = dictionaries.he.nt;
+  // Evening draft (Push-phone): "Your list for tomorrow is ready" · "18 items · Nexus suggests 4 · your list didn't change".
+  const draft = { space: "Jacoby Home", items: 18, suggested: 4, day: "2026-10-16" };
+  assert.deepEqual([rowText("draft", draft, en, "en").title, rowText("draft", draft, en, "en").sub], ["Your list for tomorrow is ready", "18 items · Nexus suggests 4 · your list didn’t change"]);
+  assert.deepEqual([rowText("draft", draft, he, "he").title, rowText("draft", draft, he, "he").sub], ["הרשימה למחר מוכנה", "18 פריטים · Nexus מציע 4 · הרשימה שלכם לא השתנתה"]);
+  assert.equal(rowText("draft", { ...draft, items: 1, suggested: 0 }, en, "en").sub, "1 item · your list didn’t change");
+  // Adds during my trip: one names it; several group "Noa added 3 items while you shopped" + the names.
+  const one = { who: "Noa", whoIds: ["noa"], titles: ["Milk 1%"], n: 1, space: "Jacoby Home", tripId: "t1" };
+  const three = { ...one, titles: ["Milk 1%", "Challah", "Dish soap"], n: 3 };
+  assert.equal(rowText("trip_add", one, en, "en").title, "Noa added Milk 1%");
+  assert.deepEqual([rowText("trip_add", three, en, "en").title, rowText("trip_add", three, en, "en").sub], ["Noa added 3 items while you shopped", "Milk 1%, Challah, Dish soap"]);
+  assert.equal(rowText("trip_add", three, he, "he").title, "Noa הוסיף/ה 3 פריטים בזמן הקנייה שלך");
+  assert.equal(pushText("trip_add", three, en, "en").body, "Milk 1%, Challah, Dish soap");
+  // Sent from the computer: the chain's name in the reader's language.
+  const sent = { who: "Tal", whoId: "tal", self: false, items: 23, chain: "shufersal", branch: "Deal", space: "Jacoby Home" };
+  assert.deepEqual([rowText("sent", sent, en, "en").title, rowText("sent", sent, en, "en").sub], ["Tal sent the list to your phone", "23 items · Shufersal Deal"]);
+  assert.match(rowText("sent", sent, he, "he").sub, /^23 פריטים · שופרסל Deal$/);
+  assert.equal(rowText("sent", { ...sent, self: true, chain: null, branch: null }, en, "en").title, "The list is on your phone");
+  assert.equal(rowText("sent", { ...sent, chain: null, branch: null }, en, "en").sub, "23 items · Jacoby Home");
+  // The payload carries the kind (the service worker shows no trip_add while the app is in front) and Open the list.
+  const row = (kind: string, data: unknown) => ({ id: "n1", userId: "noa", spaceId: "home", kind, groupKey: "g", data: JSON.stringify(data), createdAt: 0, updatedAt: 0, sendAfter: 0, sentAt: null, readAt: null, pushState: "due" }) as never;
+  const pl = payloadFor([row("trip_add", three)], "en");
+  assert.equal(pl.kind, "trip_add");
+  assert.deepEqual(payloadFor([row("draft", draft)], "en").actions, [{ action: "open", title: "Open the list" }]);
+  assert.deepEqual(payloadFor([row("sent", sent)], "he").actions, [{ action: "open", title: "פתיחת הרשימה" }]);
+  const sw = (await import("node:fs")).readFileSync("public/sw.js", "utf8");
+  assert.match(sw, /p\.kind === "trip_add"[\s\S]*inFront\(\)/, "sw.js: no trip_add notification while the app is in front");
+  const route = (await import("node:fs")).readFileSync("src/app/api/notify/open/route.ts", "utf8");
+  assert.match(route, /"sent"\) return Response\.redirect\(new URL\("\/supermarket"/, "a tap on sent opens the supermarket list");
+
+  // sendTargets: every member, me first, push on = has a device; sentToPhone: me included, non-members dropped, one row
+  // per sender (a second send replaces it).
+  const t0 = IL(12, 10);
+  await db.insert(schema.pushSubscription).values({ id: "ps1", userId: "yoav", endpoint: "https://fcm.googleapis.com/fcm/send/x1", p256dh: "k", auth: "a", device: "phone", createdAt: t0 } as never);
+  const targets = await S.sendTargets("home", "noa");
+  assert.deepEqual(targets.map((t) => [t.userId, t.me, t.push]), [["noa", true, false], ["maya", false, false], ["yoav", false, true]]);
+  assert.equal(await S.sentToPhone("noa", "home", ["noa", "yoav", "stranger"], { items: 23, chain: "shufersal", branch: "Deal" }, t0), 2);
+  const sentRows = async (u: string) => db.select().from(schema.notification).where(and(eq(schema.notification.userId, u), eq(schema.notification.kind, "sent")));
+  const [mine] = await sentRows("noa");
+  const [his] = await sentRows("yoav");
+  assert.equal(JSON.parse(mine.data).self, true, "my own phone: the sender is not excluded");
+  assert.equal(JSON.parse(his.data).who, "Noa");
+  assert.equal((await sentRows("stranger")).length, 0, "only members");
+  await S.sentToPhone("noa", "home", ["yoav"], { items: 25, chain: null, branch: null }, t0 + 60_000);
+  assert.equal((await sentRows("yoav")).length, 1, "a second send replaces the first");
+  assert.equal(JSON.parse((await sentRows("yoav"))[0].data).items, 25);
+  console.log("ok D4 supermarket pushes: draft / adds while you shopped / sent from the computer (he + en), payload kind + Open the list, send targets");
+}
+
 unit()
   .then(withDb)
   .then(senders)
+  .then(supermarket)
   .then(() => process.exit(0))
   .catch((e) => {
     console.error(e);

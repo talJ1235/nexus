@@ -47,6 +47,10 @@
 .nx .nic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .nx .nic.k-budget{background:var(--warn-t);color:var(--warn)}
 .nx .nic.k-week{background:var(--s2);color:var(--ink2)}
+.nx .nic.k-draft{background:color-mix(in oklab,var(--spark) 14%,transparent);color:var(--spark)}
+.nx .nic.k-draft svg{fill:currentColor;stroke:none}
+.nx .nic.k-tadd{background:var(--ok-t);color:var(--ok)}
+.nx .nic.k-sent{background:var(--info-t);color:var(--info)}
 .nx .thumb{display:block;width:40px;height:40px;border-radius:12px;flex-shrink:0;position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);background:var(--s2) center/cover no-repeat}
 .nx .thumb>img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:block}
 .nx .thumb .kb{position:absolute;bottom:-3px;inset-inline-end:-3px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 0 2px var(--raised)}

@@ -74,13 +74,17 @@ self.addEventListener("fetch", (e) => {
 });
 
 // ---- R17 S3 J2: web push ----
-// The payload is { id, title, body, url, tag, actions, lang, dir, renotify } (lib/notify/push.ts). `tag` = the group
+// The payload is { id, title, body, url, tag, actions, lang, dir, renotify, kind } (lib/notify/push.ts). `tag` = the group
 // key, so a later message of the same group replaces the earlier one ("Noa is shopping" → "Noa finished shopping").
 // Open windows are told (postMessage) so the bell's count updates without a reload.
 const tell = async (msg) => {
   for (const c of await self.clients.matchAll({ type: "window", includeUncontrolled: true })) c.postMessage(msg);
 };
 const samePath = (u) => (typeof u === "string" && u.startsWith("/") && !u.startsWith("//") ? u : "/");
+
+// R18 S2 D4: "Noa added milk" while the shopper has Nexus in front → no system notification (store mode shows it in place
+// with a toast); the open windows are still told.
+const inFront = async () => (await self.clients.matchAll({ type: "window", includeUncontrolled: true })).some((c) => c.visibilityState === "visible" && c.focused);
 
 self.addEventListener("push", (e) => {
   let p = null;
@@ -89,6 +93,14 @@ self.addEventListener("push", (e) => {
   } catch {
     p = null;
   }
+  if (p && p.kind === "trip_add") {
+    e.waitUntil(inFront().then((front) => (front ? tell({ type: "nexus-notify", id: p.id || null }) : show(p))));
+    return;
+  }
+  e.waitUntil(show(p));
+});
+
+function show(p) {
   const title = (p && p.title) || "Nexus";
   const opts = {
     body: (p && p.body) || "",
@@ -101,8 +113,8 @@ self.addEventListener("push", (e) => {
     data: { id: (p && p.id) || null, url: samePath(p && p.url) },
     actions: Array.isArray(p && p.actions) ? p.actions.slice(0, 2) : [],
   };
-  e.waitUntil(Promise.all([self.registration.showNotification(title, opts), tell({ type: "nexus-notify", id: opts.data.id })]));
-});
+  return Promise.all([self.registration.showNotification(title, opts), tell({ type: "nexus-notify", id: opts.data.id })]);
+}
 
 self.addEventListener("notificationclick", (e) => {
   const n = e.notification;

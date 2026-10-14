@@ -7,6 +7,7 @@ import { mkdirSync, statSync } from "node:fs";
 import { chromium } from "playwright";
 import { renderBoard } from "./lib/board.mjs";
 import { seedAdmin } from "./lib/seed-admin.mjs";
+import { seedInbox } from "./lib/seed-notify.mjs";
 import { startApp } from "./lib/test-app.mjs";
 import { PHONE_UA } from "./lib/phone.mjs";
 
@@ -121,12 +122,15 @@ const SHOTS = [
   ["d2-store-order", [["board · picker", "Store-phone", { ...EN, state: "store picker" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: async (p) => { await p.click("[data-sm-store]"); await p.waitForSelector("[data-store-picker]"); } }], ["board · learned order", "Store-phone", { ...EN, state: "section order · learned suggestion" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: async (p) => { await p.click("[data-sm-more]"); await p.click("[data-sm-menu-order]"); await p.waitForSelector("[data-order-list]"); } }], ["app · he dark search", "/supermarket", PHONE, { wait: SM, he: true, dark: true, act: async (p) => { await p.click("[data-sm-store]"); await p.fill("[data-store-search]", "רמי לוי רחובות"); } }]], 280],
   // D3 — store mode: the start screen, in progress (two rows checked), the finish summary.
   ["d3-store-mode", [["board · start", "StoreMode-phone", { ...EN, state: "start" }, PHONE], ["app", "/supermarket", PHONE, { wait: "[data-sm-start]", act: async (p) => { await p.click("[data-sm-start]"); await p.waitForSelector("[data-store-start]"); } }], ["board · in progress", "StoreMode-phone", { ...EN, state: "in progress" }, PHONE], ["app", "/supermarket", PHONE, { wait: "[data-sm-start]", act: storeIn }], ["board · summary", "Finish-phone", { ...EN, step: "summary" }, PHONE], ["app", "/supermarket", PHONE, { wait: "[data-sm-start]", act: async (p) => { await storeIn(p); await p.click("[data-store-finish]"); await p.click("[data-store-finish-confirm]"); await p.waitForSelector("[data-store-summary]"); } }]], 260],
+  // D4 — the supermarket pushes in the inbox (the draft, sent from the computer, adds while you shopped: own badges).
+  ["d4-push-inbox", [["board · inbox", "Push-phone", { ...EN, state: "inbox" }, PHONE], ["app", "/inbox", PHONE, { wait: "[data-kind=draft]" }], ["board · he dark", "Push-phone", { ...HE, state: "inbox", dark: true }, PHONE], ["app · he dark plum", "/inbox", PHONE, { wait: "[data-kind=draft]", he: true, dark: true, plum: true }]], 300],
 ];
 
 /** A trip of mine in the personal space: 23 planned, the first 12 listed rows checked with their prices. */
 async function tripOn(on) {
-  await app.db.execute({ sql: "DELETE FROM trip_check WHERE trip_id = 'parity-trip'", args: [] });
-  await app.db.execute({ sql: "DELETE FROM trip WHERE id = 'parity-trip'", args: [] });
+  // Every shot starts with no open trip of mine (store mode's shots start one through the app).
+  await app.db.execute({ sql: "DELETE FROM trip_check WHERE trip_id IN (SELECT id FROM trip WHERE space_id = ? AND user_id = ? AND finished_at IS NULL)", args: [app.personal, app.admin] });
+  await app.db.execute({ sql: "DELETE FROM trip WHERE space_id = ? AND user_id = ? AND finished_at IS NULL", args: [app.personal, app.admin] });
   if (!on) return;
   const now = Date.now();
   await app.db.execute({ sql: "INSERT INTO trip (id, space_id, user_id, chain, branch, started_at, planned, currency) VALUES ('parity-trip', ?, ?, 'shufersal', 'Herzl St.', ?, 23, 'ILS')", args: [app.personal, app.admin, now - 25 * 60_000] });
@@ -139,6 +143,7 @@ async function tripOn(on) {
 try {
   for (const [file, cells, w] of SHOTS) {
     if (ONLY && !file.startsWith(ONLY)) continue;
+    if (file.startsWith("d4")) await seedInbox(app.db, { userId: app.admin, spaceId: app.personal, supermarket: true });
     const bufs = [];
     for (const c of cells) {
       if (typeof c[1] === "string" && c[1].startsWith("/")) bufs.push([c[0], await appShot(c[1], c[2], c[3])]);

@@ -25,7 +25,7 @@ const BASE = app.base;
 // R17 S2: the admin panel's demo people (presence put back to "now" before each admin screen) and the onboarding steps.
 await seedAdmin(app.db, { adminId: app.admin, personal: app.personal });
 // R17 S3: the boards' inbox in both spaces, plus a worst-case row (long names, a long title, a big price).
-for (const sp of [app.personal, "pa_big"]) await seedInbox(app.db, { userId: app.admin, spaceId: sp });
+for (const sp of [app.personal, "pa_big"]) await seedInbox(app.db, { userId: app.admin, spaceId: sp, supermarket: true });
 await app.db.execute({
   sql: "INSERT INTO notification (id, user_id, space_id, kind, group_key, data, created_at, updated_at, push_state) VALUES ('n_worst1', ?, 'pa_big', 'activity', 'activity:worst', ?, ?, ?, 'sent'), ('n_worst2', ?, 'pa_big', 'price', 'price:worst:1', ?, ?, ?, 'sent')",
   args: [app.admin, JSON.stringify({ names: ["Christopher Alexander Montgomery III", "נור الهدى عبد الرحمن"], byIds: ["pa_u3", "pa_u4"], added: 128, checked: 47, space: "משפחת וישנייבסקה-קובלצ'יק — הדירה החדשה ברחוב הרצל 42" }), Date.now(), Date.now(), app.admin, JSON.stringify({ itemId: "x", title: "Ergonomic office chair with adjustable lumbar support, 4D armrests and headrest — black mesh edition", store: "Office Depot International Wholesale", now: 1249999.9, was: 1999999, currency: "ILS", run: "worst" }), Date.now() - 1000, Date.now() - 1000],

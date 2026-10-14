@@ -18,7 +18,19 @@ const WALLET = "M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2
 const CHART = "M3 3v18h18 M7 15l4-4 3 3 5-6";
 const CHECK = "M20 6 9 17l-5-5";
 const TRASH = "M3 6h18 M8 6V4h8v2 M19 6l-1 14H6L5 6";
-export const ICONS = { BELL, TAG, TRUCK, WALLET, CHART, CHECK, TRASH };
+// R18 S2 D4 (Push-phone): the supermarket kinds have their own badges — the draft Nexus' sparkle, an add during a trip a
+// plus, "sent from the computer" a screen.
+const SPARK = "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z";
+const PLUS = "M12 5v14 M5 12h14";
+const SCREEN = "M4 5h16v11H4z M8 20h8 M12 16v4";
+export const ICONS = { BELL, TAG, TRUCK, WALLET, CHART, CHECK, TRASH, SPARK, PLUS, SCREEN };
+const KIND_BADGE: Partial<Record<InboxRow["kind"], [string, string]>> = {
+  budget: ["k-budget", WALLET],
+  week: ["k-week", CHART],
+  draft: ["k-draft", SPARK],
+  trip_add: ["k-tadd", PLUS],
+  sent: ["k-sent", SCREEN],
+};
 
 export const Svg = ({ d, className }: { d: string; className?: string }) => (
   <svg viewBox="0 0 24 24" className={className} aria-hidden>
@@ -77,10 +89,11 @@ function Media({ row }: { row: InboxRow }) {
       </span>
     );
   }
+  const [cls, d] = KIND_BADGE[row.kind] ?? ["k-week", BELL];
   return (
     <span className="media" data-media>
-      <span className={`nic ${row.kind === "budget" ? "k-budget" : "k-week"}`} data-badge>
-        <Svg d={row.kind === "budget" ? WALLET : CHART} />
+      <span className={`nic ${cls}`} data-badge data-kind={row.kind}>
+        <Svg d={d} />
       </span>
     </span>
   );
@@ -150,7 +163,7 @@ export function NotifyRow({ row, now, onOpen }: { row: InboxRow; now: number; on
               )
             ) : (
               <button type="button" className="btn sm" onClick={() => onOpen(row)} data-nt-open>
-                {nt.open}
+                {row.kind === "draft" ? nt.openList : nt.open}
               </button>
             )}
           </span>

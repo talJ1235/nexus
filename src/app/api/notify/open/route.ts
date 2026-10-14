@@ -22,9 +22,9 @@ export async function GET(req: Request) {
       return {};
     }
   })();
-  // R18 B3 / D2: the evening draft and live adds open the supermarket list (S2's screen; a redirect to To buy until then).
+  // R18 B3 / D2: the evening draft and live adds open the supermarket list (S2's tab); so does "sent to your phone" (D4).
   if (row.kind === "draft") return Response.redirect(new URL("/supermarket?draft=1", url.origin), 303);
-  if (row.kind === "trip_add") return Response.redirect(new URL("/supermarket", url.origin), 303);
+  if (row.kind === "trip_add" || row.kind === "sent") return Response.redirect(new URL("/supermarket", url.origin), 303);
   const to = new URL("/", url.origin);
   if (data.itemId && (row.kind === "price" || row.kind === "delivery")) to.searchParams.set("item", data.itemId);
   else if (row.kind === "shop" || row.kind === "activity") to.searchParams.set("v", "to_buy");
