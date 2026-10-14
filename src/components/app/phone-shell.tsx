@@ -223,9 +223,15 @@ function DockBar() {
             aria-haspopup="menu"
             data-plus
             data-dock-target="plus"
-            className="grid size-[52px] select-none place-items-center justify-self-center rounded-full bg-brand text-on-brand shadow-[0_8px_20px_color-mix(in_srgb,var(--brand)_40%,transparent)] [-webkit-touch-callout:none] active:scale-95"
+            // R18 S3 A6 (Nav-phone `.plus.held`): while the finger is down, and while either menu is open, the whole button
+            // eases to 0.9 and turns 45° — the "+" becomes "×", and the hold shows it's about to open the quick menu.
+            className={cn(
+              "grid size-[52px] select-none place-items-center justify-self-center rounded-full bg-brand text-on-brand shadow-[0_8px_20px_color-mix(in_srgb,var(--brand)_40%,transparent)] transition-transform duration-[220ms] ease-[var(--ease-out)] [-webkit-touch-callout:none]",
+              (press.pressing || plusOpen || quick) && "rotate-45 scale-90",
+            )}
+            data-plus-held={press.pressing || plusOpen || quick ? "" : undefined}
           >
-            <Plus className={cn("size-6 transition-transform duration-200 ease-[var(--ease-out)]", (plusOpen || quick) && "rotate-[135deg]")} strokeWidth={2.4} />
+            <Plus className="size-6" strokeWidth={2.4} />
           </button>
         )}
         {DOCK_ORDER.slice(2).map(item)}
@@ -240,11 +246,15 @@ function useLongPress(fn: () => void, ms = 450) {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const done = useRef(false);
   const start = useRef<{ x: number; y: number } | null>(null);
+  // The finger is down (the "held" look); ends on release, a move, or when the hold fires.
+  const [pressing, setPressing] = useState(false);
   const cancel = () => {
     clearTimeout(timer.current);
     start.current = null;
+    setPressing(false);
   };
   return {
+    pressing,
     fired: () => {
       const f = done.current;
       done.current = false;
@@ -255,8 +265,10 @@ function useLongPress(fn: () => void, ms = 450) {
         done.current = false;
         start.current = { x: e.clientX, y: e.clientY };
         clearTimeout(timer.current);
+        setPressing(true);
         timer.current = setTimeout(() => {
           done.current = true;
+          setPressing(false);
           fn();
         }, ms);
       },

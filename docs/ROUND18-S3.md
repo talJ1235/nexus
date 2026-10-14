@@ -78,7 +78,7 @@ refresh must not fire inside the app. Also the desktop top bar.
 A back arrow in the admin top bar (start side, every admin screen, phone + desktop) → back to the app (same as ⋯ →
 Back to Nexus). Platform-correct direction in RTL.
 
-### A6 [ ] Dock "+" → "×" while the long-press menu is open (S2 leftover, Nav board)
+### A6 [x] Dock "+" → "×" while the long-press menu is open (S2 leftover, Nav board)
 
 ## Part B — Supermarket fixes
 ### B1 [ ] Supermarket settings in plain sight
@@ -220,6 +220,9 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
 - A5 — `BackToNexus` (admin `ui.tsx`, a link to `/`, arrow flipped in Hebrew) at the start of every computer top bar
   (`ops-top`, 7 tabs) and, on phones, a round arrow at the top start of Live / People / Reports / More. Smoke "admin
   back arrow (R18 S3 A5)" — every bar, start side in en + he, lands in the app (phone + computer).
+- A6 — the dock "+" follows Nav-phone `.plus.held`: while the finger is down and while the + menu or the quick menu is
+  open, the whole button eases to 0.9 and turns 45° (220 ms ease-out) — it reads "×"; back to "+" on close
+  (`useLongPress` exposes `pressing`). Smoke "dock + → × (R18 S3 A6)" reads `rotate` / `scale` while held, open, closed.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

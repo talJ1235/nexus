@@ -1288,6 +1288,39 @@ try {
       }
     });
 
+    // R18 S3 A6 (Nav-phone `.plus.held`): holding "+" eases it to 0.9 and turns it 45° before the quick menu opens; while
+    // the menu is open it stays an "×"; closing the menu turns it back to "+".
+    if (MOBILE)
+      await step("dock + → × (R18 S3 A6): held = 0.9 + 45°, × while the quick menu is open, + again after", async () => {
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector(READY);
+        // Tailwind 4 sets the individual `rotate` / `scale` properties; fold them with any `transform` into one matrix.
+        const look = () => page.locator("[data-plus]").evaluate((el) => {
+          const st = getComputedStyle(el);
+          const m = new DOMMatrix(st.transform === "none" ? undefined : st.transform);
+          const rot = st.rotate && st.rotate !== "none" ? parseFloat(st.rotate) : 0;
+          const sc = st.scale && st.scale !== "none" ? parseFloat(st.scale) : 1;
+          const r = m.rotate(rot).scale(sc);
+          return { deg: Math.round((Math.atan2(r.b, r.a) * 180) / Math.PI), scale: +Math.hypot(r.a, r.b).toFixed(2) };
+        });
+        const r = { idle: await look() };
+        const box = await page.locator("[data-plus]").boundingBox();
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.down();
+        await page.waitForTimeout(300);
+        r.holding = await look();
+        await page.waitForTimeout(400);
+        await page.mouse.up();
+        await page.waitForTimeout(350);
+        r.open = await look();
+        r.menu = await page.locator('[data-quick-menu="open"]').count();
+        await page.locator('[data-quick-menu="open"] > [aria-hidden]').first().click({ position: { x: 20, y: 120 } });
+        await page.waitForTimeout(350);
+        r.closed = await look();
+        ok(r.idle.deg === 0 && r.idle.scale === 1 && r.holding.deg === 45 && r.holding.scale === 0.9 && r.menu === 1 && r.open.deg === 45 && r.closed.deg === 0 && r.closed.scale === 1,
+          "dock + → × (R18 S3 A6): held = 0.9 + 45°, × while the quick menu is open, + again after", JSON.stringify(r));
+      });
+
     // R18 S3 A2: segment switches keep the chrome still — Products (To buy → On the way → Projects → On the way → To buy),
     // Insights (Spending → History → Spending): the top bar, the title, the segment control (and the toolbar between To
     // buy and On the way) keep their box on every frame, stay the same nodes, and no layout shift starts inside them.
