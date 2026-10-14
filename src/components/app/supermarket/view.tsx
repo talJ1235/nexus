@@ -2,7 +2,7 @@
 
 import "./sm.css";
 import { useEffect, useMemo, useState } from "react";
-import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, ShoppingCart, Sparkles, X } from "lucide-react";
+import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, LayoutList, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, ShoppingCart, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { acceptSuggestions, dismissSuggestion, setSupermarketLayout } from "@/app/supermarket-actions";
@@ -27,6 +27,7 @@ import { SmItemSheet, SuggestionActions } from "./item-sheet";
 import { useVoiceSupported } from "./add-screen";
 import { qtyLabel } from "./qty";
 import { useOutboxCount } from "./outbox-count";
+import { Lists, RoutineOffer } from "./lists";
 
 // R18 S2 A2 — the Supermarket tab (board Supermarket-phone `Main`): store chip + estimate vs budget, the aisle rail, the
 // add field, "Nexus suggests", the list by sections in the branch's order (rows or tiles, the ⋯ menu, per person),
@@ -62,6 +63,7 @@ export function SupermarketView() {
   const [picking, setPicking] = useState(false);
   const [shopping, setShopping] = useState(false);
   const [ordering, setOrdering] = useState(false);
+  const [lists, setLists] = useState(false);
   const groups = useMemo(() => bySection(s.sm, order), [s.sm, order]);
   const [basketOn, setBasketOn] = useState(false);
   const addMany = useAddMany();
@@ -127,6 +129,10 @@ export function SupermarketView() {
               <ListOrdered className="size-4" />
               {t.sm.order.open}
             </MenuItem>
+            <MenuItem onSelect={() => setLists(true)} data-sm-menu-lists>
+              <LayoutList className="size-4" />
+              {t.sm.lists.open}
+            </MenuItem>
           </MenuContent>
         </Menu>
       </div>
@@ -134,6 +140,7 @@ export function SupermarketView() {
       <StoreLine home={home} store={trip.store} onPick={() => setPicking(true)} />
       <StorePicker open={picking} onClose={() => setPicking(false)} />
       <SectionOrder open={ordering} onClose={() => setOrdering(false)} onPickStore={() => setPicking(true)} />
+      <Lists open={lists} onClose={() => setLists(false)} routine={home?.routine ?? null} />
       {s.sm.length > 0 && <Rail groups={groups} />}
       {!ro && <AddField onOpen={openAdd} />}
       {!ro && <Capture open={capturing != null} mode={capturing ?? "scan"} onClose={() => setCapturing(null)} onType={() => (setCapturing(null), setAdding("type"))} />}
@@ -153,6 +160,7 @@ export function SupermarketView() {
         <FirstTime basketSize={Math.min(WEEKLY_BASKET_SIZE, basket.length)} onBasket={() => void addBasket(basket.slice(0, WEEKLY_BASKET_SIZE))} onBuild={() => setBasketOn(true)} onPaste={() => setAdding("paste")} />
       ) : (
         <>
+          {!ro && home?.routine && <RoutineOffer routine={home.routine} />}
           <Suggestions home={home} basket={null} draft={draft} ro={ro} />
           {s.sm.length > 0 && <p className="tabular px-1 pt-1 text-[13px] font-semibold text-muted">{s.sm.length === 1 ? t.sm.main.itemsOne : f(t.sm.main.items, { n: s.sm.length })}</p>}
           <div className="flex flex-col gap-1.5" data-sm-list>

@@ -1,6 +1,7 @@
 // R18 S2 — supermarket demo data (the boards' list): a main store, 23 rows on the list in 13 sections, six finished
 // trips over two months (so "Nexus suggests" has eggs every ~9 days, toilet paper every ~3 weeks, parmesan with pasta)
-// and last prices for the estimate. Idempotent: rows with ids `demo-sm-*` / `demo-trip-*` are replaced.
+// and last prices for the estimate; E1: three templates (a kept Nexus routine, an offer, a person's). Idempotent: rows with
+// ids `demo-sm-*` / `demo-trip-*` / `demo-tpl-*` are replaced.
 //   seedSupermarket(db, { spaceId, userId, now? })   — used by seed-local (smoke) and the parity script.
 
 const DAY = 86_400_000;
@@ -107,5 +108,24 @@ export async function seedSupermarket(db, { spaceId, userId, now = Date.now(), l
         [spaceId, id, k, META[k][1], META[k][2], userId, at + (seq + 1) * 60_000, seq + 1],
       );
   }
+  // E1: templates as Lists-phone — a kept Nexus routine (Thursdays), a routine offer waiting, a person's template.
+  await run("DELETE FROM template WHERE space_id = ? AND id LIKE 'demo-tpl-%'", [spaceId]);
+  const tItem = (k) => {
+    const r = SM_LIST.find((x) => x[0] === k);
+    return { productKey: r[2], title: r[1], qty: r[5], amount: r[6], unit: r[7], section: r[3], art: r[4] };
+  };
+  const weekly = ["tom", "cuc", "ban", "chk", "pen", "pit", "mlk", "cot", "yog", "hum", "lem", "cor", "cof", "wat", "dis", "tpa", "ric", "crt", "par", "ylc", "pea", "tah", "trb", "tom"].filter((k, i, a) => a.indexOf(k) === i);
+  await run(
+    "INSERT INTO template (id, space_id, name, items, created_by, created_at, rev, made_by, routine_day, routine_trips, kept_at, updated_at) VALUES ('demo-tpl-weekly', ?, '', ?, NULL, ?, 0, 'nexus', 4, 6, ?, ?)",
+    [spaceId, JSON.stringify(weekly.map(tItem)), now - 20 * DAY, now - 19 * DAY, now - 2 * DAY],
+  );
+  await run(
+    "INSERT INTO template (id, space_id, name, items, created_by, created_at, rev, made_by, routine_day, routine_trips, updated_at) VALUES ('demo-tpl-fri', ?, '', ?, NULL, ?, 0, 'nexus', 5, 3, ?)",
+    [spaceId, JSON.stringify(["pit", "hum", "tom", "cuc", "lem", "par", "tah", "wat", "mlk"].map(tItem)), now - DAY, now - DAY],
+  );
+  await run(
+    "INSERT INTO template (id, space_id, name, items, created_by, created_at, rev, used_at, updated_at) VALUES ('demo-tpl-bbq', ?, ?, ?, ?, ?, 0, ?, ?)",
+    [spaceId, "Barbecue", JSON.stringify(["chk", "pit", "tom", "hum", "wat", "cuc", "lem", "par", "tah", "trb", "dis", "crt", "ric", "pea"].map(tItem)), userId, now - 160 * DAY, now - 140 * DAY, now - 160 * DAY],
+  );
   return { list: list ? SM_LIST.length : 0, trips: TRIPS.length };
 }

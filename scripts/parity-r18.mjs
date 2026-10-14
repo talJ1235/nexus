@@ -105,6 +105,16 @@ const storeIn = async (p) => {
   await rows.nth(3).click();
   await rows.nth(4).click();
 };
+const openLists = async (p) => {
+  await p.click("[data-sm-more]");
+  await p.click("[data-sm-menu-lists]");
+  await p.waitForSelector("[data-sm-lists] [data-sm-template]");
+};
+const openTemplate = async (p) => {
+  await openLists(p);
+  await p.locator("[data-sm-template]").first().click();
+  await p.waitForSelector("[data-sm-template-page]");
+};
 const SHOTS = [
   // A2 — the Supermarket tab.
   ["a2-main-phone", [["board · normal", "Supermarket-phone", { ...EN, state: "normal" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM }], ["board · he dark plum", "Supermarket-phone", { ...HE, state: "normal", dark: true, palette: "plum" }, PHONE], ["app · he dark plum", "/supermarket", PHONE, { wait: SM, he: true, dark: true, plum: true }]], 300],
@@ -124,6 +134,8 @@ const SHOTS = [
   ["d3-store-mode", [["board · start", "StoreMode-phone", { ...EN, state: "start" }, PHONE], ["app", "/supermarket", PHONE, { wait: "[data-sm-start]", act: async (p) => { await p.click("[data-sm-start]"); await p.waitForSelector("[data-store-start]"); } }], ["board · in progress", "StoreMode-phone", { ...EN, state: "in progress" }, PHONE], ["app", "/supermarket", PHONE, { wait: "[data-sm-start]", act: storeIn }], ["board · summary", "Finish-phone", { ...EN, step: "summary" }, PHONE], ["app", "/supermarket", PHONE, { wait: "[data-sm-start]", act: async (p) => { await storeIn(p); await p.click("[data-store-finish]"); await p.click("[data-store-finish-confirm]"); await p.waitForSelector("[data-store-summary]"); } }]], 260],
   // D4 — the supermarket pushes in the inbox (the draft, sent from the computer, adds while you shopped: own badges).
   ["d4-push-inbox", [["board · inbox", "Push-phone", { ...EN, state: "inbox" }, PHONE], ["app", "/inbox", PHONE, { wait: "[data-kind=draft]" }], ["board · he dark", "Push-phone", { ...HE, state: "inbox", dark: true }, PHONE], ["app · he dark plum", "/inbox", PHONE, { wait: "[data-kind=draft]", he: true, dark: true, plum: true }]], 300],
+  // E1 — templates: the list (routine offer, Made by Nexus, a person's), the Nexus template's page, the apply sheet.
+  ["e1-templates", [["board · templates", "Lists-phone", { ...EN, state: "templates" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: openLists }], ["board · template open", "Lists-phone", { ...EN, state: "template open" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: openTemplate }], ["board · apply", "Lists-phone", { ...EN, state: "apply a template" }, PHONE], ["app", "/supermarket", PHONE, { wait: SM, act: async (p) => { await openTemplate(p); await p.click("[data-sm-template-apply]"); await p.waitForSelector("[data-sm-apply-line]"); } }], ["board · he dark plum", "Lists-phone", { ...HE, state: "templates", dark: true, palette: "plum" }, PHONE], ["app · he dark plum", "/supermarket", PHONE, { wait: SM, he: true, dark: true, plum: true, act: openLists }]], 240],
 ];
 
 /** A trip of mine in the personal space: 23 planned, the first 12 listed rows checked with their prices. */

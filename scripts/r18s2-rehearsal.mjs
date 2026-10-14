@@ -10,7 +10,7 @@ import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 
 /** S2's additions — extended by every item that adds a column or table. */
-const EXPECT_COLUMNS = ["items.count", "suggest_dismiss.skips", "suggest_dismiss.skipped_at", "suggest_dismiss.hidden_at", "suggest_dismiss.hidden_by"];
+const EXPECT_COLUMNS = ["items.count", "suggest_dismiss.skips", "suggest_dismiss.skipped_at", "suggest_dismiss.hidden_at", "suggest_dismiss.hidden_by", ...["made_by", "routine_day", "routine_trips", "kept_at", "dismissed_at", "edited_at", "updated_at", "used_at"].map((c) => `template.${c}`)];
 const EXPECT_TABLES = [];
 import { dirname } from "node:path";
 

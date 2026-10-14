@@ -58,6 +58,10 @@ const VIEW_OK = new Set([
   "supermarket-actions.ts#eveningDraft",
   "supermarket-actions.ts#supermarketTemplates",
   "supermarket-actions.ts#supermarketStores",
+  // D4: who Send to phone reaches; sending to my own phone (sending to others asks for "edit" inside). E1: the apply plan.
+  "supermarket-actions.ts#smSendTargets",
+  "supermarket-actions.ts#sendSmToPhone",
+  "supermarket-actions.ts#supermarketTemplatePlan",
   "ai-actions.ts#ask",
   // R17 S3: the inbox, its count and the permission card's memory — the caller's own rows only (everyone has one).
   "notify-actions.ts#*",

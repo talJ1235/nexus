@@ -19,4 +19,13 @@ export async function migrateR18s2(client: Client, log: (s: string) => void = co
   await addColumn(client, "suggest_dismiss", "skipped_at", "integer", log);
   await addColumn(client, "suggest_dismiss", "hidden_at", "integer", log);
   await addColumn(client, "suggest_dismiss", "hidden_by", "text", log);
+  // E1: templates made by Nexus — the routine (weekday, how many trips), offered → kept / turned down, edited = theirs.
+  await addColumn(client, "template", "made_by", "text", log);
+  await addColumn(client, "template", "routine_day", "integer", log);
+  await addColumn(client, "template", "routine_trips", "integer", log);
+  await addColumn(client, "template", "kept_at", "integer", log);
+  await addColumn(client, "template", "dismissed_at", "integer", log);
+  await addColumn(client, "template", "edited_at", "integer", log);
+  await addColumn(client, "template", "updated_at", "integer", log);
+  await addColumn(client, "template", "used_at", "integer", log);
 }

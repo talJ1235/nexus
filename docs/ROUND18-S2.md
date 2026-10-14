@@ -14,7 +14,8 @@ Tal's usage is short. Work so that a session can stop at any moment and the next
 - Branch **`round18-s2`** from `main`. **Commit and push after every single item** (not per part): `R18.<part><k>: …`,
   then `git push origin round18-s2`. Never keep more than one item of work uncommitted.
 - After each item: tick it here (`[x]`) **and** append one line to "## Open" → "### Progress" (`A3 done — <one line>`),
-  in the same commit. Decisions go to "### Decisions" right away, not at the end.
+  in the same commit. Decisions go to "- E1 done — routines `lib/grocery/routines.ts` (≥ 3 look-alike trips on one weekday, Jaccard ≥ 0.4; items bought in ≥ half of them, ≥ 4; hidden never), `refreshRoutines` after every finished trip (new → an offer; known → items + trip count follow until `edited_at`; turned down never again), `hideProduct` strips un-edited Nexus templates; apply = merge (`templatePlan` / `applyTemplate`: new / already on it — stays / hidden skipped, `used_at`). Additive `template` columns made_by, routine_day, routine_trips, kept_at, dismissed_at, edited_at, updated_at, used_at (rehearsal list extended). Screen `supermarket/lists.tsx` (⋯ → Templates & past trips): offer card (also on the tab), cards with Made by Nexus / Yours · used in May, the template page + Nexus note, apply sheet. `test:templates` (new, in CI with `test:trip-api`), seed (kept routine, offer, Barbecue), smoke step, parity e1-templates.png. Also fixed CI: `test:help` failed since D1 (SPEC's trip-API bullets read as features: Ops / Client / Server → italics); `test:roles` lists D4's two view actions.
+### Decisions" right away, not at the end.
 - **Resuming:** at session start, `git fetch` and check out `round18-s2` if it exists; read "### Progress" + `git log`;
   continue from the first unticked item. Never redo a ticked item.
 - Order = the order of the parts below (most valuable first). If a session ends mid-part, the next continues there.
@@ -112,7 +113,7 @@ Evening draft push (text from data, opens the list), "Noa added …" during your
 (D1 desktop). Own inbox icons for `draft` and `trip_add` (S1 used the generic one).
 
 ## Part E — templates and past trips (P12, P13, `Lists-phone`)
-### E1. [ ] Templates made by Nexus
+### E1. [x] Templates made by Nexus
 Detect repeating trips (items bought together + weekday, ≥ 3 occurrences) → offer "Nexus spotted a new routine — keep it
 as a template?"; kept ones show "Made by Nexus" and are updated from new trips **until the user edits one** — then it is
 theirs (flag) and Nexus never changes it. Hidden products never enter a Nexus template. Apply = merge, never duplicate,
@@ -194,5 +195,8 @@ learn, how to hide, what Nexus learned), `docs/ENVIRONMENT.md` log for any new s
 - D4: "Send to phone" reaches me too (the sender isn't excluded — my own phone is the point); a viewer may send only to themselves. One `sent` row per sender per space (a second send replaces it).
 - D4: The trip-add and sent rows have no button (board); a tap on the row opens the list. The push's own action stays "Open the list" for draft / sent.
 - D4: A draft opened from the in-app inbox goes to the Supermarket tab without the `?draft=1` header (the push / route keeps it).
+- E1: A Nexus template has no stored name: it reads "Thursday shop" / "קנייה של חמישי" in the reader's language until someone renames it (E2), which makes it theirs.
+- E1: A "routine" is weekday-based (the brief: items bought together + weekday). Context routines without a weekday (the board's barbecue) aren't detected; a weekday with two different baskets gives two routines.
+- E1: "skipped" in the apply sheet = products the home hid ("Don't suggest this again"); a user's template may hold them, applying never adds them.
 ### For Tal
 - ~~Prod snapshot was refused to the agent at session start (2026-10-13).~~ Taken 2026-10-14 (`snapshots/prod-2026-10-14.db`, read-only, integrity ok); the S2 rehearsal passes on a copy of it (state after D3).

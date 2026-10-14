@@ -1351,6 +1351,47 @@ try {
         );
       });
 
+    // R18 S2 E1: templates (seed: a kept Nexus routine, a person's template, a routine offer) — the offer on the tab and in
+    // Templates, "Made by Nexus" + its note, the apply sheet's merge (everything already on the list → nothing new, the
+    // quantities stay), Keep it → a third template.
+    if (WRITE)
+      await step("templates (R18 E1): routine offer, Made by Nexus, apply merges, keep it", async () => {
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        const r = {};
+        r.offerOnTab = await page.waitForSelector("[data-sm-view] [data-sm-routine]", { timeout: 15000 }).then(() => 1, () => 0);
+        await page.locator("[data-sm-more]").click();
+        await page.locator("[data-sm-menu-lists]").click();
+        await page.waitForSelector("[data-sm-lists] [data-sm-template]");
+        r.cards = await page.locator("[data-sm-template]").count();
+        r.offer = await page.locator("[data-sm-lists] [data-sm-routine]").count();
+        r.madeBy = await page.locator("[data-sm-template]").first().locator("[data-sm-madeby]").count();
+        await shot(page, "sm-templates");
+        await page.locator("[data-sm-template]").first().click();
+        await page.waitForSelector("[data-sm-template-page]");
+        r.note = await page.locator("[data-sm-nexus-note]").count();
+        r.items = await page.locator("[data-sm-template-item]").count();
+        await page.locator("[data-sm-template-apply]").click();
+        await page.waitForSelector("[data-sm-apply-line]");
+        r.counts = await page.locator("[data-sm-apply-count] b").allTextContents();
+        r.go = (await page.locator("[data-sm-apply-go]").textContent())?.trim();
+        r.goDisabled = await page.locator("[data-sm-apply-go]").isDisabled();
+        await shot(page, "sm-template-apply");
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(400);
+        await page.locator("[data-sm-lists-back]").click();
+        await page.locator("[data-sm-lists] [data-sm-routine-keep]").click();
+        await page.waitForTimeout(1200);
+        r.cardsAfter = await page.locator("[data-sm-template]").count();
+        r.offerAfter = await page.locator("[data-sm-lists] [data-sm-routine]").count();
+        ok(
+          r.offerOnTab === 1 && r.cards === 2 && r.offer === 1 && r.madeBy === 1 && r.note === 1 && r.items === r.counts.reduce((a, x) => a + Number(x), 0) && r.counts[0] === "0" && r.goDisabled && r.cardsAfter === 3 && r.offerAfter === 0,
+          "templates (R18 E1): routine offer, Made by Nexus, apply merges, keep it",
+          JSON.stringify(r),
+        );
+        await page.keyboard.press("Escape");
+      });
+
     // R18 S2 D3: a full trip on the phone through store mode — start, check two rows (the picture fills), "not in the
     // store" on a third, a price, collapse (the trip bar takes over on Products), back, finish → summary → skip → saved;
     // the checked rows leave the list, the one not found stays.

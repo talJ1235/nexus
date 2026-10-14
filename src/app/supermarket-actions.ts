@@ -139,8 +139,10 @@ export async function supermarketHome(locale?: "he" | "en") {
   const ctx = await requireCtx("view");
   const { tz } = await notifyPrefs(ctx.user.id);
   const who = await whoOf(ctx.user.id);
-  const [state, layout] = await Promise.all([G.homeState(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who }), userPrefGet(ctx.user.id, SM_LAYOUT_KEY)]);
-  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const) };
+  const [state, layout, offer] = await Promise.all([G.homeState(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who }), userPrefGet(ctx.user.id, SM_LAYOUT_KEY), G.routineOffer(scoped(ctx))]);
+  // E1: the routine Nexus spotted (kept / turned down ones don't come back).
+  const routine = offer ? { id: offer.id, day: offer.routineDay ?? 0, trips: offer.routineTrips ?? 0, items: offer.items.length } : null;
+  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const), routine };
 }
 
 /** Rows or tiles — remembered per person (the list's ⋯ menu, never in Settings). */
@@ -182,6 +184,7 @@ export async function dismissSuggestion(productKey: string, until: number) {
 export async function hideProduct(productKey: string) {
   const ctx = await requireCtx("edit");
   await G.hideProduct(scoped(ctx), Key.parse(productKey), ctx.user.id);
+  await G.dropFromNexusTemplates(scoped(ctx), Key.parse(productKey));
 }
 
 /** "Suggest it again" (Settings → Supermarket → Products you hid, the item sheet). */
@@ -216,7 +219,7 @@ export async function supermarketTemplates() {
   return G.templatesOf(scoped(ctx));
 }
 
-const TItemZ = z.object({ productKey: Key, title: Title, qty: z.number().int().min(1).max(999), amount: z.number().nullable().optional(), unit: z.string().max(4).nullable().optional(), section: z.string().max(20).nullable().optional() }).strict();
+const TItemZ = z.object({ productKey: Key, title: Title, qty: z.number().int().min(1).max(999), amount: z.number().nullable().optional(), unit: z.string().max(4).nullable().optional(), section: z.string().max(20).nullable().optional(), art: z.string().max(40).nullable().optional() }).strict();
 
 export async function createSupermarketTemplate(name: string, items: z.input<typeof TItemZ>[]) {
   const ctx = await requireCtx("edit");
@@ -230,9 +233,25 @@ export async function saveTripAsTemplate(tripId: string, name: string) {
   return t;
 }
 
+/** E1: what applying would do (new / already on it / skipped) — the apply sheet's numbers. */
+export async function supermarketTemplatePlan(id: string) {
+  const ctx = await requireCtx("view");
+  const r = await G.templatePlan(scoped(ctx), Id.parse(id));
+  if (!r) throw new AccessError("not_found");
+  return r.lines;
+}
+
 export async function applySupermarketTemplate(id: string) {
   const ctx = await requireCtx("edit");
   const r = await G.applyTemplate(scoped(ctx), Id.parse(id), ctx.user.id);
+  if (!r) throw new AccessError("not_found");
+  return r;
+}
+
+/** E1: "Keep it" / "No thanks" on a routine Nexus spotted. */
+export async function answerRoutine(id: string, keep: boolean) {
+  const ctx = await requireCtx("edit");
+  const r = await G.answerRoutine(scoped(ctx), Id.parse(id), z.boolean().parse(keep));
   if (!r) throw new AccessError("not_found");
   return r;
 }
@@ -311,6 +330,8 @@ export async function syncTripOps(ops: z.input<typeof OpZ>[]) {
     finish: async (op: TripOp, trip: T.TripRow) => {
       if (op.total != null) await s.update(schema.trip, { total: op.total }, eq(schema.trip.id, trip.id));
       await tripFinished(ctx.user.id, null, op.at);
+      // E1: a finished trip may show (or update) a routine.
+      await G.refreshRoutines(s, (await notifyPrefs(ctx.user.id)).tz).catch(() => 0);
     },
   };
   const r = await mergeOps(s, ctx.user.id, open && open.spaceId === ctx.space.id ? open : null, list as TripOp[], { seen: (k) => kvGet(`sm:op:${ctx.space.id}:${k}`), mark: (k, v) => kvSet(`sm:op:${ctx.space.id}:${k}`, v) }, hooks);

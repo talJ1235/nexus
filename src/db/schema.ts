@@ -612,7 +612,7 @@ export const suggestDismiss = sqliteTable(
   (t) => [primaryKey({ columns: [t.spaceId, t.productKey] })],
 );
 
-export type TemplateItem = { productKey: string; title: string; qty: number; amount?: number | null; unit?: string | null; section?: string | null };
+export type TemplateItem = { productKey: string; title: string; qty: number; amount?: number | null; unit?: string | null; section?: string | null; art?: string | null };
 /** A named supermarket list ("Basic weekly basket", a saved trip); apply = merge into the list. */
 export const template = sqliteTable(
   "template",
@@ -624,6 +624,19 @@ export const template = sqliteTable(
     createdBy: text("created_by"),
     createdAt: integer("created_at").notNull(),
     rev: integer("rev").notNull().default(0),
+    /** R18 S2 E1: "nexus" = found from repeating trips (null = made by a person). */
+    madeBy: text("made_by", { enum: ["nexus"] }),
+    /** The routine's weekday (0 = Sunday) and how many trips it was seen in. */
+    routineDay: integer("routine_day"),
+    routineTrips: integer("routine_trips"),
+    /** A Nexus template is an offer until kept; "No thanks" turns it down for good. */
+    keptAt: integer("kept_at"),
+    dismissedAt: integer("dismissed_at"),
+    /** Someone edited it → it's theirs: Nexus never changes it again. */
+    editedAt: integer("edited_at"),
+    updatedAt: integer("updated_at"),
+    /** Last applied to the list ("used in May"). */
+    usedAt: integer("used_at"),
   },
   (t) => [index("template_space_idx").on(t.spaceId)],
 );

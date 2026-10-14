@@ -9,6 +9,7 @@ import { activeSkips, knowledgeOf, learnHistory, mergeQty, suggest, type History
 import { basketFor } from "@/lib/grocery/basket";
 import { TYPE_BY_KEY } from "@/lib/grocery/dictionary";
 import { replayTrip } from "@/lib/grocery/trip";
+import { applyPlan, detectRoutines, matchRoutine } from "@/lib/grocery/routines";
 import { learnUnitWeights, unitKgFor } from "@/lib/grocery/weights";
 import type { Unit } from "@/lib/grocery/dictionary";
 import type { TemplateItem } from "@/db/schema";
@@ -407,17 +408,28 @@ export async function knowledgeFor(s: Scoped, productKey: string, tz: string) {
   return knowledgeOf(p, prefs.get(productKey), { baskets, titleOf: (k) => history.products.get(k)?.title ?? null });
 }
 
-// ---------- B4: templates ----------
+// ---------- B4: templates; E1: templates made by Nexus ----------
 
+type TemplateRow = typeof schema.template.$inferSelect;
+/** What a screen shows: people's templates and kept Nexus ones; a pending Nexus offer separately (never turned-down ones). */
 export async function templatesOf(s: Scoped) {
-  return s.select(schema.template).orderBy(desc(schema.template.createdAt));
+  const all = await s.select(schema.template);
+  const shown = all.filter((t) => t.madeBy !== "nexus" || (t.keptAt != null && t.dismissedAt == null));
+  shown.sort((a, b) => Number(b.madeBy === "nexus" && !b.editedAt) - Number(a.madeBy === "nexus" && !a.editedAt) || (b.routineTrips ?? 0) - (a.routineTrips ?? 0) || b.createdAt - a.createdAt);
+  return shown;
+}
+
+/** The newest Nexus routine not kept or turned down yet ("Nexus spotted a new routine"). */
+export async function routineOffer(s: Scoped) {
+  const rows = await s.select(schema.template, and(eq(schema.template.madeBy, "nexus"), isNull(schema.template.keptAt), isNull(schema.template.dismissedAt)));
+  return rows.sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
 }
 
 export async function createTemplate(s: Scoped, name: string, items: TemplateItem[], by: string | null, now = Date.now()) {
   const id = `tp_${nanoid(12)}`;
   const seen = new Set<string>();
   const clean = items.filter((i) => i.productKey && !seen.has(i.productKey) && seen.add(i.productKey)).slice(0, 200);
-  await s.insert(schema.template, { id, name: name.trim().slice(0, 80), items: clean, createdBy: by, createdAt: now });
+  await s.insert(schema.template, { id, name: name.trim().slice(0, 80), items: clean, createdBy: by, createdAt: now, updatedAt: now });
   return s.byId(schema.template, id);
 }
 
@@ -426,19 +438,82 @@ export async function templateFromTrip(s: Scoped, tripId: string, name: string, 
   const trip = await s.byId(schema.trip, tripId);
   if (!trip) return null;
   const { purchases } = await purchasesOf(s);
-  const items: TemplateItem[] = purchases.filter((p) => p.tripId === tripId).map((p) => ({ productKey: p.productKey, title: p.title, qty: p.qty ?? 1, amount: p.amount ?? null, unit: p.unit ?? null, section: (p.section as string) ?? null }));
+  const items: TemplateItem[] = purchases.filter((p) => p.tripId === tripId).map((p) => ({ productKey: p.productKey, title: p.title, qty: p.qty ?? 1, amount: p.amount ?? null, unit: p.unit ?? null, section: (p.section as string) ?? null, art: p.art ?? null }));
   return createTemplate(s, name, items, by);
 }
 
-/** Apply = merge into the list: never duplicates; existing quantities stay the user's. */
-export async function applyTemplate(s: Scoped, id: string, by: string) {
+const hiddenKeys = async (s: Scoped) => new Set((await s.select(schema.suggestDismiss, isNotNull(schema.suggestDismiss.hiddenAt))).map((r) => r.productKey));
+
+/** E1: what applying a template would do — new / already on it (stays as it is) / hidden (skipped). */
+export async function templatePlan(s: Scoped, id: string) {
   const t = await s.byId(schema.template, id);
   if (!t) return null;
-  return acceptSuggestions(s, t.items.map((i) => ({ productKey: i.productKey, title: i.title, qty: i.qty, amount: i.amount ?? null, unit: i.unit ?? null, section: i.section ?? "other", art: null })), by);
+  const [list, hidden] = await Promise.all([supermarketList(s), hiddenKeys(s)]);
+  const onList = new Map(list.filter((i) => i.productKey).map((i) => [i.productKey!, i.quantity]));
+  return { template: t, lines: applyPlan(t.items, onList, hidden) };
+}
+
+/** Apply = merge into the list: never duplicates, rows already there keep the user's quantity, hidden products skipped. */
+export async function applyTemplate(s: Scoped, id: string, by: string, now = Date.now()) {
+  const plan = await templatePlan(s, id);
+  if (!plan) return null;
+  const add = plan.lines.filter((l) => l.state === "new");
+  const byKey = new Map(plan.template.items.map((i) => [i.productKey, i]));
+  const rows: ItemRow[] = [];
+  for (const l of add) {
+    const i = byKey.get(l.productKey)!;
+    rows.push((await addToList(s, { title: i.title, qty: i.qty, amount: i.amount ?? null, unit: (i.unit as Unit | null) ?? null, productKey: i.productKey, section: i.section ?? null, art: i.art ?? null, by })).item);
+  }
+  await s.update(schema.template, { usedAt: now }, eq(schema.template.id, id));
+  return { rows, added: add.length, on: plan.lines.filter((l) => l.state === "on").length, skipped: plan.lines.filter((l) => l.state === "hidden").length };
 }
 
 export async function deleteTemplate(s: Scoped, id: string) {
   await s.delete(schema.template, eq(schema.template.id, id));
+}
+
+/** E1: keep a Nexus offer (it becomes a template Nexus keeps up to date) or turn it down for good. */
+export async function answerRoutine(s: Scoped, id: string, keep: boolean, now = Date.now()) {
+  const t = await s.byId(schema.template, id);
+  if (!t || t.madeBy !== "nexus") return null;
+  await s.update(schema.template, keep ? { keptAt: now, dismissedAt: null } : { dismissedAt: now }, eq(schema.template.id, id));
+  return s.byId(schema.template, id);
+}
+
+/**
+ * E1: find the home's routines and keep the Nexus templates in step — a new routine becomes an offer, a known one (same
+ * weekday, items alike) gets the newest items and trip count unless someone edited it (then it's theirs). Hidden products
+ * never enter. Runs after every finished trip. Returns the number of new offers.
+ */
+export async function refreshRoutines(s: Scoped, tz: string, now = Date.now()) {
+  const [{ purchases, trips }, hidden, existing] = await Promise.all([purchasesOf(s), hiddenKeys(s), s.select(schema.template, eq(schema.template.madeBy, "nexus"))]);
+  const routines = detectRoutines(trips, tz, hidden);
+  const pool = existing.map((t) => ({ row: t, routineDay: t.routineDay, keys: t.items.map((i) => i.productKey) }));
+  let offers = 0;
+  for (const r of routines) {
+    // The routine's items as last bought in its own trips (title, quantity, weight, section).
+    const inTrips = new Set(r.tripIds);
+    const last = new Map<string, Purchase>();
+    for (const p of purchases) if (p.tripId && inTrips.has(p.tripId) && (last.get(p.productKey)?.at ?? -1) < p.at) last.set(p.productKey, p);
+    const items: TemplateItem[] = r.keys.map((k) => last.get(k)).filter((p): p is Purchase => !!p).map((p) => ({ productKey: p.productKey, title: p.title, qty: p.qty ?? 1, amount: p.amount ?? null, unit: p.unit ?? null, section: (p.section as string) ?? null, art: p.art ?? null }));
+    const match = matchRoutine(r, pool);
+    if (match) {
+      pool.splice(pool.indexOf(match), 1);
+      if (match.row.editedAt != null) continue;
+      if (match.row.routineTrips === r.trips && JSON.stringify(match.row.items) === JSON.stringify(items)) continue;
+      await s.update(schema.template, { items, routineTrips: r.trips, updatedAt: now, rev: match.row.rev + 1 }, eq(schema.template.id, match.row.id));
+      continue;
+    }
+    await s.insert(schema.template, { id: `tp_${nanoid(12)}`, name: "", items, createdBy: null, createdAt: now, updatedAt: now, madeBy: "nexus", routineDay: r.weekday, routineTrips: r.trips });
+    offers++;
+  }
+  return offers;
+}
+
+/** E1: a product hidden after a Nexus template took it — it leaves every Nexus template nobody edited. */
+export async function dropFromNexusTemplates(s: Scoped, productKey: string) {
+  const rows: TemplateRow[] = await s.select(schema.template, and(eq(schema.template.madeBy, "nexus"), isNull(schema.template.editedAt)));
+  for (const t of rows) if (t.items.some((i) => i.productKey === productKey)) await s.update(schema.template, { items: t.items.filter((i) => i.productKey !== productKey) }, eq(schema.template.id, t.id));
 }
 
 // ---------- the household's products (C3 type-ahead) ----------
