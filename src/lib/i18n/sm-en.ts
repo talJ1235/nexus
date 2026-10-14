@@ -396,6 +396,11 @@ export const smEn = {
     nextShop: "Next shop: {day}",
     home: "Home",
     failed: "Couldn't save — it's kept on this phone and sent when you're back online",
+    doneRow: "{section} · {n} ✓",
+    reopen: "{section} is done — tap to open it again",
+    fold: "Fold {section}",
+    sectionDone: "{section} done",
+    undo: "Undo",
   },
   // E1 / E2 — templates and past trips (board Lists-phone).
   lists: {

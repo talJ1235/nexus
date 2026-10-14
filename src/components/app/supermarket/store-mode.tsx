@@ -48,7 +48,14 @@ export function StoreMode({ open, onClose, onPickStore }: { open: boolean; onClo
   return (
     <D.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <D.Portal>
-        <D.Content className="sm-rise fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[4vh] desk:mx-auto desk:h-[92vh] desk:max-w-[520px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in" aria-describedby={undefined} data-store-mode-screen>
+        <D.Content className="sm-rise fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[4vh] desk:mx-auto desk:h-[92vh] desk:max-w-[520px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in"
+          aria-describedby={undefined}
+          // A toast's Undo (a section done, R18 S3 B8) is not "outside": it mustn't collapse store mode.
+          onInteractOutside={(e) => {
+            if ((e.target as Element | null)?.closest?.("[data-sonner-toaster]")) e.preventDefault();
+          }}
+          data-store-mode-screen
+        >
           <D.Title className="sr-only">{t.sm.shop.title}</D.Title>
           {open && <Body onClose={onClose} onPickStore={onPickStore} />}
         </D.Content>
@@ -163,6 +170,11 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
   const [confirm, setConfirm] = useState(false);
   const [acting, setActing] = useState<ItemWithSources | null>(null);
   const [burst, setBurst] = useState(0);
+  // R18 S3 B8: a finished section folds into "Dairy · 3 ✓" a moment after its last check (a mis-tap is seen first),
+  // opens again on tap (rows can be unchecked), and says "Dairy done · Undo" for 5 s.
+  const [reopened, setReopened] = useState<Set<string>>(() => new Set());
+  const [justDone, setJustDone] = useState<Record<string, number>>({});
+  const lastCheck = useRef<Record<string, ItemWithSources>>({});
 
   // Rows added during the trip (anyone; someone else's marked "added now" with a toast) join the trip's rows.
   const seen = useRef(new Set(trip.rows.map((r) => r.id)));
@@ -214,8 +226,36 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
       }
       return { ...x, checked, notFound };
     });
+    if (!on) lastCheck.current[i.section ?? "other"] = i;
     void (on ? tripApi.uncheck(i) : tripApi.check(i));
   };
+  // Sections that just finished: stay open for a beat, then fold; a toast offers Undo (unchecks what finished it).
+  const finKey = groups.filter(([, list]) => list.every((i) => !!trip.checked[i.id] || trip.notFound[i.id])).map(([k]) => k).join(",");
+  const finNow = useMemo(() => new Set(finKey ? finKey.split(",") : []), [finKey]);
+  const finBefore = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const before = finBefore.current;
+    finBefore.current = finNow;
+    if (!before) return;
+    const fresh = [...finNow].filter((k) => !before.has(k));
+    const reopenedNow = [...before].filter((k) => !finNow.has(k));
+    if (reopenedNow.length) setReopened((o) => new Set([...o].filter((k) => !reopenedNow.includes(k))));
+    if (!fresh.length) return;
+    const at = Date.now();
+    setJustDone((j) => ({ ...j, ...Object.fromEntries(fresh.map((k) => [k, at])) }));
+    const id = window.setTimeout(() => setJustDone((j) => Object.fromEntries(Object.entries(j).filter(([, v]) => v !== at))), 900);
+    for (const k of fresh) {
+      const name = k === "other" ? t.sm.main.other : sectionName(k, locale);
+      const last = lastCheck.current[k];
+      toast(f(t.sm.shop.sectionDone, { section: name }), {
+        id: `store-done-${k}`,
+        duration: 5000,
+        action: last ? { label: t.sm.shop.undo, onClick: () => toggle(last) } : undefined,
+      });
+    }
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs when the set of finished sections changes
+  }, [finNow]);
   const finish = async () => {
     setConfirm(false);
     const paid = Object.values(trip.prices).length;
@@ -280,22 +320,36 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
         <div className="flex flex-col gap-2">
           {groups.map(([k, list]) => {
             const fin = list.every((i) => isDone(i) || trip.notFound[i.id]);
-            if (fin)
+            const name = k === "other" ? t.sm.main.other : sectionName(k, locale);
+            if (fin && !reopened.has(k) && !justDone[k])
               return (
-                <div key={k} className="flex h-12 items-center gap-2.5 rounded-[14px] border border-[color-mix(in_srgb,var(--ok)_40%,var(--line))] bg-ok-soft px-3.5 text-[14.5px] font-bold text-ok" data-store-section-done={k}>
+                <button
+                  key={k}
+                  type="button"
+                  className="store-fold flex h-12 w-full items-center gap-2.5 rounded-[14px] border border-[color-mix(in_srgb,var(--ok)_40%,var(--line))] bg-ok-soft px-3.5 text-start text-[14.5px] font-bold text-ok transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]"
+                  onClick={() => setReopened((o) => new Set([...o, k]))}
+                  aria-expanded={false}
+                  aria-label={f(t.sm.shop.reopen, { section: name })}
+                  data-store-section-done={k}
+                >
+                  <span className="flex-1 truncate">{f(t.sm.shop.doneRow, { section: name, n: list.length })}</span>
                   <Check className="size-4" strokeWidth={3} />
-                  <span className="flex-1 truncate">{k === "other" ? t.sm.main.other : sectionName(k, locale)}</span>
-                  <span className="tabular">{list.length}</span>
-                </div>
+                  <ChevronDown className="size-4 opacity-70" />
+                </button>
               );
             return (
-              <section key={k} className="gro-sec" style={{ "--k": sectionColor(k) } as React.CSSProperties} data-store-section={k}>
+              <section key={k} className="gro-sec" style={{ "--k": sectionColor(k) } as React.CSSProperties} data-store-section={k} data-store-reopened={fin && reopened.has(k) ? "" : undefined}>
                 <div className="flex min-h-11 items-center gap-2.5 px-1">
                   <SectionIcon section={k} size={30} />
                   <b className="flex-1 truncate text-[15px] font-extrabold">{k === "other" ? t.sm.main.other : sectionName(k, locale)}</b>
                   <span className="tabular rounded-full bg-surface-2 px-2 py-0.5 text-[12px] font-bold text-muted">
                     {list.filter(isDone).length}/{list.length}
                   </span>
+                  {fin && reopened.has(k) && (
+                    <button type="button" className="grid size-10 place-items-center rounded-full text-muted active:scale-95" onClick={() => setReopened((o) => new Set([...o].filter((x) => x !== k)))} aria-label={f(t.sm.shop.fold, { section: name })} data-store-fold={k}>
+                      <ChevronDown className="size-4 rotate-180" />
+                    </button>
+                  )}
                 </div>
                 <div className="gro-box">
                   {list.map((i) => (

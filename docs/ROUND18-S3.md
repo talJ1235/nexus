@@ -119,7 +119,7 @@ Changing the count updates the weight (count × learned unit weight, S1/S2 table
 Count is the default unit for produce; weight shows as "≈ 1.8 ק״ג". Editing weight still updates count. Item sheet, Add
 screen, store mode quantity.
 
-### B8 [ ] Store mode: a finished section can be reopened
+### B8 [x] Store mode: a finished section can be reopened
 When every item of a section is checked, it folds into a one-line "Dairy · 3 ✓" row that **opens again on tap** and
 items can be unchecked (undo). A toast "Dairy done · Undo" for 5 s after a fold. Mis-taps never hide items.
 
@@ -260,6 +260,11 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   kg" with a learned unit weight (or the weight scales without one); weight + → the count becomes "≈". Produce counts
   by default: a plain row reads "3 · ≈ 0.5 kg" and its steppers start at the count; count-only rows keep quantity 1.
   `test:grocery` (+7 cases), smoke "count drives weight" (the S2 item-sheet step now expects "9 · ≈ …").
+- B8 — store mode: a finished section stays open ~0.9 s after its last check (a mis-tap is seen), then folds into a
+  button "Dairy · 3 ✓" that opens it again (a ⌃ folds it back); unchecking makes it a normal section; a 5 s toast
+  "Dairy done · Undo" unchecks the row that finished it. Found on the way: a tap on any toast counted as "outside" store
+  mode's dialog and collapsed it — guarded like the Add screen. Smoke "store mode fold" (leaves the list as it was).
+  Also: `serve-smoke.sh` retries a seed once (node segfaulted twice tonight on Windows).
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

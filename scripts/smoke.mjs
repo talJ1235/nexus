@@ -1775,6 +1775,53 @@ try {
         );
       });
 
+    // R18 S3 B8: store mode — checking a section's last row keeps it open for a beat, says "<section> done" with Undo,
+    // then folds it into "<section> · n ✓"; tapping that opens it again and a row can be unchecked (the section is
+    // back to normal); Undo on the toast unchecks the row that finished it. Ends with everything unchecked + Finish
+    // (nothing leaves the list).
+    if (MOBILE && WRITE)
+      await step("store mode fold (R18 S3 B8): done section folds after a beat, reopens on tap, uncheck, toast Undo", async () => {
+        const r = {};
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        await page.locator("[data-sm-start]").click();
+        await page.locator("[data-store-go]").click();
+        await page.waitForSelector("[data-store-shop] [data-store-row]");
+        const sec = await page.evaluate(() => {
+          const xs = [...document.querySelectorAll("[data-store-section]")].map((e) => ({ k: e.getAttribute("data-store-section"), ids: [...e.querySelectorAll("[data-store-row]")].map((x) => x.getAttribute("data-store-row")) }));
+          return xs.filter((x) => x.ids.length).sort((a, b) => a.ids.length - b.ids.length)[0];
+        });
+        const row = (id) => page.locator(`[data-store-row="${id}"]`);
+        for (const id of sec.ids) {
+          await row(id).evaluate((e) => e.scrollIntoView({ block: "center" }));
+          await row(id).click();
+        }
+        await page.waitForTimeout(250);
+        r.beat = await page.locator(`[data-store-section="${sec.k}"]`).count();
+        r.toast = await page.locator("[data-sonner-toast]").last().textContent();
+        await page.waitForTimeout(1100);
+        r.folded = await page.locator(`[data-store-section-done="${sec.k}"]`).count();
+        await page.locator(`[data-store-section-done="${sec.k}"]`).click();
+        r.reopened = await page.locator(`[data-store-section="${sec.k}"][data-store-reopened]`).count();
+        await row(sec.ids[0]).click();
+        await page.waitForTimeout(1200);
+        r.unchecked = (await row(sec.ids[0]).getAttribute("aria-pressed")) === "false" && (await page.locator(`[data-store-section-done="${sec.k}"]`).count()) === 0;
+        await row(sec.ids[0]).click();
+        await page.locator("[data-sonner-toast]").last().locator("button:has-text('Undo')").click();
+        await page.waitForTimeout(500);
+        r.undo = (await row(sec.ids[0]).getAttribute("aria-pressed")) === "false";
+        // Leave the list as it was: uncheck the rest, then Finish with nothing bought.
+        for (const id of sec.ids) if ((await row(id).getAttribute("aria-pressed")) === "true") await row(id).click();
+        await page.locator("[data-store-finish]").click();
+        await page.locator("[data-store-finish-confirm]").click();
+        await page.waitForSelector("[data-store-summary]", { timeout: 8000 });
+        await page.locator("[data-summary-skip]").click();
+        await page.waitForSelector("[data-store-saved]");
+        await page.locator("[data-saved-list]").click();
+        ok(r.beat === 1 && /done|הושלם/.test(r.toast ?? "") && r.folded === 1 && r.reopened === 1 && r.unchecked && r.undo,
+          "store mode fold (R18 S3 B8): done section folds after a beat, reopens on tap, uncheck, toast Undo", JSON.stringify({ ...r, sec }));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

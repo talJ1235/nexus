@@ -400,6 +400,11 @@ export const smHe: Widen<typeof smEn> = {
     nextShop: "הקנייה הבאה: {day}",
     home: "בית",
     failed: "לא נשמר — זה שמור בטלפון וישלח כשתחזרו לרשת",
+    doneRow: "{section} · {n} ✓",
+    reopen: "{section} הושלם — הקשה לפתיחה מחדש",
+    fold: "קיפול {section}",
+    sectionDone: "{section} הושלם",
+    undo: "ביטול",
   },
   lists: {
     open: "תבניות",
