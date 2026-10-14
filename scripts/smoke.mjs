@@ -205,7 +205,8 @@ async function homeChecks(page) {
       }
     }
     await page.evaluate(() => window.scrollTo(0, 0));
-    ok(tiles.length >= 2 && !bad.length, "home status tiles scroll to their sections", `${tiles.length} tiles; ${bad.join(" ")}`);
+    // Tiles show only for what the data has (needs you / on the way / pace): the demo seed has all three, real data any.
+    ok((REAL || tiles.length >= 2) && !bad.length, "home status tiles scroll to their sections", `${tiles.length} tiles; ${bad.join(" ")}`);
   });
   // A3: "Nexus suggests" — pager by keyboard, the border sheen without layout work, AI text vs templates.
   await step("suggest: keyboard pager", async () => {
@@ -1169,6 +1170,23 @@ try {
     // R18 S2 A2: the Supermarket tab on the seeded list (scripts/lib/seed-sm.mjs): sections in walking order with their
     // colours, store chip + estimate, "Nexus suggests" (eggs every ~9 days, toilet paper, parmesan with pasta), an add
     // through the field, accepting a suggestion, rows ⇄ tiles from the ⋯ menu remembered after a reload.
+    // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
+    // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
+    if (!WRITE)
+      await step("supermarket tab (real data, read only): list or first-use screen, known sections once each", async () => {
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row], [data-sm-view] [data-sm-first]", { timeout: 15000 });
+        const r = await page.evaluate(() => ({
+          rows: document.querySelectorAll("[data-sm-list] [data-sm-row]").length,
+          first: !!document.querySelector("[data-sm-first]"),
+          sections: [...document.querySelectorAll("[data-sm-section]")].map((e) => e.getAttribute("data-sm-section")),
+          rail: document.querySelectorAll("[data-sm-rail] > i").length,
+        }));
+        const order = ["produce", "meat", "deli", "dry", "cans", "spice", "bfast", "snack", "drink", "clean", "toil", "baby", "pets", "bread", "dairy", "frozen", "other"];
+        const known = r.sections.every((k) => order.includes(k)) && new Set(r.sections).size === r.sections.length;
+        ok((r.rows > 0 || r.first) && known && (!r.rows || !r.rail || r.rail === r.sections.length), "supermarket tab (real data, read only): list or first-use screen, known sections once each", JSON.stringify(r));
+      });
+    if (WRITE)
     await step("supermarket tab (R18 A2): sections, store + estimate, suggestions, add, accept, rows/tiles kept", async () => {
       await page.goto(`${BASE}/supermarket`);
       await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });

@@ -188,7 +188,8 @@ try {
   {
     const { ctx, page, seen } = await open({ gis: "credential" });
     const link = page.locator("[data-auth=google-other]");
-    const shown = await link.isVisible();
+    // The link appears once the page knows FedCM is there (after hydration): wait for it, never sample once.
+    const shown = await link.waitFor({ state: "visible", timeout: 10_000 }).then(() => true, () => false);
     const txt = (await link.textContent()) ?? "";
     const went = navTo(page, (u) => isGoogle(u) && u.pathname !== "/gsi/client");
     await link.click();

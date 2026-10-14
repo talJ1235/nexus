@@ -152,7 +152,9 @@ async function db() {
   // ---- D2: an add by Yoav while Noa shops → an `add` in Noa's trip (live highlight) + "Yoav added milk": the first at
   // once, then grouped, ≤ 1 per 10 min per trip.
   const { isLiveAdd } = await import("../src/lib/grocery/trip");
-  const L0 = Date.now();
+  // The last midday (Israel), never in the future: at quiet hours the push would wait until 07:00 — run time must not matter.
+  const { nextLocal, DEFAULT_TZ } = await import("../src/lib/notify/schedule");
+  const L0 = nextLocal(Date.now() - DAY, DEFAULT_TZ, 12);
   await S.tripStarted("noa", "home", 3, L0);
   const live = (await T.openTripOf("noa"))!;
   const ys = new Scoped({ spaceId: "home", userId: "yoav", by: "yoav" });

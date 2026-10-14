@@ -345,7 +345,7 @@ const LIVE_GAP = 10 * 60_000;
  */
 export async function liveAdd(userId: string, spaceId: string, added: { itemId: string; title: string; productKey: string | null; section: string | null }[], now = Date.now()) {
   if (!added.length) return 0;
-  const trips = await openTripsIn(spaceId, userId);
+  const trips = await openTripsIn(spaceId, userId, now);
   if (!trips.length) return 0;
   const sp = await spaceBrief(spaceId);
   const who = (await firstNames([userId]))[userId] ?? "";

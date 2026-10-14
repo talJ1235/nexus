@@ -34,7 +34,7 @@ desktop before it is ticked.
   Use the easing / duration tokens in `nx17.css`; no new ad-hoc curves.
 
 ## Part 0 — red runs after the S2 merge
-### 0.1 [ ] Post-merge runs on `6616b25`
+### 0.1 [x] Post-merge runs on `6616b25`
 `guards` on `main` failed at "Google in-app sign-in (FedCM sheet…)" and `prod smoke` (deployment_status) failed in
 `node scripts/smoke.mjs`. Read both logs (`gh run view <id> --log-failed`; the planner's sandbox couldn't). Flaky →
 make the step deterministic (it has failed once before). Real → fix. If prod smoke failed on an S2 step against real
@@ -190,5 +190,14 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
 
 ## Open
 ### Progress
+- 0.1 — three causes: (1) `guards` unit tests on main (22:13 UTC = 01:13 Israel) failed `test:trips` D2 — `L0 = Date.now()`
+  fell in quiet hours so the live-add push waited for 07:00; the test now uses the last Israel midday and `openTripsIn`
+  takes the sender's `now` (it read the real clock while `liveAdd` had its own). (2) FedCM "Use another Google account":
+  `isVisible()` sampled once before the link appeared → waits for it (10 s). (3) prod smoke: two steps assumed the demo
+  seed — the status tiles need ≥ 2 only on demo data; the Supermarket tab step **wrote to prod** (add + accept) when it
+  could → now `WRITE` only, with a read-only real-data variant. Verified locally (night run, CI-like FedCM server, smoke
+  SMOKE_REAL=1 and SMOKE_WRITE=1).
 ### Decisions
+- 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
+  live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
 ### For Tal

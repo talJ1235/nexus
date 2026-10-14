@@ -194,7 +194,7 @@ export async function draftGateOf(spaceId: string, userId: string) {
 }
 
 /** Other members' open trips in a space (D2: an add reaches them live). */
-export async function openTripsIn(spaceId: string, exceptUserId: string | null) {
+export async function openTripsIn(spaceId: string, exceptUserId: string | null, now = Date.now()) {
   const rows = await db.select().from(schema.trip).where(and(eq(schema.trip.spaceId, spaceId), isNull(schema.trip.finishedAt)));
-  return rows.filter((t) => t.userId !== exceptUserId && Date.now() - t.startedAt < SAME_TRIP_MS);
+  return rows.filter((t) => t.userId !== exceptUserId && now - t.startedAt < SAME_TRIP_MS);
 }
