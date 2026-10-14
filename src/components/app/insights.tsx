@@ -35,6 +35,26 @@ export function InsightsSwitch() {
   );
 }
 
+/** R18 S3 B2: History of Products | Supermarket (`?v=history&f=sm`) — under History's title on every device. */
+export function HistorySource() {
+  const s = useStore();
+  const { t } = useI18n();
+  const value = s.view.type === "history" && s.view.src === "sm" ? "sm" : "products";
+  return (
+    <SegPill<"products" | "sm">
+      className="w-full max-w-[420px]"
+      label={t.insights.source}
+      value={value}
+      onChange={(v) => s.setView(v === "sm" ? { type: "history", src: "sm" } : { type: "history" })}
+      options={[
+        { value: "products", label: t.sm.products },
+        { value: "sm", label: t.sm.title },
+      ]}
+      data={{ root: "history-src", tab: "history-src-tab" }}
+    />
+  );
+}
+
 /** History: search bought items + Month / Store / Project filters. */
 export function HistoryTools() {
   const s = useStore();

@@ -580,6 +580,7 @@ export function StoreProvider({
     if (p === "home") url.searchParams.delete("v");
     else url.searchParams.set("v", p);
     if (v.type === "to_buy" && v.f) url.searchParams.set("f", v.f);
+    else if (v.type === "history" && v.src) url.searchParams.set("f", v.src);
     else url.searchParams.delete("f");
     window.history.replaceState(null, "", url);
   }, []);

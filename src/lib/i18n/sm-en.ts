@@ -393,7 +393,7 @@ export const smEn = {
   },
   // E1 / E2 — templates and past trips (board Lists-phone).
   lists: {
-    open: "Templates & past trips",
+    open: "Templates",
     back: "Back",
     templates: "Templates",
     past: "Past trips",

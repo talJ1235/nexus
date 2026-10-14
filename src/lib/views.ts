@@ -7,7 +7,8 @@ export const BUY_FILTERS: readonly BuyFilter[] = ["urgent", "none"];
 export type View =
   | { type: "home" }
   | { type: "to_buy"; f?: BuyFilter }
-  | { type: "history" }
+  /** R18 S3 B2: `src: "sm"` = the Supermarket's past trips (`?v=history&f=sm`); absent = bought Products. */
+  | { type: "history"; src?: "sm" }
   | { type: "ordered" }
   | { type: "orders" }
   | { type: "spending" }
@@ -57,6 +58,7 @@ export function paramToView(p: string | null, f?: string | null): View {
   if (p === "urgent") return { type: "to_buy", f: "urgent" };
   if (p === "unsorted") return { type: "to_buy", f: "none" };
   if (p === "to_buy") return BUY_FILTERS.includes(f as BuyFilter) ? { type: "to_buy", f: f as BuyFilter } : { type: "to_buy" };
+  if (p === "history" && f === "sm") return { type: "history", src: "sm" };
   if (["history", "ordered", "orders", "spending", "projects", "supermarket"].includes(p)) return { type: p } as View;
   return { type: "home" };
 }

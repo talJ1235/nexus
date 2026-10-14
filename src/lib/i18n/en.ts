@@ -1592,6 +1592,7 @@ export const en = {
   },
   insights: {
     title: "Insights",
+    source: "History of",
     spending: "Spending",
     history: "History",
     search: "Search bought items",

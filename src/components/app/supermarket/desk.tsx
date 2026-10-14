@@ -150,7 +150,7 @@ export function DeskTemplates({ ro, onOpen, onSave }: { ro: boolean; onOpen: () 
   );
 }
 
-/** The last trips (date, store, total) → Templates & past trips. */
+/** The last trips (date, store, total) → Insights → History → Supermarket (R18 S3 B2). */
 export function DeskPast({ onOpen }: { onOpen: () => void }) {
   const s = useStore();
   const { t, locale } = useI18n();

@@ -86,7 +86,7 @@ Settings top level gets its own **Supermarket** row (phone list + desktop sideba
 (`settings/supermarket.tsx`). It stays a space setting (shared by the household) — show the space name on the page.
 Remove it from under Space → only if keeping both is confusing; a deep link `/settings/supermarket` still works.
 
-### B2 [ ] History shows supermarket trips
+### B2 [x] History shows supermarket trips
 Insights → History gets a **Products | Supermarket** switch (A2's rules). Supermarket = past trips by month (reuse
 `pastTrips` / `lists.tsx` rows and the trip page), with **Add again** (merge into the current list, as E2). Supermarket
 ⋯ → "Past trips" opens this place. Templates stay in the Supermarket tab ⋯. Check: the trip Tal finished on prod
@@ -226,6 +226,12 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
 - B1 — phones: a Supermarket row on the Settings list itself (in the space's card, under its name), pushing straight
   to the page (`pathFor` → ["supermarket"]); Space settings no longer repeats it. Computer: already a sidebar row under
   the space heading. The page already names the space ("for <space>"). Deep link unchanged. Smoke (phone + computer).
+- B2 — Insights → History has Products | Supermarket (`HistorySource`, `?v=history&f=sm`, view `{ type: "history",
+  src: "sm" }`); Supermarket = past trips by month (`SmHistory`, the Past trips rows; one shared load with the line
+  under the title "₪259 · 6 trips"), a trip opens full screen (TripPage: Add again merges, Save as template). Title +
+  switch stay still, the list cross-fades. Supermarket ⋯ → Past trips and the computer side panel's trips card land
+  here; the ⋯ "Templates & past trips" item is now "Templates". Prod check on the 2026-10-14 snapshot copy: 4 finished
+  trips, `pastTrips` returns them (6 + 3 + 3 items) — saved fine, History just never read them. Smoke phone + computer.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
@@ -235,6 +241,9 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   one level up, as phone apps do; the arrow back to the app is on the four top-level screens.
 - B1: kept one place per device — the phone list row replaces the one inside Space settings (two would read as two
   different settings); the computer keeps its sidebar row under the space's name.
+- B2: trips where nothing was bought or marked missing (started and ended at once — one on prod) are left out of
+  History; trips without a store read "Any store" (two on prod). The Templates screen keeps its Past trips segment
+  (trip → template there still works); History is the main place.
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.

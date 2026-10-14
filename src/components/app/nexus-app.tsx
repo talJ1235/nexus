@@ -19,7 +19,8 @@ import { BudgetWatch } from "./settings/budget-watch";
 import { ReportDialog } from "./report-dialog";
 import { ReportsSheet } from "./reports-sheet";
 import { ItemActionSheet, ItemShortcuts } from "./quick-actions";
-import { HistoryHint, HistoryTools, InsightsSwitch, monthLabel } from "./insights";
+import { HistoryHint, HistorySource, HistoryTools, InsightsSwitch, monthLabel } from "./insights";
+import { SmHistory, SmHistoryLine } from "./supermarket/lists";
 import { historyMonthOf } from "./view-items";
 import { MeSheet } from "./me-sheet";
 import { SpacesLayer } from "./spaces/layer";
@@ -322,6 +323,19 @@ function ViewSwitch() {
 
 function ViewBody() {
   const s = useStore();
+  // R18 S3 B2: History's Products | Supermarket — the title and the switch stay, the list below cross-fades.
+  const src = s.view.type === "history" ? (s.view.src ?? "products") : null;
+  const [hist, setHist] = useState({ src, cls: "" });
+  if (hist.src !== src) setHist({ src, cls: hist.src && src ? (src === "sm" ? "seg-in seg-fwd" : "seg-in seg-back") : "" });
+  if (src)
+    return (
+      <>
+        <ViewHeader />
+        <div key={src} className={(hist.src === src && hist.cls) || undefined} data-history-body={src}>
+          {src === "sm" ? <SmHistory /> : <Content />}
+        </div>
+      </>
+    );
   return s.view.type === "home" ? (
     <HomeView />
   ) : s.loading && s.view.type === "spending" ? (
@@ -386,6 +400,7 @@ function ViewHeader() {
   // Data-dependent parts fade in on the first paint after the streamed shell (never on view switches).
   const fadeIn = s.navSeq === 0 ? "load-in" : undefined;
   const titleUnknown = s.loading && (s.view.type === "collection" || s.view.type === "store");
+  const smHistory = s.view.type === "history" && s.view.src === "sm";
 
   return (
     <>
@@ -421,7 +436,8 @@ function ViewHeader() {
             )}
           </div>
           {collection?.description && <p className="mt-1 max-w-[70ch] text-sm text-muted bidi">{collection.description}</p>}
-          {!summary &&
+          {smHistory && <SmHistoryLine />}
+          {!summary && !smHistory &&
             (s.loading ? (
               <Skel className="skeleton-in mt-[7px] h-3.5 w-52" />
             ) : (
@@ -445,9 +461,10 @@ function ViewHeader() {
       </div>
 
       {summary && (s.loading ? <SummarySkeleton /> : <div className={fadeIn}><HomeSummary /></div>)}
+      {s.view.type === "history" && <HistorySource />}
     </div>
-    {s.view.type === "history" && !s.loading && <HistoryTools />}
-    {!s.loading && <FiltersRow showProjects={s.view.type !== "collection" && s.view.type !== "orders" && s.view.type !== "history"} />}
+    {s.view.type === "history" && !smHistory && !s.loading && <HistoryTools />}
+    {!s.loading && !smHistory && <FiltersRow showProjects={s.view.type !== "collection" && s.view.type !== "orders" && s.view.type !== "history"} />}
     </div>
     {/* Search elsewhere → "Go to History" (stays visible in the phone Shopping tab too). */}
     <HistoryHint />

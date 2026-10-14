@@ -1590,6 +1590,7 @@ export const he: Dict = {
   },
   insights: {
     title: "תובנות",
+    source: "היסטוריה של",
     spending: "הוצאות",
     history: "היסטוריה",
     search: "חיפוש בפריטים שנקנו",

@@ -1472,6 +1472,44 @@ try {
       ok(r.row && r.inView && r.space && r.back && r.hubDup === 0 && r.deep, "supermarket settings in plain sight (R18 S3 B1): list row, page names the space, deep link", JSON.stringify(r));
     });
 
+    // R18 S3 B2: Insights → History → Products | Supermarket. Supermarket = past trips by month (seeded trips), the title
+    // and the switch stay still while the list changes, a trip opens full screen with Add again (merges into the list,
+    // toast), Back / Esc closes it; Supermarket ⋯ → Past trips lands here (`?v=history&f=sm`).
+    if (WRITE)
+      await step("history · supermarket (R18 S3 B2): trips by month, chrome still, trip → Add again, ⋯ → Past trips", async () => {
+        const r = {};
+        await page.goto(`${BASE}/?v=history`);
+        await page.waitForSelector("[data-history-src=products]", { timeout: 15000 });
+        await page.waitForTimeout(600);
+        const still = await stillWhile(page, ["[data-history-src]", "main h1"], () => page.locator('[data-history-src-tab="sm"]:visible').click());
+        r.still = !still.moved.length && !still.remounted.length && !still.shifts;
+        await page.waitForSelector("[data-sm-history] [data-sm-trip]", { timeout: 10000 });
+        r.url = new URL(page.url()).searchParams.get("f");
+        r.months = await page.locator("[data-sm-history] [data-sm-month]").count();
+        r.tools = await page.locator("[data-history-tools]").count();
+        await shot(page, "history-sm");
+        await page.locator("[data-sm-history] [data-sm-trip]").first().click();
+        await page.waitForSelector("[data-sm-history-trip] [data-sm-trip-page]");
+        const pick = page.locator("[data-sm-history-trip] [data-sm-trip-item=bought]").first();
+        if ((await pick.getAttribute("aria-checked")) !== "true") await pick.click();
+        const before = await page.evaluate(async () => (await fetch("/supermarket").then(() => 0)) || 0);
+        void before;
+        await page.locator("[data-sm-history-trip] [data-sm-trip-readd]").click();
+        r.toast = await page.waitForSelector("[data-sonner-toast]", { timeout: 8000 }).then(() => true, () => false);
+        if (MOBILE) await page.goBack();
+        else await page.keyboard.press("Escape");
+        r.closed = await page.waitForSelector("[data-sm-history-trip]", { state: "detached", timeout: 5000 }).then(() => true, () => false);
+        r.stillThere = new URL(page.url()).searchParams.get("v");
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
+        await page.locator("[data-sm-more]").click();
+        await page.locator("[data-sm-menu-past]").click();
+        await page.waitForSelector("[data-history-src=sm]", { timeout: 8000 });
+        r.menu = `${new URL(page.url()).searchParams.get("v")}&${new URL(page.url()).searchParams.get("f")}`;
+        ok(r.still && r.url === "sm" && r.months >= 1 && r.tools === 0 && r.toast && r.closed && r.stillThere === "history" && r.menu === "history&sm",
+          "history · supermarket (R18 S3 B2): trips by month, chrome still, trip → Add again, ⋯ → Past trips", JSON.stringify({ ...r, still }));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

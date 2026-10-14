@@ -2,7 +2,7 @@
 
 import "./sm.css";
 import { useEffect, useMemo, useState } from "react";
-import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, LayoutList, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, ShoppingCart, Sparkles, X } from "lucide-react";
+import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, History, LayoutList, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, ShoppingCart, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { acceptSuggestions, dismissSuggestion, setSupermarketLayout } from "@/app/supermarket-actions";
@@ -151,6 +151,11 @@ export function SupermarketView() {
             <LayoutList className="size-4" />
             {t.sm.lists.open}
           </MenuItem>
+          {/* R18 S3 B2: past trips live in Insights → History → Supermarket. */}
+          <MenuItem onSelect={() => s.setView({ type: "history", src: "sm" })} data-sm-menu-past>
+            <History className="size-4" />
+            {t.sm.lists.past}
+          </MenuItem>
           <MenuItem onSelect={() => s.openSettings("smLearned")} data-sm-menu-learned>
             <Sparkles className="size-4" />
             {t.sm.set.learned}
@@ -217,7 +222,7 @@ export function SupermarketView() {
             {!first && offer}
             {!first && suggestions}
             <DeskTemplates ro={ro} onOpen={() => openLists("templates")} onSave={() => openLists("save")} />
-            <DeskPast onOpen={() => openLists("past")} />
+            <DeskPast onOpen={() => s.setView({ type: "history", src: "sm" })} />
           </aside>
         </div>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import "./sm.css";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Dialog as D } from "radix-ui";
 import { ArrowLeft, Check, CircleX, LayoutTemplate, MoreHorizontal, Plus, Receipt, Sparkles, Trash2, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
@@ -608,7 +608,7 @@ function PastTrips({ trips, onOpen }: { trips: PastTrip[] | null; onOpen: (id: s
                       <small className="text-[10.5px] text-muted">{new Intl.DateTimeFormat(loc, { month: "short" }).format(d)}</small>
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="gro-t bidi">{storeLabel(x.chain ?? "", x.branch ?? "", locale) ?? x.chain ?? ""}</span>
+                      <span className="gro-t bidi">{storeLabel(x.chain ?? "", x.branch ?? "", locale) ?? (x.chain || t.sm.shop.noStore)}</span>
                       <span className="gro-s truncate">{min > 0 && min < 600 ? f(L.tripMeta, { n, who: x.who, min }) : f(L.tripMetaNoMin, { n, who: x.who })}</span>
                     </span>
                     {x.receipt && <Receipt className="size-4 shrink-0 text-muted" aria-label={L.receipt} />}
@@ -620,6 +620,88 @@ function PastTrips({ trips, onOpen }: { trips: PastTrip[] | null; onOpen: (id: s
           </section>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * R18 S3 B2: Insights → History → Supermarket — the space's past trips by month (the rows of Past trips), a trip opens
+ * its page full screen (Add again merges into the current list, Save as template). Trips where nothing was bought or
+ * marked missing (started and ended at once) are left out.
+ */
+// One load per space shared by History's header line and its list (a tiny external store).
+let tripsOf: { space: string; trips: PastTrip[] | null } = { space: "", trips: null };
+const tripsSubs = new Set<() => void>();
+function loadTrips(space: string) {
+  if (tripsOf.space === space) return;
+  tripsOf = { space, trips: null };
+  tripsSubs.forEach((f) => f());
+  void supermarketPastTrips().then(
+    (xs) => tripsOf.space === space && ((tripsOf = { space, trips: xs.filter((x) => x.items.length > 0) }), tripsSubs.forEach((f) => f())),
+    () => tripsOf.space === space && ((tripsOf = { space, trips: [] }), tripsSubs.forEach((f) => f())),
+  );
+}
+function useSmTrips(): PastTrip[] | null {
+  const s = useStore();
+  const space = s.spaceId || "-";
+  useEffect(() => {
+    // A fresh read each time History · Supermarket opens (a trip may have finished since).
+    tripsOf = { space: "", trips: tripsOf.trips };
+    loadTrips(space);
+  }, [space]);
+  const snap = useSyncExternalStore(
+    (f) => (tripsSubs.add(f), () => void tripsSubs.delete(f)),
+    () => tripsOf,
+    () => tripsOf,
+  );
+  return snap.space === space ? snap.trips : null;
+}
+
+/** History's line under the title on the Supermarket side: "₪1,234 · 6 trips" (the same height as Products' line). */
+export function SmHistoryLine() {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const L = t.sm.lists;
+  const trips = useSmTrips();
+  const sum = (trips ?? []).reduce((a, x) => a + tripTotal(x), 0);
+  const money = formatMoney(Math.round(sum), trips?.[0]?.currency ?? s.currency, locale);
+  return (
+    <p className="tabular mt-1 min-h-5 text-sm text-muted" data-sm-history-line>
+      {trips == null ? " " : trips.length === 1 ? f(L.monthSumOne, { total: money }) : f(L.monthSum, { total: money, n: trips.length })}
+    </p>
+  );
+}
+
+export function SmHistory() {
+  const s = useStore();
+  const { t } = useI18n();
+  const ro = s.space?.role === "viewer" || s.offlineAt != null;
+  const trips = useSmTrips();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [saving, setSaving] = useState<PastTrip | null>(null);
+  const trip = openId ? trips?.find((x) => x.id === openId) ?? null : null;
+  useBackClose(!!trip, () => setOpenId(null));
+  return (
+    <div data-sm-history>
+      {trips == null ? (
+        <div className="flex flex-col gap-3" aria-hidden data-sm-history-loading>
+          {[0, 1, 2].map((k) => (
+            <div key={k} className="skeleton-in h-[68px] rounded-[16px] bg-surface-2" />
+          ))}
+        </div>
+      ) : (
+        <PastTrips trips={trips} onOpen={setOpenId} />
+      )}
+      <D.Root open={!!trip} onOpenChange={(o) => !o && setOpenId(null)}>
+        <D.Portal>
+          <D.Overlay className="fixed inset-0 z-50 bg-black/35 overlay-in phone:hidden" />
+          <D.Content className="sm-push fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[6vh] desk:mx-auto desk:h-[86vh] desk:max-w-[560px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in" aria-describedby={undefined} data-sm-history-trip>
+            <D.Title className="sr-only">{t.sm.lists.past}</D.Title>
+            {trip && <TripPage trip={trip} ro={ro} onBack={() => setOpenId(null)} onSave={() => setSaving(trip)} />}
+          </D.Content>
+        </D.Portal>
+      </D.Root>
+      <SaveSheet what={saving ? { kind: "trip", trip: saving } : null} onClose={() => setSaving(null)} onSaved={() => setSaving(null)} />
     </div>
   );
 }
@@ -656,7 +738,7 @@ function TripPage({ trip, ro, onBack, onSave }: { trip: PastTrip; ro: boolean; o
     <div className="flex min-h-0 flex-1 flex-col" data-sm-trip-page={trip.id}>
       <Head onBack={onBack} />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-28">
-        <h1 className="bidi text-[26px] font-extrabold leading-tight tracking-[-0.02em]">{storeLabel(trip.chain ?? "", trip.branch ?? "", locale) ?? trip.chain}</h1>
+        <h1 className="bidi text-[26px] font-extrabold leading-tight tracking-[-0.02em]">{storeLabel(trip.chain ?? "", trip.branch ?? "", locale) ?? (trip.chain || t.sm.shop.noStore)}</h1>
         <p className="mt-0.5 text-[14px] text-muted">{[when, trip.who].filter(Boolean).join(" · ")}</p>
         <div className="mt-4 grid grid-cols-3 gap-2">
           {[

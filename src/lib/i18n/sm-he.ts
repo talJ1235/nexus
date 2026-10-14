@@ -396,7 +396,7 @@ export const smHe: Widen<typeof smEn> = {
     failed: "לא נשמר — זה שמור בטלפון וישלח כשתחזרו לרשת",
   },
   lists: {
-    open: "תבניות וקניות קודמות",
+    open: "תבניות",
     back: "חזרה",
     templates: "תבניות",
     past: "קניות קודמות",
