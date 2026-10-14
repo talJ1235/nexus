@@ -7,6 +7,9 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-15:** Tal's notes after using S2 sorted into **`docs/R18-S3-NOTES.md`** (causes found: dock tab-4 flip,
+  settings discoverability, History without trips, no branch list). Groups A fixes (no boards) / B list v2 + capture
+  (boards) / C Home widgets v2 + floating Ask (boards) / D R19 data / E R20 offline. **Next:** Tal picks → briefs.
 - **2026-10-14:** **R18 S2 merged and live** (`main` ff → `6616b25`; all items ticked; branch CI green; S2 rehearsal on
   `snapshots/prod-2026-10-14.db` copy: 13 additive columns, numbers unchanged, idempotent). Results + "For Tal" in
   `docs/ROUND18-S2.md` "## Open". **Post-merge runs on `6616b25` failed** (not in the builder's report): `guards` on
