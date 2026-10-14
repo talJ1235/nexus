@@ -7,6 +7,17 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-14:** **R18 S2 merged and live** (`main` ff → `6616b25`; all items ticked; branch CI green; S2 rehearsal on
+  `snapshots/prod-2026-10-14.db` copy: 13 additive columns, numbers unchanged, idempotent). Results + "For Tal" in
+  `docs/ROUND18-S2.md` "## Open". **Post-merge runs on `6616b25` failed** (not in the builder's report): `guards` on
+  `main` (step "Google in-app sign-in (FedCM…)", the known flaky one, attempt 1, not re-run) and `prod smoke` on the
+  production deploy (step `smoke.mjs`; logs/artifacts unreachable from the chat sandbox). → Tal re-runs both / the
+  builder reads the logs before anything else. Planner's view on S2 "For Tal": supermarket settings under Space (shared
+  by the household) — accept; household ✎ → Space → People — accept; dock "+" → "×" while the menu is open — fix in S3.
+  **Next:** (1) fix/confirm the two red runs; (2) Tal does a real shop on prod with the phone (store mode end to end,
+  templates, pushes from a second account) and writes notes; (3) planner writes **R18 S3** (fixes from that shop + S1/S2
+  leftovers, e.g. the dock "+"/"×"); then R18b (recipes, D2, AI shop planning) →
+  R19 price comparison → R20 real apps (Play closed test) → family.
 - 2026-10-13: S2 brief `docs/ROUND18-S2.md` written; Tal runs it.
 - **2026-10-13:** **R18 boards part 2 made** on canvas "Nexus R18 — Supermarket" (second row "phone, part 2" + third row
   "computer"): `ItemSheet-phone` (P6), `Capture-phone` (P4 + P5), `Store-phone` (P7 + P8), `Lists-phone` (P12 + P13),
