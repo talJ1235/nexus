@@ -276,7 +276,7 @@ function ApplySheet({ tpl, name, onClose, onApplied }: { tpl: Template | null; n
     }
   };
   return (
-    <Sheet open={tpl != null} onOpenChange={(o) => !o && onClose()} title={f(L.applyTitle, { name })} className="desk:max-w-[460px]">
+    <Sheet open={tpl != null} onOpenChange={(o) => !o && onClose()} title={f(L.applyTitle, { name })} fit className="desk:max-w-[460px]">
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-[calc(16px+env(safe-area-inset-bottom))] pt-1" data-sm-apply>
         <div>
           <h2 className="bidi text-[20px] font-extrabold leading-tight">{f(L.applyTitle, { name })}</h2>
@@ -637,7 +637,7 @@ function loadTrips(space: string) {
   tripsOf = { space, trips: null };
   tripsSubs.forEach((f) => f());
   void supermarketPastTrips().then(
-    (xs) => tripsOf.space === space && ((tripsOf = { space, trips: xs.filter((x) => x.items.length > 0) }), tripsSubs.forEach((f) => f())),
+    (xs) => tripsOf.space === space && ((tripsOf = { space, trips: xs }), tripsSubs.forEach((f) => f())),
     () => tripsOf.space === space && ((tripsOf = { space, trips: [] }), tripsSubs.forEach((f) => f())),
   );
 }
@@ -832,7 +832,7 @@ function SaveSheet({ what, onClose, onSaved }: { what: { kind: "list" } | { kind
   const row = "flex min-h-[58px] items-center gap-3 px-3.5 py-2";
   const ic = "grid size-8 shrink-0 place-items-center rounded-full bg-surface-2";
   return (
-    <Sheet open={what != null} onOpenChange={(o) => !o && onClose()} title={L.saveAsTitle} className="desk:max-w-[460px]">
+    <Sheet open={what != null} onOpenChange={(o) => !o && onClose()} title={L.saveAsTitle} fit className="desk:max-w-[460px]">
       <div className="flex flex-col gap-3 px-4 pb-[calc(16px+env(safe-area-inset-bottom))] pt-1" data-sm-save-sheet>
         <h2 className="text-[20px] font-extrabold">{L.saveAsTitle}</h2>
         <label className="px-1 text-[13px] font-bold text-muted" htmlFor="sm-save-name">

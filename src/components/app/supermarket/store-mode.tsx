@@ -376,7 +376,7 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
         </div>
         {burst > 0 && <Confetti key={burst} />}
       </footer>
-      <Sheet open={confirm} onOpenChange={setConfirm} title={t.sm.shop.confirmTitle} className="phone:top-auto desk:max-w-[420px]">
+      <Sheet open={confirm} onOpenChange={setConfirm} title={t.sm.shop.confirmTitle} fit className="desk:max-w-[420px]">
         <div className="px-5 pb-[max(16px,env(safe-area-inset-bottom))] pt-1" data-store-confirm>
           <h2 className="text-[20px] font-extrabold">{t.sm.shop.confirmTitle}</h2>
           <p className="mt-1 text-[14px] text-muted">{total - boughtN ? f(t.sm.shop.confirmSub, { n: total - boughtN }) : t.sm.shop.confirmSubNone}</p>
@@ -461,7 +461,7 @@ function RowActions({ item, onClose }: { item: ItemWithSources | null; onClose: 
   };
   const row = "flex min-h-[56px] w-full items-center gap-3 px-4 text-start active:bg-surface-2";
   return (
-    <Sheet open={!!item} onOpenChange={(o) => !o && close()} title={item?.title ?? ""} className="phone:top-auto desk:max-w-[420px]">
+    <Sheet open={!!item} onOpenChange={(o) => !o && close()} title={item?.title ?? ""} fit className="desk:max-w-[420px]">
       {item && (
         <div className="pb-[max(14px,env(safe-area-inset-bottom))]" data-store-actions={item.id}>
           <div className="flex items-center gap-3 border-b border-line px-4 pb-3 pt-1">

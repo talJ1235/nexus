@@ -123,7 +123,7 @@ screen, store mode quantity.
 When every item of a section is checked, it folds into a one-line "Dairy · 3 ✓" row that **opens again on tap** and
 items can be unchecked (undo). A toast "Dairy done · Undo" for 5 s after a fold. Mis-taps never hide items.
 
-### B9 [ ] Finish sheet fits its content
+### B9 [x] Finish sheet fits its content
 Finish confirm (items left) is a bottom sheet sized to its content (≈ half height), no big empty dark area; drag down
 closes. Same check for every S2 sheet.
 
@@ -265,6 +265,12 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   "Dairy done · Undo" unchecks the row that finished it. Found on the way: a tap on any toast counted as "outside" store
   mode's dialog and collapsed it — guarded like the Add screen. Smoke "store mode fold" (leaves the list as it was).
   Also: `serve-smoke.sh` retries a seed once (node segfaulted twice tonight on Windows).
+- B9 — cause: the sheets meant to hug their content used `phone:top-auto`, a layered utility that never beat the
+  unlayered `.sheet-phone { top: … }` — every phone sheet was full height (Finish: 834 px for 195 px of content). Now
+  `Sheet fit` (`.sheet-fit`: top auto, ≤ 92 dvh, after `.sheet-phone`): Finish, store mode row actions, a suggestion's
+  page, Save as template, Apply template. The item sheet and the store picker stay full height (long, scrolling). Drag
+  down closes (the shared handle). Also: empty trips (nothing bought or missed) are left out of every past-trips list
+  (server action). Smoke "sheets fit their content".
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

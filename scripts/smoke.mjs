@@ -1822,6 +1822,70 @@ try {
           "store mode fold (R18 S3 B8): done section folds after a beat, reopens on tap, uncheck, toast Undo", JSON.stringify({ ...r, sec }));
       });
 
+    // R18 S3 B9: sheets fit their content on phones — Finish (items left), a row's actions in store mode, a suggestion's
+    // page and Save as template are as tall as what's in them (no big empty area), and the Finish sheet closes when its
+    // handle is dragged down. Ends by finishing the trip with nothing bought (the list stays as it was).
+    if (MOBILE && WRITE)
+      await step("sheets fit their content (R18 S3 B9): finish, row actions, suggestion, save; drag down closes", async () => {
+        const r = {};
+        const fit = (sel) => page.evaluate((q) => {
+          const c = document.querySelector(q);
+          const sh = c?.closest('[role="dialog"]');
+          if (!sh) return null;
+          const a = sh.getBoundingClientRect();
+          return { sheet: Math.round(a.height), content: Math.round(c.getBoundingClientRect().height), vh: innerHeight };
+        }, sel);
+        const good = (x) => !!x && x.sheet <= x.content + 64 && x.sheet < x.vh * 0.92;
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        await openSuggestions(page);
+        await page.locator("[data-sm-sug] [data-sm-sug-add]").first().click();
+        await page.waitForSelector("[data-sug-actions]");
+        await page.waitForTimeout(500);
+        r.sug = await fit("[data-sug-actions]");
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(400);
+        await page.locator("[data-sm-more]").click();
+        await page.locator("[data-sm-menu-lists]").click();
+        await page.waitForSelector("[data-sm-lists] [data-sm-template]");
+        await page.locator("[data-sm-save-list]").first().click();
+        await page.waitForSelector("[data-sm-save-sheet]");
+        await page.waitForTimeout(500);
+        r.save = await fit("[data-sm-save-sheet]");
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(400);
+        await page.locator("[data-sm-start]").click();
+        await page.locator("[data-store-go]").click();
+        await page.waitForSelector("[data-store-shop] [data-store-row]");
+        const first = await page.locator("[data-store-row]").first().getAttribute("data-store-row");
+        await page.locator(`[data-store-row="${first}"]`).dispatchEvent("contextmenu");
+        await page.waitForSelector(`[data-store-actions="${first}"]`);
+        await page.waitForTimeout(500);
+        r.actions = await fit(`[data-store-actions="${first}"]`);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(400);
+        await page.locator("[data-store-finish]").click();
+        await page.waitForSelector("[data-store-confirm]");
+        await page.waitForTimeout(500);
+        r.finish = await fit("[data-store-confirm]");
+        await shot(page, "finish-sheet");
+        const h = await page.locator('[role="dialog"]:has([data-store-confirm]) [data-sheet-handle]').boundingBox();
+        await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+        await page.mouse.down();
+        for (let k = 1; k <= 8; k++) await page.mouse.move(h.x + h.width / 2, h.y + k * 40, { steps: 2 });
+        await page.mouse.up();
+        r.dragClosed = await page.waitForSelector("[data-store-confirm]", { state: "detached", timeout: 3000 }).then(() => true, () => false);
+        await page.locator("[data-store-finish]").click();
+        await page.locator("[data-store-finish-confirm]").click();
+        await page.waitForSelector("[data-store-summary]", { timeout: 8000 });
+        await page.locator("[data-summary-skip]").click();
+        await page.waitForSelector("[data-store-saved]");
+        await page.locator("[data-saved-list]").click();
+        ok(good(r.sug) && good(r.save) && good(r.actions) && good(r.finish) && r.dragClosed, "sheets fit their content (R18 S3 B9): finish, row actions, suggestion, save; drag down closes", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

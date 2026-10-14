@@ -121,6 +121,7 @@ export function Sheet({
   children,
   side = "end",
   phone = "bottom",
+  fit = false,
   className,
 }: {
   open: boolean;
@@ -129,6 +130,8 @@ export function Sheet({
   children: React.ReactNode;
   side?: "start" | "end";
   phone?: "bottom" | "side";
+  /** R18 S3 B9: phones — as tall as its content (up to 92 % of the screen), not full height. */
+  fit?: boolean;
   className?: string;
 }) {
   const bottom = phone === "bottom";
@@ -146,6 +149,7 @@ export function Sheet({
             "fixed inset-y-0 z-50 flex w-full flex-col bg-surface shadow-pop outline-none sm:max-w-[520px]",
             side === "end" ? "end-0 border-s border-line sheet-in-end" : "start-0 border-e border-line sheet-in-start",
             bottom && "sheet-phone",
+            bottom && fit && "sheet-fit",
             className,
           )}
         >

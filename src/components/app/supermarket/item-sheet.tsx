@@ -505,7 +505,7 @@ type Sug = SmHome["suggestions"][number];
 export function SuggestionActions({ sug, onClose, reason }: { sug: Sug | null; onClose: () => void; reason: string }) {
   const { t } = useI18n();
   return (
-    <Sheet open={!!sug} onOpenChange={(o) => !o && onClose()} title={sug?.title ?? t.sm.sheet.title} className="phone:top-auto desk:max-w-[440px]">
+    <Sheet open={!!sug} onOpenChange={(o) => !o && onClose()} title={sug?.title ?? t.sm.sheet.title} fit className="desk:max-w-[440px]">
       {sug && <SugBody key={sug.productKey} sug={sug} reason={reason} onClose={onClose} />}
     </Sheet>
   );

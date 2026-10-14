@@ -284,7 +284,8 @@ export async function saveListAsTemplate(name: string) {
 /** Past trips, newest first, with who shopped (first names) — Lists → Past trips. */
 export async function supermarketPastTrips() {
   const ctx = await requireCtx("view");
-  const trips = await G.pastTrips(scoped(ctx));
+  // R18 S3 B2: a trip where nothing was bought or marked missing (started and ended at once) isn't a past trip.
+  const trips = (await G.pastTrips(scoped(ctx))).filter((t) => t.items.length > 0);
   const { firstNames } = await import("@/lib/db-scoped/notify");
   const names = await firstNames([...new Set(trips.map((t) => t.userId))]);
   return trips.map((t) => ({ ...t, who: names[t.userId] ?? "" }));

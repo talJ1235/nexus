@@ -595,6 +595,9 @@ body {
 @media (max-width: 639px) {
   :where(html[data-device="phone"]) .sheet-phone { top: max(10px, env(safe-area-inset-top)); max-width: none; border: 0; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; overflow: hidden; }
   :where(html[data-device="phone"]) .sheet-phone[data-state="open"], :where(html[data-device="phone"])[dir="rtl"] .sheet-phone[data-state="open"] { animation: sheet-up 380ms var(--ease-out); }
+  /* R18 S3 B9: a sheet with little in it is as tall as its content (`fit`) — no big empty area under it. Here, after
+     .sheet-phone: a layered `phone:top-auto` utility never won against it. */
+  :where(html[data-device="phone"]) .sheet-phone.sheet-fit { top: auto; max-height: 92dvh; }
   :where(html[data-device="phone"]) .modal-phone { top: auto; bottom: 0; width: 100%; max-width: none; max-height: 90dvh; border-width: 1px 0 0; border-radius: 26px 26px 0 0; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
   :where(html[data-device="phone"]) .modal-phone[data-state="open"] { animation: sheet-up 320ms var(--ease-out); }
 }
