@@ -41,7 +41,7 @@ export function AddScreen({ open, onClose, mode: startMode = "type", onCapture }
       <D.Portal>
         <D.Overlay className="fixed inset-0 z-50 bg-black/35 overlay-in phone:hidden" />
         <D.Content
-          className="fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[8vh] desk:mx-auto desk:h-[78vh] desk:max-w-[560px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in"
+          className="sm-rise fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[8vh] desk:mx-auto desk:h-[78vh] desk:max-w-[560px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in"
           onInteractOutside={(e) => {
             if ((e.target as Element | null)?.closest?.("[data-sonner-toaster]")) e.preventDefault();
           }}

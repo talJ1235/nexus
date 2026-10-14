@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Dialog as D } from "radix-ui";
 import { Check, Clock, Flashlight, Info, Keyboard, Minus, Plus, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
+import { useBackClose } from "@/components/ui/sheet-drag";
 import { Spinner } from "@/components/ui/spinner";
 import { addToSupermarket, smAiAllowance, smPhoto, smScan, undoSupermarketAdd, type CaptureProduct, type PhotoResult, type ScanResult } from "@/app/supermarket-actions";
 import { classifyLocal } from "@/lib/grocery/classify";
@@ -30,11 +31,13 @@ type Sheet = { kind: "loading" } | ScanResult | PhotoResult | { kind: "reading" 
 const isScan = (x: Sheet): x is ScanResult => "state" in x && (x.state === "found" || x.state === "unknown");
 
 export function Capture({ open, mode: start, onClose, onType }: { open: boolean; mode: "scan" | "photo"; onClose: () => void; onType: (text?: string) => void }) {
+  // R18 S3 A3: the phone's Back closes the camera instead of leaving the page.
+  useBackClose(open, onClose);
   const { t } = useI18n();
   return (
     <D.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <D.Portal>
-        <D.Content className="fixed inset-0 z-50 flex flex-col bg-black text-white outline-none overlay-in" aria-describedby={undefined} data-sm-capture>
+        <D.Content className="sm-rise overlay-in fixed inset-0 z-50 flex flex-col bg-black text-white outline-none" aria-describedby={undefined} data-sm-capture>
           <D.Title className="sr-only">{t.sm.cap.title}</D.Title>
           {open && <CaptureBody start={start} onClose={onClose} onType={onType} />}
         </D.Content>

@@ -179,7 +179,7 @@ export function SectionOrder({ open, onClose, onPickStore }: { open: boolean; on
     <D.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <D.Portal>
         <D.Overlay className="fixed inset-0 z-50 bg-black/35 overlay-in phone:hidden" />
-        <D.Content className="fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[6vh] desk:mx-auto desk:h-[86vh] desk:max-w-[520px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in" data-section-order>
+        <D.Content className="sm-push fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[6vh] desk:mx-auto desk:h-[86vh] desk:max-w-[520px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in" data-section-order>
           <D.Title className="sr-only">{t.sm.order.title}</D.Title>
           <D.Description className="sr-only">{t.sm.order.title}</D.Description>
           {open && <OrderBody onClose={onClose} onPickStore={onPickStore} />}

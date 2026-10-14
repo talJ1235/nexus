@@ -1298,6 +1298,47 @@ try {
         ok(!bad.length, "segments keep the chrome still (R18 S3 A2): Products, Insights, Templates · Past trips — every frame, no re-mount, no shift", JSON.stringify(bad.length ? bad : res.map((r) => `${r.to}:${r.frames}f`)));
       });
 
+    // R18 S3 A3: full-screen Supermarket pages never teleport on phones — Add and store mode rise (sm-rise), Templates &
+    // past trips pushes in (subpage-in), a template drills in (sm-sub-in); the phone's Back steps out of each one
+    // (template → list → closed) and never leaves /supermarket.
+    if (MOBILE && !REAL)
+      await step("full-screen pages (R18 S3 A3): rise / push in, drill-ins slide, the phone's Back closes each", async () => {
+        const r = {};
+        const anim = (sel) => page.evaluate((q) => document.querySelector(q)?.getAnimations().map((a) => a.animationName).join(",") ?? "", sel);
+        const gone = (sel) => page.waitForSelector(sel, { state: "detached", timeout: 5000 }).then(() => true, () => false);
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        await page.locator("[data-sm-add-open]").click();
+        await page.waitForSelector("[data-add-screen]");
+        r.add = await anim("[data-add-screen]");
+        await page.waitForTimeout(400);
+        await page.goBack();
+        r.addBack = await gone("[data-add-screen]");
+        await page.locator("[data-sm-start]").click();
+        await page.waitForSelector("[data-store-start]");
+        r.store = await anim("[data-store-mode-screen]");
+        await page.waitForTimeout(400);
+        await page.goBack();
+        r.storeBack = await gone("[data-store-mode-screen]");
+        await page.locator("[data-sm-more]").click();
+        await page.locator("[data-sm-menu-lists]").click();
+        await page.waitForSelector("[data-sm-lists] [data-sm-template]");
+        r.lists = await anim("[data-sm-lists]");
+        await page.locator("[data-sm-lists] [data-sm-template]").first().click();
+        await page.waitForSelector("[data-sm-lists] .sm-sub-in");
+        r.drill = true;
+        await page.waitForTimeout(400);
+        await page.goBack();
+        await page.waitForSelector("[data-sm-lists] .sm-sub-back [data-sm-lists-seg]", { timeout: 5000 });
+        r.drillBack = true;
+        await page.waitForTimeout(400);
+        await page.goBack();
+        r.listsBack = await gone("[data-sm-lists]");
+        r.path = new URL(page.url()).pathname;
+        ok(/sm-rise/.test(r.add) && r.addBack && /sm-rise/.test(r.store) && r.storeBack && /subpage-(in|back)/.test(r.lists) && r.drill && r.drillBack && r.listsBack && r.path === "/supermarket",
+          "full-screen pages (R18 S3 A3): rise / push in, drill-ins slide, the phone's Back closes each", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

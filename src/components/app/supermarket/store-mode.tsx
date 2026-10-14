@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog as D } from "radix-ui";
 import { Camera, Check, ChevronDown, CloudOff, Sun } from "lucide-react";
 import { useI18n } from "@/components/providers";
+import { useBackClose } from "@/components/ui/sheet-drag";
 import { Sheet } from "@/components/ui/overlays";
 import { sectionName } from "@/lib/grocery/sections";
 import { unitKgFor } from "@/lib/grocery/weights";
@@ -37,6 +38,8 @@ type Step = "start" | "shop" | "summary" | "saved";
 
 export function StoreMode({ open, onClose, onPickStore }: { open: boolean; onClose: () => void; onPickStore: () => void }) {
   const { t } = useI18n();
+  // R18 S3 A3: the phone's Back collapses store mode (the trip keeps running, like the ⌄ button) instead of leaving.
+  useBackClose(open, onClose);
   useEffect(() => {
     if (!open) return;
     document.documentElement.setAttribute("data-store-mode", "");
@@ -45,7 +48,7 @@ export function StoreMode({ open, onClose, onPickStore }: { open: boolean; onClo
   return (
     <D.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <D.Portal>
-        <D.Content className="fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[4vh] desk:mx-auto desk:h-[92vh] desk:max-w-[520px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop" aria-describedby={undefined} data-store-mode-screen>
+        <D.Content className="sm-rise fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[4vh] desk:mx-auto desk:h-[92vh] desk:max-w-[520px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in" aria-describedby={undefined} data-store-mode-screen>
           <D.Title className="sr-only">{t.sm.shop.title}</D.Title>
           {open && <Body onClose={onClose} onPickStore={onPickStore} />}
         </D.Content>

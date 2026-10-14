@@ -340,7 +340,7 @@ export function Lists({ open, onClose, routine, start = "templates" }: { open: b
     <D.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <D.Portal>
         <D.Overlay className="fixed inset-0 z-50 bg-black/35 overlay-in phone:hidden" />
-        <D.Content className="fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[6vh] desk:mx-auto desk:h-[86vh] desk:max-w-[560px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in" data-sm-lists>
+        <D.Content className="sm-push fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[6vh] desk:mx-auto desk:h-[86vh] desk:max-w-[560px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in" data-sm-lists>
           <D.Title className="sr-only">{t.sm.lists.templates}</D.Title>
           <D.Description className="sr-only">{t.sm.lists.open}</D.Description>
           {open && <ListsBody onClose={onClose} routine={routine} start={start} />}
@@ -385,8 +385,20 @@ function ListsBody({ onClose, routine, start }: { onClose: () => void; routine: 
       }}
     />
   );
+  // R18 S3 A3: a drill-in (list → template / trip → edit) pushes from the end side, Back comes from the start side.
+  const level = tpl && editing ? 3 : tpl || trip ? 2 : 1;
+  const pageKey = tpl && editing ? `e:${tpl.id}` : tpl ? `t:${tpl.id}` : trip ? `p:${trip.id}` : "list";
+  const [nav, setNav] = useState({ key: pageKey, level, cls: "" });
+  if (nav.key !== pageKey) setNav({ key: pageKey, level, cls: level > nav.level ? "sm-sub-in" : "sm-sub-back" });
+  // The phone's Back steps out of a drill-in first (edit → template → the list), then closes the page.
+  useBackClose(level > 1, () => (editing ? setEditing(false) : tpl ? setOpenId(null) : setTripId(null)));
+  const page = (body: React.ReactNode) => (
+    <div key={pageKey} className={cn("flex min-h-0 flex-1 flex-col", nav.key === pageKey && nav.cls)}>
+      {body}
+    </div>
+  );
   if (tpl && editing)
-    return (
+    return page(
       <EditPage
         tpl={tpl}
         onBack={() => setEditing(false)}
@@ -399,18 +411,18 @@ function ListsBody({ onClose, routine, start }: { onClose: () => void; routine: 
           setOpenId(null);
           load();
         }}
-      />
+      />,
     );
-  if (tpl) return <TemplatePage tpl={tpl} ro={ro} onBack={() => setOpenId(null)} onApplied={load} onEdit={() => setEditing(true)} />;
+  if (tpl) return page(<TemplatePage tpl={tpl} ro={ro} onBack={() => setOpenId(null)} onApplied={load} onEdit={() => setEditing(true)} />);
   if (trip)
-    return (
+    return page(
       <>
         <TripPage trip={trip} ro={ro} onBack={() => setTripId(null)} onSave={() => setSaving({ kind: "trip", trip })} />
         {saveSheet}
-      </>
+      </>,
     );
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
+  return page(
+    <>
       <Head onBack={onClose} />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-10">
         <h1 className="pb-3 text-[28px] font-extrabold tracking-[-0.02em]">{tab === "past" ? L.past : L.templates}</h1>
@@ -448,7 +460,7 @@ function ListsBody({ onClose, routine, start }: { onClose: () => void; routine: 
         </div>
       </div>
       {saveSheet}
-    </div>
+    </>,
   );
 }
 

@@ -159,3 +159,21 @@
   .gro-row[data-settled], .gro-tile[data-settled] { animation-name: gro-settle-rm; }
   @keyframes gro-settle-rm { 0% { background: color-mix(in srgb, var(--k) 26%, var(--surface)); } 100% { background: transparent; } }
 }
+
+/* R18 S3 A3: full-screen Supermarket pages on phones never teleport. Tasks (Add, the camera, store mode) rise from the
+   bottom like a full-screen sheet; pages reached from the ⋯ menu (Templates & past trips, the store's order) push in from
+   the end side. Closing is a quick fade (the body unmounts with `open`, so nothing slides away empty). Not :where() —
+   these win over `.overlay-in` on the camera. */
+html[data-device="phone"] .sm-rise[data-state="open"] { animation: sm-rise 300ms var(--ease-drawer) both; }
+html[data-device="phone"] .sm-push[data-state="open"] { animation: subpage-in 260ms var(--ease-out) both; }
+html[data-device="phone"][dir="rtl"] .sm-push[data-state="open"] { animation-name: subpage-back; }
+html[data-device="phone"] :is(.sm-rise, .sm-push)[data-state="closed"] { animation: fade-out 150ms var(--ease-out) both; }
+@keyframes sm-rise { from { transform: translateY(100%); } to { transform: none; } }
+/* Drill-ins inside one page (a template, a trip, editing): forward from the end side, back from the start side. */
+.sm-sub-in { animation: subpage-in 240ms var(--ease-out) both; }
+.sm-sub-back { animation: subpage-back 240ms var(--ease-out) both; }
+[dir="rtl"] .sm-sub-in { animation-name: subpage-back; }
+[dir="rtl"] .sm-sub-back { animation-name: subpage-in; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-device="phone"] :is(.sm-rise, .sm-push)[data-state="open"], .sm-sub-in, .sm-sub-back { animation: fade 150ms ease-out both; }
+}

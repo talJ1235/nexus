@@ -21,6 +21,13 @@ desktop before it is ticked.
   mounted once, the segment in an inner pane with `.seg-in` (180 ms, 6 px, no cascade); the wrapper's entrance class is
   frozen while its segments change. First-open cascade faster (300 ms, done in 170 ms). Templates · Past trips use the
   same pill + pane. Smoke "segments keep the chrome still" samples boxes every frame + node identity + layout shifts.
+- A3 — `improve-animations` audit of navigation (tab / segment switches, sheets, drawers, Settings pages, admin tabs,
+  Supermarket screens, Insights). Clean sweeps: no `ease-in`, `transition: all` or `scale(0)`; Settings pages push / pop,
+  admin phone drill-ins push, every S2 sheet uses the shared `Sheet` (drag to close + Back), back arrows flip in RTL.
+  Fixed (MEDIUM): Supermarket full-screen pages teleported on phones → Add / camera / store mode rise (`sm-rise`, 300 ms
+  drawer curve), Templates & past trips + the store's order page push in (`sm-push`), closing fades 150 ms; drill-ins in
+  Templates & past trips slide (`sm-sub-in` / `-back`); the phone's Back now closes store mode and the camera and steps
+  out of a template / trip first (was: left the page). Smoke "full-screen pages (R18 S3 A3)". LOW → Open below.
 ### Decisions" right away. Anything for Tal → "- A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.
 ### For Tal".
@@ -73,7 +80,7 @@ switch (keep the cascade for first open of a tab only, and make it faster). The 
 **Acceptance:** a smoke check that measures the header / segment bar bounding boxes before, during (sampled frames) and
 after each switch — no movement; no layout shift (CLS) on switch.
 
-### A3 [ ] App-wide transitions audit (phone + computer)
+### A3 [x] App-wide transitions audit (phone + computer)
 Run the `improve-animations` skill over the app's navigation: tab switches, segment switches, sheets, drawers, settings
 pages, admin tabs, Supermarket screens, Insights. Same rule as A2 everywhere: what didn't change doesn't move. Fix
 everything ranked high / medium in this session; list low ones in Open. Tal: "everything a user knows from phone apps"
@@ -212,3 +219,8 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
 ### For Tal
+### Leftovers (low)
+- A3 LOW: admin computer tab switches are instant (fine for a dashboard; a 150 ms fade would match the app); admin phone
+  Back from a person / report has no reverse slide; the Products / segment thumbs use a 450 ms spring (over the 300 ms UI
+  budget, but it reads as one gesture — left as designed in R13 B2).
+
