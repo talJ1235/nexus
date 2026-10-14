@@ -6,6 +6,7 @@ import { Dialog as D } from "radix-ui";
 import { ArrowLeft, Camera, Check, ClipboardPaste, Mic, Plus, ScanBarcode, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { useBackClose } from "@/components/ui/sheet-drag";
+import { SuggestionActions } from "./item-sheet";
 import { acceptSuggestions, addParts, addToSupermarket, undoSupermarketAdd } from "@/app/supermarket-actions";
 import { classifyLocal } from "@/lib/grocery/classify";
 import { parseLine, splitList, type SplitPart } from "@/lib/grocery/parse";
@@ -17,7 +18,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useStore } from "../store";
 import { ProductTile, SectionIcon } from "./art";
-import { useSmHome } from "./data";
+import { useSmHome, type SmHome } from "./data";
 import { asItem } from "./numbers";
 import { qtyLabel } from "./qty";
 import { QtySteppers, type Measure } from "./qty-steppers";
@@ -285,16 +286,21 @@ function HitRow({ hit, listed, unitKg, onAdd }: { hit: Hit; listed: Measure | nu
   );
 }
 
-/** Nothing typed: what this home usually buys (Nexus's suggestions), one tap each. */
+/** Nothing typed: what this home usually buys (Nexus's suggestions) — a tap opens its page (R18 S3 B4: quantity from
+ *  history, Add or Update quantity), never a silent add behind this screen. */
 function Usual() {
-  const s = useStore();
-  const { t } = useI18n();
+  const { t, f } = useI18n();
   const { home } = useSmHome();
-  const [gone, setGone] = useState<Set<string>>(() => new Set());
-  const list = (home?.suggestions ?? []).filter((x) => !gone.has(x.productKey)).slice(0, 8);
+  const [open, setOpen] = useState<SmHome["suggestions"][number] | null>(null);
+  const list = (home?.suggestions ?? []).slice(0, 8);
   if (!list.length) return null;
+  const reason = (x: SmHome["suggestions"][number]) => {
+    const a = x.reasonArgs as Record<string, string | number>;
+    return x.reasonKey === "due" ? f(t.sm.sug.due, { days: a.days }) : "";
+  };
   return (
     <div data-add-usual>
+      <SuggestionActions sug={open} reason={open ? reason(open) : ""} onClose={() => setOpen(null)} />
       <p className="px-1 pb-2 text-[13px] font-semibold text-muted">{t.sm.add.usual}</p>
       <div className="flex flex-wrap gap-2">
         {list.map((x) => (
@@ -302,15 +308,8 @@ function Usual() {
             key={x.productKey}
             type="button"
             className="flex h-11 items-center gap-1.5 rounded-[12px] border border-line-strong bg-surface px-3 text-[14px] font-bold transition-transform duration-150 ease-[var(--ease-out)] active:scale-95"
-            onClick={async () => {
-              setGone((g) => new Set([...g, x.productKey]));
-              try {
-                const rows = await acceptSuggestions([{ productKey: x.productKey, title: x.title, qty: x.qty, amount: x.amount, unit: x.unit, section: x.section, art: x.art }]);
-                s.upsertSm(rows.map(asItem));
-              } catch {
-                toast.error(t.sm.add.failed);
-              }
-            }}
+            onClick={() => setOpen(x)}
+            aria-label={f(t.sm.sugAct.open, { title: x.title })}
             data-add-usual-item={x.productKey}
           >
             <Plus className="size-4 text-muted" />

@@ -280,6 +280,10 @@ export const smEn = {
     neverSub: "Hidden from suggestions. Bring it back from the item or Settings → Supermarket.",
     cancel: "Cancel",
     open: "More for {title}",
+    update: "Update quantity",
+    onList: "On the list: {qty}",
+    updated: "{title} — now {qty}",
+    usual: "Usually {qty}",
   },
   store: {
     title: "Where are you shopping?",

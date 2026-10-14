@@ -99,7 +99,7 @@ section headers inside it, not floating separate cards) — keep S2's row look; 
 Rows denser (Tal: less scrolling): reduce vertical padding to the board's compact density, touch targets stay ≥ 44 px.
 Grid / rows view toggle must visibly change the list (it worked but was hidden under suggestions).
 
-### B4 [ ] "You usually buy" + / suggestion + opens the item page
+### B4 [x] "You usually buy" + / suggestion + opens the item page
 Today the + does nothing (reproduce). Tap + or the row → the item sheet (S2 `item-sheet.tsx`) prefilled (count / weight
 from history), button **Add** — or **Update quantity** when it's already on the list (merge rule). Same in Nexus
 suggests and the Add screen's suggestions.
@@ -237,6 +237,11 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   list is one surface (`.gro-one`: one bordered box, section headers inside with a hairline between sections, no card per
   section); rows 52 px (40 px pictures), headers 44 px. Rows ⇄ tiles now changes what's on screen. Smoke step + the
   older steps open the suggestions first (`openSuggestions`).
+- B4 — reproduced: the "You usually buy" + did add, silently — the row landed behind the full-screen Add screen, no
+  toast, the chip just vanished. Now that chip, Nexus suggests' + and its row open the product's page
+  (`SuggestionActions` → item page: reason + "Usually ×2", the quantity steppers from history — count drives weight —
+  **Add**, or **Update quantity** when the product is already on the list, then Not this time / Never suggest this);
+  a toast confirms. Smoke: chip and card + → page with steppers → Add → toast + row (cleans up after itself).
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
@@ -249,6 +254,10 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
 - B2: trips where nothing was bought or marked missing (started and ended at once — one on prod) are left out of
   History; trips without a store read "Any store" (two on prod). The Templates screen keeps its Past trips segment
   (trip → template there still works); History is the main place.
+- B4: Update quantity shows when an open suggestion's product is already on the list (a stale suggestion — another
+  member listed it meanwhile; the server never suggests a listed product and live sync skips my own writes, so one
+  tab can't reach it). The steppers then start from the row and Update sets them. The Add screen's type-ahead keeps
+  its S2 merge toast ("Already on the list — now ×4" + Undo).
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.

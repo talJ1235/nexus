@@ -1574,6 +1574,56 @@ try {
           "supermarket list first (R18 S3 B3): suggestions collapsed + remembered, one surface, dense rows, tiles visible", JSON.stringify(r));
       });
 
+    // R18 S3 B4: "You usually buy" (Add screen) and Nexus suggests' + open the product's page — never a silent add:
+    // quantity from history on the steppers, Add → a toast and the row on the list. (Update quantity shows only when a
+    // suggestion is stale — its product was listed elsewhere meanwhile; one tab can't reach that state.)
+    if (WRITE)
+      await step("suggestion + opens its page (R18 S3 B4): chip and card + → page with steppers, Add with a toast", async () => {
+        const r = {};
+        const added = [];
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        const rows0 = await page.locator("[data-sm-list] [data-sm-row]").count();
+        await page.locator("[data-sm-add-open]").click();
+        await page.waitForSelector("[data-add-usual] [data-add-usual-item]", { timeout: 10000 });
+        const chip = page.locator("[data-add-usual-item]").first();
+        const title = (await chip.textContent()).trim();
+        await chip.click();
+        await page.waitForSelector('[data-sug-sheet="add"]', { timeout: 5000 });
+        r.steppers = await page.locator("[data-sug-actions] [data-qty-steppers]").count();
+        r.before = await page.locator("[data-sug-actions] [data-qty-count]").textContent();
+        await page.locator("[data-sug-actions] [data-qty-count-more]").click();
+        r.after = await page.locator("[data-sug-actions] [data-qty-count]").textContent();
+        await page.locator('[data-sug-act="add"]').click();
+        r.toast = await page.waitForSelector(`[data-sonner-toast]:has-text("${title}")`, { timeout: 8000 }).then(() => true, () => false);
+        added.push(title);
+        await page.locator("[data-add-back]").click();
+        await page.waitForTimeout(500);
+        r.added = (await page.locator("[data-sm-list] [data-sm-row]").count()) === rows0 + 1;
+        await openSuggestions(page);
+        const card = page.locator("[data-sm-sug]").first();
+        const t2 = (await card.locator("b").first().textContent()).trim().replace(/\s*(×\d+|\d.*)$/, "");
+        await card.locator("[data-sm-sug-add]").click();
+        r.cardSheet = await page.waitForSelector('[data-sug-sheet="add"] [data-qty-steppers]', { timeout: 5000 }).then(() => true, () => false);
+        await page.locator('[data-sug-act="add"]').click();
+        r.cardToast = await page.waitForSelector("[data-sonner-toast]", { timeout: 8000 }).then(() => true, () => false);
+        added.push(t2);
+        await page.waitForTimeout(500);
+        r.rows = (await page.locator("[data-sm-list] [data-sm-row]").count()) - rows0;
+        await shot(page, "sug-page");
+        // Leave the seeded suggestions for the later steps: take the rows off the list again.
+        for (const name of added) {
+          const row = page.locator(`[data-sm-list] [data-sm-row]:has(.gro-t:text-is("${name}"))`).first();
+          if (!(await row.count())) continue;
+          await row.evaluate((e) => e.scrollIntoView({ block: "center" }));
+          await row.click();
+          await page.locator("[data-sheet-remove]").click();
+          await page.waitForTimeout(500);
+        }
+        ok(r.steppers === 1 && r.before !== r.after && r.toast && r.added && r.cardSheet && r.cardToast && r.rows === 2,
+          "suggestion + opens its page (R18 S3 B4): chip and card + → page with steppers, Add with a toast", JSON.stringify({ ...r, added }));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)
@@ -1616,6 +1666,8 @@ try {
       r.added = true;
       const first = r.sug.find((k) => k.startsWith("eggs")) ?? r.sug[0];
       await page.locator(`[data-sm-sug="${first}"] [data-sm-sug-add]`).click();
+      // R18 S3 B4: + opens the product's page — Add there.
+      await page.locator('[data-sug-act="add"]').click();
       await page.waitForFunction((n) => document.querySelectorAll("[data-sm-list] [data-sm-row]").length >= n, r.rows + 2, { timeout: 8000 });
       r.afterAccept = await page.locator("[data-sm-list] [data-sm-row]").count();
       await page.locator("[data-sm-more]").click();

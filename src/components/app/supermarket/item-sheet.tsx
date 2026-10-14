@@ -22,6 +22,7 @@ import { ProductTile, SectionIcon } from "./art";
 import { patchSmHome, useSmHome, type SmHome } from "./data";
 import { asItem, storeLabel } from "./numbers";
 import { QtySteppers, type Measure } from "./qty-steppers";
+import { qtyLabel } from "./qty";
 
 // R18 S2 C2 — the supermarket item sheet (board ItemSheet-phone): count + weight, note, a photo of the exact product,
 // section, "What Nexus learned" (new / learning 2 of 3 / regular with its timeline and next date / occasional with its
@@ -495,19 +496,62 @@ function History({ detail }: { detail: Detail | null }) {
 
 type Sug = SmHome["suggestions"][number];
 
+/**
+ * R18 S3 B4: a suggested product's page (Nexus suggests' + or row, the Add screen's "You usually buy"): the product,
+ * why it's suggested, the quantity from history on the steppers (count drives weight for produce) and **Add** — or
+ * **Update quantity** when it's already on the list (the steppers then start from the row). Then Not this time /
+ * Never suggest this. A toast confirms (the list can be hidden under the Add screen).
+ */
 export function SuggestionActions({ sug, onClose, reason }: { sug: Sug | null; onClose: () => void; reason: string }) {
+  const { t } = useI18n();
+  return (
+    <Sheet open={!!sug} onOpenChange={(o) => !o && onClose()} title={sug?.title ?? t.sm.sheet.title} className="phone:top-auto desk:max-w-[440px]">
+      {sug && <SugBody key={sug.productKey} sug={sug} reason={reason} onClose={onClose} />}
+    </Sheet>
+  );
+}
+
+function SugBody({ sug, reason, onClose }: { sug: Sug; reason: string; onClose: () => void }) {
   const s = useStore();
-  const { t, f } = useI18n();
-  const act = async (k: "add" | "skip" | "never") => {
-    if (!sug) return;
+  const { t, f, locale } = useI18n();
+  const { home } = useSmHome();
+  const listed = s.sm.find((i) => i.productKey === sug.productKey) ?? null;
+  const unitKg = unitKgFor(sug.productKey, home?.unitKg);
+  const [m, setM] = useState<Measure>(() =>
+    listed ? { quantity: listed.quantity, count: listed.count ?? null, amount: listed.amount, unit: listed.unit } : { quantity: sug.qty, count: null, amount: sug.amount, unit: sug.unit },
+  );
+  const [busy, setBusy] = useState(false);
+  const key = s.spaceId || "-";
+  const usual = qtyLabel({ quantity: sug.qty, amount: sug.amount, unit: sug.unit }, locale, unitKg);
+  const done = async () => {
+    setBusy(true);
+    try {
+      if (listed) {
+        const r = await updateSmItem(listed.id, { quantity: m.quantity, count: m.count, amount: m.amount, unit: (m.unit as "kg" | "g" | "l" | null) ?? null });
+        if (r) {
+          s.upsertSm([asItem(r)]);
+          toast.success(f(t.sm.sugAct.updated, { title: r.title, qty: qtyLabel(r, locale, unitKg) }));
+        }
+      } else {
+        const rows = await acceptSuggestions([{ productKey: sug.productKey, title: sug.title, qty: m.quantity, amount: m.amount, unit: m.unit, section: sug.section, art: sug.art }]);
+        let row = rows[0];
+        if (row && m.count != null && row.count !== m.count) row = (await updateSmItem(row.id, { count: m.count })) ?? row;
+        s.upsertSm(rows.map((r) => asItem(r.id === row?.id ? row : r)));
+        toast.success(f(t.sm.add.added, { title: sug.title }));
+      }
+      patchSmHome(key, (h) => ({ ...h, suggestions: h.suggestions.filter((x) => x.productKey !== sug.productKey) }));
+      onClose();
+    } catch {
+      toast.error(t.sm.sheet.failed);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const act = async (k: "skip" | "never") => {
     onClose();
-    const key = s.spaceId || "-";
     patchSmHome(key, (h) => ({ ...h, suggestions: h.suggestions.filter((x) => x.productKey !== sug.productKey) }));
     try {
-      if (k === "add") {
-        const rows = await acceptSuggestions([{ productKey: sug.productKey, title: sug.title, qty: sug.qty, amount: sug.amount, unit: sug.unit, section: sug.section, art: sug.art }]);
-        s.upsertSm(rows.map(asItem));
-      } else if (k === "skip") {
+      if (k === "skip") {
         if (sug.reasonKey !== "basket") await dismissSuggestion(sug.productKey, Math.min(sug.quietUntil, Date.now() + 119 * 86_400_000));
       } else {
         await hideProduct(sug.productKey);
@@ -517,44 +561,48 @@ export function SuggestionActions({ sug, onClose, reason }: { sug: Sug | null; o
       toast.error(t.sm.sheet.failed);
     }
   };
-  const row = "flex min-h-[60px] w-full items-center gap-3.5 px-4 py-2 text-start transition-colors duration-150 active:bg-surface-2";
+  const row = "flex min-h-[56px] w-full items-center gap-3.5 px-4 py-2 text-start transition-colors duration-150 active:bg-surface-2";
   return (
-    <Sheet open={!!sug} onOpenChange={(o) => !o && onClose()} title={sug?.title ?? ""} className="phone:top-auto desk:max-w-[420px]">
-      {sug && (
-        <div className="flex flex-col pb-[max(12px,env(safe-area-inset-bottom))]" data-sug-actions={sug.productKey}>
-          <div className="flex items-center gap-3 border-b border-line px-4 pb-3 pt-1">
-            <ProductTile art={sug.art} section={sug.section} size={48} />
-            <span className="min-w-0">
-              <b className="bidi block truncate text-[16px] font-extrabold">{sug.title}</b>
-              <span className="block truncate text-[13px] text-muted">{reason}</span>
-            </span>
-          </div>
-          <button type="button" className={row} onClick={() => void act("add")} data-sug-act="add">
-            <Plus className="size-5" />
-            <b className="text-[15.5px] font-bold">{t.sm.sugAct.add}</b>
-          </button>
+    <div className="flex flex-col pb-[max(12px,env(safe-area-inset-bottom))]" data-sug-actions={sug.productKey} data-sug-sheet={listed ? "update" : "add"}>
+      <div className="flex items-center gap-3.5 px-4 pb-3 pt-1">
+        <ProductTile art={sug.art} section={sug.section} size={56} />
+        <span className="min-w-0 flex-1">
+          <b className="bidi block truncate text-[19px] font-extrabold leading-tight">{sug.title}</b>
+          <span className="block truncate text-[13px] text-muted">{[reason, f(t.sm.sugAct.usual, { qty: usual })].filter(Boolean).join(" · ")}</span>
+        </span>
+      </div>
+      {listed && (
+        <p className="mx-4 mb-2 rounded-[12px] bg-surface-2 px-3 py-2 text-[13.5px] font-semibold" data-sug-listed>
+          {f(t.sm.sugAct.onList, { qty: qtyLabel(listed, locale, unitKg) })}
+        </p>
+      )}
+      <div className="px-4 pb-3">
+        <QtySteppers value={m} onChange={setM} unitKg={unitKg} title={sug.title} learned />
+      </div>
+      <div className="px-4 pb-2">
+        <button type="button" disabled={busy} className="h-12 w-full rounded-[14px] bg-ink text-[15.5px] font-extrabold text-bg transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98] disabled:opacity-60" onClick={() => void done()} data-sug-act={listed ? "update" : "add"}>
+          {listed ? t.sm.sugAct.update : t.sm.sugAct.add}
+        </button>
+      </div>
+      {sug.reasonKey !== "basket" && (
+        <div className="border-t border-line">
           <button type="button" className={row} onClick={() => void act("skip")} data-sug-act="skip">
             <X className="size-5" />
             <span>
-              <b className="block text-[15.5px] font-bold">{t.sm.sugAct.notNow}</b>
+              <b className="block text-[15px] font-bold">{t.sm.sugAct.notNow}</b>
               <span className="block text-[12.5px] text-muted">{t.sm.sugAct.notNowSub}</span>
             </span>
           </button>
           <button type="button" className={row} onClick={() => void act("never")} data-sug-act="never">
             <Ban className="size-5 text-danger" />
             <span>
-              <b className="block text-[15.5px] font-bold text-danger">{t.sm.sugAct.never}</b>
+              <b className="block text-[15px] font-bold text-danger">{t.sm.sugAct.never}</b>
               <span className="block text-[12.5px] text-muted">{t.sm.sugAct.neverSub}</span>
             </span>
           </button>
-          <div className="px-4 pt-2">
-            <button type="button" className="h-12 w-full rounded-[14px] border border-line-strong text-[15px] font-bold" onClick={onClose}>
-              {t.sm.sugAct.cancel}
-            </button>
-          </div>
         </div>
       )}
-    </Sheet>
+    </div>
   );
 }
 

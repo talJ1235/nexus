@@ -425,7 +425,7 @@ function Suggestions({ home, basket, draft, ro }: { home: SmHome | null; basket:
   const day = new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { weekday: "long", timeZone: s.clock.tz }).format(new Date(s.clock.now + 86_400_000));
   return (
     <section className="gro-sug" data-sm-suggest={open ? "open" : "closed"}>
-      <SuggestionActions sug={acting && acting.reasonKey !== "basket" ? acting : null} reason={acting ? reason(acting) : ""} onClose={() => setActing(null)} />
+      <SuggestionActions sug={acting} reason={acting ? reason(acting) : ""} onClose={() => setActing(null)} />
       <button type="button" className="flex min-h-[56px] w-full items-center gap-3 px-3.5 text-start" onClick={() => setOpen(!open)} aria-expanded={open} aria-label={t.sm.sug.open} data-sm-sug-toggle>
         <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-spark text-white">
           <Sparkles className="size-4" />
@@ -440,7 +440,7 @@ function Suggestions({ home, basket, draft, ro }: { home: SmHome | null; basket:
         <div>
           {list.map((x) => (
             <div key={x.productKey} className="gro-sug-row flex min-h-[64px] items-center gap-3 px-3.5 py-2" data-sm-sug={x.productKey}>
-              <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-start" onClick={() => !ro && x.reasonKey !== "basket" && setActing(x)} aria-label={f(t.sm.sugAct.open, { title: x.title })} data-sm-sug-open>
+              <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-start" onClick={() => !ro && setActing(x)} aria-label={f(t.sm.sugAct.open, { title: x.title })} data-sm-sug-open>
               <ProductTile art={x.art} section={x.section} size={44} />
               <span className="min-w-0 flex-1">
                 <b className="bidi block truncate text-[15px] font-extrabold">
@@ -454,7 +454,7 @@ function Suggestions({ home, basket, draft, ro }: { home: SmHome | null; basket:
                   <button type="button" className="grid size-10 shrink-0 place-items-center rounded-full text-muted transition-transform duration-150 ease-[var(--ease-out)] active:scale-90" aria-label={f(t.sm.sug.skip, { title: x.title })} onClick={() => skip(x)} data-sm-sug-skip>
                     <X className="size-[18px]" />
                   </button>
-                  <button type="button" className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-ink text-bg transition-transform duration-150 ease-[var(--ease-out)] active:scale-90" aria-label={f(t.sm.sug.add, { title: x.title })} onClick={() => void accept([x])} data-sm-sug-add>
+                  <button type="button" className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-ink text-bg transition-transform duration-150 ease-[var(--ease-out)] active:scale-90" aria-label={f(t.sm.sug.add, { title: x.title })} onClick={() => setActing(x)} data-sm-sug-add>
                     <Plus className="size-5" strokeWidth={2.4} />
                   </button>
                 </>

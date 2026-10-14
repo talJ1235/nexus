@@ -284,6 +284,10 @@ export const smHe: Widen<typeof smEn> = {
     neverSub: "מוסתר מההצעות. אפשר להחזיר מהפריט או מהגדרות → סופר.",
     cancel: "ביטול",
     open: "עוד על {title}",
+    update: "עדכון כמות",
+    onList: "ברשימה: {qty}",
+    updated: "{title} — עכשיו {qty}",
+    usual: "בדרך כלל {qty}",
   },
   store: {
     title: "איפה קונים?",
