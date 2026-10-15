@@ -911,8 +911,7 @@ All 30 rows of `docs/POLISH-AUDIT.md` (details and decisions are in its "Fixes" 
 Brief: `docs/ROUND18-S2.md` (decisions in its "## Open"). Screens: `src/components/app/supermarket/`.
 
 Shipped (S2):
-- *Navigation* (A1): phone dock Home · Products · + · Supermarket (or Projects, chosen by use — `lib/dock-tab.ts`) ·
-  Insights; long-press "+" = Add to list · Scan · Photo · Start shopping (also the manifest's app-icon shortcuts);
+- *Navigation* (A1): phone dock Home · Products · + · Supermarket · Insights (S2 chose Projects by use — removed in S3 A1); long-press "+" = Add to list · Scan · Photo · Start shopping (also the manifest's app-icon shortcuts);
   Products = To buy · On the way · Projects; desktop sidebar "Supermarket" with a count.
 - *The Supermarket tab* (A2, `/supermarket`): store chip + estimate vs this month's budget, aisle rail, Add field, Nexus
   suggests (+ / × / Add all), sections in the branch's order (rows / tiles per person), first time, viewer, offline.
@@ -965,6 +964,49 @@ same ops to the same action.
   order and the trip notifications). Every row op is also the trip's next `trip_check` (the log). Answer:
   `{ applied, skipped, idMap (clientId → row id), items (changed rows), trip (my open trip or null) }`.
 - Guard: `test:trip-api` walks a whole trip through the API only; `test:shop-offline` (the browser outbox offline).
+
+## Round 18 — Session 3: fixes from Tal's use + supermarket quick wins
+
+Brief: `docs/ROUND18-S3.md` (progress, decisions and leftovers in its "## Open"; Tal's notes `docs/R18-S3-NOTES.md`).
+
+Shipped (S3):
+- *One dock* (A1): Home · Products · + · Supermarket · Insights for everyone (`lib/dock.ts`; `lib/dock-tab.ts` and the
+  tab-use counting are gone); Projects is a segment of Products and lights Products.
+- *Still chrome* (A2, A3): segment switches keep the header, segment pill and toolbar mounted (one keyed wrapper per
+  phone tab, the segment in a `.seg-in` pane, 180 ms / 6 px); full-screen Supermarket pages rise / push; the phone's
+  Back closes store mode, the camera and drill-ins first. *Overscroll* (A4): `overscroll-behavior: none` on html + body
+  (the dock and top bar never stretch). Admin top bars have a back arrow to the app (A5); the dock "+" turns into "×"
+  while held / its menu is open (A6).
+- *Supermarket fixes* (B1–B12): Settings → Supermarket row in plain sight; Insights → History → **Supermarket** (past
+  trips by month, a trip page with Add again / Save as template); the list first and "Nexus suggests" collapsed under
+  it (one surface, denser rows); "You usually buy" + / suggestion + open the product's page (Add / Update quantity);
+  voice add fixed (continuous recognition, comma-less speech segmented by the dictionary); Add-screen chips in one row;
+  count drives weight for produce (`withCount` / `withWeight`); store mode folds a finished section into a reopenable
+  row + Undo toast; sheets sized to their content (`Sheet fit`); Forget everything = a sheet + hold 2 s; store picker
+  choice first, words narrow; Order by store's dead List / Grid switch removed.
+- *"+" on the Supermarket tab = the camera* (C1), barcode first; camera refused → the Add screen with a hint.
+- *Photo understands what it sees* (C2): `smPhoto` = one AI call (ai-gate, feature `grocery`) →
+  `{ kind: product | receipt | list | unsure, product, lines }`; the result says "Looks like a list · 9 items" over a
+  Product · Receipt · List switch; receipt → the receipt review (a 2048 px copy of the frame); list → the Add screen's
+  Paste review prefilled; a product that isn't a grocery → Add to Products (`createItem`). Mocks `mockreceipt:` /
+  `mocklist:` / `mockunsure:` / `mockother:`.
+- *Template preview card* (C3): Save as template (list / trip) and the Templates rows show the products' pictures
+  stacked (`StackedPics`, ProjectCover's collage), the name, count · estimate (`estimateLines`) · store.
+- *Next shop is a Home widget* (C4): `nextshop` in `lib/home-layout.ts` (first in Household + Minimal; old layouts get it
+  first, `ns` marks a layout saved since); the running trip stays pinned above the grid (`NextShopCard part="trip"`).
+- *Row gestures* (C5): `useSwipe` (`components/ui/swipe.ts`, also the inbox's): toward the end → delete + Undo (the server
+  keeps the row a day in kv `sm:del:` → `restoreSmItem`, same id), toward the start → quick − n +; the name renames
+  inline, the picture opens the sheet; axis lock, RTL mirrored, reduced motion opens without a slide.
+- *Usual brand* (C6): table `brand_buy` (additive: id, space_id, type, brand, brand_key, source scan | check | receipt,
+  ref, by_user, at) filled from barcode adds, a finished trip's barcoded checks and applied till receipts
+  (`lib/db-scoped/brands.ts`, `brandOf` in `lib/grocery/classify.ts`); "Usually: Tnuva 3% · 8 of 10 times" in the item
+  sheet when ≥ 3 buys and ≥ 60 % one brand (`lib/grocery/brands.ts`); a What Nexus learned fact `b:<type>`; Forget
+  clears it; admin System counts only.
+- *Home "Nexus suggests" timing* (C7): turns by itself every 8 s (`SUG_DWELL`) only while on screen and the tab is in
+  front; first turn after the dwell; cross-fade + 6 px rise; the slide being read keeps its words.
+- Guards: `test:seed-admin` (the CI red: `LIKE 'ad_%'` deleted an admin whose id starts with "ad"), `test:brands`,
+  `test:capture` / `test:home` / `test:tenancy` / `test:roles` / `test:dock` extended, a smoke step per item (phone +
+  computer), migration rehearsal `scripts/r18s3-rehearsal.mjs` (new table only).
 
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.

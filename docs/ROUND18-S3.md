@@ -184,7 +184,7 @@ normal dwell (not immediately on entering Home). Change = crossfade + small rise
 ### G1 [x] Guards
 Smoke steps for every item above (phone + desktop). `test:dock` rewritten for one dock. Motion checks from A2 on every
 segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions. Full phone + desktop smoke pass.
-### G2 [ ] Docs
+### G2 [x] Docs
 `SPEC.md` R18 S3 section, `CLAUDE.md` map (dock, history trips, capture classify, brand), help topic Supermarket
 (swipe, camera, list photo), `docs/ENVIRONMENT.md` log line if anything changed. Results + leftovers in Open.
 
@@ -346,6 +346,10 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   pending learned-order suggestion (`refreshSuggestedOrder` keeps it now; `test:trips` case) — D2 failed after B9;
   (2) the C5 step starts from Rows (an earlier step can leave Tiles). The "item sheet morph" failure seen once did not
   repeat in sequence or in the rerun (flake). Migration rehearsal on a fresh prod snapshot (2026-10-15) passes.
+- G2 — SPEC.md "Round 18 — Session 3" (and S2's dock line points to it), CLAUDE.md map (dock, history trips, capture
+  classify, rows / swipe, brand, widget, auto-turn), help topic Supermarket (swipe, rename, "+" = camera, receipt / list
+  photos, suggestions folded, past trips in History, the template card, the usual brand), `docs/ENVIRONMENT.md` log line
+  (new tests, Windows exit 127, photo mocks, the stale port-3100 server).
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

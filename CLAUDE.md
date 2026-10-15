@@ -101,6 +101,12 @@
   `lib/db-scoped/grocery.ts` (`learningOf`, `learnedFacts`); Settings `settings/supermarket.tsx`; dock quick menu in
   `phone-shell.tsx`. Demo data `scripts/lib/seed-sm.mjs`; parity `scripts/parity-r18.mjs`; rehearsal
   `scripts/r18s2-rehearsal.mjs`; tests `test:templates`, `test:trip-api`, `test:capture`, `test:dock`.
+- R18 S3: dock = `lib/dock.ts` (one dock for everyone; Projects is a Products segment). Insights → History → Supermarket
+  = past trips (`HistorySource`, `SmHistory`). Camera (`supermarket/capture.tsx`): `smPhoto` classifies the photo
+  (product / receipt / list / unsure) in one AI call. Rows = `supermarket/row.tsx` (`useSwipe` from
+  `components/ui/swipe.ts`, delete + `restoreSmItem`, quick quantity, inline rename). Usual brand = `brand_buy`,
+  `lib/db-scoped/brands.ts` + `lib/grocery/brands.ts` + `brandOf` (`lib/grocery/classify.ts`), test `test:brands`;
+  rehearsal `scripts/r18s3-rehearsal.mjs`. Home widget `nextshop`; suggestions auto-turn `useAutoAdvance` (home-view).
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)

@@ -227,3 +227,9 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   section after 2.5 s — the smoke uses it for the live settle. The read-only prod snapshot ran from the agent this time
   (`node --env-file=.env.local scripts/db-snapshot.mjs`). No new env vars or secrets. `.claude/settings.local.json`
   allows the round18-s2 push/merge commands.
+- 2026-10-15 (R18 S3): new tests `test:seed-admin` and `test:brands` in the unit loop (`guards.yml`); rehearsal
+  `scripts/r18s3-rehearsal.mjs` (new table `brand_buy`). On Windows a script that deletes its libsql file after using
+  it (or several older unit tests at exit) ends with code 127 after printing OK — Linux CI is unaffected; new scripts
+  leave their DB file for the next run. Mock photo fixtures for `smPhoto`: `mockreceipt:`, `mocklist:<lines>`,
+  `mockunsure:`, `mockother:<title>`. A leftover `next start -p 3100` from an earlier session locks `.next/serve.log`
+  and fails `npm run build` (EBUSY) — stop it (`serve-smoke.sh` restarts cleanly). No new env vars or secrets.
