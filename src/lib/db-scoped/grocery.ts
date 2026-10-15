@@ -3,7 +3,7 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm
 import { nanoid } from "nanoid";
 import { schema } from "@/db";
 import { classifyLocal } from "@/lib/grocery/classify";
-import { learnOrder } from "@/lib/grocery/order";
+import { learnOrder, tripSections } from "@/lib/grocery/order";
 import { cleanOrder, DEFAULT_ORDER, tripOrder, type SectionKey } from "@/lib/grocery/sections";
 import { activeSkips, contextsOf, knowledgeOf, learnHistory, mergeQty, suggest, type History, type ProductPref, type Purchase, type Suggestion } from "@/lib/grocery/staples";
 import { basketFor } from "@/lib/grocery/basket";
@@ -73,6 +73,9 @@ export async function refreshSuggestedOrder(s: Scoped, chain: string, branch: st
   const store = (await storeOf(s, chain, branch)) ?? (await saveStore(s, chain, branch));
   if (!store) return null;
   const trips = await finishedTrips(s, { chain, branch });
+  // R18 S3: a trip that walked fewer than 2 sections teaches nothing — a pending suggestion stays as it was.
+  const last = trips[trips.length - 1];
+  if (store.suggestedOrder && last && tripSections(last).length < 2) return null;
   const next = learnOrder(trips, tripOrder(store), { dismissedAt: store.dismissedAt });
   const value = next ? JSON.stringify(next) : null;
   if (value !== store.suggestedOrder) await s.update(schema.spaceStore, { suggestedOrder: value, suggestedAt: value ? now : null }, and(eq(schema.spaceStore.chain, chain), eq(schema.spaceStore.branch, branch)));

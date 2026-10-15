@@ -2130,6 +2130,12 @@ try {
         await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "Swipe test rice" }]);
         await page.goto(`${BASE}/supermarket`);
         const idOf = (title) => page.locator(`[data-sm-row]:has(.gro-t:text-is("${title}"))`).first().getAttribute("data-sm-row", { timeout: 15000 });
+        // Rows (an earlier step may have left the list as tiles — tiles don't swipe).
+        if (await page.locator("[data-sm-list] .gro-tile").count()) {
+          await page.locator("[data-sm-more]").click();
+          await page.locator('[data-sm-layout-pick="rows"]').click();
+          await page.waitForSelector("[data-sm-list] [data-sm-sw]", { timeout: 5000 });
+        }
         const a = await idOf("Swipe test oats");
         const b = await idOf("Swipe test rice");
         const box = async (id) => {

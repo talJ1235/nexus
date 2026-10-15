@@ -181,7 +181,7 @@ Rotation starts when Home is on screen (and visible: `visibilitychange`), pauses
 normal dwell (not immediately on entering Home). Change = crossfade + small rise of the text, fixed height, no jump.
 
 ## Part G — guards and docs
-### G1 [ ] Guards
+### G1 [x] Guards
 Smoke steps for every item above (phone + desktop). `test:dock` rewritten for one dock. Motion checks from A2 on every
 segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions. Full phone + desktop smoke pass.
 ### G2 [ ] Docs
@@ -339,6 +339,13 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   under reduced motion. A timed turn rises 6 px with a cross-fade (`r13-swap-up` / `r13-fade-out`, height fixed by
   StackHeight); a swipe still slides. Smoke "turns on its own only on screen" (phone + computer: still for 4 s, one
   turn after the dwell with equal height, none while hidden or scrolled away).
+- G1 — every item has its smoke step (phone + computer); `test:dock` (A1), A2's motion sampling, `test:tenancy` /
+  `test:roles` cover C5's restore and C6's table; new `test:seed-admin`, `test:brands`. CI unit loop green locally (two
+  older tests exit 127 on Windows after OK — Linux unaffected). Full smoke on fresh seeds: computer 108/108, phone
+  132/132 after two fixes found by the full run: (1) app — a trip that walked < 2 sections (an empty Finish) wiped a
+  pending learned-order suggestion (`refreshSuggestedOrder` keeps it now; `test:trips` case) — D2 failed after B9;
+  (2) the C5 step starts from Rows (an earlier step can leave Tiles). The "item sheet morph" failure seen once did not
+  repeat in sequence or in the rerun (flake). Migration rehearsal on a fresh prod snapshot (2026-10-15) passes.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
@@ -376,15 +383,8 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.
-- Session stopped at the usage limit (2026-10-15) after C1. Not done: C2–C7, G1, G2; **not merged** to main. Resume
-  from C2 (design: one AI call returns kind product / receipt / list / unsure + every reading — product guess with a
-  `grocery` flag, list lines — mock fixtures `mockreceipt:` / `mocklist:` / `mockunsure:` / `mockother:`; receipt →
-  `openReceipt(file)`, list → Add screen paste review prefilled, non-grocery → `createItem` in Products). Branch CI has
-  only completed typecheck / lint / unit tests / build per push (each push cancels the previous run) — run the full
-  guards once before merging. Fresh prod snapshot taken: `snapshots/prod-2026-10-14.db` (no DB change so far).
-- Found while adding C6: deleting a space (`purgeSpaceData`) removes Products data but none of the R18 supermarket
-  tables (trip, trip_check, template, space_store, suggest_dismiss, staple_add) — the new brand_buy is included. Worth a
-  small follow-up (privacy: a deleted space's shopping history stays in the DB).
+- Resumed 2026-10-15 (session 3b): the CI red was the admin seed (0.2), then C2–C7, G1, G2. Fresh prod snapshot
+  `snapshots/prod-2026-10-15.db`; the R18 S3 rehearsal (new table `brand_buy`) passes on a copy of it.
 ### Leftovers (low)
 - A3 LOW: admin computer tab switches are instant (fine for a dashboard; a 150 ms fade would match the app); admin phone
   Back from a person / report has no reverse slide; the Products / segment thumbs use a 450 ms spring (over the 300 ms UI

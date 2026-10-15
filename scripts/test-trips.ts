@@ -145,6 +145,9 @@ async function db() {
   assert.equal(sug![0], "produce", "unwalked / unchanged sections stay put");
   const st = (await G.storeOf(s, "Shufersal", "Modiin"))!;
   assert.ok(st.suggestedOrder && !st.sectionOrder, "suggested, never applied");
+  // R18 S3: a trip that walked < 2 sections (an empty finish) teaches nothing — the pending suggestion stays.
+  assert.equal(await learnTrip(350, [milk]), null);
+  assert.equal((await G.storeOf(s, "Shufersal", "Modiin"))!.suggestedOrder, st.suggestedOrder, "an empty trip keeps the suggestion");
   await G.dismissOrder(s, "Shufersal", "Modiin", T0 + 400 * MIN);
   assert.equal(await learnTrip(500, [tomato, milk, pita]), null, "dismissed: quiet (1 trip since)");
   assert.equal(await learnTrip(600, [tomato, milk, pita]), null, "dismissed: quiet (2 trips since)");
