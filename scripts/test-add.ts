@@ -154,17 +154,88 @@ const PARSE: [string, number, number | null, string | null, string][] = [
   const t2 = await add("עגבניות 1.5 ק״ג".replace(/(.*) (1\.5 ק״ג)/, "$2 $1"));
   assert.equal(t2.merged, true);
   assert.equal(t2.item.amount, 2.5, "same unit: amounts add up (kg)");
+  // ---- S4 A1: never into notes — units → count (weight follows), weight → weight (count follows), both kept without a unit weight
   const t3 = await add("6 עגבניות");
   assert.equal(t3.merged, true, "different units of one product: one row");
-  assert.match(t3.item.notes ?? "", /\+ ×6/, "the second amount is noted");
+  assert.equal(t3.item.notes, null, "never a note");
+  assert.equal(t3.item.count, 23, "2.5 kg ÷ 0.15 kg ≈ 17 pieces + 6 = 23");
+  assert.equal(t3.item.amount, null, "the weight follows the count (an estimate)");
   await G.undoMerge(s, t3.item.id, t3.before!);
-  assert.equal((await s.byId(schema.items, t1.item.id))!.notes, null, "undo removes the note");
+  const back = (await s.byId(schema.items, t1.item.id))!;
+  assert.deepEqual([back.amount, back.unit, back.count, back.notes], [2.5, "kg", null, null], "undo restores the weight");
+
+  const { mergeAdd, cleanMergeNotes } = await import("../src/lib/grocery/merge");
+  const RW = (quantity: number, count: number | null, amount: number | null, unit: string | null) => ({ quantity, count, amount, unit });
+  const A = (qty: number, count: number | null, amount: number | null, unit: string | null) => ({ qty, count, amount, unit });
+  // [case, row, add, unitKg, want]
+  const MATRIX: [string, ReturnType<typeof RW>, ReturnType<typeof A>, number | null, ReturnType<typeof RW>][] = [
+    ["same unit: packs", RW(2, null, null, null), A(3, null, null, null), null, RW(5, null, null, null)],
+    ["same unit: kg", RW(1, null, 1, "kg"), A(1, null, 0.5, "kg"), 0.12, RW(1, null, 1.5, "kg")],
+    ["same unit: g + kg", RW(1, null, 200, "g"), A(1, null, 0.3, "kg"), null, RW(1, null, 500, "g")],
+    ["same unit: pieces", RW(1, 4, null, null), A(1, 2, null, null), 0.12, RW(1, 6, null, null)],
+    ["same unit: litres", RW(1, null, 1, "l"), A(1, null, 2, "l"), null, RW(1, null, 3, "l")],
+    ["units → kg row (Tal's מלפפון)", RW(1, null, 1, "kg"), A(1, null, null, null), 0.12, RW(1, 9, null, null)],
+    ["units → kg row ×3", RW(1, null, 0.5, "kg"), A(3, null, null, null), 0.12, RW(1, 7, null, null)],
+    ["kg → units row", RW(1, 4, null, null), A(1, null, 1, "kg"), 0.12, RW(1, null, 1.48, "kg")],
+    ["kg → packs row (produce)", RW(3, null, null, null), A(1, null, 0.5, "kg"), 0.15, RW(1, null, 0.95, "kg")],
+    ["no unit weight: units → kg row keeps both", RW(1, null, 1, "kg"), A(2, null, null, null), null, RW(1, 2, 1, "kg")],
+    ["no unit weight: kg → pieces row keeps both", RW(1, 3, null, null), A(1, null, 0.5, "kg"), null, RW(1, 3, 0.5, "kg")],
+    ["no unit weight: kg → packs row keeps both", RW(2, null, null, null), A(1, null, 0.5, "kg"), null, RW(2, null, 0.5, "kg")],
+    ["no unit weight: both said, units add, weight scales", RW(1, 4, 1, "kg"), A(2, null, null, null), null, RW(1, 6, 1.5, "kg")],
+    ["pieces onto packs", RW(2, null, null, null), A(1, 3, null, null), 0.12, RW(1, 5, null, null)],
+  ];
+  for (const [name, row, a, kg, want] of MATRIX) assert.deepEqual(mergeAdd(row, a, kg), want, `merge: ${name}`);
+  // One-off cleanup of the old notes (idempotent; other note text stays).
+  const dirty = { ...RW(1, null, 1, "kg"), notes: "+ ×3 · + ×1" };
+  const clean = cleanMergeNotes(dirty, 0.12)!;
+  assert.deepEqual(clean, { ...RW(1, 12, null, null), notes: null }, "Tal's row: 1 kg + ×3 + ×1 → 12 pieces");
+  assert.equal(cleanMergeNotes(clean, 0.12), null, "idempotent");
+  assert.deepEqual(cleanMergeNotes({ ...RW(2, null, null, null), notes: "ripe ones · + 2 kg" }, null), { ...RW(2, null, 2, "kg"), notes: "ripe ones" }, "user text stays");
+  assert.equal(cleanMergeNotes({ ...RW(1, null, null, null), notes: "+ extra bag" }, null), null, "user text that only looks like it stays");
+
+  // Every add path into the DB (search / barcode / photo / voice / paste / trip add = addToList; templates, re-add and
+  // suggestions keep an existing row's amount) — none writes a note.
+  const cuc = await add("1 kg מלפפונים");
+  const viaSearch = await G.addToList(s, { title: "מלפפון", qty: 1, productKey: cuc.item.productKey, by: "u1" });
+  assert.equal(viaSearch.item.id, cuc.item.id, "search: same row");
+  assert.equal(viaSearch.item.notes, null);
+  assert.equal(viaSearch.item.count, 9, "search: 1 kg ÷ 0.12 ≈ 8 + 1");
+  const viaScan = await G.addToList(s, { title: "מלפפון", qty: 1, gtin: "7290000000001", productKey: cuc.item.productKey, by: "u1" });
+  assert.equal(viaScan.item.count, 10, "barcode: +1 piece");
+  const viaVoice = await G.addToList(s, { title: "מלפפונים", qty: 1, count: 2, by: "u1" });
+  assert.equal(viaVoice.item.count, 12, "voice / paste count: +2");
+  const viaKg = await G.addToList(s, { title: "מלפפונים", qty: 1, amount: 500, unit: "g", by: "u1" });
+  assert.deepEqual([viaKg.item.amount, viaKg.item.unit, viaKg.item.count, viaKg.item.notes], [1.94, "kg", null, null], "weight onto pieces: 12 × 0.12 + 0.5 kg");
+  await G.addMissing(s, [{ productKey: cuc.item.productKey!, title: "מלפפונים", qty: 3, amount: null, unit: null, section: "produce", art: null } as never], "u1");
+  await G.acceptSuggestions(s, [{ productKey: cuc.item.productKey!, title: "מלפפונים", qty: 2, amount: null, unit: null, section: "produce", art: null } as never], "u1");
+  const after = (await s.byId(schema.items, cuc.item.id))!;
+  assert.equal(after.notes, null, "re-add / suggestions: never a note");
+  assert.equal((await G.supermarketList(s)).filter((i) => i.productKey === cuc.item.productKey).length, 1, "still one row");
+  // The cron cleanup on a row with old notes.
+  await s.update(schema.items, { amount: 1, unit: "kg", count: null, notes: "+ ×3 · + ×1" }, (await import("drizzle-orm")).eq(schema.items.id, cuc.item.id));
+  assert.equal(await G.cleanMergeNoteRows(s), 1);
+  const cleaned = (await s.byId(schema.items, cuc.item.id))!;
+  assert.deepEqual([cleaned.count, cleaned.amount, cleaned.notes], [12, null, null], "cron: notes back into the count");
+  assert.equal(await G.cleanMergeNoteRows(s), 0, "cron: idempotent");
+  // The vanished row: delete → Undo (same id) inside one feed batch — the old tombstone must not remove the live row.
+  const { changesFor } = await import("../src/lib/db-scoped/changes");
+  const { readRev } = await import("../src/lib/db-scoped/feed");
+  const since = (await readRev("sp")).rev;
+  const keep = (await s.byId(schema.items, cuc.item.id))!;
+  await s.delete(schema.items, (await import("drizzle-orm")).eq(schema.items.id, keep.id));
+  const { spaceId: _sp, rev: _rev, revBy: _by, ...copy } = keep;
+  void _sp; void _rev; void _by;
+  await s.insert(schema.items, copy as typeof schema.items.$inferInsert);
+  const ch = await changesFor(s, since);
+  assert.ok(ch.supermarket.some((i) => i.id === keep.id), "the restored row comes back");
+  assert.ok(!ch.removed.some((r) => r.id === keep.id), "and is not also removed");
   const p1 = await add("פסטה");
   await s.update(schema.items, { status: "purchased" }, (await import("drizzle-orm")).eq(schema.items.id, p1.item.id));
   assert.equal((await add("פסטה")).merged, false, "bought rows don't merge: a new row to buy");
 
   console.log("ok C1 parse table: 40 lines (he + en, units, decimals, half, pack sizes stay in the name)");
-  console.log("ok C2 merge + undo: same product adds up, same unit adds amounts, other units noted, undo restores");
+  console.log("ok C2 merge + undo: same product adds up, same unit adds amounts, undo restores");
+  console.log(`ok S4 A1 merge matrix: ${MATRIX.length} cases, every add path, never a note; old notes cleaned (idempotent)`);
   console.log("ok C3 type-ahead: household first, typed letters only, did-you-mean table");
   console.log("ok C4 split: WhatsApp paste (he + en + worst case), voice lines, ו only between items, notes unchecked");
   process.exit(0);

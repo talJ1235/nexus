@@ -28,7 +28,7 @@ Results go to **"## Open" at the end of this file**. Tal runs it overnight (~8 h
   case, reduced motion, a smoke step each. Motion bar: `.claude/skills/` + `nx17.css` tokens.
 
 ## Part A — adding never loses anything
-### A1 [ ] Every add merges into quantity / weight, never into notes
+### A1 [x] Every add merges into quantity / weight, never into notes
 Tal typed "מלפפון" + → toast "already on the list", the row vanished, then notes showed "+ ×3 · + ×1". Cause (planner):
 `addToList` in `lib/db-scoped/grocery.ts` (~l.139) writes "+ ×N" / "+ 2 kg" into notes when the row's unit differs from
 the add's (row in kg, add in units). Convert with the learned unit weight (`lib/grocery/weights.ts`, S3 B7): units →
@@ -155,5 +155,12 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
 
 ## Open
 ### Progress
+- Step 0: `round18-s3` merged with `origin/main` (`54996a1`), CI running; `round18-s4` cut from that commit (= main after ff).
+- A1: `lib/grocery/merge.ts` `mergeAdd` (units → count, weight → weight, both kept without a unit weight) in `addToList`;
+  old "+ ×N" notes cleaned by the daily cron (`cleanMergeNoteRows`); the vanished row = a delete → Undo tombstone in the
+  same feed batch dropped the restored row (server + client fixed); `test:add` 14-case matrix + every path.
 ### Decisions
+- A1: templates, re-add from history and accepted suggestions keep an existing row's amount (S1/S2 rule shown in their
+  plans as "already on it — stays"); they never write notes. Every other path (search, barcode, photo, voice, paste, trip
+  add) merges through `mergeAdd`. Volume (L) onto a weighed row has no conversion → one more pack.
 ### For Tal

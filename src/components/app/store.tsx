@@ -688,8 +688,9 @@ export function StoreProvider({
     if (smRows.length || goneItems.size)
       setSm((prev) => {
         const byId = new Map(smRows.map((i) => [i.id, i]));
-        const next = prev.filter((p) => !goneItems.has(p.id)).map((p) => byId.get(p.id) ?? p);
-        const have = new Set(prev.map((p) => p.id));
+        const next = prev.filter((p) => !goneItems.has(p.id) || byId.has(p.id)).map((p) => byId.get(p.id) ?? p);
+        // S4 A1: a row in this batch is alive (a delete + Undo) — never dropped by a tombstone of the same id.
+        const have = new Set(next.map((p) => p.id));
         return [...next, ...smRows.filter((i) => !have.has(i.id))].filter((i) => i.status === "to_buy");
       });
     const merge = <T,>(prev: T[], rows: T[], drop: Set<string>, key: (x: T) => string) => {

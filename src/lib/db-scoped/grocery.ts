@@ -11,6 +11,7 @@ import { TYPE_BY_KEY } from "@/lib/grocery/dictionary";
 import { replayTrip } from "@/lib/grocery/trip";
 import { applyPlan, detectRoutines, matchRoutine } from "@/lib/grocery/routines";
 import { learnUnitWeights, unitKgFor } from "@/lib/grocery/weights";
+import { cleanMergeNotes, mergeAdd } from "@/lib/grocery/merge";
 import type { Unit } from "@/lib/grocery/dictionary";
 import type { TemplateItem } from "@/db/schema";
 import { finishedTrips } from "./trips";
@@ -112,11 +113,10 @@ export type AddInput = {
 export type Before = { quantity: number; amount: number | null; unit: string | null; notes: string | null; count?: number | null };
 export type AddResult = { item: ItemRow; merged: boolean; before: Before | null };
 
-const unitLabel = (amount: number, unit: string) => `${Math.round(amount * 1000) / 1000} ${unit === "l" ? "L" : unit}`;
-
 /**
  * Add to the supermarket list. Same product already to buy → its quantity / amount grows instead of a new row
- * (`merged`, `before` for Undo). Different units of one product → one row; the second amount is noted.
+ * (`merged`, `before` for Undo). Different units of one product → one row; S4 A1: `mergeAdd` converts between pieces and
+ * weight with the unit weight (both measures kept when there is none) — never a note.
  */
 export async function addToList(s: Scoped, i: AddInput, now = Date.now()): Promise<AddResult> {
   const cls = classifyLocal(i.title, i.gtin);
@@ -128,18 +128,11 @@ export async function addToList(s: Scoped, i: AddInput, now = Date.now()): Promi
   const [cur] = await s.select(schema.items, and(onListCond, eq(schema.items.productKey, productKey))).orderBy(asc(schema.items.createdAt)).limit(1);
   if (cur) {
     const before: Before = { quantity: cur.quantity, amount: cur.amount, unit: cur.unit, notes: cur.notes, count: cur.count };
-    const patch: Partial<ItemRow> = { updatedAt: now };
-    // B1: pieces add up on their own; a count-only add never touches the weight or the packs.
-    if (count != null) patch.count = (cur.count ?? 0) + count;
-    if (count != null && !unit) {
-      // the count was the whole add
-    } else if (!unit && !cur.unit) patch.quantity = cur.quantity + qty;
-    else if (unit && cur.unit === unit) patch.amount = Math.round(((cur.amount ?? 0) + (amount ?? 0)) * 1000) / 1000;
-    else {
-      // Different units: keep one row, note the second amount ("+ 2 kg" / "+ ×3").
-      const extra = unit && amount ? `+ ${unitLabel(amount, unit)}` : `+ ×${qty}`;
-      patch.notes = [cur.notes, extra].filter(Boolean).join(" · ").slice(0, 500);
-    }
+    // S4 A1: into the row's measures (count / weight / packs), never the notes; the unit weight converts between them.
+    const mixed = (cur.unit ?? null) !== unit || (cur.count != null) !== (count != null);
+    const unitKg = mixed ? await unitWeightOf(s, productKey) : null;
+    const next = mergeAdd({ quantity: cur.quantity, count: cur.count, amount: cur.amount, unit: cur.unit }, { qty, count, amount, unit }, unitKg);
+    const patch: Partial<ItemRow> = { updatedAt: now, quantity: next.quantity, count: next.count, amount: next.amount, unit: next.unit as Unit | null };
     await s.update(schema.items, patch, eq(schema.items.id, cur.id));
     return { item: (await s.byId(schema.items, cur.id))!, merged: true, before };
   }
@@ -166,6 +159,28 @@ export async function addToList(s: Scoped, i: AddInput, now = Date.now()): Promi
     updatedAt: now,
   });
   return { item: (await s.byId(schema.items, id))!, merged: false, before: null };
+}
+
+/** kg per piece for one product: the home's own (purchases with both measures), else the type's fallback. */
+async function unitWeightOf(s: Scoped, productKey: string) {
+  return unitKgFor(productKey, learnUnitWeights((await purchasesOf(s)).purchases.filter((p) => p.productKey === productKey)));
+}
+
+/**
+ * S4 A1 one-off (daily cron, idempotent): "+ ×N" / "+ 2 kg" fragments the old merge wrote into a row's notes go into
+ * its measures. Only rows still to buy; other text in the notes stays.
+ */
+export async function cleanMergeNoteRows(s: Scoped) {
+  const rows = await s.select(schema.items, and(onListCond, sql`${schema.items.notes} like '%+ %'`));
+  let fixed = 0;
+  for (const r of rows) {
+    const unitKg = r.productKey ? await unitWeightOf(s, r.productKey) : null;
+    const next = cleanMergeNotes({ quantity: r.quantity, count: r.count, amount: r.amount, unit: r.unit, notes: r.notes }, unitKg);
+    if (!next) continue;
+    await s.update(schema.items, { quantity: next.quantity, count: next.count, amount: next.amount, unit: next.unit as Unit | null, notes: next.notes }, eq(schema.items.id, r.id));
+    fixed++;
+  }
+  return fixed;
 }
 
 /** Undo of a merge: the old quantity / amount / note come back. */

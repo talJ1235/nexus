@@ -15,6 +15,7 @@ import { repairIncomplete } from "@/lib/service";
 import { dropSpaceRows, spacesToPurge } from "@/lib/spaces";
 import { ownerPrefs, runCronChecks } from "@/lib/tracker";
 import { backfillShortNames } from "@/lib/db-scoped/short-names";
+import { cleanMergeNoteRows } from "@/lib/db-scoped/grocery";
 import { accountsToPurge, purgeAccount } from "@/lib/db-scoped/account";
 import { purgePresence } from "@/lib/db-scoped/presence";
 import { purgeNotifications } from "@/lib/db-scoped/notify";
@@ -70,6 +71,7 @@ export async function GET(req: NextRequest) {
   // R17 B1: short names for old long titles — 30 AI names per run from the system budget; the rest wait a day.
   const shortNames = { changed: 0, skipped: 0, viaAi: 0 };
   const aiBudget = { left: 30 };
+  let smNotes = 0;
   // Maintenance gets what's left of the minute, shared over the spaces (oldest work is retried on later runs).
   for (const sp of spaces) {
     const left = 50_000 - (Date.now() - started);
@@ -89,6 +91,8 @@ export async function GET(req: NextRequest) {
     shortNames.changed += sn.changed;
     shortNames.skipped += sn.skipped;
     shortNames.viaAi += sn.viaAi;
+    // R18 S4 A1: amounts the old merge wrote into notes go back into the rows' measures (one-off, idempotent).
+    smNotes += await cleanMergeNoteRows(s).catch(failed("sm-notes", 0));
     // The shopping profile the assistant uses (Round 9 C3), refreshed for the space's creator.
     if (sp.ownerId) {
       const { currency } = await ownerPrefs(sp.ownerId);
@@ -114,7 +118,7 @@ export async function GET(req: NextRequest) {
   const notifyPurged = await purgeNotifications().catch(failed("notify-purge", { notifications: 0, subscriptions: 0 }));
   // R18 S2 G1: the supermarket's kv caches and one-time marks (lib/kv GROCERY_KV_KEEP).
   const groceryKv = await purgeGroceryKv().catch(failed("grocery-kv", 0));
-  const summary = { at: Date.now(), ms: Date.now() - started, presence: presence.presence + presence.activity, notifyPurged, groceryKv, notified, spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
+  const summary = { at: Date.now(), ms: Date.now() - started, presence: presence.presence + presence.activity, notifyPurged, groceryKv, notified, spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, smNotes, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }

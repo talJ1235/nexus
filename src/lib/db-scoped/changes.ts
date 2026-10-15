@@ -51,9 +51,12 @@ export async function changesFor(s: Scoped, since: number): Promise<Changes> {
   const changed = itemRows.length ? await loadItems(s, itemRows.map((r) => r.id), "any") : [];
   const items = changed.filter((i) => i.list !== "supermarket");
   const supermarket = changed.filter((i) => i.list === "supermarket");
-  const prefsChanged = prefs.length > 0 || removed.some((r) => r.tbl === "space_pref");
+  // R18 S4 A1: a row deleted and then restored (Undo, same id) exists again — its old tombstone must not remove it.
+  const alive = new Set(changed.map((i) => i.id));
+  const removedNow = removed.filter((r) => !(r.tbl === "items" && alive.has(r.id)));
+  const prefsChanged = prefs.length > 0 || removedNow.some((r) => r.tbl === "space_pref");
   const [budget, importLimitUsd, budgetWarn] = prefsChanged ? await Promise.all([loadBudgetHistory(s), loadImportLimit(s), loadBudgetWarn(s)]) : [undefined, undefined, undefined];
-  return { rev: meta.rev, items, supermarket, collections, altGroups, storeSettings, alerts, removed, ...(budget ? { budget, importLimitUsd, budgetWarn } : {}) };
+  return { rev: meta.rev, items, supermarket, collections, altGroups, storeSettings, alerts, removed: removedNow, ...(budget ? { budget, importLimitUsd, budgetWarn } : {}) };
 }
 
 /** Just the space's revision (the polling fallback's cheap check). */
