@@ -70,6 +70,11 @@ export const smHe: Widen<typeof smEn> = {
       sukkot: "סוכות",
     },
   },
+  empty: {
+    templates: "להתחיל מתבנית",
+    add: "הוספה",
+    addTpl: "להוסיף את {name} לרשימה",
+  },
   first: {
     title: "מתחילים רשימה",
     basket: "סל שבועי בסיסי",
@@ -164,6 +169,10 @@ export const smHe: Widen<typeof smEn> = {
     addN: "הוספת {n}",
     addOne: "הוספת 1",
     added_n: "נוספו {n}",
+    nowLine: "{title} · עכשיו {qty}",
+    newLine: "{title} · נוסף",
+    manyLine: "נוספו {n}",
+    show: "נוסף · הצג",
     setQty: "כמות של {title}",
     cameraOff: "המצלמה חסומה ל-Nexus — אפשר אותה בהגדרות האתר בדפדפן כדי לסרוק. בינתיים אפשר להקליד.",
   },

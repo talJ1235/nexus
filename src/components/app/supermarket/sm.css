@@ -206,3 +206,20 @@ html[data-device="phone"] :is(.sm-rise, .sm-push)[data-state="closed"] { animati
 @media (prefers-reduced-motion: reduce) {
   html[data-device="phone"] :is(.sm-rise, .sm-push)[data-state="open"], .sm-sub-in, .sm-sub-back { animation: fade 150ms ease-out both; }
 }
+
+/* R18 S4 A2: "Added · show" — a small pill above the Start shopping bar when the added row is off-screen. */
+.sm-added-pill {
+  position: fixed; z-index: 31; inset-inline: 0; margin-inline: auto; width: max-content;
+  bottom: calc(158px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 6px; height: 40px; padding-inline: 16px; border-radius: 999px;
+  background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 800;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 22%, transparent);
+  animation: sm-pill-in 220ms var(--ease-out) both;
+}
+html[data-device="computer"] .sm-added-pill { bottom: 32px; }
+@keyframes sm-pill-in { from { opacity: 0; transform: translateY(8px) scale(0.96); } }
+@media (prefers-reduced-motion: reduce) { .sm-added-pill { animation: fade 150ms ease-out both; } }
+:root[data-motion="reduce"] .sm-added-pill { animation: fade 150ms ease-out both; }
+/* The inline confirmation in the Add screen (one line, replaced by the next add). */
+.sm-added-line { animation: sm-pill-in 200ms var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) { .sm-added-line { animation: none; } }

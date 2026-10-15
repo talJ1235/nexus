@@ -21,6 +21,8 @@ import { StackedPics } from "../project-cover";
 import { patchSmHome, refreshSmHome, useSmHome, type SmHome } from "./data";
 import { asItem, estimateLines, storeLabel } from "./numbers";
 import { qtyLabel } from "./qty";
+import { announceAdded, useAddedLine, type Added } from "./added";
+import { Spinner } from "@/components/ui/spinner";
 
 // R18 S2 E1 — templates (board Lists-phone): people's templates and the ones Nexus made from repeating trips ("Made by
 // Nexus", kept up to date until someone edits one), the routine Nexus spotted (Keep it / No thanks), a template's page
@@ -926,5 +928,60 @@ function SaveSheet({ what, onClose, onSaved }: { what: { kind: "list" } | { kind
         </div>
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * R18 S4 A3: an empty list starts from the templates (Nexus's + the home's) — each a card with one-tap Add (the same
+ * merge as Apply). Nothing when the home has no templates.
+ */
+export function EmptyTemplates({ ro }: { ro: boolean }) {
+  const s = useStore();
+  const { t, f } = useI18n();
+  const tx = useTemplateText();
+  const { home } = useSmHome();
+  const meta = useTplMeta();
+  const line = useAddedLine();
+  const [list, setList] = useState<Template[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  useEffect(() => {
+    void supermarketTemplates().then(setList, () => setList([]));
+  }, []);
+  if (!list?.length) return null;
+  const add = async (tpl: Template) => {
+    setBusy(tpl.id);
+    try {
+      const r = await applySupermarketTemplate(tpl.id);
+      s.upsertSm(r.rows.map(asItem));
+      const xs: Added[] = r.rows.map((x) => ({ id: x.id, title: x.title, qty: "", merged: false }));
+      announceAdded(xs, { line: xs.length ? f(t.sm.lists.added, { n: xs.length }) : line(xs) });
+    } catch {
+      toast.error(t.sm.lists.failed);
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <section className="flex flex-col gap-2" data-sm-empty-templates>
+      <h2 className="px-1 text-[15px] font-extrabold">{t.sm.empty.templates}</h2>
+      <div className="-mx-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-3 pb-1 [scrollbar-width:none] desk:mx-0 desk:grid desk:grid-cols-2 desk:overflow-visible desk:px-0">
+        {list.slice(0, 6).map((tpl) => (
+          <div key={tpl.id} className={cn(card, "flex w-[78%] max-w-[300px] shrink-0 snap-start flex-col overflow-hidden desk:w-auto desk:max-w-none")} data-sm-empty-template={tpl.id}>
+            <TemplateCover items={tpl.items} className="h-[64px] w-full" />
+            <div className="flex items-center gap-2 p-3">
+              <span className="min-w-0 flex-1">
+                <b className="bidi block truncate text-[15.5px] font-extrabold">{tx.name(tpl)}</b>
+                <span className="tabular block truncate text-[12.5px] font-semibold text-muted">{meta(tpl.items, home?.store?.chain, home?.store?.branch)}</span>
+              </span>
+              {!ro && (
+                <button type="button" className={cn("grid h-11 shrink-0 place-items-center rounded-[13px] bg-ink px-4 text-[14.5px] font-extrabold text-bg disabled:opacity-60", press)} onClick={() => void add(tpl)} disabled={busy != null} aria-label={f(t.sm.empty.addTpl, { name: tx.name(tpl) })} data-sm-empty-template-add>
+                  {busy === tpl.id ? <Spinner className="size-4" /> : t.sm.empty.add}
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

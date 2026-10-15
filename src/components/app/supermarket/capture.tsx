@@ -12,6 +12,7 @@ import { createItem } from "@/app/actions";
 import { classifyLocal } from "@/lib/grocery/classify";
 import { SECTION_KEYS, sectionName } from "@/lib/grocery/sections";
 import { unitKgFor } from "@/lib/grocery/weights";
+import { announceAdded, useAddedLine, type Added } from "./added";
 import { getBarcodeReader, prewarmScanners } from "@/lib/barcode-reader";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -479,14 +480,16 @@ function Other({ title, onAgain, onDone }: { title: string; onAgain: () => void;
 /** Add one captured product (with its barcode, so the home knows it next time); merged into its row when listed. */
 function useAddCaptured() {
   const s = useStore();
-  const { t, f, locale } = useI18n();
+  const { t, locale } = useI18n();
+  const line = useAddedLine();
   const { home } = useSmHome();
   return async (p: { title: string; productKey?: string; section?: string; gtin: string | null }, qty: number) => {
     try {
       const r = await addToSupermarket({ title: p.title, qty, ...(p.productKey ? { productKey: p.productKey } : {}), ...(p.section ? { section: p.section } : {}), ...(p.gtin ? { gtin: p.gtin } : {}) });
       s.upsertSm([asItem(r.item)]);
       const undo = { label: t.sm.add.undo, onClick: () => void undoSupermarketAdd(r.item.id, r.before).then((u) => (u.item ? s.upsertSm([asItem(u.item)]) : s.removeSm(r.item.id))) };
-      toast(r.merged ? r.item.title : f(t.sm.cap.added, { title: r.item.title }), { ...(r.merged ? { description: f(t.sm.add.merged, { qty: qtyLabel(r.item, locale, unitKgFor(r.item.productKey, home?.unitKg)) }) } : {}), action: undo });
+      const xs: Added[] = [{ id: r.item.id, title: r.item.title, qty: qtyLabel(r.item, locale, unitKgFor(r.item.productKey, home?.unitKg)), merged: r.merged }];
+      announceAdded(xs, { line: line(xs), undo });
       return true;
     } catch {
       toast.error(t.sm.add.failed);

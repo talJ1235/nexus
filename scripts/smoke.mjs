@@ -2395,6 +2395,54 @@ try {
           "photo understands what it sees (R18 S3 C2): list → paste review, receipt → review, unsure, not a grocery", JSON.stringify(r));
       });
 
+    // ======== R18 S4 ========
+    // R18 S4 A1 + A2: typing a product that is on the list in kg ("cucumbers" + →) merges into its count — no note, the row
+    // stays; the Add screen says "<name> · now <qty>" in one inline line (replaced by the next add, no toast); back on
+    // the list the row pulses (data-settled) and, if it is off-screen, "Added · show" scrolls to it.
+    if (WRITE)
+      await step("add feedback (R18 S4 A1+A2): merge into count, inline line replaced, no toast, row pulses, show pill", async () => {
+        const r = {};
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
+        for (const id of await page.locator('[data-sm-row]:has(.gro-t:text-matches("^S4 cucumbers"))').evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row")))) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "S4 cucumbers", amount: 1, unit: "kg" }]);
+        await page.goto(`${BASE}/supermarket`);
+        const first = { item: { id: await page.locator('[data-sm-row]:has(.gro-t:text-is("S4 cucumbers"))').first().getAttribute("data-sm-row", { timeout: 15000 }) } };
+        await page.locator("[data-sm-add-open]").first().click();
+        await page.waitForSelector("[data-add-input]");
+        const toasts = () => page.locator("[data-sonner-toast]").count();
+        r.toastsBefore = await toasts();
+        await page.locator("[data-add-input]").fill("S4 cucumbers");
+        await page.keyboard.press("Enter");
+        await page.waitForSelector("[data-add-done]", { timeout: 8000 });
+        r.line1 = (await page.locator("[data-add-done]").textContent())?.trim();
+        await page.locator("[data-add-input]").fill("2 S4 cucumbers");
+        await page.keyboard.press("Enter");
+        await page.waitForFunction((was) => document.querySelector("[data-add-done]")?.textContent?.trim() !== was, r.line1, { timeout: 8000 });
+        r.lines = await page.locator("[data-add-done]").count();
+        r.line2 = (await page.locator("[data-add-done]").textContent())?.trim();
+        r.toasts = (await toasts()) - r.toastsBefore;
+        await page.locator("[data-add-back]").click();
+        await page.waitForSelector("[data-add-screen]", { state: "detached", timeout: 5000 }).catch(() => {});
+        const row = page.locator(`[data-sm-row="${first.item.id}"]`);
+        r.rows = await page.locator('[data-sm-row]:has(.gro-t:text-is("S4 cucumbers"))').count();
+        r.pulse = await page.waitForFunction((id) => document.querySelector(`[data-sm-row="${id}"]`)?.hasAttribute("data-settled"), first.item.id, { timeout: 3000 }).then(() => true, () => false);
+        r.pill = await page.locator("[data-sm-added-pill]").count();
+        if (r.pill) {
+          await page.locator("[data-sm-added-pill]").click();
+          await page.waitForTimeout(900);
+          const bb = await row.boundingBox();
+          r.shown = !!bb && bb.y > 40 && bb.y < (page.viewportSize()?.height ?? 800) - 80;
+        } else r.shown = await row.isVisible();
+        r.qty = (await row.locator(".gro-q, [data-sm-row-qty]").first().textContent().catch(() => ""))?.trim();
+        r.noted = /\+ ×|\+ \d/.test((await row.textContent()) ?? "");
+        await callAction(BASE, cookie, act("removeSmItem"), [first.item.id]);
+        ok(/S4 cucumbers · now/.test(r.line1 ?? "") && /S4 cucumbers · now/.test(r.line2 ?? "") && r.line1 !== r.line2 && r.lines === 1 && r.toasts === 0 && r.rows === 1 && r.pulse && r.shown && !r.noted,
+          "add feedback (R18 S4 A1+A2): merge into count, inline line replaced, no toast, row pulses, show pill", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

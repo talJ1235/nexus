@@ -12,6 +12,7 @@ import { setItemPicture } from "@/app/picture-actions";
 import { SECTION_KEYS, sectionName } from "@/lib/grocery/sections";
 import type { Knowledge } from "@/lib/grocery/staples";
 import { unitKgFor } from "@/lib/grocery/weights";
+import { announceAdded, useAddedLine, type Added } from "./added";
 import { formatMoney } from "@/lib/money";
 import { toast } from "@/lib/toast";
 import type { ItemWithSources } from "@/lib/types";
@@ -524,6 +525,7 @@ function SugBody({ sug, reason, onClose }: { sug: Sug; reason: string; onClose: 
   const { home } = useSmHome();
   const listed = s.sm.find((i) => i.productKey === sug.productKey) ?? null;
   const unitKg = unitKgFor(sug.productKey, home?.unitKg);
+  const addedLine = useAddedLine();
   const [m, setM] = useState<Measure>(() =>
     listed ? { quantity: listed.quantity, count: listed.count ?? null, amount: listed.amount, unit: listed.unit } : { quantity: sug.qty, count: null, amount: sug.amount, unit: sug.unit },
   );
@@ -544,7 +546,10 @@ function SugBody({ sug, reason, onClose }: { sug: Sug; reason: string; onClose: 
         let row = rows[0];
         if (row && m.count != null && row.count !== m.count) row = (await updateSmItem(row.id, { count: m.count })) ?? row;
         s.upsertSm(rows.map((r) => asItem(r.id === row?.id ? row : r)));
-        toast.success(f(t.sm.add.added, { title: sug.title }));
+        if (row) {
+          const xs: Added[] = [{ id: row.id, title: row.title, qty: qtyLabel(row, locale, unitKg), merged: false }];
+          announceAdded(xs, { line: addedLine(xs) });
+        }
       }
       patchSmHome(key, (h) => ({ ...h, suggestions: h.suggestions.filter((x) => x.productKey !== sug.productKey) }));
       onClose();

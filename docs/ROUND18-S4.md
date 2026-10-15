@@ -39,7 +39,7 @@ Find why the row **vanished** (list re-render / filter / optimistic merge) and f
 search, suggestions, "you usually buy", barcode, photo, voice, paste list, templates, re-add from history.
 `test:add` covers each path × (same unit, units→kg, kg→units, no unit weight).
 
-### A2 [ ] Clear feedback after adding
+### A2 [x] Clear feedback after adding
 After any add: the row appears (or the merged row pulses) and a short inline confirmation names it with the new amount
 ("מלפפון · עכשיו 4"); if the row is off-screen, a small "Added · show" pill scrolls to it. No toast spam (one at a
 time, replaced, not stacked).
@@ -159,6 +159,9 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
 - A1: `lib/grocery/merge.ts` `mergeAdd` (units → count, weight → weight, both kept without a unit weight) in `addToList`;
   old "+ ×N" notes cleaned by the daily cron (`cleanMergeNoteRows`); the vanished row = a delete → Undo tombstone in the
   same feed batch dropped the restored row (server + client fixed); `test:add` 14-case matrix + every path.
+- A2: `supermarket/added.tsx` — `announceAdded` (one toast id, replaced) + inline line on the Add screen ("<name> · now
+  <qty>", Undo) + `AddedPill` (pulse via `markFresh` bump, "Added · show" when off-screen). Smoke step phone + desktop.
+  (The A3 empty-list code went into this commit by mistake; its smoke + tick are in the A3 commit.)
 ### Decisions
 - A1: templates, re-add from history and accepted suggestions keep an existing row's amount (S1/S2 rule shown in their
   plans as "already on it — stays"); they never write notes. Every other path (search, barcode, photo, voice, paste, trip

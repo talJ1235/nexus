@@ -26,8 +26,9 @@ import { useLocalTrip } from "./local-trip";
 import { SmItemSheet, SuggestionActions } from "./item-sheet";
 import { useVoiceSupported } from "./add-screen";
 import { qtyLabel } from "./qty";
+import { AddedPill, announceAdded, useAddedLine, type Added } from "./added";
 import { useOutboxCount } from "./outbox-count";
-import { Lists, RoutineOffer, type ListsStart } from "./lists";
+import { EmptyTemplates, Lists, RoutineOffer, type ListsStart } from "./lists";
 import { DeskPast, DeskTemplates, SendToPhone } from "./desk";
 import { useDevice } from "@/components/ui/use-device";
 import { OPEN_ITEM, openSmItem, Row, useSettled } from "./row";
@@ -177,6 +178,7 @@ export function SupermarketView() {
   );
   const overlays = (
     <>
+      <AddedPill paused={adding != null || capturing != null || shopping || lists != null} />
       <StorePicker open={picking} onClose={() => setPicking(false)} />
       <SectionOrder open={ordering} onClose={() => setOrdering(false)} onPickStore={() => setPicking(true)} />
       <Lists open={lists != null} onClose={() => setLists(null)} routine={home?.routine ?? null} start={lists ?? "templates"} />
@@ -209,6 +211,9 @@ export function SupermarketView() {
   );
   const offer = !ro && home?.routine && <RoutineOffer routine={home.routine} />;
   const suggestions = <Suggestions home={home} basket={null} draft={draft} ro={ro} />;
+  // A3: nothing on the list (after the first time) — the suggestions open, under the templates.
+  const empty = !first && s.sm.length === 0;
+  const emptySuggestions = <Suggestions home={home} basket={null} draft={draft} ro={ro} forceOpen />;
 
   if (desk)
     return (
@@ -218,8 +223,10 @@ export function SupermarketView() {
         {overlays}
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(300px,370px)] items-start gap-4">
           <div className="flex min-w-0 flex-col gap-3">
-            {!ro && <AddField onOpen={openAdd} />}
-            {first ? firstTime : list}
+            {!ro && !empty && <AddField onOpen={openAdd} />}
+            {(first || empty) && <EmptyTemplates ro={ro} />}
+            {first ? firstTime : empty ? emptySuggestions : list}
+            {!ro && empty && <AddField onOpen={openAdd} />}
             {startBar}
           </div>
           <aside className="sticky top-4 flex min-w-0 flex-col gap-3" data-sm-side>
@@ -232,7 +239,7 @@ export function SupermarketView() {
               )}
             </div>
             {!first && offer}
-            {!first && suggestions}
+            {!first && !empty && suggestions}
             <DeskTemplates ro={ro} onOpen={() => openLists("templates")} onSave={() => openLists("save")} />
             <DeskPast onOpen={() => s.setView({ type: "history", src: "sm" })} />
           </aside>
@@ -247,10 +254,21 @@ export function SupermarketView() {
       <StoreLine home={home} store={trip.store} onPick={() => setPicking(true)} />
       {overlays}
       {s.sm.length > 0 && <Rail groups={groups} />}
-      {!ro && <AddField onOpen={openAdd} />}
+      {!ro && !empty && <AddField onOpen={openAdd} />}
       {startBar}
       {first ? (
-        firstTime
+        <>
+          <EmptyTemplates ro={ro} />
+          {firstTime}
+        </>
+      ) : empty ? (
+        <>
+          {/* R18 S4 A3: an empty list — templates first, then what the home usually buys, then the ways to add. */}
+          <EmptyTemplates ro={ro} />
+          {emptySuggestions}
+          {!ro && <AddField onOpen={openAdd} />}
+          {offer}
+        </>
       ) : (
         <>
           {/* R18 S3 B3: the list first; "Nexus suggests" under it (one line until opened); then the routine offer. */}
@@ -380,13 +398,15 @@ function AddField({ onOpen }: { onOpen: (mode: AddMode | "scan" | "photo") => vo
 
 /** "Nexus suggests" (or "Ready for Thursday" from the evening draft): + adds, × skips for this cycle, Add all. */
 const SUG_OPEN_KEY = "nexus.smSugOpen";
-function Suggestions({ home, basket, draft, ro }: { home: SmHome | null; basket: BasketItem[] | null; draft: boolean; ro: boolean }) {
+function Suggestions({ home, basket, draft, ro, forceOpen = false }: { home: SmHome | null; basket: BasketItem[] | null; draft: boolean; ro: boolean; forceOpen?: boolean }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
+  const addedLine = useAddedLine();
   // R18 S3 B3: one line until opened on phones (open on a computer's side panel and for tonight's draft); the choice
   // is remembered on this device.
   const desk = useDevice() === "computer";
-  const [open, setOpenState] = useState(desk || draft);
+  const [openState, setOpenState] = useState(desk || draft);
+  const open = openState || forceOpen;
   useEffect(() => {
     try {
       const v = localStorage.getItem(SUG_OPEN_KEY);
@@ -422,8 +442,10 @@ function Suggestions({ home, basket, draft, ro }: { home: SmHome | null; basket:
     setGone((g) => new Set([...g, ...xs.map((x) => x.productKey)]));
     try {
       const rows = await acceptSuggestions(xs.map((x) => ({ productKey: x.productKey, title: x.title, qty: x.qty, amount: x.amount, unit: x.unit, section: x.section, art: x.art })));
+      const had = new Set(s.sm.map((i) => i.id));
       s.upsertSm(rows.map(asItem));
-      if (xs.length > 1) toast.success(f(t.sm.main.addedN, { n: rows.length }));
+      const added: Added[] = rows.map((r) => ({ id: r.id, title: r.title, qty: qtyLabel(r, locale, home?.unitKg?.[r.productKey ?? ""] ?? null), merged: had.has(r.id) }));
+      announceAdded(added, { line: addedLine(added) });
     } catch {
       setGone((g) => new Set([...g].filter((k) => !xs.some((x) => x.productKey === k))));
       toast.error(t.sm.main.failed);

@@ -66,6 +66,11 @@ export const smEn = {
       sukkot: "Sukkot",
     },
   },
+  empty: {
+    templates: "Start from a template",
+    add: "Add",
+    addTpl: "Add {name} to the list",
+  },
   first: {
     title: "Start your list",
     basket: "Basic weekly basket",
@@ -160,6 +165,10 @@ export const smEn = {
     addN: "Add {n}",
     addOne: "Add 1",
     added_n: "Added {n}",
+    nowLine: "{title} · now {qty}",
+    newLine: "{title} · added",
+    manyLine: "{n} added",
+    show: "Added · show",
     setQty: "Quantity for {title}",
     cameraOff: "The camera is blocked for Nexus — allow it in the browser’s site settings to scan. Type it for now.",
   },

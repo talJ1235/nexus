@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { acceptSuggestions } from "@/app/supermarket-actions";
+import { announceAdded } from "./added";
 import { capFor, monthForecast, monthKeyIn, monthStartIn, nextMonthKey } from "@/lib/budget";
 import type { BasketItem } from "@/lib/grocery/basket";
 import { toast } from "@/lib/toast";
@@ -76,7 +77,7 @@ export function useAddMany() {
     try {
       const rows = await acceptSuggestions(items.map((b) => ({ productKey: b.productKey, title: b.title, qty: b.qty, amount: b.amount, unit: b.unit, section: b.section, art: b.art })));
       s.upsertSm(rows.map(asItem));
-      toast.success(msg.done(rows.length));
+      announceAdded(rows.map((r) => ({ id: r.id, title: r.title, qty: "", merged: false })), { line: msg.done(rows.length) });
       return rows.length;
     } catch {
       toast.error(msg.failed);

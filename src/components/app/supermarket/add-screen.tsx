@@ -23,6 +23,7 @@ import { useSmHome, type SmHome } from "./data";
 import { asItem } from "./numbers";
 import { qtyLabel } from "./qty";
 import { QtySteppers, type Measure } from "./qty-steppers";
+import { announceAdded, useAddedLine, type Added } from "./added";
 
 // R18 S2 B2 — the Add screen (board Add-phone): type-ahead (the household's products first, the typed letters bold),
 // "Did you mean" for spelling mistakes with "Add as new" still offered, a quantity read from the line ("2 milk 3%",
@@ -78,6 +79,8 @@ function AddBody({ onClose, startMode, onCapture, hint, seed }: { onClose: () =>
   const hasMeasure = parsed.qty > 1 || parsed.amount != null || parsed.count != null || (edited?.q === q);
   const [steppers, setSteppers] = useState(false);
   const voice = useVoiceSupported();
+  const line = useAddedLine();
+  const [last, setLast] = useState<{ key: number; text: string; undo: () => void } | null>(null);
 
   useEffect(() => {
     if (mode === "type") requestAnimationFrame(() => input.current?.focus());
@@ -118,9 +121,10 @@ function AddBody({ onClose, startMode, onCapture, hint, seed }: { onClose: () =>
     try {
       const r = await addToSupermarket({ title, qty: m.quantity, amount: m.amount, unit: (m.unit as "kg" | "g" | "l" | null) ?? null, count: m.count, ...(hit ? { productKey: hit.productKey } : {}) });
       s.upsertSm([asItem(r.item)]);
-      const undo = { label: t.sm.add.undo, onClick: () => void undoSupermarketAdd(r.item.id, r.before).then((u) => (u.item ? s.upsertSm([asItem(u.item)]) : s.removeSm(r.item.id))) };
-      if (r.merged) toast(r.item.title, { description: f(t.sm.add.merged, { qty: qtyLabel(r.item, locale, unitKgFor(r.item.productKey, home?.unitKg)) }), action: undo, id: `sm-add-${r.item.id}` });
-      else toast(f(t.sm.add.added, { title: r.item.title }), { action: undo, id: `sm-add-${r.item.id}` });
+      // S4 A2: one inline line under the field (replaced by the next add) — no toast while the Add screen is open.
+      const x: Added = { id: r.item.id, title: r.item.title, qty: qtyLabel(r.item, locale, unitKgFor(r.item.productKey, home?.unitKg)), merged: r.merged };
+      announceAdded([x]);
+      setLast({ key: Date.now(), text: line([x]), undo: () => void undoSupermarketAdd(r.item.id, r.before).then((u) => (u.item ? s.upsertSm([asItem(u.item)]) : s.removeSm(r.item.id))) });
     } catch {
       setQ(q);
       toast.error(t.sm.add.failed);
@@ -162,6 +166,23 @@ function AddBody({ onClose, startMode, onCapture, hint, seed }: { onClose: () =>
           )}
         </label>
       </div>
+      {last && (
+        <div key={last.key} className="sm-added-line mx-3 mt-2 flex min-h-11 items-center gap-2 rounded-[12px] bg-surface-2 ps-3 pe-1 text-[14px] font-bold text-ink" role="status" aria-live="polite" data-add-done>
+          <Check className="size-4 shrink-0 text-ok" aria-hidden />
+          <span className="bidi min-w-0 flex-1 truncate">{last.text}</span>
+          <button
+            type="button"
+            className="h-9 shrink-0 rounded-[10px] px-3 text-[13.5px] font-extrabold text-ink underline-offset-2 hover:underline"
+            onClick={() => {
+              last.undo();
+              setLast(null);
+            }}
+            data-add-done-undo
+          >
+            {t.sm.add.undo}
+          </button>
+        </div>
+      )}
       {hint === "camera" && (
         <p className="mx-3 mt-2 rounded-[12px] bg-warn-soft px-3 py-2 text-[13px] font-semibold text-warn" data-add-hint="camera">
           {t.sm.add.cameraOff}
@@ -341,12 +362,14 @@ function SplitPreview({ parts, onDone }: { parts: SplitPart[]; onDone: () => voi
   const toggle = (k: number) => (parts[k].checked ? setOff : setOn)((x) => (x.has(k) ? new Set([...x].filter((y) => y !== k)) : new Set([...x, k])));
   const onListByKey = new Map(s.sm.filter((i) => i.productKey).map((i) => [i.productKey!, i]));
   const n = parts.filter((_, k) => checked(k)).length;
+  const addedLine = useAddedLine();
   const go = async () => {
     const picked = parts.filter((_, k) => checked(k));
     try {
       const rows = await addParts(picked.map((p) => ({ title: (p.product ? p.name || p.text : p.text).slice(0, 300), qty: p.qty, amount: p.amount != null && p.unit && p.unit !== "u" ? p.amount : null, unit: p.unit && p.unit !== "u" ? p.unit : null, count: p.count, ...(p.product ? {} : { note: true }) })));
       s.upsertSm(rows.map((r) => asItem(r.item)));
-      toast.success(f(t.sm.add.added_n, { n: rows.length }));
+      const xs: Added[] = rows.map((r) => ({ id: r.item.id, title: r.item.title, qty: qtyLabel(r.item, locale, unitKgFor(r.item.productKey, home?.unitKg)), merged: r.merged }));
+      announceAdded(xs, { line: addedLine(xs) });
       onDone();
     } catch {
       toast.error(t.sm.add.failed);
