@@ -314,6 +314,12 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.
+- Session stopped at the usage limit (2026-10-15) after C1. Not done: C2–C7, G1, G2; **not merged** to main. Resume
+  from C2 (design: one AI call returns kind product / receipt / list / unsure + every reading — product guess with a
+  `grocery` flag, list lines — mock fixtures `mockreceipt:` / `mocklist:` / `mockunsure:` / `mockother:`; receipt →
+  `openReceipt(file)`, list → Add screen paste review prefilled, non-grocery → `createItem` in Products). Branch CI has
+  only completed typecheck / lint / unit tests / build per push (each push cancels the previous run) — run the full
+  guards once before merging. Fresh prod snapshot taken: `snapshots/prod-2026-10-14.db` (no DB change so far).
 ### Leftovers (low)
 - A3 LOW: admin computer tab switches are instant (fine for a dashboard; a 150 ms fade would match the app); admin phone
   Back from a person / report has no reverse slide; the Products / segment thumbs use a 450 ms spring (over the 300 ms UI
