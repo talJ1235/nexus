@@ -13,6 +13,8 @@ Results go to **"## Open" at the end of this file**. Tal runs it overnight (~8 h
 - **Commit and push after every single item** (`R18.S4.<part><k>: …`, `git push origin round18-s4`); tick `[x]` here +
   one line in "### Progress" in the same commit; decisions in "### Decisions" at once; anything for Tal in "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
   "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
+- C1: the recording is sent as a 16 kHz mono WAV (every model reads WAV; webm/opus support varies), the original
+  when the browser can't decode it; sent to a route (binary, ≤ 4 MB), not a server action (2 MB body limit).
 - B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
 
 ### For Tal".
@@ -23,6 +25,8 @@ Results go to **"## Open" at the end of this file**. Tal runs it overnight (~8 h
 - **Real-device honesty:** camera, focus, barcode and voice can't be fully proven in headless Chromium. Test what can be
   tested (fixtures, fake streams, mocked AI) and, for each such item, write in "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
   "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
+- C1: the recording is sent as a 16 kHz mono WAV (every model reads WAV; webm/opus support varies), the original
+  when the browser can't decode it; sent to a route (binary, ≤ 4 MB), not a server action (2 MB body limit).
 - B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
 
 ### For Tal" exactly what to try on his
@@ -87,7 +91,7 @@ best guess first. Overlay frame hint matches the mode the user is in (tall frame
 product); auto-detected type shows its frame on the still. Fixtures for each type + unsure (mock AI).
 
 ## Part C — voice that works (Tal approved: record + AI)
-### C1 [ ] Voice add, rebuilt
+### C1 [x] Voice add, rebuilt
 Today it doesn't work on Tal's phone and gives no feedback (only the label changes). S3's fix was only tested with a
 fake recogniser. New design (Tal's choice 2026-10-15):
 - **Record** with `MediaRecorder` (opus/webm; mp4 fallback for iPhone), up to 60 s, tap to stop; send the audio to the AI
@@ -161,6 +165,8 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
 `SPEC.md` R18 S4 section, `CLAUDE.md` map (camera choice + `/debug/camera`, voice recorder path), help topic Supermarket
 (scanning, voice), `docs/ENVIRONMENT.md` log line. "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
   "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
+- C1: the recording is sent as a 16 kHz mono WAV (every model reads WAV; webm/opus support varies), the original
+  when the browser can't decode it; sent to a route (binary, ≤ 4 MB), not a server action (2 MB body limit).
 - B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
 
 ### For Tal" = the phone checklist for camera, barcode, voice.
@@ -188,12 +194,18 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
 - B3: shutter → still + camera off → Retake / Use photo → "Analysing…" over the still → result; frame pick (square
   product / tall receipt · list) sent as a hint; the prompt names each kind's cues and returns `kindConfidence` (< 0.6 →
   asked, the model's guess first, else the frame's); the frame takes the seen kind's shape. `test:capture` + smoke step.
+- C1: `lib/grocery/recorder.ts` (MediaRecorder opus/webm, mp4 on iPhone, 60 s, analyser level, 16 kHz WAV) →
+  `POST /api/grocery/voice` (ai-gate `grocery`, audio only passed to the model, never stored) → lines → chips + the
+  Paste review → `addParts` (A1 merge). Live words from Web Speech only when it works. Meter + clock, "Understanding…",
+  errors in words (blocked + how to allow, no mic, nothing heard, limit), example on first use. `test:voice` + smoke.
 ### Decisions
 - A1: templates, re-add from history and accepted suggestions keep an existing row's amount (S1/S2 rule shown in their
   plans as "already on it — stays"); they never write notes. Every other path (search, barcode, photo, voice, paste, trip
   add) merges through `mergeAdd`. Volume (L) onto a weighed row has no conversion → one more pack.
 - B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
   "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
+- C1: the recording is sent as a 16 kHz mono WAV (every model reads WAV; webm/opus support varies), the original
+  when the browser can't decode it; sent to a route (binary, ≤ 4 MB), not a server action (2 MB body limit).
 - B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
 
 ### For Tal

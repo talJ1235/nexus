@@ -2645,6 +2645,64 @@ try {
           "photo mode (R18 S4 B3): frame per pick, shutter freezes + camera off, retake, use → analysing → kind's frame", JSON.stringify(r));
       });
 
+    // R18 S4 C1: voice add records (a fake recorder + an oscillator mic here): the mic button is a live level meter with
+    // the clock while recording; Tap to finish → "Understanding…" → the items as chips over the review. (A real phone
+    // and the real model: "For Tal"; the route, quota and a blocked mic: test:voice.)
+    if (WRITE)
+      await step("voice add (R18 S4 C1): meter + clock while recording, finish → understanding → chips + review", async () => {
+        const r = {};
+        const c = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, storageState: await ctx.storageState() });
+        await c.addInitScript(() => {
+          navigator.mediaDevices.getUserMedia = async () => {
+            const ac = new AudioContext();
+            const osc = ac.createOscillator();
+            const dest = ac.createMediaStreamDestination();
+            osc.connect(dest);
+            osc.start();
+            return dest.stream;
+          };
+          window.MediaRecorder = class {
+            static isTypeSupported(m) {
+              return m.startsWith("audio/webm");
+            }
+            constructor(_s, o) {
+              this.mimeType = o?.mimeType ?? "audio/webm";
+              this.state = "inactive";
+            }
+            start() {
+              this.state = "recording";
+            }
+            stop() {
+              this.state = "inactive";
+              this.ondataavailable?.({ data: new Blob(["mockvoice:S4 voice oats, 2 S4 voice rice"], { type: "audio/webm" }) });
+              setTimeout(() => this.onstop?.(new Event("stop")), 10);
+            }
+          };
+        });
+        const p = await c.newPage();
+        try {
+          await p.goto(`${BASE}/supermarket`);
+          await p.waitForSelector("[data-sm-view]", { timeout: 15000 });
+          await p.locator("[data-sm-add-voice]").first().click();
+          await p.waitForSelector('[data-add-voice="listening"]', { timeout: 10000 });
+          await p.waitForTimeout(1200);
+          r.meter = await p.locator("[data-add-voice-meter] i").count();
+          r.clock = (await p.locator("[data-add-voice-time]").textContent())?.trim();
+          r.moving = await p.locator("[data-add-voice-meter] i").evaluateAll((els) => els.some((e) => e.style.transform !== "scaleY(0.15)"));
+          await shot(p, "s4-voice-listening");
+          await p.locator("[data-add-voice-stop]").click();
+          r.understanding = await p.waitForSelector('[data-add-voice="understanding"], [data-add-voice-chips]', { timeout: 5000 }).then(() => true, () => false);
+          await p.waitForSelector("[data-add-voice-chips]", { timeout: 10000 });
+          r.chips = (await p.locator("[data-add-voice-chips] > span").allTextContents()).map((x) => x.trim());
+          r.review = await p.locator("[data-add-split]").count();
+          await shot(p, "s4-voice-chips");
+        } finally {
+          await c.close();
+        }
+        ok(r.meter === 9 && r.moving && /^0:0[1-9]$/.test(r.clock ?? "") && r.understanding && r.chips.length === 2 && r.review === 1,
+          "voice add (R18 S4 C1): meter + clock while recording, finish → understanding → chips + review", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

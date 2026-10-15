@@ -14,6 +14,7 @@ import { parseLine, splitList, type SplitPart } from "@/lib/grocery/parse";
 import type { Hit } from "@/lib/grocery/search";
 import { sectionName } from "@/lib/grocery/sections";
 import { listen, voiceSupported, type VoiceSession } from "@/lib/grocery/voice";
+import { recError, recorderSupported, startRecording, toWav, type Recording } from "@/lib/grocery/recorder";
 import { unitKgFor } from "@/lib/grocery/weights";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -33,8 +34,8 @@ import { announceAdded, useAddedLine, type Added } from "./added";
 export type AddMode = "type" | "voice" | "paste";
 
 const never = () => () => {};
-/** Web Speech is a browser fact: false on the server and while hydrating (no mismatch), then the real answer. */
-export const useVoiceSupported = () => useSyncExternalStore(never, voiceSupported, () => false);
+/** S4 C1: voice = a recorder (MediaRecorder + a mic) — a browser fact: false on the server and while hydrating, then the real answer. */
+export const useVoiceSupported = () => useSyncExternalStore(never, recorderSupported, () => false);
 
 // R18 S3 C2: `seed` = the lines a photo of a list read — the Paste review opens with them, and closes the screen when added.
 export function AddScreen({ open, onClose, mode: startMode = "type", onCapture, hint = null, seed = null }: { open: boolean; onClose: () => void; mode?: AddMode; onCapture?: (k: "scan" | "photo") => void; hint?: "camera" | null; seed?: string | null }) {
@@ -429,73 +430,183 @@ function Paste({ onDone, initial = "" }: { onDone: () => void; initial?: string 
   );
 }
 
+/**
+ * R18 S4 C1 — voice add (Tal's choice 2026-10-15: record + AI). Recording starts at once: the mic turns into a live
+ * level meter with the elapsed time and "Tap to finish" (60 s at most); the browser's own recognition, where it works,
+ * shows the words live (never needed — an error hides it). Stop → "Understanding…" (the AI reads the audio, one call
+ * from the daily quota) → the items as chips over the Paste review → merged into the list (A1). Errors say what to do:
+ * the mic is blocked (how to allow it), no mic, nothing heard, the daily limit.
+ */
+const VOICE_SEEN = "nexus:voice-seen";
+type VoiceErr = "blocked" | "nomic" | "empty" | "limit" | "failed";
 function Voice({ onDone }: { onDone: () => void }) {
   const s = useStore();
   const { t, locale } = useI18n();
-  const [text, setText] = useState("");
-  const [final, setFinal] = useState<string | null>(null);
-  // listening → (Stop) finishing → the preview, or "Didn't catch that" with Try again.
-  const [phase, setPhase] = useState<"listening" | "finishing" | "missed">("listening");
-  const [error, setError] = useState<string | null>(() => (voiceSupported() ? null : t.sm.add.noVoice));
+  const [phase, setPhase] = useState<"starting" | "listening" | "understanding" | "error">("starting");
+  const [error, setError] = useState<VoiceErr | null>(null);
+  const [live, setLive] = useState("");
+  const [lines, setLines] = useState<string[] | null>(null);
   const [round, setRound] = useState(0);
-  const session = useRef<VoiceSession | null>(null);
+  const [secs, setSecs] = useState(0);
+  // First use: one line of example (once per device).
+  const [first] = useState(() => {
+    try {
+      const seen = localStorage.getItem(VOICE_SEEN);
+      localStorage.setItem(VOICE_SEEN, "1");
+      return !seen;
+    } catch {
+      return false;
+    }
+  });
+  const rec = useRef<Recording | null>(null);
+  const words = useRef<VoiceSession | null>(null);
+  const bars = useRef<HTMLSpanElement>(null);
+  const finishRef = useRef<() => void>(() => {});
+
+  const fail = (e: VoiceErr) => {
+    setError(e);
+    setPhase("error");
+  };
+  const finish = async () => {
+    const r = rec.current;
+    if (!r) return;
+    rec.current = null;
+    if (words.current?.supported) words.current.abort();
+    setPhase("understanding");
+    try {
+      const { blob } = await r.stop();
+      const body = (await toWav(blob)) ?? blob;
+      const res = await fetch(`/api/grocery/voice?locale=${locale}`, { method: "POST", headers: { "content-type": body.type.split(";")[0] || "audio/webm" }, body });
+      const out = (await res.json().catch(() => null)) as { state: string; lines?: string[] } | null;
+      if (out?.state === "read" && out.lines?.length) return setLines(out.lines);
+      fail(out?.state === "limit" ? "limit" : out?.state === "empty" ? "empty" : "failed");
+    } catch {
+      fail("failed");
+    }
+  };
   useEffect(() => {
-    const v = listen(
-      locale,
-      (txt) => setText(txt),
-      (txt, err) => {
-        if (txt.trim()) return setFinal(txt);
-        setPhase("missed");
-        if (err) setError(err === "not-allowed" || err === "service-not-allowed" ? t.sm.add.noVoice : t.sm.add.voiceError);
-        else setError(t.sm.add.voiceError);
-      },
-    );
-    session.current = v;
+    finishRef.current = () => void finish();
+  });
+
+  useEffect(() => {
+    let gone = false;
+    void startRecording(() => finishRef.current())
+      .then((r) => {
+        if (gone) return r.cancel();
+        rec.current = r;
+        setPhase("listening");
+        // Live words where the browser's recognition works next to the recording; an error just hides them.
+        if (voiceSupported())
+          words.current = listen(
+            locale,
+            (txt) => !gone && setLive(txt),
+            (_txt, err) => void (err && !gone && setLive("")),
+          );
+      })
+      .catch((e) => {
+        if (gone) return;
+        const k = recError(e);
+        fail(k === "blocked" ? "blocked" : k === "nomic" ? "nomic" : "failed");
+      });
     return () => {
-      if (v.supported) v.abort();
+      gone = true;
+      rec.current?.cancel();
+      rec.current = null;
+      if (words.current?.supported) words.current.abort();
     };
-  }, [locale, t, round]);
-  // Stop: the last words often land after it — wait for the recognizer's end (or 2.5 s, then take what's on screen).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a new round restarts the recording
+  }, [locale, round]);
+
+  // The meter (from the recording's own audio; the bars are styled directly, no render per frame) and the clock.
   useEffect(() => {
-    if (phase !== "finishing") return;
-    const id = window.setTimeout(() => (text.trim() ? setFinal(text) : setPhase("missed")), 2500);
-    return () => window.clearTimeout(id);
-  }, [phase, text]);
+    if (phase !== "listening") return;
+    let raf = 0;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const hist: number[] = new Array(9).fill(0);
+    const tick = () => {
+      const r = rec.current;
+      if (r) {
+        hist.shift();
+        hist.push(r.level());
+        const peak = Math.max(...hist);
+        bars.current?.querySelectorAll("i").forEach((b, i) => {
+          b.style.transform = `scaleY(${0.15 + (reduce ? peak : hist[i]) * 0.85})`;
+        });
+        setSecs(Math.floor((performance.now() - r.startedAt) / 1000));
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [phase]);
+
   const keys = useMemo(() => s.sm.map((i) => i.productKey).filter((k): k is string => !!k), [s.sm]);
-  if (final) return <SplitPreview parts={splitList(final, keys)} onDone={onDone} />;
-  const missed = phase === "missed";
+  const parts = useMemo(() => (lines ? splitList(lines.join("\n"), keys) : null), [lines, keys]);
+  if (parts)
+    return (
+      <div className="flex flex-col gap-3 pt-2" data-add-voice="done">
+        <div className="flex flex-wrap gap-1.5" data-add-voice-chips>
+          {parts
+            .filter((p) => p.product)
+            .map((p, i) => (
+              <span key={i} className="sm-chip-in bidi inline-flex h-8 items-center rounded-full bg-surface-2 px-3 text-[14px] font-bold" style={{ animationDelay: `${i * 40}ms` }}>
+                {p.qty > 1 ? `${p.qty} · ` : ""}
+                {p.name || p.text}
+              </span>
+            ))}
+        </div>
+        <SplitPreview parts={parts} onDone={onDone} />
+      </div>
+    );
+  const msg = error ? t.sm.voice[error] : null;
+  const listening = phase === "listening";
+  const clock = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
   return (
-    <div className="flex flex-col items-center gap-5 pt-16 text-center" data-add-voice={phase}>
-      <span className="flex h-8 items-end gap-1" aria-hidden>
-        {[10, 22, 6, 14, 26, 12, 20].map((h, i) => (
-          <i key={i} className={cn("block w-1 rounded-full bg-ink", !missed && "gro-wave")} style={{ height: missed ? 6 : h, animationDelay: `${i * 90}ms` }} />
-        ))}
-      </span>
-      <b className="bidi min-h-7 px-4 text-[20px] font-extrabold" data-add-voice-text>{text}</b>
-      <p className="text-[13.5px] text-muted">{error ?? t.sm.add.listening}</p>
+    <div className="flex flex-col items-center gap-4 pt-10 text-center" data-add-voice={phase} data-add-voice-error={error ?? undefined}>
+      {first && listening && (
+        <p className="rounded-[12px] bg-surface-2 px-3 py-2 text-[13.5px] font-semibold text-ink" data-add-voice-example>
+          {t.sm.voice.example}
+        </p>
+      )}
+      <b className="bidi min-h-7 px-4 text-[19px] font-extrabold" aria-live="polite" data-add-voice-text>
+        {phase === "understanding" ? t.sm.voice.understanding : listening ? live : ""}
+      </b>
       <button
         type="button"
-        className="grid size-20 place-items-center rounded-full bg-ink text-bg transition-transform duration-150 ease-[var(--ease-out)] active:scale-95 disabled:opacity-60"
-        disabled={phase === "finishing" || (missed && !voiceSupported())}
+        className={cn("grid size-24 place-items-center rounded-full text-bg transition-[transform,background-color] duration-200 ease-[var(--ease-out)] active:scale-95 disabled:opacity-60", listening ? "bg-danger" : "bg-ink")}
+        disabled={phase === "starting" || phase === "understanding"}
         onClick={() => {
-          if (missed) {
-            setText("");
-            setError(null);
-            setPhase("listening");
-            setRound((n) => n + 1);
-            return;
-          }
-          const v = session.current;
-          if (!v?.supported) return onDone();
-          setPhase("finishing");
-          v.stop();
+          if (phase !== "error") return void finish();
+          setError(null);
+          setLive("");
+          setSecs(0);
+          setPhase("starting");
+          setRound((n) => n + 1);
         }}
-        aria-label={missed ? t.sm.add.voiceAgain : t.sm.add.tapStop}
+        aria-label={phase === "error" ? t.sm.add.voiceAgain : t.sm.voice.finish}
         data-add-voice-stop
       >
-        {phase === "finishing" ? <Spinner className="size-7" /> : <Mic className="size-7" />}
+        {listening ? (
+          <span ref={bars} className="flex h-10 items-center gap-[3px]" aria-hidden data-add-voice-meter>
+            {Array.from({ length: 9 }, (_, i) => (
+              <i key={i} className="block h-full w-[4px] origin-center rounded-full bg-bg transition-transform duration-75" style={{ transform: "scaleY(0.15)" }} />
+            ))}
+          </span>
+        ) : phase === "error" ? (
+          <Mic className="size-8" />
+        ) : (
+          <Spinner className="size-8" />
+        )}
       </button>
-      <span className="text-[12.5px] text-muted">{missed ? t.sm.add.voiceAgain : t.sm.add.tapStop}</span>
+      {listening && (
+        <span className="tabular text-[15px] font-bold" data-add-voice-time>
+          {clock}
+        </span>
+      )}
+      <p className={cn("max-w-[300px] text-[13.5px]", error ? "font-semibold text-ink" : "text-muted")} data-add-voice-msg>
+        {msg ?? (listening ? t.sm.voice.tapFinish : phase === "understanding" ? t.sm.voice.understandingSub : t.sm.voice.starting)}
+      </p>
+      {phase === "error" && <span className="text-[12.5px] text-muted">{t.sm.add.voiceAgain}</span>}
     </div>
   );
 }

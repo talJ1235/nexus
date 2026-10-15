@@ -230,3 +230,7 @@ html[data-device="computer"] .sm-added-pill { bottom: 32px; }
 .sm-code-outline { fill: color-mix(in srgb, #34c759 18%, transparent); stroke: #34c759; stroke-linejoin: round; animation: sm-outline 260ms var(--ease-out) both; transform-box: fill-box; transform-origin: center; }
 @keyframes sm-outline { from { opacity: 0; transform: scale(1.08); } }
 @media (prefers-reduced-motion: reduce) { .sm-focus-ring, .sm-code-outline { animation: none; } }
+
+/* R18 S4 C1: the recognised items pop in one by one. */
+.sm-chip-in { animation: sm-pill-in 220ms var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) { .sm-chip-in { animation: none; } }
