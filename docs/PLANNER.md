@@ -7,6 +7,21 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-15 (night):** **`docs/ROUND18-S4.md`** written from Tal's notes after S3 (A adds merge into qty/weight —
+  cause in `addToList` notes —, feedback, empty list; B "+" = camera, scanner rebuilt (main lens, 1080p, focus, zoom,
+  freeze on detect), photo freeze/retake; C voice = record + AI (Tal approved, counts in quota) with level meter;
+  D rename on letters, swipe-delete motion, floating Start shopping; E store mode: fixed start screen, sections stay
+  open, no pop-ups, full-screen finish, one scroller, rail navigates; F desktop pill, history cards, brands). Step 0
+  finishes S3's merge first. Tal makes boards for S5 in a new chat in parallel (prompt: boards per
+  `R18-S3-NOTES.md` groups B + C and "After S3"; floating Ask on the right, draggable left). Prompt:
+  ```
+  Round 18, session 4 (docs/ROUND18-S4.md) — Step 0, then Parts A, B, C, D, E, F, G, unattended, on branch round18-s4
+  from main. Now while I'm here: make sure .claude/settings.local.json allows "Bash(git push origin round18-s4)",
+  "Bash(git push -u origin round18-s4)", "Bash(git merge --ff-only round18-s4)" (and the round18-s3 ones), and take a
+  fresh read-only prod snapshot (if refused, tell me the exact command). Then go through everything without stopping.
+  Merge to main only if all items are ticked, a full CI run on the final commit is green, and (if the DB changed) the
+  rehearsal passes.
+  ```
 - **2026-10-15 (evening):** **R18 S3 merged and live** (`main` = `3e8dbdc`, all 28 items ticked; new table `brand_buy`,
   rehearsal on `prod-2026-10-15.db` copy passed). Builder still on two red checks: `guards` on main (`polish` "Settings
   from the first frame" — frame 3, re-run) and prod smoke (Home suggests checks counted positions; fix `ae4d3e4` in
