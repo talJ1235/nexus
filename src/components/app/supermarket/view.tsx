@@ -76,10 +76,13 @@ export function SupermarketView() {
   const [addHint, setAddHint] = useState<"camera" | null>(null);
   const [capturing, setCapturing] = useState<"scan" | "photo" | null>(null);
   // The camera's "Type instead" (or a refused camera permission, with a one-line hint): the Add screen.
-  const typeInstead = useCallback((_text?: string, hint?: "camera") => {
+  // C2: a photo of a list → the Paste review with its lines.
+  const [addSeed, setAddSeed] = useState<string | null>(null);
+  const typeInstead = useCallback((text?: string, hint?: "camera" | "list") => {
     setCapturing(null);
-    setAddHint(hint ?? null);
-    setAdding("type");
+    setAddHint(hint === "camera" ? "camera" : null);
+    setAddSeed(hint === "list" ? (text ?? "") : null);
+    setAdding(hint === "list" ? "paste" : "type");
   }, []);
   const [openId, setOpenId] = useState<string | null>(null);
   // F3: "/" opens Add on a computer (not while typing somewhere).
@@ -179,7 +182,7 @@ export function SupermarketView() {
       {!ro && <Capture open={capturing != null} mode={capturing ?? "scan"} onClose={() => setCapturing(null)} onType={typeInstead} />}
       <SmItemSheet itemId={openId} onClose={closeSheet} />
       <StoreMode open={shopping} onClose={() => setShopping(false)} onPickStore={() => setPicking(true)} />
-      <AddScreen open={adding != null} mode={adding ?? "type"} hint={addHint} onClose={() => (setAdding(null), setAddHint(null))} onCapture={(k) => (setAdding(null), capture(k))} />
+      <AddScreen open={adding != null} mode={adding ?? "type"} hint={addHint} seed={addSeed} onClose={() => (setAdding(null), setAddHint(null), setAddSeed(null))} onCapture={(k) => (setAdding(null), capture(k))} />
     </>
   );
   const startBar = !ro && s.sm.length > 0 && !mineRunning && (

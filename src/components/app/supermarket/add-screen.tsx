@@ -35,7 +35,8 @@ const never = () => () => {};
 /** Web Speech is a browser fact: false on the server and while hydrating (no mismatch), then the real answer. */
 export const useVoiceSupported = () => useSyncExternalStore(never, voiceSupported, () => false);
 
-export function AddScreen({ open, onClose, mode: startMode = "type", onCapture, hint = null }: { open: boolean; onClose: () => void; mode?: AddMode; onCapture?: (k: "scan" | "photo") => void; hint?: "camera" | null }) {
+// R18 S3 C2: `seed` = the lines a photo of a list read — the Paste review opens with them, and closes the screen when added.
+export function AddScreen({ open, onClose, mode: startMode = "type", onCapture, hint = null, seed = null }: { open: boolean; onClose: () => void; mode?: AddMode; onCapture?: (k: "scan" | "photo") => void; hint?: "camera" | null; seed?: string | null }) {
   const { t } = useI18n();
   useBackClose(open, onClose);
   return (
@@ -51,7 +52,7 @@ export function AddScreen({ open, onClose, mode: startMode = "type", onCapture, 
         >
           <D.Title className="sr-only">{t.sm.add.title}</D.Title>
           <D.Description className="sr-only">{t.sm.add.title}</D.Description>
-          {open && <AddBody onClose={onClose} startMode={startMode} onCapture={onCapture} hint={hint} />}
+          {open && <AddBody onClose={onClose} startMode={startMode} onCapture={onCapture} hint={hint} seed={seed} />}
         </D.Content>
       </D.Portal>
     </D.Root>
@@ -60,7 +61,7 @@ export function AddScreen({ open, onClose, mode: startMode = "type", onCapture, 
 
 type Hits = { hits: Hit[]; didYouMean: Hit[] };
 
-function AddBody({ onClose, startMode, onCapture, hint }: { onClose: () => void; startMode: AddMode; onCapture?: (k: "scan" | "photo") => void; hint: "camera" | null }) {
+function AddBody({ onClose, startMode, onCapture, hint, seed }: { onClose: () => void; startMode: AddMode; onCapture?: (k: "scan" | "photo") => void; hint: "camera" | null; seed: string | null }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
   const { home } = useSmHome();
@@ -196,7 +197,7 @@ function AddBody({ onClose, startMode, onCapture, hint }: { onClose: () => void;
         {mode === "voice" ? (
           <Voice onDone={() => setMode("type")} />
         ) : mode === "paste" ? (
-          <Paste onDone={() => setMode("type")} />
+          <Paste initial={seed ?? ""} onDone={seed ? onClose : () => setMode("type")} />
         ) : !name ? (
           <Usual />
         ) : (
@@ -383,10 +384,10 @@ function SplitPreview({ parts, onDone }: { parts: SplitPart[]; onDone: () => voi
   );
 }
 
-function Paste({ onDone }: { onDone: () => void }) {
+function Paste({ onDone, initial = "" }: { onDone: () => void; initial?: string }) {
   const s = useStore();
   const { t } = useI18n();
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initial);
   const keys = useMemo(() => s.sm.map((i) => i.productKey).filter((k): k is string => !!k), [s.sm]);
   const parts = useMemo(() => (text.trim() ? splitList(text, keys) : []), [text, keys]);
   return (

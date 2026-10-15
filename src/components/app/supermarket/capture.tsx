@@ -3,11 +3,12 @@
 import "./sm.css";
 import { useEffect, useRef, useState } from "react";
 import { Dialog as D } from "radix-ui";
-import { Check, Clock, Flashlight, Info, Keyboard, Minus, Plus, Sparkles, X } from "lucide-react";
+import { Check, Clock, Flashlight, Info, Keyboard, ListChecks, Minus, Package, Plus, ReceiptText, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { useBackClose } from "@/components/ui/sheet-drag";
 import { Spinner } from "@/components/ui/spinner";
-import { addToSupermarket, smAiAllowance, smPhoto, smScan, undoSupermarketAdd, type CaptureProduct, type PhotoResult, type ScanResult } from "@/app/supermarket-actions";
+import { addToSupermarket, smAiAllowance, smPhoto, smScan, undoSupermarketAdd, type CaptureProduct, type PhotoKind, type PhotoResult, type ScanResult } from "@/app/supermarket-actions";
+import { createItem } from "@/app/actions";
 import { classifyLocal } from "@/lib/grocery/classify";
 import { SECTION_KEYS, sectionName } from "@/lib/grocery/sections";
 import { unitKgFor } from "@/lib/grocery/weights";
@@ -26,11 +27,15 @@ import { qtyLabel } from "./qty";
 // the list, with the merged count), a public one, or an unknown barcode named once (section guess; the barcode stays with
 // the home's row, so next time it's found at once). Photo: read by the AI (counts in the person's quota, feature
 // `grocery`), matched to the home's product, else three choices; at the daily limit, typing and the barcode still work.
+// R18 S3 C2: the same one read says what the photo is — a product, a receipt (→ the receipt review) or a list (→ the
+// Paste review with its lines) — with a switch to the other two; a product that isn't a grocery goes to Products.
 
 type Sheet = { kind: "loading" } | ScanResult | PhotoResult | { kind: "reading" };
 const isScan = (x: Sheet): x is ScanResult => "state" in x && (x.state === "found" || x.state === "unknown");
 
-export function Capture({ open, mode: start, onClose, onType }: { open: boolean; mode: "scan" | "photo"; onClose: () => void; onType: (text?: string, hint?: "camera") => void }) {
+type OnType = (text?: string, hint?: "camera" | "list") => void;
+
+export function Capture({ open, mode: start, onClose, onType }: { open: boolean; mode: "scan" | "photo"; onClose: () => void; onType: OnType }) {
   // R18 S3 A3: the phone's Back closes the camera instead of leaving the page.
   useBackClose(open, onClose);
   const { t } = useI18n();
@@ -46,8 +51,11 @@ export function Capture({ open, mode: start, onClose, onType }: { open: boolean;
   );
 }
 
-function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onClose: () => void; onType: (text?: string, hint?: "camera") => void }) {
+function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onClose: () => void; onType: OnType }) {
+  const s = useStore();
   const { t, f } = useI18n();
+  // The last photo: the small copy the AI read and a sharper one for the receipt review.
+  const shot = useRef<{ image: string; full: Blob | null } | null>(null);
   const [mode, setMode] = useState(start);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [typing, setTyping] = useState(false);
@@ -86,7 +94,8 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
   };
   useBarcodeReader(videoRef, mode === "scan" && cam === "on" && !sheet && !typing, (c) => void scan(c));
 
-  const read = async (image: string) => {
+  const read = async (image: string, full: Blob | null = null) => {
+    shot.current = { image, full };
     setSheet({ kind: "reading" });
     try {
       const r = await smPhoto({ image });
@@ -107,7 +116,15 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
       c.width = Math.round(v.videoWidth * k);
       c.height = Math.round(v.videoHeight * k);
       c.getContext("2d")!.drawImage(v, 0, 0, c.width, c.height);
-      return read(c.toDataURL("image/jpeg", 0.82));
+      const image = c.toDataURL("image/jpeg", 0.82);
+      // A receipt needs more pixels than the read: the frame up to 2048 px, kept in case it is one.
+      const big = document.createElement("canvas");
+      const kb = Math.min(1, 2048 / Math.max(v.videoWidth, v.videoHeight));
+      big.width = Math.round(v.videoWidth * kb);
+      big.height = Math.round(v.videoHeight * kb);
+      big.getContext("2d")!.drawImage(v, 0, 0, big.width, big.height);
+      const full = await new Promise<Blob | null>((r) => big.toBlob(r, "image/jpeg", 0.9));
+      return read(image, full);
     }
     fileRef.current?.click();
   };
@@ -204,7 +221,7 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 e.target.value = "";
-                if (file) void read(await photoToDataUrl(file, 1024));
+                if (file) void read(await photoToDataUrl(file, 1024), file);
               }}
               data-cap-file
             />
@@ -221,6 +238,13 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
             onPhoto={() => (setMode("photo"), setSheet(null))}
             onScan={() => (setMode("scan"), setSheet(null))}
             onType={onType}
+            onReceipt={async () => {
+              const last = shot.current;
+              if (!last) return;
+              const blob = last.full ?? (await (await fetch(last.image)).blob());
+              onClose();
+              s.openReceipt(new File([blob], "receipt.jpg", { type: blob.type || "image/jpeg" }));
+            }}
           />
         )}
       </div>
@@ -228,7 +252,7 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
   );
 }
 
-function ResultSheet({ sheet, onAgain, onDone, onPhoto, onScan, onType }: { sheet: Sheet; onAgain: () => void; onDone: () => void; onPhoto: () => void; onScan: () => void; onType: (text?: string) => void }) {
+function ResultSheet({ sheet, onAgain, onDone, onPhoto, onScan, onType, onReceipt }: { sheet: Sheet; onAgain: () => void; onDone: () => void; onPhoto: () => void; onScan: () => void; onType: OnType; onReceipt: () => void }) {
   const { t, f } = useI18n();
   const card = "rounded-[24px] bg-surface p-4 text-ink shadow-pop animate-pop-in";
   if ("kind" in sheet && sheet.kind === "loading")
@@ -242,22 +266,7 @@ function ResultSheet({ sheet, onAgain, onDone, onPhoto, onScan, onType }: { shee
     return <Unknown code={sheet.code} onPhoto={onPhoto} onDone={onDone} />;
   }
   const r = sheet as PhotoResult;
-  if (r.state === "matched") return <Found product={r.product} listed={r.listed} known="photo" code={null} onAgain={onAgain} onDone={onDone} />;
-  if (r.state === "unsure")
-    return (
-      <div className={card} data-cap-sheet="unsure">
-        <h2 className="text-[19px] font-extrabold">{t.sm.cap.which}</h2>
-        <p className="mt-0.5 text-[13.5px] text-muted">{t.sm.cap.whichSub}</p>
-        <div className="mt-3 overflow-hidden rounded-[16px] border border-line-strong">
-          {r.choices.map((p) => (
-            <Choice key={p.productKey} p={p} onDone={onDone} />
-          ))}
-        </div>
-        <button type="button" className="mt-3 h-12 w-full rounded-[14px] border border-line-strong text-[15px] font-bold" onClick={() => onType()} data-cap-none>
-          {t.sm.cap.noneType}
-        </button>
-      </div>
-    );
+  if (r.state === "read") return <PhotoRead r={r} onAgain={onAgain} onDone={onDone} onType={onType} onReceipt={onReceipt} />;
   return (
     <div className={card} data-cap-sheet="limit">
       <div className="flex items-start gap-3">
@@ -276,6 +285,193 @@ function ResultSheet({ sheet, onAgain, onDone, onPhoto, onScan, onType }: { shee
       <button type="button" className="mt-2 h-12 w-full rounded-[14px] border border-line-strong text-[15px] font-bold" onClick={onScan} data-cap-limit-scan>
         {t.sm.cap.scanBarcode}
       </button>
+    </div>
+  );
+}
+
+type PhotoRead = Extract<PhotoResult, { state: "read" }>;
+const KINDS = ["product", "receipt", "list"] as const;
+
+/**
+ * C2: what the photo looks like ("Looks like a list · 9 items") over a Product · Receipt · List switch; the card under it
+ * follows the switch (a short cross-fade, the switch and the line above it stay still). "Not sure" starts with nothing
+ * picked.
+ */
+function PhotoRead({ r, onAgain, onDone, onType, onReceipt }: { r: PhotoRead; onAgain: () => void; onDone: () => void; onType: OnType; onReceipt: () => void }) {
+  const { t, f } = useI18n();
+  const [kind, setKind0] = useState<PhotoKind>(r.kind);
+  // The first card pops in with the sheet; a switch cross-fades (seg-in).
+  const [moved, setMoved] = useState(false);
+  const setKind = (k: PhotoKind) => (setKind0(k), setMoved(true));
+  const n = r.lines.length;
+  const seen =
+    r.kind === "receipt" ? t.sm.cap.seenReceipt : r.kind === "list" ? (n === 1 ? t.sm.cap.seenListOne : n ? f(t.sm.cap.seenList, { n }) : t.sm.cap.seenListNone) : r.kind === "unsure" ? t.sm.cap.seenUnsure : null;
+  const label = { product: t.sm.cap.kindProduct, receipt: t.sm.cap.kindReceipt, list: t.sm.cap.kindList };
+  const card = "rounded-[24px] bg-surface p-4 text-ink shadow-pop";
+  const body = (k: PhotoKind) =>
+    k === "unsure" ? (
+      <div className={card} data-cap-sheet="what">
+        <h2 className="text-[19px] font-extrabold">{t.sm.cap.seenUnsure}</h2>
+        <p className="mt-0.5 text-[13.5px] text-muted">{t.sm.cap.unsureSub}</p>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {KINDS.map((x) => {
+            const Icon = x === "product" ? Package : x === "receipt" ? ReceiptText : ListChecks;
+            return (
+              <button key={x} type="button" onClick={() => setKind(x)} className="flex h-[72px] flex-col items-center justify-center gap-1 rounded-[14px] border border-line-strong text-[14px] font-bold active:scale-[0.97]" data-cap-what={x}>
+                <Icon className="size-5" />
+                <span className="max-w-full truncate px-1">{label[x]}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button type="button" className="mt-3 h-12 w-full rounded-[14px] border border-line-strong text-[15px] font-bold" onClick={onAgain} data-cap-again>
+          {t.sm.cap.notThis}
+        </button>
+      </div>
+    ) : k === "receipt" ? (
+      <div className={card} data-cap-sheet="receipt">
+        <div className="flex items-start gap-3">
+          <span className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-surface-2">
+            <ReceiptText className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-[18px] font-extrabold">{t.sm.cap.kindReceipt}</h2>
+            <p className="mt-0.5 text-[13.5px] text-muted">{t.sm.cap.receiptSub}</p>
+          </div>
+        </div>
+        <div className="mt-3 flex gap-2.5">
+          <button type="button" className="h-12 flex-1 rounded-[14px] border border-line-strong text-[15px] font-bold" onClick={onAgain} data-cap-again>
+            {t.sm.cap.notThis}
+          </button>
+          <button type="button" className="h-12 flex-[1.6] rounded-[14px] bg-ink text-[15px] font-bold text-bg" onClick={onReceipt} data-cap-receipt>
+            {t.sm.cap.readReceipt}
+          </button>
+        </div>
+      </div>
+    ) : k === "list" ? (
+      <div className={card} data-cap-sheet="list">
+        <h2 className="text-[18px] font-extrabold">{t.sm.cap.kindList}</h2>
+        <p className="mt-0.5 text-[13.5px] text-muted">{n ? t.sm.cap.listSub : t.sm.cap.listNone}</p>
+        {n > 0 && (
+          <ul className="mt-3 overflow-hidden rounded-[14px] border border-line-strong" data-cap-lines>
+            {r.lines.slice(0, 4).map((l, i) => (
+              <li key={i} className="bidi truncate border-line px-3 py-2 text-[14.5px] [&+&]:border-t">
+                {l}
+              </li>
+            ))}
+            {n > 4 && <li className="border-t border-line px-3 py-2 text-[13px] text-muted">+{n - 4}</li>}
+          </ul>
+        )}
+        <div className="mt-3 flex gap-2.5">
+          <button type="button" className="h-12 flex-1 rounded-[14px] border border-line-strong text-[15px] font-bold" onClick={onAgain} data-cap-again>
+            {t.sm.cap.notThis}
+          </button>
+          <button type="button" className="h-12 flex-[1.6] rounded-[14px] bg-ink text-[15px] font-bold text-bg" onClick={() => onType(r.lines.join("\n"), "list")} data-cap-list>
+            {n ? (n === 1 ? t.sm.cap.reviewListOne : f(t.sm.cap.reviewList, { n })) : t.sm.cap.typeList}
+          </button>
+        </div>
+      </div>
+    ) : !r.product ? (
+      <div className={card} data-cap-sheet="noproduct">
+        <p className="text-[14.5px] font-semibold">{t.sm.cap.productNone}</p>
+        <button type="button" className="mt-3 flex h-12 w-full items-center gap-2 rounded-[14px] border border-line-strong px-3.5 text-start text-[15px] text-muted" onClick={() => onType()} data-cap-none>
+          <Plus className="size-[18px]" />
+          {t.sm.cap.typeProduct}
+        </button>
+      </div>
+    ) : r.product.state === "matched" ? (
+      <Found product={r.product.product} listed={r.product.listed} known="photo" code={null} onAgain={onAgain} onDone={onDone} />
+    ) : r.product.state === "other" ? (
+      <Other title={r.product.title} onAgain={onAgain} onDone={onDone} />
+    ) : (
+      <div className={card} data-cap-sheet="unsure">
+        <h2 className="text-[19px] font-extrabold">{t.sm.cap.which}</h2>
+        <p className="mt-0.5 text-[13.5px] text-muted">{t.sm.cap.whichSub}</p>
+        <div className="mt-3 overflow-hidden rounded-[16px] border border-line-strong">
+          {r.product.choices.map((p) => (
+            <Choice key={p.productKey} p={p} onDone={onDone} />
+          ))}
+        </div>
+        <button type="button" className="mt-3 h-12 w-full rounded-[14px] border border-line-strong text-[15px] font-bold" onClick={() => onType()} data-cap-none>
+          {t.sm.cap.noneType}
+        </button>
+      </div>
+    );
+  return (
+    <div className="flex flex-col gap-2.5 animate-pop-in" data-cap-read={r.kind}>
+      {seen && (
+        <p className="flex items-center justify-center gap-1.5 text-[14px] font-bold text-white" data-cap-seen>
+          <Sparkles className="size-4 shrink-0 text-spark" />
+          <span className="bidi truncate">{seen}</span>
+        </p>
+      )}
+      <div className="mx-auto flex w-full max-w-[340px] gap-1 rounded-[13px] bg-white/15 p-1 backdrop-blur" role="tablist" aria-label={t.sm.cap.kindSwitch}>
+        {KINDS.map((k) => (
+          <button key={k} type="button" role="tab" aria-selected={kind === k} onClick={() => setKind(k)} className={cn("h-10 min-w-0 flex-1 truncate rounded-[10px] px-2 text-[14px] font-bold transition-colors duration-200", kind === k ? "bg-white text-black" : "text-white/80")} data-cap-kind={k}>
+            {label[k]}
+          </button>
+        ))}
+      </div>
+      {/* Every reading in one grid cell: the area keeps the tallest card's height, so the line and the switch above it
+          never move (the sheet grows up from the bottom); the hidden ones are inert. */}
+      <div className="grid items-start [&>*]:[grid-area:1/1]">
+        {(r.kind === "unsure" ? (["unsure", ...KINDS] as const) : KINDS).map((k) => (
+          <div key={k} className={k === kind ? (moved ? "seg-in" : undefined) : "invisible"} aria-hidden={k !== kind || undefined} inert={k !== kind} data-cap-pane={k}>
+            {body(k)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** A product the supermarket doesn't sell (the model says so, neither the home nor the dictionary knows it) → Products. */
+function Other({ title, onAgain, onDone }: { title: string; onAgain: () => void; onDone: () => void }) {
+  const s = useStore();
+  const { t, f } = useI18n();
+  const [grocery, setGrocery] = useState(false);
+  const [busy, setBusy] = useState(false);
+  if (grocery) {
+    const c = classifyLocal(title);
+    return <Found product={{ title, productKey: c.productKey, section: c.section, art: c.art, gtin: null, mine: false, count: 0 }} listed={null} known="photo" code={null} onAgain={onAgain} onDone={onDone} />;
+  }
+  return (
+    <div className="rounded-[24px] bg-surface p-4 text-ink shadow-pop" data-cap-sheet="other">
+      <div className="flex items-start gap-3">
+        <span className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-surface-2">
+          <Package className="size-5" />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-[18px] font-extrabold">{t.sm.cap.otherTitle}</h2>
+          <p className="bidi mt-0.5 text-[13.5px] text-muted">{f(t.sm.cap.otherSub, { title })}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2.5">
+        <button type="button" className="h-12 flex-1 rounded-[14px] border border-line-strong text-[15px] font-bold" onClick={() => setGrocery(true)} data-cap-grocery>
+          {t.sm.cap.itsGrocery}
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          className="h-12 flex-[1.6] rounded-[14px] bg-ink text-[15px] font-bold text-bg disabled:opacity-60"
+          onClick={async () => {
+            setBusy(true);
+            try {
+              const it = await createItem({ title, brand: null, imageUrl: null, category: null, tags: [], collectionId: null, source: null });
+              s.upsertItem(it);
+              s.fillImages([it.id]);
+              toast.success(f(t.sm.cap.addedProducts, { title: it.title }));
+              onDone();
+            } catch {
+              toast.error(t.sm.add.failed);
+              setBusy(false);
+            }
+          }}
+          data-cap-to-products
+        >
+          {t.sm.cap.addToProducts}
+        </button>
+      </div>
     </div>
   );
 }

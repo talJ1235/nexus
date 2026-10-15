@@ -145,7 +145,7 @@ It changes nothing → make it work or remove it (Decisions says which).
 straight away**; switch to Photo there; "Type instead" goes to the Add screen (search bar stays on the tab). Long-press
 dock menu unchanged. Camera permission denied → Add screen with a one-line hint.
 
-### C2 [ ] Photo mode understands what it sees
+### C2 [x] Photo mode understands what it sees
 One AI call (through `ai-gate`, feature `grocery`, counts in the quota) classifies the photo: **product** (as today,
 `smPhoto`), **receipt** (→ the existing receipt review, R7 `receipt-review.tsx`), **handwritten / printed list** (→ every
 line through `splitList` + `parseLine` into the Paste-list review, user confirms, then merge into the list). The result
@@ -293,6 +293,15 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   ignores case), so when the random admin id began with "ad" / "Ad" (~1 run in 1000) it deleted the admin + its session
   and the next insert failed the foreign key. Now exact `substr` prefixes; new `test:seed-admin` (unit loop) fails
   before the fix with the CI error, passes after.
+- C2 — `smPhoto` is one AI call (ai-gate, `grocery`) that returns `{ state: "read", kind: product | receipt | list |
+  unsure, product, lines }`: the product reading as before (matched / three choices) or `other` (the model says not a
+  grocery and neither the home nor the dictionary knows it), and a list's lines. The camera's result: "Looks like a list ·
+  9 items" over a Product · Receipt · List switch (all readings stacked in one grid cell, so the line and switch never
+  move; the card cross-fades). Receipt → closes the camera, the receipt review opens with a sharper copy of the frame
+  (≤ 2048 px, the read uses 1024); list → the Add screen's Paste review prefilled (closes after Add); not sure → "Is it
+  a product, a receipt or a list?"; not a grocery → Add to Products (`createItem`) or "It's a grocery". Mocks
+  `mockreceipt:` / `mocklist:` / `mockunsure:` / `mockother:`. `test:capture` (+ kinds, lines, one call each, limit for
+  every kind), smoke "photo understands what it sees" (phone + computer; the request's image swapped for a fixture).
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
@@ -315,6 +324,9 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   actions; the rows already are the compact form.
 - C1: "the tab's add button" read as the dock's "+" while on the Supermarket tab (the tab has no other add button; its
   add field is the "search bar" that stays, with its own scan / photo / voice icons).
+- C2: the switch shows what was read for each kind (a list photo has no product → "type it"); a receipt is read by the
+  existing receipt review (its own pipeline), so the photo's one call only decides it is a receipt. "Not a grocery" needs
+  both the model and the dictionary to agree (a model saying milk isn't a grocery is overruled).
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.

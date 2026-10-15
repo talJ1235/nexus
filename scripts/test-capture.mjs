@@ -2,7 +2,8 @@
 //   scan: unknown barcode → named once (section kept, barcode kept for the home) → the next scan finds it at once ("found",
 //   known to this home) and, while it's on the list, shows the merged count; a barcode of another product the home bought
 //   (purchased row) → found; photo: a sure read matched to the home's product, an unsure read → 3 choices (the home's
-//   first), the daily AI limit → "limit" (and the photo counted in the quota: feature `grocery`).
+//   first), the daily AI limit → "limit" (and the photo counted in the quota: feature `grocery`). R18 S3 C2: the same read
+//   says receipt / list (+ lines) / unsure / not a grocery (→ Products), one AI call each.
 //   npm run build && npm run test:capture
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -63,16 +64,34 @@ try {
   // ---- photo: sure read matched to the home's own product; unsure → 3 choices, the home's first
   const usedBefore = (await call("smAiAllowance")).used;
   const sure = await call("smPhoto", { image: img("mock:Cottage cheese 5%|0.9") });
-  assert.equal(sure.state, "matched");
-  assert.equal(sure.product.mine, true, "matched to the home's product");
-  assert.equal(sure.product.productKey, "cottage 5%");
+  assert.equal(sure.state, "read");
+  assert.equal(sure.kind, "product");
+  assert.equal(sure.product.state, "matched");
+  assert.equal(sure.product.product.mine, true, "matched to the home's product");
+  assert.equal(sure.product.product.productKey, "cottage 5%");
   const unsure = await call("smPhoto", { image: img("mock:Cottage|0.5|Greek yogurt|Labneh") });
-  assert.equal(unsure.state, "unsure");
-  assert.equal(unsure.choices.length, 3);
-  assert.equal(unsure.choices[0].mine, true, "the home's product first");
-  assert.deepEqual(unsure.choices.slice(1).map((c) => c.mine), [false, false], "then new ones");
+  assert.equal(unsure.product.state, "unsure");
+  assert.equal(unsure.product.choices.length, 3);
+  assert.equal(unsure.product.choices[0].mine, true, "the home's product first");
+  assert.deepEqual(unsure.product.choices.slice(1).map((c) => c.mine), [false, false], "then new ones");
   const usedAfter = (await call("smAiAllowance")).used;
   assert.equal(usedAfter - usedBefore, 2, "each photo counts in the person's AI quota");
+  // R18 S3 C2: the same one read says what the photo is — a receipt, a list (its lines), not sure, not a grocery.
+  const receipt = await call("smPhoto", { image: img("mockreceipt:") });
+  assert.equal(receipt.kind, "receipt");
+  const list = await call("smPhoto", { image: img("mocklist:2 milk\nלחם\n\nhalf a kilo of tomatoes") });
+  assert.equal(list.kind, "list");
+  assert.deepEqual(list.lines, ["2 milk", "לחם", "half a kilo of tomatoes"], "the list's lines, blank ones dropped");
+  assert.equal(list.product, null, "no product named on a list");
+  const what = await call("smPhoto", { image: img("mockunsure:") });
+  assert.equal(what.kind, "unsure");
+  assert.ok(what.product, "not sure still carries the product reading for the switch");
+  const other = await call("smPhoto", { image: img("mockother:Bluetooth headphones") });
+  assert.equal(other.kind, "product");
+  assert.deepEqual(other.product, { state: "other", title: "Bluetooth headphones" }, "not a grocery → Products");
+  const milk = await call("smPhoto", { image: img("mockother:Milk 3%") });
+  assert.notEqual(milk.product.state, "other", "the dictionary knows milk: the model's 'not a grocery' is overruled");
+  assert.equal((await call("smAiAllowance")).used - usedAfter, 5, "one AI call per photo, whatever it is");
   const kinds = (await app.db.execute("SELECT feature FROM ai_usage WHERE feature = 'grocery'")).rows.length;
   assert.ok(kinds >= 2, "recorded as feature grocery");
   console.log("ok photo: sure → matched to the home's product; unsure → 3 choices (home first); counted in the quota (grocery)");
@@ -83,6 +102,7 @@ try {
   await app.db.execute({ sql: "INSERT INTO user_pref (user_id, key, value, updated_at) VALUES (?, 'ai:quota', '0', ?) ON CONFLICT (user_id, key) DO UPDATE SET value = '0'", args: [app.admin, Date.now()] });
   const lim = await call("smPhoto", { image: img("mock:Cottage cheese 5%|0.9") });
   assert.equal(lim.state, "limit");
+  assert.equal((await call("smPhoto", { image: img("mocklist:milk") })).state, "limit", "every kind waits for the limit");
   assert.equal((await call("smScan", bought)).state, "found", "the barcode still works at the limit");
   const typed = await call("addToSupermarket", { title: "Labneh" });
   assert.ok(typed.item.id, "typing still works at the limit");

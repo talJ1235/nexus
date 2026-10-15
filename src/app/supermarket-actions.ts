@@ -451,30 +451,56 @@ export async function smScan(raw: string): Promise<ScanResult> {
   return { state: "unknown", code, guess: null, sections: ["snack", "bfast", "dry"] };
 }
 
-export type PhotoResult =
+export type PhotoKind = "product" | "receipt" | "list" | "unsure";
+/** The product reading: a sure match, three choices, or not a grocery at all (→ Products). */
+export type PhotoProduct =
   | { state: "matched"; product: CaptureProduct; listed: ItemRow | null }
   | { state: "unsure"; choices: CaptureProduct[] }
-  | { state: "limit" }
-  | { state: "failed" };
+  | { state: "other"; title: string };
+/**
+ * R18 S3 C2: one read of the photo — what it is (`kind`) and every reading, so the result screen can switch: the product
+ * (when one could be named), the list's lines (when there is text). A receipt is read by the receipt review itself.
+ */
+export type PhotoResult = { state: "read"; kind: PhotoKind; product: PhotoProduct | null; lines: string[] } | { state: "limit" } | { state: "failed" };
 
-type PhotoGuess = { title: string; confidence: number; others: string[] };
+type PhotoGuess = { kind: PhotoKind; title: string; confidence: number; others: string[]; grocery: boolean; lines: string[] };
 
-/** Mock (tests): the image's base64 decodes to "mock:<title>|<confidence>|<other>|<other>". */
+/**
+ * Mock (tests): the image's base64 decodes to "mock:<title>|<confidence>|<other>|<other>" (a product),
+ * "mockreceipt:", "mocklist:<line>\n<line>…", "mockunsure:" or "mockother:<title>" (a product that isn't a grocery).
+ */
 function mockGuess(data: string): PhotoGuess | null {
+  const base = { kind: "product" as PhotoKind, title: "", confidence: 0, others: [] as string[], grocery: true, lines: [] as string[] };
   try {
     const text = Buffer.from(data, "base64").toString("utf8");
-    if (!text.startsWith("mock:")) return { title: "Mock product", confidence: 0.4, others: [] };
+    if (text.startsWith("mockreceipt:")) return { ...base, kind: "receipt" };
+    if (text.startsWith("mocklist:")) return { ...base, kind: "list", lines: text.slice(9).split("\n") };
+    if (text.startsWith("mockunsure:")) return { ...base, kind: "unsure", title: "Mock product", confidence: 0.3 };
+    if (text.startsWith("mockother:")) return { ...base, title: text.slice(10), confidence: 0.9, grocery: false };
+    if (!text.startsWith("mock:")) return { ...base, title: "Mock product", confidence: 0.4 };
     const [title, conf, ...others] = text.slice(5).split("|");
-    return { title, confidence: Number(conf) || 0, others };
+    return { ...base, title, confidence: Number(conf) || 0, others };
   } catch {
     return null;
   }
 }
 
+const PHOTO_PROMPT = [
+  "Say what this photo shows, for a household's supermarket list:",
+  '"kind": "product" (a package, a fruit, a bottle — one thing to buy), "receipt" (a printed till receipt with prices),',
+  '"list" (a handwritten or printed shopping list, a note, a screenshot of one) or "unsure".',
+  '"title": the product the way a shopping list would name it — product + variant/size, in the language printed on it',
+  '(Hebrew stays Hebrew); empty when there is no single product. "confidence": 0–1, how sure you are of the title.',
+  '"others": up to 2 other products it could be. "grocery": false only for things a supermarket does not sell',
+  "(electronics, furniture, clothes, toys…).",
+  '"lines": for a list, every line as written (one product per line, amounts kept, in its language); else [].',
+].join(" ");
+
 /**
- * Photo of a package → the product, matched to this home's own products: one sure match ("matched"), else three choices
- * (the home's first, then the dictionary), or the daily AI limit (typing and scanning still work). Counts in the
- * person's AI quota (feature `grocery`).
+ * Photo → what it is (product / receipt / list / unsure) and its readings, in one AI call that counts in the person's
+ * quota (feature `grocery`). A product is matched to this home's own products: one sure match ("matched"), else three
+ * choices (the home's first, then the dictionary); a product that isn't a grocery → "other" (it goes to Products). At the
+ * daily AI limit → "limit" (typing and scanning still work).
  */
 export async function smPhoto(input: { image: string }): Promise<PhotoResult> {
   const ctx = await requireCtx("edit");
@@ -490,11 +516,31 @@ export async function smPhoto(input: { image: string }): Promise<PhotoResult> {
     await recordAiUsage(use, { provider: "mock", model: "mock", ok: true, ms: 0 });
   } else
     guess = await generateJson<PhotoGuess>(
-      'This photo shows one grocery product (a package, a fruit, a bottle). Name it the way a shopping list would: product + variant/size, in the language printed on it (Hebrew stays Hebrew). "confidence": 0–1, how sure you are. "others": up to 2 other products it could be.',
-      { type: "object", properties: { title: { type: "string" }, confidence: { type: "number" }, others: { type: "array", items: { type: "string" } } }, required: ["title", "confidence", "others"] },
+      PHOTO_PROMPT,
+      {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["product", "receipt", "list", "unsure"] },
+          title: { type: "string" },
+          confidence: { type: "number" },
+          others: { type: "array", items: { type: "string" } },
+          grocery: { type: "boolean" },
+          lines: { type: "array", items: { type: "string" } },
+        },
+        required: ["kind", "title", "confidence", "others", "grocery", "lines"],
+      },
       { use, file: { mimeType: m[1], data: m[2] }, budgetMs: 25_000 },
     );
-  if (!guess?.title) return { state: "failed" };
+  if (!guess) return { state: "failed" };
+  const kind: PhotoKind = (["product", "receipt", "list", "unsure"] as const).includes(guess.kind) ? guess.kind : "unsure";
+  const lines = (Array.isArray(guess.lines) ? guess.lines : []).map((l) => String(l).trim().slice(0, 200)).filter(Boolean).slice(0, 60);
+  const title = String(guess.title ?? "").trim().slice(0, 200);
+  if (kind === "product" && !title) return { state: "failed" };
+  const product = title ? await photoProduct(ctx, { ...guess, title }) : null;
+  return { state: "read", kind, product, lines };
+}
+
+async function photoProduct(ctx: Awaited<ReturnType<typeof requireCtx>>, guess: PhotoGuess): Promise<PhotoProduct> {
   const s = scoped(ctx);
   const household = await G.householdProducts(s);
   const pick = (title: string) => {
@@ -502,6 +548,8 @@ export async function smPhoto(input: { image: string }): Promise<PhotoResult> {
     return hit ? asProduct(hit.title, null, true, household.find((x) => x.productKey === hit.productKey)?.count ?? 0) : null;
   };
   const best = pick(guess.title);
+  // Not a grocery (the model says so and neither the home nor the dictionary knows it) → Products.
+  if (guess.grocery === false && !best && classifyLocal(guess.title).section === "other") return { state: "other", title: guess.title };
   const listedOf = async (p: CaptureProduct) => (await s.select(schema.items, and(eq(schema.items.list, "supermarket"), eq(schema.items.status, "to_buy"), eq(schema.items.productKey, p.productKey))).limit(1))[0] ?? null;
   if (best && guess.confidence >= 0.75) return { state: "matched", product: best, listed: await listedOf(best) };
   if (!best && guess.confidence >= 0.85) {
@@ -510,7 +558,8 @@ export async function smPhoto(input: { image: string }): Promise<PhotoResult> {
   }
   const seen = new Set<string>();
   const choices: CaptureProduct[] = [];
-  for (const t of [guess.title, ...guess.others]) {
+  for (const t of [guess.title, ...(guess.others ?? [])]) {
+    if (!t?.trim()) continue;
     const p = pick(t) ?? asProduct(t, null, false);
     if (seen.has(p.productKey)) continue;
     seen.add(p.productKey);

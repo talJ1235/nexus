@@ -2017,6 +2017,91 @@ try {
           "supermarket + is the camera (R18 S3 C1): barcode first, photo, type instead; refused → Add + hint", JSON.stringify(r));
       });
 
+    // R18 S3 C2: Photo mode says what it sees. The shutter's frame goes to smPhoto; the request's image is swapped for a
+    // mock fixture (the server runs NEXUS_AI_MOCK): a list → "Looks like a list · 3 items" → Check 3 items → the Paste
+    // review with 3 lines; the switch shows the other readings without moving (line + switch boxes still); a receipt →
+    // Check the receipt → the receipt dialog; "not sure" → What's in the photo (pick List); not a grocery → Products card.
+    if (WRITE)
+      await step("photo understands what it sees (R18 S3 C2): list → paste review, receipt → review, unsure, not a grocery", async () => {
+        const r = {};
+        let fixture = "";
+        const swap = async (route) => {
+          const req = route.request();
+          const body = req.method() === "POST" && req.headers()["next-action"] ? req.postData() || "" : "";
+          if (fixture && body.includes("data:image/")) {
+            const img = `data:image/png;base64,${Buffer.from(fixture, "utf8").toString("base64")}`;
+            return route.continue({ postData: body.replace(/data:image\/[\w+.-]+;base64,[A-Za-z0-9+/=]+/, img) });
+          }
+          return route.continue();
+        };
+        await page.route(`${BASE}/supermarket**`, swap);
+        const shoot = async (text) => {
+          fixture = text;
+          await page.goto(`${BASE}/supermarket`);
+          await page.waitForSelector("[data-sm-add-photo]", { timeout: 15000 });
+          await page.locator("[data-sm-add-photo]:visible").first().click();
+          await page.waitForSelector('[data-sm-capture] [data-cam-state="on"]', { timeout: 10000 });
+          await page.waitForFunction(() => document.querySelector("[data-sm-capture] video")?.videoWidth > 0, null, { timeout: 10000 });
+          await page.locator("[data-cap-shutter]").click();
+          await page.waitForSelector("[data-cap-read]", { timeout: 15000 });
+        };
+        try {
+          await shoot("mocklist:2 milk\nbread\nhalf a kilo of tomatoes");
+          r.list = await page.locator("[data-cap-read]").getAttribute("data-cap-read");
+          r.seen = (await page.locator("[data-cap-seen]").textContent())?.trim();
+          r.lines = await page.locator("[data-cap-lines] li").count();
+          if (OUT) await page.waitForTimeout(500), await page.screenshot({ path: join(OUT, `c2-list${MOBILE ? "-m" : ""}.png`) });
+          const boxes = () => page.evaluate(() => ["[data-cap-seen]", '[role="tablist"][aria-label]'].map((s) => {
+            const b = document.querySelector(`[data-cap-read] ${s}`)?.getBoundingClientRect();
+            return b ? [Math.round(b.x), Math.round(b.y), Math.round(b.width)] : null;
+          }));
+          await page.waitForTimeout(600); // the sheet's own pop-in settles first
+          const before = await boxes();
+          await page.locator('[data-cap-kind="product"]').click();
+          await page.waitForSelector('[data-cap-sheet="noproduct"]', { timeout: 3000 });
+          await page.locator('[data-cap-kind="receipt"]').click();
+          await page.waitForSelector('[data-cap-sheet="receipt"]', { timeout: 3000 });
+          await page.locator('[data-cap-kind="list"]').click();
+          await page.waitForTimeout(250);
+          const after = await boxes();
+          r.still = JSON.stringify(before) === JSON.stringify(after);
+          if (!r.still) r.boxes = [before, after];
+          await page.locator("[data-cap-list]").click();
+          await page.waitForSelector("[data-add-split]", { timeout: 5000 });
+          r.paste = (await page.locator("[data-add-paste]").inputValue()).split("\n").length;
+          r.parts = await page.locator("[data-add-part]").count();
+          await page.locator("[data-add-back]").click();
+          await page.waitForSelector("[data-add-screen]", { state: "detached", timeout: 5000 });
+
+          await shoot("mockreceipt:");
+          r.receipt = await page.locator("[data-cap-read]").getAttribute("data-cap-read");
+          await page.locator("[data-cap-receipt]").click();
+          r.review = await page.waitForSelector("[data-receipt-dialog]", { timeout: 8000 }).then(() => true, () => false);
+          r.capClosed = await page.waitForSelector("[data-sm-capture]", { state: "detached", timeout: 3000 }).then(() => true, () => false);
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(300);
+
+          await shoot("mockunsure:");
+          r.unsure = await page.locator("[data-cap-read]").getAttribute("data-cap-read");
+          r.nonePicked = await page.locator('[data-cap-kind][aria-selected="true"]').count();
+          if (OUT) await page.waitForTimeout(500), await page.screenshot({ path: join(OUT, `c2-unsure${MOBILE ? "-m" : ""}.png`) });
+          await page.locator('[data-cap-what="list"]').click();
+          r.unsureToList = await page.waitForSelector('[data-cap-sheet="list"]', { timeout: 3000 }).then(() => true, () => false);
+          await page.keyboard.press("Escape");
+
+          await shoot("mockother:Bluetooth headphones");
+          r.other = await page.locator('[data-cap-sheet="other"]').count();
+          if (OUT) await page.waitForTimeout(500), await page.screenshot({ path: join(OUT, `c2-other${MOBILE ? "-m" : ""}.png`) });
+          await page.locator("[data-cap-grocery]").click();
+          r.otherAsGrocery = await page.locator('[data-cap-sheet="found"]').count();
+          await page.keyboard.press("Escape");
+        } finally {
+          await page.unroute(`${BASE}/supermarket**`, swap);
+        }
+        ok(r.list === "list" && /3 items/.test(r.seen ?? "") && r.lines === 3 && r.still && r.paste === 3 && r.parts === 3 && r.receipt === "receipt" && r.review && r.capClosed && r.unsure === "unsure" && r.nonePicked === 0 && r.unsureToList && r.other === 1 && r.otherAsGrocery === 1,
+          "photo understands what it sees (R18 S3 C2): list → paste review, receipt → review, unsure, not a grocery", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)
