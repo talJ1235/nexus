@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BarChart3, CalendarDays, EyeOff, Folder, GripVertical, Home, Minus, PiggyBank, Plus, RotateCcw, ShoppingCart, Sparkles, Star, Tag, TrendingDown, TrendingUp, Truck, Users, Wallet, Wrench, AlertTriangle, ChevronDown } from "lucide-react";
+import { BarChart3, CalendarDays, EyeOff, Folder, GripVertical, Home, Minus, PiggyBank, Plus, RotateCcw, ShoppingBasket, ShoppingCart, Sparkles, Star, Tag, TrendingDown, TrendingUp, Truck, Users, Wallet, Wrench, AlertTriangle, ChevronDown } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Pop, PopContent, PopTrigger, Sheet } from "@/components/ui/overlays";
 import { add, moveTo, NEW_WIDGETS, patch, phoneWidth, PRESETS, presetItems, remove, sizeFromDrag, SPAN, unused, type HomeLayout, type LayoutItem, type PresetId, type WidgetId, type Width } from "@/lib/home-layout";
@@ -18,6 +18,7 @@ import { EASE_OUT } from "@/lib/motion";
 export type RenderWidget = (id: WidgetId, h: 1 | 2, editing: boolean) => React.ReactNode | null;
 
 export const WIDGET_ICON: Record<WidgetId, React.ReactNode> = {
+  nextshop: <ShoppingBasket />,
   left: <ShoppingCart />,
   budget: <Wallet />,
   way: <Truck />,

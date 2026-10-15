@@ -130,13 +130,27 @@ function localAsOpen(t: LocalTrip, me: string, server: OpenTrip | null): OpenTri
 
 // ---------- the Home card ----------
 
-export function NextShopCard({ className }: { className?: string }) {
+/** The trip Home pins at its top: mine (the device's own first), else another member's; null when nobody shops. */
+export function useRunningTrip() {
   const s = useStore();
   const { home } = useSmHome();
   const { mine: serverMine, others } = useTrips(home);
   const local = useLocalTrip(s.spaceId || "-");
   const mine = local ? localAsOpen(local, s.me?.id ?? "", serverMine) : serverMine;
+  return { mine, trip: mine ?? others[0] ?? null, local };
+}
+
+/**
+ * The supermarket on Home. R18 S3 C4: `part` "trip" = the running trip's bar, pinned at the top of Home whatever the
+ * layout; "plan" = the next-shop widget (movable / removable in Customise; Home hides it while a trip runs). No part
+ * (the empty Home) = whichever applies.
+ */
+export function NextShopCard({ className, part }: { className?: string; part?: "trip" | "plan" }) {
+  const s = useStore();
+  const { home } = useSmHome();
+  const { mine, trip: running, local } = useRunningTrip();
   if (s.loading) return null;
+  if (part === "trip") return running ? <div className={cn("desk:col-span-12", className)} data-next-shop={mine ? "mine" : "other"}><TripCard trip={running} mine={!!mine} /></div> : null;
   // G2: the list is on the device before the server's numbers — show the card at once (no jump on Home when they
   // arrive); only an empty list waits (it may be the first-time card).
   if (!home)
@@ -145,7 +159,7 @@ export function NextShopCard({ className }: { className?: string }) {
         <NextCard />
       </div>
     ) : null;
-  const trip = mine ?? others[0] ?? null;
+  const trip = part === "plan" ? null : running;
   return (
     <div className={cn("desk:col-span-12", className)} data-next-shop={trip ? (mine ? "mine" : "other") : !s.sm.length && !home.trips ? "first" : "next"}>
       {trip ? <TripCard trip={trip} mine={!!mine} /> : !s.sm.length && !home.trips ? <FirstCard /> : <NextCard />}

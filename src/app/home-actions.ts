@@ -58,7 +58,8 @@ export async function setNotificationsOn(on: boolean): Promise<boolean> {
 /** R16 E1: Home's layout for this space (also remembered as the person's last layout). Personal — viewers too. */
 export async function saveHomeLayout(layout: HomeLayout): Promise<HomeLayout> {
   const ctx = await requireCtx("view");
-  const raw = JSON.stringify(layout);
+  // R18 S3 C4: what the person sends is a current layout (`ns`) — a removed next-shop widget stays removed.
+  const raw = JSON.stringify({ ...layout, ns: 1 });
   if (raw.length > 4000) throw new Error("too_large");
   const v = parseLayout(raw);
   if (!v) throw new Error("invalid");

@@ -4,6 +4,8 @@
 // layout as the fallback for a space they never customised). Pure — scripts/test-home.ts covers it.
 
 export const WIDGETS = [
+  // R18 S3 C4: the supermarket's next shop (was pinned above the grid in S2)
+  "nextshop",
   // the four numbers (were the header's stats until R16)
   "left", "budget", "way", "saved",
   // the R13 sections
@@ -36,12 +38,12 @@ const it = (id: WidgetId, w: Width, h: 1 | 2 = 1): LayoutItem => ({ id, w, h });
 export function presetItems(p: PresetId, shared = true): LayoutItem[] {
   const list: LayoutItem[] =
     p === "household"
-      ? [it("left", "S"), it("budget", "S"), it("way", "S"), it("saved", "S"), it("suggest", "M"), it("week", "M"), it("needs", "M", 2), it("activity", "M"), it("nextdel", "M")]
+      ? [it("nextshop", "L"), it("left", "S"), it("budget", "S"), it("way", "S"), it("saved", "S"), it("suggest", "M"), it("week", "M"), it("needs", "M", 2), it("activity", "M"), it("nextdel", "M")]
       : p === "maker"
         ? [it("projects", "M", 2), it("suggest", "M"), it("left", "S"), it("way", "S"), it("drops", "S"), it("budget", "S"), it("pace", "M"), it("needs", "M")]
         : p === "deals"
           ? [it("drops", "M", 2), it("saved", "S"), it("budget", "S"), it("suggest", "M"), it("vslast", "S"), it("nextdel", "S"), it("pace", "M")]
-          : [it("left", "M"), it("budget", "M"), it("suggest", "L")];
+          : [it("nextshop", "L"), it("left", "M"), it("budget", "M"), it("suggest", "L")];
   return shared ? list : list.map((x) => (x.id === "activity" ? { ...x, id: "ontheway" } : x));
 }
 export const defaultLayout = (shared = true): HomeLayout => ({ v: 2, preset: "household", items: presetItems("household", shared) });
@@ -54,7 +56,7 @@ const isWidget = (v: unknown): v is WidgetId => typeof v === "string" && (WIDGET
 export function parseLayout(raw: string | null | undefined): HomeLayout | null {
   if (!raw) return null;
   try {
-    const v = JSON.parse(raw) as { v?: number; preset?: unknown; items?: unknown };
+    const v = JSON.parse(raw) as { v?: number; preset?: unknown; items?: unknown; ns?: unknown };
     if (v?.v !== 2 || !Array.isArray(v.items)) return null;
     const seen = new Set<string>();
     const items: LayoutItem[] = [];
@@ -65,6 +67,9 @@ export function parseLayout(raw: string | null | undefined): HomeLayout | null {
       const h = x.h === 2 ? 2 : 1;
       items.push({ id: x.id, w, h, ...(x.p === "half" || x.p === "full" ? { p: x.p } : {}) });
     }
+    // C4: a layout saved before the next-shop widget existed gets it where the card was (first); one saved since
+    // (`ns`) keeps the person's choice, removed included.
+    if (!v.ns && !seen.has("nextshop")) items.unshift(it("nextshop", "L"));
     const preset = (PRESETS as readonly string[]).includes(v.preset as string) ? (v.preset as PresetId) : null;
     return { v: 2, preset, items };
   } catch {
@@ -90,11 +95,11 @@ export function fromLegacy(cookie: string | null | undefined): HomeLayout | null
   if (!order.length) return null;
   for (const id of legacy) if (!order.includes(id)) order.push(id);
   const half: Record<string, Width> = { needs: "M", ontheway: "M", pace: "M", projects: "M" };
-  const items = [it("left", "S"), it("budget", "S"), it("way", "S"), it("saved", "S"), ...order.filter((id) => !hidden.has(id)).map((id) => it(id as WidgetId, half[id] ?? "L"))];
+  const items = [it("nextshop", "L"), it("left", "S"), it("budget", "S"), it("way", "S"), it("saved", "S"), ...order.filter((id) => !hidden.has(id)).map((id) => it(id as WidgetId, half[id] ?? "L"))];
   return { v: 2, preset: null, items };
 }
 
-export const serialize = (l: HomeLayout) => JSON.stringify({ v: 2, preset: l.preset, items: l.items.map(({ id, w, h, p }) => ({ id, w, h, ...(p ? { p } : {}) })) });
+export const serialize = (l: HomeLayout) => JSON.stringify({ v: 2, ns: 1, preset: l.preset, items: l.items.map(({ id, w, h, p }) => ({ id, w, h, ...(p ? { p } : {}) })) });
 
 // ---- edits (each turns the layout custom) ----
 export function moveTo(l: HomeLayout, id: WidgetId, to: number): HomeLayout {
@@ -110,7 +115,7 @@ export const remove = (l: HomeLayout, id: WidgetId): HomeLayout => ({ ...l, pres
 export function add(l: HomeLayout, id: WidgetId, at = l.items.length): HomeLayout {
   if (l.items.some((x) => x.id === id)) return l;
   const items = l.items.slice();
-  items.splice(at, 0, it(id, STAT_WIDGETS.includes(id) ? "S" : "M"));
+  items.splice(at, 0, it(id, STAT_WIDGETS.includes(id) ? "S" : id === "nextshop" ? "L" : "M"));
   return { ...l, preset: null, items };
 }
 /** Widgets not on Home (the tray), new ones first. */

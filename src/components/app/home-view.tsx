@@ -1,6 +1,6 @@
 "use client";
 
-import { NextShopCard } from "./supermarket/trip";
+import { NextShopCard, useRunningTrip } from "./supermarket/trip";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Package, RefreshCw, Sparkles, Tag, TrendingDown, TrendingUp, Truck, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
@@ -149,6 +149,7 @@ export function HomeView() {
     return homeExtras({ items: s.items, alerts: s.alerts, rates: s.rates, currency: s.currency, now: clock.now, tz: clock.tz, monthFrom, monthTo, lastMonthFrom: monthStartIn(lastKey, clock.tz), lastMonthKey: lastKey, me: s.me?.id });
   }, [s.items, s.alerts, s.rates, s.currency, clock, model, s.me?.id]);
 
+  const running = useRunningTrip().trip != null;
   // One renderer for view and Customise; the R13 sections stay out of view while they have nothing to show.
   const render = useCallback<RenderWidget>(
     (id, h, edit) => {
@@ -160,10 +161,14 @@ export function HomeView() {
         pace: model.pace.cap != null || model.pace.usual != null || model.stats.budget.spent > 0,
         projects: model.projects.length > 0,
         noticed: noticed.length > 0,
+        // While a trip runs, the pinned trip bar says it all.
+        nextshop: !running,
       };
       if (!edit && has[id] === false) return null;
       const c = "h-full";
       switch (id) {
+        case "nextshop":
+          return <NextShopCard part="plan" className={c} />;
         case "left":
         case "budget":
         case "way":
@@ -197,7 +202,7 @@ export function HomeView() {
           return <ActivityWidget x={extras} h={h} className={c} />;
       }
     },
-    [model, sugs, noticed, extras],
+    [model, sugs, noticed, extras, running],
   );
 
   if (s.loading || s.switching) return <HomeSkeleton />;
@@ -225,8 +230,8 @@ export function HomeView() {
   return (
     <div className="flex flex-col gap-3 pb-4 desk:grid desk:grid-cols-12 desk:gap-[14px]" data-home dir="auto">
       <HomeHeader model={model} onCustomize={() => setEditing(s.homeLayout)} />
-      {/* R18 S2 A3: the supermarket's next shop / the running trip, first on Home. */}
-      <NextShopCard />
+      {/* R18 S3 C4: the running trip stays pinned at the top; the next shop is a widget (first by default). */}
+      <NextShopCard part="trip" />
       <WidgetGrid layout={s.homeLayout} render={render} stagger={stagger} />
     </div>
   );

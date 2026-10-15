@@ -615,7 +615,7 @@ export const en = {
     hintPhone: "Hold the dots to move",
     moved: "{name}: position {n}",
     names: {
-      left: "Left to buy", budget: "Budget", way: "On the way", saved: "Saved", suggest: "Nexus suggests", week: "This week",
+      nextshop: "Next shop", left: "Left to buy", budget: "Budget", way: "On the way", saved: "Saved", suggest: "Nexus suggests", week: "This week",
       needs: "Needs you", ontheway: "Deliveries", pace: "Month pace", projects: "Projects", noticed: "Nexus noticed",
       drops: "Price drops", vslast: "Vs last month", nextdel: "Next delivery", bycat: "Budget by category", most: "Most bought", activity: "Space today",
     },

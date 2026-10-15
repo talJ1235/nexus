@@ -614,7 +614,7 @@ export const he: Dict = {
     hintPhone: "לוחצים לחיצה ארוכה על הנקודות כדי להזיז",
     moved: "{name}: מקום {n}",
     names: {
-      left: "נשאר לקנות", budget: "תקציב", way: "בדרך", saved: "חסכת", suggest: "Nexus מציע", week: "השבוע",
+      nextshop: "הקנייה הבאה", left: "נשאר לקנות", budget: "תקציב", way: "בדרך", saved: "חסכת", suggest: "Nexus מציע", week: "השבוע",
       needs: "דורש אותך", ontheway: "משלוחים", pace: "קצב החודש", projects: "פרויקטים", noticed: "Nexus שם לב",
       drops: "ירידות מחיר", vslast: "מול החודש שעבר", nextdel: "המשלוח הבא", bycat: "תקציב לפי קטגוריה", most: "הכי נקנה", activity: "היום במרחב",
     },

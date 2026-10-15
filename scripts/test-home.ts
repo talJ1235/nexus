@@ -329,20 +329,29 @@ assert.equal(addDays("2026-10-31", 1), "2026-11-01");
   // round trip, junk dropped, duplicates removed, sizes clamped
   assert.deepEqual(parseLayout(serialize(d)), d);
   const junk = parseLayout(JSON.stringify({ v: 2, preset: "nope", items: [{ id: "left", w: "XL", h: 7 }, { id: "left", w: "S", h: 1 }, { id: "evil" }, { id: "drops", w: "L", h: 2, p: "half" }] }));
-  assert.deepEqual(junk, { v: 2, preset: null, items: [{ id: "left", w: "M", h: 1 }, { id: "drops", w: "L", h: 2, p: "half" }] });
+  assert.deepEqual(junk, { v: 2, preset: null, items: [{ id: "nextshop", w: "L", h: 1 }, { id: "left", w: "M", h: 1 }, { id: "drops", w: "L", h: 2, p: "half" }] });
+  // R18 S3 C4: a layout saved before the next-shop widget gets it first (where the card was); saved since, removing it sticks
+  assert.ok(presetItems("household")[0].id === "nextshop" && presetItems("minimal")[0].id === "nextshop", "household + minimal start with the next shop");
+  assert.ok(presetItems("maker").every((x) => x.id !== "nextshop"), "other presets: in the tray");
+  const old = parseLayout(JSON.stringify({ v: 2, preset: null, items: [{ id: "budget", w: "S", h: 1 }, { id: "suggest", w: "M", h: 1 }] }));
+  assert.deepEqual(old!.items.map((x) => x.id), ["nextshop", "budget", "suggest"]);
+  const gone = remove(old!, "nextshop");
+  assert.deepEqual(parseLayout(serialize(gone))!.items.map((x) => x.id), ["budget", "suggest"], "removed stays removed");
+  assert.equal(parseLayout(serialize(moveTo(old!, "nextshop", 2)))!.items[2].id, "nextshop", "moved stays moved");
+  assert.equal(add(gone, "nextshop").items.at(-1)!.w, "L", "back from the tray: full width");
   assert.equal(parseLayout("{bad"), null);
   assert.equal(parseLayout(JSON.stringify({ v: 1, order: [] })), null);
   // the R13 cookie → v2: numbers first, the person's order, hidden ones out
   const legacy = fromLegacy("projects.pace.-noticed.suggest");
-  assert.deepEqual(legacy!.items.map((x) => x.id), ["left", "budget", "way", "saved", "projects", "pace", "suggest", "week", "needs", "ontheway"]);
+  assert.deepEqual(legacy!.items.map((x) => x.id), ["nextshop", "left", "budget", "way", "saved", "projects", "pace", "suggest", "week", "needs", "ontheway"]);
   assert.equal(legacy!.preset, null);
   assert.equal(fromLegacy(""), null);
   // edits turn the layout custom
   const m = moveTo(d, "needs", 0);
   assert.equal(m.items[0].id, "needs");
   assert.equal(m.preset, null);
-  assert.equal(moveTo(d, "left", 0), d, "a no-op move keeps the preset");
-  assert.equal(patch(d, "left", { w: "L", h: 2 }).items[0].w, "L");
+  assert.equal(moveTo(d, "nextshop", 0), d, "a no-op move keeps the preset");
+  assert.equal(patch(d, "left", { w: "L", h: 2 }).items.find((x) => x.id === "left")!.w, "L");
   assert.ok(!remove(d, "week").items.some((x) => x.id === "week"));
   const a = add(remove(d, "week"), "week", 1);
   assert.equal(a.items[1].id, "week");

@@ -408,6 +408,48 @@ async function homeChecks(page) {
     const reset = preset === "true" && (await widgets()).includes("nextdel");
     ok(moved && persisted && reset, "customize: hide + move persist after reload", `start ${start.join(",")} draft ${draft.join(",")} after ${got.join(",")} reset ${reset}`);
   });
+  // R18 S3 C4: the next shop is a Home widget — first in Household, hidden in Customise like the others (persists),
+  // back first with Reset; its height is fixed from the first frame (no shift when the server's numbers arrive).
+  if (WRITE)
+    await step("next shop is a Home widget (R18 S3 C4): first, removable, persists, fixed height", async () => {
+      const r = {};
+      const widgets = () => page.$$eval("[data-home-grid] [data-widget]", (els) => els.map((e) => e.getAttribute("data-widget")));
+      await page.goto(`${BASE}/`);
+      await page.waitForSelector("[data-home-grid]", { timeout: 15000 });
+      await page.locator("[data-home-customize]").click();
+      await page.waitForSelector("[data-home-customizing]");
+      await page.locator("[data-home-reset]").click();
+      await page.locator("[data-home-done]").click();
+      await page.waitForTimeout(600);
+      r.first = (await widgets())[0];
+      r.heights = await page.evaluate(async () => {
+        const el = () => document.querySelector('[data-widget="nextshop"]');
+        const hs = [];
+        for (let k = 0; k < 6; k++) {
+          hs.push(Math.round(el()?.getBoundingClientRect().height ?? -1));
+          await new Promise((res) => setTimeout(res, 120));
+        }
+        return hs;
+      });
+      await page.reload();
+      const firstFrame = await page.waitForSelector('[data-widget="nextshop"]', { timeout: 15000 }).then((e) => e.boundingBox());
+      await page.waitForTimeout(1500);
+      r.shift = Math.abs((await page.locator('[data-widget="nextshop"]').boundingBox()).height - firstFrame.height);
+      await page.locator("[data-home-customize]").click();
+      await page.locator('[data-widget-hide="nextshop"]').click();
+      await page.locator("[data-home-done]").click();
+      await page.waitForTimeout(800);
+      await page.reload();
+      await page.waitForSelector("[data-home-grid]", { timeout: 15000 });
+      await page.waitForTimeout(400);
+      r.hidden = !(await widgets()).includes("nextshop") && !(await page.locator("[data-next-shop]").count());
+      await page.locator("[data-home-customize]").click();
+      await page.locator("[data-home-reset]").click();
+      await page.locator("[data-home-done]").click();
+      await page.waitForTimeout(500);
+      r.back = (await widgets())[0];
+      ok(r.first === "nextshop" && new Set(r.heights).size === 1 && r.shift <= 1 && r.hidden && r.back === "nextshop", "next shop is a Home widget (R18 S3 C4): first, removable, persists, fixed height", JSON.stringify(r));
+    });
   // The logo returns to Home from every view.
   await step("logo returns to Home from every view", async () => {
     const bad = [];
@@ -2630,6 +2672,12 @@ try {
         await page.locator('[data-dock-target="home"]').click();
         await page.waitForSelector("[data-trip-card]", { timeout: 8000 }).catch(() => {});
         r.card = await page.locator("[data-trip-card]").getAttribute("data-trip-card").catch(() => null);
+        // R18 S3 C4: the running trip is pinned above the grid; the next-shop widget steps aside meanwhile.
+        r.pinned = await page.evaluate(() => {
+          const bar = document.querySelector("[data-home] > [data-next-shop]")?.getBoundingClientRect();
+          const grid = document.querySelector("[data-home-grid]")?.getBoundingClientRect();
+          return !!bar && !!grid && bar.bottom <= grid.top + 1 && !document.querySelector('[data-widget="nextshop"]');
+        });
         await shot(page, "trip-card-home");
         r.finish = (await callAction(BASE, cookie, act("syncTripOps"), [[op({ kind: "finish", total: null })]])).failed ? "failed" : "ok";
         await page.goto(`${BASE}/?v=to_buy`);
@@ -2638,8 +2686,8 @@ try {
         r.after = await bar();
         await page.goto(`${BASE}/`);
         await page.waitForSelector("[data-next-shop]", { timeout: 15000 }).catch(() => {});
-        r.homeAfter = await page.locator("[data-next-shop]").getAttribute("data-next-shop").catch(() => null);
-        ok(r.start === "ok" && r.products === "mine" && r.insights === "mine" && r.supermarket === "mine" && r.card === "mine" && r.finish === "ok" && r.after === null && r.homeAfter === "next", "trip bar (R18 A3): on Products, Insights, Supermarket + Home card during a trip, gone after Finish", JSON.stringify(r));
+        r.homeAfter = await page.locator('[data-widget="nextshop"] [data-next-shop]').getAttribute("data-next-shop").catch(() => null);
+        ok(r.start === "ok" && r.products === "mine" && r.insights === "mine" && r.supermarket === "mine" && r.card === "mine" && r.pinned && r.finish === "ok" && r.after === null && r.homeAfter === "next", "trip bar (R18 A3): on Products, Insights, Supermarket + Home card during a trip, gone after Finish", JSON.stringify(r));
       });
 
     if (MOBILE) {

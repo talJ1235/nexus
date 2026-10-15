@@ -156,7 +156,7 @@ groceries go to Products (existing classify). Mock AI fixtures for all three + "
 "Save the current list" / "Save as template" shows a card: stacked product pictures (reuse `ProjectCover`'s stacked
 pictures from `project-cover.tsx`), name field, item count, estimate, store. Same card on template rows in Templates.
 
-### C4 [ ] Next-shop card is a normal Home widget
+### C4 [x] Next-shop card is a normal Home widget
 `NextShopCard` (`supermarket/trip.tsx`) becomes a widget in `lib/home-layout.ts` (`WIDGETS`, presets: household +
 minimal include it) — movable / removable in Customise like the others. During a trip the "back to your trip" bar stays
 pinned at the top of Home regardless of the widget. Existing layouts get the widget where it is today (first).
@@ -307,6 +307,12 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   Shufersal · Herzl St." (`estimateLines` at the home's prices; the trip's store, else the home's); it follows the
   trip switches (not found / quantities). Template rows are the same card (the count badge and the small tiles row gave
   way to the cover + the meta line). Smoke "template preview card" (phone + computer).
+- C4 — widget `nextshop` (`WIDGETS`, first + L in Household and Minimal, tray icon / name he + en); a layout saved
+  before it (no `ns` flag) gets it first, one saved since keeps a removal (`saveHomeLayout` marks what the person sends
+  as current). `NextShopCard part="trip"` = the running trip pinned above the grid whatever the layout; `part="plan"` =
+  the widget, which Home hides while a trip runs (`useRunningTrip`). Height fixed from the first frame as in S2.
+  `test:home` (+ migration / removal / move / tray width), smoke "next shop is a Home widget" (phone + computer) and the
+  trip-bar step checks the pin.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
@@ -332,6 +338,7 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
 - C2: the switch shows what was read for each kind (a list photo has no product → "type it"); a receipt is read by the
   existing receipt review (its own pipeline), so the photo's one call only decides it is a receipt. "Not a grocery" needs
   both the model and the dictionary to agree (a model saying milk isn't a grocery is overruled).
+- C4: while a trip runs the widget steps aside (the pinned trip bar replaces it) instead of showing "next shop" for the list being shopped.
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.
