@@ -59,6 +59,7 @@
     "test:polish": "node scripts/test-polish.mjs",
     "test:clip": "node scripts/test-clip.mjs",
     "test:bidi": "node scripts/test-bidi.mjs",
+    "test:seed-admin": "node scripts/test-seed-admin.mjs",
     "test:ai-quota": "tsx --conditions=react-server scripts/test-ai-quota.ts",
     "test:short-name": "tsx scripts/test-short-name.ts",
     "test:blocked": "tsx --conditions=react-server scripts/test-blocked.ts",

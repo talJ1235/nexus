@@ -289,6 +289,10 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   long press keeps its menu, other tabs keep the + menu); the camera's barcode mode got "Type instead" (→ Add screen);
   a refused camera permission lands on the Add screen with a one-line hint (no camera at all keeps the code field —
   `test:capture`). The tab's add field stays the typing entry. Smoke (incl. a context whose getUserMedia is refused).
+- 0.2 (resume) — `guards` on f96dbf5 failed at test:bidi: `seedAdmin` cleaned up with `LIKE 'ad_%'` (`_` is a wildcard, LIKE
+  ignores case), so when the random admin id began with "ad" / "Ad" (~1 run in 1000) it deleted the admin + its session
+  and the next insert failed the foreign key. Now exact `substr` prefixes; new `test:seed-admin` (unit loop) fails
+  before the fix with the CI error, passes after.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

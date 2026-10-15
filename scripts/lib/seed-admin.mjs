@@ -14,12 +14,15 @@ export async function seedAdmin(db, { adminId, now = Date.now(), personal }) {
     ["ad_gal", "Gal", "gal.rosen@example.com", now - 60 * DAY],
     ["ad_eden", "Eden", "eden.m@example.com", now - 90 * DAY],
   ];
-  for (const t of ["presence", "activity"]) await x(`DELETE FROM ${t} WHERE user_id LIKE 'ad_%' OR user_id = ?`, [adminId]);
-  await x(`DELETE FROM ai_usage WHERE user_id LIKE 'ad_%' OR user_id = ?`, [adminId]);
-  await x(`DELETE FROM session WHERE id LIKE 'ads_%'`);
-  await x(`DELETE FROM space_member WHERE id LIKE 'adm_%'`);
+  // Exact, case-sensitive prefixes — never LIKE: its `_` is a wildcard and it ignores case, so 'ad_%' also matched an
+  // admin whose random id starts with "Ad" and deleted it (and its session) mid-test (test:seed-admin).
+  const demo = (col, prefix) => `substr(${col}, 1, ${prefix.length}) = '${prefix}'`;
+  for (const t of ["presence", "activity"]) await x(`DELETE FROM ${t} WHERE ${demo("user_id", "ad_")} OR user_id = ?`, [adminId]);
+  await x(`DELETE FROM ai_usage WHERE ${demo("user_id", "ad_")} OR user_id = ?`, [adminId]);
+  await x(`DELETE FROM session WHERE ${demo("id", "ads_")}`);
+  await x(`DELETE FROM space_member WHERE ${demo("id", "adm_")}`);
   await x(`DELETE FROM space WHERE id = 'ad_home'`);
-  await x(`DELETE FROM "user" WHERE id LIKE 'ad_%'`);
+  await x(`DELETE FROM "user" WHERE ${demo("id", "ad_")}`);
   await x(`DELETE FROM reports WHERE id = 'r_admin_demo'`);
   for (const [id, name, email, at] of people)
     await x(`INSERT INTO "user" (id, name, email, email_verified, role, created_at, updated_at, deletion_requested_at) VALUES (?, ?, ?, 1, 'user', ?, ?, ?)`, [id, name, email, at, at, id === "ad_gal" ? now - 2 * DAY : null]);
