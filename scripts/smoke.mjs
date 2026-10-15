@@ -2443,6 +2443,42 @@ try {
           "add feedback (R18 S4 A1+A2): merge into count, inline line replaced, no toast, row pulses, show pill", JSON.stringify(r));
       });
 
+    // R18 S4 A3: an empty list starts with the templates (one-tap Add), then what the home usually buys (suggestions,
+    // open), then the ways to add. The rows are removed with the app's own delete and put back with its Undo afterwards.
+    if (WRITE)
+      await step("empty list (R18 S4 A3): templates first with one-tap Add, then suggestions, then add actions", async () => {
+        const r = {};
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        const ids = await page.locator("[data-sm-list] [data-sm-row]").evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row")));
+        try {
+          for (const id of ids) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+          await page.goto(`${BASE}/supermarket`);
+          await page.waitForSelector("[data-sm-empty-templates]", { timeout: 15000 });
+          r.order = await page.evaluate(() => {
+            const at = (q) => { const e = document.querySelector(q); return e ? e.getBoundingClientRect().top + window.scrollY : null; };
+            return { tpl: at("[data-sm-empty-templates]"), sug: at("[data-sm-suggest]"), add: at("[data-sm-add]") };
+          });
+          r.sugOpen = await page.locator("[data-sm-suggest]").getAttribute("data-sm-suggest");
+          r.cards = await page.locator("[data-sm-empty-template]").count();
+          r.cut = await page.evaluate(() => [...document.querySelectorAll("[data-sm-empty-template] b")].some((b) => b.getBoundingClientRect().width < 40));
+          await page.locator("[data-sm-empty-template-add]").first().click();
+          await page.waitForSelector("[data-sm-list] [data-sm-row]", { timeout: 10000 });
+          r.added = await page.locator("[data-sm-list] [data-sm-row]").count();
+          r.emptyGone = await page.locator("[data-sm-empty-templates]").count();
+          for (const id of await page.locator("[data-sm-list] [data-sm-row]").evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row")))) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        } finally {
+          for (const id of ids) await callAction(BASE, cookie, act("restoreSmItem"), [id]);
+        }
+        await page.goto(`${BASE}/supermarket`);
+        r.back = await page.locator("[data-sm-list] [data-sm-row]").count();
+        const o = r.order ?? {};
+        ok(o.tpl != null && o.sug != null && o.add != null && o.tpl < o.sug && o.sug < o.add && r.sugOpen === "open" && r.cards >= 1 && !r.cut && r.added > 0 && r.emptyGone === 0 && r.back === ids.length,
+          "empty list (R18 S4 A3): templates first with one-tap Add, then suggestions, then add actions", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

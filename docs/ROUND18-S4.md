@@ -44,7 +44,7 @@ After any add: the row appears (or the merged row pulses) and a short inline con
 ("מלפפון · עכשיו 4"); if the row is off-screen, a small "Added · show" pill scrolls to it. No toast spam (one at a
 time, replaced, not stacked).
 
-### A3 [ ] Empty list → templates first, then past products
+### A3 [x] Empty list → templates first, then past products
 An empty Supermarket list shows: (1) templates (Nexus + yours) with one-tap Add, (2) products from past trips / smart
 suggestions ("you usually buy", due staples), (3) the camera / add actions. When the list has items, unchanged.
 
@@ -162,6 +162,8 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
 - A2: `supermarket/added.tsx` — `announceAdded` (one toast id, replaced) + inline line on the Add screen ("<name> · now
   <qty>", Undo) + `AddedPill` (pulse via `markFresh` bump, "Added · show" when off-screen). Smoke step phone + desktop.
   (The A3 empty-list code went into this commit by mistake; its smoke + tick are in the A3 commit.)
+- A3: empty list (phone + computer) = `EmptyTemplates` (lists.tsx, one-tap Add = Apply's merge) → suggestions forced
+  open → the add field (scan / photo / voice); first use keeps the cold-start cards under any templates. Smoke step.
 ### Decisions
 - A1: templates, re-add from history and accepted suggestions keep an existing row's amount (S1/S2 rule shown in their
   plans as "already on it — stays"); they never write notes. Every other path (search, barcode, photo, voice, paste, trip
