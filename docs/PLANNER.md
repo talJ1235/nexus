@@ -7,6 +7,26 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-15 (night) — SPLIT BY ACCOUNT (Tal, to save usage):**
+  - **This account (tal.jacoby1235, "A")** runs **Claude Code only** (R18 S4 tonight on `round18-s4`; S5 tomorrow).
+  - **The other account ("B") is the planning + design chat** from now on: boards for S5 and the **S5 brief**.
+  - B's job, in order: (1) read this file, `docs/R18-S3-NOTES.md` (groups B + C + "After S3"), `docs/ROUND18-S4.md`
+    (so S5 doesn't redo S4), boards `docs/design/r18/` + `nx17.css` / `nx-sm*.css`; (2) new Design canvas
+    **"Nexus R18 — S5"** on account B with boards: `List-phone` (supermarket list redesign: one list, compact, real-looking
+    rows, swipe affordances, inline rename, picture tile → sheet), `List-desktop`, `StartTrip-phone` (start-shopping
+    screen, fixed, colour / light), `Home-widgets-phone` + `Home-widgets-desktop` (Samsung-Health-inspired cards +
+    long-press edit: drag, swap places like Android icons, remove), new shopping widgets, `Ask-fab-phone` (floating Ask:
+    **right side default, drag to the left and it stays, just above the dock, rises smoothly above toasts / bars, closing
+    the chat returns to the same screen**; a full circle per CLAUDE.md), `Spending-month-phone` + desktop (monthly
+    breakdown: supermarket vs products, stores, categories, vs budget), `Trips-history-phone` if S4's cards need a look;
+    design bar = `.claude/skills/` (emil-design-eng, apple-design, mobile-native, animate) + frontend-design;
+    (3) Tal approves → B commits the boards to **`docs/design/r18-s5/`** and pushes to `main` (attach the repo with push
+    access, clone `/home/claude/nexus`, commit as Tal — ENVIRONMENT "Planning chat setup"); (4) B writes
+    **`docs/ROUND18-S5.md`** in the S4 format (How to run, one commit per item, Step 0 = finish S4's merge if open) +
+    the Claude Code prompt into this section; (5) a line in the Planning log.
+  - Rules while split: B touches only `docs/` on `main` (never code, never `round18-s*` branches); always
+    `git pull --rebase` before pushing; Claude Code merges `origin/main` into its branch before its ff-merge. A doesn't
+    write planning docs while B is active, except Claude Code's own brief "Open" sections.
 - **2026-10-15 (night):** **`docs/ROUND18-S4.md`** written from Tal's notes after S3 (A adds merge into qty/weight —
   cause in `addToList` notes —, feedback, empty list; B "+" = camera, scanner rebuilt (main lens, 1080p, focus, zoom,
   freeze on detect), photo freeze/retake; C voice = record + AI (Tal approved, counts in quota) with level meter;
@@ -511,6 +531,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-15 (account A): R18 S3 notes + briefs S3, S4 written here; from tonight planning/design moves to account B (handoff block at top), A = Claude Code.
 - 2026-10-13 · this chat · R18 S1 confirmed merged. Boards part 2 on the R18 canvas (9 boards, `nx-sm2.css`). Tal simplified the supermarket (no staple states, only "don't suggest again"; Nexus-made templates; count + weight; no knobs; "My answers" → "What Nexus learned"; Galaxy Watch app after R20) → boards reworked, decisions recorded. S2 brief waits for Tal's board approval.
 - 2026-10-12 · this chat · Reviewed R18 S1 (all parts done, rehearsal on the prod snapshot passed). Verified the holiday table with a computed Hebrew calendar (all correct). Tal chose the staple states (not set → suggests; off = only by choice, never).
 - 2026-10-12 · this chat · Reviewed R17 S6 + S7 results (both merged, CI green; S7 X1/W/Y as briefed, 111 device checks). Added the S7 rules and a no-search-key smoke fix to `docs/ROUND18.md` "How to run". Gave Tal the prod checks; R18 S1 next.
