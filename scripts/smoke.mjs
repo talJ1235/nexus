@@ -2017,6 +2017,41 @@ try {
           "supermarket + is the camera (R18 S3 C1): barcode first, photo, type instead; refused → Add + hint", JSON.stringify(r));
       });
 
+    // R18 S3 C3: Save the current list shows a card — the products' pictures stacked (ProjectCover's collage), the name
+    // field, count · estimate · store; the template rows in Templates are the same card. Typing the name stays in the card.
+    if (WRITE)
+      await step("template preview card (R18 S3 C3): stacked pictures, name, count · estimate · store, rows alike", async () => {
+        const r = {};
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        r.listRows = await page.locator("[data-sm-list] [data-sm-row]").count();
+        await page.locator("[data-sm-more]").click();
+        await page.locator("[data-sm-menu-lists]").click();
+        await page.waitForSelector("[data-sm-lists] [data-sm-template]");
+        const card = (sel) => page.evaluate((q) => {
+          const c = document.querySelector(q);
+          const cover = c?.querySelector("[data-sm-tpl-cover]");
+          const meta = c?.querySelector("[data-sm-template-meta], [data-sm-save-meta]");
+          const tiles = cover ? [...cover.querySelectorAll(".gro-pt")] : [];
+          const cb = cover?.getBoundingClientRect();
+          return { tiles: tiles.length, inside: tiles.every((t) => { const b = t.getBoundingClientRect(); return cb && b.top >= cb.top - 4 && b.bottom <= cb.bottom + 4; }), meta: meta?.textContent ?? "", cut: meta ? meta.scrollWidth > meta.clientWidth + 1 : null };
+        }, sel);
+        r.row = await card("[data-sm-lists] [data-sm-template]");
+        await page.locator("[data-sm-save-list]").first().click();
+        await page.waitForSelector("[data-sm-save-card]");
+        await page.waitForTimeout(400);
+        r.save = await card("[data-sm-save-card]");
+        await page.locator("[data-sm-save-name]").fill("Friday big shop");
+        r.typed = await page.locator("[data-sm-save-name]").inputValue();
+        if (OUT) await page.screenshot({ path: join(OUT, `c3-save${MOBILE ? "-m" : ""}.png`) });
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300);
+        await page.keyboard.press("Escape");
+        const items = (m) => Number((/(\d+) items?/.exec(m) ?? [])[1] ?? 0);
+        ok(r.row.tiles >= 1 && r.row.tiles <= 4 && r.row.inside && items(r.row.meta) >= 1 && r.save.tiles === Math.min(4, r.listRows) && r.save.inside && items(r.save.meta) === r.listRows && /≈/.test(r.save.meta) && r.typed === "Friday big shop",
+          "template preview card (R18 S3 C3): stacked pictures, name, count · estimate · store, rows alike", JSON.stringify(r));
+      });
+
     // R18 S3 C2: Photo mode says what it sees. The shutter's frame goes to smPhoto; the request's image is swapped for a
     // mock fixture (the server runs NEXUS_AI_MOCK): a list → "Looks like a list · 3 items" → Check 3 items → the Paste
     // review with 3 lines; the switch shows the other readings without moving (line + switch boxes still); a receipt →
@@ -2050,7 +2085,7 @@ try {
           r.list = await page.locator("[data-cap-read]").getAttribute("data-cap-read");
           r.seen = (await page.locator("[data-cap-seen]").textContent())?.trim();
           r.lines = await page.locator("[data-cap-lines] li").count();
-          if (OUT) await page.waitForTimeout(500), await page.screenshot({ path: join(OUT, `c2-list${MOBILE ? "-m" : ""}.png`) });
+          if (OUT) await page.waitForTimeout(500).then(() => page.screenshot({ path: join(OUT, `c2-list${MOBILE ? "-m" : ""}.png`) }));
           const boxes = () => page.evaluate(() => ["[data-cap-seen]", '[role="tablist"][aria-label]'].map((s) => {
             const b = document.querySelector(`[data-cap-read] ${s}`)?.getBoundingClientRect();
             return b ? [Math.round(b.x), Math.round(b.y), Math.round(b.width)] : null;
@@ -2084,14 +2119,14 @@ try {
           await shoot("mockunsure:");
           r.unsure = await page.locator("[data-cap-read]").getAttribute("data-cap-read");
           r.nonePicked = await page.locator('[data-cap-kind][aria-selected="true"]').count();
-          if (OUT) await page.waitForTimeout(500), await page.screenshot({ path: join(OUT, `c2-unsure${MOBILE ? "-m" : ""}.png`) });
+          if (OUT) await page.waitForTimeout(500).then(() => page.screenshot({ path: join(OUT, `c2-unsure${MOBILE ? "-m" : ""}.png`) }));
           await page.locator('[data-cap-what="list"]').click();
           r.unsureToList = await page.waitForSelector('[data-cap-sheet="list"]', { timeout: 3000 }).then(() => true, () => false);
           await page.keyboard.press("Escape");
 
           await shoot("mockother:Bluetooth headphones");
           r.other = await page.locator('[data-cap-sheet="other"]').count();
-          if (OUT) await page.waitForTimeout(500), await page.screenshot({ path: join(OUT, `c2-other${MOBILE ? "-m" : ""}.png`) });
+          if (OUT) await page.waitForTimeout(500).then(() => page.screenshot({ path: join(OUT, `c2-other${MOBILE ? "-m" : ""}.png`) }));
           await page.locator("[data-cap-grocery]").click();
           r.otherAsGrocery = await page.locator('[data-cap-sheet="found"]').count();
           await page.keyboard.press("Escape");

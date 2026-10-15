@@ -17,8 +17,9 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useStore } from "../store";
 import { ProductTile, sectionColor } from "./art";
-import { patchSmHome, refreshSmHome, type SmHome } from "./data";
-import { asItem, storeLabel } from "./numbers";
+import { StackedPics } from "../project-cover";
+import { patchSmHome, refreshSmHome, useSmHome, type SmHome } from "./data";
+import { asItem, estimateLines, storeLabel } from "./numbers";
 import { qtyLabel } from "./qty";
 
 // R18 S2 E1 — templates (board Lists-phone): people's templates and the ones Nexus made from repeating trips ("Made by
@@ -126,32 +127,58 @@ function MadeBy() {
 
 function TemplateCard({ tpl, onOpen }: { tpl: Template; onOpen: () => void }) {
   const tx = useTemplateText();
-  const { t, f } = useI18n();
-  const shown = tpl.items.slice(0, 5);
-  const more = tpl.items.length - shown.length;
+  const { home } = useSmHome();
+  const meta = useTplMeta();
   return (
-    <button type="button" className={cn(card, press, "flex w-full flex-col gap-2.5 p-3.5 text-start")} onClick={onOpen} data-sm-template={tpl.id}>
-      <span className="flex w-full items-start gap-3">
-        <span className="min-w-0 flex-1">
-          <b className="bidi block truncate text-[16.5px] font-extrabold">{tx.name(tpl)}</b>
-          <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5 text-[13px] text-muted">
-            {tx.nexus(tpl) && <MadeBy />}
-            <span className="truncate">{tx.sub(tpl)}</span>
-          </span>
+    <button type="button" className={cn(card, press, "group flex w-full flex-col overflow-hidden text-start")} onClick={onOpen} data-sm-template={tpl.id}>
+      <TemplateCover items={tpl.items} className="h-[84px] w-full" />
+      <span className="flex w-full flex-col gap-2 p-3.5">
+        <b className="bidi block truncate text-[16.5px] font-extrabold">{tx.name(tpl)}</b>
+        <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-[13px] text-muted">
+          {tx.nexus(tpl) && <MadeBy />}
+          <span className="truncate">{tx.sub(tpl)}</span>
         </span>
-        <span className="tabular grid h-9 min-w-10 place-items-center rounded-[10px] bg-surface-2 px-2 text-[15px] font-extrabold" aria-label={tpl.items.length === 1 ? t.sm.lists.itemsOne : f(t.sm.lists.items, { n: tpl.items.length })}>
-          {tpl.items.length}
+        <Bar items={tpl.items} />
+        {/* The count, the estimate, the store — the same line as the Save card. */}
+        <span className="tabular truncate text-[13px] font-semibold text-ink" data-sm-template-meta>
+          {meta(tpl.items, home?.store?.chain, home?.store?.branch)}
         </span>
-      </span>
-      <Bar items={tpl.items} />
-      <span className="flex items-center gap-1.5" aria-hidden>
-        {shown.map((i) => (
-          <ProductTile key={i.productKey} art={i.art} section={i.section} size={36} />
-        ))}
-        {more > 0 && <span className="tabular grid size-9 place-items-center rounded-[10px] bg-surface-2 text-[13px] font-bold text-muted">{f(t.sm.lists.more, { n: more })}</span>}
       </span>
     </button>
   );
+}
+
+type CoverItem = { productKey: string; section?: string | null; art?: string | null; photo?: string | null };
+
+/**
+ * R18 S3 C3: a template's look — its products' pictures stacked like a project's cover (`StackedPics`, fanning out on
+ * hover / press) on a wash of its main section's colour.
+ */
+function TemplateCover({ items, className }: { items: CoverItem[]; className?: string }) {
+  const main = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const i of items) m.set(i.section ?? "other", (m.get(i.section ?? "other") ?? 0) + 1);
+    return [...m].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "other";
+  }, [items]);
+  return (
+    <span className={cn("relative isolate block overflow-hidden", className)} aria-hidden data-sm-tpl-cover>
+      <span className="absolute inset-0 -z-10" style={{ background: `radial-gradient(120% 100% at 100% 0%, color-mix(in oklab, ${sectionColor(main)} 34%, transparent), transparent 62%), linear-gradient(135deg, color-mix(in oklab, ${sectionColor(main)} 30%, var(--surface)), color-mix(in oklab, ${sectionColor(main)} 10%, var(--surface)) 72%)` }} />
+      <span className="absolute inset-y-0 end-3 flex items-center ps-6">
+        <StackedPics tile="size-14 rounded-[16px]" pics={items.slice(0, 4).map((i) => ({ key: i.productKey, node: <ProductTile art={i.art} section={i.section} photo={i.photo} size={50} /> }))} />
+      </span>
+    </span>
+  );
+}
+
+/** "12 items · ≈ ₪240 · Shufersal Herzl" — the count, the estimate at the home's prices, the store it's for. */
+function useTplMeta() {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const { home } = useSmHome();
+  return (items: { productKey: string; qty: number; amount?: number | null; unit?: string | null }[], chain?: string | null, branch?: string | null) => {
+    const est = estimateLines(items, home?.prices);
+    return [items.length === 1 ? t.sm.lists.itemsOne : f(t.sm.lists.items, { n: items.length }), est != null ? f(t.sm.main.estimate, { amount: formatMoney(Math.round(est), s.currency, locale) }) : null, storeLabel(chain, branch, locale)].filter(Boolean).join(" · ");
+  };
 }
 
 /** The templates (+ the routine offer). `onOpen` opens one. */
@@ -815,6 +842,13 @@ function SaveSheet({ what, onClose, onSaved }: { what: { kind: "list" } | { kind
   const trip = what?.kind === "trip" ? what.trip : null;
   const bought = trip ? trip.items.filter((i) => i.state === "bought").length : s.sm.length;
   const miss = trip ? trip.items.length - bought : 0;
+  const { home } = useSmHome();
+  const meta = useTplMeta();
+  // What the template will hold (a trip: bought, + not found when asked; the list: its rows) and the store it's for.
+  const lines = trip
+    ? trip.items.filter((i) => i.state === "bought" || missed).map((i) => ({ productKey: i.productKey, qty: keepQty ? i.qty : 1, amount: keepQty ? i.amount : null, unit: keepQty ? i.unit : null, section: i.section, art: i.art }))
+    : s.sm.map((i) => ({ productKey: i.productKey ?? i.id, qty: i.quantity, amount: i.amount ?? null, unit: i.unit ?? null, section: i.section ?? null, art: i.artKey ?? null, photo: i.imageUrl ?? null }));
+  const store = trip ? { chain: trip.chain, branch: trip.branch } : { chain: home?.store?.chain ?? null, branch: home?.store?.branch ?? null };
   const save = async () => {
     const n = name.trim() || L.namePh;
     setBusy(true);
@@ -835,10 +869,19 @@ function SaveSheet({ what, onClose, onSaved }: { what: { kind: "list" } | { kind
     <Sheet open={what != null} onOpenChange={(o) => !o && onClose()} title={L.saveAsTitle} fit className="desk:max-w-[460px]">
       <div className="flex flex-col gap-3 px-4 pb-[calc(16px+env(safe-area-inset-bottom))] pt-1" data-sm-save-sheet>
         <h2 className="text-[20px] font-extrabold">{L.saveAsTitle}</h2>
-        <label className="px-1 text-[13px] font-bold text-muted" htmlFor="sm-save-name">
-          {L.name}
-        </label>
-        <input id="sm-save-name" className="h-13 min-h-12 w-full rounded-[14px] border-[1.5px] border-ink bg-surface px-3.5 text-[16px] outline-none" placeholder={L.namePh} value={name} maxLength={80} onChange={(e) => setName(e.target.value)} data-sm-save-name />
+        {/* R18 S3 C3: a preview of the template — its pictures, the name being typed, count · estimate · store. */}
+        <div className={cn(card, "group overflow-hidden")} data-sm-save-card>
+          <TemplateCover items={lines} className="h-[84px] w-full" />
+          <div className="flex flex-col gap-1.5 p-3.5">
+            <label className="text-[13px] font-bold text-muted" htmlFor="sm-save-name">
+              {L.name}
+            </label>
+            <input id="sm-save-name" className="h-12 w-full rounded-[14px] border-[1.5px] border-ink bg-surface px-3.5 text-[16px] font-bold outline-none" placeholder={L.namePh} value={name} maxLength={80} onChange={(e) => setName(e.target.value)} data-sm-save-name />
+            <span className="tabular truncate text-[13px] font-semibold" data-sm-save-meta>
+              {meta(lines, store.chain, store.branch)}
+            </span>
+          </div>
+        </div>
         {trip && (
           <div className="divide-y divide-line rounded-[16px] border border-line-strong bg-surface">
             <div className={row}>

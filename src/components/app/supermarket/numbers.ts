@@ -18,6 +18,20 @@ import { requestSm, type SmIntent } from "./intent";
 export const asItem = (r: Omit<ItemWithSources, "sources" | "points" | "attachments">): ItemWithSources => ({ ...r, sources: [], points: [], attachments: [] }) as ItemWithSources;
 
 /** The list's estimate from the last prices paid (null = nothing priced yet). */
+/** R18 S3 C3: what lines would cost at the home's known prices (null when none is priced) — a template, a trip. */
+export function estimateLines(lines: { productKey?: string | null; qty: number; amount?: number | null; unit?: string | null }[], prices: Record<string, number> | undefined) {
+  if (!prices) return null;
+  let sum = 0;
+  let priced = 0;
+  for (const i of lines) {
+    const p = i.productKey ? prices[i.productKey] : undefined;
+    if (p == null) continue;
+    priced++;
+    sum += p * (i.unit && i.unit !== "u" && i.amount ? i.amount : i.qty);
+  }
+  return priced ? sum : null;
+}
+
 export function useEstimate(home: SmHome | null) {
   const s = useStore();
   return useMemo(() => {

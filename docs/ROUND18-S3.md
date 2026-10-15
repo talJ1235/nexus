@@ -152,7 +152,7 @@ line through `splitList` + `parseLine` into the Paste-list review, user confirms
 screen says what it understood ("Looks like a list · 9 items") with a switch to the other two. Products that aren't
 groceries go to Products (existing classify). Mock AI fixtures for all three + "not sure". Daily-limit state as today.
 
-### C3 [ ] Save as template: a preview card
+### C3 [x] Save as template: a preview card
 "Save the current list" / "Save as template" shows a card: stacked product pictures (reuse `ProjectCover`'s stacked
 pictures from `project-cover.tsx`), name field, item count, estimate, store. Same card on template rows in Templates.
 
@@ -302,6 +302,11 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   a product, a receipt or a list?"; not a grocery → Add to Products (`createItem`) or "It's a grocery". Mocks
   `mockreceipt:` / `mocklist:` / `mockunsure:` / `mockother:`. `test:capture` (+ kinds, lines, one call each, limit for
   every kind), smoke "photo understands what it sees" (phone + computer; the request's image swapped for a fixture).
+- C3 — `StackedPics` (the collage out of `ProjectCover`, same tilt + fan) on a wash of the template's main section colour
+  (`TemplateCover`, lists.tsx). Save as template (list or trip) is that card: pictures, the name field, "23 items · ≈ ₪356 ·
+  Shufersal · Herzl St." (`estimateLines` at the home's prices; the trip's store, else the home's); it follows the
+  trip switches (not found / quantities). Template rows are the same card (the count badge and the small tiles row gave
+  way to the cover + the meta line). Smoke "template preview card" (phone + computer).
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

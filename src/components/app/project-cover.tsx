@@ -48,6 +48,26 @@ export function openProject(id: string, setView: (v: View) => void) {
 const TILT = ["-7deg", "5deg", "-3deg", "8deg"];
 
 /**
+ * The cover's collage: up to four rounded, overlapping, tilted pictures that fan out on hover / press (inside a `group`).
+ * R18 S3 C3: also the supermarket's template card.
+ */
+export function StackedPics({ pics, tile }: { pics: { key: string; node: React.ReactNode }[]; tile: string }) {
+  return pics.slice(0, 4).map((p, i, all) => (
+    <div
+      key={p.key}
+      className={cn(
+        "relative -ms-5 overflow-hidden border-[3px] border-surface bg-surface shadow-[0_8px_18px_-6px_rgb(0_0_0/0.35)] transition-transform duration-[450ms] ease-[var(--ease-spring)] first:ms-0",
+        tile,
+        "group-hover:[transform:translateX(var(--fan))_rotate(var(--tilt))_translateY(-2px)] group-active:[transform:translateX(var(--fan))_rotate(var(--tilt))]",
+      )}
+      style={{ transform: `rotate(${TILT[i]})`, zIndex: 4 - i, "--tilt": `calc(${TILT[i]} * 1.6)`, "--fan": `${(i - (all.length - 1) / 2) * 6}px` } as React.CSSProperties}
+    >
+      {p.node}
+    </div>
+  ));
+}
+
+/**
  * The project's cover: its colour as a soft, slightly saturated gradient wash and a collage of item pictures,
  * rounded and overlapping, that fans out on hover/press. `size`: card or page header.
  */
@@ -71,19 +91,7 @@ export function ProjectCover({ c, pics, size = "card", className }: { c: Collect
       />
       <div className="absolute inset-y-0 end-3 flex items-center ps-6 sm:end-4" aria-hidden>
         {pics.length ? (
-          pics.map((p, i) => (
-            <div
-              key={p.id}
-              className={cn(
-                "relative -ms-5 overflow-hidden border-[3px] border-surface bg-surface shadow-[0_8px_18px_-6px_rgb(0_0_0/0.35)] transition-transform duration-[450ms] ease-[var(--ease-spring)] first:ms-0",
-                tile,
-                "group-hover:[transform:translateX(var(--fan))_rotate(var(--tilt))_translateY(-2px)] group-active:[transform:translateX(var(--fan))_rotate(var(--tilt))]",
-              )}
-              style={{ transform: `rotate(${TILT[i]})`, zIndex: 4 - i, "--tilt": `calc(${TILT[i]} * 1.6)`, "--fan": `${(i - (pics.length - 1) / 2) * 6}px` } as React.CSSProperties}
-            >
-              <ProductImage src={p.imageUrl} alt="" className="size-full" iconClass="size-5" />
-            </div>
-          ))
+          <StackedPics tile={tile} pics={pics.map((p) => ({ key: p.id, node: <ProductImage src={p.imageUrl} alt="" className="size-full" iconClass="size-5" /> }))} />
         ) : c.kind === "project" ? (
           <Folder className={cn("text-white/70 drop-shadow", size === "header" ? "size-16" : "size-12")} strokeWidth={1.4} />
         ) : (
