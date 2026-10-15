@@ -118,11 +118,6 @@
 .nx .stat3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .nx .stat3>div{background:var(--s);border-radius:12px;padding:10px 12px}
 .nx .stat3 b{display:block;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.nx .hold{position:relative;overflow:hidden;isolation:isolate}
-.nx .hold .fill{position:absolute;inset:0;background:var(--danger);clip-path:inset(0 100% 0 0);transition:clip-path 200ms var(--ease-out);z-index:-1}
-.nx .hold:active .fill{clip-path:inset(0 0 0 0);transition:clip-path 2s linear}
-.nx .hold:active{color:#fff}
-[dir=rtl] .nx .hold .fill{clip-path:inset(0 0 0 100%)}
 .nx .cnt{min-width:26px;height:22px;padding:0 7px;border-radius:999px;background:var(--s2);display:inline-grid;place-items:center;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
 .nx .nav .cnt{margin-inline-start:auto;height:20px;min-width:22px;font-size:11px}
 .nx .nav .cnt.hot{background:var(--warn-t);color:var(--warn)}

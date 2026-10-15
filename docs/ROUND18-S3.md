@@ -127,7 +127,7 @@ items can be unchecked (undo). A toast "Dairy done · Undo" for 5 s after a fold
 Finish confirm (items left) is a bottom sheet sized to its content (≈ half height), no big empty dark area; drag down
 closes. Same check for every S2 sheet.
 
-### B10 [ ] "Forget everything" needs a real confirmation
+### B10 [x] "Forget everything" needs a real confirmation
 A sheet that says what will be forgotten (and what stays), then **hold to confirm** (like admin delete, R17) or type
 the word. One fact ✕ stays one tap + Undo toast.
 
@@ -271,6 +271,13 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   page, Save as template, Apply template. The item sheet and the store picker stay full height (long, scrolling). Drag
   down closes (the shared handle). Also: empty trips (nothing bought or missed) are left out of every past-trips list
   (server action). Smoke "sheets fit their content".
+- B10 — Forget everything opens a sheet: what Nexus forgets (usual day / hour, regular products, habits, learned aisle
+  orders + unanswered template offers) and what stays (list, trips, receipts, own templates, stores, hidden products,
+  settings), then **hold 2 s** (the admin's `HoldButton`, now `components/ui/hold-button.tsx`; its kit moved to
+  nx16.css). One fact's ✕ stays one tap, now with Undo (`forgetFact` returns the old cut-off,
+  `undoForgetLearned` puts it back; role matrix: edit). Found on the way: on phones a tap on any toast button inside
+  Settings closed Settings (no outside guard on the phone shell) — fixed. Smoke "forget everything" (the real request
+  is intercepted), S2's F1 step holds now.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

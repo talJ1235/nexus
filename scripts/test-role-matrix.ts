@@ -120,6 +120,6 @@ for (const f of readdirSync(dir).filter((x) => x.endsWith("-actions.ts") || x ==
 }
 assert.deepEqual(viewUses, [], `actions a viewer could call without being on the read list: ${viewUses.join(", ")}`);
 // R18 S2 G2: a viewer can't hide / unhide, edit or remove a row, change templates, answer a routine or forget anything.
-const S2_WRITES = ["hideProduct", "unhideProduct", "updateSmItem", "removeSmItem", "editSupermarketTemplate", "deleteSupermarketTemplate", "saveListAsTemplate", "saveTripAsTemplate", "applySupermarketTemplate", "readdToSupermarket", "answerRoutine", "forgetLearned", "syncTripOps", "addToSupermarket"];
+const S2_WRITES = ["hideProduct", "unhideProduct", "updateSmItem", "removeSmItem", "editSupermarketTemplate", "deleteSupermarketTemplate", "saveListAsTemplate", "saveTripAsTemplate", "applySupermarketTemplate", "readdToSupermarket", "answerRoutine", "forgetLearned", "undoForgetLearned", "syncTripOps", "addToSupermarket"];
 for (const fn of S2_WRITES) assert.equal(needOf.get(`supermarket-actions.ts#${fn}`), "edit", `${fn} asks for edit`);
 console.log(`OK role matrix: ${n} role × need cases, cookie fallback, viewer-callable actions limited to the read list`);

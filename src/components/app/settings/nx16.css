@@ -139,3 +139,9 @@ html[data-motion=reduce] .nx .sx-page,html[data-motion=reduce] .nx .sx-in{animat
 .nx .sx-me>svg:last-child{color:var(--faint);flex-shrink:0}
 @media (hover:hover) and (pointer:fine){.nx .sx-me:hover{background:var(--hover)}}
 @media (prefers-reduced-motion:reduce){.nx .sx-me{transition:background-color .16s}.nx .sx-me:active{transform:none}}
+/* Hold to confirm (R17 admin delete; R18 S3 B10 Forget everything) — moved here from nx17 so Settings has it too. */
+.nx .hold{position:relative;overflow:hidden;isolation:isolate}
+.nx .hold .fill{position:absolute;inset:0;background:var(--danger);clip-path:inset(0 100% 0 0);transition:clip-path 200ms var(--ease-out);z-index:-1}
+.nx .hold:active .fill{clip-path:inset(0 0 0 0);transition:clip-path 2s linear}
+.nx .hold:active{color:#fff}
+[dir=rtl] .nx .hold .fill{clip-path:inset(0 0 0 100%)}

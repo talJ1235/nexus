@@ -1886,6 +1886,56 @@ try {
         ok(good(r.sug) && good(r.save) && good(r.actions) && good(r.finish) && r.dragClosed, "sheets fit their content (R18 S3 B9): finish, row actions, suggestion, save; drag down closes", JSON.stringify(r));
       });
 
+    // R18 S3 B10: What Nexus learned — one fact's ✕ is one tap with Undo (it comes back); Forget everything opens a sheet
+    // that says what goes and what stays, a short press does nothing, a 2 s hold sends it. (The real "forget everything"
+    // request is intercepted and dropped, so the seeded learning stays for the other steps.)
+    if (WRITE)
+      await step("forget everything (R18 S3 B10): fact ✕ + Undo; sheet goes / stays; hold 2 s to confirm", async () => {
+        const r = {};
+        await page.goto(`${BASE}/settings/smLearned`);
+        await page.waitForSelector("[data-settings-sm-learned] [data-sm-fact-forget]", { timeout: 15000 });
+        const fact = page.locator("[data-sm-fact]:has([data-sm-fact-forget])").first();
+        const key = await fact.getAttribute("data-sm-fact");
+        const n0 = await page.locator("[data-sm-fact-forget]").count();
+        await fact.locator("[data-sm-fact-forget]").click();
+        await page.waitForTimeout(400);
+        r.gone = (await page.locator(`[data-sm-fact="${key}"]`).count()) === 0;
+        await page.locator("[data-sonner-toast]").last().locator("button:has-text('Undo')").click();
+        r.back = await page.waitForSelector(`[data-sm-fact="${key}"]`, { timeout: 8000 }).then(() => true, () => false);
+        r.n = (await page.locator("[data-sm-fact-forget]").count()) === n0;
+        let sentAll = 0;
+        await page.route("**/*", (route) => {
+          const req = route.request();
+          if (req.method() === "POST" && req.headers()["next-action"] && (req.postData() ?? "").includes('"all"')) {
+            sentAll++;
+            return route.abort();
+          }
+          return route.continue();
+        });
+        await page.locator("[data-sm-forget-all]").click();
+        await page.waitForSelector("[data-sm-forget-sheet]");
+        await page.waitForTimeout(600); // the sheet rises (380 ms): measure the hold button where it stays
+        r.goes = await page.locator("[data-sm-forget-goes] li").count();
+        r.stays = await page.locator("[data-sm-forget-stays] li").count();
+        await shot(page, "forget-sheet");
+        const hold = page.locator("[data-sm-forget-hold]");
+        const b = await hold.boundingBox();
+        await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+        await page.mouse.down();
+        await page.waitForTimeout(500);
+        await page.mouse.up();
+        await page.waitForTimeout(300);
+        r.short = sentAll;
+        await page.mouse.down();
+        await page.waitForTimeout(2300);
+        await page.mouse.up();
+        await page.waitForTimeout(600);
+        r.held = sentAll;
+        await page.unroute("**/*");
+        ok(r.gone && r.back && r.n && r.goes >= 3 && r.stays >= 2 && r.short === 0 && r.held === 1,
+          "forget everything (R18 S3 B10): fact ✕ + Undo; sheet goes / stays; hold 2 s to confirm", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)
@@ -2224,8 +2274,15 @@ try {
           await page.waitForTimeout(1500);
           r.forgot = (await page.locator(`[data-sm-fact="${key}"]`).count()) === 0;
         }
+        // R18 S3 B10: Forget everything is a sheet + hold 2 s now.
         await page.locator("[data-sm-forget-all]").click();
-        await page.locator("[data-sm-forget-all-yes]").click();
+        await page.waitForSelector("[data-sm-forget-hold]");
+        await page.waitForTimeout(600);
+        const hb = await page.locator("[data-sm-forget-hold]").boundingBox();
+        await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+        await page.mouse.down();
+        await page.waitForTimeout(2300);
+        await page.mouse.up();
         await page.waitForTimeout(1800);
         r.after = await page.locator('[data-sm-fact][data-told="0"]').count();
         ok(

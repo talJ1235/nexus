@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { deleteUserAccount, getPerson, listPeople, resetAiToday, setAiQuota, setBan, signOutDevice, signOutEverywhere } from "@/app/admin-actions";
 import { useI18n } from "@/components/providers";
+import { HoldButton } from "@/components/ui/hold-button";
 import type { PersonDetail, PersonRow } from "@/lib/db-scoped/admin";
 import type { Go } from "./admin-app";
 import { BackToNexus, Av, DevChip, Failed, PATH, Skeleton, Svg, useLoad, useNow, useScreenLabel, useTimes, useVisiblePoll } from "./ui";
@@ -465,7 +466,7 @@ function PersonView({ id, me, phone, onBack, onChanged }: { id: string; me: stri
     </>
   );
   const hold = p && !self && p.deletionRequestedAt == null && (
-    <HoldButton label={phone ? P.holdLong : P.hold} aria={P.holdAria} onDone={doDelete} onConfirm={() => setConfirm(true)} disabled={busy} phone={phone} />
+    <HoldButton label={phone ? P.holdLong : P.hold} aria={P.holdAria} onDone={doDelete} onConfirm={() => setConfirm(true)} disabled={busy} phone={phone} data="person-hold" />
   );
   const dialog = confirm && p && (
     <div className="nx" style={{ position: "fixed", inset: 0, zIndex: 60 }}>
@@ -569,69 +570,3 @@ function PersonView({ id, me, phone, onBack, onChanged }: { id: string; me: stri
 
 /** Press and hold 2 s (pointer, or Space / Enter held) → onDone. Release early → nothing (the fill snaps back in
  *  200 ms). A click that no pointer or key started (screen readers activate without a press) → onConfirm. */
-function HoldButton({ label, aria, onDone, onConfirm, disabled, phone }: { label: string; aria: string; onDone: () => void; onConfirm: () => void; disabled?: boolean; phone: boolean }) {
-  const [holding, setHolding] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pressed = useRef(false);
-  const start = () => {
-    if (disabled || timer.current) return;
-    pressed.current = true;
-    setHolding(true);
-    timer.current = setTimeout(() => {
-      timer.current = null;
-      setHolding(false);
-      onDone();
-    }, 2000);
-  };
-  const stop = () => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
-    setHolding(false);
-    // The click that follows a pointer release is ignored (above); after that, a bare click means assistive tech.
-    setTimeout(() => (pressed.current = false), 0);
-  };
-  useEffect(() => stop, []);
-  return (
-    <button
-      type="button"
-      className={`btn ${phone ? "" : "sm "}dng-o hold${holding ? " holding" : ""}`}
-      style={phone ? { height: 46, width: "100%" } : undefined}
-      aria-label={aria}
-      disabled={disabled}
-      onPointerDown={(e) => {
-        if (e.button !== 0) return;
-        e.currentTarget.setPointerCapture?.(e.pointerId);
-        start();
-      }}
-      onPointerUp={stop}
-      onPointerCancel={stop}
-      onLostPointerCapture={stop}
-      onContextMenu={(e) => e.preventDefault()}
-      onKeyDown={(e) => {
-        if (e.key === " " || e.key === "Enter") {
-          e.preventDefault();
-          if (!e.repeat) start();
-        }
-      }}
-      onKeyUp={(e) => {
-        if (e.key === " " || e.key === "Enter") {
-          e.preventDefault();
-          stop();
-        }
-      }}
-      onBlur={stop}
-      onClick={(e) => {
-        // A real press was handled above; a click with no press (detail 0, no key) comes from assistive tech.
-        if (pressed.current || e.detail > 0) {
-          pressed.current = false;
-          return;
-        }
-        onConfirm();
-      }}
-      data-person-hold
-    >
-      <span className="fill" aria-hidden="true" />
-      {label}
-    </button>
-  );
-}

@@ -536,6 +536,13 @@ export const smEn = {
     forgetAllYes: "Forget",
     forgotAll: "Nexus starts learning again",
     failed: "Couldn't save — try again",
+    undo: "Undo",
+    forgetGoes: "What Nexus forgets",
+    forgetGoesList: ["Your usual shopping day and hour", "Which products you buy regularly, and how often", "Habits — what you buy together", "Aisle orders it learned, and template offers nobody kept"],
+    forgetStays: "What stays",
+    forgetStaysList: ["Your list, past trips and receipts", "Your own templates and your stores", "Products you hid, your settings"],
+    forgetHold: "Hold to forget everything",
+    forgetHoldAria: "Forget everything Nexus learned — press and hold for 2 seconds",
   },
   // F3 — the computer's Supermarket page (board Supermarket-desktop).
   desk: {

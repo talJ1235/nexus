@@ -614,5 +614,12 @@ export async function smLearned() {
 export async function forgetLearned(key: string) {
   const ctx = await requireCtx("edit");
   const k = z.union([z.literal("all"), z.literal("day"), z.string().regex(/^(store|p):.{1,160}$/)]).parse(key);
-  await G.forgetFact(scoped(ctx), k);
+  return { prev: await G.forgetFact(scoped(ctx), k) };
+}
+
+/** R18 S3 B10: the Undo of one forgotten fact (not of "forget everything" — that one asks to hold first). */
+export async function undoForgetLearned(key: string, prev: number | null) {
+  const ctx = await requireCtx("edit");
+  const k = z.union([z.literal("day"), z.string().regex(/^(store|p):.{1,160}$/)]).parse(key);
+  await G.restoreForget(scoped(ctx), k, z.number().int().min(0).max(Date.now()).nullable().parse(prev));
 }

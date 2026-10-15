@@ -4,9 +4,12 @@ import "../supermarket/sm.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pencil, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
+import { HoldButton } from "@/components/ui/hold-button";
+import { Sheet } from "@/components/ui/overlays";
 import { useDevice } from "@/components/ui/use-device";
 import {
   forgetLearned,
+  undoForgetLearned,
   hiddenProducts,
   smLearned,
   unhideProduct,
@@ -567,11 +570,22 @@ export function SmLearnedPage({ go, phone }: PageProps) {
     });
     return out;
   }, [s.obWho, mc, locale, L, f, go]);
+  // One fact: one tap, with Undo (R18 S3 B10) — its cut-off goes back to what it was.
   const forget = async (key: string) => {
     setFacts((facts ?? []).filter((x) => x.key !== key));
     try {
-      await forgetLearned(key);
-      toast.success(L.forgotten);
+      const { prev } = await forgetLearned(key);
+      toast.success(L.forgotten, {
+        duration: 5000,
+        action: {
+          label: L.undo,
+          onClick: () =>
+            void undoForgetLearned(key, prev).then(() => {
+              void refreshSmHome(s.spaceId || "-", locale);
+              load();
+            }),
+        },
+      });
       void refreshSmHome(s.spaceId || "-", locale);
       load();
     } catch {
@@ -678,38 +692,44 @@ export function SmLearnedPage({ go, phone }: PageProps) {
               <br />
               <span className="tiny">{L.forgetAllSub}</span>
             </span>
-            {confirm ? (
-              <span style={{ display: "flex", gap: 8 }}>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => setConfirm(false)}
-                >
-                  {t.sm.lists.cancel}
-                </button>
-                <button
-                  type="button"
-                  className="btn dng"
-                  onClick={() => void forgetAll()}
-                  data-sm-forget-all-yes
-                >
-                  {L.forgetAllYes}
-                </button>
-              </span>
-            ) : (
-              <button
-                type="button"
-                className={cn("btn", desk ? "" : "sm")}
-                onClick={() => setConfirm(true)}
-                aria-label={L.forgetAllConfirm}
-                data-sm-forget-all
-              >
-                {L.forgetAll}
-              </button>
-            )}
+            <button
+              type="button"
+              className={cn("btn dng-o", desk ? "" : "sm")}
+              onClick={() => setConfirm(true)}
+              aria-label={L.forgetAllConfirm}
+              data-sm-forget-all
+            >
+              {L.forgetAll}
+            </button>
           </div>
         </div>
       )}
+      {/* R18 S3 B10: what goes, what stays — then hold 2 s (letting go early cancels). */}
+      <Sheet open={confirm} onOpenChange={setConfirm} title={L.forgetAllConfirm} fit className="desk:max-w-[460px]">
+        <div className="nx flex flex-col gap-3 px-5 pb-[max(16px,env(safe-area-inset-bottom))] pt-1" data-sm-forget-sheet>
+          <h2 className="text-[20px] font-extrabold leading-tight">{L.forgetAllConfirm}</h2>
+          <div>
+            <b className="text-[13.5px] font-bold text-danger">{L.forgetGoes}</b>
+            <ul className="mt-1.5 flex list-disc flex-col gap-1 ps-5 text-[14px]" data-sm-forget-goes>
+              {L.forgetGoesList.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <b className="text-[13.5px] font-bold text-ok">{L.forgetStays}</b>
+            <ul className="mt-1.5 flex list-disc flex-col gap-1 ps-5 text-[14px] text-muted" data-sm-forget-stays>
+              {L.forgetStaysList.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
+          </div>
+          <HoldButton label={L.forgetHold} aria={L.forgetHoldAria} onDone={() => void forgetAll()} onConfirm={() => void forgetAll()} phone data="sm-forget-hold" />
+          <button type="button" className="h-11 w-full text-[15px] font-bold" onClick={() => setConfirm(false)}>
+            {t.sm.lists.cancel}
+          </button>
+        </div>
+      </Sheet>
       <StorePicker open={picking} onClose={() => setPicking(false)} />
     </div>
   );

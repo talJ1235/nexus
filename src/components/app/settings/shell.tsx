@@ -346,6 +346,11 @@ function Phone({ path, back, dir, props }: { path: string[]; back: () => void; d
     <D.Content
       className="sx-phone"
       aria-describedby={undefined}
+      // A toast's button (Undo…) is not "outside" — tapping it mustn't close Settings (R18 S3 B10; the computer's
+      // dialog had this already).
+      onInteractOutside={(e) => {
+        if ((e.target as Element | null)?.closest?.("[data-sonner-toaster]")) e.preventDefault();
+      }}
       onEscapeKeyDown={(e) => {
         if (path.length > 0) {
           e.preventDefault();

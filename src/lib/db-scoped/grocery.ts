@@ -258,9 +258,11 @@ export async function learningOf(s: Scoped) {
   return { ...applyForget(f, raw.purchases, raw.trips), raw, forget: f };
 }
 
-/** Forget one learned fact (or `all`): Nexus learns it again from what happens next. */
-export async function forgetFact(s: Scoped, key: string, now = Date.now()) {
+/** Forget one learned fact (or `all`): Nexus learns it again from what happens next. Returns the fact's cut-off before
+ *  (null = none) so one fact can be undone (R18 S3 B10). */
+export async function forgetFact(s: Scoped, key: string, now = Date.now()): Promise<number | null> {
   const f = await forgetOf(s);
+  const prev = f[key] ?? null;
   const next: Forget = key === "all" ? { all: now } : { ...f, [key]: now };
   await spacePrefSet(s, FORGET_KEY, JSON.stringify(next));
   if (key === "all") {
@@ -268,6 +270,17 @@ export async function forgetFact(s: Scoped, key: string, now = Date.now()) {
     await s.update(schema.spaceStore, { suggestedOrder: null, suggestedAt: null }, isNotNull(schema.spaceStore.suggestedOrder));
     await s.delete(schema.template, and(eq(schema.template.madeBy, "nexus"), isNull(schema.template.keptAt), isNull(schema.template.dismissedAt)));
   }
+  return prev;
+}
+
+/** R18 S3 B10: Undo forgetting one fact — its cut-off goes back to what it was (never for `all`). */
+export async function restoreForget(s: Scoped, key: string, prev: number | null) {
+  if (key === "all") return;
+  const f = await forgetOf(s);
+  const next: Forget = { ...f };
+  if (prev == null) delete next[key];
+  else next[key] = prev;
+  await spacePrefSet(s, FORGET_KEY, JSON.stringify(next));
 }
 
 export async function historyOf(s: Scoped, tz: string): Promise<{ history: History; baskets: Set<string>[]; trips: number }> {
