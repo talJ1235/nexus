@@ -1122,6 +1122,8 @@ html[data-motion="reduce"] *::after {
 .hgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; grid-auto-rows: minmax(118px, auto); gap: 12px; }
 .hw { grid-column: span var(--pspan, 2); grid-row: span var(--rows, 1); min-width: 0; display: flex; flex-direction: column; }
 .hw > * { flex: 1 1 auto; }
+/* R18 S3 C4: a widget with nothing to show today (the next shop before the list loads, an empty list) leaves no gap. */
+.hw:empty { display: none; }
 :where(html[data-device="computer"]) .hgrid { grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: minmax(132px, auto); gap: 14px; }
 :where(html[data-device="computer"]) .hw { grid-column: span var(--span, 12); }
 /* Customise: the widget sits in its dashed frame without its own card chrome or title (the frame's bar has it). */

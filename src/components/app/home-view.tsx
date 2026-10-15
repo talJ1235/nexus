@@ -682,7 +682,7 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
   const [from, setFrom] = useState<number | null>(null);
   // R18 S3 C7: how the shown slide arrived — none yet (Home just opened: no animation), by hand (slides), or by the
   // timer (cross-fades with a small rise; the previous one fades out in the same cell).
-  const [came, setCame] = useState<{ how: "hand" | "auto"; prev: number } | null>(null);
+  const [came, setCame] = useState<{ how: "hand" | "auto"; prev: number; plain: boolean } | null>(null);
   const i = Math.min(idx, sugs.length - 1);
   const x = sugs[i];
   const tpl = template(x, t, fm);
@@ -690,13 +690,16 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
   // C7: the slide on screen when its AI wording arrives keeps the words being read; the wording shows from its next turn.
   const [plain, setPlain] = useState<string | null>(null);
   if (!phrased[x.key] && plain !== x.key) setPlain(x.key);
+  // …and the card keeps the height that text needed (an invisible copy stays in the stack), so it never shrinks later.
+  const [shownPlain, setShownPlain] = useState<string[]>([]);
+  if (plain === x.key && !shownPlain.includes(x.key)) setShownPlain([...shownPlain, x.key]);
   const ai = plain === x.key ? undefined : phrased[x.key];
   const rtl = dir === "rtl";
   const go = (d: number, fromPx?: number, how: "hand" | "auto" = "hand") => {
     setPlain(null);
     setFrom(fromPx ?? null);
     setWhyOpen(false);
-    setCame({ how, prev: i });
+    setCame({ how, prev: i, plain: plain === x.key });
     setIdx((i + d + sugs.length) % sugs.length);
   };
   const { swapRef, handlers: swipeHandlers, dragging } = useSwipePager({ count: sugs.length, index: i, go, rtl });
@@ -816,8 +819,20 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
             return (
               <div key={`ghost:${y.key}`} className={cn("flex flex-col gap-[3px] [grid-area:s] @min-[600px]:hidden", leaving ? "r13-fade-out pointer-events-none" : "invisible")} aria-hidden data-sug-ghost>
                 <span className="text-[11.5px] font-bold uppercase tracking-[0.06em] @max-[600px]:hidden">{t.dash.suggests}</span>
-                <b className="text-[15px] font-semibold leading-snug @max-[600px]:line-clamp-2 @min-[600px]:text-[16px]">{phrased[y.key]?.title ?? yt.title}</b>
-                <span className="text-[12.5px] @max-[600px]:line-clamp-2">{phrased[y.key]?.why || yt.why}</span>
+                <b className="text-[15px] font-semibold leading-snug @max-[600px]:line-clamp-2 @min-[600px]:text-[16px]">{(leaving && came?.plain ? null : phrased[y.key]?.title) ?? yt.title}</b>
+                <span className="text-[12.5px] @max-[600px]:line-clamp-2">{(leaving && came?.plain ? null : phrased[y.key]?.why) || yt.why}</span>
+              </div>
+            );
+          })}
+          {shownPlain.map((key) => {
+            const y = sugs.find((z) => z.key === key);
+            if (!y || !phrased[key] || (plain === key && key === x.key)) return null;
+            const yt = template(y, t, fm);
+            return (
+              <div key={`plain:${key}`} className="invisible flex flex-col gap-[3px] [grid-area:s] @min-[600px]:hidden" aria-hidden data-sug-ghost>
+                <span className="text-[11.5px] font-bold uppercase tracking-[0.06em] @max-[600px]:hidden">{t.dash.suggests}</span>
+                <b className="text-[15px] font-semibold leading-snug @max-[600px]:line-clamp-2 @min-[600px]:text-[16px]">{yt.title}</b>
+                <span className="text-[12.5px] @max-[600px]:line-clamp-2">{yt.why}</span>
               </div>
             );
           })}

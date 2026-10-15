@@ -400,7 +400,8 @@ for (const reduce of [false, true]) {
   await page.keyboard.press("Escape");
   const b = page.locator('[data-home-grid] [data-widget="budget"]');
   ok((await b.getAttribute("data-w")) === "L" && (await b.getAttribute("data-h")) === "2", "E1 size menu: width L, height 2×");
-  // Corner resize: Left to buy S → M by pulling right.
+  // Corner resize: Left to buy S → M by pulling right (scrolled into view: R18 S3's full-width next-shop widget comes first).
+  await page.locator('[data-widget-resize="left"]').evaluate((e) => e.scrollIntoView({ block: "center" })); // not under the floating add bar
   const r = await page.locator('[data-widget-resize="left"]').boundingBox();
   await page.mouse.move(r.x + 8, r.y + 8);
   await page.mouse.down();
@@ -412,7 +413,8 @@ for (const reduce of [false, true]) {
   ok((await page.locator('[data-home-grid] [data-widget="saved"]').count()) === 0 && (await page.locator('[data-tray-item="saved"]').count()) === 1, "E1 hide → back in the tray");
   await page.locator('[data-tray-add="drops"]').click();
   ok((await page.locator('[data-home-grid] [data-widget="drops"]').count()) === 1, "E1 + adds a new widget (Price drops)");
-  // Drag in from the tray.
+  // Drag in from the tray (from the top of the page: the grid's first row must be on screen).
+  await page.evaluate(() => window.scrollTo(0, 0));
   const ti = await page.locator('[data-tray-item="most"]').boundingBox();
   const g = await page.locator("[data-home-grid]").boundingBox();
   await page.mouse.move(ti.x + 30, ti.y + ti.height / 2);
@@ -436,7 +438,8 @@ for (const reduce of [false, true]) {
   await page.locator("[data-home-done]").click();
   await page.waitForTimeout(500);
   const min = await order(page);
-  ok(min.length >= 1 && min.every((id) => ["left", "budget", "suggest"].includes(id)), "E1 preset Minimal → Left to buy, Budget, Nexus suggests", min.join(","));
+  // R18 S3 C4: Minimal starts with the next shop (it shows only when there's a list or a trip).
+  ok(min.length >= 1 && min.every((id) => ["nextshop", "left", "budget", "suggest"].includes(id)), "E1 preset Minimal → Next shop, Left to buy, Budget, Nexus suggests", min.join(","));
   await ctx.close();
   const other = (await db.execute({ sql: "SELECT value FROM user_pref WHERE user_id = ? AND key = ?", args: [admin.id, `pref:home:layout:${SPACE}`] })).rows[0];
   ok(!other, "E1 a layout is saved for its own space only");

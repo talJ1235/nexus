@@ -350,6 +350,12 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   classify, rows / swipe, brand, widget, auto-turn), help topic Supermarket (swipe, rename, "+" = camera, receipt / list
   photos, suggestions folded, past trips in History, the template card, the usual brand), `docs/ENVIRONMENT.md` log line
   (new tests, Windows exit 127, photo mocks, the stale port-3100 server).
+- G1 (after the branch CI) — CI stopped at `test:polish`: in a space without a list the `nextshop` widget renders
+  nothing and left an empty grid cell (`.hw:empty` hides it now; the measure skips it); P6 at 360 px: the first slide's
+  template text (kept by C7) was taller than the AI wording, so the card shrank on the first turn — the stack keeps an
+  invisible copy of any template text it showed. `test:settings` E1 knows the next-shop widget (Minimal includes it;
+  the resize / tray drags scroll their targets into view). Every CI browser guard after `polish` run locally: clip,
+  bidi, admin-access / privacy / live / people, device, adblock, onboarding, push, shop-offline, inbox, settings — OK.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

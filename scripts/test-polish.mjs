@@ -332,7 +332,8 @@ if (want("A2")) {
       args: [admin, `pref:home:layout:${space}`, JSON.stringify({ v: 2, preset: null, items }), Date.now()],
     });
   const measure = () =>
-    [...document.querySelectorAll("[data-home-grid] .hw")].map((hw) => {
+    // R18 S3 C4: a cell whose widget shows nothing today (the next shop with no list) is hidden — nothing to measure.
+    [...document.querySelectorAll("[data-home-grid] .hw")].filter((hw) => hw.firstElementChild).map((hw) => {
       const card = hw.firstElementChild;
       const cr = card.getBoundingClientRect();
       const head = card.querySelector(":scope > [data-card-head], :scope > div:first-child.border-b");
