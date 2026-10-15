@@ -67,3 +67,26 @@ Status: **proposal; Tal picks what goes into the next session.** Then the planne
 ## E. Later (R20, real app)
 - Offline: first view everything without internet (lists, history, store mode); later edit offline and sync on return
   (store-mode trips already queue offline since S1).
+
+# After S3 (Tal, 2026-10-15 evening) — for S4 + boards
+Fixes (no boards): "+" sometimes opens the quick menu instead of the camera → always camera. Barcode scanner much more
+reliable (small / large / all formats / near + far; **freeze frame on detect** so the phone can be moved away;
+autofocus — planner: stream starts at 640 px wide (`lib/camera.ts` FIRST_WIDTH) and never asks for continuous focus;
+on multi-camera Androids `environment` can pick a lens without close focus). Photo: freeze on shutter, analyse the
+still, retake; better product / receipt / list detection with matching frames. **Voice still doesn't work at all**,
+no visual feedback (only the label changes) → working + visual (listening state, live words, recognised items).
+Rename only when tapping the name's letters, not the row's empty area. Fast swipe-delete jumps (animation cut).
+"Start shopping" button overlaps Nexus suggests → floating above the dock until scrolled. Empty list → templates first,
+then products from past trips / smart suggestions. Clear feedback after adding. Bug: typed "מלפפון" + → "already on
+the list", row vanished, then notes "+ ×3 · + ×1" instead of quantity — planner: `addToList` (`db-scoped/grocery.ts`
+~l.139) notes the amount when units differ (row in kg, add in units) → convert with the unit weight (B7) instead;
+every add path (search, barcode, photo, voice, suggestions) merges into count / weight, never notes. Start-trip
+screen: not scrollable, nicer. Store mode: sections stay open when done (no auto-fold, no "section done" toast /
+popup); the finish is a full screen, not a bottom sheet. Store mode: dragging the dark area shows a scrollbar with
+nothing moving (nested scroller). Aisle rail: tap a colour → animated scroll to that section; minimum tap width per
+section. Desktop Templates · Past trips switch: the pill overshoots its frame. Trips history much nicer — cards like
+templates (date, time, items, total, store). Brands: learn and help find exactly the usual product.
+Boards: list redesign; Home widgets Samsung-Health style + long-press drag / swap; floating Ask — **right side by
+default, drag to the left and it stays; sits just above the dock; rises (or yields) cleanly when a toast / bar shows**;
+monthly spending breakdown; start-trip screen look. Later (R19): real product images by brand. (Tal's last sentence
+was cut off.)
