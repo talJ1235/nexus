@@ -22,6 +22,10 @@ Results go to **"## Open" at the end of this file**. Tal runs it overnight (~8 h
   the demo templates + trips (real data: skipped now, like the other seeded steps) and opened ⋯ before hydration
   (`openSmLists` waits and retries). App unaffected; fix on the branch → CI → main.
 
+- `d4bdeb0` on main: guards green; prod smoke green on the re-run (the first run failed once on a console line
+  "wasm streaming compile failed: TypeError: Failed to fetch" — the scanner prewarm aborted by a navigation, the same
+  noise the smoke filters as "…aborted"; next session: widen that filter to "Failed to fetch" too).
+
 ### Decisions" at once; anything for Tal in "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
   "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
 - C1 root cause found by the full smoke: the site's `Permissions-Policy` header said `microphone=()` — the browser
