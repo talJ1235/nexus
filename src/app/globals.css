@@ -1048,6 +1048,11 @@ html[data-vt="sidebar"]::view-transition-new(root) { animation: fade 180ms ease-
 @keyframes r13-swap { from { opacity: 0; transform: translateX(var(--sug-from, 12px)); } to { opacity: 1; transform: none; } }
 [dir="rtl"] .r13-swap { animation-name: r13-swap-rtl; }
 @keyframes r13-swap-rtl { from { opacity: 0; transform: translateX(var(--sug-from, -12px)); } to { opacity: 1; transform: none; } }
+/* R18 S3 C7: a timed change — the next suggestion rises 6 px into place as the previous one fades in the same cell. */
+.r13-swap-up { animation: r13-swap-up 320ms var(--ease-out) both; }
+@keyframes r13-swap-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.r13-fade-out { animation: r13-fade-out 200ms var(--ease-out) both; }
+@keyframes r13-fade-out { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
 
 /* "Nexus suggests" (A3): a 1.5 px gradient border whose sheen slides on the compositor (a wide pseudo-element moves
    with transform; nothing repaints or lays out per frame), a soft tinted inside, a gradient orb that twinkles. */
@@ -1073,7 +1078,8 @@ html[data-motion="reduce"] .flow-border::before, html[data-motion="reduce"] .r13
 @keyframes r13-twinkle { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.12) rotate(12deg); } }
 .r13-sug:focus-visible { outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) {
-  .r13-rise, .r13-swap, .r13-sug::before, .r13-orb svg { animation: none; }
+  .r13-rise, .r13-swap, .r13-swap-up, .r13-sug::before, .r13-orb svg { animation: none; }
+  .r13-fade-out { animation: none; visibility: hidden; }
   .r13-flash::after { animation-duration: 1ms; }
 }
 

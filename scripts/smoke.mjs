@@ -271,6 +271,60 @@ async function homeChecks(page) {
     const back = await card.getAttribute("data-sug-index");
     ok(dots < 2 || (after !== before && back === before), "suggest: keyboard pager", `${before} → ${after} → ${back} (${dots} dots)`);
   });
+  // R18 S3 C7: the suggestions turn by themselves only while Home's card is on screen — nothing changes on opening Home,
+  // the first turn comes after the dwell (8 s), rises in with the card's height unchanged; off screen (scrolled away) or
+  // with the tab hidden the timer waits.
+  await step("suggest: turns on its own only on screen, after the dwell (R18 S3 C7)", async () => {
+    const card = page.locator('[data-home-section="suggest"]');
+    await page.goto(`${BASE}/`);
+    await page.waitForSelector(READY, { timeout: 15000 });
+    if (!(await card.count()) || Number(await card.getAttribute("data-sug-count")) < 2) return ok(true, "suggest: turns on its own only on screen, after the dwell (R18 S3 C7) (fewer than two suggestions)");
+    await page.waitForSelector("#boot", { state: "hidden", timeout: 10000 }).catch(() => {});
+    await page.mouse.move(1, 1);
+    await card.scrollIntoViewIfNeeded();
+    const r = {};
+    const look = () => card.evaluate((e) => ({ i: e.getAttribute("data-sug-index"), title: e.querySelector("[data-sug-title]")?.textContent ?? "", h: Math.round(e.getBoundingClientRect().height), cls: e.querySelector("[data-sug-swipe]")?.className ?? "" }));
+    const a = await look();
+    await page.waitForTimeout(4000);
+    const b = await look();
+    r.still = a.i === b.i && a.title === b.title;
+    await page.waitForFunction(() => document.querySelector('[data-home-section="suggest"]')?.getAttribute("data-sug-index") !== "0", null, { timeout: 7000 }).catch(() => {});
+    await page.waitForTimeout(400);
+    const c = await look();
+    r.turned = c.i !== a.i;
+    r.rise = /r13-swap-up/.test(c.cls);
+    r.height = [a.h, c.h];
+    // Hidden tab: no turn.
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.waitForTimeout(9000);
+    r.hiddenStays = (await look()).i === c.i;
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    // Scrolled off screen: no turn (a short window, so even a short Home can scroll the card away).
+    const vp = page.viewportSize();
+    await page.setViewportSize({ width: vp.width, height: 360 });
+    await page.evaluate(() => {
+      const el = document.querySelector('[data-home-section="suggest"]');
+      // The nearest ancestor that scrolls (the phone shell's page, or the window).
+      let sc = el?.parentElement ?? null;
+      while (sc && !(sc.scrollHeight > sc.clientHeight + 4 && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+      (sc ?? document.scrollingElement)?.scrollBy(0, 6000);
+    });
+    const off = await card.evaluate((e) => e.getBoundingClientRect().bottom < 0 || e.getBoundingClientRect().top > innerHeight);
+    const before = (await look()).i;
+    await page.waitForTimeout(off ? 9000 : 0);
+    r.offStays = !off || (await look()).i === before;
+    r.off = off;
+    await page.setViewportSize(vp);
+    ok(r.still && r.turned && r.rise && Math.abs(a.h - c.h) <= 1 && r.hiddenStays && r.off && r.offStays, "suggest: turns on its own only on screen, after the dwell (R18 S3 C7)", JSON.stringify(r));
+    await page.goto(`${BASE}/`);
+    await page.waitForSelector(READY, { timeout: 15000 });
+  });
   // R16 A7: swipe (phone, touch) / drag (desktop, mouse) moves between suggestions; a short drag snaps back; a drag
   // over the CTA never clicks it.
   await step("suggest: swipe / drag pager", async () => {

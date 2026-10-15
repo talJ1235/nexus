@@ -176,7 +176,7 @@ Record the brand bought per product type per home from barcode scans, store-mode
 lines (additive data). Item sheet shows "Usually: Tnuva 3% · 8 of 10 times" when ≥ 3 buys and ≥ 60 % one brand.
 Forget everything / forget one fact clear it. Admin counts only.
 
-### C7 [ ] Home "Nexus suggests" timing
+### C7 [x] Home "Nexus suggests" timing
 Rotation starts when Home is on screen (and visible: `visibilitychange`), pauses when it isn't, first change after the
 normal dwell (not immediately on entering Home). Change = crossfade + small rise of the text, fixed height, no jump.
 
@@ -331,6 +331,14 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   brand field; What Nexus learned: "Milk: usually Tnuva 3%" (✕ + Undo); Forget everything lists it. Admin System:
   brands recorded (4 weeks) · homes (counts only). `test:brands` (unit loop), `test:tenancy` (+ brand_buy),
   smoke "usual brand"; rehearsal `scripts/r18s3-rehearsal.mjs` passes on the 2026-10-14 snapshot.
+- C7 — Home's "Nexus suggests" had no timer of its own: what changed "at once" on opening Home was the slide's own
+  entrance and the AI wording replacing the template text a moment later. Now: no entrance animation for the first
+  slide; the slide on screen keeps the words being read (the AI wording shows from its next turn); `useAutoAdvance`
+  turns it every `SUG_DWELL` (8 s) only while the card is ≥ half on screen (IntersectionObserver) and the tab is in
+  front (`visibilitychange`) — hidden → stops, back → a full dwell; paused on hover / focus / drag / open text; none
+  under reduced motion. A timed turn rises 6 px with a cross-fade (`r13-swap-up` / `r13-fade-out`, height fixed by
+  StackHeight); a swipe still slides. Smoke "turns on its own only on screen" (phone + computer: still for 4 s, one
+  turn after the dwell with equal height, none while hidden or scrolled away).
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
@@ -364,6 +372,7 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
 - C6: a barcode *lookup* isn't a buy — the brand counts when the scanned product is added (and when it's checked in the
   store or on a receipt). Brands compare by spelling (case-insensitive): "Tnuva" and "תנובה" are two brands until R19
   brings product data. A substitute check isn't the listed product, so it doesn't count.
+- C7: the dwell is 8 s (none existed); reduced motion = no automatic turns at all (the pager and swipe still work).
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.

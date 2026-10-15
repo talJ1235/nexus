@@ -676,24 +676,35 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
   // Only the exact rules get AI phrasing; AI items are already written and fallbacks keep their templates.
   const phrased = usePhrased(sugs.filter((y) => y.kind === "deal" || y.kind === "reorder" || y.kind === "wait" || y.kind === "budget"));
   const dismiss = useDismiss();
+  const [whyOpen, setWhyOpen] = useState(false);
   const [idx, setIdx] = useState(0);
   // Where the next suggestion slides in from (px, physical): set by a swipe, default (12 px) otherwise.
   const [from, setFrom] = useState<number | null>(null);
+  // R18 S3 C7: how the shown slide arrived — none yet (Home just opened: no animation), by hand (slides), or by the
+  // timer (cross-fades with a small rise; the previous one fades out in the same cell).
+  const [came, setCame] = useState<{ how: "hand" | "auto"; prev: number } | null>(null);
   const i = Math.min(idx, sugs.length - 1);
   const x = sugs[i];
   const tpl = template(x, t, fm);
   const ctas = [...new Set(sugs.map((y) => template(y, t, fm).cta).filter((c): c is string => !!c))];
-  const ai = phrased[x.key];
+  // C7: the slide on screen when its AI wording arrives keeps the words being read; the wording shows from its next turn.
+  const [plain, setPlain] = useState<string | null>(null);
+  if (!phrased[x.key] && plain !== x.key) setPlain(x.key);
+  const ai = plain === x.key ? undefined : phrased[x.key];
   const rtl = dir === "rtl";
-  const go = (d: number, fromPx?: number) => {
+  const go = (d: number, fromPx?: number, how: "hand" | "auto" = "hand") => {
+    setPlain(null);
     setFrom(fromPx ?? null);
     setWhyOpen(false);
+    setCame({ how, prev: i });
     setIdx((i + d + sugs.length) % sugs.length);
   };
   const { swapRef, handlers: swipeHandlers, dragging } = useSwipePager({ count: sugs.length, index: i, go, rtl });
+  const sectionRef = useRef<HTMLElement>(null);
+  const [held, setHeld] = useState(false);
+  useAutoAdvance(sectionRef, { count: sugs.length, index: i, paused: held || dragging || whyOpen, next: () => go(1, undefined, "auto") });
   // R17 A2: a 2× card lists the next suggestions (up to 3) under the current one instead of leaving the height empty.
   const tall = h === 2;
-  const [whyOpen, setWhyOpen] = useState(false);
   const more = tall ? Array.from({ length: Math.min(3, sugs.length - 1) }, (_, k) => ({ d: k + 1, y: sugs[(i + k + 1) % sugs.length] })) : [];
   const run = async () => {
     const a = x.action;
@@ -760,7 +771,13 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
     <section
       className={cn("r13-sug r13-section @container flex touch-pan-y flex-col", sugs.length > 1 && "[@media(hover:hover)_and_(pointer:fine)]:cursor-grab", dragging && "select-none [@media(hover:hover)_and_(pointer:fine)]:cursor-grabbing", className)}
       style={style}
+      ref={sectionRef}
       {...swipeHandlers}
+      // C7: the timer waits while a pointer rests on the card or focus is inside it.
+      onPointerEnter={(e) => e.pointerType === "mouse" && setHeld(true)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && setHeld(false)}
+      onFocus={() => setHeld(true)}
+      onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setHeld(false)}
       data-dragging={dragging || undefined}
       data-home-section="suggest"
       tabIndex={0}
@@ -794,8 +811,10 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
           {sugs.map((y, k) => {
             if (k === i) return null;
             const yt = template(y, t, fm);
+            // C7: after a timed change the previous slide fades out in place while the next one rises in.
+            const leaving = came?.how === "auto" && came.prev === k;
             return (
-              <div key={`ghost:${y.key}`} className="invisible flex flex-col gap-[3px] [grid-area:s] @min-[600px]:hidden" aria-hidden data-sug-ghost>
+              <div key={`ghost:${y.key}`} className={cn("flex flex-col gap-[3px] [grid-area:s] @min-[600px]:hidden", leaving ? "r13-fade-out pointer-events-none" : "invisible")} aria-hidden data-sug-ghost>
                 <span className="text-[11.5px] font-bold uppercase tracking-[0.06em] @max-[600px]:hidden">{t.dash.suggests}</span>
                 <b className="text-[15px] font-semibold leading-snug @max-[600px]:line-clamp-2 @min-[600px]:text-[16px]">{phrased[y.key]?.title ?? yt.title}</b>
                 <span className="text-[12.5px] @max-[600px]:line-clamp-2">{phrased[y.key]?.why || yt.why}</span>
@@ -803,7 +822,7 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
             );
           })}
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- shows the rest of the text */}
-          <div key={x.key} ref={swapRef} style={from != null ? ({ "--sug-from": `${from}px` } as React.CSSProperties) : undefined} className="r13-swap flex min-w-0 flex-col gap-[3px] [grid-area:s]" onClick={() => setWhyOpen((v) => !v)} data-expandable aria-expanded={whyOpen} data-sug-swipe data-sug-key={x.key} data-sug-kind={x.kind} data-sug-source={ai || x.kind === "ai" ? "ai" : "template"} aria-live="polite">
+          <div key={x.key} ref={swapRef} style={from != null ? ({ "--sug-from": `${from}px` } as React.CSSProperties) : undefined} className={cn("flex min-w-0 flex-col gap-[3px] [grid-area:s]", came?.how === "auto" ? "r13-swap-up" : came ? "r13-swap" : null)} onClick={() => setWhyOpen((v) => !v)} data-expandable aria-expanded={whyOpen} data-sug-swipe data-sug-key={x.key} data-sug-kind={x.kind} data-sug-source={ai || x.kind === "ai" ? "ai" : "template"} aria-live="polite">
             <span className="flex items-center gap-2 text-[11.5px] font-bold uppercase tracking-[0.06em] text-ai @max-[600px]:hidden">
               {t.dash.suggests}
               {sugs.length > 1 && <em className="font-semibold normal-case not-italic tracking-normal text-muted">{f(t.dash.ofN, { i: i + 1, n: sugs.length })}</em>}
@@ -905,6 +924,44 @@ function StackHeight({ className, children, ...rest }: { className?: string; chi
       </div>
     </div>
   );
+}
+
+/** R18 S3 C7: how long a suggestion stays before the next one (the first change too — never right on opening Home). */
+export const SUG_DWELL = 8000;
+
+/**
+ * R18 S3 C7 — the suggestions turn by themselves only while the card is on screen (≥ half visible, the tab in front:
+ * IntersectionObserver + visibilitychange); hidden → the timer stops, back → a full dwell again. Paused while held
+ * (hover, focus, a drag, the text opened); none under reduced motion; any change restarts the dwell.
+ */
+function useAutoAdvance(ref: React.RefObject<HTMLElement | null>, { count, index, paused, next }: { count: number; index: number; paused: boolean; next: () => void }) {
+  const reduce = useMedia("(prefers-reduced-motion: reduce)");
+  const [seen, setSeen] = useState(false);
+  const [front, setFront] = useState(true);
+  const nextRef = useRef(next);
+  useEffect(() => {
+    nextRef.current = next;
+  });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setSeen(e.isIntersecting && e.intersectionRatio >= 0.5), { threshold: [0, 0.5, 1] });
+    io.observe(el);
+    const vis = () => setFront(document.visibilityState === "visible");
+    vis();
+    document.addEventListener("visibilitychange", vis);
+    return () => {
+      io.disconnect();
+      document.removeEventListener("visibilitychange", vis);
+    };
+  }, [ref]);
+  const on = count > 1 && seen && front && !paused && !reduce && (typeof document === "undefined" || document.documentElement.dataset.motion !== "reduce");
+  useEffect(() => {
+    if (!on) return;
+    const id = window.setTimeout(() => nextRef.current(), SUG_DWELL);
+    return () => window.clearTimeout(id);
+  }, [on, index]);
+  return on;
 }
 
 /**
