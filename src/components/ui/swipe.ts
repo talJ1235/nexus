@@ -8,22 +8,35 @@ import { useRef, useState } from "react";
 // the physical direction. A side opens to its width (revealing the buttons underneath on the other side); a side with
 // `full` commits on a long swipe or a flick. Reduced motion: no follow — past the threshold the side just opens.
 
-export type SwipeSide = { width: number; full?: () => void };
+/** `full(velocity)` — a full swipe commits; px/ms toward the side, so the exit can keep the finger's speed (R18 S4 D2). */
+export type SwipeSide = { width: number; full?: (velocity: number) => void };
 
 const reducedMotion = () => typeof window !== "undefined" && (window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.getAttribute("data-motion") === "reduce");
 
 export function useSwipe({ start, end, disabled }: { start?: SwipeSide; end?: SwipeSide; disabled?: boolean }) {
   const [x, setX] = useState(0);
   const [drag, setDrag] = useState(false);
-  const d = useRef<{ x0: number; y0: number; base: number; t0: number; moved: boolean; axis: "x" | "y" | null; sgn: number } | null>(null);
+  const d = useRef<{ x0: number; y0: number; base: number; target: number; t0: number; moved: boolean; axis: "x" | "y" | null; sgn: number } | null>(null);
   const justDragged = useRef(false);
   const side = (v: number) => (v > 0 ? end : v < 0 ? start : undefined);
   const bind = {
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
       if (disabled || (e.pointerType === "mouse" && e.button !== 0)) return;
       justDragged.current = false; // a touch drag never clicks: the flag must not swallow the next real tap
-      const rtl = getComputedStyle(e.currentTarget).direction === "rtl";
-      d.current = { x0: e.clientX, y0: e.clientY, base: x, t0: performance.now(), moved: false, axis: null, sgn: rtl ? -1 : 1 };
+      const st = getComputedStyle(e.currentTarget);
+      const rtl = st.direction === "rtl";
+      // R18 S4 D2: interruptible — grabbed mid-settle, the row continues from where it is on screen, not its target.
+      let base = x;
+      if (x !== 0 || st.transform !== "none") {
+        const m = st.transform && st.transform !== "none" ? new DOMMatrixReadOnly(st.transform) : null;
+        const seen = m ? m.m41 * (rtl ? -1 : 1) : 0;
+        if (Math.abs(seen - x) > 1) {
+          base = seen;
+          setDrag(true);
+          setX(seen);
+        }
+      }
+      d.current = { x0: e.clientX, y0: e.clientY, base, target: x, t0: performance.now(), moved: false, axis: null, sgn: rtl ? -1 : 1 };
     },
     onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
       const c = d.current;
@@ -56,6 +69,12 @@ export function useSwipe({ start, end, disabled }: { start?: SwipeSide; end?: Sw
       const c = d.current;
       d.current = null;
       setDrag(false);
+      if (c && !c.moved && c.base !== c.target) {
+        // Caught mid-settle and let go without moving: finish toward the nearer rest.
+        const s0 = side(c.base);
+        setX(s0 && Math.abs(c.base) > s0.width / 2 ? Math.sign(c.base) * s0.width : 0);
+        return;
+      }
       if (!c || !c.moved) return;
       justDragged.current = true;
       if (reducedMotion()) return;
@@ -64,7 +83,7 @@ export function useSwipe({ start, end, disabled }: { start?: SwipeSide; end?: Sw
       if (!s) return setX(0);
       const dir = Math.sign(x);
       const toward = vel * dir; // + = flicked further toward the open side
-      if (s.full && (Math.abs(x) > 200 || (toward > 0.6 && Math.abs(x) > 40))) return s.full();
+      if (s.full && (Math.abs(x) > 200 || (toward > 0.6 && Math.abs(x) > 40))) return s.full(Math.max(0, toward));
       setX(Math.abs(x) > s.width / 2 || toward > 0.3 ? dir * s.width : 0);
     },
     onPointerCancel: () => {

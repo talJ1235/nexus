@@ -107,15 +107,15 @@ fake recogniser. New design (Tal's choice 2026-10-15):
   phone.
 
 ## Part D — the list
-### D1 [ ] Rename only on the name's letters
+### D1 [x] Rename only on the name's letters
 Tapping the empty part of a row must not start rename; only the text itself (its inline box). The rest of the row:
 nothing (or the item sheet on the picture tile, as S3).
 
-### D2 [ ] Swipe-delete animation never cuts
+### D2 [x] Swipe-delete animation never cuts
 A fast swipe / fling: the row slides out, collapses its height, then the list closes the gap — no jump. Velocity-based
 release (Apple-style), interruptible. Undo restores in place with the reverse motion.
 
-### D3 [ ] "Start shopping" floats, never covers suggestions
+### D3 [x] "Start shopping" floats, never covers suggestions
 The Start shopping button is a floating bar above the dock (safe area aware) until the list's end is scrolled into
 view, then it docks into place at the end; it never overlaps "Nexus suggests" or rows (content gets bottom padding).
 
@@ -198,6 +198,12 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
   `POST /api/grocery/voice` (ai-gate `grocery`, audio only passed to the model, never stored) → lines → chips + the
   Paste review → `addParts` (A1 merge). Live words from Web Speech only when it works. Meter + clock, "Understanding…",
   errors in words (blocked + how to allow, no mic, nothing heard, limit), example on first use. `test:voice` + smoke.
+- D1: the name is a button around its own letters (inline box, not selectable); the row's empty part does nothing.
+- D2: a full swipe hands its velocity to the exit (120–260 ms), then the row's height closes (200 ms), then it leaves
+  the list; Undo opens the height and slides it back in, in its place (rows ordered by when they were added);
+  `useSwipe` is interruptible (a grab mid-settle continues from the row's place on screen).
+- D3: Start shopping floats 90 px above the dock until the slot after the list reaches it (IntersectionObserver), then
+  sits in that slot — never over "Nexus suggests"; the tab has bottom room for it. Smoke steps D1+D2, D3.
 ### Decisions
 - A1: templates, re-add from history and accepted suggestions keep an existing row's amount (S1/S2 rule shown in their
   plans as "already on it — stays"); they never write notes. Every other path (search, barcode, photo, voice, paste, trip

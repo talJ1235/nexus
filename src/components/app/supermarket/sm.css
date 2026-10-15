@@ -234,3 +234,9 @@ html[data-device="computer"] .sm-added-pill { bottom: 32px; }
 /* R18 S4 C1: the recognised items pop in one by one. */
 .sm-chip-in { animation: sm-pill-in 220ms var(--ease-out) both; }
 @media (prefers-reduced-motion: reduce) { .sm-chip-in { animation: none; } }
+
+/* R18 S4 D2: a deleted row's height closes after it slid out (and opens again on Undo) — the list never jumps. */
+.gro-sw.gro-closing { transition: height 200ms var(--ease-out); }
+.gro-sw.gro-closing > .gro-sw-del, .gro-sw.gro-closing > .gro-sw-qty { visibility: hidden; }
+/* D1: the name is a button around its own letters only. */
+.gro-row button.gro-t { display: inline-block; }

@@ -1,7 +1,7 @@
 "use client";
 
 import "./sm.css";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, History, LayoutList, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, ShoppingCart, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
@@ -43,7 +43,8 @@ type Sug = SmHome["suggestions"][number] | (BasketItem & { reasonKey: "basket"; 
 /** The list grouped by section in `order` (unknown / `other` last). */
 export function bySection(items: ItemWithSources[], order: readonly string[] = DEFAULT_ORDER) {
   const m = new Map<string, ItemWithSources[]>();
-  for (const i of items) {
+  // S4 D2: rows keep the order they were added in — a row Undo puts back returns to its place, not the section's end.
+  for (const i of [...items].sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))) {
     const k = i.section && order.includes(i.section) ? i.section : "other";
     m.set(k, [...(m.get(k) ?? []), i]);
   }
@@ -63,6 +64,17 @@ export function SupermarketView() {
   const serverTrip = useTrips(home).mine;
   const localTrip = useLocalTrip(s.spaceId || "-");
   const mineRunning = serverTrip != null || localTrip != null;
+  // S4 D3: docked once the slot after the list reaches the floating bar's place (90 px above the bottom).
+  const slot = useRef<HTMLDivElement>(null);
+  const [docked, setDocked] = useState(false);
+  const deskView = useDevice() === "computer";
+  useEffect(() => {
+    const el = slot.current;
+    if (!el || deskView) return;
+    const io = new IntersectionObserver(([e]) => setDocked(e.isIntersecting || e.boundingClientRect.top < 0), { rootMargin: "0px 0px -90px 0px", threshold: 1 });
+    io.observe(el);
+    return () => io.disconnect();
+  });
   const order = trip.order;
   const [picking, setPicking] = useState(false);
   const [shopping, setShopping] = useState(false);
@@ -188,9 +200,10 @@ export function SupermarketView() {
       <AddScreen open={adding != null} mode={adding ?? "type"} hint={addHint} seed={addSeed} onClose={() => (setAdding(null), setAddHint(null), setAddSeed(null))} onCapture={(k) => (setAdding(null), capture(k))} />
     </>
   );
-  const startBar = !ro && s.sm.length > 0 && !mineRunning && (
-    <div className="pointer-events-none fixed inset-x-3 bottom-[calc(90px+env(safe-area-inset-bottom))] z-30 desk:static desk:mt-2" data-sm-start-bar>
-      <button type="button" className="pointer-events-auto flex h-14 w-full items-center justify-center gap-2.5 rounded-[18px] bg-ink text-[16px] font-extrabold text-bg shadow-[0_10px_28px_color-mix(in_srgb,var(--ink)_24%,transparent)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]" onClick={() => setShopping(true)} data-sm-start>
+  const showStart = !ro && s.sm.length > 0 && !mineRunning;
+  const startBar = showStart && (
+    <div className={cn("pointer-events-none z-30 desk:static desk:mt-2", docked ? "relative" : "fixed inset-x-3 bottom-[calc(90px+env(safe-area-inset-bottom))]")} data-sm-start-bar={docked ? "docked" : "floating"}>
+      <button type="button" className={cn("pointer-events-auto flex h-14 w-full items-center justify-center gap-2.5 rounded-[18px] bg-ink text-[16px] font-extrabold text-bg transition-[transform,box-shadow] duration-200 ease-[var(--ease-out)] active:scale-[0.98]", docked ? "shadow-card" : "shadow-[0_10px_28px_color-mix(in_srgb,var(--ink)_24%,transparent)]")} onClick={() => setShopping(true)} data-sm-start>
         <ShoppingCart className="size-5" />
         {t.sm.start}
         <span className="tabular font-bold opacity-70">{s.sm.length}</span>
@@ -248,14 +261,13 @@ export function SupermarketView() {
     );
 
   return (
-    <div className="flex flex-col gap-3 pb-28" data-sm-view data-sm-layout={shown}>
+    <div className="flex flex-col gap-3 pb-[calc(170px+env(safe-area-inset-bottom))]" data-sm-view data-sm-layout={shown}>
       {header}
       <Badges viewer={viewer} />
       <StoreLine home={home} store={trip.store} onPick={() => setPicking(true)} />
       {overlays}
       {s.sm.length > 0 && <Rail groups={groups} />}
       {!ro && !empty && <AddField onOpen={openAdd} />}
-      {startBar}
       {first ? (
         <>
           <EmptyTemplates ro={ro} />
@@ -271,8 +283,14 @@ export function SupermarketView() {
         </>
       ) : (
         <>
-          {/* R18 S3 B3: the list first; "Nexus suggests" under it (one line until opened); then the routine offer. */}
+          {/* R18 S3 B3: the list first; "Nexus suggests" under it (one line until opened); then the routine offer.
+              S4 D3: Start shopping floats above the dock until the list's end reaches it, then sits in its slot here. */}
           {list}
+          {showStart && (
+            <div ref={slot} className="h-14" data-sm-start-slot>
+              {startBar}
+            </div>
+          )}
           {suggestions}
           {offer}
         </>

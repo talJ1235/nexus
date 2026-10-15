@@ -2703,6 +2703,113 @@ try {
           "voice add (R18 S4 C1): meter + clock while recording, finish → understanding → chips + review", JSON.stringify(r));
       });
 
+    // R18 S4 D1 + D2: a tap on a row's empty part doesn't rename (only the name's letters do); a fast fling deletes with
+    // no jump — the row slides out, its height closes, the next row glides up (sampled every frame; or stays put where
+    // the browser's scroll anchoring holds it) — and Undo opens it again in its place.
+    if (WRITE)
+      await step("row name + fling delete (R18 S4 D1+D2): empty part no rename, letters rename; slide, close, glide; Undo in place", async () => {
+        const r = {};
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        for (const id of await page.locator('[data-sm-row]:has(.gro-t:text-matches("^S4 fling"))').evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row")))) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        for (const k of ["a", "b", "c"]) await callAction(BASE, cookie, act("addToSupermarket"), [{ title: `S4 fling ${k}`, section: "other" }]);
+        await page.goto(`${BASE}/supermarket`);
+        if (await page.locator("[data-sm-list] .gro-tile").count()) {
+          await page.locator("[data-sm-more]").click();
+          await page.locator('[data-sm-layout-pick="rows"]').click();
+        }
+        await page.waitForSelector('[data-sm-row]:has(.gro-t:text-is("S4 fling c"))', { timeout: 15000 });
+        const order = () => page.locator("[data-sm-list] [data-sm-row]").evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row")));
+        // The first of the three in the list: a row of them is under it.
+        const flings = await page.locator('[data-sm-list] [data-sm-row]:has(.gro-t:text-matches("^S4 fling"))').evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row")));
+        const a = flings[0];
+        const orderBefore = await order();
+        const rowA = page.locator(`[data-sm-row="${a}"]`);
+        await rowA.evaluate((e) => e.scrollIntoView({ block: "center" }));
+        // D1: the empty part of the name area, then the letters.
+        const area = await rowA.locator("[data-sm-row-name-area]").boundingBox();
+        const name = await rowA.locator("[data-sm-row-name]").boundingBox();
+        r.nameNarrow = name.width < area.width - 20;
+        await page.mouse.click(name.x + name.width + (area.x + area.width - name.x - name.width) / 2, area.y + area.height / 2);
+        await page.waitForTimeout(250);
+        r.emptyRenames = await page.locator("[data-sm-rename]").count();
+        await rowA.locator("[data-sm-row-name]").click();
+        r.lettersRename = await page.locator("[data-sm-rename]").count();
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(200);
+        // D2: a fast fling toward the inline end; the top of the row under it sampled every frame.
+        const next = await page.evaluate((id) => {
+          const top = document.querySelector(`[data-sm-row="${id}"]`).getBoundingClientRect().top;
+          const below = [...document.querySelectorAll("[data-sm-list] [data-sm-row]")].map((e) => [e.getAttribute("data-sm-row"), e.getBoundingClientRect().top]).filter(([, t]) => t > top + 4).sort((x, y) => x[1] - y[1]);
+          return below[0]?.[0] ?? null;
+        }, a);
+        await page.evaluate((id) => {
+          window.__tops = [];
+          const el = () => document.querySelector(`[data-sm-row="${id}"]`);
+          const t0 = performance.now();
+          const tick = () => {
+            const e = el();
+            if (e) window.__tops.push(Math.round(e.getBoundingClientRect().top));
+            if (performance.now() - t0 < 1200) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        }, next);
+        const ba = await rowA.boundingBox();
+        const rtl = await page.evaluate(() => document.documentElement.dir === "rtl");
+        const x0 = ba.x + ba.width / 2;
+        const y0 = ba.y + ba.height / 2;
+        await page.mouse.move(x0, y0);
+        await page.mouse.down();
+        await page.mouse.move(x0 + (rtl ? -1 : 1) * 160, y0, { steps: 4 });
+        await page.mouse.up();
+        await page.waitForTimeout(1300);
+        const tops = await page.evaluate(() => window.__tops);
+        const steps = tops.slice(1).map((t, i) => Math.abs(t - tops[i]));
+        r.maxStep = Math.max(...steps);
+        r.moved = Math.abs(tops[0] - tops[tops.length - 1]);
+        r.frames = tops.length;
+        r.gone = await page.locator(`[data-sm-row="${a}"]`).count();
+        r.rowH = Math.round(ba.height);
+        // Undo: back in its place (above b), opening with the reverse motion.
+        await page.locator("[data-sonner-toast] button", { hasText: /Undo|ביטול/ }).first().click();
+        await page.waitForSelector(`[data-sm-row="${a}"]`, { timeout: 5000 });
+        await page.waitForTimeout(700);
+        r.inPlace = JSON.stringify(await order()) === JSON.stringify(orderBefore);
+        r.slidBack = await page.locator(`[data-sm-row="${a}"]`).evaluate((e) => getComputedStyle(e).transform === "none" || new DOMMatrixReadOnly(getComputedStyle(e).transform).m41 === 0);
+        for (const id of flings) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        ok(r.nameNarrow && r.emptyRenames === 0 && r.lettersRename === 1 && r.gone === 0 && !!next && (r.moved >= r.rowH - 4 || r.moved <= 2) && r.maxStep <= r.rowH / 2 && r.inPlace && r.slidBack,
+          "row name + fling delete (R18 S4 D1+D2): empty part no rename, letters rename; slide, close, glide; Undo in place", JSON.stringify(r));
+      });
+
+    // R18 S4 D3: Start shopping floats above the dock while the list goes on, docks into its slot after the list once
+    // the end is in view, and never covers "Nexus suggests" or a row there.
+    if (MOBILE)
+      await step("start shopping floats, then docks (R18 S4 D3): above the dock, docked at the list's end, never over suggestions", async () => {
+        const r = {};
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-start-bar]", { timeout: 15000 });
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.waitForTimeout(300);
+        const vh = page.viewportSize().height;
+        r.top = await page.locator("[data-sm-start-bar]").getAttribute("data-sm-start-bar");
+        const dock = await page.locator("[data-dock]").boundingBox();
+        const bar = await page.locator("[data-sm-start]").boundingBox();
+        r.aboveDock = bar.y + bar.height <= dock.y - 4;
+        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        await page.waitForTimeout(500);
+        r.end = await page.locator("[data-sm-start-bar]").getAttribute("data-sm-start-bar");
+        const b2 = await page.locator("[data-sm-start]").boundingBox();
+        const sug = await page.locator("[data-sm-suggest]").boundingBox().catch(() => null);
+        const rows = await page.locator("[data-sm-list] [data-sm-row]").evaluateAll((els) => els.map((e) => { const q = e.getBoundingClientRect(); return [q.top, q.bottom]; }));
+        const over = (a0, a1) => b2.y < a1 - 1 && b2.y + b2.height > a0 + 1;
+        r.overSug = sug ? over(sug.y, sug.y + sug.height) : false;
+        r.overRow = rows.some(([t, bt]) => over(t, bt));
+        r.dockClear = b2.y + b2.height <= vh;
+        ok(r.top === "floating" && r.aboveDock && r.end === "docked" && !r.overSug && !r.overRow, "start shopping floats, then docks (R18 S4 D3): above the dock, docked at the list's end, never over suggestions", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)
