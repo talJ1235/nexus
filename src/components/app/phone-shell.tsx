@@ -19,6 +19,7 @@ import { SpaceLook, useMeName } from "./spaces/space-ui";
 import { initialOf } from "@/lib/initial";
 import { DOCK_ORDER, dockOf, type DockTarget } from "@/lib/dock";
 import { requestSm, type SmIntent } from "./supermarket/intent";
+import { LONG_MS, press as pressStep, type PressEvent, type PressState } from "@/lib/press";
 
 /** Phone / tablet (<1024 px) top bar = home-v4 (R14 B2): Box + "Nexus", then the search circle, the Ask circle and the
  *  bell (the inbox, R17 S3), avatar (Me), 36 px controls with ≥ 40 px tap areas. Search expands in place. */
@@ -189,13 +190,19 @@ function DockBar() {
     );
   };
   // Long-press "+" (R18 S2 A1, Nav-phone): the quick supermarket menu; a plain tap keeps the "+" menu.
+  const tap = () => {
+    if (quick) return setQuick(false);
+    // R18 S3 C1 / S4 B1: on the Supermarket tab every tap on "+" is the camera, barcode first (a hold opens its menu).
+    if (s.view.type === "supermarket" && !plusOpen) return requestSm("scan");
+    s.setPlusOpen(!plusOpen);
+  };
   const press = useLongPress(() => {
     s.setPlusOpen(false);
     setQuick(true);
     try {
       navigator.vibrate?.(8);
     } catch {}
-  });
+  }, tap);
   return (
     <>
       <nav
@@ -211,13 +218,7 @@ function DockBar() {
         ) : (
           <button
             type="button"
-            onClick={() => {
-              if (press.fired()) return;
-              if (quick) return setQuick(false);
-              // R18 S3 C1: on the Supermarket tab "+" is the camera, barcode first (long press keeps its menu).
-              if (s.view.type === "supermarket" && !plusOpen) return requestSm("scan");
-              s.setPlusOpen(!plusOpen);
-            }}
+            onClick={press.onClick}
             {...press.handlers}
             onContextMenu={(e) => e.preventDefault()}
             aria-label={plusOpen || quick ? t.phone.closeMenu : t.phone.add}
@@ -228,7 +229,7 @@ function DockBar() {
             // R18 S3 A6 (Nav-phone `.plus.held`): while the finger is down, and while either menu is open, the whole button
             // eases to 0.9 and turns 45° — the "+" becomes "×", and the hold shows it's about to open the quick menu.
             className={cn(
-              "grid size-[52px] select-none place-items-center justify-self-center rounded-full bg-brand text-on-brand shadow-[0_8px_20px_color-mix(in_srgb,var(--brand)_40%,transparent)] transition-transform duration-[220ms] ease-[var(--ease-out)] [-webkit-touch-callout:none]",
+              "grid size-[52px] touch-manipulation select-none place-items-center justify-self-center rounded-full bg-brand text-on-brand shadow-[0_8px_20px_color-mix(in_srgb,var(--brand)_40%,transparent)] transition-transform duration-[220ms] ease-[var(--ease-out)] [-webkit-touch-callout:none]",
               (press.pressing || plusOpen || quick) && "rotate-45 scale-90",
             )}
             data-plus-held={press.pressing || plusOpen || quick ? "" : undefined}
@@ -243,43 +244,52 @@ function DockBar() {
   );
 }
 
-/** Press and hold (450 ms) → `fn`; `fired()` tells the click that follows to do nothing. */
-function useLongPress(fn: () => void, ms = 450) {
+/**
+ * R18 S4 B1: tap / press-and-hold on pointer events only (`lib/press.ts`) — a tap is `onTap`, a hold ≥ 450 ms without
+ * moving > 10 px is `onLong`, and the release of a hold is never also a tap. The click that follows a pointer press is
+ * ignored; a click without one (keyboard Enter / Space) is a tap.
+ */
+function useLongPress(onLong: () => void, onTap: () => void) {
+  const st = useRef<PressState>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const done = useRef(false);
-  const start = useRef<{ x: number; y: number } | null>(null);
+  // When the last pointer press ended: the click the browser sends after it is not a second tap.
+  const lastUp = useRef(0);
   // The finger is down (the "held" look); ends on release, a move, or when the hold fires.
   const [pressing, setPressing] = useState(false);
-  const cancel = () => {
-    clearTimeout(timer.current);
-    start.current = null;
-    setPressing(false);
+  const feed = (e: PressEvent) => {
+    const [next, out] = pressStep(st.current, e);
+    st.current = next;
+    setPressing(!!next && !next.dead && !next.long);
+    if (!next) clearTimeout(timer.current);
+    if (out === "long") onLong();
+    if (out === "tap") onTap();
   };
   return {
     pressing,
-    fired: () => {
-      const f = done.current;
-      done.current = false;
-      return f;
+    onClick: () => {
+      if (performance.now() - lastUp.current < 1000) return;
+      onTap();
     },
     handlers: {
       onPointerDown: (e: React.PointerEvent) => {
-        done.current = false;
-        start.current = { x: e.clientX, y: e.clientY };
+        if (e.button !== 0) return;
+        lastUp.current = performance.now();
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {}
+        feed({ type: "down", id: e.pointerId, x: e.clientX, y: e.clientY, at: performance.now() });
         clearTimeout(timer.current);
-        setPressing(true);
-        timer.current = setTimeout(() => {
-          done.current = true;
-          setPressing(false);
-          fn();
-        }, ms);
+        timer.current = setTimeout(() => feed({ type: "timer", at: performance.now() }), LONG_MS);
       },
-      onPointerMove: (e: React.PointerEvent) => {
-        if (start.current && Math.hypot(e.clientX - start.current.x, e.clientY - start.current.y) > 10) cancel();
+      onPointerMove: (e: React.PointerEvent) => feed({ type: "move", id: e.pointerId, x: e.clientX, y: e.clientY }),
+      onPointerUp: (e: React.PointerEvent) => {
+        lastUp.current = performance.now();
+        feed({ type: "up", id: e.pointerId, at: lastUp.current });
       },
-      onPointerUp: cancel,
-      onPointerCancel: cancel,
-      onPointerLeave: cancel,
+      onPointerCancel: () => {
+        lastUp.current = performance.now();
+        feed({ type: "cancel" });
+      },
     },
   };
 }

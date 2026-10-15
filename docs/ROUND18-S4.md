@@ -49,7 +49,7 @@ An empty Supermarket list shows: (1) templates (Nexus + yours) with one-tap Add,
 suggestions ("you usually buy", due staples), (3) the camera / add actions. When the list has items, unchanged.
 
 ## Part B — camera and barcode (much more reliable)
-### B1 [ ] "+" always opens the camera
+### B1 [x] "+" always opens the camera
 On the Supermarket tab a tap on the dock "+" sometimes opens the quick menu. Tap = camera, always; only a real
 long-press (≥ 450 ms, no movement > 10 px) opens the menu; the touch end of a long-press never also fires a tap.
 Test with synthetic pointer timings (fast tap, slow tap, tap with jitter, long-press).
@@ -164,6 +164,9 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
   (The A3 empty-list code went into this commit by mistake; its smoke + tick are in the A3 commit.)
 - A3: empty list (phone + computer) = `EmptyTemplates` (lists.tsx, one-tap Add = Apply's merge) → suggestions forced
   open → the add field (scan / photo / voice); first use keeps the cold-start cards under any templates. Smoke step.
+- B1: dock "+" decides on pointer events only (`lib/press.ts` state machine, one timer, pointer capture): tap = camera,
+  hold ≥ 450 ms still = menu, the hold's release is never a tap, a late timer still counts as a hold; click only for
+  keyboard. `test:dock` timings (fast / slow / jitter / slide / late timer / 2nd finger / cancel) + smoke step.
 ### Decisions
 - A1: templates, re-add from history and accepted suggestions keep an existing row's amount (S1/S2 rule shown in their
   plans as "already on it — stays"); they never write notes. Every other path (search, barcode, photo, voice, paste, trip
