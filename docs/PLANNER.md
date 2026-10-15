@@ -336,6 +336,9 @@ to setup, tooling or workflow is recorded there in the same session.
 - Prefer guards that keep bugs dead (e.g. dock-position-per-frame smoke, overflow-at-360 smoke).
 - Keys are optional: every feature degrades gracefully without them; say what Tal can add.
 - End with `## Open` (empty) — the builder fills it.
+- Point each item at its area in `docs/MAP.md` ("Area: Supermarket") and name the files you already know, so the
+  builder reads one section instead of exploring. The closing docs item says "`docs/MAP.md` (touched areas)", never
+  "CLAUDE.md map" — `CLAUDE.md` stays short because it loads on every session and after every `/compact`.
 
 ## Decisions that stand (don't re-open without Tal)
 - Design: UI v2 = design **U**; palettes **Graphite & Amber** (default) and **Plum**, light + dark; one brand colour +
@@ -514,7 +517,7 @@ to setup, tooling or workflow is recorded there in the same session.
 
 ## Where things are
 - Repo `talJ1235/nexus`; prod https://nexus-ashen-beta.vercel.app (auto-deploys from `main`).
-- `SPEC.md` (shipped features per round), `CLAUDE.md` (builder rules + map), `docs/ROUND*.md` (briefs + results),
+- `SPEC.md` (shipped features per round), `CLAUDE.md` (builder rules, kept short), `docs/MAP.md` (code map by area + tests per area), `docs/ROUND*.md` (briefs + results),
   `docs/UI-V2.md` (design history + motion plan), `docs/design/` (static mockups), `src/lib/help/topics/*.md`.
 - Design canvas "Nexus Style Directions" is a private claude.ai artifact on each account (A: original; B: rebuilt 2026-10-04 with Home v4); the exported mockups in
   `docs/design/` are the shareable copy. New design exploration: make a new canvas in your own account.
@@ -531,6 +534,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-15 · planning chat · Token saving for the builder: new `docs/MAP.md` (code map by area, tests per area, rules for keeping it true; S4's map lines included; 3 stale paths fixed, e.g. `alerts-panel` no longer exists); `CLAUDE.md` 16.4 KB → 6.8 KB (map → pointer + the always-rules; SPEC.md read by section; tests per area). Pushed as branch `docs/map` on top of `round18-s4` (S4 was finishing; a `CLAUDE.md` push to `main` would have conflicted with its map lines) → after S4 is on `main`, fast-forward `main` to `docs/map` (or merge `main` into it if S4 added commits; S4's map lines already live in MAP.md, keep our `CLAUDE.md` block). Brief template updated.
 - 2026-10-15 (account A): R18 S3 notes + briefs S3, S4 written here; from tonight planning/design moves to account B (handoff block at top), A = Claude Code.
 - 2026-10-13 · this chat · R18 S1 confirmed merged. Boards part 2 on the R18 canvas (9 boards, `nx-sm2.css`). Tal simplified the supermarket (no staple states, only "don't suggest again"; Nexus-made templates; count + weight; no knobs; "My answers" → "What Nexus learned"; Galaxy Watch app after R20) → boards reworked, decisions recorded. S2 brief waits for Tal's board approval.
 - 2026-10-12 · this chat · Reviewed R18 S1 (all parts done, rehearsal on the prod snapshot passed). Verified the holiday table with a computed Hebrew calendar (all correct). Tal chose the staple states (not set → suggests; off = only by choice, never).
@@ -567,7 +571,7 @@ to setup, tooling or workflow is recorded there in the same session.
 - 2026-10-04 · B · Rebuilt the design canvas "Nexus Style Directions" on account B from Tal's export (Home v3), then Home v4 per Tal's notes (status tiles, meters instead of sparklines, stronger borders, louder AI suggestion, compact phone, Shopping switch with list/grid, phone search incl. settings, collapsible sidebar, 3 s intro). Tal approved; wrote `docs/ROUND13.md` and saved mockups to `docs/design/home-v4/`.
 - 2026-10-04 · B · Set up this account's chat: sandbox network confirmed (clone, npm ci, typecheck, lint run here), GitHub custom connector via own OAuth App, secret audit of full history clean, repo stays public until launch. Wrote `docs/ENVIRONMENT.md` (setup + rule: every setup/tooling change is logged there). Added Hebrew/English RTL writing rules under "How to talk with Tal".
 - 2026-10-04 · A · Tal: drop the big "Today's best move" hero, fewer rounded boxes. Canvas page "Home v3 — open layout": one surface with hairline sections, status sentence header, flat stats with sparklines, slim "Nexus suggests" line (1/4), "This week" strip, Needs you + On the way, pace + projects, Nexus noticed; flatter To buy ⇄ On the way. Awaiting Tal.
-- 2026-10-04 · A · Round 12 brief = small fixes (sheet swipe-down, slow-swipe lock, assistant header + suggestion rows, Ask pill). Dashboard redesign moved to Round 13: research done (Oura, Linear, Monzo, Ramp, Brex, Stripe, Shopify, Mercury); canvas page "Home v2 — value first" (best-move hero, Needs-you queue, KPIs vs your usual, budget pace, delivery tracker, project rings, Nexus noticed; phone To buy ⇄ On the way switch cards) — awaiting Tal before the Round 13 brief.
+- 2026-10-04 · A · Round 12 brief = small fixes (sheet swipe-down, slow-swipe lock, assistant header + suggestion rows, Ask pill). Dashboard redesign moved to Round 13: research done (Oura, Linear, Monzo, Ramp, Brex, Stripe, Shopify, Mercury); canvas page "Home v2 — value first" (best-move hero, Needs-you queue, KPIs vs your usual, budget pace, delivery tracker, project rings, Nexus noticed; phone To buy ⇄ On the way switch cards) — awaiting Tal.
 - 2026-10-03 · A · Round 12 mockups on the canvas (page "Round 12 — mature look + dashboard"): Q quiet-pro vs E editorial; dashboard, customize mode + presets, grouped To buy, history table, phone. Proposed phone dock: Home · To buy · + · Projects · Insights (On the way moves into To buy) — awaiting Tal.
 - 2026-10-03 · A · Round 11 brief (intro on open only + bigger intro, nested overlays, phone History, swipe/long-press/hover quick actions, uniform pictures, solid tags). Round 12 planned: visual maturity (fewer rounded boxes, flat sidebar, order history), customizable dashboard, decluttered products page with AI groupings — mockups first.
 - 2026-10-03 · A · Product direction discussed (multi-user, Capacitor first, supermarket); PLANNER.md created.
