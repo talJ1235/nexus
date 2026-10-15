@@ -314,6 +314,9 @@ export type SupermarketMetrics = {
   hidden: number;
   forgot: number;
   nexusTemplates: number;
+  /** R18 S3 C6: brand buys recorded (4 weeks) and how many homes have them — counts only, never which brands. */
+  brandBuys: number;
+  brandHomes: number;
 };
 
 export async function supermarketMetrics(now = Date.now()): Promise<SupermarketMetrics> {
@@ -349,6 +352,7 @@ export async function supermarketMetrics(now = Date.now()): Promise<SupermarketM
   const [h] = await db.select({ n: sql<number>`count(*)` }).from(schema.suggestDismiss).where(isNotNull(schema.suggestDismiss.hiddenAt));
   const [fg] = await db.select({ n: sql<number>`count(*)` }).from(schema.spacePref).where(eq(schema.spacePref.key, "pref:sm:forget"));
   const [nt] = await db.select({ n: sql<number>`count(*)` }).from(schema.template).where(and(eq(schema.template.madeBy, "nexus"), isNotNull(schema.template.keptAt)));
+  const [bb] = await db.select({ n: sql<number>`count(*)`, homes: sql<number>`count(DISTINCT ${schema.brandBuy.spaceId})` }).from(schema.brandBuy).where(gte(schema.brandBuy.at, since));
   return {
     trips,
     tripsPerWeek: Math.round((trips / 4) * 10) / 10,
@@ -361,5 +365,7 @@ export async function supermarketMetrics(now = Date.now()): Promise<SupermarketM
     hidden: Number(h?.n ?? 0),
     forgot: Number(fg?.n ?? 0),
     nexusTemplates: Number(nt?.n ?? 0),
+    brandBuys: Number(bb?.n ?? 0),
+    brandHomes: Number(bb?.homes ?? 0),
   };
 }

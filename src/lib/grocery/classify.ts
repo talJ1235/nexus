@@ -128,3 +128,43 @@ export function classifyLocal(text: string, gtin?: string | null): Classified {
 }
 
 export const typeOf = (key: string | null | undefined) => (key ? (TYPE_BY_KEY.get(key) ?? null) : null);
+
+/** Dictionary synonyms that are brands (they find the type, but in a name they are the brand: "Tnuva milk"). */
+const BRAND_WORDS = new Set(["tnuva", "תנובה", "nescafe", "נסקפה", "prigat", "פריגת", "pepsi", "פפסי", "coca", "קוקה", "activia", "אקטיביה", "yoplait", "יופלה", "danone", "דנונה", "ספרינג"].map((w) => normalize(w)));
+
+/**
+ * R18 S3 C6: the brand part of a product's name — what's left once its type ("milk", "חלב") and its pack size ("1 L",
+ * "500 g", "x6") are taken out, in the name's own order and spelling ("Tnuva milk 3% 1L" → type milk, "Tnuva 3%").
+ * Null when the type is unknown (nothing to compare with) or nothing is left (a plain "Milk").
+ */
+export function brandOf(title: string): { type: string; brand: string; key: string } | null {
+  const m = matchText(title);
+  if (!m) return null;
+  const own = new Set<string>();
+  for (const n of m.type.names) for (const w of normalize(n).split(" ")) if (w && !/^\d/.test(w) && !BRAND_WORDS.has(w)) own.add(w);
+  const words = String(title).trim().split(/\s+/);
+  const kept: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const n = normalize(words[i]);
+    if (!n) continue;
+    const next = normalize(words[i + 1] ?? "");
+    // A brand's own second word stays with it even when it names the type ("Coca Cola").
+    const prev = i > 0 ? normalize(words[i - 1]) : "";
+    const afterBrand = BRAND_WORDS.has(prev) && m.type.names.some((x) => normalize(x) === `${prev} ${n}`);
+    if (STOP.has(n) || (!afterBrand && [...own].some((w) => tokenIs(n, w)))) continue;
+    // A pack size: "1L", "500g", "1.5 ליטר", "x6", "6x", "×6" — a number with its unit word goes as one.
+    if (/^(\d+(\.\d+)?)(kg|g|l|ml|גרמ|גר|קג|ליטר|מל)$/.test(n) || /^(x|×)?\d+(x|×)?$/.test(n.replace(/×/g, "x")) && !/%/.test(words[i])) {
+      if (/^\d+(\.\d+)?$/.test(n) && UNIT_WORDS[next]) i++;
+      continue;
+    }
+    if (UNIT_WORDS[n] && kept.length && /^\d/.test(kept[kept.length - 1])) {
+      kept.pop();
+      continue;
+    }
+    kept.push(words[i].replace(/^[,;:()"'׳״-]+|[,;:()"'׳״-]+$/g, ""));
+  }
+  // A lone letter is a size ("Eggs L"), not a brand.
+  const brand = kept.filter((w) => w && !/^\p{L}$/u.test(w)).join(" ").trim();
+  if (!brand || !/\p{L}/u.test(brand)) return null;
+  return { type: m.type.key, brand, key: normalize(brand) };
+}

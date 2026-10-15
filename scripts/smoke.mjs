@@ -2168,6 +2168,38 @@ try {
           "row gestures (R18 S3 C5): swipe delete + Undo, quick quantity, axis lock, rename, picture → sheet, RTL, reduced motion", JSON.stringify(r));
       });
 
+    // R18 S3 C6: three barcode adds of Tnuva milk → the item sheet says "Usually: Tnuva 3% · 3 of 3 times"; What Nexus
+    // learned lists it; forgetting that one fact hides the line.
+    if (WRITE)
+      await step("usual brand (R18 S3 C6): sheet line after 3 buys, a learned fact, forget hides it", async () => {
+        const r = {};
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        for (let k = 0; k < 3; k++) await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "Tnuva milk 3% 1L", gtin: "7290004131074" }]);
+        await page.goto(`${BASE}/supermarket`);
+        const row = page.locator('[data-sm-row]:has(.gro-t:text-is("Tnuva milk 3% 1L"))').first();
+        await row.waitFor({ timeout: 15000 });
+        const id = await row.getAttribute("data-sm-row");
+        const usual = async () => {
+          await page.goto(`${BASE}/supermarket`);
+          await page.locator(`[data-sm-row="${id}"] [data-sm-row-tile]`).click();
+          await page.waitForSelector(`[data-sm-sheet="${id}"] [data-learned]`, { timeout: 10000 });
+          await page.waitForTimeout(300);
+          const t = await page.locator(`[data-sm-sheet="${id}"] [data-sheet-usual]`).textContent().catch(() => null);
+          await page.keyboard.press("Escape");
+          return t?.trim() ?? null;
+        };
+        r.line = await usual();
+        await page.goto(`${BASE}/settings/smLearned`);
+        await page.waitForSelector('[data-sm-fact="b:milk"]', { timeout: 15000 });
+        r.fact = (await page.locator('[data-sm-fact="b:milk"]').textContent()).trim();
+        await page.locator('[data-sm-fact="b:milk"] [data-sm-fact-forget]').click();
+        await page.waitForTimeout(800);
+        r.after = await usual();
+        await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        ok(/Tnuva 3% · 3 of 3 times/.test(r.line ?? "") && /Milk: usually Tnuva 3%/.test(r.fact) && r.after === null, "usual brand (R18 S3 C6): sheet line after 3 buys, a learned fact, forget hides it", JSON.stringify(r));
+      });
+
     // R18 S3 C3: Save the current list shows a card — the products' pictures stacked (ProjectCover's collage), the name
     // field, count · estimate · store; the template rows in Templates are the same card. Typing the name stays in the card.
     if (WRITE)

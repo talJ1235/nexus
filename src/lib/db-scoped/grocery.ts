@@ -288,7 +288,7 @@ export async function historyOf(s: Scoped, tz: string): Promise<{ history: Histo
   return { history: learnHistory(purchases, dayTrips, { tz }), baskets: trips.map((t) => t.keys), trips: trips.length };
 }
 
-export type LearnedFact = { key: string; group: "where" | "regular" | "habits"; kind: "day" | "store" | "sometimes" | "regular" | "shabbat" | "with"; told?: boolean; args: Record<string, string | number> };
+export type LearnedFact = { key: string; group: "where" | "regular" | "habits"; kind: "day" | "store" | "sometimes" | "regular" | "shabbat" | "with" | "brand"; told?: boolean; args: Record<string, string | number> };
 
 /**
  * F1: "What Nexus learned" — the learned facts (When and where, Regular products, Habits), each with the key that forgets
@@ -322,6 +322,9 @@ export async function learnedFacts(s: Scoped, tz: string) {
     else if (k.state !== "regular" && c.contexts.includes("with") && c.withTitle) out.push({ key: `p:${p.productKey}`, group: "habits", kind: "with", args: { title: p.title, with: c.withTitle } });
     else if (k.state === "regular") out.push({ key: `p:${p.productKey}`, group: "regular", kind: "regular", args: { title: p.title, days: k.intervalDays } });
   }
+  // R18 S3 C6: the usual brands ("Milk: usually Tnuva 3%") — each forgettable on its own (`b:<type>`).
+  const { usualBrands } = await import("./brands");
+  for (const [type, u] of [...(await usualBrands(s))].sort((a, b) => b[1].of - a[1].of)) out.push({ key: `b:${type}`, group: "habits", kind: "brand", args: { type, brand: u.brand, n: u.n, of: u.of } });
   return out;
 }
 

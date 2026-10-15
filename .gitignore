@@ -67,6 +67,7 @@ query-plans-test.db*
 /errors-test.db*
 /bench-signin.db*
 /seed-admin-test.db*
+/brands-test.db*
 
 # R16: CI-only databases, local smoke output
 ci-*.db

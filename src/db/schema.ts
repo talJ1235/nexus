@@ -655,6 +655,26 @@ export const stapleAdd = sqliteTable(
   (t) => [primaryKey({ columns: [t.spaceId, t.productKey, t.dueDay] })],
 );
 
+/**
+ * R18 S3 C6: which brand the home bought, per product type ("milk" → "Tnuva 3%") — from barcode adds, store-mode checks
+ * of a barcoded row (`ref` = trip) and receipt lines (`ref` = receipt). Read with the forget cut-offs (`all`, `b:<type>`).
+ */
+export const brandBuy = sqliteTable(
+  "brand_buy",
+  {
+    id: text("id").primaryKey(),
+    spaceId: text("space_id").notNull(),
+    type: text("type").notNull(),
+    brand: text("brand").notNull(),
+    brandKey: text("brand_key").notNull(),
+    source: text("source", { enum: ["scan", "check", "receipt"] }).notNull(),
+    ref: text("ref"),
+    byUser: text("by_user"),
+    at: integer("at").notNull(),
+  },
+  (t) => [index("brand_buy_space_type_idx").on(t.spaceId, t.type)],
+);
+
 export type Trip = typeof trip.$inferSelect;
 export type TripCheck = typeof tripCheck.$inferSelect;
 export type SpaceStore = typeof spaceStore.$inferSelect;

@@ -555,6 +555,8 @@ export const en = {
       smReceipt: "Trips with a receipt",
       smAccepted: "Suggestions taken",
       smTemplates: "Nexus templates kept",
+      smBrands: "Brands recorded (4 weeks)",
+      smBrandsN: "{n} in {homes} homes",
       smHidden: "Products hidden",
       smForgot: "Homes that used Forget",
       smRetention: "Shopping spaces still shopping in week 4",

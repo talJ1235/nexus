@@ -98,6 +98,8 @@ async function seedData(space, mark, owner) {
   await q(`INSERT INTO space_store (space_id, chain, branch, is_default) VALUES (?, 'Chain', 'B', 1)`, [space]);
   await q(`INSERT INTO template (id, space_id, name, items, created_at) VALUES (?, ?, ?, ?, ?)`, [r.tpl, space, `${mark} template`, JSON.stringify([{ productKey: "milk", title: `${mark} milk`, qty: 1 }]), now]);
   await q(`INSERT INTO suggest_dismiss (space_id, product_key, until) VALUES (?, 'eggs', ?)`, [space, now + 86_400_000]);
+  // R18 S3 C6: a usual brand (three buys) — never readable from another space.
+  for (let k = 0; k < 3; k++) await q(`INSERT INTO brand_buy (id, space_id, type, brand, brand_key, source, ref, by_user, at) VALUES (?, ?, 'milk', ?, ?, 'scan', NULL, ?, ?)`, ["bb_" + id(), space, `${mark} brand`, `${mark} brand`.toLowerCase(), owner, now - k]);
   // R18 S2: a count on the row, a hidden product, Nexus templates (a kept routine + an offer), a forget cut-off.
   await q(`UPDATE items SET count = 6 WHERE id = ?`, [r.sm]);
   await q(`INSERT INTO suggest_dismiss (space_id, product_key, until, hidden_at, hidden_by) VALUES (?, 'bread', 0, ?, ?)`, [space, now, owner]);
@@ -129,7 +131,7 @@ for (const k of ["A", "B", "V"]) {
   cookieOf[k] = `nexus_session_dev=${sign(token)}`;
 }
 
-const SPACE_TABLES = ["collections", "items", "sources", "price_points", "attachments", "alerts", "alt_groups", "store_settings", "receipts", "conversations", "conversation_messages", "space_pref", "trip", "trip_check", "space_store", "template", "suggest_dismiss", "staple_add"];
+const SPACE_TABLES = ["collections", "items", "sources", "price_points", "attachments", "alerts", "alt_groups", "store_settings", "receipts", "conversations", "conversation_messages", "space_pref", "trip", "trip_check", "space_store", "template", "suggest_dismiss", "staple_add", "brand_buy"];
 async function hashSpaces(spaces) {
   const h = createHash("sha256");
   for (const t of SPACE_TABLES) {

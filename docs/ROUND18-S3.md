@@ -171,7 +171,7 @@ Keep S2's fixed height (no layout shift).
   scroll never triggers it (axis lock); RTL mirrors the directions; reduced motion = no slide, buttons instead.
 - Not in store mode (there a tap checks).
 
-### C6 [ ] Usual brand (engine + one line)
+### C6 [x] Usual brand (engine + one line)
 Record the brand bought per product type per home from barcode scans, store-mode checks of a known barcode and receipt
 lines (additive data). Item sheet shows "Usually: Tnuva 3% · 8 of 10 times" when ≥ 3 buys and ≥ 60 % one brand.
 Forget everything / forget one fact clear it. Admin counts only.
@@ -322,6 +322,15 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   saves, Esc cancels); picture and quantity → the item sheet. Store mode untouched. `test:tenancy` (Undo copy is the
   space's own), `test:roles` (edit), smoke "row gestures" (phone + computer: delete + Undo, full swipe deletes for good,
   axis lock, quick quantity, rename, sheet, RTL, reduced motion); older steps open rows by their picture now.
+- C6 — new table `brand_buy` (additive, `migrate-r18s3.ts`; in `purgeSpaceData`): one row per buy with the brand from
+  the name (`brandOf`: the name minus its type words and pack size — "Tnuva milk 3% 1L" → Tnuva 3%; dictionary synonyms
+  that are brands stay brands). Recorded on a barcode add (`addToSupermarket` with a gtin; its Undo drops it), when a
+  trip finishes (every barcoded row that ended checked, once — all finish paths go through `finishTrip`) and when a till
+  receipt is applied (its lines; the receipt's Undo drops them). `lib/grocery/brands.ts` `usualOf`: ≥ 3 buys, ≥ 60 %
+  one brand, after the forget cut-offs (`all`, `b:<type>`). Item sheet: "Usually: Tnuva 3% · 8 of 10 times" under the
+  brand field; What Nexus learned: "Milk: usually Tnuva 3%" (✕ + Undo); Forget everything lists it. Admin System:
+  brands recorded (4 weeks) · homes (counts only). `test:brands` (unit loop), `test:tenancy` (+ brand_buy),
+  smoke "usual brand"; rehearsal `scripts/r18s3-rehearsal.mjs` passes on the 2026-10-14 snapshot.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
@@ -352,6 +361,9 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   and other members kept seeing it). Reduced motion: the row doesn't follow the finger; past 48 px the side opens in
   place (its buttons), no slide. The computer gets the same row (drag with the mouse; the name renames there too); the
   Tiles layout keeps tap → sheet.
+- C6: a barcode *lookup* isn't a buy — the brand counts when the scanned product is added (and when it's checked in the
+  store or on a receipt). Brands compare by spelling (case-insensitive): "Tnuva" and "תנובה" are two brands until R19
+  brings product data. A substitute check isn't the listed product, so it doesn't count.
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.
@@ -361,6 +373,9 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   `openReceipt(file)`, list → Add screen paste review prefilled, non-grocery → `createItem` in Products). Branch CI has
   only completed typecheck / lint / unit tests / build per push (each push cancels the previous run) — run the full
   guards once before merging. Fresh prod snapshot taken: `snapshots/prod-2026-10-14.db` (no DB change so far).
+- Found while adding C6: deleting a space (`purgeSpaceData`) removes Products data but none of the R18 supermarket
+  tables (trip, trip_check, template, space_store, suggest_dismiss, staple_add) — the new brand_buy is included. Worth a
+  small follow-up (privacy: a deleted space's shopping history stays in the DB).
 ### Leftovers (low)
 - A3 LOW: admin computer tab switches are instant (fine for a dashboard; a 150 ms fade would match the app); admin phone
   Back from a person / report has no reverse slide; the Products / segment thumbs use a 450 ms spring (over the 300 ms UI

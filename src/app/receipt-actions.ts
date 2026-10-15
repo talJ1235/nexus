@@ -353,6 +353,14 @@ export async function applyReceipt(raw: ApplyReceiptInput): Promise<{ items: Ite
     }
   }
   await s.update(schema.receipts, { status: "applied", appliedAt: t }, eq(schema.receipts.id, receipt.id));
+  // R18 S3 C6: a till receipt's lines tell the home's brands (an order confirmation doesn't — nothing was bought yet).
+  if (input.kind === "receipt") {
+    const { recordBrand } = await import("@/lib/db-scoped/brands");
+    for (const [k, line] of input.lines.entries()) {
+      const title = line.mode === "new" ? line.name : line.mode === "match" ? byId.get(line.allocations[0].itemId)?.title : null;
+      if (title) await recordBrand(s, { id: `bb_r_${receipt.id}_${k}`, title, source: "receipt", ref: receipt.id, by: s.scope.userId, at: input.orderDate ?? t }).catch(() => false);
+    }
+  }
   return { items: await loadItems(s, [...new Set(touched)]), undo };
 }
 
@@ -361,6 +369,8 @@ export async function undoReceipt(raw: ReceiptUndo): Promise<{ items: ItemWithSo
   const s = scoped(await requireCtx("edit"));
   const u = undoInput.parse(raw);
   const t = Date.now();
+  // R18 S3 C6: the receipt's brands go with it.
+  await (await import("@/lib/db-scoped/brands")).dropBrands(s, u.receiptId);
   if (u.attachmentIds.length) await s.delete(schema.attachments, inArray(schema.attachments.id, u.attachmentIds));
   if (u.pointIds.length) await s.delete(schema.pricePoints, inArray(schema.pricePoints.id, u.pointIds));
   for (const { id, ...fields } of u.items) await s.update(schema.items, { ...fields, updatedAt: t }, eq(schema.items.id, id));

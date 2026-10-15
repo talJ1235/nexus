@@ -2,7 +2,7 @@
 
 import "./sm.css";
 import { useEffect, useRef, useState } from "react";
-import { Ban, Camera, CalendarDays, Clock, Link2, MapPin, Plus, X } from "lucide-react";
+import { Ban, Camera, CalendarDays, Clock, Link2, MapPin, Plus, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Sheet } from "@/components/ui/overlays";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "@/components/ui/overlays";
@@ -154,7 +154,7 @@ function Body({ item, onClose }: { item: ItemWithSources; onClose: () => void })
           )}
         </div>
 
-        <Brands item={item} ro={ro} onSave={(p, o) => void save(p, o)} />
+        <Brands item={item} ro={ro} usual={detail?.brand ?? null} onSave={(p, o) => void save(p, o)} />
 
         <div className="mt-5">
           <span className={label}>{t.sm.sheet.store}</span>
@@ -397,8 +397,8 @@ function Dots({ days, of }: { days: number; of: number }) {
   );
 }
 
-function Brands({ item, ro, onSave }: { item: ItemWithSources; ro: boolean; onSave: (p: Parameters<typeof updateSmItem>[1], o: Partial<ItemWithSources>) => void }) {
-  const { t } = useI18n();
+function Brands({ item, ro, usual, onSave }: { item: ItemWithSources; ro: boolean; usual: Detail["brand"]; onSave: (p: Parameters<typeof updateSmItem>[1], o: Partial<ItemWithSources>) => void }) {
+  const { t, f } = useI18n();
   const [adding, setAdding] = useState(false);
   const subs = item.substitutes ?? [];
   const label = "mb-1.5 flex items-baseline justify-between gap-2 text-[13.5px] font-bold";
@@ -417,6 +417,13 @@ function Brands({ item, ro, onSave }: { item: ItemWithSources; ro: boolean; onSa
           className="bidi h-11 w-full rounded-full border border-line-strong bg-surface px-4 text-[14.5px] font-semibold outline-none focus:border-ink"
           data-sheet-brand
         />
+        {/* R18 S3 C6: what the home buys of this type (≥ 3 buys, one brand ≥ 60 %). */}
+        {usual && (
+          <p className="mt-1.5 flex items-center gap-1.5 px-1 text-[13px] text-muted" data-sheet-usual>
+            <Sparkles className="size-3.5 shrink-0 text-spark" />
+            <span className="bidi truncate">{f(t.sm.sheet.usually, { brand: usual.brand, n: usual.n, of: usual.of })}</span>
+          </p>
+        )}
       </div>
       <div className="mt-4">
         <span className={label}>

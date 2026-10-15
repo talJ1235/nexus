@@ -554,6 +554,8 @@ export const he: Dict = {
       smReceipt: "קניות עם קבלה",
       smAccepted: "הצעות שהתקבלו",
       smTemplates: "תבניות של Nexus שנשמרו",
+      smBrands: "מותגים שנרשמו (4 שבועות)",
+      smBrandsN: "{n} ב־{homes} בתים",
       smHidden: "מוצרים שהוסתרו",
       smForgot: "בתים שהשתמשו ב״לשכוח״",
       smRetention: "מרחבי קנייה שעדיין קונים בשבוע 4",

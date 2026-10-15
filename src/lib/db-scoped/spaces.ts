@@ -71,6 +71,7 @@ export async function purgeSpaceData(spaceId: string) {
     schema.collections,
     schema.storeSettings,
     schema.receipts,
+    schema.brandBuy,
   ] as const;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await db.batch(tables.map((t) => db.delete(t).where(eq(t.spaceId, spaceId))) as any);

@@ -131,6 +131,8 @@ export async function finishTrip(s: Scoped, tripId: string, o: { total?: number 
   if (!trip || trip.finishedAt) return trip;
   await refreshCounts(s, tripId);
   await s.update(schema.trip, { finishedAt: o.now ?? Date.now(), ...(o.total !== undefined ? { total: o.total } : {}), ...(o.receiptId !== undefined ? { receiptId: o.receiptId } : {}) }, eq(schema.trip.id, tripId));
+  // R18 S3 C6: the barcoded rows checked in this trip tell the home's brands (never blocks finishing).
+  await import("./brands").then((b) => b.recordTripBrands(s, tripId, trip.userId ?? null)).catch(() => 0);
   return s.byId(schema.trip, tripId);
 }
 

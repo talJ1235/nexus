@@ -138,6 +138,7 @@ export function SystemTab({ phone, go }: { phone: boolean; go: Go }) {
                     {hl(sm.accepted + sm.dismissed ? "ok" : "off", S.smAccepted, pct(sm.accepted, sm.accepted + sm.dismissed), "sm-accepted")}
                     {hl(sm.cohort ? "ok" : "off", S.smRetention, pct(sm.retained, sm.cohort), "sm-retention")}
                     {hl(sm.nexusTemplates ? "ok" : "off", S.smTemplates, num(sm.nexusTemplates), "sm-templates")}
+                    {hl(sm.brandBuys ? "ok" : "off", S.smBrands, sm.brandBuys ? f(S.smBrandsN, { n: num(sm.brandBuys), homes: num(sm.brandHomes) }) : S.smNone, "sm-brands")}
                     {hl(sm.hidden ? "ok" : "off", S.smHidden, num(sm.hidden), "sm-hidden")}
                     {hl(sm.forgot ? "ok" : "off", S.smForgot, num(sm.forgot), "sm-forgot")}
                   </>

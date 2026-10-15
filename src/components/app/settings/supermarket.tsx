@@ -25,6 +25,7 @@ import { refreshSmHome, useSmHome } from "../supermarket/data";
 import { chainDef, monoColor, storeLabel } from "../supermarket/numbers";
 import { SectionOrder, StorePicker } from "../supermarket/store-picker";
 import { DEFAULT_ORDER, cleanOrder } from "@/lib/grocery/sections";
+import { typeOf } from "@/lib/grocery/classify";
 import { I, P, SectionHead } from "./ui";
 import type { PageProps } from "./shell";
 
@@ -474,6 +475,13 @@ function useFactText() {
         ? f(L.weekly, { title: a.title })
         : f(L.every, { title: a.title, n: a.days });
     if (x.kind === "shabbat") return f(L.shabbat, { title: a.title });
+    if (x.kind === "brand") {
+      const type = typeOf(String(a.type));
+      return f(L.brand, {
+        type: type ? (locale === "he" ? type.he : type.en) : String(a.type),
+        brand: a.brand,
+      });
+    }
     return f(L.with, { title: a.title, with: a.with });
   };
 }

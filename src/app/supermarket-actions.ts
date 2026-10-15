@@ -7,6 +7,7 @@ import { requireCtx, AccessError } from "@/lib/ctx";
 import { scoped, type Scoped } from "@/lib/db-scoped";
 import * as G from "@/lib/db-scoped/grocery";
 import * as T from "@/lib/db-scoped/trips";
+import * as B from "@/lib/db-scoped/brands";
 import { userPrefGet, userPrefSet } from "@/lib/db-scoped/prefs";
 import { ONBOARDING_KEY, parseOnboarding } from "@/lib/onboarding";
 import { kvGet, kvSet } from "@/lib/kv";
@@ -89,6 +90,8 @@ export async function addToSupermarket(input: z.input<typeof AddZ>) {
   const i = AddZ.parse(input);
   const s = scoped(ctx);
   const r = await G.addToList(s, { ...i, unit: i.unit ?? null, by: ctx.user.id });
+  // C6: a product added by its barcode tells the home's brand.
+  if (i.gtin) await B.recordBrand(s, { title: r.item.title, source: "scan", ref: `add:${r.item.id}`, by: ctx.user.id }).catch(() => false);
   if (!r.merged) {
     classifyAfter(s, [r.item]);
     announceAdd(s, ctx.user.id, [r.item]);
@@ -105,6 +108,7 @@ export async function undoSupermarketAdd(itemId: string, before: z.input<typeof 
   const id = Id.parse(itemId);
   const item = await s.byId(schema.items, id);
   if (!item || item.list !== "supermarket") throw new AccessError("not_found");
+  await B.dropBrands(s, `add:${id}`);
   if (before) return { item: await G.undoMerge(s, id, BeforeZ.parse(before)) };
   await s.delete(schema.items, and(eq(schema.items.id, id), eq(schema.items.list, "supermarket")));
   return { item: null };
@@ -585,8 +589,8 @@ export async function smItemDetail(itemId: string) {
   if (!it || it.list !== "supermarket") throw new AccessError("not_found");
   const { tz } = await notifyPrefs(ctx.user.id);
   const key = it.productKey ?? "";
-  const [knowledge, history] = await Promise.all([key ? G.knowledgeFor(s, key, tz) : Promise.resolve({ state: "new" as const, count: 0 }), key ? G.productHistory(s, key) : Promise.resolve({ rows: [], cheapest: null })]);
-  return { item: it, knowledge, history };
+  const [knowledge, history, brand] = await Promise.all([key ? G.knowledgeFor(s, key, tz) : Promise.resolve({ state: "new" as const, count: 0 }), key ? G.productHistory(s, key) : Promise.resolve({ rows: [], cheapest: null }), B.usualBrandFor(s, it.title)]);
+  return { item: it, knowledge, history, brand };
 }
 
 const PatchZ = z
@@ -684,13 +688,13 @@ export async function smLearned() {
 /** ✕ on a learned fact (Nexus learns it again from what happens next) or "Forget everything" (`all`: learning only). */
 export async function forgetLearned(key: string) {
   const ctx = await requireCtx("edit");
-  const k = z.union([z.literal("all"), z.literal("day"), z.string().regex(/^(store|p):.{1,160}$/)]).parse(key);
+  const k = z.union([z.literal("all"), z.literal("day"), z.string().regex(/^(store|p|b):.{1,160}$/)]).parse(key);
   return { prev: await G.forgetFact(scoped(ctx), k) };
 }
 
 /** R18 S3 B10: the Undo of one forgotten fact (not of "forget everything" — that one asks to hold first). */
 export async function undoForgetLearned(key: string, prev: number | null) {
   const ctx = await requireCtx("edit");
-  const k = z.union([z.literal("day"), z.string().regex(/^(store|p):.{1,160}$/)]).parse(key);
+  const k = z.union([z.literal("day"), z.string().regex(/^(store|p|b):.{1,160}$/)]).parse(key);
   await G.restoreForget(scoped(ctx), k, z.number().int().min(0).max(Date.now()).nullable().parse(prev));
 }
