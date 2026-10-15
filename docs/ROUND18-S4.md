@@ -11,7 +11,14 @@ Results go to **"## Open" at the end of this file**. Tal runs it overnight (~8 h
   written): merge `origin/main` into it, let its CI finish green, `git merge --ff-only` into `main`, push, check the
   `guards` run on `main` + the prod smoke after deploy (S3 rules). Only then branch **`round18-s4`** from `main`.
 - **Commit and push after every single item** (`R18.S4.<part><k>: …`, `git push origin round18-s4`); tick `[x]` here +
-  one line in "### Progress" in the same commit; decisions in "### Decisions" at once; anything for Tal in "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
+  one line in "### Progress" in the same commit; decisions in "- Step 0 done: `round18-s3` merged with main twice (main moved with a docs commit), CI green on `313630b`, main
+  fast-forwarded and pushed; prod smoke on that deploy passed.
+- G1: full smoke on the final build — computer ALL PASSED (116); phone 139 + 3 rerun alone and passing (the
+  "item sheet morph" flake known since S1, an SQLITE_BUSY lock, a locator fixed). Local: the CI unit loop, authz
+  coverage, scope, clip (1066 screens), polish, inbox, headers, device, adblock, bidi, shop-offline, capture, voice.
+- G2: SPEC R18 S4, CLAUDE.md map, help topic Supermarket, ENVIRONMENT log, the phone checklist below.
+
+### Decisions" at once; anything for Tal in "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
   "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
 - C1 root cause found by the full smoke: the site's `Permissions-Policy` header said `microphone=()` — the browser
   refused the mic to the app itself, so S3's voice (Web Speech) could never work on a phone. Now `microphone=(self)`
@@ -168,10 +175,10 @@ first; in store mode a row shows the usual brand under the name (small) so someo
 right one.
 
 ## Part G — guards and docs
-### G1 [ ] Guards
+### G1 [x] Guards
 Smoke steps for every item (phone + desktop). `test:add` (A1 matrix), `test:barcode` fixtures, voice fake recorder,
 long-press timings, store-mode one-scroller check. Full phone + desktop smoke pass.
-### G2 [ ] Docs
+### G2 [x] Docs
 `SPEC.md` R18 S4 section, `CLAUDE.md` map (camera choice + `/debug/camera`, voice recorder path), help topic Supermarket
 (scanning, voice), `docs/ENVIRONMENT.md` log line. "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
   "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.

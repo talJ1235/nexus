@@ -2825,7 +2825,7 @@ try {
       };
       await page.goto(`${BASE}/supermarket`);
       await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
-      await page.locator("[data-sm-more]").click();
+      await page.locator("[data-sm-more]:visible").first().click();
       await page.locator("[data-sm-menu-lists]").click();
       await page.waitForSelector("[data-sm-lists] [data-seg-thumb]", { timeout: 10000 });
       const rootLists = await page.locator("[data-sm-lists] [role=tablist]").first().evaluate((e) => [...e.attributes].map((a) => a.name).find((n) => n.startsWith("data-")));
@@ -2843,7 +2843,7 @@ try {
       const r = {};
       await page.goto(`${BASE}/supermarket`);
       await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
-      await page.locator("[data-sm-more]").click();
+      await page.locator("[data-sm-more]:visible").first().click();
       await page.locator("[data-sm-menu-lists]").click();
       await page.waitForSelector("[data-sm-lists]", { timeout: 10000 });
       await page.locator("[data-sm-lists] [role=tab]").nth(1).click();
