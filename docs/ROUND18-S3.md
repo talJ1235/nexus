@@ -361,6 +361,10 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   passed it on the branch). Prod smoke (deployment_status) failed C7's "still for 4 s" on real data: the server's set
   arriving after the device snapshot moved another suggestion to place 0 — the card now holds the shown suggestion by
   its key while it is still in the set (follow-up commit, through branch CI again).
+- Prod smoke on 3e8dbdc: the set on prod is recomputed a few seconds after opening Home (the AI's own suggestions merge
+  in), so the card's *place* moves while the same suggestion stays on screen — the C7 step now checks the shown
+  suggestion (its key + words); the older keyboard / swipe pager steps wait until the set (`data-sug-set`) has been the
+  same for 2 s before their place arithmetic.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.

@@ -61,6 +61,18 @@ const ok = (cond, msg, extra = "") => {
 // SMOKE_ONLY=text runs only the steps whose name contains it (plus login), for quick iteration; a|b for several.
 const ONLY = process.env.SMOKE_ONLY;
 const demoStep = async (msg, fn) => (REAL ? console.log(`SKIP ${msg} (real data: needs the demo seed)`) : step(msg, fn));
+// R18 S3 C7: on real data the suggestion set is recomputed a few seconds after Home opens (the AI's own suggestions merge
+// in); position-based checks wait until the set (its keys, in order) has been the same for 2 s (≤ 15 s).
+const settleSuggestions = async (page) => {
+  let prev = null;
+  let since = Date.now();
+  for (const t0 = Date.now(); Date.now() - t0 < 15000; ) {
+    const cur = await page.locator('[data-home-section="suggest"]').getAttribute("data-sug-set").catch(() => null);
+    if (cur !== prev) (prev = cur), (since = Date.now());
+    else if (Date.now() - since >= 2000) return;
+    await page.waitForTimeout(250);
+  }
+};
 const step = async (msg, fn) => {
   if (ONLY && !ONLY.split("|").some((o) => msg.includes(o)) && !["owner login", "app renders items"].includes(msg)) return;
   try {
@@ -261,6 +273,7 @@ async function homeChecks(page) {
     const card = page.locator('[data-home-section="suggest"]');
     if (!(await card.count())) return ok(true, "suggest: keyboard pager (no suggestions in this data)");
     const dots = await card.locator("[data-sug-pager] span button").first().locator("xpath=..").locator("button").count().catch(() => 0);
+    await settleSuggestions(page);
     const before = await card.getAttribute("data-sug-index");
     await card.focus();
     await page.keyboard.press("ArrowRight");
@@ -283,12 +296,13 @@ async function homeChecks(page) {
     await page.mouse.move(1, 1);
     await card.scrollIntoViewIfNeeded();
     const r = {};
-    const look = () => card.evaluate((e) => ({ i: e.getAttribute("data-sug-index"), title: e.querySelector("[data-sug-title]")?.textContent ?? "", h: Math.round(e.getBoundingClientRect().height), cls: e.querySelector("[data-sug-swipe]")?.className ?? "" }));
+    // Which suggestion is shown (its key) and its words — not its place: on real data the set is recomputed after opening.
+    const look = () => card.evaluate((e) => ({ i: e.querySelector("[data-sug-swipe]")?.getAttribute("data-sug-key") ?? "", title: e.querySelector("[data-sug-title]")?.textContent ?? "", h: Math.round(e.getBoundingClientRect().height), cls: e.querySelector("[data-sug-swipe]")?.className ?? "" }));
     const a = await look();
     await page.waitForTimeout(4000);
     const b = await look();
     r.still = a.i === b.i && a.title === b.title;
-    await page.waitForFunction(() => document.querySelector('[data-home-section="suggest"]')?.getAttribute("data-sug-index") !== "0", null, { timeout: 7000 }).catch(() => {});
+    await page.waitForFunction((k) => document.querySelector('[data-home-section="suggest"] [data-sug-swipe]')?.getAttribute("data-sug-key") !== k, a.i, { timeout: 7000 }).catch(() => {});
     await page.waitForTimeout(400);
     const c = await look();
     r.turned = c.i !== a.i;
@@ -333,6 +347,7 @@ async function homeChecks(page) {
     // The desktop opening (once a day) covers the page until it ends.
     await page.waitForSelector("#boot", { state: "hidden", timeout: 10000 }).catch(() => {});
     await card.scrollIntoViewIfNeeded();
+    await settleSuggestions(page);
     const idx = () => card.getAttribute("data-sug-index");
     const box = await card.boundingBox();
     const y = box.y + box.height / 2;

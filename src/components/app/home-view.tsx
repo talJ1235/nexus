@@ -802,6 +802,7 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
       data-sug-count={sugs.length}
       data-more={Math.max(0, sugs.length - 1 - more.length)}
       data-sug-kinds={sugs.map((y) => y.kind).join(" ")}
+      data-sug-set={sugs.map((y) => y.key).join(" ")}
     >
       <div className="r13-sug-in flex flex-1 flex-col">
       <div className={cn("flex flex-col gap-2 px-3.5 py-3 @min-[600px]:flex-row @min-[600px]:items-center @min-[600px]:gap-[18px] @min-[600px]:px-5 @min-[600px]:py-4", !more.length && "my-auto")}>
