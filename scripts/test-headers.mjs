@@ -10,7 +10,8 @@ const REQUIRED = {
   "strict-transport-security": (v) => /max-age=63072000/.test(v),
   "x-content-type-options": (v) => v === "nosniff",
   "referrer-policy": (v) => v === "strict-origin-when-cross-origin",
-  "permissions-policy": (v) => /camera=\(self\)/.test(v),
+  // R18 S4 C1: voice add records — the mic is allowed for the app itself (it was blocked: voice never worked).
+  "permissions-policy": (v) => /camera=\(self\)/.test(v) && /microphone=\(self\)/.test(v),
   "cross-origin-opener-policy": (v) => v === "same-origin",
 };
 let fails = 0;

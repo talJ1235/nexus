@@ -239,7 +239,7 @@ html[data-device="computer"] .sm-added-pill { bottom: 32px; }
 .gro-sw.gro-closing { transition: height 200ms var(--ease-out); }
 .gro-sw.gro-closing > .gro-sw-del, .gro-sw.gro-closing > .gro-sw-qty { visibility: hidden; }
 /* D1: the name is a button around its own letters only. */
-.gro-row button.gro-t { display: inline-block; }
+.gro-row button.gro-t { display: block; width: fit-content; }
 
 /* R18 S4 E4: store mode has one scroller (its list): the page behind never moves, no phone scrollbar. */
 html[data-store-mode], html[data-store-mode] body { overflow: hidden; overscroll-behavior: none; }

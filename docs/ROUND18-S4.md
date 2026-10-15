@@ -13,6 +13,11 @@ Results go to **"## Open" at the end of this file**. Tal runs it overnight (~8 h
 - **Commit and push after every single item** (`R18.S4.<part><k>: …`, `git push origin round18-s4`); tick `[x]` here +
   one line in "### Progress" in the same commit; decisions in "### Decisions" at once; anything for Tal in "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
   "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
+- C1 root cause found by the full smoke: the site's `Permissions-Policy` header said `microphone=()` — the browser
+  refused the mic to the app itself, so S3's voice (Web Speech) could never work on a phone. Now `microphone=(self)`
+  (`next.config.ts`; `test:headers` checks it).
+- Smoke: S3 B5 (fake Web Speech) retired — C1 replaces that flow (`voice add (R18 S4 C1)` + `test:voice`); S2 B2's
+  merge toast on the Add screen is the A2 inline line now; S3 C2 taps Use photo after the shutter (B3).
 - C1: the recording is sent as a 16 kHz mono WAV (every model reads WAV; webm/opus support varies), the original
   when the browser can't decode it; sent to a route (binary, ≤ 4 MB), not a server action (2 MB body limit).
 - B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
@@ -25,6 +30,11 @@ Results go to **"## Open" at the end of this file**. Tal runs it overnight (~8 h
 - **Real-device honesty:** camera, focus, barcode and voice can't be fully proven in headless Chromium. Test what can be
   tested (fixtures, fake streams, mocked AI) and, for each such item, write in "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
   "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
+- C1 root cause found by the full smoke: the site's `Permissions-Policy` header said `microphone=()` — the browser
+  refused the mic to the app itself, so S3's voice (Web Speech) could never work on a phone. Now `microphone=(self)`
+  (`next.config.ts`; `test:headers` checks it).
+- Smoke: S3 B5 (fake Web Speech) retired — C1 replaces that flow (`voice add (R18 S4 C1)` + `test:voice`); S2 B2's
+  merge toast on the Add screen is the A2 inline line now; S3 C2 taps Use photo after the shutter (B3).
 - C1: the recording is sent as a 16 kHz mono WAV (every model reads WAV; webm/opus support varies), the original
   when the browser can't decode it; sent to a route (binary, ≤ 4 MB), not a server action (2 MB body limit).
 - B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
@@ -165,6 +175,11 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
 `SPEC.md` R18 S4 section, `CLAUDE.md` map (camera choice + `/debug/camera`, voice recorder path), help topic Supermarket
 (scanning, voice), `docs/ENVIRONMENT.md` log line. "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
   "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
+- C1 root cause found by the full smoke: the site's `Permissions-Policy` header said `microphone=()` — the browser
+  refused the mic to the app itself, so S3's voice (Web Speech) could never work on a phone. Now `microphone=(self)`
+  (`next.config.ts`; `test:headers` checks it).
+- Smoke: S3 B5 (fake Web Speech) retired — C1 replaces that flow (`voice add (R18 S4 C1)` + `test:voice`); S2 B2's
+  merge toast on the Add screen is the A2 inline line now; S3 C2 taps Use photo after the shutter (B3).
 - C1: the recording is sent as a 16 kHz mono WAV (every model reads WAV; webm/opus support varies), the original
   when the browser can't decode it; sent to a route (binary, ≤ 4 MB), not a server action (2 MB body limit).
 - B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
@@ -227,6 +242,11 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
   add) merges through `mergeAdd`. Volume (L) onto a weighed row has no conversion → one more pack.
 - B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
   "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
+- C1 root cause found by the full smoke: the site's `Permissions-Policy` header said `microphone=()` — the browser
+  refused the mic to the app itself, so S3's voice (Web Speech) could never work on a phone. Now `microphone=(self)`
+  (`next.config.ts`; `test:headers` checks it).
+- Smoke: S3 B5 (fake Web Speech) retired — C1 replaces that flow (`voice add (R18 S4 C1)` + `test:voice`); S2 B2's
+  merge toast on the Add screen is the A2 inline line now; S3 C2 taps Use photo after the shutter (B3).
 - C1: the recording is sent as a 16 kHz mono WAV (every model reads WAV; webm/opus support varies), the original
   when the browser can't decode it; sent to a route (binary, ≤ 4 MB), not a server action (2 MB body limit).
 - B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
