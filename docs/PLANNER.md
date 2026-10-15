@@ -7,6 +7,16 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-15 (morning):** R18 S3 stopped on usage after C1 (0, A1–A6, B1–B12, C1 ticked on `round18-s3`; C2 reverted).
+  Last branch run (`f96dbf5`) **completed and failed** at the guards step "mixed Hebrew + English" (`test:bidi`) — the
+  builder thought CI never got past build. Resume prompt:
+  ```
+  Round 18, session 3 (docs/ROUND18-S3.md) — resume on branch round18-s3 per "Resuming". First: the last CI run on
+  round18-s3 (f96dbf5) failed at the guards step "mixed Hebrew + English" (test:bidi) — reproduce locally and fix before
+  C2. Then C2–C7, G1, G2 without stopping. Before merging, let one full CI run on the final commit finish green (don't
+  push docs-only commits on top while it runs). Merge to main only if everything is ticked, CI is green, and (if C6
+  changed the DB) the rehearsal on a fresh prod snapshot copy passes.
+  ```
 - **2026-10-15:** Tal's notes after using S2 sorted into **`docs/R18-S3-NOTES.md`** (causes found: dock tab-4 flip,
   settings discoverability, History without trips, no branch list). Groups A fixes (no boards) / B list v2 + capture
   (boards) / C Home widgets v2 + floating Ask (boards) / D R19 data / E R20 offline. **Next:** Tal picks → briefs.
