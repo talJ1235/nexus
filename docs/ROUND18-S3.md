@@ -162,7 +162,7 @@ minimal include it) — movable / removable in Customise like the others. During
 pinned at the top of Home regardless of the widget. Existing layouts get the widget where it is today (first).
 Keep S2's fixed height (no layout shift).
 
-### C5 [ ] Row gestures on the supermarket list
+### C5 [x] Row gestures on the supermarket list
 - Swipe toward the end side → delete (red, icon), full swipe or tap the revealed button → confirm by Undo toast
   (5 s) — **no** modal on swipe; one-tap mistakes are undoable.
 - Swipe toward the start side → quick quantity (− count +, inline, closes on tap outside).
@@ -313,6 +313,15 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   the widget, which Home hides while a trip runs (`useRunningTrip`). Height fixed from the first frame as in S2.
   `test:home` (+ migration / removal / move / tray width), smoke "next shop is a Home widget" (phone + computer) and the
   trip-bar step checks the pin.
+- C5 — `useSwipe` (`components/ui/swipe.ts`) is the inbox's swipe made two-sided (the inbox uses it now): axis lock,
+  1:1 follow, rubber-band, flick, drawer-curve settle, RTL mirrored; a mouse drag's click is swallowed (it closed the
+  row before — the inbox too). Supermarket rows (`supermarket/row.tsx`): toward the end → the bin (tap it or a full
+  swipe) → gone at once + "Milk removed · Undo" (5 s, no modal); the server keeps the row (`sm:del:` kv, a day,
+  purged by the daily cron) so `restoreSmItem` puts the same row back (same id, notes, picture). Toward the start → − n +
+  (the item sheet's count rule, `countOf` / `withCountOf`; closes on a tap outside). Name → inline rename (Enter / blur
+  saves, Esc cancels); picture and quantity → the item sheet. Store mode untouched. `test:tenancy` (Undo copy is the
+  space's own), `test:roles` (edit), smoke "row gestures" (phone + computer: delete + Undo, full swipe deletes for good,
+  axis lock, quick quantity, rename, sheet, RTL, reduced motion); older steps open rows by their picture now.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
@@ -339,6 +348,10 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   existing receipt review (its own pipeline), so the photo's one call only decides it is a receipt. "Not a grocery" needs
   both the model and the dictionary to agree (a model saying milk isn't a grocery is overruled).
 - C4: while a trip runs the widget steps aside (the pinned trip bar replaces it) instead of showing "next shop" for the list being shopped.
+- C5: Undo restores from a server copy rather than delaying the delete (a delayed delete was put back by live sync
+  and other members kept seeing it). Reduced motion: the row doesn't follow the finger; past 48 px the side opens in
+  place (its buttons), no slide. The computer gets the same row (drag with the mouse; the name renames there too); the
+  Tiles layout keeps tap → sheet.
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.

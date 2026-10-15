@@ -46,7 +46,7 @@ const DAY = 86_400_000;
 /**
  * R18 S2 G1 — the supermarket's caches and one-time marks, kept only as long as they help (daily cron): AI section answers
  * 60 days, Open Food Facts lookups by barcode 30 days and by name 7 days, the evening drafts 3 days, trip op ids (a resend
- * applies once) and offline-add client ids 30 days.
+ * applies once) and offline-add client ids 30 days, a deleted row's Undo copy 1 day.
  */
 export const GROCERY_KV_KEEP: [prefix: string, days: number][] = [
   ["grocery:ai:", 60],
@@ -54,6 +54,8 @@ export const GROCERY_KV_KEEP: [prefix: string, days: number][] = [
   ["grocery:offq:", 7],
   ["sm:draft:", 3],
   ["sm:op:", 30],
+  // R18 S3 C5: a deleted row kept for its Undo (5 s on screen; a day here)
+  ["sm:del:", 1],
 ];
 
 export async function purgeGroceryKv(now = Date.now()) {

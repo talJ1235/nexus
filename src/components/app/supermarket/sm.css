@@ -69,7 +69,22 @@
   text-align: start;
   transition: transform 160ms var(--ease-out), background-color 150ms ease;
 }
-.gro-row + .gro-row { border-top: 1px solid color-mix(in srgb, var(--k) 18%, var(--line-in)); }
+.gro-row + .gro-row, .gro-sw + .gro-sw > .gro-row { border-top: 1px solid color-mix(in srgb, var(--k) 18%, var(--line-in)); }
+
+/* R18 S3 C5: a swipeable row — the row slides over what's under it (delete at the start side, quick quantity at the end).
+   The layers only show while the row is moved (no red seam at rest); vertical pans stay the page's (axis lock in JS). */
+.gro-sw { position: relative; overflow: hidden; }
+.gro-sw > .gro-row { position: relative; z-index: 1; background: color-mix(in srgb, var(--k) 4%, var(--surface)); touch-action: pan-y; }
+.dark .gro-sw > .gro-row { background: color-mix(in srgb, var(--k) 7%, var(--surface)); }
+.gro-one .gro-sw > .gro-row { background: var(--surface); }
+.gro-sw > .gro-row.gro-settle { transition: transform 360ms var(--ease-drawer), background-color 150ms ease; }
+.gro-sw-del, .gro-sw-qty { position: absolute; inset: 0; display: flex; align-items: center; visibility: hidden; }
+.gro-sw-del.on, .gro-sw-qty.on { visibility: visible; }
+.gro-sw-del { justify-content: flex-start; background: var(--danger); color: #fff; }
+.gro-sw-del button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 92px; height: 100%; font-size: 12.5px; font-weight: 700; }
+.gro-sw-qty { justify-content: flex-end; gap: 6px; padding-inline-end: 10px; background: var(--surface-2); }
+@media (prefers-reduced-motion: reduce) { .gro-sw > .gro-row.gro-settle { transition: none; } }
+:root[data-motion="reduce"] .gro-sw > .gro-row.gro-settle { transition: none; }
 .gro-row:active { transform: scale(0.985); background: color-mix(in srgb, var(--k) 7%, transparent); }
 .gro-row .gro-t { display: block; font-size: 16px; font-weight: 750; letter-spacing: -0.01em; line-height: 1.25; color: var(--ink); }
 .gro-row .gro-s { display: block; margin-top: 1px; font-size: 13px; color: var(--muted); }
@@ -101,7 +116,7 @@
 .gro-one .gro-row { min-height: 52px; padding: 6px 12px; gap: 10px; }
 .gro-one .gro-row .gro-t { font-size: 15.5px; }
 .gro-one .gro-row .gro-s { font-size: 12.5px; }
-.gro-one .gro-row:first-child { border-top: 1px solid color-mix(in srgb, var(--k) 14%, var(--line-in)); }
+.gro-one .gro-row:first-child, .gro-one .gro-sw:first-child > .gro-row { border-top: 1px solid color-mix(in srgb, var(--k) 14%, var(--line-in)); }
 .gro-one .gro-tiles { margin-top: 0; padding: 4px 10px 10px; }
 
 /* Tiles layout (⋯ menu): 3 per row on phones. */

@@ -299,6 +299,22 @@ ok(leaks.length === 0, "no response to B contained A's or S's content", leaks.sl
   } else ok(false, "B5: changesSince is in the action manifest");
 }
 
+// R18 S3 C5: a swiped-away row's Undo copy is the space's own — B can't restore A's deleted row (into B's space or A's).
+{
+  const rm = byName("supermarket-actions.ts#removeSmItem");
+  const back = byName("supermarket-actions.ts#restoreSmItem");
+  const where = async (itemId) => (await db.execute({ sql: "SELECT space_id FROM items WHERE id = ?", args: [itemId] })).rows[0]?.space_id ?? null;
+  if (rm && back) {
+    await callAction("A", rm, [ids.A.sm], SP.A);
+    const gone = (await where(ids.A.sm)) === null;
+    await callAction("B", back, [ids.A.sm], SP.B);
+    await callAction("B", back, [ids.A.sm], SP.A);
+    const stillGone = (await where(ids.A.sm)) === null;
+    await callAction("A", back, [ids.A.sm], SP.A);
+    ok(gone && stillGone && (await where(ids.A.sm)) === SP.A, "C5: only A (in A's space) can Undo A's deleted supermarket row; it comes back in A's space");
+  } else ok(false, "C5: removeSmItem / restoreSmItem are in the action manifest");
+}
+
 // ---------- 2. V (viewer in S) tries every write in S ----------
 const beforeS = await hashSpaces([SP.S]);
 const vWrites = [];

@@ -1658,7 +1658,7 @@ try {
           const row = page.locator(`[data-sm-list] [data-sm-row]:has(.gro-t:text-is("${name}"))`).first();
           if (!(await row.count())) continue;
           await row.evaluate((e) => e.scrollIntoView({ block: "center" }));
-          await row.click();
+          await row.locator("[data-sm-row-tile]").click();
           await page.locator("[data-sheet-remove]").click();
           await page.waitForTimeout(500);
         }
@@ -1787,7 +1787,7 @@ try {
         await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
         const row = page.locator('[data-sm-row]:has-text("Tomatoes")').first();
         await row.evaluate((e) => e.scrollIntoView({ block: "center" }));
-        await row.click();
+        await row.locator("[data-sm-row-tile]").click();
         await page.waitForSelector("[data-sm-sheet] [data-qty-steppers]", { timeout: 10000 });
         const read = async () => ({ c: (await page.locator("[data-sm-sheet] [data-qty-count]").textContent()).trim(), w: (await page.locator("[data-sm-sheet] [data-qty-weight]").textContent()).trim() });
         r.start = await read();
@@ -2059,6 +2059,115 @@ try {
           "supermarket + is the camera (R18 S3 C1): barcode first, photo, type instead; refused → Add + hint", JSON.stringify(r));
       });
 
+    // R18 S3 C5: row gestures on the list — toward the end deletes (button or full swipe) with a 5 s Undo (the same row
+    // back) and no modal; toward the start a quick − count + that closes on a tap outside; a vertical drag
+    // never swipes; the name renames inline, the picture opens the sheet; RTL mirrors; reduced motion opens without a slide.
+    if (WRITE)
+      await step("row gestures (R18 S3 C5): swipe delete + Undo, quick quantity, axis lock, rename, picture → sheet, RTL, reduced motion", async () => {
+        const r = {};
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        try {
+        // Rows an earlier (failed) run left behind go first.
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        for (const id of await page.locator('[data-sm-row]:has(.gro-t:text-matches("^Swipe test"))').evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row")))) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "Swipe test oats" }]);
+        await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "Swipe test rice" }]);
+        await page.goto(`${BASE}/supermarket`);
+        const idOf = (title) => page.locator(`[data-sm-row]:has(.gro-t:text-is("${title}"))`).first().getAttribute("data-sm-row", { timeout: 15000 });
+        const a = await idOf("Swipe test oats");
+        const b = await idOf("Swipe test rice");
+        const box = async (id) => {
+          await page.locator(`[data-sm-row="${id}"]`).evaluate((e) => e.scrollIntoView({ block: "center" }));
+          return page.locator(`[data-sm-row="${id}"]`).boundingBox();
+        };
+        // A drag of dx px (+ = to the right) through the row's middle — slow (a finger that stops), or a quick flick.
+        const drag = async (id, dx, dy = 0, quick = false) => {
+          const bb = await box(id);
+          const x0 = bb.x + bb.width / 2;
+          const y0 = bb.y + bb.height / 2;
+          await page.mouse.move(x0, y0);
+          await page.mouse.down();
+          if (quick) await page.mouse.move(x0 + dx, y0 + dy, { steps: 8 });
+          else
+            for (let k = 1; k <= 14; k++) {
+              await page.mouse.move(x0 + (dx * k) / 14, y0 + (dy * k) / 14);
+              await page.waitForTimeout(30);
+            }
+          if (!quick) await page.waitForTimeout(150); // held still: no flick
+          await page.mouse.up();
+          await page.waitForTimeout(450);
+        };
+        const tx = (id) => page.locator(`[data-sm-row="${id}"]`).evaluate((e) => e.style.transform || "none");
+        // toward the end (LTR: right) → the bin, tap it → gone + Undo → back, and still there after the toast's 5 s
+        await drag(a, 70);
+        r.delOpen = await page.locator(`[data-sm-sw="${a}"] .gro-sw-del.on`).count();
+        if (OUT) await page.screenshot({ path: join(OUT, `c5-delete${MOBILE ? "-m" : ""}.png`) });
+        await page.locator(`[data-sm-sw="${a}"] [data-sm-swipe-delete]`).click();
+        r.gone = await page.waitForSelector(`[data-sm-row="${a}"]`, { state: "detached", timeout: 3000 }).then(() => true, () => false);
+        r.noModal = (await page.locator('[role="alertdialog"], [role="dialog"]').count()) === 0;
+        await page.locator('[data-sonner-toast] button:has-text("Undo")').first().click();
+        r.undone = await page.waitForSelector(`[data-sm-row="${a}"]`, { timeout: 3000 }).then(() => true, () => false);
+        // a full swipe (a flick) → gone for good once the toast ends
+        await drag(b, 260, 0, true);
+        r.fullGone = await page.waitForSelector(`[data-sm-row="${b}"]`, { state: "detached", timeout: 3000 }).then(() => true, () => false);
+        await page.waitForTimeout(5800);
+        await page.reload();
+        await page.waitForSelector(`[data-sm-row="${a}"]`, { timeout: 15000 });
+        r.kept = (await page.locator(`[data-sm-row="${a}"]`).count()) === 1;
+        r.deleted = (await page.locator(`[data-sm-row="${b}"]`).count()) === 0;
+        // a mostly vertical drag never swipes
+        await drag(a, 14, 90);
+        r.axisLock = (await tx(a)) === "none";
+        // toward the start (LTR: left) → − count +; + changes the row; a tap outside closes
+        await drag(a, -90);
+        r.qtyOpen = await page.locator(`[data-sm-quick="${a}"].on`).count();
+        if (OUT) await page.screenshot({ path: join(OUT, `c5-qty${MOBILE ? "-m" : ""}.png`) });
+        const n0 = Number(await page.locator(`[data-sm-quick="${a}"] [data-sm-quick-n]`).textContent());
+        await page.locator(`[data-sm-quick="${a}"] [data-sm-quick-more]`).click();
+        await page.waitForTimeout(300);
+        r.qty = [n0, Number(await page.locator(`[data-sm-quick="${a}"] [data-sm-quick-n]`).textContent()), (await page.locator(`[data-sm-row="${a}"] .gro-q`).textContent()).trim()];
+        await page.mouse.click(8, 8);
+        await page.waitForTimeout(450);
+        r.qtyClosed = (await tx(a)) === "none" || (await tx(a)) === "translateX(0px)";
+        // the name renames inline (Enter saves), the picture opens the sheet
+        await page.locator(`[data-sm-row="${a}"] [data-sm-row-name]`).click();
+        await page.locator("[data-sm-rename]").fill("Swipe test oats 1kg");
+        await page.keyboard.press("Enter");
+        await page.waitForTimeout(500);
+        r.renamed = (await page.locator(`[data-sm-row="${a}"] .gro-t`).textContent()).trim();
+        await page.locator(`[data-sm-row="${a}"] [data-sm-row-tile]`).click();
+        r.sheet = await page.waitForSelector(`[data-sm-sheet="${a}"]`, { timeout: 8000 }).then(() => true, () => false);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(400);
+        // RTL: the same "toward the end" is now to the left
+        await page.evaluate(() => (document.documentElement.dir = "rtl"));
+        await drag(a, -70);
+        r.rtl = await page.locator(`[data-sm-sw="${a}"] .gro-sw-del.on`).count();
+        await page.mouse.click(8, 8);
+        await page.evaluate(() => (document.documentElement.dir = "ltr"));
+        await page.reload();
+        await page.waitForSelector(`[data-sm-row="${a}"]`, { timeout: 15000 });
+        // reduced motion: no follow mid-drag, the side opens in place
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        const bb = await box(a);
+        await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(bb.x + bb.width / 2 + 30, bb.y + bb.height / 2, { steps: 4 });
+        r.reducedMid = await tx(a);
+        await page.mouse.move(bb.x + bb.width / 2 + 80, bb.y + bb.height / 2, { steps: 4 });
+        await page.mouse.up();
+        r.reducedOpen = await page.locator(`[data-sm-sw="${a}"] .gro-sw-del.on`).count();
+        await page.emulateMedia({ reducedMotion: null });
+        await callAction(BASE, cookie, act("removeSmItem"), [a]);
+        } catch (e) {
+          throw new Error(`${String(e.message).split("\n")[0]} ${JSON.stringify(r)}`);
+        }
+        ok(r.delOpen === 1 && r.gone && r.noModal && r.undone && r.fullGone && r.kept && r.deleted && r.axisLock && r.qtyOpen === 1 && r.qty[1] === r.qty[0] + 1 && r.qtyClosed && r.renamed === "Swipe test oats 1kg" && r.sheet && r.rtl === 1 && r.reducedMid === "none" && r.reducedOpen === 1,
+          "row gestures (R18 S3 C5): swipe delete + Undo, quick quantity, axis lock, rename, picture → sheet, RTL, reduced motion", JSON.stringify(r));
+      });
+
     // R18 S3 C3: Save the current list shows a card — the products' pictures stacked (ProjectCover's collage), the name
     // field, count · estimate · store; the template rows in Templates are the same card. Typing the name stays in the card.
     if (WRITE)
@@ -2303,7 +2412,7 @@ try {
         await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
         const row = page.locator('[data-sm-row]:has-text("Tomatoes")').first();
         const id = await row.getAttribute("data-sm-row");
-        await row.click();
+        await row.locator("[data-sm-row-tile]").click();
         await page.waitForSelector(`[data-sm-sheet="${id}"] [data-learned]`, { timeout: 10000 });
         const r = {};
         r.learned = await page.locator("[data-learned]").getAttribute("data-learned");
@@ -2552,7 +2661,7 @@ try {
         r.add = await page.waitForSelector("[data-add-input]", { timeout: 5000 }).then(() => 1, () => 0);
         await page.keyboard.press("Escape");
         await page.waitForTimeout(400);
-        await page.locator("[data-sm-desk] [data-sm-row]").first().click();
+        await page.locator("[data-sm-desk] [data-sm-row] [data-sm-row-tile]").first().click();
         r.drawer = await page.waitForSelector("[role=dialog]", { timeout: 5000 }).then(() => 1, () => 0);
         await page.keyboard.press("Escape");
         await page.waitForTimeout(400);

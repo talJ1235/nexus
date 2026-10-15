@@ -12,6 +12,7 @@ import { setNotificationsOn } from "@/app/home-actions";
 import { askPermission, ensureSubscribed, permState, pushEnv, type PermState } from "@/lib/notify/client";
 import { isToday } from "@/lib/notify/text";
 import { useBackClose } from "@/components/ui/sheet-drag";
+import { useSwipe } from "@/components/ui/swipe";
 import { cn } from "@/lib/utils";
 import { useStore } from "../app/store";
 import { AllowSteps } from "./allow";
@@ -148,73 +149,25 @@ function Groups({ rows, now, onOpen, swipe }: { rows: InboxRow[]; now: number; o
   );
 }
 
-/** Swipe to delete: 1:1 follow, rubber-band, velocity flick; release snaps on the drawer curve. */
+/** Swipe to delete: 1:1 follow, rubber-band, velocity flick; release snaps on the drawer curve (`useSwipe`). */
 function SwipeRow({ row, now, onOpen }: { row: InboxRow; now: number; onOpen: (r: InboxRow) => void }) {
   const { t } = useI18n();
   const rtl = typeof document !== "undefined" && document.documentElement.dir === "rtl";
-  const sgn = rtl ? -1 : 1;
-  const [x, setX] = useState(0);
-  const [drag, setDrag] = useState(false);
   const [dying, setDying] = useState(false);
-  const d = useRef<{ x0: number; y0: number; base: number; t0: number; moved: boolean; axis: "x" | "y" | null } | null>(null);
-  const justDragged = useRef(false);
   const kill = () => {
     setDying(true);
     setTimeout(() => inboxStore.remove(row.id), 220);
   };
+  const sw = useSwipe({ start: { width: 96, full: kill } });
   return (
     <div className={cn("sw-wrap", dying && "collapse")} data-sw>
-      <div className="sw-under" aria-hidden={x === 0}>
-        <button type="button" onClick={kill} tabIndex={x === 0 ? -1 : 0} data-sw-delete>
+      <div className="sw-under" aria-hidden={sw.x === 0}>
+        <button type="button" onClick={kill} tabIndex={sw.x === 0 ? -1 : 0} data-sw-delete>
           <Svg d={ICONS.TRASH} />
           {t.nt.del}
         </button>
       </div>
-      <div
-        className={cn("sw-row", !drag && "settle")}
-        style={{ transform: `translateX(${(dying ? -420 : x) * sgn}px)` }}
-        onPointerDown={(e) => {
-          if (e.pointerType === "mouse" && e.button !== 0) return;
-          d.current = { x0: e.clientX, y0: e.clientY, base: x, t0: performance.now(), moved: false, axis: null };
-        }}
-        onPointerMove={(e) => {
-          const c = d.current;
-          if (!c) return;
-          const dx = (e.clientX - c.x0) * sgn;
-          const dy = e.clientY - c.y0;
-          if (!c.axis && Math.hypot(dx, dy) > 8) {
-            c.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-            if (c.axis === "x") (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-          }
-          if (c.axis !== "x") return;
-          c.moved = true;
-          let v = c.base + dx;
-          if (v > 0) v *= 0.25;
-          if (v < -240) v = -240 + (v + 240) * 0.3;
-          setDrag(true);
-          setX(v);
-        }}
-        onPointerUp={(e) => {
-          const c = d.current;
-          d.current = null;
-          setDrag(false);
-          if (!c || !c.moved) return;
-          justDragged.current = true;
-          const vel = ((e.clientX - c.x0) * sgn) / Math.max(1, performance.now() - c.t0);
-          if (x < -200 || (vel < -0.6 && x < -40)) return kill();
-          setX(x < -48 || vel < -0.3 ? -96 : 0);
-        }}
-        onPointerCancel={() => ((d.current = null), setDrag(false), setX(0))}
-        onClickCapture={(e) => {
-          // A drag that ended on the row is not a tap; a tap on an open row closes it first.
-          if (justDragged.current || x !== 0) {
-            e.stopPropagation();
-            e.preventDefault();
-            justDragged.current = false;
-            if (x !== 0 && !(e.target as HTMLElement).closest("[data-sw-delete]")) setX(0);
-          }
-        }}
-      >
+      <div className={cn("sw-row", !sw.drag && "settle")} style={{ transform: `translateX(${dying ? (rtl ? 420 : -420) : sw.offset(rtl ? "rtl" : "ltr")}px)` }} {...sw.bind}>
         <NotifyRow row={row} now={now} onOpen={onOpen} />
       </div>
     </div>

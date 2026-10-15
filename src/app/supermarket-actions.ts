@@ -619,12 +619,34 @@ export async function updateSmItem(itemId: string, patch: z.input<typeof PatchZ>
   return s.byId(schema.items, id);
 }
 
-/** Remove a row from the list (to buy only). */
+/** Remove a row from the list (to buy only). R18 S3 C5: a copy is kept a while for the Undo (`restoreSmItem`). */
 export async function removeSmItem(itemId: string) {
   const ctx = await requireCtx("edit");
   const s = scoped(ctx);
   const id = Id.parse(itemId);
+  const row = await s.byId(schema.items, id);
+  if (!row || row.list !== "supermarket" || row.status !== "to_buy") return;
+  await kvSet(`sm:del:${ctx.space.id}:${id}`, JSON.stringify(row));
   await s.delete(schema.items, and(eq(schema.items.id, id), eq(schema.items.list, "supermarket"), eq(schema.items.status, "to_buy")));
+}
+
+/** Undo a delete: the row back exactly as it was (same id), from the copy kept for this space; once only. */
+export async function restoreSmItem(itemId: string) {
+  const ctx = await requireCtx("edit");
+  const s = scoped(ctx);
+  const id = Id.parse(itemId);
+  const key = `sm:del:${ctx.space.id}:${id}`;
+  const raw = await kvGet(key);
+  if (!raw) throw new AccessError("not_found");
+  await kvSet(key, null);
+  if (await s.byId(schema.items, id)) return s.byId(schema.items, id);
+  // The space and the change-feed fields are the scoped layer's to set.
+  const row: Partial<typeof schema.items.$inferSelect> = JSON.parse(raw);
+  delete row.spaceId;
+  delete row.rev;
+  delete row.revBy;
+  await s.insert(schema.items, { ...(row as typeof schema.items.$inferInsert), id, list: "supermarket", status: "to_buy", updatedAt: Date.now() });
+  return s.byId(schema.items, id);
 }
 
 // ---------- D4: Send to phone (the computer page, F3) ----------

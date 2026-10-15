@@ -246,6 +246,8 @@ export const smEn = {
     addedProducts: "Added to Products: {title}",
     productNone: "No product could be read — type it instead.",
   },
+  // R18 S3 C5: swipe a row.
+  row: { delete: "Delete", open: "Open {title}" },
   sheet: {
     title: "Item",
     section: "Section",

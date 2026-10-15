@@ -30,6 +30,7 @@ import { useOutboxCount } from "./outbox-count";
 import { Lists, RoutineOffer, type ListsStart } from "./lists";
 import { DeskPast, DeskTemplates, SendToPhone } from "./desk";
 import { useDevice } from "@/components/ui/use-device";
+import { OPEN_ITEM, openSmItem, Row, useSettled } from "./row";
 
 // R18 S2 A2 — the Supermarket tab (board Supermarket-phone `Main`): store chip + estimate vs budget, the aisle rail, the
 // add field, "Nexus suggests", the list by sections in the branch's order (rows or tiles, the ⋯ menu, per person),
@@ -569,40 +570,6 @@ function Section({ section, items, tiles, unitKg }: { section: string; items: It
         </div>
       </div>
     </section>
-  );
-}
-
-/** Rows open the item sheet (C2): an event, so the memoised rows don't take a callback. */
-const OPEN_ITEM = "nexus:sm-item";
-export function openSmItem(id: string) {
-  window.dispatchEvent(new CustomEvent(OPEN_ITEM, { detail: id }));
-}
-
-/** Who added a row (shared spaces): a dot in the person's colour. */
-const WHO = ["#7c5ad9", "#21938f", "#3b7fc4", "#d17a22", "#c94673", "#3f9d5a"];
-function useWhoColor(item: ItemWithSources) {
-  const s = useStore();
-  if (s.space?.kind !== "shared" || !item.addedByUserId) return null;
-  const k = s.people.findIndex((p) => p.id === item.addedByUserId);
-  return k < 0 ? null : WHO[k % WHO.length];
-}
-
-/** G1: a row the AI just placed in its section (it was `other`) flashes once in the section's tint. */
-const useSettled = (id: string) => useStore().fresh.get(id) === "bump" || undefined;
-
-function Row({ item, unitKg }: { item: ItemWithSources; unitKg: number | null }) {
-  const { locale } = useI18n();
-  const who = useWhoColor(item);
-  return (
-    <button type="button" className="gro-row" onClick={() => openSmItem(item.id)} data-sm-row={item.id} data-settled={useSettled(item.id)}>
-      <ProductTile art={item.artKey} section={item.section} photo={item.imageUrl} size={40} />
-      <span className="min-w-0 flex-1">
-        <span className="gro-t bidi">{item.title}</span>
-        {item.notes && <span className="gro-s bidi truncate">{item.notes}</span>}
-      </span>
-      {who && <i className="gro-who" style={{ background: who }} aria-hidden />}
-      <span className="gro-q">{qtyLabel(item, locale, unitKg)}</span>
-    </button>
   );
 }
 

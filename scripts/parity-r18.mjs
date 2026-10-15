@@ -119,7 +119,7 @@ const scanCode = (code) => async (p) => {
   await p.waitForSelector("[data-cap-sheet=unknown], [data-cap-sheet=found]", { timeout: 8000 }).catch(() => {});
 };
 const openRow = (title) => async (p) => {
-  await p.locator(`[data-sm-row]:has-text("${title}")`).first().click();
+  await p.locator(`[data-sm-row]:has-text("${title}") [data-sm-row-tile]`).first().click();
   await p.waitForSelector("[data-sm-sheet] [data-learned]", { timeout: 10000 }).catch(() => {});
 };
 const storeIn = async (p) => {
@@ -187,7 +187,7 @@ const SHOTS = [
   // F2 — the onboarding store step: chains (first = main) → the main chain's branch.
   ["f2-onboarding-store", [["board · chains", "Settings-phone", { ...EN, state: "onboarding · chain" }, PHONE], ["app", "/welcome", PHONE, { fresh: true, act: obTo("chains") }], ["board · branch", "Settings-phone", { ...EN, state: "onboarding · branch" }, PHONE], ["app", "/welcome", PHONE, { fresh: true, act: obTo("branch") }], ["board · he dark", "Settings-phone", { ...HE, state: "onboarding · chain", dark: true }, PHONE], ["app · he dark", "/welcome", PHONE, { fresh: true, he: true, dark: true, act: obTo("chains") }]], 300],
   // F3 — the computer's Supermarket page: list + side panel, the item drawer, Send to phone.
-  ["f3-desktop", [["board", "Supermarket-desktop", { ...EN, state: "normal" }, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]" }], ["board · send to phone", "Supermarket-desktop", { ...EN, state: "send to phone" }, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]", act: async (p) => { await p.click("[data-sm-send]"); await p.waitForSelector("[data-sm-send-target]"); } }], ["board · item open", "Supermarket-desktop", { ...EN, state: "item open" }, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]", act: async (p) => { await p.locator("[data-sm-desk] [data-sm-row]").first().click(); await p.waitForTimeout(500); } }], ["board · he dark", "Supermarket-desktop", { ...HE, state: "normal", dark: true }, DESK], ["app · he dark", "/supermarket", DESK, { wait: "[data-sm-desk-templates]", he: true, dark: true }]], 680],
+  ["f3-desktop", [["board", "Supermarket-desktop", { ...EN, state: "normal" }, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]" }], ["board · send to phone", "Supermarket-desktop", { ...EN, state: "send to phone" }, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]", act: async (p) => { await p.click("[data-sm-send]"); await p.waitForSelector("[data-sm-send-target]"); } }], ["board · item open", "Supermarket-desktop", { ...EN, state: "item open" }, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]", act: async (p) => { await p.locator("[data-sm-desk] [data-sm-row] [data-sm-row-tile]").first().click(); await p.waitForTimeout(500); } }], ["board · he dark", "Supermarket-desktop", { ...HE, state: "normal", dark: true }, DESK], ["app · he dark", "/supermarket", DESK, { wait: "[data-sm-desk-templates]", he: true, dark: true }]], 680],
 ];
 
 /** A trip of mine in the personal space: 23 planned, the first 12 listed rows checked with their prices. */

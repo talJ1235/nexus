@@ -249,6 +249,7 @@ export const smHe: Widen<typeof smEn> = {
     addedProducts: "נוסף למוצרים: {title}",
     productNone: "לא הצלחנו לזהות מוצר — אפשר להקליד אותו.",
   },
+  row: { delete: "מחיקה", open: "פתיחת {title}" },
   sheet: {
     title: "פריט",
     section: "מחלקה",
