@@ -678,12 +678,17 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
   const dismiss = useDismiss();
   const [whyOpen, setWhyOpen] = useState(false);
   const [idx, setIdx] = useState(0);
+  // R18 S3 C7: the suggestion on screen is held by its key — a refreshed set (the server's data arriving after the device's
+  // snapshot, a dismissal elsewhere) keeps showing it while it's still in the set, instead of whatever is now at that place.
+  const [curKey, setCurKey] = useState<string | null>(null);
   // Where the next suggestion slides in from (px, physical): set by a swipe, default (12 px) otherwise.
   const [from, setFrom] = useState<number | null>(null);
   // R18 S3 C7: how the shown slide arrived — none yet (Home just opened: no animation), by hand (slides), or by the
   // timer (cross-fades with a small rise; the previous one fades out in the same cell).
   const [came, setCame] = useState<{ how: "hand" | "auto"; prev: number; plain: boolean } | null>(null);
-  const i = Math.min(idx, sugs.length - 1);
+  const kept = curKey ? sugs.findIndex((y) => y.key === curKey) : -1;
+  const i = kept >= 0 ? kept : Math.min(idx, sugs.length - 1);
+  if (sugs[i] && curKey !== sugs[i].key) setCurKey(sugs[i].key);
   const x = sugs[i];
   const tpl = template(x, t, fm);
   const ctas = [...new Set(sugs.map((y) => template(y, t, fm).cta).filter((c): c is string => !!c))];
@@ -700,7 +705,9 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
     setFrom(fromPx ?? null);
     setWhyOpen(false);
     setCame({ how, prev: i, plain: plain === x.key });
-    setIdx((i + d + sugs.length) % sugs.length);
+    const n = (i + d + sugs.length) % sugs.length;
+    setIdx(n);
+    setCurKey(sugs[n]?.key ?? null);
   };
   const { swapRef, handlers: swipeHandlers, dragging } = useSwipePager({ count: sugs.length, index: i, go, rtl });
   const sectionRef = useRef<HTMLElement>(null);
@@ -760,7 +767,7 @@ function SuggestCard({ sugs, h = 1, className, style }: { sugs: Suggestion[]; h?
       </span>
       <span className="flex gap-1 @max-[260px]:hidden">
         {sugs.map((y, k) => (
-          <button key={y.key} type="button" onClick={() => setIdx(k)} aria-label={f(t.dash.ofN, { i: k + 1, n: sugs.length })} aria-current={k === i ? "true" : undefined} className="relative grid h-5 place-items-center after:absolute after:-inset-x-1 after:-inset-y-3 after:content-['']">
+          <button key={y.key} type="button" onClick={() => (setIdx(k), setCurKey(y.key))} aria-label={f(t.dash.ofN, { i: k + 1, n: sugs.length })} aria-current={k === i ? "true" : undefined} className="relative grid h-5 place-items-center after:absolute after:-inset-x-1 after:-inset-y-3 after:content-['']">
             <i className={cn("block h-1.5 rounded-full transition-[width,background-color] duration-300", k === i ? "w-4 bg-ai" : "w-1.5 bg-card-line")} />
           </button>
         ))}

@@ -356,6 +356,11 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   invisible copy of any template text it showed. `test:settings` E1 knows the next-shop widget (Minimal includes it;
   the resize / tray drags scroll their targets into view). Every CI browser guard after `polish` run locally: clip,
   bidi, admin-access / privacy / live / people, device, adblock, onboarding, push, shop-offline, inbox, settings — OK.
+- Merged — branch CI green on 920021b and fbcee50 (main's planner commit merged in); `main` fast-forwarded to fbcee50.
+  Post-merge `guards` on main: `test:settings` D4 (switch moment) failed once, passed on the re-run (the same commit had
+  passed it on the branch). Prod smoke (deployment_status) failed C7's "still for 4 s" on real data: the server's set
+  arriving after the device snapshot moved another suggestion to place 0 — the card now holds the shown suggestion by
+  its key while it is still in the set (follow-up commit, through branch CI again).
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
