@@ -17,6 +17,7 @@ import { getBarcodeReader, prewarmScanners } from "@/lib/barcode-reader";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useBarcodeReader, type Seen } from "../barcode-scanner";
+import { outlineOf } from "@/lib/barcode-scan";
 import { useStore } from "../store";
 import { haptic, photoToDataUrl, useCamera } from "../use-camera";
 import { ProductTile, SectionIcon } from "./art";
@@ -192,7 +193,7 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
           <img src={frozen.still} alt="" className="absolute inset-0 size-full object-cover" />
           {frozen.points && frozen.points.length >= 3 && (
             <svg className="absolute inset-0 size-full" viewBox={`0 0 ${frozen.w} ${frozen.h}`} preserveAspectRatio="xMidYMid slice" aria-hidden data-cap-outline>
-              <polygon points={frozen.points.map((p) => `${p.x},${p.y}`).join(" ")} className="sm-code-outline" style={{ strokeWidth: Math.max(frozen.w, frozen.h) / 160 }} />
+              <polygon points={outlineOf(frozen.points).map((p) => `${p.x},${p.y}`).join(" ")} className="sm-code-outline" style={{ strokeWidth: Math.max(frozen.w, frozen.h) / 160 }} />
             </svg>
           )}
         </div>

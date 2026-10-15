@@ -4,7 +4,7 @@
 // off-centre, with passes and time to the first read logged.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { confirmer, cropImg, MAX_SIDE, pickCamera, regionImg, rotateImg, scanZoom, selfChecked, toVideo, ZX_FORMATS, type Img } from "../src/lib/barcode-scan";
+import { confirmer, cropImg, MAX_SIDE, outlineOf, pickCamera, regionImg, rotateImg, scanZoom, selfChecked, toVideo, ZX_FORMATS, type Img } from "../src/lib/barcode-scan";
 import { checkDigitOk, classifyBarcode, gtinKey, lookupChain, upcEtoA, type LookupDeps } from "../src/lib/barcode";
 
 // Check digits: real codes.
@@ -220,6 +220,11 @@ const deps = (over: Partial<LookupDeps> = {}): LookupDeps => ({ own: miss("own")
       times.push(`${fmt}/${name} ${r!.passes}p ${r!.ms}ms`);
     }
   }
+  // A linear code's scan line becomes a box across its bars; a 2D code's corners stay.
+  const line = outlineOf([{ x: 100, y: 300 }, { x: 500, y: 302 }, { x: 500, y: 302 }, { x: 100, y: 300 }]);
+  assert.ok(Math.max(...line.map((p) => p.y)) - Math.min(...line.map((p) => p.y)) > 200, "the sliver widens");
+  const sq = [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 50 }, { x: 0, y: 50 }];
+  assert.deepEqual(outlineOf(sq), sq);
   // The image helpers agree with the plan's geometry.
   const tiny: Img = { width: 4, height: 2, data: new Uint8ClampedArray([1, 0, 0, 255, 2, 0, 0, 255, 3, 0, 0, 255, 4, 0, 0, 255, 5, 0, 0, 255, 6, 0, 0, 255, 7, 0, 0, 255, 8, 0, 0, 255]) };
   assert.deepEqual([...rotateImg(tiny).data].filter((_, i) => i % 4 === 0), [5, 1, 6, 2, 7, 3, 8, 4], "turned 90° clockwise");

@@ -79,6 +79,28 @@ export function toVideo(p: { x: number; y: number }, r: Region, scale: number) {
   return r.rotate ? { x: r.x + y, y: r.y + (r.h - x) } : { x: r.x + x, y: r.y + y };
 }
 
+/**
+ * The outline to draw on the frozen frame. A linear code's corners from zxing are its scan line (a sliver): widen it
+ * across the bars to a box (≈ 30% of its length each side) so the outline reads as the code.
+ */
+export function outlineOf(points: { x: number; y: number }[]): { x: number; y: number }[] {
+  if (points.length < 2) return points;
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const w = Math.max(...xs) - Math.min(...xs);
+  const h = Math.max(...ys) - Math.min(...ys);
+  const long = Math.max(w, h);
+  if (Math.min(w, h) > long * 0.15) return points;
+  const pad = long * 0.3;
+  const [x0, x1, y0, y1] = w >= h ? [Math.min(...xs), Math.max(...xs), Math.min(...ys) - pad, Math.max(...ys) + pad] : [Math.min(...xs) - pad, Math.max(...xs) + pad, Math.min(...ys), Math.max(...ys)];
+  return [
+    { x: x0, y: y0 },
+    { x: x1, y: y0 },
+    { x: x1, y: y1 },
+    { x: x0, y: y1 },
+  ];
+}
+
 // ---------- when a read counts ----------
 
 /** Numbers with a check digit (EAN / UPC / GTIN-14) count on one read when it is right. */
