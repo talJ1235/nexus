@@ -136,7 +136,7 @@ The choice sits at the top of the picker, visible before choosing a branch (toda
 its known branches; more words narrow ("רמי לוי נתניה"); every shown row is tappable. (Real branch lists +
 nearest-first = R19, not now — say so in the empty state only if a chain has no known branches.)
 
-### B12 [ ] Insights → orders by store: grid / rows toggle
+### B12 [x] Insights → orders by store: grid / rows toggle
 It changes nothing → make it work or remove it (Decisions says which).
 
 ## Part C — Supermarket quick wins (existing screens only)
@@ -283,6 +283,8 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   tappable (puts "Yochananof " in the search, focused, to type the branch) — no disabled rows; a new branch is offered
   only when no known branch matches; a chain with no known branch shows "the full list (nearest first) comes with
   prices" (R19). Smoke phone + computer (S2's D2 picker step still passes).
+- B12 — removed: on phones Order by store ignored List / Grid (its per-store rows are a list in both), so the switch is
+  gone from that view; History (item cards) keeps it; the computer's Cards / Table switch there works and stays. Smoke.
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
@@ -301,6 +303,8 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   its S2 merge toast ("Already on the list — now ×4" + Undo).
 - B11: real branch lists and nearest-first stay R19 (as the brief says); until then "known branches" = the ones this
   household has used or saved.
+- B12: removed rather than made to work — a grid of cards inside each store's box would lose the per-store totals and
+  actions; the rows already are the compact form.
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.

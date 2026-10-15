@@ -3296,7 +3296,11 @@ try {
       // R14 A4: phones never get the table — the desktop switch is hidden there and the phone List / Grid one shows.
       if (MOBILE) {
         const r = { layout: await layout(), desktopSwitch: await page.locator('[data-carry="layout:table"]').filter({ visible: true }).count(), phoneSwitch: await page.locator("[data-phone-layout-toggle]").filter({ visible: true }).count() };
-        return ok(r.layout === "cards" && r.desktopSwitch === 0 && r.phoneSwitch === 1, "orders view: cards ↔ table toggle switches layout (phone: cards only, phone switch)", JSON.stringify(r));
+        // R18 S3 B12: the phone List / Grid switch changed nothing here — it's gone from Order by store (History keeps it).
+        await page.goto(`${BASE}/?v=history`);
+        await page.waitForSelector("[data-history-src]", { timeout: 15000 });
+        r.historySwitch = await page.locator("[data-phone-layout-toggle]").filter({ visible: true }).count();
+        return ok(r.layout === "cards" && r.desktopSwitch === 0 && r.phoneSwitch === 0 && r.historySwitch === 1, "orders view: cards ↔ table toggle switches layout (phone: no switch on Order by store, History keeps it)", JSON.stringify(r));
       }
       const radio = (i) => page.locator("[role=radiogroup] [role=radio]").nth(i);
       const before = await layout();

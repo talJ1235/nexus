@@ -491,7 +491,8 @@ export function FiltersRow({ showProjects = true }: { showProjects?: boolean }) 
           </button>
         ))}
       </div>
-      {(
+      {/* R18 S3 B12: not on Order by store — its rows per store are a list already, so List / Grid changed nothing. */}
+      {s.view.type !== "orders" && (
         <div className="flex shrink-0 rounded-full bg-surface-2 p-[3px] sm:hidden" role="radiogroup" aria-label={`${t.view.cards} / ${t.view.rows}`} data-phone-layout-toggle>
           {(["cards", "rows"] as const).map((l) => (
             <button
