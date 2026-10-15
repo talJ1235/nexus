@@ -7,6 +7,11 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-15 (evening):** **R18 S3 merged and live** (`main` = `3e8dbdc`, all 28 items ticked; new table `brand_buy`,
+  rehearsal on `prod-2026-10-15.db` copy passed). Builder still on two red checks: `guards` on main (`polish` "Settings
+  from the first frame" — frame 3, re-run) and prod smoke (Home suggests checks counted positions; fix `ae4d3e4` in
+  branch CI → ff main). **Next:** Tal tests S3 on the phone → notes; planner makes boards for groups B + C of
+  `R18-S3-NOTES.md` (list redesign, Home widgets v2 Samsung-Health style, floating Ask, monthly spending) in a new chat.
 - **2026-10-15 (morning):** R18 S3 stopped on usage after C1 (0, A1–A6, B1–B12, C1 ticked on `round18-s3`; C2 reverted).
   Last branch run (`f96dbf5`) **completed and failed** at the guards step "mixed Hebrew + English" (`test:bidi`) — the
   builder thought CI never got past build. Resume prompt:
