@@ -17,7 +17,22 @@ export type Hit = {
   /** [start, end) of the typed letters in `title` (UTF-16 indices); null for "did you mean". */
   match: [number, number] | null;
   count?: number;
+  /** S4 F3: this is the home's usual brand of its type. */
+  usual?: boolean;
 };
+
+/**
+ * R18 S4 F3: the home's usual brand of a type comes first among the hits (stable otherwise), marked `usual`.
+ * `brandOf` = the brand part of a title (lib/grocery/classify), `usual` = type → brand.
+ */
+export function rankUsualBrand(hits: Hit[], usual: Record<string, string>, brandOf: (title: string) => { type: string; brand: string } | null): Hit[] {
+  if (!hits.length || !Object.keys(usual).length) return hits;
+  const marked = hits.map((h) => {
+    const b = brandOf(h.title);
+    return b && usual[b.type] && normalize(usual[b.type]) === normalize(b.brand) ? { ...h, usual: true } : h;
+  });
+  return [...marked.filter((h) => h.usual), ...marked.filter((h) => !h.usual)];
+}
 
 const FINALS: Record<string, string> = { ך: "כ", ם: "מ", ן: "נ", ף: "פ", ץ: "צ" };
 /** normalize() one character at a time, remembering where each output character came from. */

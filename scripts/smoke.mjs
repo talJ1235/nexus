@@ -2864,6 +2864,124 @@ try {
         ok(r.top === "floating" && r.aboveDock && r.end === "docked" && !r.overSug && !r.overRow, "start shopping floats, then docks (R18 S4 D3): above the dock, docked at the list's end, never over suggestions", JSON.stringify(r));
       });
 
+    // R18 S4 F1: the Templates · Past trips switch — its thumb stays inside the track on every frame of the slide
+    // (sampled per frame, both ways); the same SegPill on Insights.
+    await step("segment thumb stays in its track (R18 S4 F1): Templates · Past trips + Insights, every frame", async () => {
+      const r = {};
+      const sample = async (root, tab) => {
+        const out = await page.evaluate(
+          ([rootSel, tabSel]) =>
+            new Promise((done) => {
+              const track = document.querySelector(rootSel);
+              const thumb = track?.querySelector("[data-seg-thumb]");
+              const tabs = [...track.querySelectorAll(tabSel)];
+              if (!track || !thumb || tabs.length < 2) return done({ err: "no seg" });
+              let worst = 0;
+              const t0 = performance.now();
+              const tick = () => {
+                const a = track.getBoundingClientRect();
+                const b = thumb.getBoundingClientRect();
+                worst = Math.max(worst, a.left + 3 - b.left, b.right - (a.right - 3));
+                if (performance.now() - t0 < 1300) requestAnimationFrame(tick);
+                else done({ worst: Math.round(worst * 10) / 10 });
+              };
+              requestAnimationFrame(tick);
+              tabs[1].click();
+              setTimeout(() => tabs[0].click(), 650);
+            }),
+          [root, tab],
+        );
+        return out;
+      };
+      await page.goto(`${BASE}/supermarket`);
+      await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
+      await page.locator("[data-sm-more]").click();
+      await page.locator("[data-sm-menu-lists]").click();
+      await page.waitForSelector("[data-sm-lists] [data-seg-thumb]", { timeout: 10000 });
+      const rootLists = await page.locator("[data-sm-lists] [role=tablist]").first().evaluate((e) => [...e.attributes].map((a) => a.name).find((n) => n.startsWith("data-")));
+      r.lists = await sample(`[data-sm-lists] [${rootLists}]`, "[role=tab]");
+      await page.keyboard.press("Escape");
+      await page.goto(`${BASE}/?v=spending`);
+      await page.waitForSelector(READY);
+      r.insights = await page.locator("[role=tablist]:has([data-seg-thumb])").count() ? await sample("[role=tablist]:has([data-seg-thumb])", "[role=tab]") : { worst: 0 };
+      ok(r.lists.worst != null && r.lists.worst <= 0.5 && r.insights.worst <= 0.5, "segment thumb stays in its track (R18 S4 F1): Templates · Past trips + Insights, every frame", JSON.stringify(r));
+    });
+
+    // R18 S4 F2: past trips are cards like the templates' — stacked product pictures, store, date + time, items · who ·
+    // minutes, total; grouped by month with the month's total; a card opens the trip with Add again.
+    await step("trip cards (R18 S4 F2): pictures, store, date + time, meta, total, month groups, opens the trip", async () => {
+      const r = {};
+      await page.goto(`${BASE}/supermarket`);
+      await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
+      await page.locator("[data-sm-more]").click();
+      await page.locator("[data-sm-menu-lists]").click();
+      await page.waitForSelector("[data-sm-lists]", { timeout: 10000 });
+      await page.locator("[data-sm-lists] [role=tab]").nth(1).click();
+      await page.waitForSelector("[data-sm-trip], [data-sm-past-none]", { timeout: 10000 });
+      r.cards = await page.locator("[data-sm-trip-cards] [data-sm-trip]").count();
+      if (r.cards) {
+        const c = page.locator("[data-sm-trip-cards] [data-sm-trip]").first();
+        r.pics = await c.locator(".gro-pt").count();
+        r.when = (await c.locator("[data-sm-trip-when]").textContent())?.trim();
+        r.meta = (await c.locator("[data-sm-trip-meta]").textContent())?.trim();
+        r.total = (await c.locator("[data-sm-trip-total]").textContent())?.trim();
+        r.months = await page.locator("[data-sm-month]").count();
+        r.cut = await c.evaluate((e) => [...e.querySelectorAll("[data-sm-trip-store], [data-sm-trip-total]")].some((x) => x.scrollWidth > x.clientWidth + 1 && getComputedStyle(x).textOverflow !== "ellipsis"));
+        await shot(page, "s4-trip-cards");
+        await c.click();
+        r.page = await page.waitForSelector("[data-sm-trip-page]", { timeout: 8000 }).then(() => true, () => false);
+        r.readd = await page.locator("[data-sm-trip-readd]").count();
+      }
+      ok(r.cards > 0 && r.pics > 0 && /\d{1,2}:\d{2}/.test(r.when ?? "") && !!r.meta && /\d/.test(r.total ?? "") && r.months >= 1 && !r.cut && r.page && r.readd === 1,
+        "trip cards (R18 S4 F2): pictures, store, date + time, meta, total, month groups, opens the trip", JSON.stringify(r));
+    });
+
+    // R18 S4 F3: after three barcode buys of Tnuva milk the Add search puts the Tnuva variant first (marked usual), the
+    // item sheet shows the usual brand as a chip that sets the brand to buy, and store mode shows it under the row.
+    if (WRITE)
+      await step("brands find the exact product (R18 S4 F3): search ranks the usual brand first, sheet chip, store mode line", async () => {
+        const r = {};
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        for (let k = 0; k < 3; k++) await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "Tnuva milk 3% 1L", gtin: "7290004131074" }]);
+        const res = await (await ctx.request.get(`${BASE}/api/grocery/search?q=milk&locale=en`)).json();
+        r.first = res.hits?.[0]?.title;
+        r.usual = res.hits?.[0]?.usual ?? false;
+        await page.goto(`${BASE}/supermarket`);
+        const tnuva = page.locator('[data-sm-row]:has(.gro-t:text-is("Tnuva milk 3% 1L"))').first();
+        await tnuva.waitFor({ timeout: 15000 });
+        const tid = await tnuva.getAttribute("data-sm-row");
+        await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "S4 milk", productKey: "milk s4", section: "dairy" }]);
+        await page.goto(`${BASE}/supermarket`);
+        const plain = page.locator('[data-sm-row]:has(.gro-t:text-is("S4 milk"))').first();
+        await plain.waitFor({ timeout: 15000 });
+        const pid = await plain.getAttribute("data-sm-row");
+        await page.locator(`[data-sm-row="${pid}"] [data-sm-row-tile]`).click();
+        await page.waitForSelector(`[data-sm-sheet="${pid}"] [data-sheet-usual]`, { timeout: 10000 });
+        r.chip = await page.locator(`[data-sm-sheet="${pid}"] [data-sheet-usual]`).evaluate((e) => e.tagName);
+        await page.locator(`[data-sm-sheet="${pid}"] [data-sheet-usual]`).click();
+        await page.waitForTimeout(600);
+        r.prefer = await page.locator(`[data-sm-sheet="${pid}"] [data-sheet-brand]`).inputValue();
+        await page.keyboard.press("Escape");
+        if (MOBILE) {
+          await page.goto(`${BASE}/supermarket`);
+          await page.locator("[data-sm-start]").click();
+          await page.locator("[data-store-go]").click();
+          await page.waitForSelector(`[data-store-row="${pid}"]`, { timeout: 10000 });
+          r.storeLine = (await page.locator(`[data-store-row="${pid}"] [data-store-brand]`).textContent().catch(() => null))?.trim() ?? null;
+          r.tnuvaLine = await page.locator(`[data-store-row="${tid}"] [data-store-brand]`).count();
+          await page.locator("[data-store-finish]").click();
+          await page.locator("[data-store-finish-confirm]").click();
+          await page.waitForSelector("[data-store-summary]", { timeout: 8000 });
+          await page.locator("[data-summary-skip]").click();
+          await page.waitForSelector("[data-store-saved]");
+          await page.locator("[data-saved-list]").click();
+        }
+        for (const id of [tid, pid]) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        ok(/Tnuva/.test(r.first ?? "") && r.usual && r.chip === "BUTTON" && /Tnuva 3%/i.test(r.prefer) && (!MOBILE || (/Tnuva 3%/i.test(r.storeLine ?? "") && r.tnuvaLine === 0)),
+          "brands find the exact product (R18 S4 F3): search ranks the usual brand first, sheet chip, store mode line", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

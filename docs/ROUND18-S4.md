@@ -143,16 +143,16 @@ Each section gets a minimum tap width (≥ 24 px; the rail scrolls or compresses
 a ≥ 44 px tall hit area. Reduced motion: jump.
 
 ## Part F — templates and history
-### F1 [ ] Desktop Templates · Past trips switch
+### F1 [x] Desktop Templates · Past trips switch
 The moving pill overshoots its frame on the computer. Keep it inside: padding on the track + clamp the spring (no
 overshoot past the track); same component (`components/ui/seg-pill.tsx`) everywhere.
 
-### F2 [ ] Trips history as cards
+### F2 [x] Trips history as cards
 History → Supermarket and Templates → Past trips: cards in the style of the template cards (S3 C3 preview card):
 stacked product pictures, date + time, store / branch, items count, total, who shopped, minutes; grouped by month with
 the month total. Tapping opens the trip (as today) with Add again.
 
-### F3 [ ] Brands help find the exact product
+### F3 [x] Brands help find the exact product
 Builds on S3 C6: the item sheet shows the usual brand as a chip; the Add search ranks the home's usual brand variant
 first; in store mode a row shows the usual brand under the name (small) so someone who doesn't usually shop picks the
 right one.
@@ -210,6 +210,14 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
   (html + body locked while store mode is open, the dialog clipped, the list `overscroll-contain`, no phone scrollbar);
   the rail = ≥ 24 × 44 px buttons (scrolls sideways when many) that smooth-scroll a section under the header and mark
   it (a jump with reduced motion). Smoke step replaces S3 B8's; S3 B9's finish part moved to it.
+- F1: SegPill's thumb = `.seg-thumb` (a clamped curve, no overshoot) inside the 4 px track padding — everywhere it's
+  used. Smoke samples the thumb every frame (Templates · Past trips, Insights).
+- F2: past trips (Templates → Past trips and History → Supermarket share `PastTrips`) are cards like the templates':
+  stacked pictures of what was bought, store, weekday + date + time, items · who · minutes, total, receipt; month groups
+  with the month's total; a card opens the trip (Add again).
+- F3: the usual brand: a chip on the item sheet (a tap makes it the brand to buy), `rankUsualBrand` puts its variant
+  first in the Add search (`usual`), `homeState.brands` (type → brand) shows it under a store-mode row (the row's own
+  brand first; not when the name already says it). `test:brands` + smoke step.
 ### Decisions
 - A1: templates, re-add from history and accepted suggestions keep an existing row's amount (S1/S2 rule shown in their
   plans as "already on it — stays"); they never write notes. Every other path (search, barcode, photo, voice, paste, trip

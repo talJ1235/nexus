@@ -418,12 +418,19 @@ function Brands({ item, ro, usual, onSave }: { item: ItemWithSources; ro: boolea
           className="bidi h-11 w-full rounded-full border border-line-strong bg-surface px-4 text-[14.5px] font-semibold outline-none focus:border-ink"
           data-sheet-brand
         />
-        {/* R18 S3 C6: what the home buys of this type (≥ 3 buys, one brand ≥ 60 %). */}
+        {/* R18 S3 C6: what the home buys of this type (≥ 3 buys, one brand ≥ 60 %). S4 F3: a chip — a tap makes it the
+            brand to buy (so whoever shops picks the right one). */}
         {usual && (
-          <p className="mt-1.5 flex items-center gap-1.5 px-1 text-[13px] text-muted" data-sheet-usual>
+          <button
+            type="button"
+            disabled={ro || item.preferBrand === usual.brand}
+            onClick={() => onSave({ preferBrand: usual.brand }, { preferBrand: usual.brand })}
+            className="mt-2 inline-flex h-9 max-w-full items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--spark)_12%,var(--surface))] px-3 text-[13px] font-semibold text-ink disabled:opacity-100"
+            data-sheet-usual
+          >
             <Sparkles className="size-3.5 shrink-0 text-spark" />
             <span className="bidi truncate">{f(t.sm.sheet.usually, { brand: usual.brand, n: usual.n, of: usual.of })}</span>
-          </p>
+          </button>
         )}
       </div>
       <div className="mt-4">

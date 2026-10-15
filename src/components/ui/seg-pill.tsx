@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
  * R18 S3 A2: a segmented control whose thumb slides between options (the Products switch's look, `.shop-thumb`). The
  * thumb moves on the tap itself (a compositor transition); the new segment renders in a transition after it, so a slow
  * pane never holds the thumb back. RTL slides the other way. Tabs, not radios: each option shows its own pane.
+ * R18 S4 F1: the thumb stays inside its track — 4 px of padding around it and a clamped curve (`.seg-thumb`: it eases
+ * in quickly and settles without passing its stop), the same everywhere this control is used.
  */
 export function SegPill<T extends string>({
   value,
@@ -41,7 +43,7 @@ export function SegPill<T extends string>({
     >
       <span
         aria-hidden
-        className="shop-thumb absolute bottom-1 start-1 top-1 rounded-[11px] border border-card-line bg-surface shadow-[0_2px_10px_rgb(0_0_0/0.08)]"
+        className="seg-thumb absolute bottom-1 start-1 top-1 rounded-[11px] border border-card-line bg-surface shadow-[0_2px_10px_rgb(0_0_0/0.08)]"
         style={{ width: `calc((100% - 8px) / ${n})`, transform: `translateX(${dir === "rtl" ? -k * 100 : k * 100}%)` }}
         data-seg-thumb
       />

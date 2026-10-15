@@ -625,23 +625,28 @@ function PastTrips({ trips, onOpen }: { trips: PastTrip[] | null; onOpen: (id: s
               <b className="font-bold text-muted">{new Intl.DateTimeFormat(loc, { month: "long", year: new Date().getFullYear() === Number(k.slice(0, 4)) ? undefined : "numeric" }).format(Date.parse(`${k}-15`))}</b>
               <span className="tabular text-muted">{xs.length === 1 ? f(L.monthSumOne, { total: money }) : f(L.monthSum, { total: money, n: xs.length })}</span>
             </div>
-            <div className="gro-box">
+            {/* S4 F2: a trip is a card like a template's — its products' pictures stacked, the store, date + time,
+                items · who · minutes, the total. */}
+            <div className="grid gap-2.5 desk:grid-cols-2" data-sm-trip-cards>
               {xs.map((x) => {
                 const d = new Date(x.startedAt);
                 const min = Math.round((x.finishedAt - x.startedAt) / 60_000);
                 const n = x.items.filter((i) => i.state === "bought").length;
+                const when = new Intl.DateTimeFormat(loc, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
                 return (
-                  <button key={x.id} type="button" className="gro-row text-start" onClick={() => onOpen(x.id)} data-sm-trip={x.id}>
-                    <span className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-surface-2 leading-none">
-                      <b className="tabular text-[16px] font-extrabold">{d.getDate()}</b>
-                      <small className="text-[10.5px] text-muted">{new Intl.DateTimeFormat(loc, { month: "short" }).format(d)}</small>
+                  <button key={x.id} type="button" className={cn(card, press, "flex w-full flex-col overflow-hidden text-start")} onClick={() => onOpen(x.id)} data-sm-trip={x.id}>
+                    <TemplateCover items={x.items.filter((i) => i.state === "bought")} className="h-[72px] w-full" />
+                    <span className="flex w-full items-start gap-2.5 p-3">
+                      <span className="min-w-0 flex-1">
+                        <b className="bidi block truncate text-[16px] font-extrabold" data-sm-trip-store>{storeLabel(x.chain ?? "", x.branch ?? "", locale) ?? (x.chain || t.sm.shop.noStore)}</b>
+                        <span className="tabular block truncate text-[13px] font-semibold text-ink" data-sm-trip-when>{when}</span>
+                        <span className="block truncate text-[12.5px] text-muted" data-sm-trip-meta>{min > 0 && min < 600 ? f(L.tripMeta, { n, who: x.who, min }) : f(L.tripMetaNoMin, { n, who: x.who })}</span>
+                      </span>
+                      <span className="flex shrink-0 flex-col items-end gap-1">
+                        <b className="tabular text-[17px] font-extrabold" data-sm-trip-total>{formatMoney(Math.round(tripTotal(x)), x.currency, locale)}</b>
+                        {x.receipt && <Receipt className="size-4 text-muted" aria-label={L.receipt} />}
+                      </span>
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="gro-t bidi">{storeLabel(x.chain ?? "", x.branch ?? "", locale) ?? (x.chain || t.sm.shop.noStore)}</span>
-                      <span className="gro-s truncate">{min > 0 && min < 600 ? f(L.tripMeta, { n, who: x.who, min }) : f(L.tripMetaNoMin, { n, who: x.who })}</span>
-                    </span>
-                    {x.receipt && <Receipt className="size-4 shrink-0 text-muted" aria-label={L.receipt} />}
-                    <span className="gro-q">{formatMoney(Math.round(tripTotal(x)), x.currency, locale)}</span>
                   </button>
                 );
               })}

@@ -391,6 +391,8 @@ export type HomeState = {
   unitKg: Record<string, number>;
   /** D2: finished trips per store ("chain|branch" → count + last), for the picker's recent list. */
   visits: Record<string, { trips: number; last: number }>;
+  /** S4 F3: the home's usual brand per product type (≥ 3 buys, one brand ≥ 60 %) — store mode shows it under a row. */
+  brands: Record<string, string>;
 };
 
 export type OpenTrip = { id: string; userId: string; chain: string | null; branch: string | null; startedAt: number; planned: number; bought: number; notFound: number; added: number; spent: number };
@@ -443,7 +445,9 @@ export async function homeState(s: Scoped, o: { tz: string; locale?: string; now
     const w = unitKgFor(k, learned);
     if (w != null) unitKg[k] = w;
   }
-  return { stores, store: def ? { chain: def.chain, branch: def.branch } : null, order: tripOrder(def), suggestions, prices, monthSpent, trips: trips.length, usualDay: history.usualDay, open, unitKg, visits };
+  const { usualBrands } = await import("./brands");
+  const brands = Object.fromEntries([...(await usualBrands(s).catch(() => new Map()))].map(([type, u]) => [type, u.brand]));
+  return { stores, store: def ? { chain: def.chain, branch: def.branch } : null, order: tripOrder(def), suggestions, prices, monthSpent, trips: trips.length, usualDay: history.usualDay, open, unitKg, visits, brands };
 }
 
 /** When the space last bought this product (trip checks, purchased rows), or null. */

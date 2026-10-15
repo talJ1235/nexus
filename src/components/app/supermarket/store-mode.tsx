@@ -9,6 +9,8 @@ import { useBackClose } from "@/components/ui/sheet-drag";
 import { Sheet } from "@/components/ui/overlays";
 import { sectionName } from "@/lib/grocery/sections";
 import { unitKgFor } from "@/lib/grocery/weights";
+import { brandOf, classifyLocal } from "@/lib/grocery/classify";
+import { normalize } from "@/lib/grocery/normalize";
 import { formatMoney } from "@/lib/money";
 import { toast } from "@/lib/toast";
 import { tripApi } from "@/lib/trip-client";
@@ -371,7 +373,7 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
                   <div>
                     <div className="gro-box">
                       {list.map((i) => (
-                        <StoreRow key={i.id} item={i} done={isDone(i)} missing={!!trip.notFound[i.id]} live={!!trip.live[i.id]} unitKg={unitKgFor(i.productKey, home?.unitKg)} onToggle={() => toggle(i)} onMore={() => setActing(i)} />
+                        <StoreRow key={i.id} item={i} brand={brandToBuy(i, home?.brands)} done={isDone(i)} missing={!!trip.notFound[i.id]} live={!!trip.live[i.id]} unitKg={unitKgFor(i.productKey, home?.unitKg)} onToggle={() => toggle(i)} onMore={() => setActing(i)} />
                       ))}
                     </div>
                   </div>
@@ -451,7 +453,20 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
   );
 }
 
-function StoreRow({ item, done, missing, live, unitKg, onToggle, onMore }: { item: ItemWithSources; done: boolean; missing: boolean; live: boolean; unitKg: number | null; onToggle: () => void; onMore: () => void }) {
+/**
+ * S4 F3: the brand to pick in the store — the row's preferred brand, else the home's usual brand of its type, unless its
+ * name already says that brand.
+ */
+function brandToBuy(item: ItemWithSources, brands: Record<string, string> | undefined) {
+  const own = item.preferBrand?.trim();
+  if (own) return own;
+  const type = classifyLocal(item.title).type;
+  const b = type ? brands?.[type] : undefined;
+  if (!b) return null;
+  return brandOf(item.title)?.key === normalize(b) ? null : b;
+}
+
+function StoreRow({ item, brand, done, missing, live, unitKg, onToggle, onMore }: { item: ItemWithSources; brand: string | null; done: boolean; missing: boolean; live: boolean; unitKg: number | null; onToggle: () => void; onMore: () => void }) {
   const { t, f, locale } = useI18n();
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const long = useRef(false);
@@ -491,6 +506,11 @@ function StoreRow({ item, done, missing, live, unitKg, onToggle, onMore }: { ite
       </span>
       <span className="min-w-0 flex-1">
         <span className={cn("gro-t bidi", done && "text-muted line-through decoration-2")}>{item.title}</span>
+        {brand && !missing && (
+          <span className="gro-s bidi truncate" data-store-brand>
+            {brand}
+          </span>
+        )}
         {(item.notes || live || missing) && (
           <span className="gro-s bidi truncate">
             {live && <b className="me-1.5 rounded-[5px] bg-spark px-1 py-px text-[11px] font-bold text-white">{t.sm.shop.live}</b>}

@@ -103,6 +103,17 @@ async function db() {
   for (let k = 0; k < 3; k++) await B.recordBrand(s, { title: "Barilla penne", source: "scan", at: T0 + (21 + k) * 86_400_000 });
   assert.equal((await B.usualBrandFor(s, "pasta"))?.n, 3, "learned again from what happens next");
 
+  // ---- S4 F3: the usual brand helps find the exact product — the Add search ranks its variant first, the home state
+  // carries type → brand (store mode shows it under a row).
+  const { rankUsualBrand } = await import("../src/lib/grocery/search");
+  const { brandOf } = await import("../src/lib/grocery/classify");
+  const hit = (title: string, source: "household" | "dictionary" = "household") => ({ source, productKey: title.toLowerCase(), title, section: "dry" as never, art: null, match: [0, 1] as [number, number] });
+  const ranked = rankUsualBrand([hit("Pasta"), hit("Osem penne"), hit("Barilla penne")], { pasta: "Barilla" }, brandOf);
+  assert.deepEqual(ranked.map((h) => [h.title, !!h.usual]), [["Barilla penne", true], ["Pasta", false], ["Osem penne", false]], "the usual brand's variant first, the rest as they were");
+  assert.deepEqual(rankUsualBrand([hit("Osem penne")], {}, brandOf).map((h) => h.title), ["Osem penne"], "no usual brand: unchanged");
+  const home = await G.homeState(s, { tz: "Asia/Jerusalem" });
+  assert.equal(home.brands.pasta, "Barilla", "the home state carries the usual brand per type");
+
   // ---- another space never sees this home's brands.
   assert.equal((await B.usualBrands(other)).size, 0);
   assert.equal(await B.usualBrandFor(other, "pasta"), null);

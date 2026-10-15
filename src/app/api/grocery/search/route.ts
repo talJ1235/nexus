@@ -2,7 +2,9 @@ import { routeCtx } from "@/lib/ctx";
 import { scoped } from "@/lib/db-scoped";
 import { householdProducts } from "@/lib/db-scoped/grocery";
 import { offSearch } from "@/lib/grocery/classify-server";
-import { matchRange, typeAhead, type Hit } from "@/lib/grocery/search";
+import { matchRange, rankUsualBrand, typeAhead, type Hit } from "@/lib/grocery/search";
+import { usualBrands } from "@/lib/db-scoped/brands";
+import { brandOf } from "@/lib/grocery/classify";
 
 // R18 C3 — type-ahead for the supermarket Add field: GET ?q=<typed>&locale=he|en → { hits, didYouMean }. This
 // household's products first (times bought × recency), then the dictionary, then Open Food Facts Israel (only when
@@ -14,7 +16,8 @@ export async function GET(req: Request) {
   const q = (url.searchParams.get("q") ?? "").slice(0, 80).trim();
   const locale = url.searchParams.get("locale") === "he" ? "he" : "en";
   if (!q) return Response.json({ hits: [], didYouMean: [] });
-  const household = await householdProducts(scoped(ctx));
+  const s = scoped(ctx);
+  const [household, usual] = await Promise.all([householdProducts(s), usualBrands(s).catch(() => new Map())]);
   const r = typeAhead(q, household, { locale, limit: 8 });
   if (r.hits.length < 5 && q.length >= 3) {
     const off = await offSearch(q).catch(() => []);
@@ -26,5 +29,7 @@ export async function GET(req: Request) {
     }
     if (r.hits.length) r.didYouMean = [];
   }
+  // S4 F3: the home's usual brand variant first.
+  r.hits = rankUsualBrand(r.hits, Object.fromEntries([...usual].map(([k, u]) => [k, u.brand])), brandOf);
   return Response.json(r, { headers: { "cache-control": "private, no-store" } });
 }
