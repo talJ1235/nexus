@@ -232,3 +232,32 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
 - B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
 
 ### For Tal
+Phone checklist (Samsung, Chrome + the installed app). Things a headless browser can't prove — what to try, what you
+should see. If something's off, open **/debug/camera** (admin) and send a screenshot: it shows the lens Nexus chose and
+how, its focus / zoom / torch / resolution, every camera on the phone, and the barcode decoder in use.
+1. **"+" = camera**: on the Supermarket tab tap "+" 10 times, quick and slow — the camera every time. Hold it ~½ s
+   (still) → the quick menu, and letting go doesn't also open the camera.
+2. **Lens**: the first scan after the update picks the main back camera (not the ultra-wide). In /debug/camera,
+   "chosenBy" says `picked` (then `remembered`) and "lens" names the back camera; `focusMode` shows `continuous`.
+   "Pick the lens again" there redoes the choice.
+3. **Barcode, near and far**: a milk carton from ~25 cm, a small yogurt / gum barcode, a barcode on a curved bottle,
+   a QR code, a shelf label. Each should read within ~1 s without bringing the phone close (a slight zoom is on); the
+   picture freezes with a green box on the code and you can move the phone away; "Scan another" goes on. Tap the
+   screen on a spot → a yellow focus square there (where the lens supports it). In a dim corner, after 4 s without a
+   read: the hint about light / distance (and the torch button).
+4. **Photo**: switch to Photo, pick "Product" or "Receipt · list" (the frame changes shape), shoot → the picture
+   freezes, the camera turns off; Retake brings it back; Use photo → "Analysing…" over it → the result, and the frame
+   takes the shape of what it saw. A blurry / ambiguous photo asks "Product / Receipt / List?" with a best guess first.
+5. **Voice**: Add → Voice. Say "שני חלב, לחם וחצי קילו עגבניות" (and once in English). You should see the mic turn red
+   with bars that move with your voice and a running timer; your words may appear live (only if Chrome's recognition
+   works alongside — fine if not). Tap → "Understanding…" → chips "2 · חלב", "לחם", "עגבניות" over the list to check
+   → Add. If Chrome asks for the mic, allow it; if you once blocked it, the screen says how to allow it again.
+6. **Adding**: with "מלפפונים 1 kg" on the list, type "מלפפון" + → the row stays, its count grows (≈ 9), no "+ ×1" in
+   notes; a line under the field says "מלפפון · עכשיו …". Your old row with "+ ×3 · + ×1" notes gets cleaned by the
+   next nightly run.
+7. **Store mode**: the start screen doesn't scroll; finish an aisle — it stays open, no pop-up; tap its title to fold;
+   tap a colour on the aisle bar → the list glides to that aisle; dragging the dark header shows no scrollbar;
+   Finish opens a full screen with what stays on the list.
+8. **List**: tap the empty part of a row (right of the name) — nothing; tap the name — rename. Fling a row away fast —
+   it slides out and the gap closes smoothly; Undo brings it back in place. "Start shopping" floats above the dock and
+   settles under the list at the end (never over "Nexus suggests").

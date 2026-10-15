@@ -233,3 +233,11 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   leave their DB file for the next run. Mock photo fixtures for `smPhoto`: `mockreceipt:`, `mocklist:<lines>`,
   `mockunsure:`, `mockother:<title>`. A leftover `next start -p 3100` from an earlier session locks `.next/serve.log`
   and fails `npm run build` (EBUSY) — stop it (`serve-smoke.sh` restarts cleanly). No new env vars or secrets.
+- 2026-10-15 (R18 S4): new browser test `test:voice` (port 3133; fake MediaRecorder + oscillator mic; mock body
+  `mockvoice:<words>`) and `test:capture` now run in CI; `test:dock` joined the unit loop. `test:barcode` decodes real
+  fixtures with `zxing-wasm/full` in node (its wasm read from `node_modules/zxing-wasm/dist/full/`). Admin page
+  `/debug/camera` for camera reports from phones. Mock photo `mocklow:<kind>` (kind confidence 0.4). Rehearsal
+  `scripts/r18s4-rehearsal.ts` (no schema change; the A1 note cleanup on a snapshot copy). The read-only prod snapshot
+  ran from the agent (`node --env-file=.env.local scripts/db-snapshot.mjs`). Windows bash: a large `python - <<'EOF'`
+  heredoc sometimes fails to parse ("unexpected EOF") — write the script to the scratchpad and run it. No new env vars
+  or secrets. `.claude/settings.local.json` allows the round18-s4 push/merge commands.
