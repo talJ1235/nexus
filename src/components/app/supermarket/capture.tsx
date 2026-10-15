@@ -30,7 +30,7 @@ import { qtyLabel } from "./qty";
 type Sheet = { kind: "loading" } | ScanResult | PhotoResult | { kind: "reading" };
 const isScan = (x: Sheet): x is ScanResult => "state" in x && (x.state === "found" || x.state === "unknown");
 
-export function Capture({ open, mode: start, onClose, onType }: { open: boolean; mode: "scan" | "photo"; onClose: () => void; onType: (text?: string) => void }) {
+export function Capture({ open, mode: start, onClose, onType }: { open: boolean; mode: "scan" | "photo"; onClose: () => void; onType: (text?: string, hint?: "camera") => void }) {
   // R18 S3 A3: the phone's Back closes the camera instead of leaving the page.
   useBackClose(open, onClose);
   const { t } = useI18n();
@@ -46,7 +46,7 @@ export function Capture({ open, mode: start, onClose, onType }: { open: boolean;
   );
 }
 
-function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onClose: () => void; onType: (text?: string) => void }) {
+function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onClose: () => void; onType: (text?: string, hint?: "camera") => void }) {
   const { t, f } = useI18n();
   const [mode, setMode] = useState(start);
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -56,6 +56,10 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
   const { videoRef, state: cam, torch, toggleTorch } = useCamera(true);
   const camOff = cam === "denied" || cam === "unavailable";
   const fileRef = useRef<HTMLInputElement>(null);
+  // R18 S3 C1: camera permission refused → the Add screen with a one-line hint (no camera at all keeps the code field).
+  useEffect(() => {
+    if (cam === "denied") onType(undefined, "camera");
+  }, [cam, onType]);
 
   useEffect(() => {
     prewarmScanners();
@@ -164,9 +168,16 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
             </button>
           </form>
         ) : (
-          <button type="button" onClick={() => setTyping(true)} className="mx-auto flex h-11 items-center gap-2 rounded-full bg-black/45 px-4 text-sm font-semibold backdrop-blur" data-cap-type-code>
-            <Keyboard className="size-4" /> {t.sm.cap.typeCode}
-          </button>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center">
+            {/* "Type instead": the Add screen, to type the product's name. */}
+            <button type="button" className="h-11 justify-self-start px-2 text-[15px] font-bold" onClick={() => onType()} data-cap-type>
+              {t.sm.cap.type}
+            </button>
+            <button type="button" onClick={() => setTyping(true)} className="flex h-11 items-center gap-2 rounded-full bg-black/45 px-4 text-sm font-semibold backdrop-blur" data-cap-type-code>
+              <Keyboard className="size-4" /> {t.sm.cap.typeCode}
+            </button>
+            <span />
+          </div>
         ))}
         {!sheet && mode === "photo" && (
           <div className="grid grid-cols-[1fr_auto_1fr] items-center">

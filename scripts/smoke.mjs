@@ -1973,6 +1973,50 @@ try {
           "store picker (R18 S3 B11): choice first, words narrow, every row tappable, R19 note", JSON.stringify(r));
       });
 
+    // R18 S3 C1: "+" on the Supermarket tab is the camera, barcode first — Photo is one tap, "Type instead" goes to the Add
+    // screen; on other tabs "+" keeps its menu. Camera permission refused → the Add screen with a one-line hint.
+    if (MOBILE && WRITE)
+      await step("supermarket + is the camera (R18 S3 C1): barcode first, photo, type instead; refused → Add + hint", async () => {
+        const r = {};
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector(READY);
+        await page.locator('[data-dock-target="plus"]').click();
+        r.menuElsewhere = await page.waitForSelector('[data-plus-menu="open"]', { state: "attached", timeout: 4000 }).then(() => true, () => false);
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300);
+        if (await page.locator('[data-plus-menu="open"]').count()) await page.locator('[data-dock-target="plus"]').click();
+        await page.locator('[data-dock-target="supermarket"]').click();
+        await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
+        await page.locator('[data-dock-target="plus"]').click();
+        await page.waitForSelector("[data-sm-capture]", { timeout: 5000 });
+        r.scanFirst = await page.locator('[data-cap-mode="scan"]').getAttribute("aria-selected");
+        await page.locator('[data-cap-mode="photo"]').click();
+        r.photo = await page.locator('[data-cap-mode="photo"]').getAttribute("aria-selected");
+        await page.locator('[data-cap-mode="scan"]').click();
+        await page.locator("[data-cap-type]").click();
+        r.typeInstead = await page.waitForSelector("[data-add-input]", { timeout: 5000 }).then(() => true, () => false);
+        r.noHint = (await page.locator("[data-add-hint]").count()) === 0;
+        await page.locator("[data-add-back]").click();
+        // Refused: a context that never granted the camera.
+        const dctx = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, storageState: { cookies: await ctx.cookies(), origins: [] } });
+        const dp = await dctx.newPage();
+        await dp.addInitScript(() => {
+          const md = navigator.mediaDevices;
+          if (md) md.getUserMedia = () => Promise.reject(Object.assign(new Error("Permission denied"), { name: "NotAllowedError" }));
+        });
+        await dp.goto(`${BASE}/supermarket`);
+        await dp.waitForSelector("[data-sm-view]", { timeout: 15000 });
+        await dp.locator('[data-dock-target="plus"]').click();
+        r.refused = await dp.waitForSelector('[data-add-hint="camera"]', { timeout: 8000 }).then(() => true, () => false);
+        r.refusedInput = await dp.locator("[data-add-input]").count();
+        await dctx.close();
+        // Leave the page where the next steps expect it (Products: "+" opens its menu there).
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector(READY);
+        ok(r.menuElsewhere && r.scanFirst === "true" && r.photo === "true" && r.typeInstead && r.noHint && r.refused && r.refusedInput === 1,
+          "supermarket + is the camera (R18 S3 C1): barcode first, photo, type instead; refused → Add + hint", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

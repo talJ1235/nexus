@@ -214,6 +214,8 @@ function DockBar() {
             onClick={() => {
               if (press.fired()) return;
               if (quick) return setQuick(false);
+              // R18 S3 C1: on the Supermarket tab "+" is the camera, barcode first (long press keeps its menu).
+              if (s.view.type === "supermarket" && !plusOpen) return requestSm("scan");
               s.setPlusOpen(!plusOpen);
             }}
             {...press.handlers}

@@ -1,7 +1,7 @@
 "use client";
 
 import "./sm.css";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, History, LayoutList, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, ShoppingCart, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
@@ -73,7 +73,14 @@ export function SupermarketView() {
   const addMany = useAddMany();
   // B2: the Add screen (typing / voice / paste); scan + photo arrive with B3.
   const [adding, setAdding] = useState<AddMode | null>(null);
+  const [addHint, setAddHint] = useState<"camera" | null>(null);
   const [capturing, setCapturing] = useState<"scan" | "photo" | null>(null);
+  // The camera's "Type instead" (or a refused camera permission, with a one-line hint): the Add screen.
+  const typeInstead = useCallback((_text?: string, hint?: "camera") => {
+    setCapturing(null);
+    setAddHint(hint ?? null);
+    setAdding("type");
+  }, []);
   const [openId, setOpenId] = useState<string | null>(null);
   // F3: "/" opens Add on a computer (not while typing somewhere).
   useEffect(() => {
@@ -169,10 +176,10 @@ export function SupermarketView() {
       <StorePicker open={picking} onClose={() => setPicking(false)} />
       <SectionOrder open={ordering} onClose={() => setOrdering(false)} onPickStore={() => setPicking(true)} />
       <Lists open={lists != null} onClose={() => setLists(null)} routine={home?.routine ?? null} start={lists ?? "templates"} />
-      {!ro && <Capture open={capturing != null} mode={capturing ?? "scan"} onClose={() => setCapturing(null)} onType={() => (setCapturing(null), setAdding("type"))} />}
+      {!ro && <Capture open={capturing != null} mode={capturing ?? "scan"} onClose={() => setCapturing(null)} onType={typeInstead} />}
       <SmItemSheet itemId={openId} onClose={closeSheet} />
       <StoreMode open={shopping} onClose={() => setShopping(false)} onPickStore={() => setPicking(true)} />
-      <AddScreen open={adding != null} mode={adding ?? "type"} onClose={() => setAdding(null)} onCapture={(k) => (setAdding(null), capture(k))} />
+      <AddScreen open={adding != null} mode={adding ?? "type"} hint={addHint} onClose={() => (setAdding(null), setAddHint(null))} onCapture={(k) => (setAdding(null), capture(k))} />
     </>
   );
   const startBar = !ro && s.sm.length > 0 && !mineRunning && (

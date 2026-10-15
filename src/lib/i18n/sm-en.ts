@@ -161,6 +161,7 @@ export const smEn = {
     addOne: "Add 1",
     added_n: "Added {n}",
     setQty: "Quantity for {title}",
+    cameraOff: "The camera is blocked for Nexus — allow it in the browser’s site settings to scan. Type it for now.",
   },
   qty: {
     title: "Quantity",

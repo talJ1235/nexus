@@ -35,7 +35,7 @@ const never = () => () => {};
 /** Web Speech is a browser fact: false on the server and while hydrating (no mismatch), then the real answer. */
 export const useVoiceSupported = () => useSyncExternalStore(never, voiceSupported, () => false);
 
-export function AddScreen({ open, onClose, mode: startMode = "type", onCapture }: { open: boolean; onClose: () => void; mode?: AddMode; onCapture?: (k: "scan" | "photo") => void }) {
+export function AddScreen({ open, onClose, mode: startMode = "type", onCapture, hint = null }: { open: boolean; onClose: () => void; mode?: AddMode; onCapture?: (k: "scan" | "photo") => void; hint?: "camera" | null }) {
   const { t } = useI18n();
   useBackClose(open, onClose);
   return (
@@ -51,7 +51,7 @@ export function AddScreen({ open, onClose, mode: startMode = "type", onCapture }
         >
           <D.Title className="sr-only">{t.sm.add.title}</D.Title>
           <D.Description className="sr-only">{t.sm.add.title}</D.Description>
-          {open && <AddBody onClose={onClose} startMode={startMode} onCapture={onCapture} />}
+          {open && <AddBody onClose={onClose} startMode={startMode} onCapture={onCapture} hint={hint} />}
         </D.Content>
       </D.Portal>
     </D.Root>
@@ -60,7 +60,7 @@ export function AddScreen({ open, onClose, mode: startMode = "type", onCapture }
 
 type Hits = { hits: Hit[]; didYouMean: Hit[] };
 
-function AddBody({ onClose, startMode, onCapture }: { onClose: () => void; startMode: AddMode; onCapture?: (k: "scan" | "photo") => void }) {
+function AddBody({ onClose, startMode, onCapture, hint }: { onClose: () => void; startMode: AddMode; onCapture?: (k: "scan" | "photo") => void; hint: "camera" | null }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
   const { home } = useSmHome();
@@ -161,6 +161,11 @@ function AddBody({ onClose, startMode, onCapture }: { onClose: () => void; start
           )}
         </label>
       </div>
+      {hint === "camera" && (
+        <p className="mx-3 mt-2 rounded-[12px] bg-warn-soft px-3 py-2 text-[13px] font-semibold text-warn" data-add-hint="camera">
+          {t.sm.add.cameraOff}
+        </p>
+      )}
       {/* R18 S3 B6: every way to add in one row at 360 px (he + en) — equal columns, the icon over a short label; no
           sideways scroll. Scan / Photo only where the camera opens from here, Voice only where the browser hears. */}
       <div className="grid gap-2 px-3 py-3" style={{ gridTemplateColumns: `repeat(${(onCapture ? 2 : 0) + (voice ? 1 : 0) + 1}, minmax(0, 1fr))` }} data-add-chips>

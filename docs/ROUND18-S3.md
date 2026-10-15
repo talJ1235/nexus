@@ -140,7 +140,7 @@ nearest-first = R19, not now — say so in the empty state only if a chain has n
 It changes nothing → make it work or remove it (Decisions says which).
 
 ## Part C — Supermarket quick wins (existing screens only)
-### C1 [ ] "+" on the Supermarket tab opens the camera
+### C1 [x] "+" on the Supermarket tab opens the camera
 "+" (dock on the Supermarket tab, and the tab's add button) opens the capture screen (`capture.tsx`) **in barcode mode
 straight away**; switch to Photo there; "Type instead" goes to the Add screen (search bar stays on the tab). Long-press
 dock menu unchanged. Camera permission denied → Add screen with a one-line hint.
@@ -285,6 +285,10 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   prices" (R19). Smoke phone + computer (S2's D2 picker step still passes).
 - B12 — removed: on phones Order by store ignored List / Grid (its per-store rows are a list in both), so the switch is
   gone from that view; History (item cards) keeps it; the computer's Cards / Table switch there works and stays. Smoke.
+- C1 — on the Supermarket tab the dock's "+" opens the camera in barcode mode straight away (`requestSm("scan")`; the
+  long press keeps its menu, other tabs keep the + menu); the camera's barcode mode got "Type instead" (→ Add screen);
+  a refused camera permission lands on the Add screen with a one-line hint (no camera at all keeps the code field —
+  `test:capture`). The tab's add field stays the typing entry. Smoke (incl. a context whose getUserMedia is refused).
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
@@ -305,6 +309,8 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   household has used or saved.
 - B12: removed rather than made to work — a grid of cards inside each store's box would lose the per-store totals and
   actions; the rows already are the compact form.
+- C1: "the tab's add button" read as the dock's "+" while on the Supermarket tab (the tab has no other add button; its
+  add field is the "search bar" that stays, with its own scan / photo / voice icons).
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.

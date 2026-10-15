@@ -165,6 +165,7 @@ export const smHe: Widen<typeof smEn> = {
     addOne: "הוספת 1",
     added_n: "נוספו {n}",
     setQty: "כמות של {title}",
+    cameraOff: "המצלמה חסומה ל-Nexus — אפשר אותה בהגדרות האתר בדפדפן כדי לסרוק. בינתיים אפשר להקליד.",
   },
   qty: {
     title: "כמות",
