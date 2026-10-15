@@ -465,9 +465,11 @@ export type PhotoProduct =
  * R18 S3 C2: one read of the photo — what it is (`kind`) and every reading, so the result screen can switch: the product
  * (when one could be named), the list's lines (when there is text). A receipt is read by the receipt review itself.
  */
-export type PhotoResult = { state: "read"; kind: PhotoKind; product: PhotoProduct | null; lines: string[] } | { state: "limit" } | { state: "failed" };
+export type PhotoResult = { state: "read"; kind: PhotoKind; product: PhotoProduct | null; lines: string[]; guess?: Exclude<PhotoKind, "unsure"> } | { state: "limit" } | { state: "failed" };
 
-type PhotoGuess = { kind: PhotoKind; title: string; confidence: number; others: string[]; grocery: boolean; lines: string[] };
+type PhotoGuess = { kind: PhotoKind; kindConfidence?: number; title: string; confidence: number; others: string[]; grocery: boolean; lines: string[] };
+/** S4 B3: below this the kind is asked ("Product / Receipt / List?"), the model's guess first. */
+const KIND_SURE = 0.6;
 
 /**
  * Mock (tests): the image's base64 decodes to "mock:<title>|<confidence>|<other>|<other>" (a product),
@@ -477,6 +479,7 @@ function mockGuess(data: string): PhotoGuess | null {
   const base = { kind: "product" as PhotoKind, title: "", confidence: 0, others: [] as string[], grocery: true, lines: [] as string[] };
   try {
     const text = Buffer.from(data, "base64").toString("utf8");
+    if (text.startsWith("mocklow:")) return { ...base, kind: text.slice(8).trim() as PhotoKind, kindConfidence: 0.4, title: "Mock product", confidence: 0.5 };
     if (text.startsWith("mockreceipt:")) return { ...base, kind: "receipt" };
     if (text.startsWith("mocklist:")) return { ...base, kind: "list", lines: text.slice(9).split("\n") };
     if (text.startsWith("mockunsure:")) return { ...base, kind: "unsure", title: "Mock product", confidence: 0.3 };
@@ -489,16 +492,22 @@ function mockGuess(data: string): PhotoGuess | null {
   }
 }
 
+// S4 B3: the kind gets its own confidence and the cues that tell the three apart; the frame the person used is a hint.
 const PHOTO_PROMPT = [
-  "Say what this photo shows, for a household's supermarket list:",
-  '"kind": "product" (a package, a fruit, a bottle — one thing to buy), "receipt" (a printed till receipt with prices),',
-  '"list" (a handwritten or printed shopping list, a note, a screenshot of one) or "unsure".',
+  "Say what this photo shows, for a household's supermarket list.",
+  '"kind": "product" = one thing to buy (a package, a bottle, a fruit or vegetable, a shelf label of one product);',
+  '"receipt" = a printed till receipt: a store name, item lines with prices, a total, usually a long narrow paper;',
+  '"list" = a shopping list: handwritten or typed product names, often one per line, ticks or bullets, no prices,',
+  "also a note or a screenshot of a chat with products; several different products photographed together are a list",
+  'only when their names are written, else "unsure". "unsure" = none of these, or it cannot be told.',
+  '"kindConfidence": 0–1, how sure you are of the kind (below 0.6 when two kinds are plausible).',
   '"title": the product the way a shopping list would name it — product + variant/size, in the language printed on it',
   '(Hebrew stays Hebrew); empty when there is no single product. "confidence": 0–1, how sure you are of the title.',
   '"others": up to 2 other products it could be. "grocery": false only for things a supermarket does not sell',
   "(electronics, furniture, clothes, toys…).",
   '"lines": for a list, every line as written (one product per line, amounts kept, in its language); else [].',
 ].join(" ");
+const HINT = { product: "The person framed one product (a square frame).", doc: "The person framed a receipt or a list (a tall frame)." };
 
 /**
  * Photo → what it is (product / receipt / list / unsure) and its readings, in one AI call that counts in the person's
@@ -506,9 +515,9 @@ const PHOTO_PROMPT = [
  * choices (the home's first, then the dictionary); a product that isn't a grocery → "other" (it goes to Products). At the
  * daily AI limit → "limit" (typing and scanning still work).
  */
-export async function smPhoto(input: { image: string }): Promise<PhotoResult> {
+export async function smPhoto(input: { image: string; hint?: "product" | "doc" }): Promise<PhotoResult> {
   const ctx = await requireCtx("edit");
-  const { image } = z.object({ image: z.string().max(6_000_000) }).strict().parse(input);
+  const { image, hint } = z.object({ image: z.string().max(6_000_000), hint: z.enum(["product", "doc"]).optional() }).strict().parse(input);
   const m = image.match(/^data:(image\/[\w+.-]+);base64,(.+)$/);
   if (!m) throw new Error("invalid_image");
   const use = aiUse(ctx, "grocery");
@@ -520,28 +529,33 @@ export async function smPhoto(input: { image: string }): Promise<PhotoResult> {
     await recordAiUsage(use, { provider: "mock", model: "mock", ok: true, ms: 0 });
   } else
     guess = await generateJson<PhotoGuess>(
-      PHOTO_PROMPT,
+      hint ? `${PHOTO_PROMPT} ${HINT[hint]}` : PHOTO_PROMPT,
       {
         type: "object",
         properties: {
           kind: { type: "string", enum: ["product", "receipt", "list", "unsure"] },
+          kindConfidence: { type: "number" },
           title: { type: "string" },
           confidence: { type: "number" },
           others: { type: "array", items: { type: "string" } },
           grocery: { type: "boolean" },
           lines: { type: "array", items: { type: "string" } },
         },
-        required: ["kind", "title", "confidence", "others", "grocery", "lines"],
+        required: ["kind", "kindConfidence", "title", "confidence", "others", "grocery", "lines"],
       },
       { use, file: { mimeType: m[1], data: m[2] }, budgetMs: 25_000 },
     );
   if (!guess) return { state: "failed" };
-  const kind: PhotoKind = (["product", "receipt", "list", "unsure"] as const).includes(guess.kind) ? guess.kind : "unsure";
+  const said: PhotoKind = (["product", "receipt", "list", "unsure"] as const).includes(guess.kind) ? guess.kind : "unsure";
+  // S4 B3: not sure of the kind → ask, the model's guess (else the frame's) first.
+  const unsure = said === "unsure" || (guess.kindConfidence ?? 1) < KIND_SURE;
+  const kind: PhotoKind = unsure ? "unsure" : said;
+  const best: Exclude<PhotoKind, "unsure"> | undefined = said !== "unsure" ? said : hint === "doc" ? (guess.lines?.length ? "list" : "receipt") : hint === "product" ? "product" : undefined;
   const lines = (Array.isArray(guess.lines) ? guess.lines : []).map((l) => String(l).trim().slice(0, 200)).filter(Boolean).slice(0, 60);
   const title = String(guess.title ?? "").trim().slice(0, 200);
   if (kind === "product" && !title) return { state: "failed" };
   const product = title ? await photoProduct(ctx, { ...guess, title }) : null;
-  return { state: "read", kind, product, lines };
+  return { state: "read", kind, product, lines, ...(kind === "unsure" && best ? { guess: best } : {}) };
 }
 
 async function photoProduct(ctx: Awaited<ReturnType<typeof requireCtx>>, guess: PhotoGuess): Promise<PhotoProduct> {

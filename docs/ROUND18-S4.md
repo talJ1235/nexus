@@ -11,13 +11,21 @@ Results go to **"## Open" at the end of this file**. Tal runs it overnight (~8 h
   written): merge `origin/main` into it, let its CI finish green, `git merge --ff-only` into `main`, push, check the
   `guards` run on `main` + the prod smoke after deploy (S3 rules). Only then branch **`round18-s4`** from `main`.
 - **Commit and push after every single item** (`R18.S4.<part><k>: …`, `git push origin round18-s4`); tick `[x]` here +
-  one line in "### Progress" in the same commit; decisions in "### Decisions" at once; anything for Tal in "### For Tal".
+  one line in "### Progress" in the same commit; decisions in "### Decisions" at once; anything for Tal in "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
+  "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
+- B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
+
+### For Tal".
 - **Resuming:** `git fetch`, check out `round18-s4`, read Progress + `git log`, continue from the first unticked item.
 - Unattended; never stop to ask — take the reading closest to Tal's words, write it in Decisions.
 - Read open reports and the error log first. **Bugs with an unknown cause: reproduce first** (failing test / smoke
   step), then fix.
 - **Real-device honesty:** camera, focus, barcode and voice can't be fully proven in headless Chromium. Test what can be
-  tested (fixtures, fake streams, mocked AI) and, for each such item, write in "### For Tal" exactly what to try on his
+  tested (fixtures, fake streams, mocked AI) and, for each such item, write in "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
+  "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
+- B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
+
+### For Tal" exactly what to try on his
   phone (Samsung, Chrome + installed PWA) and what he should see. Add `/debug/camera` (admin only) that prints the chosen
   camera, its capabilities (focusMode, zoom, torch, resolution) and the decoder in use, so Tal can send a screenshot.
 - DB additive only; if the DB changes, rehearsal on a copy of a fresh prod snapshot before merging. Merge `--ff-only`
@@ -72,7 +80,7 @@ Do:
 - `test:barcode` with fixture images: small / large / rotated / blurry / each format; time-to-first-read logged.
 - `/debug/camera` (see How to run).
 
-### B3 [ ] Photo mode: freeze, retake, better reading
+### B3 [x] Photo mode: freeze, retake, better reading
 Shutter → the still freezes at once (camera stops), "Analysing…" over it, **Retake** and **Use photo**. The AI
 classification (S3 C2) gets better prompts + a confidence; low confidence → ask "Product / Receipt / List?" with the
 best guess first. Overlay frame hint matches the mode the user is in (tall frame for receipt / list, square for a
@@ -151,7 +159,11 @@ Smoke steps for every item (phone + desktop). `test:add` (A1 matrix), `test:barc
 long-press timings, store-mode one-scroller check. Full phone + desktop smoke pass.
 ### G2 [ ] Docs
 `SPEC.md` R18 S4 section, `CLAUDE.md` map (camera choice + `/debug/camera`, voice recorder path), help topic Supermarket
-(scanning, voice), `docs/ENVIRONMENT.md` log line. "### For Tal" = the phone checklist for camera, barcode, voice.
+(scanning, voice), `docs/ENVIRONMENT.md` log line. "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
+  "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
+- B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
+
+### For Tal" = the phone checklist for camera, barcode, voice.
 
 ## Open
 ### Progress
@@ -173,8 +185,15 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
   capture freezes the read frame + outline, haptic, "Scan another" (also on an unknown code), 4 s light / distance hint,
   tap-to-focus ring. `/debug/camera` (admin). `test:barcode`: 9 formats × large / small / rotated / blurry / off-centre
   all read (≤ 3 passes, times logged); smoke step with a canvas camera.
+- B3: shutter → still + camera off → Retake / Use photo → "Analysing…" over the still → result; frame pick (square
+  product / tall receipt · list) sent as a hint; the prompt names each kind's cues and returns `kindConfidence` (< 0.6 →
+  asked, the model's guess first, else the frame's); the frame takes the seen kind's shape. `test:capture` + smoke step.
 ### Decisions
 - A1: templates, re-add from history and accepted suggestions keep an existing row's amount (S1/S2 rule shown in their
   plans as "already on it — stays"); they never write notes. Every other path (search, barcode, photo, voice, paste, trip
   add) merges through `mergeAdd`. Volume (L) onto a weighed row has no conversion → one more pack.
+- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
+  "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
+- B2: photos use the same tuned main lens as scanning (one camera start, no restart when switching modes).
+
 ### For Tal

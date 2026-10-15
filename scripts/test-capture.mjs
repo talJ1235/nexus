@@ -91,10 +91,20 @@ try {
   assert.deepEqual(other.product, { state: "other", title: "Bluetooth headphones" }, "not a grocery → Products");
   const milk = await call("smPhoto", { image: img("mockother:Milk 3%") });
   assert.notEqual(milk.product.state, "other", "the dictionary knows milk: the model's 'not a grocery' is overruled");
-  assert.equal((await call("smAiAllowance")).used - usedAfter, 5, "one AI call per photo, whatever it is");
+  // R18 S4 B3: a kind the model isn't sure of is asked, its guess first; with no guess the frame the person used decides.
+  const low = await call("smPhoto", { image: img("mocklow:receipt") });
+  assert.equal(low.kind, "unsure", "kind confidence 0.4 → asked");
+  assert.equal(low.guess, "receipt", "the model's guess comes first");
+  const lowList = await call("smPhoto", { image: img("mocklow:list"), hint: "product" });
+  assert.equal(lowList.guess, "list", "the model's guess beats the frame");
+  const framed = await call("smPhoto", { image: img("mockunsure:"), hint: "doc" });
+  assert.equal(framed.guess, "receipt", "no guess: a tall frame → receipt first");
+  assert.equal((await call("smPhoto", { image: img("mockunsure:"), hint: "product" })).guess, "product", "a square frame → product first");
+  assert.equal((await call("smAiAllowance")).used - usedAfter, 9, "one AI call per photo, whatever it is");
   const kinds = (await app.db.execute("SELECT feature FROM ai_usage WHERE feature = 'grocery'")).rows.length;
   assert.ok(kinds >= 2, "recorded as feature grocery");
   console.log("ok photo: sure → matched to the home's product; unsure → 3 choices (home first); counted in the quota (grocery)");
+  console.log("ok photo kind (S4 B3): low kind confidence → asked with the model's guess first; else the frame's");
 
   // ---- photo: the daily limit reached → "limit" (typing and scanning still work)
   // The test user is an admin (unlimited): a normal person from here on, with a daily limit of 0.
