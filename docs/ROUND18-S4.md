@@ -120,24 +120,24 @@ The Start shopping button is a floating bar above the dock (safe area aware) unt
 view, then it docks into place at the end; it never overlaps "Nexus suggests" or rows (content gets bottom padding).
 
 ## Part E — store mode
-### E1 [ ] Start-trip screen fixed (not scrollable)
+### E1 [x] Start-trip screen fixed (not scrollable)
 The start screen (store, list size, estimate, Let's go, back to the list) is a fixed full screen — no scroll, no
 rubber-band. Small visual lift within the current style (store colour / gradient, larger title); the full redesign
 comes from S5 boards.
 
-### E2 [ ] Sections stay open; no pop-ups
+### E2 [x] Sections stay open; no pop-ups
 Reverses S3 B8: a finished section **stays open** (rows checked, quantities and notes visible); the user can collapse
 it with its header. No toast or pop-up when a section is done — nothing jumps. Undo of a check is the row itself.
 
-### E3 [ ] Finish is a full screen
+### E3 [x] Finish is a full screen
 Reverses S3 B9 for store mode: Finish opens a full screen (summary, items left, total, receipt, done) — not a bottom
 sheet. Other app sheets keep S3's fit-to-content.
 
-### E4 [ ] No phantom scrollbar
+### E4 [x] No phantom scrollbar
 Dragging the dark area in store mode shows a scrollbar moving with nothing scrolling (a nested scroller / body behind).
 One scroller only; the background never scrolls; no visible scrollbar on phones.
 
-### E5 [ ] Aisle rail = navigation
+### E5 [x] Aisle rail = navigation
 Tap a section's colour in the rail → smooth scroll to that section (header under the top bar), the rail marks it.
 Each section gets a minimum tap width (≥ 24 px; the rail scrolls or compresses gracefully with many sections) and
 a ≥ 44 px tall hit area. Reduced motion: jump.
@@ -204,6 +204,12 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
   `useSwipe` is interruptible (a grab mid-settle continues from the row's place on screen).
 - D3: Start shopping floats 90 px above the dock until the slot after the list reaches it (IntersectionObserver), then
   sits in that slot — never over "Nexus suggests"; the tab has bottom room for it. Smoke steps D1+D2, D3.
+- E1–E5 (store-mode.tsx): start screen fixed (`touch-none`, no overflow) on the store colour's wash, 34 px title,
+  72 px monogram; finished sections stay open, no fold / toast (the header collapses one by hand); Finish = a full
+  screen over store mode (bought, left by name, total, Finish / Back) → the existing summary + receipt; one scroller
+  (html + body locked while store mode is open, the dialog clipped, the list `overscroll-contain`, no phone scrollbar);
+  the rail = ≥ 24 × 44 px buttons (scrolls sideways when many) that smooth-scroll a section under the header and mark
+  it (a jump with reduced motion). Smoke step replaces S3 B8's; S3 B9's finish part moved to it.
 ### Decisions
 - A1: templates, re-add from history and accepted suggestions keep an existing row's amount (S1/S2 rule shown in their
   plans as "already on it — stays"); they never write notes. Every other path (search, barcode, photo, voice, paste, trip

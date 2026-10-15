@@ -19,7 +19,7 @@ import { haptic } from "../use-camera";
 import { ProductTile, SectionIcon, sectionColor } from "./art";
 import { useSmHome } from "./data";
 import { patchTrip, readTrip, useLocalTrip, writeTrip, type LocalTrip } from "./local-trip";
-import { storeLabel, useMonthLeft, useTrips } from "./numbers";
+import { chainDef, monoColor, storeLabel, useMonthLeft, useTrips } from "./numbers";
 import { qtyLabel } from "./qty";
 import { QtySteppers, type Measure } from "./qty-steppers";
 import { Mono } from "./store-picker";
@@ -33,6 +33,8 @@ import { bySection } from "./view";
 // now" with an in-app toast (no push while the app is in front: D4), a long press for not found / took something else /
 // price / quantity. Finish: confirm → summary (bought, left, minutes, total vs the estimate, left this month) → receipt
 // photo or skip → all saved. Everything checked → confetti + "Everything's in the cart".
+// R18 S4 E: the start screen is fixed (no scroll) in the store's colour; sections stay open (the header collapses one);
+// Finish is a full screen; one scroller (the list); the aisle rail scrolls to a section.
 
 type Step = "start" | "shop" | "summary" | "saved";
 
@@ -48,9 +50,9 @@ export function StoreMode({ open, onClose, onPickStore }: { open: boolean; onClo
   return (
     <D.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <D.Portal>
-        <D.Content className="sm-rise fixed inset-0 z-50 flex flex-col bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[4vh] desk:mx-auto desk:h-[92vh] desk:max-w-[520px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in"
+        <D.Content className="sm-rise fixed inset-0 z-50 flex flex-col overflow-hidden overscroll-none bg-bg outline-none phone:pt-[env(safe-area-inset-top)] desk:inset-x-0 desk:top-[4vh] desk:mx-auto desk:h-[92vh] desk:max-w-[520px] desk:overflow-hidden desk:rounded-2xl desk:border desk:border-line desk:shadow-pop desk:animate-pop-in"
           aria-describedby={undefined}
-          // A toast's Undo (a section done, R18 S3 B8) is not "outside": it mustn't collapse store mode.
+          // A toast's action (someone added a row) is not "outside": it mustn't collapse store mode.
           onInteractOutside={(e) => {
             if ((e.target as Element | null)?.closest?.("[data-sonner-toaster]")) e.preventDefault();
           }}
@@ -106,6 +108,8 @@ function Start({ onGo, onClose, onPickStore }: { onGo: () => void; onClose: () =
   const { store, order } = useTripStore(space, home);
   const groups = useMemo(() => bySection(s.sm, order), [s.sm, order]);
   const est = useMemo(() => estimateOf(s.sm, home?.prices), [s.sm, home?.prices]);
+  // S4 E1: the store's colour washes the screen (the full redesign comes with the S5 boards).
+  const tint = storeTint(store?.chain);
   const go = () => {
     writeTrip(space, { chain: store?.chain ?? null, branch: store?.branch ?? null, startedAt: Date.now(), rows: s.sm, checked: {}, notFound: {}, prices: {}, live: {} });
     void tripApi.start({ chain: store?.chain ?? null, branch: store?.branch ?? null, planned: s.sm.length });
@@ -113,15 +117,19 @@ function Start({ onGo, onClose, onPickStore }: { onGo: () => void; onClose: () =
     onGo();
   };
   return (
-    <div className="flex min-h-0 flex-1 flex-col px-5 pb-[max(20px,env(safe-area-inset-bottom))]" data-store-start>
+    <div
+      className="flex min-h-0 flex-1 touch-none flex-col overflow-hidden overscroll-none px-5 pb-[max(20px,env(safe-area-inset-bottom))]"
+      style={{ background: `radial-gradient(120% 70% at 50% 18%, color-mix(in srgb, ${tint} 20%, var(--bg)), var(--bg) 72%)` } as React.CSSProperties}
+      data-store-start
+    >
       <div className="flex justify-start pt-3">
         <button type="button" onClick={onClose} className="grid size-10 place-items-center rounded-full" aria-label={t.sm.shop.collapse}>
           <ChevronDown className="size-6" />
         </button>
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-        {store && <Mono chain={store.chain} size={56} />}
-        <h2 className="bidi text-[28px] font-extrabold leading-tight tracking-[-0.02em]">{store ? storeLabel(store.chain, store.branch, locale) : t.sm.shop.noStore}</h2>
+        {store && <Mono chain={store.chain} size={72} />}
+        <h2 className="bidi text-[34px] font-extrabold leading-[1.1] tracking-[-0.025em]" data-store-start-title>{store ? storeLabel(store.chain, store.branch, locale) : t.sm.shop.noStore}</h2>
         <div className="gro-rail w-full max-w-[300px]" aria-hidden>
           {groups.map(([k, list]) => (
             <i key={k} style={{ "--k": "var(--line-strong)", "--n": list.length } as React.CSSProperties} />
@@ -141,6 +149,12 @@ function Start({ onGo, onClose, onPickStore }: { onGo: () => void; onClose: () =
       </button>
     </div>
   );
+}
+
+/** The store's colour (the chain's monogram), grey without a store. */
+function storeTint(chain: string | null | undefined) {
+  const c = chainDef(chain)?.color;
+  return !c ? "var(--line-strong)" : c.startsWith("#") ? c : monoColor(c);
 }
 
 const minutesSince = (at: number) => Math.max(1, Math.round((Date.now() - at) / 60_000));
@@ -170,11 +184,10 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
   const [confirm, setConfirm] = useState(false);
   const [acting, setActing] = useState<ItemWithSources | null>(null);
   const [burst, setBurst] = useState(0);
-  // R18 S3 B8: a finished section folds into "Dairy · 3 ✓" a moment after its last check (a mis-tap is seen first),
-  // opens again on tap (rows can be unchecked), and says "Dairy done · Undo" for 5 s.
-  const [reopened, setReopened] = useState<Set<string>>(() => new Set());
-  const [justDone, setJustDone] = useState<Record<string, number>>({});
-  const lastCheck = useRef<Record<string, ItemWithSources>>({});
+  // S4 E2 (reverses S3 B8): a finished section stays open — no fold, no toast; its header collapses it by hand.
+  const [shut, setShut] = useState<Set<string>>(() => new Set());
+  const listRef = useRef<HTMLDivElement>(null);
+  const [aimed, setAimed] = useState<string | null>(null);
 
   // Rows added during the trip (anyone; someone else's marked "added now" with a toast) join the trip's rows.
   const seen = useRef(new Set(trip.rows.map((r) => r.id)));
@@ -226,36 +239,36 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
       }
       return { ...x, checked, notFound };
     });
-    if (!on) lastCheck.current[i.section ?? "other"] = i;
     void (on ? tripApi.uncheck(i) : tripApi.check(i));
   };
-  // Sections that just finished: stay open for a beat, then fold; a toast offers Undo (unchecks what finished it).
-  const finKey = groups.filter(([, list]) => list.every((i) => !!trip.checked[i.id] || trip.notFound[i.id])).map(([k]) => k).join(",");
-  const finNow = useMemo(() => new Set(finKey ? finKey.split(",") : []), [finKey]);
-  const finBefore = useRef<Set<string> | null>(null);
+  // S4 E5: the rail is the aisles — a tap scrolls that section's header to the top of the list (reduced motion: a jump).
+  const goTo = (k: string) => {
+    const list = listRef.current;
+    const el = list?.querySelector<HTMLElement>(`[data-store-section="${k}"]`);
+    if (!list || !el) return;
+    setAimed(k);
+    setShut((o) => (o.has(k) ? new Set([...o].filter((x) => x !== k)) : o));
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.getAttribute("data-motion") === "reduce";
+    list.scrollTo({ top: el.offsetTop - list.offsetTop - 8, behavior: reduce ? "auto" : "smooth" });
+  };
+  // The mark follows the list again once the person scrolls by hand.
   useEffect(() => {
-    const before = finBefore.current;
-    finBefore.current = finNow;
-    if (!before) return;
-    const fresh = [...finNow].filter((k) => !before.has(k));
-    const reopenedNow = [...before].filter((k) => !finNow.has(k));
-    if (reopenedNow.length) setReopened((o) => new Set([...o].filter((k) => !reopenedNow.includes(k))));
-    if (!fresh.length) return;
-    const at = Date.now();
-    setJustDone((j) => ({ ...j, ...Object.fromEntries(fresh.map((k) => [k, at])) }));
-    const id = window.setTimeout(() => setJustDone((j) => Object.fromEntries(Object.entries(j).filter(([, v]) => v !== at))), 900);
-    for (const k of fresh) {
-      const name = k === "other" ? t.sm.main.other : sectionName(k, locale);
-      const last = lastCheck.current[k];
-      toast(f(t.sm.shop.sectionDone, { section: name }), {
-        id: `store-done-${k}`,
-        duration: 5000,
-        action: last ? { label: t.sm.shop.undo, onClick: () => toggle(last) } : undefined,
-      });
-    }
-    return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs when the set of finished sections changes
-  }, [finNow]);
+    const list = listRef.current;
+    if (!list || !aimed) return;
+    let t = 0;
+    const off = () => {
+      clearTimeout(t);
+      t = window.setTimeout(() => setAimed(null), 1200);
+    };
+    list.addEventListener("touchmove", off, { passive: true });
+    list.addEventListener("wheel", off, { passive: true });
+    return () => {
+      clearTimeout(t);
+      list.removeEventListener("touchmove", off);
+      list.removeEventListener("wheel", off);
+    };
+  }, [aimed]);
+  const marked = aimed ?? current?.[0] ?? null;
   const finish = async () => {
     setConfirm(false);
     const paid = Object.values(trip.prices).length;
@@ -289,10 +302,24 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
             <span className="text-[12.5px] text-muted">{f(t.sm.shop.left, { n: left })}</span>
           </p>
         </div>
-        <div className="gro-rail mt-3 h-2" aria-hidden>
+        <div className="store-rail -mx-1 mt-1" role="toolbar" aria-label={t.sm.shop.rail} data-store-rail>
           {groups.map(([k, list]) => {
             const fin = list.every((i) => isDone(i) || trip.notFound[i.id]);
-            return <i key={k} style={{ "--k": fin ? sectionColor(k) : "var(--line-strong)", "--n": list.length } as React.CSSProperties} className={cn(current?.[0] === k && "outline outline-2 outline-offset-1 outline-ink")} />;
+            const name = k === "other" ? t.sm.main.other : sectionName(k, locale);
+            return (
+              <button
+                key={k}
+                type="button"
+                className="store-rail-hit"
+                style={{ "--k": fin ? sectionColor(k) : `color-mix(in srgb, ${sectionColor(k)} 38%, var(--line-strong))`, "--n": list.length } as React.CSSProperties}
+                onClick={() => goTo(k)}
+                aria-label={f(t.sm.shop.goSection, { section: name })}
+                aria-current={marked === k ? "location" : undefined}
+                data-store-rail-to={k}
+              >
+                <i />
+              </button>
+            );
           })}
         </div>
         <div className="mt-2.5 flex items-center gap-2 text-[13px] text-muted">
@@ -310,7 +337,7 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
           )}
         </div>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-6 pt-3" data-store-list>
+      <div ref={listRef} className="store-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-6 pt-3" data-store-list>
         {allIn && (
           <p className="mb-3 flex items-center justify-center gap-2 rounded-[16px] bg-ok-soft py-3 text-[15px] font-extrabold text-ok" data-store-allin>
             <Check className="size-5" strokeWidth={3} />
@@ -321,40 +348,33 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
           {groups.map(([k, list]) => {
             const fin = list.every((i) => isDone(i) || trip.notFound[i.id]);
             const name = k === "other" ? t.sm.main.other : sectionName(k, locale);
-            if (fin && !reopened.has(k) && !justDone[k])
-              return (
-                <button
-                  key={k}
-                  type="button"
-                  className="store-fold flex h-12 w-full items-center gap-2.5 rounded-[14px] border border-[color-mix(in_srgb,var(--ok)_40%,var(--line))] bg-ok-soft px-3.5 text-start text-[14.5px] font-bold text-ok transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]"
-                  onClick={() => setReopened((o) => new Set([...o, k]))}
-                  aria-expanded={false}
-                  aria-label={f(t.sm.shop.reopen, { section: name })}
-                  data-store-section-done={k}
-                >
-                  <span className="flex-1 truncate">{f(t.sm.shop.doneRow, { section: name, n: list.length })}</span>
-                  <Check className="size-4" strokeWidth={3} />
-                  <ChevronDown className="size-4 opacity-70" />
-                </button>
-              );
+            const closed = shut.has(k);
             return (
-              <section key={k} className="gro-sec" style={{ "--k": sectionColor(k) } as React.CSSProperties} data-store-section={k} data-store-reopened={fin && reopened.has(k) ? "" : undefined}>
-                <div className="flex min-h-11 items-center gap-2.5 px-1">
+              <section key={k} className="gro-sec scroll-mt-2" style={{ "--k": sectionColor(k) } as React.CSSProperties} data-store-section={k} data-store-section-fin={fin ? "" : undefined} data-shut={closed ? "" : undefined}>
+                <button
+                  type="button"
+                  className="flex min-h-11 w-full items-center gap-2.5 px-1 text-start"
+                  onClick={() => setShut((o) => (o.has(k) ? new Set([...o].filter((x) => x !== k)) : new Set([...o, k])))}
+                  aria-expanded={!closed}
+                  aria-label={f(t.sm.shop.toggleSection, { section: name })}
+                  data-store-section-head={k}
+                >
                   <SectionIcon section={k} size={30} />
-                  <b className="flex-1 truncate text-[15px] font-extrabold">{k === "other" ? t.sm.main.other : sectionName(k, locale)}</b>
-                  <span className="tabular rounded-full bg-surface-2 px-2 py-0.5 text-[12px] font-bold text-muted">
+                  <b className="flex-1 truncate text-[15px] font-extrabold">{name}</b>
+                  <span className={cn("tabular inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-bold", fin ? "bg-ok-soft text-ok" : "bg-surface-2 text-muted")}>
+                    {fin && <Check className="size-3.5" strokeWidth={3} />}
                     {list.filter(isDone).length}/{list.length}
                   </span>
-                  {fin && reopened.has(k) && (
-                    <button type="button" className="grid size-10 place-items-center rounded-full text-muted active:scale-95" onClick={() => setReopened((o) => new Set([...o].filter((x) => x !== k)))} aria-label={f(t.sm.shop.fold, { section: name })} data-store-fold={k}>
-                      <ChevronDown className="size-4 rotate-180" />
-                    </button>
-                  )}
-                </div>
-                <div className="gro-box">
-                  {list.map((i) => (
-                    <StoreRow key={i.id} item={i} done={isDone(i)} missing={!!trip.notFound[i.id]} live={!!trip.live[i.id]} unitKg={unitKgFor(i.productKey, home?.unitKg)} onToggle={() => toggle(i)} onMore={() => setActing(i)} />
-                  ))}
+                  <ChevronDown className={cn("size-4 text-muted transition-transform duration-200 ease-[var(--ease-out)]", closed && "-rotate-90 rtl:rotate-90")} />
+                </button>
+                <div className="gro-sec-b">
+                  <div>
+                    <div className="gro-box">
+                      {list.map((i) => (
+                        <StoreRow key={i.id} item={i} done={isDone(i)} missing={!!trip.notFound[i.id]} live={!!trip.live[i.id]} unitKg={unitKgFor(i.productKey, home?.unitKg)} onToggle={() => toggle(i)} onMore={() => setActing(i)} />
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </section>
             );
@@ -376,18 +396,56 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
         </div>
         {burst > 0 && <Confetti key={burst} />}
       </footer>
-      <Sheet open={confirm} onOpenChange={setConfirm} title={t.sm.shop.confirmTitle} fit className="desk:max-w-[420px]">
-        <div className="px-5 pb-[max(16px,env(safe-area-inset-bottom))] pt-1" data-store-confirm>
-          <h2 className="text-[20px] font-extrabold">{t.sm.shop.confirmTitle}</h2>
-          <p className="mt-1 text-[14px] text-muted">{total - boughtN ? f(t.sm.shop.confirmSub, { n: total - boughtN }) : t.sm.shop.confirmSubNone}</p>
-          <button type="button" className="mt-4 h-[52px] w-full rounded-[16px] bg-ink text-[16px] font-extrabold text-bg" onClick={() => void finish()} data-store-finish-confirm>
-            {spent > 0 ? f(t.sm.shop.finishWith, { amount: money(spent) }) : t.sm.shop.finishPlain}
-          </button>
-          <button type="button" className="mt-1 h-12 w-full text-[15px] font-bold" onClick={() => setConfirm(false)}>
-            {t.sm.shop.backToList}
-          </button>
+      {/* S4 E3 (reverses S3 B9 here): Finish is a full screen over store mode — what's in the cart, what stays on the
+          list (by name), the total, then Finish (the receipt comes next) or back to the list. */}
+      {confirm && (
+        <div className="store-finish absolute inset-0 z-20 flex flex-col overflow-hidden bg-bg phone:pt-[env(safe-area-inset-top)]" role="dialog" aria-modal="true" aria-label={t.sm.shop.confirmTitle} data-store-confirm>
+          <div className="flex items-center px-3 pt-2.5">
+            <button type="button" onClick={() => setConfirm(false)} className="grid size-10 place-items-center rounded-full" aria-label={t.sm.shop.backToList} data-store-finish-back>
+              <ChevronDown className="size-6" />
+            </button>
+          </div>
+          <div className="store-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4">
+            <h2 className="text-[30px] font-extrabold leading-tight tracking-[-0.02em]">{t.sm.shop.confirmTitle}</h2>
+            <div className="mt-4 grid grid-cols-2 gap-2.5">
+              <div className="rounded-[16px] border border-line-strong bg-surface p-3">
+                <b className="tabular block text-[26px] font-extrabold" data-store-finish-bought>{boughtN}</b>
+                <span className="text-[13px] text-muted">{t.sm.shop.bought}</span>
+              </div>
+              <div className="rounded-[16px] border border-line-strong bg-surface p-3">
+                <b className="tabular block text-[26px] font-extrabold" data-store-finish-left>{total - boughtN}</b>
+                <span className="text-[13px] text-muted">{t.sm.shop.stayed}</span>
+              </div>
+            </div>
+            <div className="mt-2.5 flex items-baseline justify-between rounded-[16px] border border-line-strong bg-surface p-3">
+              <b className="text-[15px] font-extrabold">{t.sm.shop.total}</b>
+              <b className="tabular text-[24px] font-extrabold">{spent > 0 ? money(spent) : "—"}</b>
+            </div>
+            <p className="mt-3 text-[14px] text-muted">{total - boughtN ? f(t.sm.shop.confirmSub, { n: total - boughtN }) : t.sm.shop.confirmSubNone}</p>
+            {total - boughtN > 0 && (
+              <ul className="mt-2 flex flex-col gap-1.5" data-store-finish-leftlist>
+                {rows
+                  .filter((i) => !isDone(i))
+                  .map((i) => (
+                    <li key={i.id} className="flex items-center gap-2.5 rounded-[12px] bg-surface-2 px-2.5 py-1.5">
+                      <ProductTile art={i.artKey} section={i.section} photo={i.imageUrl} size={32} />
+                      <span className="bidi min-w-0 flex-1 truncate text-[14.5px] font-bold">{i.title}</span>
+                      {trip.notFound[i.id] && <span className="text-[12.5px] text-muted">{t.sm.shop.notFound}</span>}
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </div>
+          <div className="border-t border-line bg-surface px-5 pb-[max(14px,env(safe-area-inset-bottom))] pt-3">
+            <button type="button" className="h-[54px] w-full rounded-[16px] bg-ink text-[16.5px] font-extrabold text-bg active:scale-[0.98]" onClick={() => void finish()} data-store-finish-confirm>
+              {spent > 0 ? f(t.sm.shop.finishWith, { amount: money(spent) }) : t.sm.shop.finishPlain}
+            </button>
+            <button type="button" className="mt-1 h-12 w-full text-[15px] font-bold" onClick={() => setConfirm(false)}>
+              {t.sm.shop.backToList}
+            </button>
+          </div>
         </div>
-      </Sheet>
+      )}
       <RowActions item={acting} onClose={() => setActing(null)} />
     </div>
   );

@@ -1886,42 +1886,96 @@ try {
         );
       });
 
-    // R18 S3 B8: store mode — checking a section's last row keeps it open for a beat, says "<section> done" with Undo,
-    // then folds it into "<section> · n ✓"; tapping that opens it again and a row can be unchecked (the section is
-    // back to normal); Undo on the toast unchecks the row that finished it. Ends with everything unchecked + Finish
-    // (nothing leaves the list).
+    // R18 S4 E1–E5 (replaces S3 B8's fold): the start screen is fixed (nothing scrolls, the page behind stays) with a
+    // larger title; a finished section stays open with no toast (its header collapses / opens it); one scroller in store
+    // mode (the list), the page never moves; the aisle rail's colours are ≥ 24 × 44 px buttons that scroll a section's
+    // header to the top and mark it; Finish is a full screen (bought, left by name, total) with Back. Ends with
+    // everything unchecked + Finish (nothing leaves the list).
     if (MOBILE && WRITE)
-      await step("store mode fold (R18 S3 B8): done section folds after a beat, reopens on tap, uncheck, toast Undo", async () => {
+      await step("store mode (R18 S4 E1–E5): fixed start, sections stay open, one scroller, rail navigates, full-screen finish", async () => {
         const r = {};
         await page.goto(`${BASE}/supermarket`);
         await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
         await page.locator("[data-sm-start]").click();
+        await page.waitForSelector("[data-store-start]");
+        await page.waitForTimeout(400);
+        // E1: nothing scrolls on the start screen.
+        const startBox = await page.locator("[data-store-start]").boundingBox();
+        await page.mouse.move(startBox.x + startBox.width / 2, startBox.y + startBox.height / 2);
+        const y0 = await page.evaluate(() => [document.scrollingElement.scrollTop, document.querySelector("[data-store-start]").scrollTop]);
+        await page.mouse.wheel(0, 600);
+        await page.waitForTimeout(300);
+        const y1 = await page.evaluate(() => [document.scrollingElement.scrollTop, document.querySelector("[data-store-start]").scrollTop]);
+        r.startStill = y0[0] === y1[0] && y0[1] === y1[1];
+        r.startFits = await page.locator("[data-store-start]").evaluate((e) => e.scrollHeight <= e.clientHeight + 1);
+        r.title = await page.locator("[data-store-start-title]").evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
         await page.locator("[data-store-go]").click();
         await page.waitForSelector("[data-store-shop] [data-store-row]");
+        // E4: one scroller; the header drag moves nothing.
+        r.scrollers = await page.evaluate(() =>
+          [...document.querySelectorAll("[data-store-mode-screen] *")].filter((e) => {
+            const o = getComputedStyle(e).overflowY;
+            return (o === "auto" || o === "scroll") && e.scrollHeight > e.clientHeight + 1;
+          }).map((e) => (e.hasAttribute("data-store-list") ? "list" : e.tagName)),
+        );
+        const head = await page.locator("[data-store-shop] header").boundingBox();
+        await page.mouse.move(head.x + head.width / 2, head.y + 30);
+        const before = await page.evaluate(() => [document.scrollingElement.scrollTop, document.querySelector("[data-store-list]").scrollTop]);
+        await page.mouse.wheel(0, 400);
+        await page.waitForTimeout(300);
+        const after = await page.evaluate(() => [document.scrollingElement.scrollTop, document.querySelector("[data-store-list]").scrollTop]);
+        r.pageStill = before[0] === after[0];
+        r.htmlLocked = await page.evaluate(() => getComputedStyle(document.documentElement).overflowY === "hidden");
+        // E5: rail buttons, sizes, navigation.
+        r.rail = await page.locator("[data-store-rail-to]").evaluateAll((els) => els.map((e) => { const b = e.getBoundingClientRect(); return [Math.round(b.width), Math.round(b.height)]; }));
+        r.sections = await page.locator("[data-store-section]").count();
+        const lastK = await page.locator("[data-store-rail-to]").last().getAttribute("data-store-rail-to");
+        await page.locator(`[data-store-rail-to="${lastK}"]`).click();
+        await page.waitForTimeout(900);
+        r.railTop = await page.evaluate((k) => {
+          const l = document.querySelector("[data-store-list]").getBoundingClientRect().top;
+          const h = document.querySelector(`[data-store-section="${k}"]`).getBoundingClientRect().top;
+          const list = document.querySelector("[data-store-list]");
+          const atEnd = list.scrollTop + list.clientHeight >= list.scrollHeight - 2;
+          return { d: Math.round(h - l), atEnd };
+        }, lastK);
+        r.marked = await page.locator(`[data-store-rail-to="${lastK}"]`).getAttribute("aria-current");
+        const firstK = await page.locator("[data-store-rail-to]").first().getAttribute("data-store-rail-to");
+        await page.locator(`[data-store-rail-to="${firstK}"]`).click();
+        await page.waitForTimeout(900);
+        r.backTop = await page.evaluate(() => document.querySelector("[data-store-list]").scrollTop);
+        // E2: finish the smallest section — it stays open, no toast.
         const sec = await page.evaluate(() => {
           const xs = [...document.querySelectorAll("[data-store-section]")].map((e) => ({ k: e.getAttribute("data-store-section"), ids: [...e.querySelectorAll("[data-store-row]")].map((x) => x.getAttribute("data-store-row")) }));
           return xs.filter((x) => x.ids.length).sort((a, b) => a.ids.length - b.ids.length)[0];
         });
         const row = (id) => page.locator(`[data-store-row="${id}"]`);
+        const toastsBefore = await page.locator("[data-sonner-toast]").count();
         for (const id of sec.ids) {
           await row(id).evaluate((e) => e.scrollIntoView({ block: "center" }));
           await row(id).click();
         }
-        await page.waitForTimeout(250);
-        r.beat = await page.locator(`[data-store-section="${sec.k}"]`).count();
-        r.toast = await page.locator("[data-sonner-toast]").last().textContent();
-        await page.waitForTimeout(1100);
-        r.folded = await page.locator(`[data-store-section-done="${sec.k}"]`).count();
-        await page.locator(`[data-store-section-done="${sec.k}"]`).click();
-        r.reopened = await page.locator(`[data-store-section="${sec.k}"][data-store-reopened]`).count();
+        await page.waitForTimeout(1500);
+        r.stillOpen = (await page.locator(`[data-store-section="${sec.k}"][data-store-section-fin]:not([data-shut]) [data-store-row]`).count()) === sec.ids.length;
+        r.noToast = (await page.locator("[data-sonner-toast]").count()) === toastsBefore;
+        await page.locator(`[data-store-section-head="${sec.k}"]`).click();
+        r.collapsed = await page.locator(`[data-store-section="${sec.k}"][data-shut]`).count();
+        await page.locator(`[data-store-section-head="${sec.k}"]`).click();
+        r.reopened = await page.locator(`[data-store-section="${sec.k}"]:not([data-shut])`).count();
         await row(sec.ids[0]).click();
-        await page.waitForTimeout(1200);
-        r.unchecked = (await row(sec.ids[0]).getAttribute("aria-pressed")) === "false" && (await page.locator(`[data-store-section-done="${sec.k}"]`).count()) === 0;
-        await row(sec.ids[0]).click();
-        await page.locator("[data-sonner-toast]").last().locator("button:has-text('Undo')").click();
-        await page.waitForTimeout(500);
-        r.undo = (await row(sec.ids[0]).getAttribute("aria-pressed")) === "false";
-        // Leave the list as it was: uncheck the rest, then Finish with nothing bought.
+        r.unchecked = (await row(sec.ids[0]).getAttribute("aria-pressed")) === "false";
+        // E3: Finish is a full screen, with what stays on the list by name; Back returns to the list.
+        await page.locator("[data-store-finish]").click();
+        await page.waitForSelector("[data-store-confirm]");
+        await page.waitForTimeout(400);
+        const fin = await page.locator("[data-store-confirm]").boundingBox();
+        const vp = page.viewportSize();
+        r.full = fin.height >= vp.height - 2 && fin.width >= vp.width - 2;
+        r.leftNames = await page.locator("[data-store-finish-leftlist] li").count();
+        await shot(page, "s4-finish-full");
+        await page.locator("[data-store-finish-back]").click();
+        r.back = await page.waitForSelector("[data-store-confirm]", { state: "detached", timeout: 3000 }).then(() => true, () => false);
+        // Leave the list as it was.
         for (const id of sec.ids) if ((await row(id).getAttribute("aria-pressed")) === "true") await row(id).click();
         await page.locator("[data-store-finish]").click();
         await page.locator("[data-store-finish-confirm]").click();
@@ -1929,15 +1983,16 @@ try {
         await page.locator("[data-summary-skip]").click();
         await page.waitForSelector("[data-store-saved]");
         await page.locator("[data-saved-list]").click();
-        ok(r.beat === 1 && /done|הושלם/.test(r.toast ?? "") && r.folded === 1 && r.reopened === 1 && r.unchecked && r.undo,
-          "store mode fold (R18 S3 B8): done section folds after a beat, reopens on tap, uncheck, toast Undo", JSON.stringify({ ...r, sec }));
+        const railOk = r.rail.length === r.sections && r.rail.every(([w, h]) => w >= 24 && h >= 44);
+        ok(r.startStill && r.startFits && r.title >= 32 && r.scrollers.length === 1 && r.scrollers[0] === "list" && r.pageStill && r.htmlLocked && railOk && (r.railTop.d <= 24 || r.railTop.atEnd) && r.marked === "location" && r.backTop <= 4 && r.stillOpen && r.noToast && r.collapsed === 1 && r.reopened === 1 && r.unchecked && r.full && r.leftNames > 0 && r.back,
+          "store mode (R18 S4 E1–E5): fixed start, sections stay open, one scroller, rail navigates, full-screen finish", JSON.stringify({ ...r, sec: sec.k }));
       });
 
-    // R18 S3 B9: sheets fit their content on phones — Finish (items left), a row's actions in store mode, a suggestion's
-    // page and Save as template are as tall as what's in them (no big empty area), and the Finish sheet closes when its
-    // handle is dragged down. Ends by finishing the trip with nothing bought (the list stays as it was).
+    // R18 S3 B9: sheets fit their content on phones — a row's actions in store mode, a suggestion's page and Save as
+    // template are as tall as what's in them (no big empty area), and a sheet closes when its handle is dragged down
+    // (S4 E3: store mode's Finish is a full screen — its own step). Ends by finishing the trip with nothing bought.
     if (MOBILE && WRITE)
-      await step("sheets fit their content (R18 S3 B9): finish, row actions, suggestion, save; drag down closes", async () => {
+      await step("sheets fit their content (R18 S3 B9): row actions, suggestion, save; drag down closes", async () => {
         const r = {};
         const fit = (sel) => page.evaluate((q) => {
           const c = document.querySelector(q);
@@ -1977,24 +2032,23 @@ try {
         r.actions = await fit(`[data-store-actions="${first}"]`);
         await page.keyboard.press("Escape");
         await page.waitForTimeout(400);
-        await page.locator("[data-store-finish]").click();
-        await page.waitForSelector("[data-store-confirm]");
+        // S4 E3: Finish is a full screen now (its own step); the row actions' sheet still closes when dragged down.
+        await page.locator(`[data-store-row="${first}"]`).dispatchEvent("contextmenu");
+        await page.waitForSelector(`[data-store-actions="${first}"]`);
         await page.waitForTimeout(500);
-        r.finish = await fit("[data-store-confirm]");
-        await shot(page, "finish-sheet");
-        const h = await page.locator('[role="dialog"]:has([data-store-confirm]) [data-sheet-handle]').boundingBox();
+        const h = await page.locator(`[role="dialog"]:has([data-store-actions="${first}"]) [data-sheet-handle]`).boundingBox();
         await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
         await page.mouse.down();
         for (let k = 1; k <= 8; k++) await page.mouse.move(h.x + h.width / 2, h.y + k * 40, { steps: 2 });
         await page.mouse.up();
-        r.dragClosed = await page.waitForSelector("[data-store-confirm]", { state: "detached", timeout: 3000 }).then(() => true, () => false);
+        r.dragClosed = await page.waitForSelector(`[data-store-actions="${first}"]`, { state: "detached", timeout: 3000 }).then(() => true, () => false);
         await page.locator("[data-store-finish]").click();
         await page.locator("[data-store-finish-confirm]").click();
         await page.waitForSelector("[data-store-summary]", { timeout: 8000 });
         await page.locator("[data-summary-skip]").click();
         await page.waitForSelector("[data-store-saved]");
         await page.locator("[data-saved-list]").click();
-        ok(good(r.sug) && good(r.save) && good(r.actions) && good(r.finish) && r.dragClosed, "sheets fit their content (R18 S3 B9): finish, row actions, suggestion, save; drag down closes", JSON.stringify(r));
+        ok(good(r.sug) && good(r.save) && good(r.actions) && r.dragClosed, "sheets fit their content (R18 S3 B9): row actions, suggestion, save; drag down closes", JSON.stringify(r));
       });
 
     // R18 S3 B10: What Nexus learned — one fact's ✕ is one tap with Undo (it comes back); Forget everything opens a sheet

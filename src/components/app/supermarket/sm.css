@@ -240,3 +240,17 @@ html[data-device="computer"] .sm-added-pill { bottom: 32px; }
 .gro-sw.gro-closing > .gro-sw-del, .gro-sw.gro-closing > .gro-sw-qty { visibility: hidden; }
 /* D1: the name is a button around its own letters only. */
 .gro-row button.gro-t { display: inline-block; }
+
+/* R18 S4 E4: store mode has one scroller (its list): the page behind never moves, no phone scrollbar. */
+html[data-store-mode], html[data-store-mode] body { overflow: hidden; overscroll-behavior: none; }
+html[data-device="phone"] .store-scroll { scrollbar-width: none; }
+html[data-device="phone"] .store-scroll::-webkit-scrollbar { display: none; }
+/* E5: the aisle rail — a colour per section, each a ≥ 24 px wide, 44 px tall button; many sections scroll sideways. */
+.store-rail { display: flex; gap: 3px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.store-rail::-webkit-scrollbar { display: none; }
+.store-rail-hit { flex: var(--n, 1) 0 0; min-width: 24px; height: 44px; display: grid; align-items: center; padding: 0 1px; }
+.store-rail-hit > i { display: block; height: 8px; border-radius: 4px; background: var(--k); transition: height 200ms var(--ease-out), box-shadow 200ms var(--ease-out); }
+.store-rail-hit[aria-current] > i { height: 12px; box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink); }
+/* E3: Finish rises over store mode. */
+.store-finish { animation: sm-rise 300ms var(--ease-drawer) both; }
+@media (prefers-reduced-motion: reduce) { .store-finish { animation: fade 150ms ease-out both; } .store-rail-hit > i { transition: none; } }
