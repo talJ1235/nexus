@@ -219,6 +219,9 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
   first in the Add search (`usual`), `homeState.brands` (type → brand) shows it under a store-mode row (the row's own
   brand first; not when the name already says it). `test:brands` + smoke step.
 ### Decisions
+- A1: the note cleanup covers bought rows too (prod had 2, both bought: "+ ×1" on a 12 · 2.2 kg row and "+ ×3 · + ×1 ·
+  + ×1" on 1 kg) — history and Add again read their amounts; with a unit weight the count leads and the weight
+  becomes the estimate (S3 B7's rule). Tried on a copy of `snapshots/prod-2026-10-15.db`: `scripts/r18s4-rehearsal.ts`.
 - A1: templates, re-add from history and accepted suggestions keep an existing row's amount (S1/S2 rule shown in their
   plans as "already on it — stays"); they never write notes. Every other path (search, barcode, photo, voice, paste, trip
   add) merges through `mergeAdd`. Volume (L) onto a weighed row has no conversion → one more pack.

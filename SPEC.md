@@ -1008,6 +1008,48 @@ Shipped (S3):
   `test:capture` / `test:home` / `test:tenancy` / `test:roles` / `test:dock` extended, a smoke step per item (phone +
   computer), migration rehearsal `scripts/r18s3-rehearsal.mjs` (new table only).
 
+## Round 18 — Session 4: camera, voice, adding, store mode (fixes from Tal's use of S3)
+
+Brief: `docs/ROUND18-S4.md` (progress, decisions, the phone checklist "For Tal" in its "## Open"; Tal's notes
+`docs/R18-S3-NOTES.md` "After S3"). No new boards; reverses S3 B8 (auto-fold) and B9 (finish sheet) for store mode.
+
+Shipped (S4):
+- *Adding never loses anything* (A1): `lib/grocery/merge.ts` `mergeAdd` — every add path merges into the row's
+  measures: units onto a weighed row → pieces (the weight follows: the unit-weight estimate, else both kept), a weight
+  onto a counted row → weight (the count follows), never into notes. Old "+ ×N" / "+ 2 kg" note fragments go back into
+  the row in the daily cron (`cleanMergeNoteRows`, idempotent). The "vanished row": a delete → Undo tombstone in the
+  same feed batch dropped the restored row — the server leaves out tombstones of rows that exist, the client keeps a
+  row present in the batch.
+- *Feedback after adding* (A2): `supermarket/added.tsx` — the row pulses, one line names it with its new amount
+  (inline on the Add screen, a single replaced toast elsewhere), "Added · show" pill for an off-screen row.
+- *Empty list* (A3): templates first (one-tap Add), then suggestions (open), then the ways to add.
+- *Dock "+"* (B1): tap vs hold on pointer events only (`lib/press.ts`) — every tap on the Supermarket tab is the camera.
+- *Barcode scanner* (B2): `lib/barcode-scan.ts` (pure: `pickCamera`, `scanZoom`, `regionFor`, `confirmer`,
+  `outlineOf`); `lib/camera.ts` picks the main back lens after the permission (continuous focus / zoom range, never
+  ultra-wide / tele; remembered per device), `tuneForScan` (1920×1080, continuous focus, ≈ 1.6× zoom), `focusAt`
+  (tap-to-focus); `lib/barcode-reader.ts` reads EAN-13/8, UPC-A/E, Code 128/39, ITF, QR, DataMatrix from a centred crop
+  and the whole frame alternately (every third pass turned 90°) with the corners; a code counts on 2 equal reads or a
+  valid check digit; the read frame freezes with the code outlined; 4 s hint; `/debug/camera` (admin) prints the lens,
+  how it was chosen, settings, capabilities and the decoder.
+- *Photo mode* (B3): shutter → still (camera off) → Retake / Use photo → "Analysing…"; `smPhoto` takes the frame picked
+  (`hint` product | doc) and asks for `kindConfidence` (< 0.6 → "Product / Receipt / List?" with the guess first);
+  frames per kind (wide scan, square product, tall receipt / list).
+- *Voice* (C1): `lib/grocery/recorder.ts` (MediaRecorder, analyser level, 16 kHz WAV) → `POST /api/grocery/voice`
+  (ai-gate `grocery`; audio only passed to the model) → lines → chips over the Paste review → merged (A1). Web Speech
+  only shows live words when it works. Errors in words (blocked + how to allow, no mic, nothing heard, limit).
+- *The list* (D1–D3): rename on the name's letters only; swipe delete slides out at the finger's speed, closes its
+  height, Undo reverses in place (rows ordered by when added; `useSwipe` interruptible); Start shopping floats above
+  the dock and docks into a slot after the list.
+- *Store mode* (E1–E5): fixed start screen in the store's colour; finished sections stay open (the header folds one);
+  Finish is a full screen; one scroller (html + body locked); the aisle rail = ≥ 24 × 44 px buttons that scroll to a
+  section.
+- *Templates & history* (F1–F3): SegPill thumb clamped inside its track (`.seg-thumb`); past trips as picture cards by
+  month; the usual brand as a sheet chip, first in the Add search (`rankUsualBrand`), under a store-mode row
+  (`homeState.brands`).
+- Guards: `test:add` (merge matrix × every path, the vanished row), `test:barcode` (9 formats × 5 frames, camera pick,
+  confirm rule), `test:dock` (press timings), `test:voice` (new; route + fake recorder), `test:capture` (kind
+  confidence) and both in CI, `test:brands` (ranking, home brands), a smoke step per item (phone + computer).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.

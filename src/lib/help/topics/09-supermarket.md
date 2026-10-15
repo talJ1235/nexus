@@ -7,7 +7,8 @@
   branch is walked (produce first, bread and dairy at the back, frozen last). Rows or tiles: **⋯ → Show as**.
 - Tap a row's **picture** for its sheet: count and weight ("6 · ≈ 1 kg"), a note, a photo of the exact product,
   section, preferred brand and substitutes ("Usually: Tnuva 3% · 8 of 10 times" once Nexus has seen it), one store only,
-  and its history (date, store, price, cheapest). Tap the **name** to rename it right there.
+  and its history (date, store, price, cheapest). Once Nexus knows your usual brand it shows it as a chip — tap it to
+  make it the brand to buy. Tap the **name's letters** to rename it right there.
 - **Swipe a row** toward the end of the line to delete it (**Undo** for 5 seconds brings it back as it was), or toward
   the start for a quick **− / +** on the quantity. A tap anywhere else closes it.
 - Everyone in a shared space sees the same list live. A viewer can look, not change.
@@ -15,9 +16,18 @@
 ## Adding
 <!-- spec: Product dictionary + classify, Fast add -->
 - Tap **Add an item**: type ("2 חלב 3%", "קילו עגבניות, בערך 6"), say it, or paste a whole list from WhatsApp — you
-  see the lines before they're added. Something already on the list grows ("now ×3", with **Undo**) instead of
-  appearing twice. On a computer press **/** to add.
-- **"+"** on the Supermarket tab opens the camera on the barcode. **Scan** a barcode or switch to **Photo**: Nexus
+  see the lines before they're added. Something already on the list grows instead of appearing twice — a cucumber
+  added to "1 kg cucumbers" becomes about 9 cucumbers (by its usual weight). A short line says what changed
+  ("Cucumbers · now 9", **Undo**). An empty list starts from your templates and what you usually buy. On a computer
+  press **/** to add.
+- **Voice**: tap the mic and say everything at once ("two milk, bread, half a kilo of tomatoes"). The button becomes a
+  level meter with a timer; tap to finish. Nexus understands the recording (one use of the daily AI limit; the audio
+  isn't kept) and shows the products to check before they're added. If the mic is blocked, allow it from the lock
+  icon next to the address.
+- **"+"** on the Supermarket tab opens the camera on the barcode (hold "+" for its menu). Hold the code in the frame:
+  when it's read the picture freezes with the code outlined, so you can move the phone away; **Scan another** goes on.
+  Tap the screen to focus; if nothing is read after a few seconds, try the light or a little more distance. Switch to
+  **Photo**, take it, then **Retake** or **Use photo** — pick **Product** or **Receipt · list** for the frame. Nexus
   says what it sees — a product, a **receipt** (opens the receipt check) or a **shopping list**, handwritten or
   printed (its lines go to the paste preview to check before they're added); switch if it guessed wrong. Something
   that isn't from the supermarket can go to **Products**. A photo counts in the daily AI limit; typing and scanning
@@ -47,8 +57,10 @@
   trips and receipts stay.
 
 ## Shopping, templates and past trips
-- **Start shopping** opens store mode: tap a picture to check it, long-press for not found / took something else /
-  price / quantity. It keeps working without signal and sends everything when you're back. What others add while
+- **Start shopping** (it floats above the dock until the end of your list) opens store mode: tap a picture to check
+  it, long-press for not found / took something else / price / quantity. A finished aisle stays open — tap its title
+  to fold it. Tap a colour on the aisle bar to jump to that aisle. Under a product you'll see the brand your home
+  usually buys. **Finish** shows what's in the cart and what stays on the list. It keeps working without signal and sends everything when you're back. What others add while
   you shop appears in place (a push only when the app isn't open).
 - Past trips live in **Insights → History → Supermarket** (also **⋯ → Past trips**). **⋯ → Templates**: Nexus spots routines (the same things on the same weekday, 3 times) and offers to
   keep them as a template **Made by Nexus**, kept up to date until you edit it. Adding a template merges — nothing

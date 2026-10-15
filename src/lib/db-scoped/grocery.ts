@@ -168,10 +168,10 @@ async function unitWeightOf(s: Scoped, productKey: string) {
 
 /**
  * S4 A1 one-off (daily cron, idempotent): "+ ×N" / "+ 2 kg" fragments the old merge wrote into a row's notes go into
- * its measures. Only rows still to buy; other text in the notes stays.
+ * its measures — rows to buy and bought ones alike (history and Add again read them); other text in the notes stays.
  */
 export async function cleanMergeNoteRows(s: Scoped) {
-  const rows = await s.select(schema.items, and(onListCond, sql`${schema.items.notes} like '%+ %'`));
+  const rows = await s.select(schema.items, and(SM, sql`${schema.items.notes} like '%+ %'`));
   let fixed = 0;
   for (const r of rows) {
     const unitKg = r.productKey ? await unitWeightOf(s, r.productKey) : null;

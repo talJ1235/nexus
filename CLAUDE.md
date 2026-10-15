@@ -107,6 +107,11 @@
   `components/ui/swipe.ts`, delete + `restoreSmItem`, quick quantity, inline rename). Usual brand = `brand_buy`,
   `lib/db-scoped/brands.ts` + `lib/grocery/brands.ts` + `brandOf` (`lib/grocery/classify.ts`), test `test:brands`;
   rehearsal `scripts/r18s3-rehearsal.mjs`. Home widget `nextshop`; suggestions auto-turn `useAutoAdvance` (home-view).
+- R18 S4: add merge = `lib/grocery/merge.ts` (`mergeAdd`, note cleanup in the daily cron); add feedback
+  `supermarket/added.tsx`. Camera: lens choice + scan tuning in `lib/camera.ts` (`pickMainCamera`, `tuneForScan`,
+  `focusAt`), pure scanner core `lib/barcode-scan.ts`, decoder `lib/barcode-reader.ts`, `/debug/camera` (admin,
+  `supermarket/debug-camera.tsx`). Dock tap vs hold `lib/press.ts`. Voice: recorder `lib/grocery/recorder.ts` → route
+  `/api/grocery/voice` (mock body `mockvoice:<words>`), UI `Voice` in `add-screen.tsx`, test `test:voice`.
 - The cloud sandbox cannot reach vercel.app, Gemini or Telegram — prod checks run in GitHub Actions (`.github/workflows/smoke.yml`).
 
 ## Working efficiently (token budget matters)
