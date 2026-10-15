@@ -54,7 +54,7 @@ On the Supermarket tab a tap on the dock "+" sometimes opens the quick menu. Tap
 long-press (≥ 450 ms, no movement > 10 px) opens the menu; the touch end of a long-press never also fires a tap.
 Test with synthetic pointer timings (fast tap, slow tap, tap with jitter, long-press).
 
-### B2 [ ] Barcode scanner rebuilt for reliability
+### B2 [x] Barcode scanner rebuilt for reliability
 Causes found by the planner: the stream starts at 640 px wide (`lib/camera.ts` `FIRST_WIDTH`), never asks for
 continuous focus, and on multi-camera Androids `facingMode: environment` can pick the ultra-wide lens (no close focus).
 Do:
@@ -167,6 +167,12 @@ long-press timings, store-mode one-scroller check. Full phone + desktop smoke pa
 - B1: dock "+" decides on pointer events only (`lib/press.ts` state machine, one timer, pointer capture): tap = camera,
   hold ≥ 450 ms still = menu, the hold's release is never a tap, a late timer still counts as a hold; click only for
   keyboard. `test:dock` timings (fast / slow / jitter / slide / late timer / 2nd finger / cancel) + smoke step.
+- B2: `lib/barcode-scan.ts` (pure: `pickCamera`, `scanZoom`, `regionFor` centre crop / full frame / every 3rd pass
+  turned 90°, `confirmer` = 2 equal reads or a valid check digit); `lib/camera.ts` `pickMainCamera` (remembered per
+  device), `tuneForScan` (1920×1080, continuous focus, ≈1.6× zoom), `focusAt`; reader reads 9 formats with corners;
+  capture freezes the read frame + outline, haptic, "Scan another" (also on an unknown code), 4 s light / distance hint,
+  tap-to-focus ring. `/debug/camera` (admin). `test:barcode`: 9 formats × large / small / rotated / blurry / off-centre
+  all read (≤ 3 passes, times logged); smoke step with a canvas camera.
 ### Decisions
 - A1: templates, re-add from history and accepted suggestions keep an existing row's amount (S1/S2 rule shown in their
   plans as "already on it — stays"); they never write notes. Every other path (search, barcode, photo, voice, paste, trip

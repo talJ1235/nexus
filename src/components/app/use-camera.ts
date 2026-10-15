@@ -1,18 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { acquireCamera, cameraMark, releaseCamera, upgradeCamera } from "@/lib/camera";
+import { acquireCamera, cameraMark, focusAt, pickMainCamera, releaseCamera, tuneForScan, upgradeCamera } from "@/lib/camera";
 
 /**
  * Back camera into a <video>, with torch control where the device supports it. The stream is the shared one from
  * lib/camera (started at the tap, off the moment the screen closes); it's upgraded to `width` after the first frame.
+ * R18 S4 B2: `scan` — after the first frame the main back lens is picked (once per device) and the stream is tuned for
+ * barcodes (1920×1080, continuous focus, slight zoom); `focus(x, y)` = tap-to-focus where the lens supports it.
  */
-export function useCamera(active: boolean, opts: { width?: number } = {}) {
+export function useCamera(active: boolean, opts: { width?: number; scan?: boolean } = {}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [state, setState] = useState<"idle" | "starting" | "on" | "denied" | "unavailable">("idle");
   const [torch, setTorch] = useState<{ supported: boolean; on: boolean }>({ supported: false, on: false });
   const width = opts.width ?? 1280;
+  const scan = !!opts.scan;
   const torchOn = useRef(false);
 
   useEffect(() => {
@@ -39,7 +42,20 @@ export function useCamera(active: boolean, opts: { width?: number } = {}) {
           v.muted = true;
           const first = () => {
             cameraMark("cam:frame");
-            void upgradeCamera(stream, width);
+            if (!scan) return void upgradeCamera(stream, width);
+            void (async () => {
+              const next = await pickMainCamera(stream).catch(() => null);
+              if (cancelled) return next?.getTracks().forEach((t) => t.stop());
+              if (next) {
+                streamRef.current = next;
+                v.srcObject = next;
+                await v.play().catch(() => {});
+              }
+              const cur = streamRef.current ?? stream;
+              await tuneForScan(cur);
+              const caps = (cur.getVideoTracks()[0]?.getCapabilities?.() ?? {}) as MediaTrackCapabilities & { torch?: boolean };
+              if (!cancelled) setTorch((t) => ({ ...t, supported: !!caps.torch }));
+            })();
           };
           // loadeddata = the first frame is decoded (rVFC would wait for a composited frame, and the viewfinder only
           // fades the video in once it plays).
@@ -69,7 +85,7 @@ export function useCamera(active: boolean, opts: { width?: number } = {}) {
       releaseCamera();
       setState("idle");
     };
-  }, [active, width]);
+  }, [active, width, scan]);
   useEffect(() => {
     torchOn.current = torch.on;
   }, [torch.on]);
@@ -84,7 +100,9 @@ export function useCamera(active: boolean, opts: { width?: number } = {}) {
     } catch {}
   }, [torch.on]);
 
-  return { videoRef, state, torch, toggleTorch };
+  const focus = useCallback((x: number, y: number) => (streamRef.current ? focusAt(streamRef.current, x, y) : Promise.resolve(false)), []);
+  const stream = useCallback(() => streamRef.current, []);
+  return { videoRef, state, torch, toggleTorch, focus, stream };
 }
 
 /** A short haptic tick where supported (Android); silent elsewhere. */

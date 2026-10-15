@@ -66,6 +66,10 @@ export const smEn = {
       sukkot: "Sukkot",
     },
   },
+  debugCam: {
+    title: "Camera check",
+    pickAgain: "Pick the lens again",
+  },
   empty: {
     templates: "Start from a template",
     add: "Add",
@@ -184,6 +188,14 @@ export const smEn = {
     done: "Done",
   },
   cap: {
+    retake: "Retake",
+    usePhoto: "Use photo",
+    analysing: "Analysing…",
+    frameLabel: "What you're photographing",
+    frameProduct: "Product",
+    frameDoc: "Receipt · list",
+    dark: "Can't read it yet — hold steady, a bit farther, more light",
+    darkTorch: "Can't read it yet — try the light (top right) or move a bit farther",
     title: "Scan or photograph a product",
     close: "Close",
     barcode: "Barcode",

@@ -70,6 +70,10 @@ export const smHe: Widen<typeof smEn> = {
       sukkot: "סוכות",
     },
   },
+  debugCam: {
+    title: "בדיקת מצלמה",
+    pickAgain: "לבחור עדשה מחדש",
+  },
   empty: {
     templates: "להתחיל מתבנית",
     add: "הוספה",
@@ -188,6 +192,14 @@ export const smHe: Widen<typeof smEn> = {
     done: "סיום",
   },
   cap: {
+    retake: "צילום חוזר",
+    usePhoto: "להשתמש בתמונה",
+    analysing: "מנתחים…",
+    frameLabel: "מה מצלמים",
+    frameProduct: "מוצר",
+    frameDoc: "קבלה · רשימה",
+    dark: "עוד לא נקרא — להחזיק יציב, קצת יותר רחוק, יותר אור",
+    darkTorch: "עוד לא נקרא — אפשר להדליק פנס (למעלה) או להתרחק קצת",
     title: "סריקה או צילום של מוצר",
     close: "סגירה",
     barcode: "ברקוד",

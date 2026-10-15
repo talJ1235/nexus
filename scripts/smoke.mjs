@@ -2479,6 +2479,172 @@ try {
           "empty list (R18 S4 A3): templates first with one-tap Add, then suggestions, then add actions", JSON.stringify(r));
       });
 
+    // R18 S4 B1: on the Supermarket tab every tap on "+" opens the camera — fast, slow (380 ms), with jitter (≤ 10 px);
+    // only a real hold (≥ 450 ms, still) opens the quick menu, and its release never also opens the camera.
+    if (MOBILE)
+      await step("dock + timings (R18 S4 B1): fast / slow / jitter tap = camera, hold = menu only", async () => {
+        const r = {};
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
+        const box = await page.locator('[data-dock-target="plus"]').boundingBox();
+        const cx = box.x + box.width / 2;
+        const cy = box.y + box.height / 2;
+        const pressFor = async (ms, jitter = 0) => {
+          await page.mouse.move(cx, cy);
+          await page.mouse.down();
+          if (jitter) {
+            await page.mouse.move(cx + jitter, cy - jitter / 2);
+            await page.mouse.move(cx - jitter / 2, cy + jitter);
+          }
+          await page.waitForTimeout(ms);
+          await page.mouse.up();
+          await page.waitForTimeout(500);
+          const cam = await page.locator("[data-sm-capture]").count();
+          const menu = await page.locator('[data-quick-menu="open"]').count();
+          // Back to the list for the next press.
+          if (cam) await page.keyboard.press("Escape");
+          if (menu) await page.locator('[data-quick-menu="open"] > [aria-hidden]').first().click({ position: { x: 20, y: 120 } });
+          await page.waitForTimeout(450);
+          return { cam, menu };
+        };
+        r.fast = await pressFor(40);
+        r.slow = await pressFor(380);
+        r.jitter = await pressFor(120, 6);
+        r.hold = await pressFor(700);
+        r.after = await pressFor(40);
+        const cam = (x) => x.cam === 1 && x.menu === 0;
+        ok(cam(r.fast) && cam(r.slow) && cam(r.jitter) && r.hold.menu === 1 && r.hold.cam === 0 && cam(r.after), "dock + timings (R18 S4 B1): fast / slow / jitter tap = camera, hold = menu only", JSON.stringify(r));
+      });
+
+    // R18 S4 B2: the scanner on a camera that films an EAN-13 (a canvas stream standing in for the lens): the read frame
+    // freezes with the code outlined, the result shows, "Scan another" resumes the live view; a camera that films
+    // nothing readable shows the light / distance hint after 4 s. (Real lenses, focus and zoom: "For Tal".)
+    if (WRITE)
+      await step("barcode scanner (R18 S4 B2): read → frozen frame + outline → result → scan another; 4 s hint", async () => {
+        const r = {};
+        const z = await import("zxing-wasm/full");
+        const { readFileSync } = await import("node:fs");
+        await z.prepareZXingModule({ overrides: { wasmBinary: readFileSync("node_modules/zxing-wasm/dist/full/zxing_full.wasm").buffer }, fireImmediately: true });
+        const w = await z.writeBarcode("7290000066318", { format: "EAN13", scale: 4 });
+        const png = `data:image/png;base64,${Buffer.from(await w.image.arrayBuffer()).toString("base64")}`;
+        const fake = (src) => {
+          const cv = document.createElement("canvas");
+          cv.width = 1280;
+          cv.height = 720;
+          const g = cv.getContext("2d");
+          const im = new Image();
+          let ready = !src;
+          if (src) {
+            im.onload = () => (ready = true);
+            im.src = src;
+          }
+          const draw = () => {
+            g.fillStyle = "#9a9a9a";
+            g.fillRect(0, 0, cv.width, cv.height);
+            if (ready && src) g.drawImage(im, (cv.width - im.width) / 2, (cv.height - im.height) / 2);
+            requestAnimationFrame(draw);
+          };
+          draw();
+          navigator.mediaDevices.getUserMedia = async () => cv.captureStream(15);
+          navigator.mediaDevices.enumerateDevices = async () => [];
+        };
+        const open = async (src) => {
+          const c = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, storageState: await ctx.storageState() });
+          await c.addInitScript(fake, src);
+          const p = await c.newPage();
+          await p.goto(`${BASE}/supermarket`);
+          await p.waitForSelector("[data-sm-view]", { timeout: 15000 });
+          await p.locator(MOBILE ? '[data-dock-target="plus"]' : "[data-sm-add-scan]").first().click();
+          await p.waitForSelector("[data-sm-capture]", { timeout: 8000 });
+          return { c, p };
+        };
+        const a = await open(png);
+        try {
+          const t0 = Date.now();
+          await a.p.waitForSelector("[data-cap-frozen] img", { timeout: 15000 });
+          r.ms = Date.now() - t0;
+          r.outline = await a.p.locator("[data-cap-outline] polygon").count();
+          await a.p.waitForSelector('[data-cap-sheet="found"], [data-cap-sheet="unknown"], [data-cap-sheet="onlist"]', { timeout: 15000 });
+          r.sheet = await a.p.locator("[data-cap-sheet]").first().getAttribute("data-cap-sheet");
+          r.stillFrozen = await a.p.locator("[data-cap-frozen]").count();
+          await shot(a.p, "s4-scan-frozen");
+          // The fake lens keeps filming the code, so it is read again at once: watch for the frozen frame letting go.
+          await a.p.evaluate(() => {
+            window.__let = false;
+            new MutationObserver(() => !document.querySelector("[data-cap-frozen]") && (window.__let = true)).observe(document.body, { childList: true, subtree: true });
+          });
+          await a.p.locator("[data-cap-again]").first().click();
+          r.resumed = await a.p.waitForFunction(() => window.__let, null, { timeout: 3000 }).then(() => true, () => false);
+        } finally {
+          await a.c.close();
+        }
+        const b = await open(null);
+        try {
+          r.hint = await b.p.waitForSelector('[data-cap-hint="dark"]', { timeout: 7000 }).then(() => true, () => false);
+        } finally {
+          await b.c.close();
+        }
+        ok(r.outline === 1 && /found|unknown|onlist/.test(r.sheet ?? "") && r.stillFrozen === 1 && r.resumed && r.hint, "barcode scanner (R18 S4 B2): read → frozen frame + outline → result → scan another; 4 s hint", JSON.stringify(r));
+      });
+
+    // R18 S4 B3: Photo — the frame follows the pick (square product / tall receipt · list); the shutter freezes the still
+    // and turns the camera off (no AI yet); Retake brings the camera back; Use photo → "Analysing…" over the still → the
+    // result, and the frame takes the shape of the kind the AI saw (the mock reads a product).
+    if (WRITE)
+      await step("photo mode (R18 S4 B3): frame per pick, shutter freezes + camera off, retake, use → analysing → kind's frame", async () => {
+        const r = {};
+        const c = await browser.newContext({ viewport: VIEWPORT, ...DEVICE, storageState: await ctx.storageState() });
+        await c.addInitScript(() => {
+          const cv = document.createElement("canvas");
+          cv.width = 1280;
+          cv.height = 720;
+          const g = cv.getContext("2d");
+          const draw = () => {
+            g.fillStyle = "#c8b48a";
+            g.fillRect(0, 0, cv.width, cv.height);
+            g.fillStyle = "#2a6";
+            g.fillRect(500, 200, 280, 320);
+            requestAnimationFrame(draw);
+          };
+          draw();
+          navigator.mediaDevices.getUserMedia = async () => cv.captureStream(15);
+          navigator.mediaDevices.enumerateDevices = async () => [];
+        });
+        const p = await c.newPage();
+        try {
+          await p.goto(`${BASE}/supermarket`);
+          await p.waitForSelector("[data-sm-view]", { timeout: 15000 });
+          await p.locator(MOBILE ? '[data-dock-target="plus"]' : "[data-sm-add-photo]").first().click();
+          await p.waitForSelector("[data-sm-capture]", { timeout: 8000 });
+          if ((await p.locator('[data-cap-mode="photo"]').getAttribute("aria-selected")) !== "true") await p.locator('[data-cap-mode="photo"]').click();
+          await p.waitForSelector('[data-cam-state="on"]', { timeout: 8000 });
+          r.square = await p.locator("[data-cap-frame]").getAttribute("data-cap-frame");
+          await p.locator('[data-cap-frame-pick="doc"]').click();
+          await p.waitForTimeout(350);
+          r.tall = await p.locator("[data-cap-frame]").getAttribute("data-cap-frame");
+          const box = await p.locator("[data-cap-frame]").boundingBox();
+          r.tallShape = box && box.height > box.width * 1.3;
+          await p.locator("[data-cap-shutter]").click();
+          await p.waitForSelector("[data-cap-still]", { timeout: 5000 });
+          r.camOff = await p.evaluate(() => document.documentElement.dataset.camera);
+          r.noSheet = await p.locator("[data-cap-sheet]").count();
+          await p.locator("[data-cap-retake]").click();
+          r.retook = await p.waitForSelector('[data-cam-state="on"]', { timeout: 8000 }).then(() => true, () => false);
+          r.stillGone = await p.locator("[data-cap-still]").count();
+          await p.locator("[data-cap-shutter]").click();
+          await p.locator("[data-cap-use]").click();
+          r.analysing = await p.locator("text=/Analysing|מנתחים/").count();
+          await p.waitForSelector('[data-cap-sheet]:not([data-cap-sheet="loading"])', { timeout: 15000 });
+          r.sheet = await p.locator("[data-cap-sheet]").first().getAttribute("data-cap-sheet");
+          r.kindFrame = await p.locator("[data-cap-frame]").getAttribute("data-cap-frame");
+          await shot(p, "s4-photo-read");
+        } finally {
+          await c.close();
+        }
+        ok(r.square === "product" && r.tall === "doc" && r.tallShape && r.camOff === "off" && r.noSheet === 0 && r.retook && r.stillGone === 0 && r.analysing >= 1 && r.sheet && r.kindFrame === "product",
+          "photo mode (R18 S4 B3): frame per pick, shutter freezes + camera off, retake, use → analysing → kind's frame", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

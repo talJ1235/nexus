@@ -5,13 +5,17 @@
  * zxing is never downloaded), else zxing-wasm (self-hosted .wasm, compiled once). `prewarmScanners()` runs in idle
  * time after the app loads on phones, when the + menu opens, and at the tap — in parallel with the camera, never
  * before it.
+ * R18 S4 B2: each pass reads one region of the frame at the camera's own resolution (a centred crop and the whole frame
+ * alternately, every third pass turned 90° — `regionFor`), in more formats (EAN / UPC, Code 128 / 39, ITF, QR,
+ * DataMatrix), and says where the code is (corners in the video's pixels) for the frozen frame's outline.
  */
 import { cameraMark } from "./camera";
+import { MAX_SIDE, NATIVE_FORMATS, regionFor, toVideo, ZX_FORMATS, type Region } from "./barcode-scan";
 
-export type ReadFrame = (v: HTMLVideoElement) => Promise<string | null>;
+export type Read = { text: string; format: string; points: { x: number; y: number }[] | null };
+export type ReadFrame = (v: HTMLVideoElement | HTMLCanvasElement, pass?: number) => Promise<Read | null>;
 
-const FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"];
-type Detector = { detect: (src: CanvasImageSource) => Promise<{ rawValue: string }[]> };
+type Detector = { detect: (src: CanvasImageSource) => Promise<{ rawValue: string; format?: string; cornerPoints?: { x: number; y: number }[] }[]> };
 declare global {
   interface Window {
     BarcodeDetector?: { new (o: { formats: string[] }): Detector; getSupportedFormats?: () => Promise<string[]> };
@@ -19,32 +23,71 @@ declare global {
 }
 
 let reader: Promise<{ read: ReadFrame; native: boolean }> | null = null;
+let decoderName: "native" | "zxing" | null = null;
+/** Which decoder runs (the /debug/camera page). */
+export const decoderInUse = () => decoderName;
+
+function sizeOf(src: HTMLVideoElement | HTMLCanvasElement) {
+  return src instanceof HTMLVideoElement ? { w: src.videoWidth, h: src.videoHeight } : { w: src.width, h: src.height };
+}
+
+/** Draw pass k's region of the frame into `canvas` (scaled to ≤ MAX_SIDE, turned 90° clockwise when planned). */
+function drawRegion(ctx: CanvasRenderingContext2D, src: HTMLVideoElement | HTMLCanvasElement, k: number): { region: Region; scale: number } | null {
+  const { w: vw, h: vh } = sizeOf(src);
+  if (!vw || !vh) return null;
+  const region = regionFor(k, vw, vh);
+  const scale = Math.min(1, MAX_SIDE / Math.max(region.w, region.h));
+  const dw = Math.round(region.w * scale);
+  const dh = Math.round(region.h * scale);
+  const c = ctx.canvas;
+  c.width = region.rotate ? dh : dw;
+  c.height = region.rotate ? dw : dh;
+  ctx.save();
+  if (region.rotate) {
+    ctx.translate(dh, 0);
+    ctx.rotate(Math.PI / 2);
+  }
+  ctx.drawImage(src, region.x, region.y, region.w, region.h, 0, 0, dw, dh);
+  ctx.restore();
+  return { region, scale };
+}
 
 async function load() {
-  const native = window.BarcodeDetector && (await window.BarcodeDetector.getSupportedFormats?.().catch((): string[] => []))?.includes("ean_13");
-  if (native) {
-    const det = new window.BarcodeDetector!({ formats: FORMATS });
+  const supported = window.BarcodeDetector ? await window.BarcodeDetector.getSupportedFormats?.().catch((): string[] => []) : [];
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+  if (supported?.includes("ean_13")) {
+    const det = new window.BarcodeDetector!({ formats: NATIVE_FORMATS.filter((f) => supported.includes(f)) });
     cameraMark("scan:decoder");
-    return { native: true, read: async (v: HTMLVideoElement) => (await det.detect(v).catch(() => []))[0]?.rawValue ?? null };
+    decoderName = "native";
+    return {
+      native: true,
+      read: async (src: HTMLVideoElement | HTMLCanvasElement, k = 0): Promise<Read | null> => {
+        const d = drawRegion(ctx, src, k);
+        if (!d) return null;
+        const r = (await det.detect(canvas).catch(() => []))[0];
+        if (!r?.rawValue) return null;
+        return { text: r.rawValue, format: r.format ?? "", points: r.cornerPoints?.map((p) => toVideo(p, d.region, d.scale)) ?? null };
+      },
+    };
   }
   const z = await import("zxing-wasm/reader");
   await z.prepareZXingModule({
     overrides: { locateFile: (path: string, prefix: string) => (path.endsWith(".wasm") ? "/vendor/zxing_reader.wasm" : prefix + path) },
     fireImmediately: true,
   });
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   cameraMark("scan:decoder");
+  decoderName = "zxing";
   return {
     native: false,
-    read: async (v: HTMLVideoElement) => {
-      const w = 720;
-      const h = Math.round((v.videoHeight / v.videoWidth) * w) || 540;
-      canvas.width = w;
-      canvas.height = h;
-      ctx.drawImage(v, 0, 0, w, h);
-      const r = await z.readBarcodes(ctx.getImageData(0, 0, w, h), { formats: ["EAN13", "EAN8", "UPCA", "UPCE", "Code128"], tryHarder: true, maxNumberOfSymbols: 1 });
-      return r.find((x) => x.isValid)?.text ?? null;
+    read: async (src: HTMLVideoElement | HTMLCanvasElement, k = 0): Promise<Read | null> => {
+      const d = drawRegion(ctx, src, k);
+      if (!d) return null;
+      const r = await z.readBarcodes(ctx.getImageData(0, 0, canvas.width, canvas.height), { formats: [...ZX_FORMATS], tryHarder: true, tryRotate: false, tryDownscale: true, maxNumberOfSymbols: 1 });
+      const hit = r.find((x) => x.isValid);
+      if (!hit) return null;
+      const p = hit.position;
+      return { text: hit.text, format: hit.format, points: p ? [p.topLeft, p.topRight, p.bottomRight, p.bottomLeft].map((q) => toVideo(q, d.region, d.scale)) : null };
     },
   };
 }

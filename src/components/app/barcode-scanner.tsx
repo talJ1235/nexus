@@ -15,9 +15,17 @@ import { ProductImage, useStatusFlow } from "./item-card";
 import { useStore } from "./store";
 import { haptic, photoToDataUrl, useCamera } from "./use-camera";
 import { getBarcodeReader, prewarmScanners } from "@/lib/barcode-reader";
+import { confirmer } from "@/lib/barcode-scan";
 
-/** Reads barcodes from the live video: native BarcodeDetector where available, else zxing-wasm (lazy, self-hosted). */
-export function useBarcodeReader(videoRef: React.RefObject<HTMLVideoElement | null>, active: boolean, onCode: (code: string) => void) {
+/** R18 S4 B2: the frame a code was read on (the still shown frozen), and where the code is in it (video pixels). */
+export type Seen = { still: string | null; points: { x: number; y: number }[] | null; w: number; h: number; format: string };
+
+/**
+ * Reads barcodes from the live video: native BarcodeDetector where available, else zxing-wasm (lazy, self-hosted).
+ * R18 S4 B2: pass k reads the centred crop / the whole frame alternately (every third turned 90°); a code counts after
+ * two equal reads or one with a valid check digit (`confirmer`); `onCode` gets the frame it was read on.
+ */
+export function useBarcodeReader(videoRef: React.RefObject<HTMLVideoElement | null>, active: boolean, onCode: (code: string, seen: Seen) => void) {
   const cb = useRef(onCode);
   useEffect(() => {
     cb.current = onCode;
@@ -26,31 +34,30 @@ export function useBarcodeReader(videoRef: React.RefObject<HTMLVideoElement | nu
     if (!active) return;
     let stop = false;
     let timer = 0;
-    let last = "";
-    let lastAt = 0;
-    const emit = (code: string) => {
-      // Two matching reads in a row (≤1.2 s apart) before acting: no half-seen misreads.
-      const now = Date.now();
-      if (code === last && now - lastAt < 1200) {
-        last = "";
-        cb.current(code);
-      } else {
-        last = code;
-        lastAt = now;
-      }
-    };
+    const confirm = confirmer();
+    const t0 = performance.now();
     (async () => {
       const r = await getBarcodeReader().catch(() => null);
       if (!r || stop) return;
       const { read, native } = r;
+      let k = 0;
       const loop = async () => {
         if (stop) return;
         const v = videoRef.current;
         if (v && v.readyState >= 2 && v.videoWidth) {
-          const code = await read(v).catch(() => null);
-          if (code && !stop) emit(code);
+          const hit = await read(v, k++).catch(() => null);
+          const code = hit && !stop ? confirm(hit.text, Date.now()) : null;
+          if (code && hit) {
+            try {
+              performance.measure("scan:first-read", { start: t0 });
+            } catch {}
+            cb.current(code, { still: stillOf(v), points: hit.points, w: v.videoWidth, h: v.videoHeight, format: hit.format });
+            // A screen that keeps scanning (shopping mode) reads again after a beat; the others turn `active` off.
+            timer = window.setTimeout(loop, 1500);
+            return;
+          }
         }
-        timer = window.setTimeout(loop, native ? 120 : 200);
+        timer = window.setTimeout(loop, native ? 60 : 90);
       };
       void loop();
     })();
@@ -59,6 +66,20 @@ export function useBarcodeReader(videoRef: React.RefObject<HTMLVideoElement | nu
       clearTimeout(timer);
     };
   }, [active, videoRef]);
+}
+
+/** The video's current frame as a JPEG (the frozen still after a read). */
+function stillOf(v: HTMLVideoElement) {
+  try {
+    const c = document.createElement("canvas");
+    const k = Math.min(1, 1280 / Math.max(v.videoWidth, v.videoHeight));
+    c.width = Math.round(v.videoWidth * k);
+    c.height = Math.round(v.videoHeight * k);
+    c.getContext("2d")!.drawImage(v, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.85);
+  } catch {
+    return null;
+  }
 }
 
 /** Full-screen live camera with a scan frame. `onCode` set → continuous mode (shopping); otherwise look up + result. */

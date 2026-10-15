@@ -223,3 +223,10 @@ html[data-device="computer"] .sm-added-pill { bottom: 32px; }
 /* The inline confirmation in the Add screen (one line, replaced by the next add). */
 .sm-added-line { animation: sm-pill-in 200ms var(--ease-out) both; }
 @media (prefers-reduced-motion: reduce) { .sm-added-line { animation: none; } }
+
+/* R18 S4 B2: tap-to-focus ring; the read barcode outlined on the frozen frame. */
+.sm-focus-ring { position: absolute; width: 64px; height: 64px; margin: -32px 0 0 -32px; border: 2px solid #ffd60a; border-radius: 14px; pointer-events: none; animation: sm-focus 700ms var(--ease-out) both; }
+@keyframes sm-focus { from { transform: scale(1.4); opacity: 0; } 30% { opacity: 1; } to { transform: scale(1); opacity: 0.0; } }
+.sm-code-outline { fill: color-mix(in srgb, #34c759 18%, transparent); stroke: #34c759; stroke-linejoin: round; animation: sm-outline 260ms var(--ease-out) both; transform-box: fill-box; transform-origin: center; }
+@keyframes sm-outline { from { opacity: 0; transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .sm-focus-ring, .sm-code-outline { animation: none; } }

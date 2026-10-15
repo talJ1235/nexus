@@ -16,7 +16,7 @@ import { announceAdded, useAddedLine, type Added } from "./added";
 import { getBarcodeReader, prewarmScanners } from "@/lib/barcode-reader";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { useBarcodeReader } from "../barcode-scanner";
+import { useBarcodeReader, type Seen } from "../barcode-scanner";
 import { useStore } from "../store";
 import { haptic, photoToDataUrl, useCamera } from "../use-camera";
 import { ProductTile, SectionIcon } from "./art";
@@ -35,6 +35,13 @@ type Sheet = { kind: "loading" } | ScanResult | PhotoResult | { kind: "reading" 
 const isScan = (x: Sheet): x is ScanResult => "state" in x && (x.state === "found" || x.state === "unknown");
 
 type OnType = (text?: string, hint?: "camera" | "list") => void;
+
+/** S4 B3: the frame per mode — wide for a barcode, square for a product, tall for a receipt or a list. */
+const FRAME = {
+  scan: "h-[30vw] max-h-[180px] w-[76vw] max-w-[420px]",
+  product: "h-[min(78vw,400px)] w-[min(78vw,400px)]",
+  doc: "h-[min(118vw,560px)] w-[min(68vw,360px)]",
+} as const;
 
 export function Capture({ open, mode: start, onClose, onType }: { open: boolean; mode: "scan" | "photo"; onClose: () => void; onType: OnType }) {
   // R18 S3 A3: the phone's Back closes the camera instead of leaving the page.
@@ -62,7 +69,16 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
   const [typing, setTyping] = useState(false);
   const [typed, setTyped] = useState("");
   const [allow, setAllow] = useState<{ used: number; limit: number | null } | null>(null);
-  const { videoRef, state: cam, torch, toggleTorch } = useCamera(true);
+  // S4 B2: the main back lens, tuned for barcodes (1920×1080, continuous focus, slight zoom) — photos use it too.
+  // S4 B3: a photo taken = the still on screen and the camera off, until Retake.
+  const [still, setStill] = useState<{ image: string; full: Blob | null } | null>(null);
+  // The frame the person shoots in: a square for a product, a tall one for a receipt / list (a hint to the AI).
+  const [frame, setFrame] = useState<"product" | "doc">("product");
+  const { videoRef, state: cam, torch, toggleTorch, focus } = useCamera(!still, { scan: true });
+  // The frame a barcode was read on stays on screen (outlined) while the result shows — the phone can move away.
+  const [frozen, setFrozen] = useState<Seen | null>(null);
+  const [dark, setDark] = useState(false);
+  const [ring, setRing] = useState<{ x: number; y: number; k: number } | null>(null);
   const camOff = cam === "denied" || cam === "unavailable";
   const fileRef = useRef<HTMLInputElement>(null);
   // R18 S3 C1: camera permission refused → the Add screen with a one-line hint (no camera at all keeps the code field).
@@ -83,23 +99,41 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
     };
   }, [mode]);
 
-  const scan = async (code: string) => {
+  const scan = async (code: string, seen?: Seen) => {
     haptic();
+    if (seen?.still) setFrozen(seen);
     setSheet({ kind: "loading" });
     try {
       setSheet(await smScan(code));
     } catch {
       setSheet(null);
+      setFrozen(null);
       toast.error(t.sm.cap.failed);
     }
   };
-  useBarcodeReader(videoRef, mode === "scan" && cam === "on" && !sheet && !typing, (c) => void scan(c));
+  const scanning = mode === "scan" && cam === "on" && !sheet && !typing;
+  useBarcodeReader(videoRef, scanning, (c, seen) => void scan(c, seen));
+  // Nothing read for 4 s: a hint (light / distance), with the torch button where there is one.
+  useEffect(() => {
+    if (!scanning) return;
+    const id = setTimeout(() => setDark(true), 4000);
+    return () => {
+      clearTimeout(id);
+      setDark(false);
+    };
+  }, [scanning]);
+  const tapFocus = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (cam !== "on" || sheet || e.target !== e.currentTarget) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    void focus((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height).then((ok) => ok && setRing({ x: e.clientX - r.left, y: e.clientY - r.top, k: Date.now() }));
+  };
 
   const read = async (image: string, full: Blob | null = null) => {
     shot.current = { image, full };
+    setStill({ image, full });
     setSheet({ kind: "reading" });
     try {
-      const r = await smPhoto({ image });
+      const r = await smPhoto({ image, hint: frame });
       setSheet(r.state === "failed" ? null : r);
       if (r.state === "failed") toast.error(t.sm.cap.failed);
       void smAiAllowance().then((a) => setAllow({ used: a.used, limit: a.limit }), () => {});
@@ -125,25 +159,53 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
       big.height = Math.round(v.videoHeight * kb);
       big.getContext("2d")!.drawImage(v, 0, 0, big.width, big.height);
       const full = await new Promise<Blob | null>((r) => big.toBlob(r, "image/jpeg", 0.9));
-      return read(image, full);
+      // S4 B3: the still freezes at once (the camera goes off); Retake / Use photo decide — no AI call before that.
+      return setStill({ image, full });
     }
     fileRef.current?.click();
   };
 
   const seg = (on: boolean) => cn("h-9 flex-1 rounded-[10px] text-[14px] font-bold transition-colors duration-200", on ? "bg-white text-black" : "text-white/80");
+  // The frame on screen: scanning = wide; a photo = the frame picked, then the kind the AI saw (a sure one).
+  const seenKind = sheet && "state" in sheet && sheet.state === "read" ? sheet.kind : null;
+  const shape: keyof typeof FRAME = mode === "scan" ? "scan" : seenKind === "product" ? "product" : seenKind === "receipt" || seenKind === "list" ? "doc" : frame;
+  const retake = () => {
+    setStill(null);
+    setSheet(null);
+    shot.current = null;
+  };
   return (
     <>
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_45%,rgb(255_255_255/0.08),transparent_70%)]" />
       <video ref={videoRef} className={cn("absolute inset-0 size-full object-cover transition-opacity duration-300", cam === "on" ? "opacity-100" : "opacity-0")} playsInline muted data-cam-state={cam} />
+      {/* Tap-to-focus (where the lens has points of interest): a ring where the finger was. */}
+      <div className="absolute inset-0" onPointerDown={tapFocus} aria-hidden data-cap-focus-area>
+        {ring && <span key={ring.k} className="sm-focus-ring" style={{ left: ring.x, top: ring.y }} />}
+      </div>
+      {still && (
+        // eslint-disable-next-line @next/next/no-img-element -- the photo just taken (a data URL)
+        <img src={still.image} alt="" className="absolute inset-0 size-full object-cover" data-cap-still />
+      )}
+      {frozen?.still && (
+        <div className="absolute inset-0" data-cap-frozen>
+          {/* eslint-disable-next-line @next/next/no-img-element -- a local frame (data URL) */}
+          <img src={frozen.still} alt="" className="absolute inset-0 size-full object-cover" />
+          {frozen.points && frozen.points.length >= 3 && (
+            <svg className="absolute inset-0 size-full" viewBox={`0 0 ${frozen.w} ${frozen.h}`} preserveAspectRatio="xMidYMid slice" aria-hidden data-cap-outline>
+              <polygon points={frozen.points.map((p) => `${p.x},${p.y}`).join(" ")} className="sm-code-outline" style={{ strokeWidth: Math.max(frozen.w, frozen.h) / 160 }} />
+            </svg>
+          )}
+        </div>
+      )}
       <div className="pointer-events-none absolute inset-0 grid place-items-center pb-24">
-        <div className={cn("relative rounded-[22px] shadow-[0_0_0_100vmax_rgb(0_0_0/0.4)] transition-[width,height] duration-300 ease-[var(--ease-out)]", mode === "scan" ? "h-[30vw] max-h-[180px] w-[76vw] max-w-[420px]" : "h-[min(110vw,520px)] w-[80vw] max-w-[420px]")}>
+        <div className={cn("relative rounded-[22px] shadow-[0_0_0_100vmax_rgb(0_0_0/0.4)] transition-[width,height] duration-300 ease-[var(--ease-out)]", FRAME[shape])} data-cap-frame={shape}>
           {["start-0 top-0 border-s-4 border-t-4 rounded-ss-[22px]", "end-0 top-0 border-e-4 border-t-4 rounded-se-[22px]", "start-0 bottom-0 border-s-4 border-b-4 rounded-es-[22px]", "end-0 bottom-0 border-e-4 border-b-4 rounded-ee-[22px]"].map((c) => (
             <span key={c} className={cn("absolute size-8 border-white", c)} />
           ))}
           {sheet && "kind" in sheet && sheet.kind === "reading" && (
             <span className="absolute inset-x-6 top-1/2 flex -translate-y-1/2 items-center justify-center gap-2 rounded-full bg-black/60 px-4 py-2 text-[14px] font-bold backdrop-blur">
               <Sparkles className="size-4 text-spark" />
-              {t.sm.cap.reading}
+              {t.sm.cap.analysing}
             </span>
           )}
         </div>
@@ -153,10 +215,10 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
           <X className="size-5" />
         </D.Close>
         <div className="mx-auto flex w-[min(220px,52vw)] gap-1 rounded-[13px] bg-white/15 p-1 backdrop-blur" role="tablist">
-          <button type="button" role="tab" aria-selected={mode === "scan"} className={seg(mode === "scan")} onClick={() => (setMode("scan"), setSheet(null))} data-cap-mode="scan">
+          <button type="button" role="tab" aria-selected={mode === "scan"} className={seg(mode === "scan")} onClick={() => (setMode("scan"), setSheet(null), setFrozen(null), setStill(null))} data-cap-mode="scan">
             {t.sm.cap.barcode}
           </button>
-          <button type="button" role="tab" aria-selected={mode === "photo"} className={seg(mode === "photo")} onClick={() => (setMode("photo"), setSheet(null))} data-cap-mode="photo">
+          <button type="button" role="tab" aria-selected={mode === "photo"} className={seg(mode === "photo")} onClick={() => (setMode("photo"), setSheet(null), setFrozen(null), setStill(null))} data-cap-mode="photo">
             {t.sm.cap.photo}
           </button>
         </div>
@@ -170,7 +232,9 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
       </div>
       <div className="relative z-10 mt-auto flex flex-col gap-3 p-4 pb-[max(20px,env(safe-area-inset-bottom))]">
         {!sheet && (
-          <p className="text-center text-[14px] font-semibold text-white/85">{mode === "photo" ? t.sm.cap.pointPhoto : camOff ? t.sm.cap.noCamera : t.sm.cap.pointBarcode}</p>
+          <p className="text-center text-[14px] font-semibold text-white/85" data-cap-hint={dark && mode === "scan" && !camOff ? "dark" : undefined}>
+            {mode === "photo" ? t.sm.cap.pointPhoto : camOff ? t.sm.cap.noCamera : dark ? (torch.supported && !torch.on ? t.sm.cap.darkTorch : t.sm.cap.dark) : t.sm.cap.pointBarcode}
+          </p>
         )}
         {!sheet && mode === "scan" && (typing || camOff ? (
           <form
@@ -197,7 +261,27 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
             <span />
           </div>
         ))}
-        {!sheet && mode === "photo" && (
+        {!sheet && mode === "photo" && still && (
+          // S4 B3: the photo just taken — Retake (the camera back, nothing spent) or Use photo (the AI reads it).
+          <div className="grid grid-cols-2 gap-2.5" data-cap-still-actions>
+            <button type="button" className="h-14 rounded-[16px] bg-black/55 text-[16px] font-bold backdrop-blur" onClick={retake} data-cap-retake>
+              {t.sm.cap.retake}
+            </button>
+            <button type="button" className="h-14 rounded-[16px] bg-white text-[16px] font-extrabold text-black" onClick={() => void read(still.image, still.full)} data-cap-use>
+              {t.sm.cap.usePhoto}
+            </button>
+          </div>
+        )}
+        {!sheet && mode === "photo" && !still && (
+          <div className="mx-auto flex w-[min(260px,70vw)] gap-1 rounded-[12px] bg-white/15 p-1 backdrop-blur" role="radiogroup" aria-label={t.sm.cap.frameLabel}>
+            {(["product", "doc"] as const).map((k) => (
+              <button key={k} type="button" role="radio" aria-checked={frame === k} className={cn("h-8 flex-1 rounded-[9px] text-[13px] font-bold", frame === k ? "bg-white text-black" : "text-white/80")} onClick={() => setFrame(k)} data-cap-frame-pick={k}>
+                {k === "product" ? t.sm.cap.frameProduct : t.sm.cap.frameDoc}
+              </button>
+            ))}
+          </div>
+        )}
+        {!sheet && mode === "photo" && !still && (
           <div className="grid grid-cols-[1fr_auto_1fr] items-center">
             <button type="button" className="h-11 justify-self-start px-2 text-[15px] font-bold" onClick={() => onType()} data-cap-type>
               {t.sm.cap.type}
@@ -233,11 +317,13 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
             sheet={sheet}
             onAgain={() => {
               setSheet(null);
+              setFrozen(null);
+              setStill(null);
               setTyped("");
             }}
             onDone={onClose}
-            onPhoto={() => (setMode("photo"), setSheet(null))}
-            onScan={() => (setMode("scan"), setSheet(null))}
+            onPhoto={() => (setMode("photo"), setSheet(null), setFrozen(null), setStill(null))}
+            onScan={() => (setMode("scan"), setSheet(null), setFrozen(null), setStill(null))}
             onType={onType}
             onReceipt={async () => {
               const last = shot.current;
@@ -264,7 +350,7 @@ function ResultSheet({ sheet, onAgain, onDone, onPhoto, onScan, onType, onReceip
     );
   if (isScan(sheet)) {
     if (sheet.state === "found") return <Found product={sheet.product} listed={sheet.listed} known={sheet.known} code={sheet.code} onAgain={onAgain} onDone={onDone} />;
-    return <Unknown code={sheet.code} onPhoto={onPhoto} onDone={onDone} />;
+    return <Unknown code={sheet.code} onPhoto={onPhoto} onAgain={onAgain} onDone={onDone} />;
   }
   const r = sheet as PhotoResult;
   if (r.state === "read") return <PhotoRead r={r} onAgain={onAgain} onDone={onDone} onType={onType} onReceipt={onReceipt} />;
@@ -315,10 +401,11 @@ function PhotoRead({ r, onAgain, onDone, onType, onReceipt }: { r: PhotoRead; on
         <h2 className="text-[19px] font-extrabold">{t.sm.cap.seenUnsure}</h2>
         <p className="mt-0.5 text-[13.5px] text-muted">{t.sm.cap.unsureSub}</p>
         <div className="mt-3 grid grid-cols-3 gap-2">
-          {KINDS.map((x) => {
+          {/* S4 B3: the model's best guess first, marked. */}
+          {[...KINDS].sort((a, b) => Number(b === r.guess) - Number(a === r.guess)).map((x) => {
             const Icon = x === "product" ? Package : x === "receipt" ? ReceiptText : ListChecks;
             return (
-              <button key={x} type="button" onClick={() => setKind(x)} className="flex h-[72px] flex-col items-center justify-center gap-1 rounded-[14px] border border-line-strong text-[14px] font-bold active:scale-[0.97]" data-cap-what={x}>
+              <button key={x} type="button" onClick={() => setKind(x)} className={cn("flex h-[72px] flex-col items-center justify-center gap-1 rounded-[14px] border text-[14px] font-bold active:scale-[0.97]", x === r.guess ? "border-ink bg-surface-2" : "border-line-strong")} data-cap-what={x} data-cap-best={x === r.guess || undefined}>
                 <Icon className="size-5" />
                 <span className="max-w-full truncate px-1">{label[x]}</span>
               </button>
@@ -564,7 +651,7 @@ function Found({ product, listed, known, code, onAgain, onDone }: { product: Cap
 }
 type ScanResultListed = { quantity: number; amount?: number | null; unit?: string | null; count?: number | null } | null;
 
-function Unknown({ code, onPhoto, onDone }: { code: string; onPhoto: () => void; onDone: () => void }) {
+function Unknown({ code, onPhoto, onAgain, onDone }: { code: string; onPhoto: () => void; onAgain: () => void; onDone: () => void }) {
   const { t, f, locale } = useI18n();
   const add = useAddCaptured();
   const [name, setName] = useState("");
@@ -595,7 +682,13 @@ function Unknown({ code, onPhoto, onDone }: { code: string; onPhoto: () => void;
           </button>
         ))}
       </div>
-      <p className="mt-3 text-[12.5px] text-muted">{f(t.sm.cap.kept, { code })}</p>
+      <p className="mt-3 flex items-center gap-2 text-[12.5px] text-muted">
+        <span className="min-w-0 flex-1">{f(t.sm.cap.kept, { code })}</span>
+        {/* S4 B2: a misread? scan again (the frozen frame lets go). */}
+        <button type="button" className="h-9 shrink-0 rounded-[10px] px-2 text-[13px] font-bold text-ink underline-offset-2 hover:underline" onClick={onAgain} data-cap-again>
+          {t.sm.cap.scanAnother}
+        </button>
+      </p>
       <div className="mt-3 flex gap-2.5">
         <button type="button" className="h-12 flex-1 rounded-[14px] border border-line-strong text-[15px] font-bold" onClick={onPhoto} data-cap-photo-instead>
           {t.sm.cap.photoInstead}
