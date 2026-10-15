@@ -1936,6 +1936,43 @@ try {
           "forget everything (R18 S3 B10): fact ✕ + Undo; sheet goes / stays; hold 2 s to confirm", JSON.stringify(r));
       });
 
+    // R18 S3 B11: the store picker — "This trip only" / "Make it my default" above the search (seen before any branch);
+    // a chain shows the household's branches, more words narrow (any order); a chain with no known branch is a
+    // tappable row (puts the chain in the search) with the "branch lists come later" note; a typed branch is a New
+    // branch row that can be picked. No disabled rows.
+    if (WRITE)
+      await step("store picker (R18 S3 B11): choice first, words narrow, every row tappable, R19 note", async () => {
+        const r = {};
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-store]", { timeout: 15000 });
+        await page.locator("[data-sm-store]").click();
+        await page.waitForSelector("[data-store-picker] [data-store-search]");
+        await page.waitForTimeout(500);
+        r.order = await page.evaluate(() => {
+          const m = document.querySelector('[data-store-mode="trip"]')?.getBoundingClientRect();
+          const q = document.querySelector("[data-store-search]")?.getBoundingClientRect();
+          return !!m && !!q && m.bottom <= q.top && m.top >= 0 && m.bottom <= innerHeight;
+        });
+        const opts = () => page.locator("[data-store-picker] [data-store-option]").evaluateAll((els) => els.map((e) => e.getAttribute("data-store-option")));
+        await page.locator("[data-store-search]").fill("Shufersal");
+        r.chain = await opts();
+        await page.locator("[data-store-search]").fill("Shufersal herzl");
+        r.narrow = await opts();
+        await page.locator("[data-store-search]").fill("Yochananof");
+        await page.waitForTimeout(200);
+        r.note = await page.locator("[data-store-no-branches]").count();
+        r.disabled = await page.locator("[data-store-picker] button:disabled").count();
+        await page.locator('[data-store-option="yochananof|"]').click();
+        r.filled = await page.locator("[data-store-search]").inputValue();
+        r.focused = await page.evaluate(() => document.activeElement?.hasAttribute("data-store-search"));
+        await page.keyboard.type("Modiin");
+        await page.locator('[data-store-option="yochananof|Modiin"]').click();
+        r.picked = await page.locator('[data-store-option="yochananof|Modiin"]').getAttribute("aria-checked");
+        await page.keyboard.press("Escape");
+        ok(r.order && r.chain.length >= 1 && r.chain.every((x) => x.startsWith("shufersal|")) && r.narrow.length >= 1 && r.narrow.length <= r.chain.length && r.narrow.every((x) => /herzl/i.test(x)) && r.note === 1 && r.disabled <= 1 && /^Yochananof $/.test(r.filled) && r.focused && r.picked === "true",
+          "store picker (R18 S3 B11): choice first, words narrow, every row tappable, R19 note", JSON.stringify(r));
+      });
+
     // R18 S3 0.1: on real data (prod smoke) the list is the person's own — read only: the tab renders its list or the
     // first-use screen, known sections once each (their order may be learned), one rail mark per section. Never adds or accepts anything there.
     if (!WRITE)

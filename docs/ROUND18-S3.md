@@ -131,7 +131,7 @@ closes. Same check for every S2 sheet.
 A sheet that says what will be forgotten (and what stays), then **hold to confirm** (like admin delete, R17) or type
 the word. One fact ✕ stays one tap + Undo toast.
 
-### B11 [ ] Store picker: "This trip only" vs "Make default" before picking
+### B11 [x] Store picker: "This trip only" vs "Make default" before picking
 The choice sits at the top of the picker, visible before choosing a branch (today it's unclear). Typing a chain shows
 its known branches; more words narrow ("רמי לוי נתניה"); every shown row is tappable. (Real branch lists +
 nearest-first = R19, not now — say so in the empty state only if a chain has no known branches.)
@@ -278,6 +278,11 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   `undoForgetLearned` puts it back; role matrix: edit). Found on the way: on phones a tap on any toast button inside
   Settings closed Settings (no outside guard on the phone shell) — fixed. Smoke "forget everything" (the real request
   is intercepted), S2's F1 step holds now.
+- B11 — store picker: "Use it for…" labels the This trip only / Make it my default choice at the top (seen before
+  any branch); a chain shows the household's branches and every typed word narrows, in any order; a chain-only row is
+  tappable (puts "Yochananof " in the search, focused, to type the branch) — no disabled rows; a new branch is offered
+  only when no known branch matches; a chain with no known branch shows "the full list (nearest first) comes with
+  prices" (R19). Smoke phone + computer (S2's D2 picker step still passes).
 ### Decisions
 - 0.1: all three were in the tests, not the app (prod's 1 status tile is correct for its data; quiet hours deferring a
   live-add push at night is the R17 S6 policy). One app-side change: `openTripsIn(spaceId, except, now)`.
@@ -294,6 +299,8 @@ segment switch. `test:tenancy` / `test:roles` for any new data (C6) and actions.
   member listed it meanwhile; the server never suggests a listed product and live sync skips my own writes, so one
   tab can't reach it). The steppers then start from the row and Update sets them. The Add screen's type-ahead keeps
   its S2 merge toast ("Already on the list — now ×4" + Undo).
+- B11: real branch lists and nearest-first stay R19 (as the brief says); until then "known branches" = the ones this
+  household has used or saved.
 ### For Tal
 - A2: on Products the toolbar (sort · total · list/grid) now sits right under the switch and To buy's filter chips
   under it, so the toolbar never moves between To buy and On the way.

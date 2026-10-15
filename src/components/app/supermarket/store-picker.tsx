@@ -60,13 +60,17 @@ function PickerBody({ onClose }: { onClose: () => void }) {
     return rows.sort((a, b) => (def && keyOf(a) === keyOf(def) ? -1 : def && keyOf(b) === keyOf(def) ? 1 : (visits[keyOf(b)]?.last ?? 0) - (visits[keyOf(a)]?.last ?? 0)));
   }, [home?.stores, def, visits]);
   const parsed = parseStoreQuery(q);
+  const input = useRef<HTMLInputElement>(null);
   const results: (StoreRef & { fresh?: boolean })[] = useMemo(() => {
     if (!q.trim()) return known;
-    const n = normalize(q);
+    // R18 S3 B11: every typed word narrows, in any order ("רמי לוי נתניה", "netanya rami").
+    const words = (s: string) => normalize(s).split(" ").filter(Boolean);
+    const all = (hay: string, need: string[]) => need.every((w) => hay.split(" ").some((h) => h.startsWith(w)));
     const label = (x: StoreRef) => normalize(`${chainDef(x.chain)?.en ?? x.chain} ${chainDef(x.chain)?.he ?? ""} ${x.branch}`);
-    const match = known.filter((x) => (parsed.chain ? x.chain === parsed.chain.id && normalize(x.branch).includes(normalize(parsed.branch)) : label(x).includes(n)));
+    const match = known.filter((x) => (parsed.chain ? x.chain === parsed.chain.id && all(normalize(x.branch), words(parsed.branch)) : all(label(x), words(q))));
     const out: (StoreRef & { fresh?: boolean })[] = [...match];
-    if (parsed.chain && parsed.branch && !known.some((x) => x.chain === parsed.chain!.id && normalize(x.branch) === normalize(parsed.branch))) out.push({ chain: parsed.chain.id, branch: parsed.branch, fresh: true });
+    // A new branch only when no known one already matches what was typed ("Shufersal herzl" finds "Herzl St.").
+    if (parsed.chain && parsed.branch && !match.length) out.push({ chain: parsed.chain.id, branch: parsed.branch, fresh: true });
     if (parsed.chain && !parsed.branch && !match.length) out.push({ chain: parsed.chain.id, branch: "", fresh: true });
     for (const c of parsed.partial) if (!out.some((x) => x.chain === c.id)) out.push({ chain: c.id, branch: "", fresh: true });
     return out;
@@ -104,7 +108,9 @@ function PickerBody({ onClose }: { onClose: () => void }) {
     <div className="flex min-h-0 flex-1 flex-col" data-store-picker>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-1">
         <h2 className="text-[21px] font-extrabold">{t.sm.store.title}</h2>
-        <div className="mt-3 grid grid-cols-2 gap-2.5" role="radiogroup">
+        {/* R18 S3 B11: first how this choice counts — before any branch is picked. */}
+        <p className="mb-1.5 mt-3 px-1 text-[13px] font-semibold text-muted" id="store-mode-q">{t.sm.store.modeQ}</p>
+        <div className="grid grid-cols-2 gap-2.5" role="radiogroup" aria-labelledby="store-mode-q">
           <button type="button" role="radio" aria-checked={mode === "trip"} className={seg(mode === "trip")} onClick={() => setMode("trip")} disabled={!def} data-store-mode="trip">
             <b className="text-[15px] font-extrabold">{t.sm.store.thisTrip}</b>
             <span className="bidi text-[12.5px] text-muted">{def ? f(t.sm.store.thisTripSub, { store: storeLabel(def.chain, null, locale) ?? def.chain }) : t.sm.store.thisTripNoDefault}</span>
@@ -116,7 +122,7 @@ function PickerBody({ onClose }: { onClose: () => void }) {
         </div>
         <label className="mt-3 flex h-[52px] items-center gap-2.5 rounded-[16px] border border-line-strong bg-surface px-3.5 focus-within:border-ink">
           <Search className="size-[18px] shrink-0 text-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t.sm.store.search} aria-label={t.sm.store.search} className="h-full min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-muted" data-store-search />
+          <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t.sm.store.search} aria-label={t.sm.store.search} className="h-full min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-muted" data-store-search />
         </label>
         <p className="mb-1.5 mt-4 flex items-baseline justify-between px-1 text-[13px] font-semibold text-muted">
           {q.trim() ? t.sm.store.branches : t.sm.store.recent}
@@ -127,16 +133,20 @@ function PickerBody({ onClose }: { onClose: () => void }) {
             {results.map((x) => {
               const on = !!picked && keyOf(picked) === keyOf(x);
               const d = chainDef(x.chain);
-              const disabled = x.fresh && !x.branch;
+              // A chain without a branch yet: tapping it puts the chain in the search to type the branch after it.
+              const chainOnly = x.fresh && !x.branch;
               return (
                 <button
                   key={keyOf(x)}
                   type="button"
-                  role="radio"
-                  aria-checked={on}
-                  disabled={disabled}
-                  onClick={() => setPicked({ chain: x.chain, branch: x.branch })}
-                  className="gro-hit flex min-h-[64px] w-full items-center gap-3 px-3 py-2 text-start disabled:opacity-60"
+                  role={chainOnly ? undefined : "radio"}
+                  aria-checked={chainOnly ? undefined : on}
+                  onClick={() => {
+                    if (!chainOnly) return setPicked({ chain: x.chain, branch: x.branch });
+                    setQ(`${d ? (locale === "he" ? d.he : d.en) : x.chain} `);
+                    input.current?.focus();
+                  }}
+                  className="gro-hit flex min-h-[64px] w-full items-center gap-3 px-3 py-2 text-start"
                   data-store-option={keyOf(x)}
                 >
                   <Mono chain={x.chain} />
@@ -146,13 +156,23 @@ function PickerBody({ onClose }: { onClose: () => void }) {
                   </span>
                   {def && keyOf(def) === keyOf(x) && <span className="shrink-0 rounded-[7px] bg-surface-2 px-2 py-0.5 text-[12px] font-bold text-muted">{t.sm.store.default}</span>}
                   {x.fresh && x.branch ? <Plus className="size-5 shrink-0 text-muted" /> : null}
-                  <span className={cn("grid size-6 shrink-0 place-items-center rounded-full border-2", on ? "border-ink" : "border-line-strong")} aria-hidden>
-                    {on && <i className="size-3 rounded-full bg-ink" />}
-                  </span>
+                  {chainOnly ? (
+                    <ChevronRight className="size-5 shrink-0 text-muted rtl:-scale-x-100" />
+                  ) : (
+                    <span className={cn("grid size-6 shrink-0 place-items-center rounded-full border-2", on ? "border-ink" : "border-line-strong")} aria-hidden>
+                      {on && <i className="size-3 rounded-full bg-ink" />}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
+        )}
+        {/* No branch of this chain known to the household yet: real branch lists (and nearest first) come with R19. */}
+        {parsed.chain && !known.some((x) => x.chain === parsed.chain!.id) && (
+          <p className="mt-3 rounded-[12px] bg-surface-2 px-3 py-2 text-[13px] text-muted" data-store-no-branches>
+            {f(t.sm.store.noBranches, { chain: locale === "he" ? parsed.chain.he : parsed.chain.en })}
+          </p>
         )}
         <p className="mt-3 px-1 text-[12.5px] text-muted">{t.sm.store.note}</p>
       </div>

@@ -311,6 +311,8 @@ export const smEn = {
     saved: "{store} is your store now",
     tripOnly: "Shopping at {store} this trip",
     failed: "Couldn't save — try again",
+    modeQ: "Use it for…",
+    noBranches: "Nexus doesn't know {chain}'s branches yet — the full list (nearest first) comes with prices. Type yours after the chain.",
   },
   order: {
     title: "Section order",

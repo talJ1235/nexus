@@ -315,6 +315,8 @@ export const smHe: Widen<typeof smEn> = {
     saved: "{store} הוא הסופר שלכם עכשיו",
     tripOnly: "קונים ב{store} בקנייה הזו",
     failed: "לא נשמר — אפשר לנסות שוב",
+    modeQ: "לשימוש…",
+    noBranches: "Nexus עוד לא מכיר את הסניפים של {chain} — הרשימה המלאה (הקרוב קודם) תגיע עם המחירים. כתבו את הסניף שלכם אחרי שם הרשת.",
   },
   order: {
     title: "סדר המחלקות",
