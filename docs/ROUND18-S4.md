@@ -18,6 +18,10 @@ Results go to **"## Open" at the end of this file**. Tal runs it overnight (~8 h
   coverage, scope, clip (1066 screens), polish, inbox, headers, device, adblock, bidi, shop-offline, capture, voice.
 - G2: SPEC R18 S4, CLAUDE.md map, help topic Supermarket, ENVIRONMENT log, the phone checklist below.
 
+- Merged to main (`2efc4df`, CI green). The prod smoke after the deploy failed only F1 / F2's smoke steps: they need
+  the demo templates + trips (real data: skipped now, like the other seeded steps) and opened ⋯ before hydration
+  (`openSmLists` waits and retries). App unaffected; fix on the branch → CI → main.
+
 ### Decisions" at once; anything for Tal in "- B3: the AI reads the photo only after "Use photo" (a retake costs nothing from the 40/day quota) — the brief lists
   "Analysing…" and Retake / Use photo together; reading on Use keeps retakes free.
 - C1 root cause found by the full smoke: the site's `Permissions-Policy` header said `microphone=()` — the browser

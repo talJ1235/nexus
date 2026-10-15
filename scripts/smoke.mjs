@@ -95,6 +95,16 @@ const READY = "[data-app-shell][data-ready] main h1 >> visible=true";
 // Esc opens the command menu once the app's key handler is attached (right after READY it can still be hydrating).
 let openPalette;
 const shot = async (page, name) => OUT && page.screenshot({ path: `${OUT}/${name}${SUFFIX}.png` });
+// R18 S4: open ⋯ → Templates on the Supermarket tab (a click before hydration can miss the menu: try again).
+async function openSmLists(page) {
+  await page.waitForSelector("[data-app-shell][data-ready]", { timeout: 15000 }).catch(() => {});
+  for (let k = 0; k < 4; k++) {
+    if (!(await page.locator("[data-sm-more]:visible").first().click({ timeout: 5000 }).then(() => true, () => false))) continue;
+    if (await page.waitForSelector("[data-sm-menu-lists]", { timeout: 2500 }).then(() => true, () => false)) return page.locator("[data-sm-menu-lists]").click();
+    await page.keyboard.press("Escape").catch(() => {});
+  }
+  throw new Error("⋯ menu never opened");
+}
 // R18 S3 B3: "Nexus suggests" is one line until opened (phones) — open it before using a suggestion.
 async function openSuggestions(page) {
   await page.waitForSelector("[data-sm-suggest]", { timeout: 15000 });
@@ -2796,7 +2806,7 @@ try {
 
     // R18 S4 F1: the Templates · Past trips switch — its thumb stays inside the track on every frame of the slide
     // (sampled per frame, both ways); the same SegPill on Insights.
-    await step("segment thumb stays in its track (R18 S4 F1): Templates · Past trips + Insights, every frame", async () => {
+    await demoStep("segment thumb stays in its track (R18 S4 F1): Templates · Past trips + Insights, every frame", async () => {
       const r = {};
       const sample = async (root, tab) => {
         const out = await page.evaluate(
@@ -2825,8 +2835,7 @@ try {
       };
       await page.goto(`${BASE}/supermarket`);
       await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
-      await page.locator("[data-sm-more]:visible").first().click();
-      await page.locator("[data-sm-menu-lists]").click();
+      await openSmLists(page);
       await page.waitForSelector("[data-sm-lists] [data-seg-thumb]", { timeout: 10000 });
       const rootLists = await page.locator("[data-sm-lists] [role=tablist]").first().evaluate((e) => [...e.attributes].map((a) => a.name).find((n) => n.startsWith("data-")));
       r.lists = await sample(`[data-sm-lists] [${rootLists}]`, "[role=tab]");
@@ -2839,12 +2848,11 @@ try {
 
     // R18 S4 F2: past trips are cards like the templates' — stacked product pictures, store, date + time, items · who ·
     // minutes, total; grouped by month with the month's total; a card opens the trip with Add again.
-    await step("trip cards (R18 S4 F2): pictures, store, date + time, meta, total, month groups, opens the trip", async () => {
+    await demoStep("trip cards (R18 S4 F2): pictures, store, date + time, meta, total, month groups, opens the trip", async () => {
       const r = {};
       await page.goto(`${BASE}/supermarket`);
       await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
-      await page.locator("[data-sm-more]:visible").first().click();
-      await page.locator("[data-sm-menu-lists]").click();
+      await openSmLists(page);
       await page.waitForSelector("[data-sm-lists]", { timeout: 10000 });
       await page.locator("[data-sm-lists] [role=tab]").nth(1).click();
       await page.waitForSelector("[data-sm-trip], [data-sm-past-none]", { timeout: 10000 });
