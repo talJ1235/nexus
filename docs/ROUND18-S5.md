@@ -63,7 +63,7 @@ Add to `.claude/settings.json` `allow` (shared, committed): `Bash(npm run -s tes
 `Bash(git merge --no-edit origin/main)`, `Bash(git fetch:*)`. Never a rule for pushing `main` or for prod DB access.
 Move the now-covered per-round lines out of `.claude/settings.local.json`. **Acceptance:** a session started with only
 "Round 18, session 6" can push its branch and run any test without a permission prompt; ENVIRONMENT log line.
-### 0.3 [ ] Planning docs diet (docs only, on `main` in Step 0; mechanical moves — never rewrite moved text)
+### 0.3 [x] Planning docs diet (docs only, on `main` in Step 0; mechanical moves — never rewrite moved text)
 The planning chat reads `docs/PLANNER.md` (~72 KB) + `docs/ENVIRONMENT.md` (~26 KB) at the start of every chat, and
 its connector must resend whole files. Move history out, word for word, into `docs/archive/` (do it after the patch
 from step 1 is in):
