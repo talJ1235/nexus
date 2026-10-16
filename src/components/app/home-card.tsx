@@ -86,9 +86,17 @@ export function useFitRows(ref: React.RefObject<HTMLElement | null>, more = 0) {
       card.setAttribute("data-more", String(Math.max(0, more) + hidden));
     };
     fit();
+    // Re-fit when the card or its body changes size, and once the web fonts are in (text reflows without either
+    // box changing — R18 S5 G1: a slow CI run measured before the fonts and left a paragraph overflowing).
     const ro = new ResizeObserver(() => fit());
     ro.observe(card);
-    return () => ro.disconnect();
+    for (const c of card.children) ro.observe(c);
+    let live = true;
+    void document.fonts?.ready.then(() => live && fit());
+    return () => {
+      live = false;
+      ro.disconnect();
+    };
   });
 }
 
@@ -102,7 +110,7 @@ export function Card({ id, title, icon, count, badge, link, onLink, className, s
     <section ref={ref} className={cn("r13-card r13-section flex min-w-0 flex-col", className)} style={style} data-home-section={id} data-more={Math.max(0, more ?? 0)}>
       <div data-card-head className="flex min-h-[42px] items-center gap-2 border-b border-line-in px-4 py-2 desk:min-h-[46px] desk:px-[18px] desk:py-2.5">
         {icon && <span className={cn("flex [&_svg]:size-4", ai ? "text-ai" : "text-ink")}>{icon}</span>}
-        <h2 className={cn("text-[12px] font-bold uppercase tracking-[0.05em]", ai && "text-ai")}>{title}</h2>
+        <h2 className={cn("text-[12px] font-bold uppercase tracking-[0.05em]", ai && "text-ai")} title={typeof title === "string" ? title : undefined}>{title}</h2>
         {count != null &&
           (badge ? (
             <span className="tabular rounded-full bg-warn px-[7px] text-[11px] font-bold leading-[18px] text-bg" data-home-count={id}>

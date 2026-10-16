@@ -8,7 +8,6 @@ src/components/ui/use-media.ts | export const PHONE = "(max-width: 639px)";
 # Sizing only (also: .cv-auto under the 639 px line above):
 src/components/app/projects-view.tsx | lg:grid-cols-3
 src/components/app/skeletons.tsx | lg:grid-cols-3
-src/components/app/spending-view.tsx | lg:grid-cols-4
 src/components/app/spending-view.tsx | lg:grid-cols-2
 src/components/app/settings/nx16.css | @media (max-width:1023px){.nx .sx-tiles
 src/components/app/settings/nx16.css | @media (max-width:420px){

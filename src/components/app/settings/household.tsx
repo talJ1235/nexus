@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { budgetShape, getOnboarding, saveBudgetShape, saveOnboarding } from "@/app/onboarding-actions";
+import {
+  budgetShape,
+  getOnboarding,
+  saveBudgetShape,
+  saveOnboarding,
+} from "@/app/onboarding-actions";
 import { useI18n } from "@/components/providers";
 import { DIETS, FREQ, MODES, type Onboarding } from "@/lib/onboarding";
 import { toast } from "@/lib/toast";
@@ -53,7 +58,15 @@ function useAnswers() {
   return { o, save };
 }
 
-function Chip({ on, onClick, children, ...rest }: { on: boolean; onClick: () => void; children: React.ReactNode } & Record<`data-${string}`, string | number | boolean | undefined>) {
+function Chip({
+  on,
+  onClick,
+  children,
+  ...rest
+}: { on: boolean; onClick: () => void; children: React.ReactNode } & Record<
+  `data-${string}`,
+  string | number | boolean | undefined
+>) {
   return (
     <button
       type="button"
@@ -61,7 +74,9 @@ function Chip({ on, onClick, children, ...rest }: { on: boolean; onClick: () => 
       onClick={onClick}
       className={cn(
         "inline-flex h-10 items-center justify-center rounded-full border px-3.5 text-[14px] font-semibold transition-[background-color,transform] duration-150 ease-[var(--ease-out)] active:scale-[0.96]",
-        on ? "border-ink bg-ink text-bg" : "border-line-strong text-ink hover:bg-surface-2",
+        on
+          ? "border-ink bg-ink text-bg"
+          : "border-line-strong text-ink hover:bg-surface-2",
       )}
       {...rest}
     >
@@ -70,7 +85,15 @@ function Chip({ on, onClick, children, ...rest }: { on: boolean; onClick: () => 
   );
 }
 
-function Group({ title, sub, children, ...rest }: { title: string; sub?: string; children: React.ReactNode } & Record<`data-${string}`, string | boolean | undefined>) {
+function Group({
+  title,
+  sub,
+  children,
+  ...rest
+}: { title: string; sub?: string; children: React.ReactNode } & Record<
+  `data-${string}`,
+  string | boolean | undefined
+>) {
   return (
     <div className="flex flex-col gap-2.5" {...rest}>
       <div>
@@ -88,8 +111,21 @@ export function HouseholdPage({ phone }: PageProps) {
   const O = t.ob;
   const H = t.sx.hh;
   const { o, save } = useAnswers();
-  if (!o) return <div className="card" style={{ height: 240 }} aria-busy="true" data-settings-household />;
-  const n = { adults: o.adults ?? (o.who === "me" ? 1 : 2), kids: o.kids ?? 0, babies: o.babies ?? 0, pets: o.pets ?? 0 };
+  if (!o)
+    return (
+      <div
+        className="card"
+        style={{ height: 240 }}
+        aria-busy="true"
+        data-settings-household
+      />
+    );
+  const n = {
+    adults: o.adults ?? (o.who === "me" ? 1 : 2),
+    kids: o.kids ?? 0,
+    babies: o.babies ?? 0,
+    pets: o.pets ?? 0,
+  };
   const rows = [
     ["adults", O.home5.adults, O.home5.adultsSub, 1],
     ["kids", O.home5.kids, O.home5.kidsSub, 0],
@@ -103,52 +139,119 @@ export function HouseholdPage({ phone }: PageProps) {
           <span className="sub">{H.sub}</span>
         </SectionHead>
       )}
-      {phone && <p className="sub" style={{ margin: "-4px 4px 0" }}>{H.sub}</p>}
-      <Group title={H.who}>
-        <div className="seg" role="radiogroup" aria-label={H.who} style={{ width: "100%" }}>
-          {(["me", "partner", "family"] as const).map((w) => (
-            <button key={w} type="button" role="radio" aria-checked={o.who === w} className={o.who === w ? "on" : ""} style={{ flex: 1, justifyContent: "center", height: 40 }} onClick={() => save({ who: w })} data-hh-who={w}>
-              {w === "me" ? O.home5.just : w === "partner" ? O.home5.couple : O.home5.family}
-            </button>
-          ))}
+      {phone && (
+        <p className="sub" style={{ margin: "-4px 4px 0" }}>
+          {H.sub}
+        </p>
+      )}
+      {/* Computer: the people on one side, the food on the other — the whole page fits without scrolling. */}
+      <div className="flex flex-col gap-5 desk:grid desk:grid-cols-2 desk:items-start desk:gap-8">
+        <div className="flex flex-col gap-5">
+          <Group title={H.who}>
+            <div
+              className="seg"
+              role="radiogroup"
+              aria-label={H.who}
+              style={{ width: "100%" }}
+            >
+              {(["me", "partner", "family"] as const).map((w) => (
+                <button
+                  key={w}
+                  type="button"
+                  role="radio"
+                  aria-checked={o.who === w}
+                  className={o.who === w ? "on" : ""}
+                  style={{ flex: 1, justifyContent: "center", height: 40 }}
+                  onClick={() => save({ who: w })}
+                  data-hh-who={w}
+                >
+                  {w === "me"
+                    ? O.home5.just
+                    : w === "partner"
+                      ? O.home5.couple
+                      : O.home5.family}
+                </button>
+              ))}
+            </div>
+          </Group>
+          <Group title={H.people}>
+            <div className="card" style={{ padding: 0 }}>
+              {rows.map(([k, label, sub, min]) => (
+                <Li key={k} title={label} sub={sub} data-hh-count={k}>
+                  <span className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      className="btn icon"
+                      style={{ width: 40, height: 40, borderRadius: 20 }}
+                      disabled={n[k] <= min}
+                      onClick={() => save({ [k]: n[k] - 1 })}
+                      aria-label={f(O.home5.less, { what: label })}
+                      data-hh-less={k}
+                    >
+                      −
+                    </button>
+                    <b
+                      className="num"
+                      style={{
+                        minWidth: 26,
+                        textAlign: "center",
+                        fontSize: 17,
+                      }}
+                      data-hh-n={k}
+                    >
+                      {n[k]}
+                    </b>
+                    <button
+                      type="button"
+                      className="btn icon"
+                      style={{ width: 40, height: 40, borderRadius: 20 }}
+                      disabled={n[k] >= 12}
+                      onClick={() => save({ [k]: n[k] + 1 })}
+                      aria-label={f(O.home5.more, { what: label })}
+                      data-hh-more={k}
+                    >
+                      +
+                    </button>
+                  </span>
+                </Li>
+              ))}
+            </div>
+          </Group>
         </div>
-      </Group>
-      <Group title={H.people}>
-        <div className="card" style={{ padding: 0 }}>
-          {rows.map(([k, label, sub, min]) => (
-            <Li key={k} title={label} sub={sub} data-hh-count={k}>
-              <span className="flex items-center gap-1.5">
-                <button type="button" className="btn icon" style={{ width: 40, height: 40, borderRadius: 20 }} disabled={n[k] <= min} onClick={() => save({ [k]: n[k] - 1 })} aria-label={f(O.home5.less, { what: label })} data-hh-less={k}>
-                  −
-                </button>
-                <b className="num" style={{ minWidth: 26, textAlign: "center", fontSize: 17 }} data-hh-n={k}>
-                  {n[k]}
-                </b>
-                <button type="button" className="btn icon" style={{ width: 40, height: 40, borderRadius: 20 }} disabled={n[k] >= 12} onClick={() => save({ [k]: n[k] + 1 })} aria-label={f(O.home5.more, { what: label })} data-hh-more={k}>
-                  +
-                </button>
-              </span>
+        <Group title={H.food} sub={H.foodSub}>
+          <div className="flex flex-wrap gap-2">
+            {DIETS.map((k) => {
+              const on = (o.diet ?? []).includes(k);
+              return (
+                <Chip
+                  key={k}
+                  on={on}
+                  onClick={() =>
+                    save({
+                      diet: on
+                        ? (o.diet ?? []).filter((x) => x !== k)
+                        : [...(o.diet ?? []), k],
+                    })
+                  }
+                  data-hh-diet={k}
+                >
+                  {O.food[k]}
+                </Chip>
+              );
+            })}
+          </div>
+          <div className="card">
+            <Li title={O.food.shabbat} sub={O.food.shabbatSub}>
+              <Toggle
+                on={!!o.shabbat}
+                label={O.food.shabbat}
+                onChange={(v) => save({ shabbat: v })}
+                data-hh-shabbat
+              />
             </Li>
-          ))}
-        </div>
-      </Group>
-      <Group title={H.food} sub={H.foodSub}>
-        <div className="flex flex-wrap gap-2">
-          {DIETS.map((k) => {
-            const on = (o.diet ?? []).includes(k);
-            return (
-              <Chip key={k} on={on} onClick={() => save({ diet: on ? (o.diet ?? []).filter((x) => x !== k) : [...(o.diet ?? []), k] })} data-hh-diet={k}>
-                {O.food[k]}
-              </Chip>
-            );
-          })}
-        </div>
-        <div className="card">
-          <Li title={O.food.shabbat} sub={O.food.shabbatSub}>
-            <Toggle on={!!o.shabbat} label={O.food.shabbat} onChange={(v) => save({ shabbat: v })} data-hh-shabbat />
-          </Li>
-        </div>
-      </Group>
+          </div>
+        </Group>
+      </div>
     </div>
   );
 }
@@ -165,18 +268,38 @@ export function SmHabits() {
       <Group title={O.often}>
         <div className="flex flex-wrap gap-2">
           {FREQ.map((k) => (
-            <Chip key={k} on={o.freq === k} onClick={() => save({ freq: o.freq === k ? null : k })} data-hh-freq={k}>
+            <Chip
+              key={k}
+              on={o.freq === k}
+              onClick={() => save({ freq: o.freq === k ? null : k })}
+              data-hh-freq={k}
+            >
               {O[k]}
             </Chip>
           ))}
         </div>
       </Group>
       <Group title={O.days} sub={days.length ? t.sx.hh.daysSub : undefined}>
-        <div className="grid grid-cols-7 gap-1.5" role="group" aria-label={O.days}>
+        <div
+          className="grid grid-cols-7 gap-1.5"
+          role="group"
+          aria-label={O.days}
+        >
           {O.wd.map((d, k) => {
             const on = days.includes(k);
             return (
-              <Chip key={k} on={on} onClick={() => save({ days: on ? days.filter((x) => x !== k) : [...days, k].sort() })} data-hh-day={k}>
+              <Chip
+                key={k}
+                on={on}
+                onClick={() =>
+                  save({
+                    days: on
+                      ? days.filter((x) => x !== k)
+                      : [...days, k].sort(),
+                  })
+                }
+                data-hh-day={k}
+              >
                 {d}
               </Chip>
             );
@@ -186,7 +309,12 @@ export function SmHabits() {
       <Group title={O.how}>
         <div className="flex flex-wrap gap-2">
           {MODES.map((k) => (
-            <Chip key={k} on={o.mode === k} onClick={() => save({ mode: o.mode === k ? null : k })} data-hh-mode={k}>
+            <Chip
+              key={k}
+              on={o.mode === k}
+              onClick={() => save({ mode: o.mode === k ? null : k })}
+              data-hh-mode={k}
+            >
               {O[k]}
             </Chip>
           ))}
@@ -202,12 +330,18 @@ export function BudgetShape({ ro }: { ro: boolean }) {
   const { t, f } = useI18n();
   const B = t.ob.bud5;
   const H = t.sx.hh;
-  const [shape, setShape] = useState<{ startDay: number; smShare: number | null } | null>(null);
+  const [shape, setShape] = useState<{
+    startDay: number;
+    smShare: number | null;
+  } | null>(null);
   const personal = s.space?.kind !== "shared";
   const { o, save } = useAnswers();
   useEffect(() => {
     let live = true;
-    budgetShape().then((x) => live && setShape(x), () => {});
+    budgetShape().then(
+      (x) => live && setShape(x),
+      () => {},
+    );
     return () => {
       live = false;
     };
@@ -221,7 +355,14 @@ export function BudgetShape({ ro }: { ro: boolean }) {
       toast.error(t.errors.generic);
     });
   };
-  const cur = s.currency === "ILS" ? "₪" : s.currency === "USD" ? "$" : s.currency === "EUR" ? "€" : "";
+  const cur =
+    s.currency === "ILS"
+      ? "₪"
+      : s.currency === "USD"
+        ? "$"
+        : s.currency === "EUR"
+          ? "€"
+          : "";
   return (
     <div className="card" data-budget-shape>
       <Li icon={P.supermarket} title={B.sm} sub={H.smSub}>
@@ -245,15 +386,38 @@ export function BudgetShape({ ro }: { ro: boolean }) {
           />
         </label>
       </Li>
-      <Li icon={P.calendar} title={B.monthStarts} sub={shape.startDay === 1 ? B.d1 : f(B.dayN, { n: shape.startDay })}>
-        <Sel value={String(shape.startDay)} disabled={ro} label={B.monthStarts} options={Array.from({ length: 28 }, (_, k) => ({ value: String(k + 1), label: String(k + 1) }))} onChange={(v) => put({ startDay: Number(v) })} data-budget-start />
+      <Li
+        icon={P.calendar}
+        title={B.monthStarts}
+        sub={shape.startDay === 1 ? B.d1 : f(B.dayN, { n: shape.startDay })}
+      >
+        <Sel
+          value={String(shape.startDay)}
+          disabled={ro}
+          label={B.monthStarts}
+          options={Array.from({ length: 28 }, (_, k) => ({
+            value: String(k + 1),
+            label: String(k + 1),
+          }))}
+          onChange={(v) => put({ startDay: Number(v) })}
+          data-budget-start
+        />
       </Li>
       {/* Only while there's no budget this month — turning it on never clears a budget that's set. */}
-      {personal && o && (o.learnBudget || !capFor(monthKeyIn(s.clock.now, s.clock.tz), s.budget)?.cap) && (
-        <Li icon={P.ai} title={B.learn} sub={B.learnOn}>
-          <Toggle on={!!o.learnBudget} disabled={ro} label={B.learn} onChange={(v) => save({ learnBudget: v })} data-budget-learn />
-        </Li>
-      )}
+      {personal &&
+        o &&
+        (o.learnBudget ||
+          !capFor(monthKeyIn(s.clock.now, s.clock.tz), s.budget)?.cap) && (
+          <Li icon={P.ai} title={B.learn} sub={B.learnOn}>
+            <Toggle
+              on={!!o.learnBudget}
+              disabled={ro}
+              label={B.learn}
+              onChange={(v) => save({ learnBudget: v })}
+              data-budget-learn
+            />
+          </Li>
+        )}
     </div>
   );
 }

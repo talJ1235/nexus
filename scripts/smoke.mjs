@@ -238,8 +238,9 @@ async function homeChecks(page) {
     ok(n(tile) != null && n(tile) === n(badge), "home status count = Needs-you queue", `tile "${tile}" badge "${badge}"`);
   });
   if (MOBILE)
-    await step("home phone height ≤ 1800 px and no overflow at 360/390", async () => {
-      // R18 S2 A3: the supermarket's "Next shop" card sits above the widgets on purpose — the limit is for Home's own sections.
+    await step("home phone height ≤ 2000 px and no overflow at 360/390", async () => {
+      // R18 S2 A3: the supermarket's "Next shop" card sits above the widgets on purpose — the limit is for Home's own sections. R18 S5 D2:
+      // Household / Minimal gained Due soon (one wide row), so the limit grew by a row: 1800 → 2000.
       const h = await page.locator("[data-home]").evaluate((e) => e.offsetHeight - (e.querySelector("[data-next-shop]")?.getBoundingClientRect().height ?? 0));
       const widths = [];
       for (const w of [360, 390]) {
@@ -248,7 +249,7 @@ async function homeChecks(page) {
         widths.push(await page.evaluate((w) => document.documentElement.scrollWidth - w, w));
       }
       await page.setViewportSize(VIEWPORT);
-      ok(h <= 1800 && widths.every((x) => x <= 0), "home phone height ≤ 1800 px and no overflow at 360/390", `height ${h}, overflow ${widths.join("/")}`);
+      ok(h <= 2000 && widths.every((x) => x <= 0), "home phone height ≤ 2000 px and no overflow at 360/390", `height ${h}, overflow ${widths.join("/")}`);
     });
   // A6: each status tile scrolls to its section and flashes it.
   await step("home status tiles scroll to their sections", async () => {
@@ -1185,7 +1186,7 @@ try {
             await page.locator("[data-phone-layout-toggle] [role=radio]").nth(0).click();
           }
         } catch (e) {
-          r.error = String(e?.message || e).split(String.fromCharCode(10))[0].slice(0, 160);
+          r.error = String(e?.message || e).split(String.fromCharCode(10)).filter((l) => /Timeout|waiting for|locator[(]/.test(l)).slice(0, 2).join(" | ").slice(0, 260);
         }
         await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }]);
         ok(Object.values(r).every(Boolean) && !r.error, "phone rows: slow swipes lock open both ways (en + he), short ones close", JSON.stringify(r));
@@ -1836,11 +1837,16 @@ try {
         await page.addInitScript(() => {
           if (!("SpeechRecognition" in window) && !("webkitSpeechRecognition" in window)) window.SpeechRecognition = function () {};
         });
+        // Whatever happens, the next steps get English and the phone's viewport back (a failure here once left
+        // every later step at 360 px in Hebrew).
+        try {
         for (const locale of ["he", "en"]) {
           await ctx.addCookies([{ name: "nexus_locale", value: locale, url: BASE }]);
           await page.goto(`${BASE}/supermarket`);
           await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
-          await page.locator("[data-sm-add-open]").click();
+          const adds = await page.locator("[data-sm-add-open]").evaluateAll((es) => es.map((e) => `${e.closest("[data-sm-view]") ? "view" : "other"}:${Math.round(e.getBoundingClientRect().top)}:${e.closest("[data-sm-empty-templates], [data-sm-first], [data-sm-suggest]") ? "in-block" : ""}`));
+          if (adds.length !== 1) res[`adds-${locale}`] = adds;
+          await page.locator("[data-sm-add-open]").first().click();
           await page.waitForSelector("[data-add-chips]");
           res[locale] = await page.evaluate(() => {
             const row = document.querySelector("[data-add-chips]");
@@ -1856,10 +1862,12 @@ try {
           if (locale === "he") await shot(page, "add-chips-he");
           await page.locator("[data-add-back]").click();
         }
-        await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }]);
-        await page.setViewportSize(vp);
+        } finally {
+          await ctx.addCookies([{ name: "nexus_locale", value: "en", url: BASE }]);
+          await page.setViewportSize(vp);
+        }
         const good = (x) => x && x.n >= 3 && !x.scroll && !x.off && !x.cut.length && !x.short;
-        ok(good(res.he) && good(res.en), "add chips in one row (R18 S3 B6): 360 px, he + en, nothing cut or scrolled", JSON.stringify(res));
+        ok(good(res.he) && good(res.en) && !res["adds-he"] && !res["adds-en"], "add chips in one row (R18 S3 B6): 360 px, he + en, nothing cut or scrolled", JSON.stringify(res));
       });
 
     // R18 S3 B7: count drives weight for produce — on the item sheet a said "8 · 1 kg" → count + → 9 and the weight
@@ -2875,8 +2883,13 @@ try {
         const shoot = async (text) => {
           fixture = text;
           await page.goto(`${BASE}/supermarket`);
-          await page.waitForSelector("[data-sm-add-photo]", { timeout: 15000 });
-          await page.locator("[data-sm-add-photo]:visible").first().click();
+          // R18 S5 A1: the phone has one camera button (barcode first) — Photo is the tab inside; a computer keeps both.
+          await page.waitForSelector("[data-sm-add-photo], [data-sm-add-camera]", { timeout: 15000 });
+          if (await page.locator("[data-sm-add-photo]:visible").count()) await page.locator("[data-sm-add-photo]:visible").first().click();
+          else {
+            await page.locator("[data-sm-add-camera]:visible").first().click();
+            await page.locator('[data-cap-mode="photo"]').click();
+          }
           await page.waitForSelector('[data-sm-capture] [data-cam-state="on"]', { timeout: 10000 });
           await page.waitForFunction(() => document.querySelector("[data-sm-capture] video")?.videoWidth > 0, null, { timeout: 10000 });
           await page.locator("[data-cap-shutter]").click();
@@ -2992,6 +3005,7 @@ try {
     // R18 S4 A3: an empty list starts with the templates (one-tap Add), then what the home usually buys (suggestions,
     // open), then the ways to add. The rows are removed with the app's own delete and put back with its Undo afterwards.
     if (WRITE)
+      // R18 S5 A4: a computer keeps its add field at the top of the panel at all times — the order is checked on phones.
       await step("empty list (R18 S4 A3): templates first with one-tap Add, then suggestions, then add actions", async () => {
         const r = {};
         const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
@@ -3021,7 +3035,7 @@ try {
         await page.goto(`${BASE}/supermarket`);
         r.back = await page.locator("[data-sm-list] [data-sm-row]").count();
         const o = r.order ?? {};
-        ok(o.tpl != null && o.sug != null && o.add != null && o.tpl < o.sug && o.sug < o.add && r.sugOpen === "open" && r.cards >= 1 && !r.cut && r.added > 0 && r.emptyGone === 0 && r.back === ids.length,
+        ok(o.tpl != null && o.sug != null && o.add != null && o.tpl < o.sug && (!MOBILE || o.sug < o.add) && r.sugOpen === "open" && r.cards >= 1 && !r.cut && r.added > 0 && r.emptyGone === 0 && r.back === ids.length,
           "empty list (R18 S4 A3): templates first with one-tap Add, then suggestions, then add actions", JSON.stringify(r));
       });
 
@@ -5444,8 +5458,11 @@ try {
             await page.waitForSelector(READY, { timeout: 15000 });
             await longPress();
             r.select = await page.locator("[data-selection-bar]").isVisible();
-            await page.locator("[data-selection-bar] button").first().click();
-            await page.locator("[data-phone-layout-toggle] [role=radio]").nth(0).click();
+            r.at = "selection-bar";
+            await page.locator("[data-selection-bar] button").first().click({ timeout: 8000 });
+            r.at = "layout";
+            await page.locator("[data-phone-layout-toggle] [role=radio]").nth(0).click({ timeout: 8000 });
+            delete r.at;
           } else {
             await centerIn(card());
             await card().hover();
@@ -5538,23 +5555,29 @@ try {
           await group.locator("[data-shipping]").waitFor({ state: "detached", timeout: 8000 });
           ok(/free shipping|למשלוח חינם/.test(text), "free-shipping threshold: set from the store header → bar shows the gap", text.replace(/\s+/g, " "));
         });
-        await step("monthly budget: a small cap turns the bar over, clearing it removes the cap", async () => {
-          await page.goto(`${BASE}/?v=spending`);
-          const card = page.locator("[data-month-budget]");
-          await card.waitFor({ timeout: 15000 });
+        // R18 S5 E1: Spending's month replaced the budget bar — a cap from Settings → Budget shows as the hero's
+        // "of the budget" line + the chart's dashed budget line; clearing it brings back "No budget · Set a budget".
+        await step("monthly budget: a small cap shows on Spending's month, clearing it removes the cap", async () => {
           const setCap = async (v) => {
-            await card.locator("[data-budget-edit]").click();
-            const pop = page.locator("[data-radix-popper-content-wrapper]");
-            await pop.locator("input[name=monthlyBudget]").fill(v);
-            await pop.locator("button[type=submit]").click();
-            await pop.waitFor({ state: "detached", timeout: 8000 });
+            await openSettings(page, "budget");
+            const f = page.locator("input[name=monthlyBudget]").first();
+            await f.waitFor({ timeout: 15000 });
+            await f.fill(v);
+            await f.press("Enter");
+            await page.waitForTimeout(900);
+          };
+          const spending = async () => {
+            await page.goto(`${BASE}/?v=spending`);
+            await page.waitForSelector("[data-spm-hero]", { timeout: 15000 });
+            await page.waitForTimeout(400);
+            return { sub: await page.locator("[data-spm-sub]").count(), cap: await page.locator("[data-spm-cap]").count(), none: await page.locator("[data-spm-nobudget]").count(), pace: await page.locator("[data-spm-pace]").getAttribute("data-spm-pace").catch(() => null) };
           };
           await setCap("1");
-          await page.locator("[data-month-budget=over]").waitFor({ timeout: 8000 });
+          const over = await spending();
           await shot(page, "spending-over");
           await setCap("");
-          await page.locator("[data-month-budget=none]").waitFor({ timeout: 8000 });
-          ok(true, "monthly budget: a small cap turns the bar over, clearing it removes the cap");
+          const none = await spending();
+          ok(over.sub === 1 && over.cap === 1 && none.none === 1 && none.cap === 0, "monthly budget: a small cap shows on Spending's month, clearing it removes the cap", JSON.stringify({ over, none }));
         });
         await step("import VAT: a low limit shows the notice in Order by store", async () => {
           const setLimit = async (v) => {

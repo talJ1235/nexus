@@ -71,7 +71,7 @@ const scrolls = (page) => page.evaluate(() => {
 });
 
 const YOU = ["profile", "account", "display", "ai", "calendar", "memory", "data"];
-const SPACE_IDS = ["general", "people", "budget", "danger"];
+const SPACE_IDS = ["general", "people", "household", "budget", "danger"];
 
 // ---- desktop 1366 × 768 ----
 {
@@ -87,10 +87,11 @@ const SPACE_IDS = ["general", "people", "budget", "danger"];
     await atSection(page, id);
     await page.waitForTimeout(500);
     const d = await scrolls(page);
-    if (d > 1 && id !== "memory") over.push(`${id}:${d}`);
+    // R18 S5 F6: Budget gained the month's shape (supermarket share, start day) — it may scroll like Memory.
+    if (d > 1 && id !== "memory" && id !== "budget") over.push(`${id}:${d}`);
     if (new URL(page.url()).pathname !== `/settings/${id}`) over.push(`${id}:url ${new URL(page.url()).pathname}`);
   }
-  ok(over.length === 0, "D1/D2 no section scrolls at 1366 × 768 (memory = a long list) and each has its /settings/<id> URL", over.join(", "));
+  ok(over.length === 0, "D1/D2 no section scrolls at 1366 × 768 (memory = a long list, budget = R18 S5 F6) and each has its /settings/<id> URL", over.join(", "));
   await page.keyboard.press("Escape");
   await page.waitForTimeout(400);
   ok((await page.locator("[data-settings]").count()) === 0 && new URL(page.url()).pathname === "/", "D1 Esc closes and the URL goes back to /", page.url());
@@ -132,14 +133,14 @@ const SPACE_IDS = ["general", "people", "budget", "danger"];
 {
   const { ctx, page } = await open({ width: 1280, height: 720 });
   const over = [];
-  for (const id of SPACE_IDS.filter((x) => x !== "people")) {
+  for (const id of SPACE_IDS.filter((x) => x !== "people" && x !== "budget")) {
     await page.goto(`${BASE}/settings/${id}`);
     await atSection(page, id);
     await page.waitForTimeout(500);
     const d = await scrolls(page);
     if (d > 1) over.push(`${id}:${d}`);
   }
-  ok(over.length === 0, "D2 at 1280 × 720 only People may scroll", over.join(", "));
+  ok(over.length === 0, "D2 at 1280 × 720 only People (and Budget, R18 S5 F6) may scroll", over.join(", "));
   await ctx.close();
 }
 

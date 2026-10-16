@@ -170,7 +170,8 @@ export function HomeView() {
         // While a trip runs, the pinned trip bar says it all.
         nextshop: !running,
         // R18 S5 D3: Due soon once the home shops at the supermarket (or something is due).
-        due: (smHome?.trips ?? 0) > 0 || !!smHome?.suggestions.some((x) => x.reasonKey === "due"),
+        // While the supermarket data loads the slot stays (popping in later moved every card below it — R18 S5 G1).
+        due: smHome == null || smHome.trips > 0 || smHome.suggestions.some((x) => x.reasonKey === "due"),
       };
       if (!edit && has[id] === false) return null;
       const c = "h-full";
@@ -456,7 +457,7 @@ function Stats({ model, only, h = 1 }: { model: HomeModel; only: "left" | "budge
   return (
     <StatCell only={only} more={!tall ? 0 : only === "left" ? l.segments.length - 5 : only === "way" ? model.packages.length - 4 : 0}>
       <Stat label={t.dash.leftToBuy} value={fm.fit(l.total)}>
-        <span className="truncate text-[12px] text-muted">
+        <span className="truncate text-[12px] text-muted" title={`${l.count === 1 ? t.dash.itemsOne : f(t.dash.items, { n: l.count })}${l.urgent > 0 ? ` · ${f(t.dash.urgentN, { n: l.urgent })}` : ""}`}>
           <b className="font-bold text-warn">{l.count === 1 ? t.dash.itemsOne : f(t.dash.items, { n: l.count })}</b>
           {l.urgent > 0 && <> · {f(t.dash.urgentN, { n: l.urgent })}</>}
         </span>

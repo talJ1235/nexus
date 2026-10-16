@@ -424,7 +424,7 @@ function Against({ m, money }: { m: MonthSpend; money: (n: number) => string }) 
           const d = r.now != null && r.last != null ? Math.round(r.now - r.last) : null;
           return (
             <li key={r.k} className="flex min-h-11 items-center gap-2" data-spm-vs={r.k}>
-              <span className="min-w-0 flex-1 truncate text-[13.5px]">{r.label}</span>
+              <span className="min-w-0 flex-1 text-[13.5px] leading-snug">{r.label}</span>
               <b className="tabular text-[14px] font-extrabold">{r.now != null ? money(r.now) : "—"}</b>
               {d != null && d !== 0 && (
                 <span className={cn("tabular rounded-full px-2 py-0.5 text-[11.5px] font-bold", d > 0 ? "bg-warn-soft text-warn" : "bg-ok-soft text-ok")}>

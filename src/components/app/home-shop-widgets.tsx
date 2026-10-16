@@ -88,7 +88,7 @@ export function NextShopWidget({ size }: { size: Size }) {
             <b className="block truncate text-[32px] font-extrabold leading-[1.05] tracking-[-0.03em]" data-big>
               {day ?? (n ? line.split(" · ")[0] : t.hc.names.nextshop)}
             </b>
-            <span className="tabular mt-0.5 block truncate text-[13px] font-semibold text-muted">{day ? line : n && est != null ? `~${money(est)}` : ""}</span>
+            <span className="tabular mt-0.5 block min-h-[1.4em] truncate text-[13px] font-semibold text-muted">{day ? line : n && est != null ? `~${money(est)}` : ""}</span>
           </div>
           {s.space?.role !== "viewer" &&
             (size === "wide" ? (
