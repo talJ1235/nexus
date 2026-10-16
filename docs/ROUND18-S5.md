@@ -120,7 +120,7 @@ suggests (Add all), Templates (stacked pictures, Add). Undo toast centred at the
 reachable by Tab; Delete key on a focused row deletes (with Undo).
 
 ## Part B — start-shopping screen (board `StartTrip-phone`)
-### B1 [ ] The screen
+### B1 [x] The screen
 Keeps S4 E1 (fixed, no scroll). Background = the chosen colour (B2) with the soft light sweep once on open (2.4 s,
 ease-out; reduced motion: none) and the faint dot grain; top: close (back to the list), look button (B2), store chip
 (change store), "offline" chip when offline. Day + time, title, three glass stats (items, estimate, minutes — from
@@ -129,7 +129,7 @@ sections in this branch's learned order with counts, "+ N more"; first trip at a
 one and will be learned), who gets told ("Noa and Yoav will see you're shopping" — the members who get the trip
 notification), big "Let's go" → the hand-off to store mode: content scales/blurs out (420 ms) and store mode's header
 starts in the same colour with the same aisle bar.
-### B2 [ ] The person picks the look
+### B2 [x] The person picks the look
 Look button → sheet "Screen look": **Auto** (the store's colour, default) + 8 colours (red, orange, green, teal, blue,
 purple, pink, ink), style **Vivid / Soft / Night** (board classes `.trip`, `.trip.soft`, `.trip.night`), "Only for this
 store" (default on). Saved per user: `pref:tripLook:<storeId>` or `pref:tripLook` for all stores; store mode's header
@@ -263,6 +263,7 @@ Tal" = a phone checklist (swipes, long-press on Home, the Ask button + its side 
 - Step 0 + 0.3 on `main`: boards + planning patch (`R18.S5.0`), S4 note cherry-picked, `origin/docs/map` merged (logs: both sides kept), planning-docs diet (`R18.S5.0b`). Fresh read-only prod snapshot `snapshots/prod-2026-10-16.db`.
 - 0.1: guards.yml — paths-ignore (docs/**, **/*.md, .claude/**) on push + pull_request; four parallel jobs fast / server / browser / browser-clip (smoke.yml runs on deployment_status only — unchanged).
 - A1–A4: list v2 — one card with sticky section bands, 60 px rows (tile 44, brand · note line, "6 · ~1 kg" chip, who dot named "Added by …"), store row + summary line + add bar (voice + camera); swipes both ways (Delete at the end / stepper at the start, 56 px open, 170 px or fling deletes, Undo, rubber band, one row open, tap elsewhere closes, 380 ms), first-time peek + hint (`pref:sm-swipe-hint`); inline rename with a green pulse, sheet with section + brand chips and Done + round Delete (Undo); computer panel (store, count, paste a list anywhere, hover / focus actions, Delete key, centred Undo, "This list" card). Smoke: 4 new steps + C5 / D1+D2 / B3 / A2 steps updated, phone + desktop green.
+- B1–B2: start screen (`start-trip.tsx`) — fixed, in the person's colour with one light sweep + dot grain; close / look / store chip / offline; day · time, "Ready to shop", glass stats (items, estimate, ~minutes = median of this store's finished trips, from 2), the route card (aisle bar + first five sections in this branch's order, "+ N more", first-trip / learned-from-N line), who gets told, Let's go → 420 ms scale / blur out → store mode's header in the same colour with the rail. Look sheet: Auto + 8 colours × Vivid / Soft / Night, "Only for this store" (on), saved to `pref:tripLook[:chain|branch]`; contrast-safe colours (`lib/grocery/trip-look.ts`, `test:trip-look`: 108 combinations ≥ 4.5:1). Smoke: 2 new phone steps, S4 E1 + D3 store-mode steps still green.
 ### Decisions
 - 0.3: moves done exactly as listed. `docs/ENVIRONMENT.md` 12.3 KB (< 15 ✓); `docs/PLANNER.md` 35.7 KB — not < 30 KB: "Decisions that stand" alone is 19.4 KB and the brief lists no further moves, so nothing else was moved or rewritten. Diff: 401 lines out, 413 in (the archive headers + 3 "Older:" lines + the 3 bullets + 1 log line).
 - 0.1 step list: before 33 steps in one job (27 checks + checkout / setup-node / npm ci / build / playwright install / failure tail); after 46 steps in 4 jobs = the same 33 + per-job checkout / setup-node / npm ci (×3 more) + build / playwright install (×2 more). The sorted list of every non-setup step's name + run text is byte-identical before vs after (md5 593717a0…). Each job builds for itself: the build is ~58 s, about what an upload + download of `.next` costs, and it keeps the jobs independent. Wall time before: 55 min (run 38817428966, 2026-10-15); after: see the next line once the first split run finishes.
@@ -271,6 +272,9 @@ Tal" = a phone checklist (swipes, long-press on Home, the Ask button + its side 
 - A1 phone add bar = voice + one camera button (opens the scanner; Photo is the tab inside), as on the board; the computer keeps scan + photo apart. The phone's aisle rail moved to the computer's "This list" card (the board has none on the phone). Section bands no longer collapse (the board has no chevron).
 - A2 thresholds from the board's logic: open widths 92 (delete) / 168 (stepper), open past 56 px, delete past 170 px or a fling > 0.9 px/ms, rubber band from 360 / 200 px. `useSwipe` got optional `openAt / fullAt / flick / stop`; the inbox keeps its defaults. On a computer rows don't swipe (A4 hover actions instead), so the S3 C5 and S4 D1+D2 smoke steps are phone-only now.
 - A4: "₪38 under usual" chip on the board's "This list" card left out — the app has no per-trip "usual" total yet.
+- 0.1 wall time: one full run before 55 min (one job, run 38817428966); after 21 min (four parallel jobs, run 38873482852 on this branch, green). The longest job is browser-clip (test:clip ~19 min).
+- B1 "who gets told" = the space's other members (everyone gets the trip's inbox row — the push switch only changes delivery), first names, up to 3. "~ minutes" = the median of this store's finished trips of 2 min – 4 h, rounded to 5, shown from 2 trips. The order line says "learned from N trips" only when the branch has a learned order; otherwise "the usual store order — Nexus learns…" ("First time here" when the home never finished a trip there).
+- B2: store mode's header is painted in the trip colour for the whole trip (white text, the rail with a white hairline) rather than only at the start — "store mode's header uses the same colour". Monogram colours moved to `lib/grocery/chains.ts` (`MONO_HEX`) so the client-safe look code and its test share them.
 ### For Tal
 - 0.2 needs you (the agent's permission edit was refused as self-modification): add to `.claude/settings.json` → `permissions.allow`: `Bash(npm run -s test:*)`, `Bash(npm run test:*)`, `Bash(git push origin round:*)`, `Bash(git push -u origin round:*)`, `Bash(git merge --ff-only round:*)`, `Bash(git merge --no-edit origin/main)`, `Bash(git fetch:*)`; then in `.claude/settings.local.json` delete the per-round `git push … roundN` / `git merge --ff-only roundN` lines and `git merge --no-edit origin/main` (keep `git push origin main`). Commit the settings.json change and 0.2 can be ticked.
 - `docs/PLANNER.md` is 35.7 KB after the listed moves (target < 30 KB): the planning chat could archive older items of "Decisions that stand" (19.4 KB) — your call which still stand.

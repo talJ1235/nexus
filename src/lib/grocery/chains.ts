@@ -5,6 +5,9 @@ import { normalize } from "./normalize";
 
 export type Chain = { id: string; en: string; he: string; color: string; also?: string[] };
 
+/** The monogram colours m1–m9 (also the start-shopping screen's Auto colour, R18 S5 B2). */
+export const MONO_HEX: Record<string, string> = { m1: "#c0392b", m2: "#1f7a4d", m3: "#1d5fa8", m4: "#b8860b", m5: "#6c3fb5", m6: "#d1495b", m7: "#2a7f8f", m8: "#5b5a56", m9: "#e07a24" };
+
 export const CHAINS: Chain[] = [
   { id: "shufersal", en: "Shufersal", he: "שופרסל", color: "m2", also: ["shufersal deal", "שופרסל דיל", "shufersal sheli", "שופרסל שלי"] },
   { id: "rami-levy", en: "Rami Levy", he: "רמי לוי", color: "m1" },

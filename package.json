@@ -83,6 +83,7 @@
     "test:add": "tsx --conditions=react-server scripts/test-add.ts",
     "test:shop-offline": "node scripts/test-shop-offline.mjs",
     "test:dock": "tsx scripts/test-dock.ts",
+    "test:trip-look": "tsx scripts/test-trip-look.ts",
     "test:capture": "node scripts/test-capture.mjs",
     "test:voice": "node scripts/test-voice.mjs",
     "test:trip-api": "tsx --conditions=react-server scripts/test-trip-api.ts",

@@ -1926,6 +1926,99 @@ try {
           "store mode (R18 S4 E1–E5): fixed start, sections stay open, one scroller, rail navigates, full-screen finish", JSON.stringify({ ...r, sec: sec.k }));
       });
 
+    // R18 S5 B1: the start-shopping screen — fixed, in the person's colour; close, look, store chip; day + time, title,
+    // stats (items, estimate, ~minutes from ≥ 2 trips), the route card (≤ 5 sections + "more"), Let's go → content
+    // scales / blurs out (420 ms) → store mode's header in the same colour with the aisle bar.
+    if (MOBILE && WRITE)
+      await step("start screen (R18 S5 B1): fixed, coloured, stats, route ≤ 5 + more, close, Let's go → same colour header", async () => {
+        const r = {};
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-start]", { timeout: 15000 });
+        await page.locator("[data-sm-start]").click();
+        await page.waitForSelector("[data-store-start]");
+        await page.waitForTimeout(700);
+        r.s = await page.evaluate(() => {
+          const el = document.querySelector("[data-store-start]");
+          return {
+            fits: el.scrollHeight <= el.clientHeight + 1,
+            c: getComputedStyle(el).getPropertyValue("--c").trim(),
+            items: document.querySelector('[data-trip-stat="items"]')?.textContent,
+            secs: document.querySelectorAll("[data-trip-sec]").length,
+            aisle: document.querySelectorAll("[data-trip-aisle] > i").length,
+            when: document.querySelector("[data-trip-when]")?.textContent ?? "",
+            close: !!document.querySelector("[data-store-close]"),
+            look: !!document.querySelector("[data-trip-look-open]"),
+            store: !!document.querySelector("[data-store-another]"),
+            light: getComputedStyle(document.querySelector(".trip-light")).animationName,
+          };
+        });
+        r.list = await page.locator("[data-sm-list] [data-sm-row]").count();
+        await shot(page, "s5-start");
+        await page.locator("[data-store-close]").click();
+        r.closed = await page.waitForSelector("[data-store-start]", { state: "detached", timeout: 3000 }).then(() => true, () => false);
+        await page.locator("[data-sm-start]").click();
+        await page.waitForSelector("[data-store-go]");
+        await page.waitForTimeout(400);
+        await page.locator("[data-store-go]").click();
+        r.out = await page.waitForSelector(".trip-go-out", { timeout: 1000 }).then(() => true, () => false);
+        await page.waitForSelector("[data-store-head]", { timeout: 4000 });
+        r.head = await page.locator("[data-store-head]").evaluate((e) => getComputedStyle(e).getPropertyValue("--c").trim());
+        r.rail = await page.locator("[data-store-head] [data-store-rail-to]").count();
+        await shot(page, "s5-store-head");
+        // Finish the trip (nothing bought) so the next steps start clean.
+        await page.locator("[data-store-finish]").click();
+        await page.locator("[data-store-finish-confirm]").click();
+        await page.waitForSelector("[data-store-summary]", { timeout: 8000 });
+        await page.locator("[data-summary-skip]").click();
+        await page.waitForSelector("[data-store-saved]");
+        await page.locator("[data-saved-list]").click();
+        ok(r.s.fits && /^#[0-9a-f]{6}$/i.test(r.s.c) && Number(r.s.items) > 0 && r.s.secs >= 1 && r.s.secs <= 5 && r.s.aisle >= r.s.secs && / · \d/.test(r.s.when) && r.s.close && r.s.look && r.s.store && r.s.light === "trip-sweep" && r.closed && r.out && r.head === r.s.c && r.rail >= 1,
+          "start screen (R18 S5 B1): fixed, coloured, stats, route ≤ 5 + more, close, Let's go → same colour header", JSON.stringify(r));
+      });
+
+    // R18 S5 B2: "Screen look" — a colour + a style, saved per person (this store by default, or all stores), kept after a
+    // reload; the start screen and store mode's header follow it.
+    if (MOBILE && WRITE)
+      await step("look picker (R18 S5 B2): colour + style persist per store, all stores when unticked, reset", async () => {
+        const r = {};
+        const open = async () => {
+          await page.goto(`${BASE}/supermarket`);
+          await page.waitForSelector("[data-sm-start]", { timeout: 15000 });
+          await page.locator("[data-sm-start]").click();
+          await page.waitForSelector("[data-store-start]");
+          await page.waitForTimeout(500);
+        };
+        await open();
+        await page.locator("[data-trip-look-open]").click();
+        await page.waitForSelector("[data-trip-look-sheet]");
+        await page.locator('[data-trip-color="blue"]').click();
+        await page.waitForTimeout(300);
+        await page.locator('[data-trip-style="soft"]').click();
+        await page.waitForTimeout(600);
+        r.live = await page.locator("[data-store-start]").getAttribute("data-trip-look");
+        await shot(page, "s5-look-sheet");
+        await page.locator("[data-trip-look-done]").click();
+        await open();
+        r.kept = await page.locator("[data-store-start]").getAttribute("data-trip-look");
+        // Untick "Only for this store" → the pick applies to every store (the store's own goes).
+        await page.locator("[data-trip-look-open]").click();
+        await page.waitForSelector("[data-trip-per-store]");
+        await page.locator("[data-trip-per-store]").uncheck();
+        await page.locator('[data-trip-style="night"]').click();
+        await page.waitForTimeout(600);
+        await page.locator("[data-trip-look-done]").click();
+        await open();
+        r.all = await page.locator("[data-store-start]").getAttribute("data-trip-look");
+        // Back to Auto · Vivid for every store.
+        await page.locator("[data-trip-look-open]").click();
+        await page.locator('[data-trip-color="auto"]').click();
+        await page.locator('[data-trip-style="vivid"]').click();
+        await page.waitForTimeout(600);
+        await page.locator("[data-trip-look-done]").click();
+        await page.locator("[data-store-close]").click();
+        ok(r.live === "blue:soft" && r.kept === "blue:soft" && r.all === "blue:night", "look picker (R18 S5 B2): colour + style persist per store, all stores when unticked, reset", JSON.stringify(r));
+      });
+
     // R18 S3 B9: sheets fit their content on phones — a row's actions in store mode, a suggestion's page and Save as
     // template are as tall as what's in them (no big empty area), and a sheet closes when its handle is dragged down
     // (S4 E3: store mode's Finish is a full screen — its own step). Ends by finishing the trip with nothing bought.

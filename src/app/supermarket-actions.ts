@@ -8,7 +8,8 @@ import { scoped, type Scoped } from "@/lib/db-scoped";
 import * as G from "@/lib/db-scoped/grocery";
 import * as T from "@/lib/db-scoped/trips";
 import * as B from "@/lib/db-scoped/brands";
-import { userPrefGet, userPrefSet } from "@/lib/db-scoped/prefs";
+import { userPrefGet, userPrefLike, userPrefSet } from "@/lib/db-scoped/prefs";
+import { TRIP_COLOR_KEYS, TRIP_LOOK_KEY, TRIP_STYLES, tripLookKey } from "@/lib/grocery/trip-look";
 import { ONBOARDING_KEY, parseOnboarding } from "@/lib/onboarding";
 import { kvGet, kvSet } from "@/lib/kv";
 import { noteActivity } from "@/lib/activity";
@@ -151,10 +152,24 @@ export async function supermarketHome(locale?: "he" | "en") {
   const ctx = await requireCtx("view");
   const { tz } = await notifyPrefs(ctx.user.id);
   const who = await whoOf(ctx.user.id);
-  const [state, layout, offer, hint] = await Promise.all([G.homeState(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who }), userPrefGet(ctx.user.id, SM_LAYOUT_KEY), G.routineOffer(scoped(ctx)), userPrefGet(ctx.user.id, SM_SWIPE_HINT_KEY)]);
+  const [state, layout, offer, hint, tripLooks] = await Promise.all([G.homeState(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who }), userPrefGet(ctx.user.id, SM_LAYOUT_KEY), G.routineOffer(scoped(ctx)), userPrefGet(ctx.user.id, SM_SWIPE_HINT_KEY), userPrefLike(ctx.user.id, TRIP_LOOK_KEY)]);
   // E1: the routine Nexus spotted (kept / turned down ones don't come back).
   const routine = offer ? { id: offer.id, day: offer.routineDay ?? 0, trips: offer.routineTrips ?? 0, items: offer.items.length } : null;
-  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const), routine, swipeHint: hint !== "seen" };
+  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const), routine, swipeHint: hint !== "seen", tripLooks };
+}
+
+/** R18 S5 B2: the start screen's look — for one store ("chain|branch") or for every store (clears the per-store pick). */
+export async function setTripLook(look: { color: string; style: string }, store: string | null) {
+  const ctx = await requireCtx("view");
+  const v = z.object({ color: z.enum(["auto", ...TRIP_COLOR_KEYS] as [string, ...string[]]), style: z.enum(TRIP_STYLES as [string, ...string[]]) }).parse(look);
+  const at = z.string().max(200).nullable().parse(store);
+  await userPrefSet(ctx.user.id, tripLookKey(at), JSON.stringify(v));
+}
+
+/** B2: "Only for this store" turned off — the store's own pick goes, the all-stores one applies. */
+export async function clearTripLook(store: string) {
+  const ctx = await requireCtx("view");
+  await userPrefSet(ctx.user.id, tripLookKey(z.string().min(1).max(200).parse(store)), null);
 }
 
 /** R18 S5 A2: the list's swipe hint (first row peeks + a line naming both directions) shows once per person. */

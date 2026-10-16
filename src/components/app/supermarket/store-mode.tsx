@@ -3,7 +3,7 @@
 import "./sm.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog as D } from "radix-ui";
-import { Camera, Check, ChevronDown, CloudOff, Sun } from "lucide-react";
+import { Camera, Check, ChevronDown, CloudOff } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { useBackClose } from "@/components/ui/sheet-drag";
 import { Sheet } from "@/components/ui/overlays";
@@ -21,12 +21,12 @@ import { haptic } from "../use-camera";
 import { ProductTile, SectionIcon, sectionColor } from "./art";
 import { useSmHome } from "./data";
 import { patchTrip, readTrip, useLocalTrip, writeTrip, type LocalTrip } from "./local-trip";
-import { chainDef, monoColor, storeLabel, useMonthLeft, useTrips } from "./numbers";
+import { storeLabel, useMonthLeft, useTrips } from "./numbers";
 import { qtyLabel } from "./qty";
 import { QtySteppers, type Measure } from "./qty-steppers";
-import { Mono } from "./store-picker";
 import { useTripStore } from "./trip-store";
 import { bySection } from "./view";
+import { StartTrip, useTripLook } from "./start-trip";
 
 // R18 S2 D3 — store mode + finish (boards StoreMode-phone, Finish-phone), on the S1 engines through the one trip API.
 // Start: the store, the list's size + estimate, "Let's go" (the screen stays on). In the store: the big progress header
@@ -104,59 +104,19 @@ function Body({ onClose, onPickStore }: { onClose: () => void; onPickStore: () =
 
 function Start({ onGo, onClose, onPickStore }: { onGo: () => void; onClose: () => void; onPickStore: () => void }) {
   const s = useStore();
-  const { t, f, locale } = useI18n();
   const { home } = useSmHome();
   const space = s.spaceId || "-";
   const { store, order } = useTripStore(space, home);
   const groups = useMemo(() => bySection(s.sm, order), [s.sm, order]);
   const est = useMemo(() => estimateOf(s.sm, home?.prices), [s.sm, home?.prices]);
-  // S4 E1: the store's colour washes the screen (the full redesign comes with the S5 boards).
-  const tint = storeTint(store?.chain);
   const go = () => {
     writeTrip(space, { chain: store?.chain ?? null, branch: store?.branch ?? null, startedAt: Date.now(), rows: s.sm, checked: {}, notFound: {}, prices: {}, live: {} });
     void tripApi.start({ chain: store?.chain ?? null, branch: store?.branch ?? null, planned: s.sm.length });
     haptic(15);
     onGo();
   };
-  return (
-    <div
-      className="flex min-h-0 flex-1 touch-none flex-col overflow-hidden overscroll-none px-5 pb-[max(20px,env(safe-area-inset-bottom))]"
-      style={{ background: `radial-gradient(120% 70% at 50% 18%, color-mix(in srgb, ${tint} 20%, var(--bg)), var(--bg) 72%)` } as React.CSSProperties}
-      data-store-start
-    >
-      <div className="flex justify-start pt-3">
-        <button type="button" onClick={onClose} className="grid size-10 place-items-center rounded-full" aria-label={t.sm.shop.collapse}>
-          <ChevronDown className="size-6" />
-        </button>
-      </div>
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-        {store && <Mono chain={store.chain} size={72} />}
-        <h2 className="bidi text-[34px] font-extrabold leading-[1.1] tracking-[-0.025em]" data-store-start-title>{store ? storeLabel(store.chain, store.branch, locale) : t.sm.shop.noStore}</h2>
-        <div className="gro-rail w-full max-w-[300px]" aria-hidden>
-          {groups.map(([k, list]) => (
-            <i key={k} style={{ "--k": "var(--line-strong)", "--n": list.length } as React.CSSProperties} />
-          ))}
-        </div>
-        <p className="tabular text-[15px] font-bold text-muted">{est != null ? f(t.sm.shop.itemsEst, { n: s.sm.length, amount: formatMoney(Math.round(est), s.currency, locale) }) : f(t.sm.shop.items, { n: s.sm.length })}</p>
-        <p className="flex items-center gap-1.5 text-[13px] text-muted">
-          <Sun className="size-4" />
-          {t.sm.shop.awake}
-        </p>
-      </div>
-      <button type="button" className="h-14 w-full rounded-[18px] bg-ink text-[17px] font-extrabold text-bg transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]" onClick={go} data-store-go>
-        {t.sm.shop.go}
-      </button>
-      <button type="button" className="mt-2 h-12 w-full text-[15px] font-bold" onClick={onPickStore} data-store-another>
-        {t.sm.shop.another}
-      </button>
-    </div>
-  );
-}
-
-/** The store's colour (the chain's monogram), grey without a store. */
-function storeTint(chain: string | null | undefined) {
-  const c = chainDef(chain)?.color;
-  return !c ? "var(--line-strong)" : c.startsWith("#") ? c : monoColor(c);
+  // R18 S5 B1: the start screen (start-trip.tsx) in the person's look; "Let's go" hands off to the coloured header.
+  return <StartTrip store={store} order={order} rows={groups} est={est} onGo={go} onClose={onClose} onPickStore={onPickStore} />;
 }
 
 const minutesSince = (at: number) => Math.max(1, Math.round((Date.now() - at) / 60_000));
@@ -183,6 +143,8 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
   const space = s.spaceId || "-";
   const { order } = useTripStore(space, home);
   const { others } = useTrips(home);
+  // R18 S5 B2: the header in the same colour as the start screen (the trip's store, the person's look).
+  const tripLook = useTripLook(trip.chain ? { chain: trip.chain, branch: trip.branch ?? "" } : null);
   const [confirm, setConfirm] = useState(false);
   const [acting, setActing] = useState<ItemWithSources | null>(null);
   const [burst, setBurst] = useState(0);
@@ -284,7 +246,7 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
   const otherName = other ? (s.people.find((p) => p.id === other.userId)?.name ?? "").split(" ")[0] : null;
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-store-shop>
-      <header className="border-b border-line bg-surface px-4 pb-3 pt-2.5">
+      <header className={cn("border-b border-line bg-surface px-4 pb-3 pt-2.5", "trip-head")} style={{ "--c": tripLook.color } as React.CSSProperties} data-store-head>
         <div className="flex items-start gap-2">
           <button type="button" onClick={onClose} className="-ms-1 grid size-10 shrink-0 place-items-center rounded-full" aria-label={t.sm.shop.collapse} data-store-collapse>
             <ChevronDown className="size-6" />

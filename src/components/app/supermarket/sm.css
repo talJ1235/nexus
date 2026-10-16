@@ -314,3 +314,57 @@ html[data-device="phone"] .store-scroll::-webkit-scrollbar { display: none; }
 .dark .gro-panel { box-shadow: inset 0 0 0 1px var(--line-strong); }
 .gro-panel > .gro-one { border-radius: 0; box-shadow: none; }
 .gro-panel > .gro-one > .gro-sec:first-child .gro-band { border-top: 1px solid color-mix(in srgb, var(--k) 18%, var(--line-in)); }
+
+/* R18 S5 B1 + B2 — the start-shopping screen (board StartTrip-phone `.trip`): the person's colour (--c, already safe for
+   white text), one light sweep on open, a faint dot grain, glass stats, the route card, "Let's go". Soft = ink on a pale
+   tint; Night = near-black with the colour as a glow. */
+.trip-screen {
+  position: relative; display: flex; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; touch-action: none; overscroll-behavior: none; color: #fff;
+  background: radial-gradient(120% 70% at 85% 0%, color-mix(in srgb, var(--c) 72%, #fff) 0%, transparent 55%), radial-gradient(90% 60% at 0% 100%, color-mix(in srgb, var(--c) 70%, #000) 0%, transparent 60%), var(--c);
+}
+.trip-screen.trip-soft { color: var(--ink); background: radial-gradient(120% 70% at 85% 0%, color-mix(in srgb, var(--c) 26%, var(--bg)) 0%, transparent 60%), color-mix(in srgb, var(--c) 9%, var(--bg)); }
+.trip-screen.trip-night { background: radial-gradient(90% 55% at 80% 0%, color-mix(in srgb, var(--c) 55%, transparent) 0%, transparent 70%), radial-gradient(70% 50% at 0% 100%, color-mix(in srgb, var(--c) 30%, transparent) 0%, transparent 70%), #0c0c0c; }
+.trip-light { position: absolute; inset: -40% -20% auto; height: 90%; background: conic-gradient(from 200deg at 60% 40%, transparent, rgb(255 255 255 / 0.22), transparent 30%); filter: blur(30px); animation: trip-sweep 2400ms var(--ease-out) both; pointer-events: none; }
+.trip-soft .trip-light { opacity: 0.35; }
+@keyframes trip-sweep { from { transform: rotate(-24deg) translateY(-10%); opacity: 0; } to { opacity: 1; } }
+.trip-grain { position: absolute; inset: 0; background-image: radial-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1.2px); background-size: 14px 14px; mask-image: linear-gradient(#000, transparent 70%); pointer-events: none; }
+.trip-soft .trip-grain { display: none; }
+.trip-x { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: rgb(255 255 255 / 0.16); color: inherit; transition: transform 160ms var(--ease-out); }
+.trip-x:active, .trip-chip:active { transform: scale(0.94); }
+.trip-chip { display: inline-flex; align-items: center; gap: 8px; height: 44px; border-radius: 999px; background: rgb(255 255 255 / 0.16); color: inherit; font-weight: 700; transition: transform 160ms var(--ease-out); }
+.trip-soft :is(.trip-x, .trip-chip) { background: color-mix(in srgb, var(--c) 14%, var(--surface)); }
+.trip-cb { display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; background: #fff; color: var(--c); font-size: 11px; font-weight: 800; }
+.trip-soft .trip-cb { background: var(--c); color: #fff; }
+.trip-glass, .trip-glass-soft { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 12px 12px 10px; border-radius: 18px; background: rgb(255 255 255 / 0.14); }
+.trip-glass-soft { background: var(--surface); box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 18%, var(--line-in)); }
+:is(.trip-glass, .trip-glass-soft) b { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trip-glass-soft b { color: color-mix(in srgb, var(--c) 75%, var(--ink)); }
+:is(.trip-glass, .trip-glass-soft) span { font-size: 12px; font-weight: 600; opacity: 0.85; }
+.trip-route { padding: 14px 16px 12px; border-radius: 20px; background: rgb(0 0 0 / 0.14); }
+.trip-route-soft { background: var(--surface); box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 18%, var(--line-in)); }
+.trip-aisle { display: flex; gap: 3px; height: 12px; }
+.trip-aisle > i { display: block; flex-basis: 0; min-width: 8px; border-radius: 4px; background: var(--k); box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.55); }
+.trip-route-soft .trip-aisle > i { box-shadow: none; }
+.trip-sec { display: flex; align-items: center; gap: 10px; height: 38px; font-size: 14px; font-weight: 650; }
+.trip-sec > i { width: 10px; height: 10px; flex-shrink: 0; border-radius: 50%; background: var(--k); box-shadow: 0 0 0 2px rgb(255 255 255 / 0.6); }
+.trip-route-soft .trip-sec > i { box-shadow: none; }
+.trip-sec > b { font-size: 13px; font-weight: 700; opacity: 0.85; }
+.trip-go { display: flex; width: 100%; height: 64px; flex-shrink: 0; align-items: center; justify-content: center; gap: 10px; border-radius: 999px; background: #fff; color: #141414; font-size: 19px; font-weight: 800; box-shadow: 0 14px 30px -12px rgb(0 0 0 / 0.45); transition: transform 160ms var(--ease-out); }
+.trip-go:active { transform: scale(0.97); }
+.trip-go-ar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--c); color: #fff; }
+.trip-soft .trip-go { background: var(--c); color: #fff; }
+.trip-soft .trip-go-ar { background: rgb(255 255 255 / 0.22); }
+.trip-back { height: 44px; margin-top: 4px; flex-shrink: 0; font-size: 14px; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; opacity: 0.9; }
+.trip-rise > * { animation: trip-rise 520ms var(--ease-out) both; }
+.trip-rise > :nth-child(2) { animation-delay: 60ms; } .trip-rise > :nth-child(3) { animation-delay: 120ms; } .trip-rise > :nth-child(4) { animation-delay: 180ms; } .trip-rise > :nth-child(5) { animation-delay: 240ms; }
+@keyframes trip-rise { from { opacity: 0; transform: translateY(14px); } }
+/* "Let's go": the content scales and blurs out (420 ms) into store mode. */
+.trip-go-out { animation: trip-go-out 420ms cubic-bezier(0.77, 0, 0.175, 1) both; }
+@keyframes trip-go-out { to { transform: scale(1.04); opacity: 0; filter: blur(4px); } }
+/* Store mode's header starts in the trip's colour (the same --c), with the same aisle bar. */
+.trip-head { background: var(--c); color: #fff; border-color: transparent; }
+.trip-head .text-muted { color: rgb(255 255 255 / 0.82); }
+.trip-head .store-rail-hit > i { box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.55); }
+.trip-head .store-rail-hit[aria-current] > i { box-shadow: 0 0 0 2px var(--c), 0 0 0 4px #fff; }
+@media (prefers-reduced-motion: reduce) { .trip-light, .trip-rise > * { animation: none; } .trip-go-out { animation: none; } }
+:root[data-motion="reduce"] :is(.trip-light, .trip-rise > *, .trip-go-out) { animation: none; }

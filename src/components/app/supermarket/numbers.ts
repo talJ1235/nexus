@@ -8,7 +8,7 @@ import type { BasketItem } from "@/lib/grocery/basket";
 import { toast } from "@/lib/toast";
 import type { ItemWithSources } from "@/lib/types";
 import { STORES } from "@/lib/onboarding";
-import { chainById } from "@/lib/grocery/chains";
+import { chainById, MONO_HEX } from "@/lib/grocery/chains";
 import { useStore } from "../store";
 import type { OpenTrip, SmHome } from "./data";
 import { requestSm, type SmIntent } from "./intent";
@@ -100,8 +100,7 @@ export const tripLeft = (t: OpenTrip) => Math.max(0, t.planned + t.added - t.bou
 export const tripTotal = (t: OpenTrip) => Math.max(t.planned + t.added, t.bought + t.notFound);
 
 /** Store monogram colours (the onboarding tiles, nx17 `.m1`–`.m9`). */
-const MONO: Record<string, string> = { m1: "#c0392b", m2: "#1f7a4d", m3: "#1d5fa8", m4: "#b8860b", m5: "#6c3fb5", m6: "#d1495b", m7: "#2a7f8f", m8: "#5b5a56", m9: "#e07a24" };
-export const monoColor = (c: string | null | undefined) => MONO[c ?? ""] ?? MONO.m8;
+export const monoColor = (c: string | null | undefined) => MONO_HEX[c ?? ""] ?? MONO_HEX.m8;
 
 /** A chain's names + monogram colour: the supermarket chains (lib/grocery/chains.ts), else the onboarding stores. */
 export const chainDef = (chain: string | null | undefined) => {

@@ -389,8 +389,9 @@ export type HomeState = {
   open: OpenTrip[];
   /** B1: kg per piece for the products on the list / suggested (the home's learned weight, else the fallback). */
   unitKg: Record<string, number>;
-  /** D2: finished trips per store ("chain|branch" → count + last), for the picker's recent list. */
-  visits: Record<string, { trips: number; last: number }>;
+  /** D2: finished trips per store ("chain|branch" → count + last), for the picker's recent list. S5 B1: + the usual
+   *  minutes there (median of the finished trips; null before 2). */
+  visits: Record<string, { trips: number; last: number; minutes: number | null }>;
   /** S4 F3: the home's usual brand per product type (≥ 3 buys, one brand ≥ 60 %) — store mode shows it under a row. */
   brands: Record<string, string>;
 };
@@ -419,17 +420,22 @@ export async function homeState(s: Scoped, o: { tz: string; locale?: string; now
     learningOf(s),
     supermarketList(s),
     prefsOf(s),
-    s.pick({ total: schema.trip.total, at: schema.trip.finishedAt, chain: schema.trip.chain, branch: schema.trip.branch }, schema.trip, isNotNull(schema.trip.finishedAt)),
+    s.pick({ total: schema.trip.total, at: schema.trip.finishedAt, started: schema.trip.startedAt, chain: schema.trip.chain, branch: schema.trip.branch }, schema.trip, isNotNull(schema.trip.finishedAt)),
   ]);
   const open = await openTripsOf(s, now);
   const def = stores.find((x) => x.isDefault) ?? null;
   const history = learnHistory(purchases, dayTrips, { tz: o.tz });
-  const visits: Record<string, { trips: number; last: number }> = {};
+  const visits: Record<string, { trips: number; last: number; minutes: number | null }> = {};
+  const spans: Record<string, number[]> = {};
   for (const r of tripRows) {
     if (!r.chain || r.at == null) continue;
     const k = `${r.chain}|${r.branch ?? ""}`;
-    visits[k] = { trips: (visits[k]?.trips ?? 0) + 1, last: Math.max(visits[k]?.last ?? 0, r.at) };
+    visits[k] = { trips: (visits[k]?.trips ?? 0) + 1, last: Math.max(visits[k]?.last ?? 0, r.at), minutes: null };
+    // A trip of 2 min – 4 h counts toward the usual time there (a forgotten open trip doesn't).
+    const m = (r.at - r.started) / 60_000;
+    if (m >= 2 && m <= 240) (spans[k] ??= []).push(m);
   }
+  for (const [k, ms] of Object.entries(spans)) if (ms.length >= 2) visits[k].minutes = Math.max(5, Math.round([...ms].sort((a, b) => a - b)[Math.floor(ms.length / 2)] / 5) * 5);
   const onList = new Set(list.map((i) => i.productKey).filter((k): k is string => !!k));
   const listTitles = new Map(list.filter((i) => i.productKey).map((i) => [i.productKey!, i.title]));
   const suggestions = suggest({ history, onList, listTitles, prefs, baskets: trips.map((t) => t.keys), now, tz: o.tz, locale: o.locale, basket: basketForHome(history, o.who, o.locale), trips: trips.length });

@@ -52,6 +52,15 @@ export async function userPrefGetMany(userId: string, keys: string[]): Promise<R
   return Object.fromEntries(rows.map((r) => [r.key, r.value]));
 }
 
+/** R18 S5 B2: a person's prefs under a prefix (`pref:tripLook` → the all-stores look and each store's). */
+export async function userPrefLike(userId: string, prefix: string): Promise<Record<string, string>> {
+  const rows = await db
+    .select({ key: schema.userPref.key, value: schema.userPref.value })
+    .from(schema.userPref)
+    .where(and(eq(schema.userPref.userId, userId), like(schema.userPref.key, `${prefix.replace(/[%_]/g, "")}%`)));
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
+
 export async function userPrefSet(userId: string, key: string, value: string | null) {
   if (value == null) {
     await db.delete(schema.userPref).where(and(eq(schema.userPref.userId, userId), eq(schema.userPref.key, key)));
