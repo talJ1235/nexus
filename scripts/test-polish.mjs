@@ -325,7 +325,7 @@ if (want("A1")) {
 // visible leaf under the header) reaches ≥ 70 % of the inner height, or it shows its empty state centred; nothing
 // overflows the card. PARITY=1 also saves the grids at 2× into docs/design/parity-r17/.
 if (want("A2")) {
-  const ALL = ["left", "budget", "way", "saved", "suggest", "week", "needs", "ontheway", "pace", "projects", "noticed", "drops", "vslast", "nextdel", "bycat", "most", "activity"];
+  const ALL = ["left", "budget", "way", "saved", "suggest", "week", "needs", "ontheway", "pace", "projects", "noticed", "drops", "vslast", "nextdel", "bycat", "most", "activity", "due"];
   const setLayout = async (space, items) =>
     db.execute({
       sql: `INSERT INTO user_pref (user_id, key, value, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value`,
@@ -333,8 +333,9 @@ if (want("A2")) {
     });
   const measure = () =>
     // R18 S3 C4: a cell whose widget shows nothing today (the next shop with no list) is hidden — nothing to measure.
-    [...document.querySelectorAll("[data-home-grid] .hw")].filter((hw) => hw.firstElementChild).map((hw) => {
-      const card = hw.firstElementChild;
+    // R18 S5 D1: a cell (.wv2) holds the card shell (.wv2-body > the widget's card).
+    [...document.querySelectorAll("[data-home-grid] .wv2")].filter((hw) => hw.querySelector(".wv2-body > *")).map((hw) => {
+      const card = hw.querySelector(".wv2-body > *");
       const cr = card.getBoundingClientRect();
       const head = card.querySelector(":scope > [data-card-head], :scope > div:first-child.border-b");
       const top = head ? head.getBoundingClientRect().bottom : cr.top;
@@ -385,10 +386,9 @@ if (want("A2")) {
         overflow: low > cr.bottom + 1 || maxRight > cr.right + 1 || minLeft < cr.left - 1 || cr.bottom > hw.getBoundingClientRect().bottom + 1,
       };
     });
-  const SIZES = [
-    ...["S", "M", "L"].flatMap((w) => [1, 2].map((h) => ({ phone: false, w, h, items: ALL.map((id) => ({ id, w, h })) }))),
-    ...["half", "full"].flatMap((p) => [1, 2].map((h) => ({ phone: true, w: p, h, items: ALL.map((id) => ({ id, w: "M", h, p })) }))),
-  ];
+  // R18 S5 D1: small (1 cell) / wide (2 cells) × 1 or 2 rows, phone (2 columns) and computer (4); a size a widget
+  // doesn't come in falls back to its own (lib/home-layout CARD_SIZES).
+  const SIZES = [false, true].flatMap((phone) => ["small", "wide"].flatMap((size) => [1, 2].map((h) => ({ phone, w: size, h, items: ALL.map((id) => ({ id, w: size === "small" ? "S" : "M", h, size })) }))));
   const bad = [];
   const low = [];
   let checked = 0;
@@ -398,7 +398,7 @@ if (want("A2")) {
       for (const z of SIZES.filter((z) => z.phone === phone)) {
         await setLayout(space, z.items);
         await page.goto(`${BASE}/`);
-        await page.waitForSelector("[data-home-grid] .hw");
+        await page.waitForSelector("[data-home-grid] .wv2");
         await page.waitForTimeout(900);
         const rows = await page.evaluate(measure);
         for (const r of rows) {
@@ -432,7 +432,7 @@ if (want("A3")) {
       window.__frames = [];
       const tick = () => {
         const shell = [...document.querySelectorAll("[data-settings]")].some((e) => e.getBoundingClientRect().width > 0);
-        const home = [...document.querySelectorAll("[data-home-grid] .hw")].some((e) => e.getBoundingClientRect().width > 0);
+        const home = [...document.querySelectorAll("[data-home-grid] .wv2")].some((e) => e.getBoundingClientRect().width > 0);
         window.__frames.push({ shell, home });
         if (window.__frames.length < 600) requestAnimationFrame(tick);
       };
@@ -447,7 +447,7 @@ if (want("A3")) {
     ok(flash === 0 && firstShell >= 0 && firstShell <= 2, `A3 cold /settings/display (${phone ? "phone" : "desktop"}): the shell is there from the first frame, never Home alone`, JSON.stringify({ frames: f.length, firstShell, flash }));
     // A tap in the app: Home → Settings.
     await page.goto(`${BASE}/`);
-    await page.waitForSelector("[data-home-grid] .hw");
+    await page.waitForSelector("[data-home-grid] .wv2");
     await page.waitForTimeout(600);
     if (phone) {
       await page.locator("[data-me-open]").click();
@@ -495,7 +495,7 @@ if (want("P6")) {
     const geo = () =>
       page.evaluate(() => {
         const s = document.querySelector('[data-home-section="suggest"]');
-        const hw = s.closest(".hw") ?? s;
+        const hw = s.closest(".wv2") ?? s;
         const next = hw.nextElementSibling;
         return { h: Math.round(s.getBoundingClientRect().height * 10) / 10, next: next ? Math.round(next.getBoundingClientRect().top * 10) / 10 : null, i: s.getAttribute("data-sug-index") };
       });
@@ -562,7 +562,7 @@ if (want("S3")) {
     const geo = () =>
       page.evaluate(() => {
         const s = document.querySelector('[data-home-section="suggest"]');
-        const hw = s.closest(".hw") ?? s;
+        const hw = s.closest(".wv2") ?? s;
         const next = hw.nextElementSibling;
         const stack = s.querySelector("[data-sug-stack]")?.parentElement;
         const anims = [...s.getAnimations(), ...(stack?.getAnimations() ?? [])].length;

@@ -121,3 +121,24 @@ export function storeLabel(chain: string | null | undefined, branch: string | nu
   // First-strong isolates: an English branch inside a Hebrew sentence keeps its own order ("Herzl St." stays whole).
   return `${FSI}${branch ? `${name} · ${branch}` : name}${PDI}`;
 }
+
+/** R18 S5 D3 / E1: this month's budget — the cap, what Products and the supermarket spent, % used and the pace
+ *  (the share of the month gone: under 85 % of it = under pace, over 105 % = ahead of pace). null = no budget. */
+export function useMonthBudget(home: SmHome | null) {
+  const s = useStore();
+  return useMemo(() => {
+    const key = monthKeyIn(s.clock.now, s.clock.tz);
+    const cap = capFor(key, s.budget);
+    const from = monthStartIn(key, s.clock.tz);
+    const to = monthStartIn(nextMonthKey(key), s.clock.tz);
+    const fc = monthForecast({ items: s.items, altGroups: s.altGroups, rates: s.rates, currency: s.currency, from, to, cap, includeNormal: false });
+    const products = fc.spent;
+    const supermarket = home?.monthSpent ?? 0;
+    const used = products + supermarket;
+    const total = cap?.cap ?? null;
+    const gone = Math.max(0.02, Math.min(1, (s.clock.now - from) / Math.max(1, to - from)));
+    const pct = total ? used / total : null;
+    const pace = pct == null ? null : pct > gone * 1.05 ? ("ahead" as const) : pct < gone * 0.85 ? ("behind" as const) : ("on" as const);
+    return { cap: total, products, supermarket, used, pct, pace, key };
+  }, [s.items, s.altGroups, s.rates, s.currency, s.clock, s.budget, home?.monthSpent]);
+}

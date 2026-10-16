@@ -145,12 +145,14 @@ export function useRunningTrip() {
  * layout; "plan" = the next-shop widget (movable / removable in Customise; Home hides it while a trip runs). No part
  * (the empty Home) = whichever applies.
  */
-export function NextShopCard({ className, part }: { className?: string; part?: "trip" | "plan" }) {
+export function NextShopCard({ className, part, mineOnly = false }: { className?: string; part?: "trip" | "plan"; mineOnly?: boolean }) {
   const s = useStore();
   const { home } = useSmHome();
   const { mine, trip: running, local } = useRunningTrip();
   if (s.loading) return null;
-  if (part === "trip") return running ? <div className={cn("desk:col-span-12", className)} data-next-shop={mine ? "mine" : "other"}><TripCard trip={running} mine={!!mine} /></div> : null;
+  // R18 S5 D3: another member's trip shows live inside the Next shop widget when it's on Home (`mineOnly`).
+  const pinned = mineOnly ? mine : running;
+  if (part === "trip") return pinned ? <div className={cn("desk:col-span-12", className)} data-next-shop={mine ? "mine" : "other"}><TripCard trip={pinned} mine={!!mine} /></div> : null;
   // G2: the list is on the device before the server's numbers — show the card at once (no jump on Home when they
   // arrive); only an empty list waits (it may be the first-time card).
   if (!home)

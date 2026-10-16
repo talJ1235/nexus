@@ -11,7 +11,8 @@ import { Card } from "./home-card";
 import { Avatar } from "./spaces/space-ui";
 import { useStore } from "./store";
 
-// R16 E2 — the new Home indicators (numbers from lib/home-widgets.ts). Each has an empty state; the skeleton is
+// R16 E2 — the new Home indicators (numbers from lib/home-widgets.ts). R18 S5 D1: lists render up to 6 / 12 rows and
+// the card shell (home-card useFitRows) keeps the ones that fit whole. Each has an empty state; the skeleton is
 // Home's own while the data loads. Taller (2×) list widgets show more rows; R17 A2: 2× number widgets grow a chart or a
 // list (vs last month: the two months as bars; next delivery: the ones after it), and an empty state sits centred.
 
@@ -32,7 +33,7 @@ const Big = ({ children, className }: { children: React.ReactNode; className?: s
 export function DropsWidget({ x, h, className, style }: P) {
   const s = useStore();
   const { t } = useI18n();
-  const rows = x.drops.slice(0, rowsFor(h, 3, 8));
+  const rows = x.drops.slice(0, rowsFor(h, 6, 12));
   return (
     <Card id="drops" title={t.hc.names.drops} icon={<TrendingDown />} count={x.drops.length || undefined} className={className} style={style} more={x.drops.length - rows.length}>
       {rows.length === 0 ? (
@@ -132,7 +133,7 @@ export function ByCategoryWidget({ x, h, className, style }: P) {
   const s = useStore();
   const { t } = useI18n();
   const m = useMoney();
-  const rows = x.byCategory.slice(0, rowsFor(h, 3, 7));
+  const rows = x.byCategory.slice(0, rowsFor(h, 6, 12));
   const max = Math.max(1, ...rows.map((r) => r.total));
   return (
     <Card id="bycat" title={t.hc.names.bycat} icon={<BarChart3 />} link={t.dash.spending} onLink={() => s.setView({ type: "spending" })} className={className} style={style} more={x.byCategory.length - rows.length}>
@@ -158,7 +159,7 @@ export function ByCategoryWidget({ x, h, className, style }: P) {
 export function MostBoughtWidget({ x, h, className, style }: P) {
   const s = useStore();
   const { t, f } = useI18n();
-  const rows = x.mostBought.slice(0, rowsFor(h, 3, 8));
+  const rows = x.mostBought.slice(0, rowsFor(h, 6, 12));
   return (
     <Card id="most" title={t.hc.names.most} icon={<Star />} className={className} style={style} more={x.mostBought.length - rows.length}>
       {rows.length === 0 ? (
@@ -182,7 +183,7 @@ export function ActivityWidget({ x, h, className, style }: P) {
   const s = useStore();
   const { t, f, locale } = useI18n();
   const shared = s.space?.kind === "shared";
-  const rows = x.activity.slice(0, rowsFor(h, 3, 7));
+  const rows = x.activity.slice(0, rowsFor(h, 6, 12));
   const time = (ms: number) => new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { hour: "2-digit", minute: "2-digit" }).format(ms);
   return (
     <Card id="activity" title={t.hc.names.activity} icon={<Users />} className={className} style={style} more={shared ? x.activity.length - rows.length : 0}>

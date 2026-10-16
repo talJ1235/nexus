@@ -2,7 +2,7 @@
 
 import { NextShopCard, useRunningTrip } from "./supermarket/trip";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Package, RefreshCw, Sparkles, Tag, TrendingDown, TrendingUp, Truck, X } from "lucide-react";
+import { AlertTriangle, CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, Package, Pencil, RefreshCw, Sparkles, Tag, TrendingDown, TrendingUp, Truck, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { toast } from "@/lib/toast";
 import { updateItem } from "@/app/actions";
@@ -25,10 +25,12 @@ import { useReadOnly } from "./offline-banner";
 import { useAddActions } from "./add-actions";
 import { useMeName } from "./spaces/space-ui";
 import { useStore, type HomeSection } from "./store";
-import { Card } from "./home-card";
-import { Customise, WidgetGrid, type RenderWidget } from "./home-grid";
+import { Card, useFitRows } from "./home-card";
+import { HomeCards, WIDGET_ICON, type RenderWidget } from "./home-grid";
+import { BudgetWidget, DueWidget, NextShopWidget } from "./home-shop-widgets";
+import { useSmHome } from "./supermarket/data";
 import { ActivityWidget, ByCategoryWidget, DropsWidget, MostBoughtWidget, NextDeliveryWidget, VsLastWidget } from "./home-extra";
-import { defaultLayout, rowsFor, type HomeLayout, type WidgetId } from "@/lib/home-layout";
+import { rowsFor, type WidgetId } from "@/lib/home-layout";
 import { homeExtras } from "@/lib/home-widgets";
 import { monthStartIn } from "@/lib/budget";
 import { COLLECTION_COLORS } from "./view-items";
@@ -139,7 +141,8 @@ export function HomeView() {
     const ai: Insight[] = (look.ai?.insights ?? []).map((x, k) => ({ key: `ai:${model.today}:${k}`, kind: "ai", text: x.text, ...(x.action && x.action.type !== "none" && { action: { ...x.action, type: x.action.type } }) }));
     return mergeHome(model.noticed, ai, fallbackInsights(model), 3);
   }, [look, model]);
-  const [editing, setEditing] = useState<HomeLayout | null>(null);
+  // R18 S5 D2: the pencil asks the cards for edit mode (a counter; long-press enters it from the card itself).
+  const [editReq, setEditReq] = useState(0);
   const shared = s.space?.kind === "shared";
   // E2: the new indicators' numbers (pure, lib/home-widgets).
   const extras = useMemo(() => {
@@ -149,10 +152,12 @@ export function HomeView() {
     return homeExtras({ items: s.items, alerts: s.alerts, rates: s.rates, currency: s.currency, now: clock.now, tz: clock.tz, monthFrom, monthTo, lastMonthFrom: monthStartIn(lastKey, clock.tz), lastMonthKey: lastKey, me: s.me?.id });
   }, [s.items, s.alerts, s.rates, s.currency, clock, model, s.me?.id]);
 
-  const running = useRunningTrip().trip != null;
+  // R18 S5 D3: only my own trip hides the Next shop widget (another member's shows live inside it).
+  const running = useRunningTrip().mine != null;
   // One renderer for view and Customise; the R13 sections stay out of view while they have nothing to show.
+  const { home: smHome } = useSmHome();
   const render = useCallback<RenderWidget>(
-    (id, h, edit) => {
+    (id, h, edit, size) => {
       const has: Partial<Record<WidgetId, boolean>> = {
         suggest: sugs.length > 0,
         week: model.week.events.length > 0,
@@ -163,14 +168,19 @@ export function HomeView() {
         noticed: noticed.length > 0,
         // While a trip runs, the pinned trip bar says it all.
         nextshop: !running,
+        // R18 S5 D3: Due soon once the home shops at the supermarket (or something is due).
+        due: (smHome?.trips ?? 0) > 0 || !!smHome?.suggestions.some((x) => x.reasonKey === "due"),
       };
       if (!edit && has[id] === false) return null;
       const c = "h-full";
       switch (id) {
         case "nextshop":
-          return <NextShopCard part="plan" className={c} />;
-        case "left":
+          return <NextShopWidget size={size} />;
+        case "due":
+          return <DueWidget size={size} />;
         case "budget":
+          return <BudgetWidget size={size} />;
+        case "left":
         case "way":
         case "saved":
           return <Stats model={model} only={id} h={h} />;
@@ -179,13 +189,13 @@ export function HomeView() {
         case "week":
           return <WeekCard model={model} h={h} className={c} />;
         case "needs":
-          return <NeedsCard model={model} rows={rowsFor(h, 3, 8)} className={c} />;
+          return <NeedsCard model={model} rows={rowsFor(h, 6, 12)} className={c} />;
         case "ontheway":
-          return <OnTheWayCard model={model} rows={rowsFor(h, 3, 8)} className={c} />;
+          return <OnTheWayCard model={model} rows={rowsFor(h, 6, 12)} className={c} />;
         case "pace":
           return <PaceCard model={model} h={h} className={c} />;
         case "projects":
-          return <ProjectsCard model={model} rows={rowsFor(h, 3, 8)} className={c} />;
+          return <ProjectsCard model={model} rows={rowsFor(h, 6, 12)} className={c} compact={h === 1} />;
         case "noticed":
           return <NoticedCard list={noticed} h={h} className={c} />;
         case "drops":
@@ -202,37 +212,19 @@ export function HomeView() {
           return <ActivityWidget x={extras} h={h} className={c} />;
       }
     },
-    [model, sugs, noticed, extras, running],
+    [model, sugs, noticed, extras, running, smHome],
   );
 
   if (s.loading || s.switching) return <HomeSkeleton />;
   if (model.empty) return <HomeEmpty model={model} />;
 
   const stagger = s.navSeq === 0;
-  if (editing)
-    return (
-      <div className="flex flex-col gap-3 pb-4 desk:grid desk:grid-cols-12 desk:gap-[14px]" data-home dir="auto">
-        <Customise
-          draft={editing}
-          setDraft={setEditing as React.Dispatch<React.SetStateAction<HomeLayout>>}
-          render={render}
-          shared={shared}
-          desktop={desktop}
-          onDone={() => {
-            s.setHomeLayout(editing);
-            setEditing(null);
-          }}
-          onReset={() => setEditing(defaultLayout(shared))}
-        />
-      </div>
-    );
-
   return (
     <div className="flex flex-col gap-3 pb-4 desk:grid desk:grid-cols-12 desk:gap-[14px]" data-home dir="auto">
-      <HomeHeader model={model} onCustomize={() => setEditing(s.homeLayout)} />
+      <HomeHeader model={model} onCustomize={() => setEditReq((n) => n + 1)} />
       {/* R18 S3 C4: the running trip stays pinned at the top; the next shop is a widget (first by default). */}
-      <NextShopCard part="trip" />
-      <WidgetGrid layout={s.homeLayout} render={render} stagger={stagger} />
+      <NextShopCard part="trip" mineOnly={s.homeLayout.items.some((x) => x.id === "nextshop")} />
+      <HomeCards layout={s.homeLayout} render={render} onSave={s.setHomeLayout} stagger={stagger} shared={shared} editRequest={editReq} />
     </div>
   );
 }
@@ -267,11 +259,13 @@ function HomeHeader({ model, onCustomize }: { model: HomeModel; onCustomize: () 
             type="button"
             onClick={onCustomize}
             className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-card-line bg-surface px-3 text-[12.5px] font-semibold text-ink transition hover:border-ink/40 phone:size-10 phone:justify-center phone:px-0"
-            aria-label={t.dash.customize}
+            aria-label={t.hc.edit}
+            title={t.hc.edit}
             data-home-customize
           >
-            <LayoutGrid className="size-4" />
-            <span className="phone:hidden">{t.dash.customize}</span>
+            {/* R18 S5 D2: the pencil — edit mode for keyboard / screen readers (a long-press on a card does the same). */}
+            <Pencil className="size-4" />
+            <span className="phone:hidden">{t.hc.edit}</span>
           </button>
       </div>
       {/* R16 E1: the four numbers are widgets now; the strip stays with the greeting. */}
@@ -400,9 +394,15 @@ function Stat({ label, value, small, children, valueClass }: { label: string; va
 
 const STAT_ORDER = ["left", "budget", "way", "saved"] as const;
 function StatCell({ only, more = 0, children }: { only: (typeof STAT_ORDER)[number]; more?: number; children: React.ReactNode }) {
+  const { t } = useI18n();
   const kids = (Array.isArray(children) ? children : [children]).filter(Boolean);
   return (
     <section className="r13-card r13-section flex h-full min-w-0 flex-col [&>*]:flex-1" data-home-section={`stat-${only}`} data-home-stat={only} data-more={Math.max(0, more)}>
+      {/* R18 S5 D1: the card shell's header (icon chip + name); the number's own label shows under it. */}
+      <div data-card-head className="!flex-none items-center" aria-hidden>
+        <span className="flex [&_svg]:size-4">{WIDGET_ICON[only]}</span>
+        <h2 className="text-[14px] font-bold">{t.hc.names[only]}</h2>
+      </div>
       {kids[STAT_ORDER.indexOf(only)]}
     </section>
   );
@@ -1096,12 +1096,14 @@ function WeekCard({ model, h = 1, className, style }: { model: HomeModel; h?: 1 
   };
   const upcoming = events.filter((e) => e.day >= today);
   const tall = h === 2;
-  const fold3 = tall ? 7 : 3;
-  const perDay = tall ? 4 : 2;
+  // R18 S5 D1: a one-row phone card has room for the strip + the next event.
+  const fold3 = tall ? 7 : desktop ? 3 : 1;
+  // R18 S5 D1: a one-row card (196 px) has room for one event a day (+N more); two rows for four.
+  const perDay = tall ? 4 : 1;
   const list = open ? upcoming : upcoming.slice(0, fold3);
   const fold = (shown: boolean) => cn("grid transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-out)]", shown ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0");
   return (
-    <Card id="week" title={t.dash.week} icon={<CalendarDays />} className={className} style={style} more={desktop ? 0 : upcoming.length - list.length} link={month && desktop ? t.dash.monthClose : t.dash.monthLink} onLink={() => setMonth(!month)}>
+    <Card id="week" title={t.dash.week} icon={<CalendarDays />} className={className} style={style} more={desktop || !tall ? 0 : upcoming.length - list.length} link={month && desktop ? t.dash.monthClose : t.dash.monthLink} onLink={() => setMonth(!month)}>
       <span className="sr-only">{events.length === 1 ? t.dash.weekCountOne : f(t.dash.weekCount, { n: events.length })}</span>
       {desktop && (
         <div className={fold(month)} aria-hidden={!month} inert={!month}>
@@ -1118,7 +1120,7 @@ function WeekCard({ model, h = 1, className, style }: { model: HomeModel; h?: 1 
       {/* Desktop: 7 columns on a line, at most 2 events a day. */}
       <div className={cn(fold(!(month && desktop)), "phone:hidden")}>
       <div className="min-h-0 overflow-hidden">
-      <div className="relative grid grid-cols-7 px-2 pb-4 pt-3.5" data-week-desktop>
+      <div className="relative grid grid-cols-7 px-2 pb-4 pt-3.5" data-week-desktop data-fit-skip>
         <span className="absolute inset-x-[18px] top-[66px] h-px bg-card-line" aria-hidden />
         {days.map((d) => {
           const evs = events.filter((e) => e.day === d);
@@ -1153,7 +1155,7 @@ function WeekCard({ model, h = 1, className, style }: { model: HomeModel; h?: 1 
       </div>
       </div>
       {/* Phone: a day strip with coloured dots, the next 3 events, "+N more" expands in place. */}
-      <div className="desk:hidden" data-week-phone>
+      <div className="desk:hidden" data-week-phone data-fit-group>
         <div className="grid grid-cols-7 px-2 pb-2 pt-2.5">
           {days.map((d) => {
             const kinds = [...new Set(events.filter((e) => e.day === d).map((e) => e.kind))].slice(0, 3);
@@ -1171,7 +1173,8 @@ function WeekCard({ model, h = 1, className, style }: { model: HomeModel; h?: 1 
             );
           })}
         </div>
-        <div className="r13-rows border-t border-line-in">
+        {/* R18 S5 D1: the strip already marks every day with an event — rows the card has no room for aren't counted. */}
+        <div className="r13-rows border-t border-line-in" data-fit-nocount>
           {list.map((e, k) => {
             const x = evText(e, t, fm, tz);
             return (
@@ -1645,12 +1648,12 @@ function ProjectRows({ model, compact, rows = 99 }: { model: HomeModel; compact?
   );
 }
 
-function ProjectsCard({ model, rows, className, style }: { model: HomeModel; rows?: number; className?: string; style?: React.CSSProperties }) {
+function ProjectsCard({ model, rows, className, style, compact }: { model: HomeModel; rows?: number; className?: string; style?: React.CSSProperties; compact?: boolean }) {
   const s = useStore();
   const { t } = useI18n();
   return (
     <Card id="projects" title={t.dash.projects} link={t.dash.allProjects} onLink={() => s.setView({ type: "projects" })} className={className} style={style} more={rows != null ? model.projects.length - rows : 0}>
-      <ProjectRows model={model} rows={rows} />
+      <ProjectRows model={model} rows={rows} compact={compact} />
     </Card>
   );
 }
@@ -1703,6 +1706,9 @@ function NoticedCard({ list, h = 1, className, style }: { list: Insight[]; h?: 1
   };
   const swipe = useRef<{ x: number; id: number } | null>(null);
   const tall = h === 2;
+  // R18 S5 D1: in the card grid, only what fits shows (whole rows / lines).
+  const self = useRef<HTMLElement>(null);
+  useFitRows(self, tall ? Math.max(0, list.length - 3) : list.length - 1);
   const dots = list.length > 1 && !tall && (
     <span className="-me-3 ms-auto flex desk:hidden" role="tablist">
       {list.map((x, k) => (
@@ -1713,9 +1719,11 @@ function NoticedCard({ list, h = 1, className, style }: { list: Insight[]; h?: 1
     </span>
   );
   return (
-    <section className={cn("r13-card r13-section flex min-w-0 flex-col", className)} style={style} data-home-section="noticed" data-more={tall ? Math.max(0, list.length - 3) : list.length - 1} data-noticed-count={list.length} data-noticed-kinds={list.map((y) => y.kind).join(" ")}>
-      <div className="flex min-h-[42px] items-center gap-2 border-b border-line-in px-4 py-2 desk:min-h-[46px] desk:px-[18px] desk:py-2.5">
-        <Sparkles className="size-4 text-ai" />
+    <section ref={self} className={cn("r13-card r13-section flex min-w-0 flex-col", className)} style={style} data-home-section="noticed" data-more={tall ? Math.max(0, list.length - 3) : list.length - 1} data-noticed-count={list.length} data-noticed-kinds={list.map((y) => y.kind).join(" ")}>
+      <div data-card-head className="flex min-h-[42px] items-center gap-2 border-b border-line-in px-4 py-2 desk:min-h-[46px] desk:px-[18px] desk:py-2.5">
+        <span className="flex text-ai [&_svg]:size-4">
+          <Sparkles />
+        </span>
         <h2 className="text-[12px] font-bold uppercase tracking-[0.05em] text-ai">{t.dash.noticed}</h2>
         {dots}
       </div>

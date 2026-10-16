@@ -1235,3 +1235,76 @@ html[data-motion="reduce"] [data-sonner-toaster] [data-sonner-toast] { transitio
 [dir="rtl"] .assistant-sheet.sheet-in-start[data-state="open"] { animation-name: slide-from-right; }
 .assistant-sheet.sheet-in-start[data-state="closed"] { animation-name: slide-to-left; }
 [dir="rtl"] .assistant-sheet.sheet-in-start[data-state="closed"] { animation-name: slide-to-right; }
+
+/* ---------- R18 S5 D1 + D2 — Home cards (boards Home-widgets-phone / -desktop, Widgets-catalog; nx-s5.css WIDGETS v2).
+   One shell for every widget: radius 26, padding 14 / 16, a 28 px round icon chip, one accent (--k) for the visual only,
+   text in ink, big numbers 30–38 tabular. Small = 1 cell, wide = 2 (phone 2 columns of square cells, computer 4). */
+.wv2-grid { display: grid; gap: 10px; grid-auto-flow: row; }
+:where(html[data-device="computer"]) .wv2-grid { gap: 14px; }
+.wv2 { position: relative; min-width: 0; min-height: 0; border-radius: 26px; -webkit-touch-callout: none; }
+.wv2 > .wv2-body { height: 100%; }
+.wv2 .r13-card {
+  height: 100%; min-height: 0; overflow: hidden; border: 0; border-radius: 26px; padding: 14px 16px;
+  background: var(--surface); box-shadow: 0 0 0 1px var(--line-in), 0 1px 2px color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.dark .wv2 .r13-card { box-shadow: 0 0 0 1px var(--line); }
+.wv2 .r13-card > :not([data-card-head]) { padding-inline: 0 !important; }
+.wv2 [data-card-head] { min-height: 28px !important; gap: 8px; padding: 0 !important; margin-bottom: 6px; border: 0 !important; }
+.wv2 [data-card-head] > span:first-child {
+  display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%;
+  background: color-mix(in srgb, var(--k) 14%, var(--surface)); color: var(--k);
+}
+.dark .wv2 [data-card-head] > span:first-child { background: color-mix(in srgb, var(--k) 24%, var(--surface)); color: color-mix(in srgb, var(--k) 72%, #fff); }
+.wv2 [data-card-head] > span:first-child svg { width: 15px; height: 15px; }
+.wv2 [data-card-head] h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: none; letter-spacing: -0.01em; font-size: 14px; font-weight: 750; color: var(--ink); }
+.wv2 [data-big] { font-variant-numeric: tabular-nums; }
+.wv2 .wv2-warn [data-budget-ring] circle:last-child { stroke: var(--warn); }
+/* The number widgets (left / on the way / saved) carry their label as the header: the label sits like a card title. */
+.wv2 [data-home-stat] > div:not([data-card-head]) { padding: 0 !important; justify-content: flex-end; min-height: 0; gap: 2px; }
+.wv2 [data-home-stat] [data-stat-label] { font-size: 12.5px; }
+:not(.wv2) > .wv2-body [data-home-stat] > [data-card-head], [data-home-stat] > [data-card-head] { display: none; }
+.wv2 [data-home-stat] > [data-card-head] { display: flex; }
+.wv2 [data-home-stat] .tabular.font-extrabold { font-size: 30px; }
+/* Edit mode: an outline on every card, "−" at the start corner, the size chip at the end; the lifted card follows the
+   finger on its own layer; no wiggle. */
+.wv2-editing .wv2 { touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.wv2-editing .wv2::after { content: ""; position: absolute; inset: 0; border-radius: 26px; box-shadow: inset 0 0 0 1.5px var(--line-strong); pointer-events: none; }
+.wv2-editing .wv2:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.wv2-remove {
+  position: absolute; z-index: 3; top: -6px; inset-inline-start: -6px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--ink); color: var(--bg); box-shadow: 0 0 0 3px var(--bg); transition: transform 150ms var(--ease-out);
+}
+.wv2-remove::before { content: ""; position: absolute; inset: -7px; }
+.wv2-remove:active { transform: scale(0.9); }
+.wv2-size {
+  position: absolute; z-index: 3; bottom: 8px; inset-inline-end: 8px; display: inline-flex; align-items: center; gap: 5px; height: 30px; padding-inline: 10px;
+  border-radius: 999px; background: var(--surface); box-shadow: 0 0 0 1px var(--line-strong), 0 2px 6px color-mix(in srgb, var(--ink) 10%, transparent); font-size: 12px; font-weight: 750;
+  transition: transform 150ms var(--ease-out);
+}
+.wv2-size::before { content: ""; position: absolute; inset: -6px; }
+.wv2-size:active { transform: scale(0.95); }
+.wv2-lifted { z-index: 30; cursor: grabbing; will-change: transform; }
+.wv2-lifted .r13-card { box-shadow: 0 0 0 1.5px var(--ink), 0 22px 44px -12px rgb(16 16 14 / 0.4); }
+.wv2-leaving { transition: transform 200ms var(--ease-out), opacity 200ms ease; transform: scale(0.85); opacity: 0; }
+.wv2-fresh .r13-card { animation: wv2-fresh 1000ms var(--ease-out) both; }
+@keyframes wv2-fresh { 0% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--k) 70%, transparent); } 100% { box-shadow: 0 0 0 1px var(--line-in); } }
+.wv2-tray { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 10px 12px; border-radius: 18px; background: var(--surface-2); text-align: start; transition: transform 150ms var(--ease-out); }
+.wv2-tray:active { transform: scale(0.97); }
+.wv2-chip { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: color-mix(in srgb, var(--k) 16%, var(--surface)); color: var(--k); }
+.wv2-chip svg { width: 16px; height: 16px; }
+.wv2-new { flex-shrink: 0; border-radius: 6px; padding: 1px 6px; background: color-mix(in srgb, var(--spark) 18%, var(--surface)); color: color-mix(in srgb, var(--spark) 70%, var(--ink)); font-size: 10.5px; font-weight: 800; }
+@media (hover: hover) and (pointer: fine) { .wv2-tray:hover { background: var(--surface-3, var(--surface-2)); } }
+@media (prefers-reduced-motion: reduce) { .wv2-fresh .r13-card { animation: none; } .wv2-leaving { transition: opacity 150ms ease; transform: none; } }
+/* D1: the month-pace chart takes the card's room instead of a fixed 110 px; an empty number card centres its line. */
+.wv2 [data-pace-chart] { height: auto !important; min-height: 0 !important; flex: 1 1 0; }
+.wv2 [data-home-section="pace"] .min-h-\[110px\] { min-height: 0; }
+.wv2 [data-home-stat] > div:has([data-saved-empty], [data-widget-empty]) { justify-content: center; }
+/* A one-row On the way card lists packages without their 4-step track (two fit instead of one). */
+.wv2[data-h="1"] [data-home-section="ontheway"] [data-track] { display: none; }
+/* A one-row This week card on a phone: the day strip sits tight so the next event fits under it. */
+.wv2[data-h="1"] [data-week-phone] > .grid { padding-top: 0; padding-bottom: 4px; }
+.wv2[data-h="1"] [data-week-phone] > .grid > div { gap: 2px; }
+/* One-row list cards: a touch denser rows so two of them fit (the need rows, the package rows). */
+.wv2[data-h="1"] [data-need] > div { padding-block: 8px; }
+.wv2[data-h="1"] [data-home-section="ontheway"] [data-package] { padding-block: 8px; }
+.wv2[data-h="1"] [data-home-project] { padding-block: 8px; }

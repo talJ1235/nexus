@@ -456,78 +456,148 @@ async function homeChecks(page) {
   });
   // A5 → R16 E1: Customise — hide "Next delivery", move "Needs you" up one (grip + arrow key), Done, reload: the layout
   // persisted (server, per space); then Reset → the Household preset again.
-  await step("customize: hide + move persist after reload", async () => {
-    // R16 E1: the layout is saved on the server for this person — never edit a real account (prod) from the smoke.
-    if (!WRITE) return ok(true, "customize: hide + move persist after reload (skipped: writes the person's saved layout; localhost + SMOKE_WRITE only)");
-    const widgets =() => page.$$eval("[data-home-grid] [data-widget]", (els) => els.map((e) => e.getAttribute("data-widget")));
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.locator("[data-home-customize]").click();
-    await page.waitForSelector("[data-home-customizing]");
-    // Start from the Household preset whatever an earlier run saved.
-    await page.locator("[data-home-reset]").click();
-    const start = await widgets();
-    await page.locator('[data-widget-hide="nextdel"]').click();
-    await page.locator('[data-widget-handle="needs"]').focus();
-    await page.keyboard.press("ArrowUp");
-    const draft = await widgets();
-    await page.locator("[data-home-done]").click();
-    await page.waitForTimeout(800);
-    await page.reload();
-    await page.waitForSelector("[data-home-grid]", { timeout: 15000 });
-    await page.waitForTimeout(400);
-    const got = await widgets();
-    const iP = start.indexOf("needs");
-    const moved = draft.indexOf("needs") === iP - 1 && !draft.includes("nextdel");
-    const persisted = !got.includes("nextdel") && got.indexOf("needs") >= 0 && got.indexOf("needs") < got.indexOf(start[iP - 1]);
-    await page.locator("[data-home-customize]").click();
-    await page.locator("[data-home-reset]").click();
-    const preset = await page.locator('[data-home-preset="household"]').getAttribute("aria-checked");
-    await page.locator("[data-home-done]").click();
-    await page.waitForTimeout(500);
-    const reset = preset === "true" && (await widgets()).includes("nextdel");
-    ok(moved && persisted && reset, "customize: hide + move persist after reload", `start ${start.join(",")} draft ${draft.join(",")} after ${got.join(",")} reset ${reset}`);
-  });
-  // R18 S3 C4: the next shop is a Home widget — first in Household, hidden in Customise like the others (persists),
-  // back first with Reset; its height is fixed from the first frame (no shift when the server's numbers arrive).
+  // R16 E1 + R18 S3 C4 (Customise, next shop as a widget) → R18 S5 D1–D3: Home's cards, edited in place.
+  // R18 S5 D1: Home's cards — phone 2 columns of square cells, computer 4; every card radius 26 with a 28 px icon chip;
+  // Household starts with Next shop (wide), Budget (small), Due soon; dense packing (no hole before a later card).
   if (WRITE)
-    await step("next shop is a Home widget (R18 S3 C4): first, removable, persists, fixed height", async () => {
-      const r = {};
-      const widgets = () => page.$$eval("[data-home-grid] [data-widget]", (els) => els.map((e) => e.getAttribute("data-widget")));
+    await step("Home cards (R18 S5 D1): columns, square phone cells, radius 26 + icon chip, Household head, dense", async () => {
       await page.goto(`${BASE}/`);
-      await page.waitForSelector("[data-home-grid]", { timeout: 15000 });
+      await page.waitForSelector("[data-home-grid] [data-widget]", { timeout: 15000 });
+      // Household whatever an earlier run saved: the pencil → Add widget → Start from Household → Done.
       await page.locator("[data-home-customize]").click();
-      await page.waitForSelector("[data-home-customizing]");
-      await page.locator("[data-home-reset]").click();
-      await page.locator("[data-home-done]").click();
-      await page.waitForTimeout(600);
-      r.first = (await widgets())[0];
-      r.heights = await page.evaluate(async () => {
-        const el = () => document.querySelector('[data-widget="nextshop"]');
-        const hs = [];
-        for (let k = 0; k < 6; k++) {
-          hs.push(Math.round(el()?.getBoundingClientRect().height ?? -1));
-          await new Promise((res) => setTimeout(res, 120));
-        }
-        return hs;
-      });
-      await page.reload();
-      const firstFrame = await page.waitForSelector('[data-widget="nextshop"]', { timeout: 15000 }).then((e) => e.boundingBox());
-      await page.waitForTimeout(1500);
-      r.shift = Math.abs((await page.locator('[data-widget="nextshop"]').boundingBox()).height - firstFrame.height);
-      await page.locator("[data-home-customize]").click();
-      await page.locator('[data-widget-hide="nextshop"]').click();
+      await page.locator("[data-home-add-widget]").click();
+      await page.locator('[data-home-preset="household"]').click();
       await page.locator("[data-home-done]").click();
       await page.waitForTimeout(800);
-      await page.reload();
-      await page.waitForSelector("[data-home-grid]", { timeout: 15000 });
-      await page.waitForTimeout(400);
-      r.hidden = !(await widgets()).includes("nextshop") && !(await page.locator("[data-next-shop]").count());
-      await page.locator("[data-home-customize]").click();
-      await page.locator("[data-home-reset]").click();
-      await page.locator("[data-home-done]").click();
+      const r = await page.evaluate(() => {
+        const g = document.querySelector("[data-home-grid]");
+        const cells = [...g.querySelectorAll(":scope > [data-widget]")];
+        const cards = cells.map((c) => c.querySelector(".r13-card")).filter(Boolean);
+        const chip = cells[0]?.querySelector("[data-card-head] > span:first-child")?.getBoundingClientRect();
+        const small = cells.find((c) => c.getAttribute("data-size") === "small")?.getBoundingClientRect();
+        // Dense: every free slot before the last card's row is filled.
+        const taken = new Set();
+        let maxRow = 0;
+        for (const c of cells) {
+          const col = Number(c.dataset.col), row = Number(c.dataset.row);
+          const w = c.dataset.size === "wide" ? Math.min(2, Number(g.dataset.cols)) : 1;
+          const h = Number(c.dataset.h) || 1;
+          for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) taken.add(`${col + x},${row + y}`);
+          maxRow = Math.max(maxRow, row);
+        }
+        let holes = 0;
+        for (let y = 0; y < maxRow; y++) for (let x = 0; x < Number(g.dataset.cols); x++) if (!taken.has(`${x},${y}`)) holes++;
+        return {
+          cols: g.dataset.cols,
+          order: cells.slice(0, 3).map((c) => `${c.dataset.widget}:${c.dataset.size}`),
+          radius: [...new Set(cards.map((c) => getComputedStyle(c).borderTopLeftRadius))],
+          chip: chip ? [Math.round(chip.width), Math.round(chip.height)] : null,
+          square: small ? Math.abs(small.width - small.height) : null,
+          holes,
+          wide: document.documentElement.scrollWidth - window.innerWidth,
+        };
+      });
+      await shot(page, "s5-home-cards");
+      ok(
+        r.cols === (MOBILE ? "2" : "4") && r.order[0] === "nextshop:wide" && r.order[1] === "budget:small" && r.radius.length === 1 && r.radius[0] === "26px" && r.chip?.[0] === 28 && (MOBILE ? r.square <= 2 : true) && r.holes <= 1 && r.wide <= 1,
+        "Home cards (R18 S5 D1): columns, square phone cells, radius 26 + icon chip, Household head, dense",
+        JSON.stringify(r),
+      );
+    });
+
+  // R18 S5 D2: long-press (450 ms, still) → edit mode with the card lifted, carried over another → swap; "−" removes,
+  // the size chip toggles, Add widget adds at the top; Done saves (survives a reload); the floating Ask hides meanwhile.
+  if (WRITE)
+    await step("Home edit (R18 S5 D2): long-press lifts, swap, remove, size, add at top, Done persists, Ask hidden", async () => {
+      const r = {};
+      const order = () => page.$$eval("[data-home-grid] [data-widget]", (els) => els.map((e) => e.getAttribute("data-widget")));
+      await page.goto(`${BASE}/`);
+      await page.waitForSelector("[data-home-grid] [data-widget]", { timeout: 15000 });
       await page.waitForTimeout(500);
-      r.back = (await widgets())[0];
-      ok(r.first === "nextshop" && new Set(r.heights).size === 1 && r.shift <= 1 && r.hidden && r.back === "nextshop", "next shop is a Home widget (R18 S3 C4): first, removable, persists, fixed height", JSON.stringify(r));
+      const start = await order();
+      const a = page.locator('[data-home-grid] [data-widget="budget"]');
+      const other = start.find((id) => id !== "budget" && id !== "nextshop");
+      const b = page.locator(`[data-home-grid] [data-widget="${other}"]`);
+      await a.evaluate((e) => e.scrollIntoView({ block: "center" }));
+      const ab = await a.boundingBox();
+      await page.mouse.move(ab.x + ab.width / 2, ab.y + ab.height / 2);
+      await page.mouse.down();
+      await page.waitForTimeout(650);
+      r.edit = await page.locator('[data-home-cards="edit"]').count();
+      r.lifted = await a.evaluate((e) => e.classList.contains("wv2-lifted"));
+      const bb = await b.boundingBox();
+      await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 12 });
+      await page.waitForTimeout(450);
+      r.askHidden = await page.locator("[data-ask-fab]").evaluate((e) => getComputedStyle(e).visibility).catch(() => "hidden");
+      await page.mouse.up();
+      await page.waitForTimeout(400);
+      const swapped = await order();
+      r.swap = swapped.indexOf("budget") === start.indexOf(other) && swapped.indexOf(other) === start.indexOf("budget");
+      await shot(page, "s5-home-edit");
+      await page.locator('[data-widget-size="budget"]').click();
+      await page.waitForTimeout(350);
+      r.size = await a.getAttribute("data-size");
+      await page.locator(`[data-widget-hide="${other}"]`).click();
+      await page.waitForTimeout(400);
+      r.removed = (await page.locator(`[data-home-grid] [data-widget="${other}"]`).count()) === 0;
+      await page.locator("[data-home-add-widget]").click();
+      const tray = await page.locator("[data-tray-add]").first().getAttribute("data-tray-add");
+      await page.locator(`[data-tray-add="${tray}"]`).click();
+      await page.waitForTimeout(400);
+      r.top = (await order())[0] === tray;
+      await page.locator("[data-home-done]").click();
+      await page.waitForTimeout(900);
+      await page.reload();
+      await page.waitForSelector("[data-home-grid] [data-widget]", { timeout: 15000 });
+      const after = await order();
+      r.kept = after[0] === tray && !after.includes(other) && (await page.locator('[data-home-grid] [data-widget="budget"]').getAttribute("data-size")) === "wide";
+      r.view = await page.locator('[data-home-cards="view"]').count();
+      // Back to Household for the steps after.
+      await page.locator("[data-home-customize]").click();
+      await page.locator("[data-home-add-widget]").click();
+      await page.locator('[data-home-preset="household"]').click();
+      await page.locator("[data-home-done]").click();
+      await page.waitForTimeout(600);
+      ok(r.edit === 1 && r.lifted && r.askHidden === "hidden" && r.swap && r.size === "wide" && r.removed && r.top && r.kept && r.view === 1, "Home edit (R18 S5 D2): long-press lifts, swap, remove, size, add at top, Done persists, Ask hidden", JSON.stringify(r));
+    });
+
+  // R18 S5 D3: the shopping widgets — Next shop's Start opens the start screen; while another member shops it turns live
+  // ("… is shopping now", progress); Due soon's + adds to the list; Budget opens Insights → Spending.
+  if (WRITE)
+    await step("shopping widgets (R18 S5 D3): Start → start screen, live state, Due soon +, Budget → Spending", async () => {
+      const r = {};
+      await page.goto(`${BASE}/`);
+      await page.waitForSelector('[data-home-grid] [data-widget="nextshop"] [data-next-start]', { timeout: 15000 });
+      await page.locator('[data-home-grid] [data-widget="nextshop"] [data-next-start]').click();
+      r.start = await page.waitForSelector("[data-store-start]", { timeout: 8000 }).then(() => true, () => false);
+      await page.locator("[data-store-close]").click().catch(() => {});
+      await page.goto(`${BASE}/`);
+      await page.waitForSelector("[data-home-grid] [data-widget]", { timeout: 15000 });
+      // Due soon: + adds the first due staple to the list.
+      const due = page.locator("[data-due-add]").first();
+      if (await due.count()) {
+        const key = await due.getAttribute("data-due-add");
+        await due.click();
+        r.due = await page.waitForFunction((k) => !document.querySelector(`[data-due-add="${k}"]`), key, { timeout: 5000 }).then(() => true, () => false);
+      } else r.due = "none due";
+      // Budget → Insights → Spending.
+      const bud = page.locator("[data-budget-open], [data-budget-none]").first();
+      await bud.click();
+      await page.waitForTimeout(700);
+      r.spending = await page.evaluate(() => location.search.includes("spending") || location.pathname.includes("spending") || !!document.querySelector("[data-spending], [data-settings]"));
+      // Live: another member's open trip in this space (local DB only) → "… is shopping now".
+      if (/localhost|127\.0\.0\.1/.test(BASE)) {
+        const { createClient } = await import("@libsql/client");
+        const db = createClient({ url: `file:${process.env.SMOKE_DB || "smoke.db"}` });
+        const spaces = (await db.execute("SELECT id FROM space")).rows.map((x) => x.id);
+        for (const sp of spaces) await db.execute({ sql: "INSERT INTO trip (id, space_id, user_id, chain, branch, started_at, planned, bought, not_found) VALUES (?, ?, 'smoke-other', 'shufersal', 'Herzl St.', ?, 12, 4, 0)", args: [`smoke-live-${sp}`, sp, Date.now()] });
+        await page.goto(`${BASE}/`);
+        r.live = await page.waitForSelector("[data-next-live]", { timeout: 12000 }).then(() => true, () => false);
+        await shot(page, "s5-next-live");
+        await db.execute("DELETE FROM trip WHERE id LIKE 'smoke-live-%'");
+        db.close();
+      } else r.live = true;
+      ok(r.start && r.due !== false && r.spending && r.live, "shopping widgets (R18 S5 D3): Start → start screen, live state, Due soon +, Budget → Spending", JSON.stringify(r));
     });
   // The logo returns to Home from every view.
   await step("logo returns to Home from every view", async () => {

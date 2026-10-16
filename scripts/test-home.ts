@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { addDays, cadenceOf, dayKeyIn, deliveryTrack, fallbackInsights, fallbackSuggestions, HIDE_MS, homeModel, homeSuggestions, mergeHome, monthGrid, reorderDue, shiftMonth, weekDays, type HomeInput } from "../src/lib/home";
 import { HOME_AI_CACHE_V, normalizeHomeAi, normalizeMoney, normalizePhrased, numbersIn, numbersKnown, validateHomeAi } from "../src/lib/home-ai";
 import { formatMoney } from "../src/lib/money";
-import { add, defaultLayout, fromLegacy, moveTo, parseLayout, patch, presetItems, PRESETS, remove, serialize, sizeFromDrag, unused, WIDGETS } from "../src/lib/home-layout";
+import { add, addTop, CARD_SIZES, defaultLayout, fromLegacy, moveTo, pack, parseLayout, patch, presetItems, PRESETS, remove, serialize, setSize, sizeFromDrag, sizeOf, swap, unused, WIDGETS, type HomeLayout, type LayoutItem } from "../src/lib/home-layout";
 import { homeExtras } from "../src/lib/home-widgets";
 import { FALLBACK_RATES } from "../src/lib/money";
 import type { Alert, Collection, ItemWithSources, PricePoint, Source } from "../src/lib/types";
@@ -356,12 +356,75 @@ assert.equal(addDays("2026-10-31", 1), "2026-11-01");
   const a = add(remove(d, "week"), "week", 1);
   assert.equal(a.items[1].id, "week");
   assert.equal(add(d, "left"), d, "already there");
-  assert.deepEqual(unused({ v: 2, preset: null, items: [] }).slice(0, 6), ["drops", "vslast", "nextdel", "bycat", "most", "activity"], "new widgets first in the tray");
+  assert.deepEqual(unused({ v: 2, preset: null, items: [] }).slice(0, 7), ["drops", "vslast", "nextdel", "bycat", "most", "activity", "due"], "new widgets first in the tray");
   assert.equal(unused({ v: 2, preset: null, items: WIDGETS.map((id) => ({ id, w: "M" as const, h: 1 as const })) }).length, 0);
   // corner drag: columns snap to the nearest of 3/6/12, rows to 1×/2×
   assert.deepEqual(sizeFromDrag({ id: "left", w: "S", h: 1 }, 3.4, 0.2), { w: "M", h: 1 });
   assert.deepEqual(sizeFromDrag({ id: "left", w: "M", h: 1 }, 5, 0.7), { w: "L", h: 2 });
   assert.deepEqual(sizeFromDrag({ id: "left", w: "L", h: 2 }, -9, -0.8), { w: "S", h: 1 });
+}
+
+// ---- R18 S5 D1–D3: cards (small / wide), dense packing, swap, add at the top, old layouts, the new presets ----
+{
+  const it = (id: LayoutItem["id"], size?: "small" | "wide", h: 1 | 2 = 1): LayoutItem => ({ id, w: size === "small" ? "S" : "M", h, ...(size ? { size } : {}) });
+  // D3: Household and Minimal start with Next shop, Budget, Due soon, then their own widgets.
+  assert.deepEqual(presetItems("household").slice(0, 3).map((x) => x.id), ["nextshop", "budget", "due"]);
+  assert.deepEqual(presetItems("minimal").map((x) => x.id), ["nextshop", "budget", "due", "left", "suggest"]);
+  assert.ok(presetItems("household", false).every((x) => x.id !== "activity"), "personal: still no Space today");
+  assert.deepEqual(presetItems("household").slice(0, 3).map(sizeOf), ["wide", "small", "wide"], "Next shop wide, Budget small, Due soon wide");
+  // Old layouts read as their current sizes: S → small, M / L → wide; a size a widget doesn't come in → its own.
+  assert.equal(sizeOf({ id: "left", w: "S", h: 1 }), "small");
+  assert.equal(sizeOf({ id: "left", w: "L", h: 1 }), "wide");
+  assert.equal(sizeOf({ id: "week", w: "S", h: 1 }), "wide", "a list widget is never small");
+  assert.equal(sizeOf({ id: "budget", w: "S", h: 1, size: "wide" }), "wide", "the card's own pick wins");
+  for (const id of WIDGETS) assert.ok(CARD_SIZES[id]?.length >= 1, `${id}: has a size`);
+  // A Household / Minimal layout saved before Due soon (never customised) gets it after Budget; a custom one doesn't.
+  const before = parseLayout(JSON.stringify({ v: 2, ns: 1, preset: "household", items: [{ id: "nextshop", w: "L", h: 1 }, { id: "budget", w: "S", h: 1 }, { id: "week", w: "M", h: 1 }] }))!;
+  assert.deepEqual(before.items.map((x) => x.id), ["nextshop", "budget", "due", "week"]);
+  const custom = parseLayout(JSON.stringify({ v: 2, ns: 1, preset: null, items: [{ id: "budget", w: "S", h: 1 }] }))!;
+  assert.deepEqual(custom.items.map((x) => x.id), ["budget"]);
+  const removedDue = parseLayout(serialize(remove(before, "due")))!;
+  assert.ok(!removedDue.items.some((x) => x.id === "due"), "removed after S5 stays removed (d5)");
+  // Sizes round-trip.
+  const sized = setSize(before, "budget", "wide");
+  assert.equal(parseLayout(serialize(sized))!.items.find((x) => x.id === "budget")!.size, "wide");
+  assert.equal(setSize(before, "week", "small"), before, "a size the widget doesn't come in is refused");
+  assert.equal(sized.preset, null, "a size change makes the layout custom");
+  // Dense packing, 2 columns: wide, small, wide, small → the second small fills the hole next to the first.
+  const two = pack([it("nextshop", "wide"), it("budget", "small"), it("due", "wide"), it("left", "small")], 2);
+  assert.deepEqual(two.map((c) => [c.id, c.col, c.row, c.cols]), [["nextshop", 0, 0, 2], ["budget", 0, 1, 1], ["due", 0, 2, 2], ["left", 1, 1, 1]]);
+  // 4 columns: small, wide, wide → the second wide goes to the next row's start; a later small fills the gap.
+  const four = pack([it("budget", "small"), it("nextshop", "wide"), it("due", "wide"), it("left", "small")], 4);
+  assert.deepEqual(four.map((c) => [c.id, c.col, c.row]), [["budget", 0, 0], ["nextshop", 1, 0], ["due", 0, 1], ["left", 3, 0]]);
+  // Two rows tall (older 2× layouts) block both rows.
+  const tall = pack([it("needs", "wide", 2), it("budget", "small"), it("left", "small"), it("way", "small")], 2);
+  assert.deepEqual(tall.map((c) => [c.id, c.col, c.row]), [["needs", 0, 0], ["budget", 0, 2], ["left", 1, 2], ["way", 0, 3]]);
+  // No overlaps, ever (random layouts).
+  for (let k = 0; k < 200; k++) {
+    const ids = [...WIDGETS].sort(() => Math.random() - 0.5).slice(0, 8);
+    const items = ids.map((id) => it(id, CARD_SIZES[id][Math.floor(Math.random() * CARD_SIZES[id].length)], Math.random() < 0.2 ? 2 : 1));
+    for (const cols of [2, 4]) {
+      const seen = new Set<string>();
+      for (const c of pack(items, cols))
+        for (let y = 0; y < c.rows; y++)
+          for (let x = 0; x < c.cols; x++) {
+            const key = `${c.col + x},${c.row + y}`;
+            assert.ok(!seen.has(key) && c.col + x < cols, `overlap at ${key}`);
+            seen.add(key);
+          }
+    }
+  }
+  // Swap exchanges two places (custom); unknown / same → unchanged.
+  const l: HomeLayout = { v: 2, preset: "household", items: [it("nextshop", "wide"), it("budget", "small"), it("left", "small")] };
+  const sw = swap(l, "budget", "nextshop");
+  assert.deepEqual(sw.items.map((x) => x.id), ["budget", "nextshop", "left"]);
+  assert.equal(sw.preset, null);
+  assert.equal(swap(l, "budget", "budget"), l);
+  assert.equal(swap(l, "budget", "week"), l);
+  // Add widget: at the top, in its default size; already there → unchanged.
+  const added = addTop(l, "drops");
+  assert.deepEqual([added.items[0].id, sizeOf(added.items[0])], ["drops", "small"]);
+  assert.equal(addTop(l, "left"), l);
 }
 
 // ---- R16 E2: the new indicators ----

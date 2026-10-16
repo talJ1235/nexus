@@ -12,17 +12,21 @@ export const WIDGETS = [
   "suggest", "week", "needs", "ontheway", "pace", "projects", "noticed",
   // E2: new indicators (hidden unless a preset has them)
   "drops", "vslast", "nextdel", "bycat", "most", "activity",
+  // R18 S5 D3: the staples due soon (supermarket)
+  "due",
 ] as const;
 export type WidgetId = (typeof WIDGETS)[number];
 export type Width = "S" | "M" | "L";
 export type PhoneWidth = "half" | "full";
-export type LayoutItem = { id: WidgetId; w: Width; h: 1 | 2; p?: PhoneWidth };
+/** R18 S5 D1: a card is small (1 cell) or wide (2 cells); `h` 2 = two rows tall (kept from older layouts). */
+export type CardSize = "small" | "wide";
+export type LayoutItem = { id: WidgetId; w: Width; h: 1 | 2; p?: PhoneWidth; size?: CardSize };
 export const PRESETS = ["household", "maker", "deals", "minimal"] as const;
 export type PresetId = (typeof PRESETS)[number];
 export type HomeLayout = { v: 2; preset: PresetId | null; items: LayoutItem[] };
 
-/** Widgets new in R16 (the tray marks them NEW). */
-export const NEW_WIDGETS: readonly WidgetId[] = ["drops", "vslast", "nextdel", "bycat", "most", "activity"];
+/** Widgets new in R16 (the tray marks them NEW); R18 S5 D3: Due soon. */
+export const NEW_WIDGETS: readonly WidgetId[] = ["due", "drops", "vslast", "nextdel", "bycat", "most", "activity"];
 /** Numbers are half width on phones by default; everything else full. */
 export const STAT_WIDGETS: readonly WidgetId[] = ["left", "budget", "way", "saved", "vslast", "nextdel"];
 /** List widgets show more rows at 2×. */
@@ -44,6 +48,12 @@ export function presetItems(p: PresetId, shared = true): LayoutItem[] {
         : p === "deals"
           ? [it("drops", "M", 2), it("saved", "S"), it("budget", "S"), it("suggest", "M"), it("vslast", "S"), it("nextdel", "S"), it("pace", "M")]
           : [it("nextshop", "L"), it("left", "M"), it("budget", "M"), it("suggest", "L")];
+  // R18 S5 D3: Household and Minimal start with Next shop, Budget, Due soon, then their own widgets.
+  if (p === "household" || p === "minimal") {
+    const head = [it("nextshop", "L"), it("budget", "S"), it("due", "L")];
+    const rest = list.filter((x) => !head.some((h) => h.id === x.id));
+    return [...head, ...rest].map((x) => (x.id === "activity" && !shared ? { ...x, id: "ontheway" as const } : x));
+  }
   return shared ? list : list.map((x) => (x.id === "activity" ? { ...x, id: "ontheway" } : x));
 }
 export const defaultLayout = (shared = true): HomeLayout => ({ v: 2, preset: "household", items: presetItems("household", shared) });
@@ -65,12 +75,17 @@ export function parseLayout(raw: string | null | undefined): HomeLayout | null {
       seen.add(x.id);
       const w: Width = x.w === "S" || x.w === "L" ? x.w : "M";
       const h = x.h === 2 ? 2 : 1;
-      items.push({ id: x.id, w, h, ...(x.p === "half" || x.p === "full" ? { p: x.p } : {}) });
+      items.push({ id: x.id, w, h, ...(x.p === "half" || x.p === "full" ? { p: x.p } : {}), ...(x.size === "small" || x.size === "wide" ? { size: x.size } : {}) });
     }
     // C4: a layout saved before the next-shop widget existed gets it where the card was (first); one saved since
     // (`ns`) keeps the person's choice, removed included.
     if (!v.ns && !seen.has("nextshop")) items.unshift(it("nextshop", "L"));
     const preset = (PRESETS as readonly string[]).includes(v.preset as string) ? (v.preset as PresetId) : null;
+    // R18 S5 D3: a Household / Minimal layout saved before Due soon existed (never customised) gets it after Budget.
+    if (!(v as { d5?: unknown }).d5 && (preset === "household" || preset === "minimal") && !seen.has("due")) {
+      const at = items.findIndex((x) => x.id === "budget");
+      items.splice(at < 0 ? Math.min(1, items.length) : at + 1, 0, it("due", "L"));
+    }
     return { v: 2, preset, items };
   } catch {
     return null;
@@ -99,7 +114,7 @@ export function fromLegacy(cookie: string | null | undefined): HomeLayout | null
   return { v: 2, preset: null, items };
 }
 
-export const serialize = (l: HomeLayout) => JSON.stringify({ v: 2, ns: 1, preset: l.preset, items: l.items.map(({ id, w, h, p }) => ({ id, w, h, ...(p ? { p } : {}) })) });
+export const serialize = (l: HomeLayout) => JSON.stringify({ v: 2, ns: 1, d5: 1, preset: l.preset, items: l.items.map(({ id, w, h, p, size }) => ({ id, w, h, ...(p ? { p } : {}), ...(size ? { size } : {}) })) });
 
 // ---- edits (each turns the layout custom) ----
 export function moveTo(l: HomeLayout, id: WidgetId, to: number): HomeLayout {
@@ -127,4 +142,90 @@ export function sizeFromDrag(start: LayoutItem, dCols: number, dRows: number): P
   const w = (["S", "M", "L"] as const).reduce((best, x) => (Math.abs(SPAN[x] - target) < Math.abs(SPAN[best] - target) ? x : best), start.w);
   const h = (start.h + (dRows >= 0.5 ? 1 : dRows <= -0.5 ? -1 : 0)) >= 2 ? 2 : 1;
   return { w, h };
+}
+
+// ---- R18 S5 D1 + D2: cards (small = 1 cell, wide = 2), dense packing, swap, add at the top ----
+
+/** Which sizes a widget comes in (the first is its default). Lists need the width; numbers fit a small card. */
+export const CARD_SIZES: Record<WidgetId, readonly CardSize[]> = {
+  nextshop: ["wide", "small"],
+  due: ["wide", "small"],
+  budget: ["small", "wide"],
+  left: ["small", "wide"],
+  way: ["small", "wide"],
+  saved: ["small", "wide"],
+  vslast: ["small", "wide"],
+  nextdel: ["small", "wide"],
+  drops: ["small", "wide"],
+  ontheway: ["small", "wide"],
+  suggest: ["wide", "small"],
+  week: ["wide"],
+  needs: ["wide"],
+  pace: ["wide"],
+  projects: ["wide"],
+  noticed: ["wide"],
+  bycat: ["wide"],
+  most: ["wide"],
+  activity: ["wide"],
+};
+
+/** A card's size: its own pick, else what an older layout's width meant (S → small, M / L → wide), within what it allows. */
+export function sizeOf(x: LayoutItem): CardSize {
+  const allowed = CARD_SIZES[x.id];
+  const want: CardSize = x.size ?? (x.w === "S" ? "small" : "wide");
+  return allowed.includes(want) ? want : allowed[0];
+}
+export const canResize = (id: WidgetId) => CARD_SIZES[id].length > 1;
+
+export type Cell = { id: WidgetId; col: number; row: number; cols: number; rows: number };
+
+/**
+ * Dense packing in `cols` columns (phone 2, computer 4): each card in order takes the first place (top to bottom, then
+ * start to end) where it fits — a small card fills the first hole a wide one left. Pure; the grid places cards with it.
+ */
+export function pack(items: readonly LayoutItem[], cols: number): Cell[] {
+  const taken: boolean[][] = [];
+  const free = (r: number, c: number) => !taken[r]?.[c];
+  const out: Cell[] = [];
+  for (const x of items) {
+    const w = Math.min(cols, sizeOf(x) === "wide" ? 2 : 1);
+    const h = x.h === 2 ? 2 : 1;
+    for (let r = 0; ; r++) {
+      let placed = false;
+      for (let c = 0; c + w <= cols; c++) {
+        let fits = true;
+        for (let dr = 0; dr < h && fits; dr++) for (let dc = 0; dc < w && fits; dc++) fits = free(r + dr, c + dc);
+        if (!fits) continue;
+        for (let dr = 0; dr < h; dr++) for (let dc = 0; dc < w; dc++) (taken[r + dr] ??= [])[c + dc] = true;
+        out.push({ id: x.id, col: c, row: r, cols: w, rows: h });
+        placed = true;
+        break;
+      }
+      if (placed) break;
+    }
+  }
+  return out;
+}
+
+/** D2: two cards swap places (the dragged card's centre over another). */
+export function swap(l: HomeLayout, a: WidgetId, b: WidgetId): HomeLayout {
+  const i = l.items.findIndex((x) => x.id === a);
+  const j = l.items.findIndex((x) => x.id === b);
+  if (i < 0 || j < 0 || i === j) return l;
+  const items = l.items.slice();
+  [items[i], items[j]] = [items[j], items[i]];
+  return { ...l, preset: null, items };
+}
+
+/** D2: the size chip (small ↔ wide, where the widget allows both). */
+export function setSize(l: HomeLayout, id: WidgetId, size: CardSize): HomeLayout {
+  if (!CARD_SIZES[id].includes(size)) return l;
+  return patch(l, id, { size, w: size === "small" ? "S" : "M" });
+}
+
+/** D2: "Add widget" puts it at the top, in its default size. */
+export function addTop(l: HomeLayout, id: WidgetId): HomeLayout {
+  if (l.items.some((x) => x.id === id)) return l;
+  const size = CARD_SIZES[id][0];
+  return { ...l, preset: null, items: [{ id, w: size === "small" ? "S" : "M", h: 1, size }, ...l.items] };
 }

@@ -347,21 +347,25 @@ for (const reduce of [false, true]) {
 }
 
 
-// ---- E1: Home customise (the admin's personal space has the demo data) ----
+// ---- E1 → R18 S5 D1/D2: Home cards + editing in place (the admin's personal space has the demo data) ----
 {
   const personal = (await db.execute({ sql: "SELECT s.id FROM space s JOIN space_member m ON m.space_id = s.id WHERE m.user_id = ? AND s.kind = 'personal' LIMIT 1", args: [admin.id] })).rows[0]?.id;
   await db.execute({ sql: "DELETE FROM user_pref WHERE user_id = ? AND key LIKE 'pref:home:layout%'", args: [admin.id] });
   const order = (page) => page.$$eval("[data-home-grid] [data-widget]", (els) => els.map((e) => e.getAttribute("data-widget")));
   const { ctx, page } = await open({ width: 1366, height: 768 }, { space: personal });
   await page.goto(`${BASE}/`);
-  await page.waitForSelector("[data-home-grid]", { timeout: 30000 });
-  await page.locator("[data-home-customize]").click();
-  await page.waitForSelector("[data-home-customizing]");
-  ok((await page.locator('[data-home-preset="household"]').getAttribute("aria-checked")) === "true", "E1 default = Household preset");
-  // Drag "This week" onto "Left to buy" with the mouse; sample frames while dragging.
-  const before = await order(page);
-  const h = await page.locator('[data-widget-handle="week"]').boundingBox();
-  const target = await page.locator('[data-widget="left"]').boundingBox();
+  await page.waitForSelector("[data-home-grid] [data-widget]", { timeout: 30000 });
+  const cols = await page.locator("[data-home-grid]").getAttribute("data-cols");
+  const start = await order(page);
+  ok(cols === "4" && ["nextshop", "budget"].includes(start[0]) && start.includes("budget"), "D1 computer: 4 columns, Household starts with Next shop / Budget", `${cols} ${start.join(",")}`);
+  const radius = await page.locator('[data-home-grid] [data-widget="budget"] .r13-card').evaluate((e) => getComputedStyle(e).borderTopLeftRadius);
+  ok(radius === "26px", "D1 every card: radius 26", radius);
+  // Long-press "This week" (450 ms, still) → edit mode with it lifted; carried over "Left to buy" → they swap.
+  const wk = page.locator('[data-home-grid] [data-widget="week"]');
+  // The supermarket's numbers arrive after the first paint (Due soon may join the grid): press once Home has settled.
+  await page.waitForTimeout(1200);
+  await wk.evaluate((e) => e.scrollIntoView({ block: "center" }));
+  const h = await wk.boundingBox();
   await page.evaluate(() => {
     window.__f = [];
     let last = performance.now();
@@ -371,96 +375,105 @@ for (const reduce of [false, true]) {
   });
   await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
   await page.mouse.down();
-  const steps = 40;
-  let lifted = false;
+  await page.waitForTimeout(650);
+  const editing = await page.locator('[data-home-cards="edit"]').count();
+  const lifted = await wk.evaluate((e) => e.classList.contains("wv2-lifted"));
+  // Edit mode shows every card (an empty one too), so the order and the target are read now.
+  const editStart = await order(page);
+  const target = await page.locator('[data-home-grid] [data-widget="left"]').boundingBox();
+  // A brisk move (it doesn't rest 220 ms over the cards on the way), then a rest over the target, wiggling a little so
+  // frames keep coming.
+  const steps = 10;
+  const tx = target.x + target.width / 2;
+  const ty = target.y + target.height / 2;
   for (let k = 1; k <= steps; k++) {
-    await page.mouse.move(h.x + ((target.x + 40 - h.x) * k) / steps, h.y + ((target.y + 40 - h.y) * k) / steps);
-    await page.waitForTimeout(16);
-    if (k === steps / 2) lifted = (await page.locator('[data-widget="week"]').evaluate((e) => e.style.transform)).includes("translate");
+    await page.mouse.move(h.x + h.width / 2 + ((tx - h.x - h.width / 2) * k) / steps, h.y + h.height / 2 + ((ty - h.y - h.height / 2) * k) / steps);
+    await page.waitForTimeout(8);
+  }
+  for (let k = 0; k < 20; k++) {
+    await page.mouse.move(tx + (k % 2), ty);
+    await page.waitForTimeout(25);
   }
   await page.mouse.up();
   const frames = await page.evaluate(() => ((window.__run = false), window.__f.slice(2)));
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(400);
   const after = await order(page);
   const sorted = [...frames].sort((a, b) => a - b);
   const fps = Math.round(1000 / sorted[Math.floor(sorted.length / 2)]);
-  console.log(`  E1 drag timing: median ${fps} fps, frames > 32 ms: ${frames.filter((d) => d > 32).length}/${frames.length}, worst ${Math.round(sorted[sorted.length - 1])} ms`);
-  ok(lifted && after.indexOf("week") < before.indexOf("week") && after.indexOf("week") <= after.indexOf("left"), "E1 drag reorders (the widget follows the pointer, lands before Left to buy)", `${before.join(",")} → ${after.join(",")}`);
-  ok(fps >= 55, "E1 drag runs at ≥ 55 fps (median frame)", String(fps));
-  ok((await page.locator('[data-home-preset="custom"]').count()) === 1, "E1 an edit turns the layout Custom");
-  // Keyboard: the grip moves with the arrows.
+  console.log(`  D2 drag timing: median ${fps} fps, frames > 32 ms: ${frames.filter((d) => d > 32).length}/${frames.length}, worst ${Math.round(sorted[sorted.length - 1])} ms`);
+  ok(editing === 1 && lifted && after.indexOf("week") === editStart.indexOf("left") && after.indexOf("left") === editStart.indexOf("week"), "D2 long-press lifts the card; over another card they swap", `${editStart.join(",")} → ${after.join(",")}`);
+  ok(fps >= 55, "D2 drag runs at ≥ 55 fps (median frame)", String(fps));
+  ok((await page.evaluate(() => document.documentElement.hasAttribute("data-home-edit"))) && (await page.locator("[data-ask-fab]").evaluate((e) => getComputedStyle(e).visibility).catch(() => "hidden")) === "hidden", "D2 edit mode: the floating Ask hides");
+  // Keyboard: the focused card moves with the arrows; Delete removes it.
   const k0 = (await order(page)).indexOf("needs");
-  await page.locator('[data-widget-handle="needs"]').focus();
-  await page.keyboard.press("ArrowUp");
-  ok((await order(page)).indexOf("needs") === k0 - 1, "E1 keyboard: ArrowUp on the grip moves the widget one place");
-  // Size menu: Budget → L, 2×.
+  await page.locator('[data-home-grid] [data-widget="needs"]').focus();
+  await page.keyboard.press("ArrowLeft");
+  ok((await order(page)).indexOf("needs") === k0 - 1, "D2 keyboard: an arrow moves the focused card one place");
+  // Size chip: Budget small → wide.
   await page.locator('[data-widget-size="budget"]').click();
-  await page.locator('[data-size-w="L"]').click();
-  await page.locator('[data-size-h="2"]').click();
-  await page.keyboard.press("Escape");
-  const b = page.locator('[data-home-grid] [data-widget="budget"]');
-  ok((await b.getAttribute("data-w")) === "L" && (await b.getAttribute("data-h")) === "2", "E1 size menu: width L, height 2×");
-  // Corner resize: Left to buy S → M by pulling right (scrolled into view: R18 S3's full-width next-shop widget comes first).
-  await page.locator('[data-widget-resize="left"]').evaluate((e) => e.scrollIntoView({ block: "center" })); // not under the floating add bar
-  const r = await page.locator('[data-widget-resize="left"]').boundingBox();
-  await page.mouse.move(r.x + 8, r.y + 8);
-  await page.mouse.down();
-  await page.mouse.move(r.x + 8 + 200, r.y + 8, { steps: 8 });
-  await page.mouse.up();
-  ok((await page.locator('[data-home-grid] [data-widget="left"]').getAttribute("data-w")) === "M", "E1 corner handle resizes (S → M)");
-  // Hide + add from the tray.
+  await page.waitForTimeout(350);
+  ok((await page.locator('[data-home-grid] [data-widget="budget"]').getAttribute("data-size")) === "wide", "D2 size chip: small → wide");
+  // "−" removes; "Add widget" (a dialog on a computer) adds at the top.
   await page.locator('[data-widget-hide="saved"]').click();
-  ok((await page.locator('[data-home-grid] [data-widget="saved"]').count()) === 0 && (await page.locator('[data-tray-item="saved"]').count()) === 1, "E1 hide → back in the tray");
+  await page.waitForTimeout(400);
+  ok((await page.locator('[data-home-grid] [data-widget="saved"]').count()) === 0, "D2 − removes a card");
+  await page.locator("[data-home-add-widget]").click();
   await page.locator('[data-tray-add="drops"]').click();
-  ok((await page.locator('[data-home-grid] [data-widget="drops"]').count()) === 1, "E1 + adds a new widget (Price drops)");
-  // Drag in from the tray (from the top of the page: the grid's first row must be on screen).
-  await page.evaluate(() => window.scrollTo(0, 0));
-  const ti = await page.locator('[data-tray-item="most"]').boundingBox();
-  const g = await page.locator("[data-home-grid]").boundingBox();
-  await page.mouse.move(ti.x + 30, ti.y + ti.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(g.x + 100, g.y + 60, { steps: 12 });
-  await page.mouse.move(g.x + 110, g.y + 70, { steps: 4 });
-  await page.mouse.up();
-  await page.waitForTimeout(300);
-  const draft = await order(page);
-  ok(draft.includes("most") && draft.indexOf("most") < 3, "E1 drag a widget in from the tray", draft.join(","));
+  await page.waitForTimeout(400);
+  ok((await order(page))[0] === "drops", "D2 Add widget puts it at the top", (await order(page)).join(","));
+  await page.locator('[data-home-grid] [data-widget="nextdel"]').focus();
+  await page.keyboard.press("Delete");
+  await page.waitForTimeout(400);
+  ok((await page.locator('[data-home-grid] [data-widget="nextdel"]').count()) === 0, "D2 keyboard: Delete removes the focused card");
   await page.locator("[data-home-done]").click();
   await page.waitForTimeout(800);
   await page.reload();
-  await page.waitForSelector("[data-home-grid]", { timeout: 30000 });
+  await page.waitForSelector("[data-home-grid] [data-widget]", { timeout: 30000 });
   const saved = await order(page);
   const pref = (await db.execute({ sql: "SELECT value FROM user_pref WHERE user_id = ? AND key = ?", args: [admin.id, `pref:home:layout:${personal}`] })).rows[0]?.value;
-  ok(saved.includes("drops") && saved.includes("most") && !saved.includes("saved") && !!pref && JSON.parse(pref).preset === null, "E1 Done saves the layout per user per space; it survives a reload", saved.join(","));
-  // Preset: Minimal.
+  ok(saved.includes("drops") && !saved.includes("saved") && !!pref && JSON.parse(pref).preset === null && JSON.parse(pref).items.find((x) => x.id === "budget")?.size === "wide", "D2 Done saves the layout per user per space (sizes too); it survives a reload", saved.join(","));
+  // A press that moves first is a scroll — no edit mode.
+  const b = await page.locator('[data-home-grid] [data-widget="budget"]').boundingBox();
+  await page.mouse.move(b.x + 40, b.y + 40);
+  await page.mouse.down();
+  await page.mouse.move(b.x + 40, b.y + 80, { steps: 4 });
+  await page.waitForTimeout(600);
+  await page.mouse.up();
+  ok((await page.locator('[data-home-cards="edit"]').count()) === 0, "D2 moving before 450 ms is a scroll, not edit mode");
+  // Preset: Minimal (from Add widget), through the pencil.
   await page.locator("[data-home-customize]").click();
+  await page.locator("[data-home-add-widget]").click();
   await page.locator('[data-home-preset="minimal"]').click();
   await page.locator("[data-home-done]").click();
   await page.waitForTimeout(500);
   const min = await order(page);
-  // R18 S3 C4: Minimal starts with the next shop (it shows only when there's a list or a trip).
-  ok(min.length >= 1 && min.every((id) => ["nextshop", "left", "budget", "suggest"].includes(id)), "E1 preset Minimal → Next shop, Left to buy, Budget, Nexus suggests", min.join(","));
+  ok(min.length >= 1 && min.every((id) => ["nextshop", "budget", "due", "left", "suggest"].includes(id)), "D3 preset Minimal → Next shop, Budget, Due soon, Left to buy, Nexus suggests", min.join(","));
   await ctx.close();
   const other = (await db.execute({ sql: "SELECT value FROM user_pref WHERE user_id = ? AND key = ?", args: [admin.id, `pref:home:layout:${SPACE}`] })).rows[0];
-  ok(!other, "E1 a layout is saved for its own space only");
-  // Phone: half/full and 2× per widget, the add sheet; no overflow at 360 (Hebrew).
+  ok(!other, "D2 a layout is saved for its own space only");
+  // Phone: 2 columns of square cells; long-press → edit, the size chip, the add sheet; no overflow at 360 (Hebrew).
   await db.execute({ sql: "DELETE FROM user_pref WHERE user_id = ? AND key LIKE 'pref:home:layout%'", args: [admin.id] });
   for (const width of [390, 360]) {
     const o = await open({ width, height: 800 }, { space: personal, he: width === 360 });
     await o.page.goto(`${BASE}/`);
-    await o.page.waitForSelector("[data-home-grid]", { timeout: 30000 });
-    await o.page.locator("[data-home-customize]").click();
-    await o.page.waitForSelector("[data-home-customizing]");
-    const left = o.page.locator('[data-home-grid] [data-widget="left"]');
-    const w0 = (await left.boundingBox()).width;
-    await left.locator('[data-widget-p="full"]').click();
-    const w1 = (await left.boundingBox()).width;
-    await left.locator('[data-widget-h2="left"]').click();
+    await o.page.waitForSelector("[data-home-grid] [data-widget]", { timeout: 30000 });
+    const cols2 = await o.page.locator("[data-home-grid]").getAttribute("data-cols");
+    const bud = o.page.locator('[data-home-grid] [data-widget="budget"]');
+    const bb = await bud.boundingBox();
+    await o.page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+    await o.page.mouse.down();
+    await o.page.waitForTimeout(650);
+    await o.page.mouse.up();
+    const ed = await o.page.locator('[data-home-cards="edit"]').count();
+    await o.page.locator('[data-widget-size="budget"]').click();
+    await o.page.waitForTimeout(350);
+    const wideW = (await bud.boundingBox()).width;
     const wide = await o.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     await o.page.locator("[data-home-add-widget]").click();
     await o.page.locator('[data-tray-add="most"]').click();
+    await o.page.waitForTimeout(300);
     const most = await o.page.locator('[data-home-grid] [data-widget="most"]').count();
-    ok(w1 > w0 * 1.7 && (await left.getAttribute("data-h")) === "2" && most === 1 && wide <= 1, `E1 phone ${width}: half → full, 2×, add from the sheet, no overflow`, JSON.stringify({ w0, w1, most, wide }));
+    ok(cols2 === "2" && Math.abs(bb.width - bb.height) <= 2 && ed === 1 && wideW > bb.width * 1.8 && most === 1 && wide <= 1, `D1/D2 phone ${width}: square cells, long-press edit, small → wide, add from the sheet, no overflow`, JSON.stringify({ cols2, bb: [bb.width, bb.height], ed, wideW, most, wide }));
     await o.ctx.close();
   }
   await db.execute({ sql: "DELETE FROM user_pref WHERE user_id = ? AND key LIKE 'pref:home:layout%'", args: [admin.id] });

@@ -1,21 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BarChart3, CalendarDays, EyeOff, Folder, GripVertical, Home, Minus, PiggyBank, Plus, RotateCcw, ShoppingBasket, ShoppingCart, Sparkles, Star, Tag, TrendingDown, TrendingUp, Truck, Users, Wallet, Wrench, AlertTriangle, ChevronDown } from "lucide-react";
+import { AlertTriangle, BarChart3, CalendarClock, CalendarDays, Folder, Maximize2, Minimize2, Minus, PiggyBank, Plus, ShoppingBasket, ShoppingCart, Sparkles, Star, TrendingDown, TrendingUp, Truck, Users, Wallet } from "lucide-react";
 import { useI18n } from "@/components/providers";
-import { Pop, PopContent, PopTrigger, Sheet } from "@/components/ui/overlays";
-import { add, moveTo, NEW_WIDGETS, patch, phoneWidth, PRESETS, presetItems, remove, sizeFromDrag, SPAN, unused, type HomeLayout, type LayoutItem, type PresetId, type WidgetId, type Width } from "@/lib/home-layout";
+import { Modal, Sheet } from "@/components/ui/overlays";
+import { useDevice } from "@/components/ui/use-device";
+import { addTop, canResize, moveTo, NEW_WIDGETS, pack, PRESETS, presetItems, remove, setSize, sizeOf, swap, unused, type HomeLayout, type WidgetId } from "@/lib/home-layout";
 import { cn } from "@/lib/utils";
-import { EASE_OUT } from "@/lib/motion";
 
 /**
- * R16 E1 — Home's widget grid (board HomeCustomize). View: 12 columns on desktop (S/M/L = 3/6/12), 2 on phones
- * (half/full), rows 1× or 2× tall, dense flow so gaps fill. Customise: presets, drag to reorder (FLIP: the others
- * glide to their new places, transform-only), the corner handle or the size menu to resize, hide, and the tray
- * (desktop side panel / phone sheet) to add — drag a widget in or tap +. Keyboard: the grip moves with the arrows.
+ * R18 S5 D1 + D2 (boards Home-widgets-phone / -desktop, Widgets-catalog) — Home's cards. Every widget sits in one card
+ * shell (radius 26, a 28 px round icon chip, one accent per widget for its visual only); small = 1 cell, wide = 2.
+ * Grid: phone 2 columns of square cells, computer 4 (~259 × 196), dense packing (`pack` in lib/home-layout.ts places
+ * every card, so the tested order is the drawn one). Edit in place: long-press a card 450 ms without moving (10 px slop
+ * — moving earlier is a scroll) → edit mode starts with that card lifted under the finger; it follows the pointer and,
+ * when its centre rests over another card (220 ms), the two swap; the rest glide to their new slots (300 ms drawer
+ * ease). In edit mode: an outline on every card, "−" removes (scale out 200 ms, then repack), a size chip (small ↔
+ * wide where allowed), "Add widget" (phone: bottom sheet; computer: dialog; added at the top with a short highlight),
+ * "Done". The pencil on Home enters it too: arrow keys move the focused card, Delete removes it. No wiggle.
  */
 
-export type RenderWidget = (id: WidgetId, h: 1 | 2, editing: boolean) => React.ReactNode | null;
+export type RenderWidget = (id: WidgetId, h: 1 | 2, editing: boolean, size: "small" | "wide") => React.ReactNode | null;
 
 export const WIDGET_ICON: Record<WidgetId, React.ReactNode> = {
   nextshop: <ShoppingBasket />,
@@ -36,81 +41,114 @@ export const WIDGET_ICON: Record<WidgetId, React.ReactNode> = {
   bycat: <BarChart3 />,
   most: <Star />,
   activity: <Users />,
+  due: <CalendarClock />,
 };
-const PRESET_ICON: Record<PresetId, React.ReactNode> = { household: <Home />, maker: <Wrench />, deals: <Tag />, minimal: <Minus /> };
 
-const cellStyle = (x: LayoutItem, k: number | null) =>
-  ({ "--span": SPAN[x.w], "--pspan": phoneWidth(x) === "half" ? 1 : 2, "--rows": x.h, ...(k != null ? { "--d": `${(k + 1) * 50}ms` } : {}) }) as React.CSSProperties;
-
-export function WidgetGrid({ layout, render, stagger }: { layout: HomeLayout; render: RenderWidget; stagger: boolean }) {
-  return (
-    <div className="hgrid desk:col-span-12" data-home-grid>
-      {layout.items.map((x, k) => {
-        const node = render(x.id, x.h, false);
-        if (!node) return null;
-        return (
-          <div key={x.id} className={cn("hw", stagger && "r13-rise")} style={cellStyle(x, stagger ? k : null)} data-widget={x.id} data-w={x.w} data-h={x.h}>
-            {node}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+/** One accent per widget (nx-s5.css `.w-*`), for its visual only — text stays ink. */
+export const WIDGET_ACCENT: Record<WidgetId, string> = {
+  nextshop: "#2f9a58",
+  budget: "#2f6fd1",
+  way: "#e07a1f",
+  ontheway: "#e07a1f",
+  nextdel: "#e07a1f",
+  saved: "#1a9a8f",
+  drops: "#d2456f",
+  suggest: "#e8920a",
+  noticed: "#e8920a",
+  week: "#7c5ad9",
+  bycat: "#7c5ad9",
+  most: "#c98a12",
+  due: "#d0573f",
+  needs: "#d0573f",
+  projects: "#3a8fc4",
+  pace: "#2f6fd1",
+  vslast: "#2f6fd1",
+  activity: "#1a9a8f",
+  left: "#5a5955",
+};
 
 const reduced = () => typeof window !== "undefined" && (window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.getAttribute("data-motion") === "reduce");
-const EASE = EASE_OUT;
+const DRAWER = "cubic-bezier(.32,.72,0,1)";
+const LONG_MS = 450;
+const SLOP = 10;
+const SWAP_MS = 220;
 type Pt = { x: number; y: number };
+const clock = () => performance.now();
+/** A dropped card glides from where it was dragged to its slot. */
+function settle(el: HTMLElement) {
+  const from = el.style.transform;
+  el.style.transform = "";
+  if (!reduced() && from && from !== "none") el.animate([{ transform: from }, { transform: "none" }], { duration: 300, easing: DRAWER });
+}
 
-export function Customise({
-  draft,
-  setDraft,
-  render,
-  shared,
-  desktop,
-  onDone,
-  onReset,
-}: {
-  draft: HomeLayout;
-  setDraft: React.Dispatch<React.SetStateAction<HomeLayout>>;
-  render: RenderWidget;
-  shared: boolean;
-  desktop: boolean;
-  onDone: () => void;
-  onReset: () => void;
-}) {
-  const { t, f, locale } = useI18n();
-  const rtl = locale === "he";
+export function HomeCards({ layout, render, onSave, stagger, shared, editRequest }: { layout: HomeLayout; render: RenderWidget; onSave: (l: HomeLayout) => void; stagger: boolean; shared: boolean; editRequest: number }) {
+  const { t, f } = useI18n();
+  const desk = useDevice() === "computer";
+  const cols = desk ? 4 : 2;
+  const [draft, setDraft] = useState<HomeLayout | null>(null);
+  const editing = draft != null;
+  const cur = draft ?? layout;
   const grid = useRef<HTMLDivElement>(null);
   const cells = useRef(new Map<WidgetId, HTMLDivElement>());
-  const latest = useRef(draft);
+  const latest = useRef(cur);
   useEffect(() => {
-    latest.current = draft;
+    latest.current = cur;
   });
-  const [dragId, setDragId] = useState<WidgetId | null>(null);
+  const [lifted, setLifted] = useState<WidgetId | null>(null);
+  const [fresh, setFresh] = useState<WidgetId | null>(null);
+  const [leaving, setLeaving] = useState<WidgetId | null>(null);
+  const [adding, setAdding] = useState(false);
   const [say, setSay] = useState("");
-  const [trayOpen, setTrayOpen] = useState(false);
-  const drag = useRef<{ id: WidgetId; grab: Pt; at: Pt; last: { target: WidgetId; t: number } | null } | null>(null);
-  const before = useRef<Map<WidgetId, Pt> | null>(null);
-  const pendingDrag = useRef<{ id: WidgetId; at: Pt } | null>(null);
-  const startRef = useRef<((id: WidgetId, at: Pt, grab?: Pt) => void) | null>(null);
+  const [rowH, setRowH] = useState<number | null>(null);
+  const before = useRef<Map<WidgetId, DOMRect> | null>(null);
+  // `swappedAt`: where the last swap happened — the reflow after a swap puts another card under a still finger, so no
+  // new swap until the pointer moves 24 px on (no cascade).
+  const drag = useRef<{ id: WidgetId; grab: Pt; at: Pt; over: { id: WidgetId; since: number } | null; pid: number; swappedAt: Pt | null } | null>(null);
 
-  // ---- FLIP: remember where everyone was, change the layout, then glide from there.
-  const flip = useCallback(
-    (fn: (l: HomeLayout) => HomeLayout) => {
-      const m = new Map<WidgetId, Pt>();
-      cells.current.forEach((el, id) => m.set(id, { x: el.offsetLeft, y: el.offsetTop }));
-      before.current = m;
-      setDraft(fn);
-    },
-    [setDraft],
-  );
-  const place = useCallback((at: Pt) => {
+  // Square cells on a phone (row = column width); 196 px rows on a computer.
+  useLayoutEffect(() => {
+    const g = grid.current;
+    if (!g) return;
+    const read = () => {
+      const gap = desk ? 14 : 10;
+      setRowH(desk ? 196 : Math.round((g.clientWidth - gap * (cols - 1)) / cols));
+    };
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(g);
+    return () => ro.disconnect();
+  }, [desk, cols]);
+
+  // Edit mode on <html> (the floating Ask hides; the page knows).
+  useEffect(() => {
+    if (!editing) return;
+    document.documentElement.setAttribute("data-home-edit", "");
+    return () => document.documentElement.removeAttribute("data-home-edit");
+  }, [editing]);
+
+  // The pencil (Home header) asks for edit mode: keyboard and screen readers get the same as a long-press.
+  const lastReq = useRef(editRequest);
+  useEffect(() => {
+    if (editRequest === lastReq.current) return;
+    lastReq.current = editRequest;
+    setDraft(layout);
+    setSay(t.hc.keysHint);
+  }, [editRequest, layout, t.hc.keysHint]);
+
+  // ---- FLIP: remember every card's box, change the layout, then glide from there (the lifted card excluded).
+  const flip = useCallback((fn: (l: HomeLayout) => HomeLayout) => {
+    const m = new Map<WidgetId, DOMRect>();
+    cells.current.forEach((el, id) => m.set(id, el.getBoundingClientRect()));
+    before.current = m;
+    setDraft((d) => fn(d ?? latest.current));
+  }, []);
+  const follow = useCallback(() => {
     const d = drag.current;
     const el = d && cells.current.get(d.id);
-    const g = grid.current?.getBoundingClientRect();
-    if (!d || !el || !g) return;
-    el.style.transform = `translate(${at.x - g.left - d.grab.x - el.offsetLeft}px, ${at.y - g.top - d.grab.y - el.offsetTop}px) rotate(-1deg) scale(1.02)`;
+    if (!d || !el) return;
+    el.style.transform = "none";
+    const r = el.getBoundingClientRect();
+    el.style.transform = `translate(${d.at.x - d.grab.x - r.left}px, ${d.at.y - d.grab.y - r.top}px) scale(1.04)`;
   }, []);
   useLayoutEffect(() => {
     const b = before.current;
@@ -120,308 +158,297 @@ export function Customise({
         if (id === drag.current?.id) return;
         const p = b.get(id);
         if (!p) return;
-        const dx = p.x - el.offsetLeft;
-        const dy = p.y - el.offsetTop;
-        if (dx || dy) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 220, easing: EASE });
+        const r = el.getBoundingClientRect();
+        const dx = p.left - r.left;
+        const dy = p.top - r.top;
+        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 300, easing: DRAWER });
       });
-    if (drag.current) place(drag.current.at);
-    const pd = pendingDrag.current;
-    if (pd && cells.current.get(pd.id)) {
-      pendingDrag.current = null;
-      const el = cells.current.get(pd.id)!;
-      startRef.current?.(pd.id, pd.at, { x: Math.min(el.offsetWidth / 2, 120), y: 22 });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft]);
+    if (drag.current) follow();
+  }, [cur, follow]);
 
-  // ---- drag a widget (pointer); the window listens so a drag that starts in the tray keeps going.
-  const start = (id: WidgetId, at: Pt, grab?: Pt) => {
+  // ---- drag (edit mode): the card follows the pointer; its centre over another card for 220 ms → they swap.
+  // `grab` = where the finger holds the card (from the press: entering edit mode can reflow the grid, and the card must
+  // stay under the finger even if its slot moved).
+  const startDrag = (id: WidgetId, at: Pt, pid: number, target: HTMLElement, grab?: Pt) => {
     const el = cells.current.get(id);
     if (!el) return;
     const r = el.getBoundingClientRect();
-    drag.current = { id, grab: grab ?? { x: at.x - r.left, y: at.y - r.top }, at, last: null };
-    setDragId(id);
-    place(at);
-    let raf = 0;
-    const move = (e: PointerEvent) => {
-      e.preventDefault();
-      const d = drag.current;
-      if (!d) return;
-      d.at = { x: e.clientX, y: e.clientY };
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        place(d.at);
-        const g = grid.current!.getBoundingClientRect();
-        const px = d.at.x - g.left;
-        const py = d.at.y - g.top;
-        const items = latest.current.items;
-        for (const x of items) {
-          if (x.id === d.id) continue;
-          const c = cells.current.get(x.id);
-          if (!c || px < c.offsetLeft || px > c.offsetLeft + c.offsetWidth || py < c.offsetTop || py > c.offsetTop + c.offsetHeight) continue;
-          // Hysteresis: the cell that just moved away can't pull it straight back.
-          if (d.last && d.last.target === x.id && performance.now() - d.last.t < 260) break;
-          d.last = { target: x.id, t: performance.now() };
-          flip((l) => moveTo(l, d.id, l.items.findIndex((y) => y.id === x.id)));
-          break;
-        }
-      });
-    };
-    const end = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", end);
-      window.removeEventListener("pointercancel", end);
-      window.removeEventListener("keydown", esc);
-      cancelAnimationFrame(raf);
-      const d = drag.current;
-      drag.current = null;
-      setDragId(null);
-      const el2 = d && cells.current.get(d.id);
-      if (!el2) return;
-      const from = el2.style.transform;
-      el2.style.transform = "";
-      if (!reduced() && from) el2.animate([{ transform: from }, { transform: "none" }], { duration: 180, easing: EASE });
-      const k = latest.current.items.findIndex((y) => y.id === d!.id);
-      setSay(f(t.hc.moved, { name: t.hc.names[d!.id], n: k + 1 }));
-    };
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && end();
-    window.addEventListener("pointermove", move, { passive: false });
-    window.addEventListener("pointerup", end);
-    window.addEventListener("pointercancel", end);
-    window.addEventListener("keydown", esc);
+    drag.current = { id, grab: grab ?? { x: at.x - r.left, y: at.y - r.top }, at, over: null, pid, swappedAt: null };
+    setLifted(id);
+    try {
+      target.setPointerCapture(pid);
+    } catch {}
+    try {
+      navigator.vibrate?.(12);
+    } catch {}
+    setSay(f(t.hc.lifted, { name: t.hc.names[id] }));
+    follow();
   };
-
-  useEffect(() => {
-    startRef.current = start;
-  });
-
-  // ---- resize from the corner: columns → S/M/L, rows → 1×/2×.
-  const resize = (x: LayoutItem, e: React.PointerEvent) => {
+  const moveDrag = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d || e.pointerId !== d.pid) return;
     e.preventDefault();
-    e.stopPropagation();
-    const g = grid.current!.getBoundingClientRect();
-    const colW = g.width / 12;
-    const rowH = 146;
-    const s0 = { x: e.clientX, y: e.clientY };
-    const move = (ev: PointerEvent) => {
-      const dCols = ((ev.clientX - s0.x) / colW) * (rtl ? -1 : 1);
-      const next = sizeFromDrag(x, dCols, (ev.clientY - s0.y) / rowH);
-      const cur = latest.current.items.find((y) => y.id === x.id);
-      if (cur && (cur.w !== next.w || cur.h !== next.h)) flip((l) => patch(l, x.id, next));
-    };
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    d.at = { x: e.clientX, y: e.clientY };
+    follow();
+    const el = cells.current.get(d.id)!;
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    let hit: WidgetId | null = null;
+    cells.current.forEach((c, id) => {
+      if (id === d.id || hit) return;
+      const b = c.getBoundingClientRect();
+      if (cx >= b.left && cx <= b.right && cy >= b.top && cy <= b.bottom) hit = id;
+    });
+    if (d.swappedAt && Math.hypot(d.at.x - d.swappedAt.x, d.at.y - d.swappedAt.y) < 24) return void (d.over = null);
+    d.swappedAt = null;
+    if (!hit) return void (d.over = null);
+    if (d.over?.id !== hit) return void (d.over = { id: hit, since: clock() });
+    if (clock() - d.over.since < SWAP_MS) return;
+    const other: WidgetId = hit;
+    d.over = null;
+    d.swappedAt = d.at;
+    flip((l) => swap(l, d.id, other));
+    setSay(f(t.hc.swapped, { name: t.hc.names[d.id], other: t.hc.names[other] }));
+  };
+  // A swap fires while the pointer rests too (no move event): check on a timer while lifted.
+  useEffect(() => {
+    if (!lifted) return;
+    const id = setInterval(() => {
+      const d = drag.current;
+      if (d?.over && !d.swappedAt && clock() - d.over.since >= SWAP_MS) {
+        const other = d.over.id;
+        d.over = null;
+        d.swappedAt = d.at;
+        flip((l) => swap(l, d.id, other));
+      }
+    }, 60);
+    return () => clearInterval(id);
+  }, [lifted, flip]);
+  const endDrag = () => {
+    const d = drag.current;
+    drag.current = null;
+    setLifted(null);
+    const el = d && cells.current.get(d.id);
+    if (el) settle(el);
   };
 
-  // ---- the tray: tap + to add at the end, or drag the row into the grid.
-  const trayDown = (id: WidgetId, e: React.PointerEvent) => {
-    if ((e.target as Element).closest("button")) return;
-    const s0 = { x: e.clientX, y: e.clientY };
-    const move = (ev: PointerEvent) => {
-      if (Math.hypot(ev.clientX - s0.x, ev.clientY - s0.y) < 6) return;
-      const g = grid.current?.getBoundingClientRect();
-      if (!g || ev.clientX < g.left || ev.clientX > g.right || ev.clientY < g.top || ev.clientY > g.bottom) return;
-      up();
-      // Insert before the cell under the pointer (else at the end), then carry it.
-      const px = ev.clientX - g.left;
-      const py = ev.clientY - g.top;
-      let at = latest.current.items.length;
-      latest.current.items.forEach((x, k) => {
-        const c = cells.current.get(x.id);
-        if (c && at === latest.current.items.length && py < c.offsetTop + c.offsetHeight && (py < c.offsetTop || px < c.offsetLeft + c.offsetWidth)) at = k;
-      });
-      pendingDrag.current = { id, at: { x: ev.clientX, y: ev.clientY } };
-      flip((l) => add(l, id, at));
-    };
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
+  // ---- long-press (view mode) → edit mode with that card lifted; moving first is a scroll. In edit mode a press that
+  // moves picks the card up at once.
+  const press = useRef<{ id: WidgetId; at: Pt; pid: number; timer: ReturnType<typeof setTimeout> | null; target: HTMLElement; grab: Pt } | null>(null);
+  const onDown = (id: WidgetId, e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if ((e.target as Element).closest("[data-card-ctl]")) return;
+    const at = { x: e.clientX, y: e.clientY };
+    const target = e.currentTarget;
+    const box = target.getBoundingClientRect();
+    const grab = { x: at.x - box.left, y: at.y - box.top };
+    if (editing) {
+      press.current = { id, at, pid: e.pointerId, timer: null, target, grab };
+      return;
+    }
+    const timer = setTimeout(() => {
+      const p = press.current;
+      press.current = null;
+      if (!p) return;
+      setDraft(latest.current);
+      // The edit-mode render puts every card in place first; then the pressed one lifts under the finger.
+      requestAnimationFrame(() => startDrag(p.id, p.at, p.pid, p.target, p.grab));
+    }, LONG_MS);
+    press.current = { id, at, pid: e.pointerId, timer, target, grab };
   };
+  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (drag.current) return moveDrag(e);
+    const p = press.current;
+    if (!p || e.pointerId !== p.pid) return;
+    const far = Math.hypot(e.clientX - p.at.x, e.clientY - p.at.y) > SLOP;
+    if (!far) {
+      p.at = { x: e.clientX, y: e.clientY };
+      return;
+    }
+    if (p.timer) {
+      clearTimeout(p.timer);
+      press.current = null;
+      return;
+    }
+    press.current = null;
+    startDrag(p.id, { x: e.clientX, y: e.clientY }, p.pid, p.target, p.grab);
+  };
+  const onUp = () => {
+    if (press.current?.timer) clearTimeout(press.current.timer);
+    press.current = null;
+    if (drag.current) endDrag();
+  };
+  // The long-press must not open the browser's menu / select text.
+  const noMenu = (e: React.MouseEvent) => editing && e.preventDefault();
 
-  const keys = (x: LayoutItem, e: React.KeyboardEvent) => {
-    const fwd = rtl ? "ArrowLeft" : "ArrowRight";
-    const back = rtl ? "ArrowRight" : "ArrowLeft";
-    const d = e.key === "ArrowUp" || e.key === back ? -1 : e.key === "ArrowDown" || e.key === fwd ? 1 : 0;
+  const removeCard = (id: WidgetId) => {
+    if (reduced()) {
+      flip((l) => remove(l, id));
+    } else {
+      setLeaving(id);
+      setTimeout(() => {
+        setLeaving(null);
+        flip((l) => remove(l, id));
+      }, 200);
+    }
+    setSay(f(t.hc.removed, { name: t.hc.names[id] }));
+  };
+  const keys = (id: WidgetId, e: React.KeyboardEvent) => {
+    if (!editing) return;
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      return removeCard(id);
+    }
+    const rtl = document.documentElement.dir === "rtl";
+    const d = e.key === "ArrowUp" || e.key === (rtl ? "ArrowRight" : "ArrowLeft") ? -1 : e.key === "ArrowDown" || e.key === (rtl ? "ArrowLeft" : "ArrowRight") ? 1 : 0;
     if (!d) return;
     e.preventDefault();
-    const k = latest.current.items.findIndex((y) => y.id === x.id);
+    const k = latest.current.items.findIndex((x) => x.id === id);
     const to = Math.max(0, Math.min(latest.current.items.length - 1, k + d));
     if (to === k) return;
-    flip((l) => moveTo(l, x.id, to));
-    setSay(f(t.hc.moved, { name: t.hc.names[x.id], n: to + 1 }));
+    flip((l) => moveTo(l, id, to));
+    setSay(f(t.hc.moved, { name: t.hc.names[id], n: to + 1 }));
+    requestAnimationFrame(() => cells.current.get(id)?.focus());
+  };
+  const addOne = (id: WidgetId) => {
+    flip((l) => addTop(l, id));
+    setAdding(false);
+    setFresh(id);
+    setTimeout(() => setFresh(null), 1100);
+    setSay(f(t.hc.moved, { name: t.hc.names[id], n: 1 }));
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: reduced() ? "auto" : "smooth" }));
+  };
+  const done = () => {
+    if (drag.current) endDrag();
+    if (draft) onSave(draft);
+    setDraft(null);
+    setAdding(false);
   };
 
-  const tray = unused(draft);
+  // Cards with something to show (view) or every card (edit), packed.
+  const shown = cur.items.map((x) => ({ x, node: render(x.id, x.h, editing, sizeOf(x)) })).filter((c) => c.node != null);
+  const placed = pack(
+    shown.map((c) => c.x),
+    cols,
+  );
+  const at = new Map(placed.map((c) => [c.id, c]));
+  const tray = unused(cur);
   const trayList = (
-    <div className="flex flex-col gap-2" data-home-tray>
-      {tray.length === 0 && <p className="text-[12.5px] text-muted">{t.hc.allOn}</p>}
+    <div className="grid grid-cols-2 gap-2.5 desk:grid-cols-3" data-home-tray>
+      {tray.length === 0 && <p className="col-span-full text-[13px] text-muted">{t.hc.allOn}</p>}
       {tray.map((id) => (
-        <div
-          key={id}
-          onPointerDown={(e) => desktop && trayDown(id, e)}
-          className={cn("flex min-h-12 items-center gap-2.5 rounded-[10px] border border-line bg-surface p-2 text-[13px] font-medium", desktop && "cursor-grab touch-none")}
-          data-tray-item={id}
-        >
-          <span className="grid size-[30px] shrink-0 place-items-center rounded-lg bg-surface-2 text-ink [&_svg]:size-4">{WIDGET_ICON[id]}</span>
-          <span className="min-w-0 flex-1 leading-tight">
-            {t.hc.names[id]}
-            {NEW_WIDGETS.includes(id) && <span className="ms-1.5 rounded bg-ok-soft px-1.5 py-px text-[10px] font-bold text-ok">{t.hc.new}</span>}
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              flip((l) => add(l, id));
-              setTrayOpen(false);
-              setSay(f(t.hc.moved, { name: t.hc.names[id], n: latest.current.items.length + 1 }));
-            }}
-            className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-ink hover:bg-sunken"
-            aria-label={f(t.hc.add, { name: t.hc.names[id] })}
-            data-tray-add={id}
-          >
-            <Plus className="size-4" />
-          </button>
-        </div>
+        <button key={id} type="button" onClick={() => addOne(id)} className="wv2-tray" style={{ "--k": WIDGET_ACCENT[id] } as React.CSSProperties} aria-label={f(t.hc.add, { name: t.hc.names[id] })} data-tray-add={id}>
+          <span className="wv2-chip">{WIDGET_ICON[id]}</span>
+          <span className="min-w-0 flex-1 truncate text-start text-[13.5px] font-bold">{t.hc.names[id]}</span>
+          {NEW_WIDGETS.includes(id) && <span className="wv2-new">{t.hc.new}</span>}
+        </button>
       ))}
+    </div>
+  );
+  const presets = (
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t.hc.startFrom}>
+      <span className="text-[12.5px] font-semibold text-muted">{t.hc.startFrom}</span>
+      {PRESETS.map((p) => (
+        <button key={p} type="button" onClick={() => (flip(() => ({ v: 2, preset: p, items: presetItems(p, shared) })), setAdding(false))} className={cn("h-9 rounded-full border px-3 text-[13px] font-semibold transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97]", cur.preset === p ? "border-ink bg-ink text-bg" : "border-line bg-surface")} data-home-preset={p}>
+          {t.hc.presets[p]}
+        </button>
+      ))}
+    </div>
+  );
+  const addBody = (
+    <div className="flex flex-col gap-3.5 px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-1">
+      <div>
+        {!desk && <h2 className="text-[20px] font-extrabold tracking-[-0.01em]">{t.hc.addWidget}</h2>}
+        <p className="mt-0.5 text-[13.5px] text-muted">{t.hc.addSub}</p>
+      </div>
+      {trayList}
+      {presets}
     </div>
   );
 
   return (
-    <div className="flex flex-col gap-3 desk:col-span-12 desk:flex-row desk:gap-0 desk:overflow-hidden desk:rounded-xl desk:border desk:border-card-line desk:bg-surface" data-home-customizing>
-      <div className="flex min-w-0 flex-1 flex-col gap-3.5 desk:p-6">
-        <div className="flex items-center gap-2 px-1 pt-1 desk:px-0 desk:pt-0">
-          <h1 className="min-w-0 flex-1 truncate text-[20px] font-extrabold tracking-[-0.02em] desk:text-[22px]">{t.hc.title}</h1>
-          <button type="button" onClick={onReset} className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-muted hover:text-ink" data-home-reset>
-            <RotateCcw className="size-3.5 phone:hidden" />
-            {t.dash.reset}
+    <div className="flex flex-col gap-3 desk:col-span-12" data-home-cards={editing ? "edit" : "view"}>
+      {editing && (
+        <div className="wv2-bar sticky top-[calc(var(--app-header-h,0px)+6px)] z-20 flex items-center gap-2" data-home-editbar>
+          <button type="button" onClick={() => setAdding(true)} className="flex h-11 items-center gap-1.5 rounded-full bg-surface px-4 text-[14px] font-bold shadow-card transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97]" data-home-add-widget>
+            <Plus className="size-4" />
+            {t.hc.addWidget}
           </button>
-          <button type="button" onClick={onDone} className="h-9 rounded-full bg-brand px-4 text-[13px] font-semibold text-on-brand" data-home-done>
-            {t.dash.done}
+          <span className="min-w-0 flex-1 truncate text-[13px] text-muted">{t.hc.editHint}</span>
+          <button type="button" onClick={done} className="h-11 rounded-full bg-ink px-5 text-[14px] font-bold text-bg transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97]" data-home-done>
+            {t.hc.done}
           </button>
         </div>
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none]" role="radiogroup" aria-label={t.hc.title}>
-          {PRESETS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              role="radio"
-              aria-checked={draft.preset === p}
-              onClick={() => flip(() => ({ v: 2, preset: p, items: presetItems(p, shared) }))}
-              className={cn("flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-medium transition [&_svg]:size-[15px]", draft.preset === p ? "border-brand bg-brand font-semibold text-on-brand" : "border-line bg-surface text-ink hover:border-line-strong")}
-              data-home-preset={p}
-            >
-              {desktop && PRESET_ICON[p]}
-              {t.hc.presets[p]}
-            </button>
-          ))}
-          {draft.preset == null && <span className="flex h-9 shrink-0 items-center rounded-full bg-surface-2 px-3.5 text-[13px] font-semibold" data-home-preset="custom">{t.hc.custom}</span>}
-        </div>
-        <p className="px-1 text-[12.5px] text-muted desk:px-0">{desktop ? t.hc.hint : t.hc.hintPhone}</p>
-        <div ref={grid} className="hgrid relative" data-home-grid data-editing>
-          {draft.items.map((x) => (
+      )}
+      <div
+        ref={grid}
+        className={cn("wv2-grid", editing && "wv2-editing")}
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: rowH ? `${rowH}px` : desk ? "196px" : "calc((100vw - 34px) / 2)" } as React.CSSProperties}
+        onContextMenu={noMenu}
+        data-home-grid
+        data-cols={cols}
+      >
+        {shown.map(({ x, node }, k) => {
+          const c = at.get(x.id)!;
+          const size = sizeOf(x);
+          return (
             <div
               key={x.id}
               ref={(el) => {
                 if (el) cells.current.set(x.id, el);
                 else cells.current.delete(x.id);
               }}
-              className={cn(
-                "hw relative overflow-hidden rounded-[var(--card-r,12px)] border-[1.5px] border-dashed border-line-strong bg-surface",
-                // Its own compositor layer while it moves: the drag is transform-only, no repaint per frame.
-                dragId === x.id && "z-20 border-solid border-ink shadow-[0_18px_40px_-12px_rgba(16,16,14,.35)] [will-change:transform]",
-              )}
-              style={cellStyle(x, null)}
+              className={cn("wv2", stagger && !editing && "r13-rise", lifted === x.id && "wv2-lifted", fresh === x.id && "wv2-fresh", leaving === x.id && "wv2-leaving")}
+              style={{ gridColumn: `${c.col + 1} / span ${c.cols}`, gridRow: `${c.row + 1} / span ${c.rows}`, "--k": WIDGET_ACCENT[x.id], ...(stagger && !editing ? { "--d": `${(k + 1) * 50}ms` } : {}) } as React.CSSProperties}
+              onPointerDown={(e) => onDown(x.id, e)}
+              onPointerMove={onMove}
+              onPointerUp={onUp}
+              onPointerCancel={onUp}
+              onKeyDown={(e) => keys(x.id, e)}
+              tabIndex={editing ? 0 : undefined}
+              role={editing ? "group" : undefined}
+              aria-label={editing ? t.hc.names[x.id] : undefined}
               data-widget={x.id}
-              data-w={x.w}
+              data-size={size}
               data-h={x.h}
+              data-col={c.col}
+              data-row={c.row}
             >
-              <div className="flex shrink-0 items-center gap-1 py-1 pe-1 ps-1">
-                <button
-                  type="button"
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    (e.currentTarget as HTMLElement).focus();
-                    start(x.id, { x: e.clientX, y: e.clientY });
-                  }}
-                  onKeyDown={(e) => keys(x, e)}
-                  className="grid size-9 shrink-0 cursor-grab touch-none place-items-center rounded-lg text-faint hover:bg-surface-2 hover:text-ink active:cursor-grabbing"
-                  aria-label={f(t.hc.drag, { name: t.hc.names[x.id] })}
-                  data-widget-handle={x.id}
-                >
-                  <GripVertical className="size-4" />
-                </button>
-                <span className="min-w-0 flex-1 truncate text-[12px] font-bold uppercase tracking-[0.04em] text-muted">{t.hc.names[x.id]}</span>
-                {desktop ? (
-                  <SizeMenu x={x} onChange={(p) => flip((l) => patch(l, x.id, p))} />
-                ) : null}
-                <button type="button" onClick={() => flip((l) => remove(l, x.id))} className="grid size-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-ink" aria-label={f(t.hc.hide, { name: t.hc.names[x.id] })} data-widget-hide={x.id}>
-                  <EyeOff className="size-4" />
-                </button>
+              <div className={cn("wv2-body", editing && "pointer-events-none select-none")} inert={editing || undefined}>
+                {node}
               </div>
-              <div className="hw-body pointer-events-none min-h-0 flex-1 select-none overflow-hidden [&>*]:h-full" inert>
-                {render(x.id, x.h, true)}
-              </div>
-              {!desktop && (
-                <div className="flex shrink-0 items-center gap-1.5 p-1.5">
-                  <span className="flex rounded-lg bg-surface-2 p-0.5" role="radiogroup" aria-label={t.hc.width}>
-                    {(["half", "full"] as const).map((p) => (
-                      <button key={p} type="button" role="radio" aria-checked={phoneWidth(x) === p} onClick={() => flip((l) => patch(l, x.id, { p }))} className={cn("h-8 rounded-md px-2.5 text-[12px] font-semibold", phoneWidth(x) === p ? "bg-surface text-ink shadow-card" : "text-muted")} data-widget-p={p}>
-                        {p === "half" ? t.hc.half : t.hc.full}
-                      </button>
-                    ))}
-                  </span>
-                  <button type="button" aria-pressed={x.h === 2} onClick={() => flip((l) => patch(l, x.id, { h: x.h === 2 ? 1 : 2 }))} className={cn("h-9 rounded-lg px-2.5 text-[12px] font-semibold", x.h === 2 ? "bg-ink text-bg" : "bg-surface-2 text-muted")} data-widget-h2={x.id}>
-                    2×
+              {editing && (
+                <>
+                  <button type="button" className="wv2-remove" onClick={() => removeCard(x.id)} aria-label={f(t.hc.removeW, { name: t.hc.names[x.id] })} data-card-ctl data-widget-hide={x.id}>
+                    <Minus className="size-4" strokeWidth={3} />
                   </button>
-                </div>
-              )}
-              {desktop && (
-                <button
-                  type="button"
-                  onPointerDown={(e) => resize(x, e)}
-                  className="absolute bottom-1 end-1 grid size-6 cursor-nwse-resize touch-none place-items-center rounded text-faint hover:text-ink rtl:cursor-nesw-resize"
-                  aria-label={f(t.hc.resize, { name: t.hc.names[x.id] })}
-                  tabIndex={-1}
-                  data-widget-resize={x.id}
-                >
-                  <svg viewBox="0 0 14 14" className="size-3.5 rtl:-scale-x-100" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
-                    <path d="M12 5 5 12 M12 9l-3 3" />
-                  </svg>
-                </button>
+                  {canResize(x.id) && (
+                    <button
+                      type="button"
+                      className="wv2-size"
+                      onClick={() => flip((l) => setSize(l, x.id, size === "wide" ? "small" : "wide"))}
+                      aria-label={f(t.hc.sizeTo, { name: t.hc.names[x.id], size: size === "wide" ? t.hc.small : t.hc.wide })}
+                      data-card-ctl
+                      data-widget-size={x.id}
+                    >
+                      {size === "wide" ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+                      {size === "wide" ? t.hc.wide : t.hc.small}
+                    </button>
+                  )}
+                </>
               )}
             </div>
-          ))}
-        </div>
-        {!desktop && (
-          <button type="button" onClick={() => setTrayOpen(true)} className="sticky bottom-[calc(env(safe-area-inset-bottom)+84px)] z-10 flex h-12 items-center justify-center gap-2 rounded-xl border border-line bg-surface text-[14.5px] font-semibold shadow-card" data-home-add-widget>
-            <Plus className="size-4" />
-            {t.hc.addWidget}
-            <span className="tabular rounded-md bg-surface-2 px-1.5 text-[12px]">{tray.length}</span>
-          </button>
-        )}
+          );
+        })}
       </div>
-      {desktop && (
-        <aside className="flex w-[250px] shrink-0 flex-col gap-2 border-s border-line-in bg-surface-2/50 px-4 py-5">
-          <b className="text-[14px]">{t.hc.widgets}</b>
-          <span className="mb-1 text-[12px] text-muted">{t.hc.dragIn}</span>
-          {trayList}
-        </aside>
-      )}
-      {!desktop && (
-        <Sheet open={trayOpen} onOpenChange={setTrayOpen} title={t.hc.addAWidget} className="sm:max-w-[420px]">
-          <div className="flex flex-col gap-3 overflow-y-auto px-4 pb-[calc(16px+env(safe-area-inset-bottom))] pt-1">
-            <b className="text-[17px]">{t.hc.addAWidget}</b>
-            {trayList}
-          </div>
+      {desk ? (
+        <Modal open={adding} onOpenChange={setAdding} title={t.hc.addWidget}>
+          {addBody}
+        </Modal>
+      ) : (
+        <Sheet open={adding} onOpenChange={setAdding} title={t.hc.addWidget} fit>
+          {addBody}
         </Sheet>
       )}
       <span className="sr-only" aria-live="polite">
@@ -430,38 +457,3 @@ export function Customise({
     </div>
   );
 }
-
-function SizeMenu({ x, onChange }: { x: LayoutItem; onChange: (p: Partial<LayoutItem>) => void }) {
-  const { t } = useI18n();
-  const opt = (on: boolean) => cn("h-7 flex-1 rounded-md text-[12px] font-semibold", on ? "bg-surface text-ink shadow-card" : "text-muted hover:text-ink");
-  return (
-    <Pop>
-      <PopTrigger asChild>
-        <button type="button" className="flex h-[26px] shrink-0 items-center gap-0.5 rounded-[7px] border border-line bg-surface pe-1.5 ps-2 text-[11.5px] font-semibold text-ink data-[state=open]:border-ink" aria-label={t.hc.size} data-widget-size={x.id}>
-          {x.w}
-          {x.h === 2 ? " · 2×" : ""}
-          <ChevronDown className="size-3.5" />
-        </button>
-      </PopTrigger>
-      <PopContent align="end" className="w-[188px] p-2.5">
-        <div className="mb-1 text-[12px] font-medium text-muted">{t.hc.width}</div>
-        <div className="mb-2.5 flex gap-0.5 rounded-lg bg-surface-2 p-0.5" role="radiogroup" aria-label={t.hc.width}>
-          {(["S", "M", "L"] as Width[]).map((w) => (
-            <button key={w} type="button" role="radio" aria-checked={x.w === w} onClick={() => onChange({ w })} className={opt(x.w === w)} data-size-w={w}>
-              {w}
-            </button>
-          ))}
-        </div>
-        <div className="mb-1 text-[12px] font-medium text-muted">{t.hc.height}</div>
-        <div className="flex gap-0.5 rounded-lg bg-surface-2 p-0.5" role="radiogroup" aria-label={t.hc.height}>
-          {([1, 2] as const).map((h) => (
-            <button key={h} type="button" role="radio" aria-checked={x.h === h} onClick={() => onChange({ h })} className={opt(x.h === h)} data-size-h={h}>
-              {h}×
-            </button>
-          ))}
-        </div>
-      </PopContent>
-    </Pop>
-  );
-}
-
