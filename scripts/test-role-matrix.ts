@@ -50,6 +50,8 @@ const VIEW_OK = new Set([
   "supermarket-actions.ts#supermarketSuggestions",
   "supermarket-actions.ts#supermarketHome",
   "supermarket-actions.ts#setSupermarketLayout",
+  // R18 S5: the person's own swipe hint, start-screen look and Ask side (their prefs, not the space's data).
+  "supermarket-actions.ts#seenSwipeHint", "supermarket-actions.ts#setTripLook", "supermarket-actions.ts#clearTripLook", "home-actions.ts#setAskSide",
   "supermarket-actions.ts#smScan",
   "supermarket-actions.ts#smAiAllowance",
   "supermarket-actions.ts#hiddenProducts",

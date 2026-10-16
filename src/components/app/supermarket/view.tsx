@@ -265,7 +265,7 @@ export function SupermarketView() {
                 <DeskStore store={trip.store} onPick={() => setPicking(true)} />
                 <DeskCount home={home} />
               </div>
-              {!ro && <DeskAdd onOpen={() => setAdding("type")} />}
+              {!ro && <DeskAdd onOpen={() => setAdding("type")} onMode={openAdd} />}
               {!first && !empty && list}
             </section>
             {(first || empty) && <EmptyTemplates ro={ro} />}
@@ -447,16 +447,32 @@ function DeskCount({ home }: { home: SmHome | null }) {
 }
 
 /** A4: the add field — type, or paste a whole list (Ctrl+V anywhere on the page). */
-function DeskAdd({ onOpen }: { onOpen: () => void }) {
+function DeskAdd({ onOpen, onMode }: { onOpen: () => void; onMode: (m: AddMode | "scan" | "photo") => void }) {
   const { t } = useI18n();
+  const voice = useVoiceSupported();
   const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+  const icon = "grid size-10 shrink-0 place-items-center rounded-full text-ink transition-transform duration-150 ease-[var(--ease-out)] active:scale-90 hover:bg-surface-2 [&_svg]:size-[18px] [&_svg]:stroke-[1.8]";
+  // The field + Ctrl+V (the board); voice, scan and photo stay one click away on a computer too.
   return (
     <div className="px-4 pb-3">
-      <button type="button" className="flex h-12 w-full items-center gap-2.5 rounded-[14px] border border-line-strong bg-surface px-3.5 text-start text-[15px] text-muted transition-colors duration-150 hover:border-ink/30" onClick={onOpen} data-sm-add data-sm-add-open>
-        <Plus className="size-[18px] shrink-0" />
-        <span className="min-w-0 flex-1 truncate">{t.sm.main.addPhDesk}</span>
-        <kbd className="shrink-0 rounded-full border border-line-strong px-2 py-0.5 font-sans text-[12px] font-semibold text-muted">{mac ? "⌘V" : "Ctrl+V"}</kbd>
-      </button>
+      <div className="flex h-12 w-full items-center gap-1 rounded-[14px] border border-line-strong bg-surface pe-1" data-sm-add>
+        <button type="button" className="flex h-full min-w-0 flex-1 items-center gap-2.5 ps-3.5 text-start text-[15px] text-muted" onClick={onOpen} data-sm-add-open>
+          <Plus className="size-[18px] shrink-0" />
+          <span className="min-w-0 flex-1 truncate">{t.sm.main.addPhDesk}</span>
+          <kbd className="shrink-0 rounded-full border border-line-strong px-2 py-0.5 font-sans text-[12px] font-semibold text-muted">{mac ? "⌘V" : "Ctrl+V"}</kbd>
+        </button>
+        {voice && (
+          <button type="button" className={icon} aria-label={t.sm.main.voice} title={t.sm.main.voice} onClick={() => onMode("voice")} data-sm-add-voice>
+            <Mic />
+          </button>
+        )}
+        <button type="button" className={icon} aria-label={t.sm.main.scan} title={t.sm.main.scan} onClick={() => onMode("scan")} data-sm-add-scan>
+          <ScanBarcode />
+        </button>
+        <button type="button" className={icon} aria-label={t.sm.main.photo} title={t.sm.main.photo} onClick={() => onMode("photo")} data-sm-add-photo>
+          <Camera />
+        </button>
+      </div>
     </div>
   );
 }
