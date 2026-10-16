@@ -2223,6 +2223,8 @@ try {
       const box = () => page.locator("[data-ask-fab]").boundingBox();
       const b0 = await box();
       r.right = Math.round(vw - (b0.x + b0.width));
+      // A real account (prod smoke) may have chosen the left; the seeded one is on the right (the default).
+      r.side0 = await page.locator("[data-ask-fab]").getAttribute("data-ask-fab");
       r.topBarAsk = await page.locator("[data-app-header] [data-ask]").count();
       if (MOBILE) {
         const dock = await page.locator("[data-dock]").boundingBox();
@@ -2288,7 +2290,7 @@ try {
       r.sameUrl = page.url() === url0;
       await page.evaluate(() => window.scrollTo(0, 0));
       ok(
-        r.right >= (MOBILE ? 10 : 20) && r.right <= (MOBILE ? 14 : 42) /* computer: 28 px from the scroller's edge */ && r.topBarAsk === 0 && (MOBILE ? r.aboveDock >= 10 && r.aboveDock <= 14 : !r.overSidebar) && (!WRITE || (r.sideAttr === "left" && r.left <= (MOBILE ? 14 : 400) && r.back === "right" && r.hiddenWithSheet === "hidden" && r.rose > 20 && r.clear && r.down === 0)) && r.chat && r.sameScroll && r.sameUrl && (MOBILE || r.panelSide === "right"),
+        ((!WRITE && r.side0 === "left") || (r.right >= (MOBILE ? 10 : 20) && r.right <= (MOBILE ? 14 : 42))) /* computer: 28 px from the scroller's edge */ && r.topBarAsk === 0 && (MOBILE ? r.aboveDock >= 10 && r.aboveDock <= 14 : !r.overSidebar) && (!WRITE || (r.sideAttr === "left" && r.left <= (MOBILE ? 14 : 400) && r.back === "right" && r.hiddenWithSheet === "hidden" && r.rose > 20 && r.clear && r.down === 0)) && r.chat && r.sameScroll && r.sameUrl && (MOBILE || r.panelSide === (!WRITE && r.side0 === "left" ? "left" : "right")),
         "floating Ask behaviour (R18 S5 C2/C3): right by default, side setting ↔, rise over a toast, open/close keeps scroll, no top-bar Ask",
         JSON.stringify(r),
       );

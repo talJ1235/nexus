@@ -1131,11 +1131,11 @@ function WeekCard({ model, h = 1, className, style }: { model: HomeModel; h?: 1 
           const isToday = d === today;
           return (
             <div key={d} className={cn("relative flex min-w-0 flex-col gap-[5px] px-2.5", tall ? "min-h-[240px]" : "min-h-[112px]")} data-week-day={d}>
-              <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-muted">{fm.wd(d)}</span>
-              <span className="flex items-center gap-1.5 text-[20px] font-bold leading-none">
-                {Number(d.slice(8))}
-                {isToday && <span className="rounded-full bg-ink px-[7px] py-px text-[10.5px] font-bold text-bg">{t.dash.today}</span>}
+              {/* Today names itself in the weekday line (a pill beside a two-digit date didn't fit a column at 1280 px). */}
+              <span className={cn("truncate text-[11px] font-bold uppercase tracking-[0.06em]", isToday ? "text-ink" : "text-muted")} title={isToday ? t.dash.today : undefined}>
+                {isToday ? t.dash.today : fm.wd(d)}
               </span>
+              <span className="text-[20px] font-bold leading-none">{Number(d.slice(8))}</span>
               <i className={cn("absolute start-2.5 top-[48px] size-[9px] rounded-full border-2", isToday ? "border-ink bg-ink shadow-[0_0_0_4px_color-mix(in_srgb,var(--ink)_12%,transparent)]" : "border-card-line bg-surface")} aria-hidden />
               <div className="mt-[22px] flex flex-col gap-[7px]">
                 {evs.slice(0, evs.length > perDay ? perDay - 1 : perDay).map((e, k) => {
