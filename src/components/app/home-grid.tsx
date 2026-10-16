@@ -106,6 +106,7 @@ export function HomeCards({ layout, render, onSave, stagger, shared, editRequest
   const drag = useRef<{ id: WidgetId; grab: Pt; at: Pt; over: { id: WidgetId; since: number } | null; pid: number; swappedAt: Pt | null } | null>(null);
 
   // Square cells on a phone (row = column width); 196 px rows on a computer.
+  // Before hydration the style's fallback is the same square: (100vw − 2 × 16 px padding − 10 px gap) / 2.
   useLayoutEffect(() => {
     const g = grid.current;
     if (!g) return;
@@ -400,7 +401,7 @@ export function HomeCards({ layout, render, onSave, stagger, shared, editRequest
       <div
         ref={grid}
         className={cn("wv2-grid", editing && "wv2-editing")}
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: rowH ? `${rowH}px` : desk ? "196px" : "calc((100vw - 34px) / 2)" } as React.CSSProperties}
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: rowH ? `${rowH}px` : desk ? "196px" : "calc((100vw - 42px) / 2)" } as React.CSSProperties}
         onContextMenu={noMenu}
         data-home-grid
         data-cols={cols}
