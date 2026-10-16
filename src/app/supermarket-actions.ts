@@ -8,7 +8,8 @@ import { scoped, type Scoped } from "@/lib/db-scoped";
 import * as G from "@/lib/db-scoped/grocery";
 import * as T from "@/lib/db-scoped/trips";
 import * as B from "@/lib/db-scoped/brands";
-import { userPrefGet, userPrefLike, userPrefSet } from "@/lib/db-scoped/prefs";
+import { spacePrefGet, userPrefGet, userPrefLike, userPrefSet } from "@/lib/db-scoped/prefs";
+import { BUDGET_START_KEY } from "@/lib/spending-month";
 import { TRIP_COLOR_KEYS, TRIP_LOOK_KEY, TRIP_STYLES, tripLookKey } from "@/lib/grocery/trip-look";
 import { ONBOARDING_KEY, parseOnboarding } from "@/lib/onboarding";
 import { kvGet, kvSet } from "@/lib/kv";
@@ -733,4 +734,17 @@ export async function undoForgetLearned(key: string, prev: number | null) {
   const ctx = await requireCtx("edit");
   const k = z.union([z.literal("day"), z.string().regex(/^(store|p|b):.{1,160}$/)]).parse(key);
   await G.restoreForget(scoped(ctx), k, z.number().int().min(0).max(Date.now()).nullable().parse(prev));
+}
+
+// ---------- R18 S5 E1: Insights → Spending (the supermarket's side: every member's finished trips) ----------
+
+/** Finished trips with their bought lines (newest first, up to 400) + the budget month's start day. */
+export async function smSpending() {
+  const ctx = await requireCtx("view");
+  const s = scoped(ctx);
+  const [trips, start] = await Promise.all([G.pastTrips(s, 400), spacePrefGet(s, BUDGET_START_KEY)]);
+  return {
+    startDay: Math.max(1, Math.min(28, Number(start) || 1)),
+    trips: trips.map((t) => ({ id: t.id, userId: t.userId, chain: t.chain, branch: t.branch, finishedAt: t.finishedAt, total: t.total, currency: t.currency, items: t.items.map((i) => ({ productKey: i.productKey, title: i.title, section: i.section, price: i.price, qty: i.qty, state: i.state })) })),
+  };
 }

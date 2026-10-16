@@ -13,7 +13,7 @@ import { normalizeCategory } from "@/lib/categories";
 import { convert, formatMoney, formatMoneyCompact } from "@/lib/money";
 import type { ItemWithSources } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { MonthBudget } from "./budget-card";
+import { SpendingMonth } from "./spending-month";
 import { ProductImage } from "./item-card";
 import { useStore } from "./store";
 import { COLLECTION_COLORS } from "./view-items";
@@ -216,16 +216,14 @@ export function SpendingView() {
           <Store /> {t.nav.orders}
         </Button>
       </div>
-      <div className="mb-4">
-        <MonthBudget />
+      {/* R18 S5 E1/E2: one month — supermarket + products + delivery, the chart, the breakdowns (spending-month.tsx). */}
+      <div className="mb-6">
+        <SpendingMonth />
       </div>
-      {data.count === 0 ? (
-        <div className="load-in grid place-items-center rounded-[26px] border border-dashed border-line-strong px-6 py-20 text-center text-[15px] text-muted">{t.spending.empty}</div>
-      ) : (
+      {data.count === 0 ? null : (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
-            <Tile label={t.spending.thisMonth} value={data.thisMonth} fmt={fmtK} full={fmt(data.thisMonth)} delay={60} />
-            <Tile label={t.spending.lastMonth} value={data.lastMonth} fmt={fmtK} full={fmt(data.lastMonth)} delay={100} />
+          <h2 className="px-1 pt-2 text-[18px] font-extrabold tracking-[-0.01em]">{t.spending.thisYear}</h2>
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-2">
             <Tile label={t.spending.thisYear} value={data.thisYear} fmt={fmtK} full={fmt(data.thisYear)} delay={140} />
             <Tile label={t.spending.savings} value={data.savings} fmt={fmtK} full={fmt(data.savings)} sub={t.spending.savingsHint} delay={180} />
           </div>

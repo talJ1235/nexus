@@ -358,6 +358,9 @@ async function homeChecks(page) {
     await page.waitForSelector("#boot", { state: "hidden", timeout: 10000 }).catch(() => {});
     await card.scrollIntoViewIfNeeded();
     await settleSuggestions(page);
+    // R18 S5: the card sits whole on screen in its Home cell, so the auto-turn (C7) would run during these slow drags —
+    // focus inside the card holds it (the card's own rule), the drags are what's measured.
+    await card.locator("button").first().focus().catch(() => {});
     const idx = () => card.getAttribute("data-sug-index");
     const box = await card.boundingBox();
     const y = box.y + box.height / 2;
@@ -414,7 +417,10 @@ async function homeChecks(page) {
     await step("suggest: AI text when on, template when off", async () => {
       const card = page.locator('[data-home-section="suggest"]');
       if (!(await card.count())) return ok(true, "suggest: AI text when on, template when off (no suggestions)");
-      // AI phrasing arrives after render (server: mock or real chain, cached per day); never blocks the card.
+      // AI phrasing arrives after render (server: mock or real chain, cached per day); never blocks the card. C7: it shows
+      // from the card's next turn, which runs only on screen — R18 S5: on a phone the card starts below the fold.
+      const inView = () => card.evaluate((e) => e.scrollIntoView({ block: "center" })).catch(() => {});
+      await inView();
       const ai = await page.waitForSelector('[data-sug-source="ai"]', { timeout: 15000 }).then(() => true, () => false);
       const setAi = async (on) => {
         await page.evaluate(() => window.scrollTo(0, 0));
@@ -432,6 +438,7 @@ async function homeChecks(page) {
       await setAi(false);
       const src = await card.locator("[data-sug-source]").getAttribute("data-sug-source");
       await setAi(true);
+      await inView();
       const back = await page.waitForSelector('[data-sug-source="ai"]', { timeout: 15000 }).then(() => true, () => false);
       ok(ai && src === "template" && back, "suggest: AI text when on, template when off", `ai first ${ai}, off → ${src}, on again ${back}`);
     });
@@ -3622,7 +3629,7 @@ try {
         await page.waitForTimeout(700);
         r.gone = (await page.locator(`[data-sm-sug="${key}"]`).count()) === 0;
         ok(
-          !!r.learned && /1 · 1 kg|kg/.test(r.weight0) && /^[0-9]+$/.test(r.count) && /won't suggest|לא יציע/.test(r.hiddenToast) && r.afterUnhide !== "hidden" && r.rowQty.startsWith(`${r.count} · ≈`) && r.rowNote === "Ripe ones" && JSON.stringify(r.actions) === '["add","skip","never"]' && r.gone,
+          !!r.learned && /1 · 1 kg|kg/.test(r.weight0) && /^[0-9]+$/.test(r.count) && /won't suggest|לא יציע/.test(r.hiddenToast) && r.afterUnhide !== "hidden" && r.rowQty.replace(/\s/g, "").startsWith(`${r.count}·~`) /* S5 A1 chip: "8 · ~1.2 kg" */ && r.rowNote === "Ripe ones" && JSON.stringify(r.actions) === '["add","skip","never"]' && r.gone,
           "item sheet (R18 C2): steppers, note, what Nexus learned, hide + undo, suggestion actions",
           JSON.stringify(r),
         );
@@ -4813,14 +4820,47 @@ try {
       ok(before !== after && marks > 0, "orders view: cards ↔ table toggle switches layout", `${before}→${after}, store headers=${marks}`);
     });
 
-    await step("spending view: this month's budget bar", async () => {
+    // R18 S5 E1: the month view replaced the budget bar + tiles (the bar's numbers are the hero's now).
+    await step("spending view (R18 S5 E1/E2): the month — hero, chart left → right, split, breakdowns, month switch (no future)", async () => {
       await page.goto(`${BASE}/?v=spending`);
-      const card = page.locator("[data-month-budget]");
-      await card.waitFor({ timeout: 15000 });
-      await shot(page, "spending-budget");
-      const segs = await card.locator("[role=img] > div").count();
-      const tiles = await page.locator("[data-stats] .rise-in").count();
-      ok(segs === 3 && tiles >= 5, "spending view: this month's budget bar", `state=${await card.getAttribute("data-month-budget")}, segments=${segs}`);
+      await page.waitForSelector("[data-spm-hero]", { timeout: 15000 });
+      await shot(page, "s5-spending");
+      const r = await page.evaluate(() => {
+        const chart = document.querySelector("[data-spm-chart]");
+        const dot = document.querySelector("[data-spm-today]")?.getBoundingClientRect();
+        const cr = chart?.getBoundingClientRect();
+        return {
+          total: document.querySelector("[data-spm-total]")?.textContent ?? "",
+          dir: chart ? getComputedStyle(chart.parentElement).direction : "",
+          dotRight: dot && cr ? dot.left > cr.left + cr.width * 0.2 && dot.left < cr.right : null,
+          split: document.querySelectorAll("[data-spm-split] > i").length,
+          sub: !!document.querySelector("[data-spm-sub], [data-spm-nobudget]"),
+          month: document.querySelector("[data-spm-month]")?.getAttribute("data-spm-month"),
+          next: document.querySelector("[data-spm-next]")?.hasAttribute("disabled"),
+          blocks: MOBILE_TAB_CHECK(),
+        };
+        function MOBILE_TAB_CHECK() {
+          return { seg: !!document.querySelector("[data-spm-seg]"), sections: !!document.querySelector("[data-spm-sections]"), stores: !!document.querySelector("[data-spm-stores]"), against: !!document.querySelector("[data-spm-against]") };
+        }
+      });
+      // Phone: the segment switches the breakdown; computer: all of them at once.
+      if (MOBILE) {
+        await page.locator('[data-spm-tab="stores"]').click();
+        r.storesTab = await page.locator("[data-spm-stores]").count();
+        await page.locator('[data-spm-tab="products"]').click();
+        r.productsTab = await page.locator("[data-spm-products]").count();
+        await page.locator('[data-spm-tab="sections"]').click();
+      }
+      // Previous month: closed (over / under the budget), then back; "next" stops at this month.
+      await page.locator("[data-spm-prev]").click();
+      await page.waitForTimeout(300);
+      r.prev = await page.locator("[data-spm-month]").getAttribute("data-spm-month");
+      r.closed = await page.locator("[data-spm-closed]").count();
+      await page.locator("[data-spm-next]").click();
+      await page.waitForTimeout(300);
+      r.back = await page.locator("[data-spm-month]").getAttribute("data-spm-month");
+      const okBlocks = MOBILE ? r.blocks.seg && r.blocks.sections && r.storesTab === 1 && r.productsTab === 1 : r.blocks.sections && r.blocks.stores && r.blocks.against && !r.blocks.seg;
+      ok(/\d/.test(r.total) && r.dir === "ltr" && r.dotRight !== false && r.split >= 1 && r.sub && r.next === true && r.prev < r.month && r.closed === 1 && r.back === r.month && okBlocks, "spending view (R18 S5 E1/E2): the month — hero, chart left → right, split, breakdowns, month switch (no future)", JSON.stringify(r));
     });
 
     await step("orders view: free-shipping row per store", async () => {

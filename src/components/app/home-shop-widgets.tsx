@@ -41,7 +41,7 @@ export function NextShopWidget({ size }: { size: Size }) {
     const store = storeLabel(other.chain, other.branch, locale);
     return (
       <Card id="nextshop" title={t.hc.names.nextshop} icon={WIDGET_ICON.nextshop} className="h-full">
-        <div className="flex min-h-0 flex-1 flex-col" data-next-live={other.userId}>
+        <div className="flex min-h-0 flex-1 flex-col" data-next-shop="other" data-next-live={other.userId}>
           <p className="flex items-center gap-2 text-[16px] font-extrabold leading-tight">
             <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#c94673] text-[12px] font-extrabold text-white">{who.slice(0, 1)}</span>
             <span className="bidi min-w-0">{f(t.hc.shoppingNow, { name: who })}</span>
@@ -73,7 +73,7 @@ export function NextShopWidget({ size }: { size: Size }) {
   const start = () => open(n ? "shop" : undefined);
   return (
     <Card id="nextshop" title={t.hc.names.nextshop} icon={WIDGET_ICON.nextshop} className="h-full">
-      <div className="flex min-h-0 flex-1 flex-col justify-end" data-next-shop-w={size}>
+      <div className="flex min-h-0 flex-1 flex-col justify-end" data-next-shop="next" data-next-shop-w={size}>
         {size === "wide" && n > 0 && (
           <span className="mb-auto flex pt-1" aria-hidden>
             {s.sm.slice(0, 5).map((i, k) => (

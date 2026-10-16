@@ -247,7 +247,30 @@ export function HomeCards({ layout, render, onSave, stagger, shared, editRequest
       press.current = { id, at, pid: e.pointerId, timer: null, target, grab };
       return;
     }
+    // Watched on the window (capture): a card that handles its own swipes (Nexus suggests) may capture the pointer or
+    // stop its events. Slop is measured from where the press started — a slow drift adds up.
+    const pid = e.pointerId;
+    const off = () => {
+      window.removeEventListener("pointermove", move, true);
+      window.removeEventListener("pointerup", stop, true);
+      window.removeEventListener("pointercancel", stop, true);
+    };
+    const stop = (ev: PointerEvent) => {
+      if (ev.pointerId !== pid) return;
+      off();
+      if (press.current?.timer) clearTimeout(press.current.timer);
+      if (press.current?.timer) press.current = null;
+    };
+    const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== pid || !press.current?.timer) return;
+      if (Math.hypot(ev.clientX - at.x, ev.clientY - at.y) > SLOP) stop(ev);
+      else press.current.at = { x: ev.clientX, y: ev.clientY };
+    };
+    window.addEventListener("pointermove", move, true);
+    window.addEventListener("pointerup", stop, true);
+    window.addEventListener("pointercancel", stop, true);
     const timer = setTimeout(() => {
+      off();
       const p = press.current;
       press.current = null;
       if (!p) return;
@@ -255,22 +278,15 @@ export function HomeCards({ layout, render, onSave, stagger, shared, editRequest
       // The edit-mode render puts every card in place first; then the pressed one lifts under the finger.
       requestAnimationFrame(() => startDrag(p.id, p.at, p.pid, p.target, p.grab));
     }, LONG_MS);
-    press.current = { id, at, pid: e.pointerId, timer, target, grab };
+    press.current = { id, at, pid, timer, target, grab };
   };
   const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (drag.current) return moveDrag(e);
     const p = press.current;
     if (!p || e.pointerId !== p.pid) return;
-    const far = Math.hypot(e.clientX - p.at.x, e.clientY - p.at.y) > SLOP;
-    if (!far) {
-      p.at = { x: e.clientX, y: e.clientY };
-      return;
-    }
-    if (p.timer) {
-      clearTimeout(p.timer);
-      press.current = null;
-      return;
-    }
+    // View mode: the window listeners above decide; edit mode: a press that moves past the slop picks the card up.
+    if (p.timer) return;
+    if (Math.hypot(e.clientX - p.at.x, e.clientY - p.at.y) <= SLOP) return;
     press.current = null;
     startDrag(p.id, { x: e.clientX, y: e.clientY }, p.pid, p.target, p.grab);
   };
