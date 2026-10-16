@@ -2,8 +2,8 @@
 
 Source: Tal's asks after S3/S4 (`docs/R18-S3-NOTES.md` groups B + C + "After S3", `docs/PLANNER.md` handoff) and his
 review of the S5 boards (2026-10-16, all approved). Boards: **`docs/design/r18-s5/`** (+ `nx-s5.css`, self-contained
-tokens) — `List-phone`, `List-desktop`, `StartTrip-phone`, `Ask-fab-phone`, `Ask-variants-phone` (history: the six
-directions Tal chose from), **`Ask-final-phone`** (the look to build), `Home-widgets-phone`, `Home-widgets-desktop`,
+tokens) — `List-phone`, `List-desktop`, `StartTrip-phone`, `Ask-fab-phone`, `Ask-variants-phone`, `Ask-configs`, `Ask-pearl-sizes` (history: the
+looks Tal chose from), **`Ask-final-phone`** (the look to build), `Home-widgets-phone`, `Home-widgets-desktop`,
 `Widgets-catalog`, `Spending-month-phone`, `Spending-month-desktop`, `Onboarding-v2-phone`. Every board has tweaks
 (he / en, dark, Plum, reduced motion, states) — check each state you build against it. S4 already shipped (don't
 redo): merge-into-quantity adds (A1), add feedback (A2), "+" = camera, scanner, photo, voice, rename on the name's
@@ -13,13 +13,14 @@ Results go to **"## Open" at the end of this file**. Tal runs it unattended.
 
 ## How to run (Session 5)
 - **Step 0 — boards + planning docs + S4 check.**
-  1. Tal unzipped `nexus-r18-s5.zip` at the repo root: `docs/design/r18-s5/` (12 boards + `nx-s5.css` + `canvas.json`)
-     and `r18-s5-planning.patch`. On `main`: `git apply -3 r18-s5-planning.patch` (adds the S5 decisions + log line to
+  1. Tal unzipped `nexus-r18-s5.zip` at the repo root: `docs/design/r18-s5/` (14 boards + `nx-s5.css` + `canvas.json`)
+     and `r18-s5-planning.patch`. On `main`: `git apply -3 r18-s5-planning.patch` (adds the S5 decisions + log lines to
      `docs/PLANNER.md` and the planning-chat line to `docs/ENVIRONMENT.md`; on a conflict keep both sides' lines),
      delete the patch file, commit `R18.S5.0: S5 boards + planning docs (from the planning chat)`, push `main`.
      (The planning chat can't `git push`, and the GitHub connector needs whole files — too big for these two docs.)
-  2. S4: `main` has its merge + the smoke follow-up (`d4bdeb0`). Check `guards` on `main` and the last prod smoke are
-     green; if `round18-s4` has commits not on `main`, finish them with S4's rules first.
+  2. S4 is done: `main` = its merge + the smoke follow-up (`d4bdeb0`), `guards` and prod smoke green. Its docs-only
+     status note `4030ed9` lives only on `round18-s4`: cherry-pick it onto `main` in the same step (no merge round, no
+     CI wait — docs only). Nothing else from `round18-s4` is missing.
   3. **Code map + planning-docs diet** (planning chat, Tal approved 2026-10-16; docs only, on `main`, after 1):
      `git merge --no-edit origin/docs/map` — new `docs/MAP.md`, short `CLAUDE.md`, log lines. On a conflict in
      `CLAUDE.md` keep `docs/map`'s side (its map lines incl. S4's already live in `docs/MAP.md`); in the two logs keep
@@ -136,14 +137,19 @@ uses the same colour. Text on the colour must reach 4.5:1 — darken the colour 
 a unit test over all colours × light / dark). Dark mode + Vivid darkens the colour (board: 62 % mixed with black).
 
 ## Part C — floating Ask, phone + computer (boards `Ask-final-phone`, `Ask-fab-phone`; computer on `List-desktop`, `Home-widgets-desktop`, `Spending-month-desktop`)
-### C1 [ ] The look (Tal chose B + C)
-`Ask-final-phone` + the `.ask` FINAL block at the end of `nx-s5.css`: an **ink orb** (radial top light, inner depth,
-faint amber glow; Plum = plum orb; dark = graphite orb) with a **2 px AI ring** around it (1.5–2 px gap; conic
-violet → amber → orange → pink → violet), muted at rest. Glyph: the sparkle in spark + a small white star. Full circle
-(CLAUDE.md): 56–58 px phone, 60 px computer. States: rest; pressed (scale .94); **message** (ring full colour turning
-once per 5 s, amber dot, one 6 px hop, bubble with the message for 6 s, tapping the bubble opens the chat); **thinking**
-(ring turns every 1.4 s, the star breathes — while an assistant request runs in the background); dragging (lifts 1.08,
-ring full). Reduced motion: no turning, no hop, the ring just brightens.
+### C1 [ ] The look (Tal: option 5 "pearl + ring", stars size C)
+`Ask-final-phone` + the `.ask` FINAL blocks at the end of `nx-s5.css` (the last one, "FINAL v2", wins): a **pearl
+orb** (light radial white → warm grey, soft drop shadow; dark mode = graphite pearl with a faint amber glow) with a
+**2 px AI ring** around it (1.5–2 px gap; conic violet → amber → orange → pink → violet), muted at rest. Glyph: two
+stars — the big one in spark, the small one in ink (Plum: plum; dark: white) — **34 px on a 58 px orb** (60 px on the
+computer), **optically centred**: the pair is shifted 1.85 px left and 0.55 px down (1.3 / 0.4 units of the 24-unit
+icon) with the CSS `translate` property, so pressed / thinking scale never undoes it. Full circle (CLAUDE.md).
+States: rest; pressed (scale .94); **message** (ring full colour turning once per 5 s, amber dot, one 6 px hop,
+bubble with the message for 6 s, tapping the bubble opens the chat); **thinking** (ring turns every 1.4 s, the stars
+breathe — while an assistant request runs in the background); **listening** (voice input to Nexus: ring turns every
+3 s, three level bars replace the stars, see `Ask-configs`); dragging (lifts 1.08, ring full); offline (grey, 45 %,
+ring still). Reduced motion: no turning, no hop, the ring just brightens. Unit / visual check: the glyph's centre is
+within 1 px of the orb's centre in every state (screenshot test).
 ### C2 [ ] Phone behaviour
 Default on the **physical right** side in both languages, 12 px above the dock (bottom = dock + 12), on every main tab
 (Home, Products, Supermarket, Insights). Horizontal drag (6 px slop) moves it; release → the nearest side (or the
@@ -236,6 +242,8 @@ Ask drag + rise over a toast + open / close keeping scroll, Home long-press drag
 month switch, onboarding new steps + the Home card. Unit: home-layout packing (dense, swap, sizes, old layouts),
 trip-look contrast over all colours, onboarding field parsing, spending aggregation (month start day, members,
 currency), diet filter for suggestions. Full phone + desktop smoke pass; `scripts/parity-r18.mjs` gets the S5 boards.
+From S4's prod smoke: widen the smoke's console-message filter so the barcode reader's "aborted by navigation" line
+(worded differently from what the filter catches today) never fails a run.
 ### G2 [ ] Docs
 `SPEC.md` R18 S5 section, `docs/MAP.md` touched areas, in place (floating Ask, widget edit, spending, onboarding fields), help topics (Home
 widgets, Supermarket list swipes, Insights → Spending, Settings → Household), `docs/ENVIRONMENT.md` log line, "### For
