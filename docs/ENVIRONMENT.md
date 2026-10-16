@@ -138,3 +138,6 @@ Older entries: `docs/archive/ENVIRONMENT-log.md` (`rg` it when needed).
   the whole file, fine for new / small files). Large docs (PLANNER, ENVIRONMENT) and boards travel as a zip: Tal unzips
   at the repo root, Claude Code's Step 0 runs `git apply -3 <patch>` + commits the boards on `main`. Boards are made in
   the Design canvas and composed with a small build script in the sandbox (shared CSS + widget partials).
+- 2026-10-16 (PC, R18 S5): `guards.yml` skips docs-only pushes (`paths-ignore` docs/**, **/*.md, .claude/**) and runs as four
+  parallel jobs (fast, server, browser, browser-clip; each builds for itself). "Final CI run" = the last commit that changed code.
+  Code map moved to `docs/MAP.md`; planning history to `docs/archive/`. Prod snapshot ran from the agent again.
