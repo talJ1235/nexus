@@ -9,8 +9,12 @@
   section, preferred brand and substitutes ("Usually: Tnuva 3% · 8 of 10 times" once Nexus has seen it), one store only,
   and its history (date, store, price, cheapest). Once Nexus knows your usual brand it shows it as a chip — tap it to
   make it the brand to buy. Tap the **name's letters** to rename it right there.
-- **Swipe a row** toward the end of the line to delete it (**Undo** for 5 seconds brings it back as it was), or toward
-  the start for a quick **− / +** on the quantity. A tap anywhere else closes it.
+- **Swipe a row** toward the end of the line to show **Delete** (swipe further, or fast, to delete at once — **Undo**
+  for 5 seconds brings it back), or toward the start for a quick **− / +** on the quantity. One row opens at a time; a
+  tap anywhere else closes it. On a computer: hover a row for its actions, **Delete** removes the selected row, and
+  pasting a list anywhere on the page adds it.
+- **Start shopping** opens the start screen in your colour (the palette chip picks a look, per store if you like):
+  items, estimate, about how long, the order of the aisles — then **Let's go**.
 - Everyone in a shared space sees the same list live. A viewer can look, not change.
 
 ## Adding

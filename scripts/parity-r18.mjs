@@ -21,7 +21,8 @@ const NARROW = { width: 360, height: 780 };
 const EN = { language: "English" };
 const HE = { language: "עברית" };
 
-const app = await startApp({ db: "parity-r18.db", port: Number(process.env.PORT || 3118) });
+// An AI key (calls are mocked: NEXUS_AI_MOCK) — the floating Ask (R18 S5 C) shows only when the assistant is available.
+const app = await startApp({ db: "parity-r18.db", port: Number(process.env.PORT || 3118), env: { GEMINI_API_KEY: "mock" } });
 const BASE = app.base;
 await seedAdmin(app.db, { adminId: app.admin, personal: app.personal });
 const browser = await chromium.launch();
@@ -29,7 +30,9 @@ const browser = await chromium.launch();
 async function mockShot(name, props, viewport) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1 });
   const p = await ctx.newPage();
-  await renderBoard(p, MOCK, name, { motion: "reduced", ...props });
+  // R18 S5: "s5:<board>" = a board from docs/design/r18-s5.
+  const s5 = name.startsWith("s5:");
+  await renderBoard(p, s5 ? "docs/design/r18-s5" : MOCK, s5 ? name.slice(3) : name, { motion: "reduced", ...props });
   await p.waitForTimeout(900);
   const buf = await p.screenshot();
   await ctx.close();
@@ -156,6 +159,18 @@ const longPlus = async (p) => {
   await p.mouse.up();
   await p.waitForSelector('[data-quick-menu="open"] [data-quick]');
 };
+/** R18 S5: Continue until onboarding shows step `k` (the stores step's chains phase takes one more Continue). */
+function obStep(k) {
+  return async (p) => {
+    await p.waitForSelector("[data-ob-step]", { timeout: 20000 });
+    for (let i = 0; i < 12; i++) {
+      const at = Number(await p.getAttribute("[data-ob-step]", "data-ob-step").catch(() => 0));
+      if (at === k) break;
+      await p.click("[data-ob-primary]");
+      await p.waitForTimeout(700);
+    }
+  };
+}
 const SHOTS = [
   // A1 — navigation: the dock's long-press menu and Products' segments.
   ["a1-nav", [["board · long-press +", "Nav-phone", { ...EN, screen: "long-press +" }, PHONE], ["app", "/?v=to_buy", PHONE, { wait: '[data-dock-target="plus"]', act: longPlus }], ["board · Products · To buy", "Nav-phone", { ...EN, screen: "Products · To buy" }, PHONE], ["app", "/?v=to_buy", PHONE, { wait: '[data-dock-target="plus"]' }], ["board · he dark", "Nav-phone", { ...HE, screen: "long-press +", dark: true }, PHONE], ["app · he dark", "/?v=to_buy", PHONE, { wait: '[data-dock-target="plus"]', he: true, dark: true, act: longPlus }]], 300],
@@ -188,6 +203,22 @@ const SHOTS = [
   ["f2-onboarding-store", [["board · chains", "Settings-phone", { ...EN, state: "onboarding · chain" }, PHONE], ["app", "/welcome", PHONE, { fresh: true, act: obTo("chains") }], ["board · branch", "Settings-phone", { ...EN, state: "onboarding · branch" }, PHONE], ["app", "/welcome", PHONE, { fresh: true, act: obTo("branch") }], ["board · he dark", "Settings-phone", { ...HE, state: "onboarding · chain", dark: true }, PHONE], ["app · he dark", "/welcome", PHONE, { fresh: true, he: true, dark: true, act: obTo("chains") }]], 300],
   // F3 — the computer's Supermarket page: list + side panel, the item drawer, Send to phone.
   ["f3-desktop", [["board", "Supermarket-desktop", { ...EN, state: "normal" }, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]" }], ["board · send to phone", "Supermarket-desktop", { ...EN, state: "send to phone" }, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]", act: async (p) => { await p.click("[data-sm-send]"); await p.waitForSelector("[data-sm-send-target]"); } }], ["board · item open", "Supermarket-desktop", { ...EN, state: "item open" }, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]", act: async (p) => { await p.locator("[data-sm-desk] [data-sm-row] [data-sm-row-tile]").first().click(); await p.waitForTimeout(500); } }], ["board · he dark", "Supermarket-desktop", { ...HE, state: "normal", dark: true }, DESK], ["app · he dark", "/supermarket", DESK, { wait: "[data-sm-desk-templates]", he: true, dark: true }]], 680],
+  // ---- R18 S5 (boards in docs/design/r18-s5, their default state next to the app).
+  // A — the list v2 (one card, section bands, 60 px rows, add bar), phone + computer.
+  ["s5-a-list", [["board", "s5:List-phone", EN, PHONE], ["app", "/supermarket", PHONE, { wait: SM }], ["app · he dark", "/supermarket", PHONE, { wait: SM, he: true, dark: true }]], 300],
+  ["s5-a-list-desktop", [["board", "s5:List-desktop", EN, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]" }]], 680],
+  // B — the start screen in the person's colour.
+  ["s5-b-start", [["board", "s5:StartTrip-phone", EN, PHONE], ["app", "/supermarket", PHONE, { wait: "[data-sm-start]", act: async (p) => { await p.click("[data-sm-start]"); await p.waitForSelector("[data-store-start]"); } }]], 300],
+  // C — the floating Ask (final: pearl + ring).
+  ["s5-c-ask", [["board", "s5:Ask-final-phone", EN, { width: 1330, height: 760 }], ["app · light", "/", PHONE, { wait: "[data-ask-fab]" }], ["app · dark plum", "/", PHONE, { wait: "[data-ask-fab]", dark: true, plum: true }]], 300],
+  // D — Home widgets v2, phone + computer.
+  ["s5-d-home", [["board", "s5:Home-widgets-phone", EN, PHONE], ["app", "/", PHONE, { wait: "[data-home]" }], ["app · he dark", "/", PHONE, { wait: "[data-home]", he: true, dark: true }]], 300],
+  ["s5-d-home-desktop", [["board", "s5:Home-widgets-desktop", EN, DESK], ["app", "/", DESK, { wait: "[data-home]" }]], 680],
+  // E — Spending's month, phone + computer.
+  ["s5-e-spending", [["board", "s5:Spending-month-phone", EN, PHONE], ["app", "/?v=spending", PHONE, { wait: "[data-spm-hero]" }], ["app · he dark", "/?v=spending", PHONE, { wait: "[data-spm-hero]", he: true, dark: true }]], 300],
+  ["s5-e-spending-desktop", [["board", "s5:Spending-month-desktop", EN, DESK], ["app", "/?v=spending", DESK, { wait: "[data-spm-hero]" }]], 680],
+  // F — onboarding's new steps (2 your home, 4 how you shop).
+  ["s5-f-onboarding", [["board", "s5:Onboarding-v2-phone", EN, PHONE], ["app · step 2", "/welcome", PHONE, { fresh: true, act: obStep(2) }], ["app · step 4", "/welcome", PHONE, { fresh: true, act: obStep(4) }], ["app · step 5 he dark", "/welcome", PHONE, { fresh: true, he: true, dark: true, act: obStep(5) }]], 300],
 ];
 
 /** A trip of mine in the personal space: 23 planned, the first 12 listed rows checked with their prices. */

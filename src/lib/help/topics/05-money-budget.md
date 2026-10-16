@@ -29,7 +29,9 @@
 
 ## Spending and budgets
 <!-- spec: Spending, Monthly budget -->
-- **Spending** (Stats on phones): this month / last month / this year, savings from cheaper stores, 12-month bars, by
-  project, store and category, biggest purchases.
+- **Spending** (Insights → Spending) opens on **one month**: ‹ › between months, what was spent against the budget
+  (left for N days, the pace), a line that builds up over the month with the budget and pace lines, Supermarket /
+  Products / Delivery, then by section, store and product (phone: a switch; computer: side by side) and "Against last
+  month". The month starts on the day set in Space → Budget. The year view stays below it.
 - Monthly budget: the pencil on "This month's budget" (Spending) or Settings. The bar shows received + ordered +
   forecast (urgent to-buy; a toggle adds normal items). Near (90 %) / over shows in colour.

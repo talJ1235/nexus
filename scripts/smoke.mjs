@@ -677,8 +677,9 @@ try {
     const errors = [];
     page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
     // A navigation that aborts the idle scanner prewarm download makes Chromium log "wasm streaming compile failed …
-    // aborted" and fall back to ArrayBuffer — network noise like the two above, not an app error.
-    page.on("console", (m) => m.type() === "error" && !/Failed to load resource|favicon|net::ERR|wasm streaming compile failed: .*aborted|falling back to ArrayBuffer instantiation/.test(m.text()) && errors.push(`console: ${m.text().slice(0, 160)}`));
+    // aborted" (or, worded by another Chromium, "… TypeError: Failed to fetch" — R18 S5 G1) and fall back to ArrayBuffer —
+    // network noise like the two above, not an app error.
+    page.on("console", (m) => m.type() === "error" && !/Failed to load resource|favicon|net::ERR|wasm streaming compile failed: .*(aborted|Failed to fetch)|falling back to ArrayBuffer instantiation/.test(m.text()) && errors.push(`console: ${m.text().slice(0, 160)}`));
 
     await step("owner login", async () => {
       await signIn(page);

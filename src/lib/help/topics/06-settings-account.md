@@ -41,6 +41,9 @@
   and a command-menu entry ("Settings: Budget").
 - **Notifications** (התראות): Account & security → Notifications — one switch for all your devices, this device's
   state, quiet hours (details in the Notifications topic).
+- **Household** (משק הבית, under the space): who you shop for, how many at home, food choices and Shabbat at home —
+  suggestions and amounts follow at once. **Supermarket** also holds your habits (how often, days, store / online);
+  **Budget** the supermarket's part, the month's start day, and "learn it from my first month".
 - **Assistant & AI**: AI + rules or Rules only for "Nexus suggests"; Memory; the AI status. **Calendar**: the feed
   link and which kinds it carries. **Data**: back up / restore (owner), import a spreadsheet or receipts, export items.
 

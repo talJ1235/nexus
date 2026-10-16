@@ -20,23 +20,26 @@ Example: `[Open settings → Palette](nexus:settings)`.
 
 ## First questions (getting started)
 <!-- spec: Onboarding, Onboarding step 5 -->
-- The first time you sign in, Nexus asks a few questions, one per screen (צעדים ראשונים): what you use it for (Home
-  starts with a matching layout), where you shop (suggested first when you look for an item), a monthly budget (a
-  target for your personal space, ₪ / $ / €), who you shop with (partner or family makes a shared space "Home" and
-  offers the invite link), installing the app (iPhone: Share → Add to Home Screen; on a computer that can't install, a QR code to open
-  Nexus on your phone), and notifications.
-- **Skip** leaves at any point; a reload continues where you were. Every answer can be changed later: Home →
-  Customize, Space settings → Budget, the space switcher, Settings → Account → Notifications — or run the questions
-  again from Settings → Display → **Getting started**.
+- The first time you sign in, Nexus asks nine short screens (צעדים ראשונים): what you use it for (Home's layout), your
+  home (just me / couple / family + adults, kids, babies, pets — basket amounts, diapers, pet food; family makes a
+  shared space "Home"), where you shop, how you shop (how often, usual days — the list is ready the evening before —
+  store / online), food at home (kosher, vegetarian, vegan, gluten-free… — suggestions never go against them; Shabbat
+  and holidays at home), the budget (₪ / $ / €, the supermarket's part, the day your month starts, or "learn it from my
+  first month"), installing the app, notifications, done.
+- **Skip** leaves at any point; a reload continues where you were. Every answer can be changed later: Settings →
+  **Household**, Supermarket (habits), Space → Budget, Notifications — or Settings → Display → **Getting started**.
+  If you finished before these questions existed, Home offers "3 quick questions" once.
 
 ## Where things are
 <!-- spec: UI, Desktop shell, Phone shell, Collections, Phone fit, Home hierarchy, Phone shell v2, Home, Shopping tab, Sidebar collapse, Customize, Insights -->
 - **Desktop**: sidebar with Home (בית), To buy (לקנות), On the way (בדרך), Order by store
   (הזמנה לפי חנות), History (היסטוריה), Spending (הוצאות), then Projects (פרויקטים) and Lists (רשימות). The sidebar
-  collapses with the panel button at its top (or by dragging its edge, or Ctrl+B). Top bar: search, "Ask Nexus",
+  collapses with the panel button at its top (or by dragging its edge, or Ctrl+B). Top bar: search,
   alerts bell. The paste bar floats at the bottom. The Nexus logo always goes back to Home. Under the logo: the
   **space switcher** (see Spaces below).
-- **Phone**: top bar (the Nexus logo with the current space's name — tap it to switch — search, Ask and your initial — an orange dot on it means unread price alerts) and
+- **Ask Nexus** is the round button floating at the bottom corner (phone: above the dock; computer: the content's
+  corner). Its side: Settings → Display → **AI button side**.
+- **Phone**: top bar (the Nexus logo with the current space's name — tap it to switch — search and your initial — an orange dot on it means unread price alerts) and
   a dock at the bottom with labels, the same order in every language: Home (בית) · Shopping (קניות) · **+** · Projects ·
   Insights (נתונים). Shopping holds To buy ⇄ On the way
   (the two big cards at its top switch between them; it reopens the one you used last), with a List / Grid switch
@@ -51,10 +54,9 @@ Example: `[Open settings → Palette](nexus:settings)`.
   Deliveries, Month pace, Projects, Nexus noticed, and new ones: Price drops, Vs last month, Next delivery, Budget by
   category, Most bought, Space today (who added or bought what in a shared space).
 <!-- spec: Home widgets -->
-- **Customize** (top of Home) → presets **Household · Maker · Deal watcher · Minimal**, or arrange your own: drag a
-  widget by its dots (or arrow keys), resize by the corner or the size menu (S / M / L wide, 1× / 2× tall; phones:
-  Half / Full and 2×), hide it (eye), add one from the Widgets list (desktop) or **Add widget** (phone). Reset = the
-  Household preset; Done saves it — for you, per space.
+- **Arrange Home**: press and hold a widget (or the pencil) — the cards wiggle; drag one over another to swap them,
+  **−** removes, the size chip switches small / wide, **Add widget** (with presets **Household · Maker · Deal watcher ·
+  Minimal**), **Done** saves — for you, per space. Shopping widgets: Next shop (Start), Due soon (+), Budget (ring).
 <!-- spec: To buy filters, Phone layouts -->
 - **To buy** (one list — there are no separate Urgent / Unsorted pages any more): the "To buy" header with filter chips
   **All · Urgent (דחוף) · No project (ללא פרויקט)**, each with its count, then project chips, Category, Sort and the

@@ -140,4 +140,4 @@ Older entries: `docs/archive/ENVIRONMENT-log.md` (`rg` it when needed).
   the Design canvas and composed with a small build script in the sandbox (shared CSS + widget partials).
 - 2026-10-16 (PC, R18 S5): `guards.yml` skips docs-only pushes (`paths-ignore` docs/**, **/*.md, .claude/**) and runs as four
   parallel jobs (fast, server, browser, browser-clip; each builds for itself). "Final CI run" = the last commit that changed code.
-  Code map moved to `docs/MAP.md`; planning history to `docs/archive/`. Prod snapshot ran from the agent again.
+  Code map moved to `docs/MAP.md`; planning history to `docs/archive/`. Prod snapshot ran from the agent again. `scripts/parity-r18.mjs` runs with a mock AI key (the floating Ask needs the assistant) and takes `s5` for the S5 boards; new unit test `test:household`.

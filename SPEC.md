@@ -1050,6 +1050,46 @@ Shipped (S4):
   confirm rule), `test:dock` (press timings), `test:voice` (new; route + fake recorder), `test:capture` (kind
   confidence) and both in CI, `test:brands` (ranking, home brands), a smoke step per item (phone + computer).
 
+## Round 18 — Session 5: the list v2, start screen, floating Ask, Home widgets v2, monthly spending, onboarding v2
+
+Brief: `docs/ROUND18-S5.md` (progress, decisions, the phone checklist "For Tal" in its "## Open"); boards
+`docs/design/r18-s5/`; parity `docs/design/parity-r18/s5-*.png` (`scripts/parity-r18.mjs s5`). No schema change
+(new user / space prefs only).
+
+Shipped (S5):
+- *CI* (0.1): `guards.yml` ignores docs-only pushes and runs as four parallel jobs (fast / server / browser /
+  browser-clip): 55 → 21 min.
+- *The list v2* (A1–A4): one card with sticky section bands, 60 px rows (tile, brand · note line, amount chip, who
+  dot), the store row + summary + add bar (voice + camera). Two-way swipe (`row.tsx`, `useSwipe` `openAt / fullAt /
+  flick / stop`): Delete at the end (open past 56 px, delete past 170 px or a fling, Undo), − / + stepper at the start,
+  one row open, first-time peek + hint (`pref:sm-swipe-hint`). The item sheet: section + brand chips, Done + round
+  Delete. Computer: store / count / This-list cards, paste a list anywhere, hover / focus actions, Delete key.
+- *Start screen* (B1–B2, `supermarket/start-trip.tsx`): the person's colour with one light sweep; day, "Ready to shop",
+  items / estimate / ~minutes (median of this store's finished trips), the route card, who gets told, Let's go →
+  store mode's header in the same colour. Look sheet: Auto + 8 colours × Vivid / Soft / Night, per store or everywhere
+  (`pref:tripLook[:chain|branch]`); colours checked ≥ 4.5:1 (`lib/grocery/trip-look.ts`).
+- *Floating Ask* (C1–C3, `components/app/ask-fab.tsx`): a pearl orb with the AI ring, always an opaque circle; states
+  rest / pressed / message (due staples, once a day) / thinking / listening / offline. Phone: above the dock on the
+  main tabs, rises over toasts, hidden in store mode, Home edit, dialogs and the keyboard; computer: 60 px in the
+  content column's corner. Side: Settings → Display → AI button side (`pref:ask-side`). The top-bar Ask buttons are gone.
+- *Home widgets v2* (D1–D3): every widget in one card shell, small / wide, packed densely (`lib/home-layout.ts`
+  `pack`); cards show whole rows only (`useFitRows`). Edit in place: long-press 450 ms lifts a card, drop it over
+  another to swap, − removes, size chip, Add widget (presets inside), Done saves; keyboard edit from the pencil. New
+  shopping widgets (`home-shop-widgets.tsx`): Next shop (live when someone is shopping), Due soon, Budget (ring,
+  supermarket vs products).
+- *Monthly spending* (E1–E2, `spending-month.tsx`, maths `lib/spending-month.ts`): Insights → Spending opens on one
+  month — switcher, hero against the budget with pace, cumulative chart (budget + pace lines), Supermarket / Products /
+  Delivery split, Sections · Stores · Products, Against last month; the month starts on the space's start day.
+- *Onboarding v2* (F1–F6): nine steps (why · your home · stores · how you shop · food at home · budget · install ·
+  notifications · done); R17 answers map onto them. Home size scales the starter basket (babies / pets items), food
+  choices filter suggestions (`lib/grocery/diet.ts`), Shabbat at home keeps the Shabbat / holiday nudges, usual days
+  set Next shop's day and the evening-before draft, the budget gets a supermarket share and a start day, or is learned
+  from the first month (Home proposes it). Home card "3 quick questions" for people who finished before. Settings →
+  Household (who, people, food), Supermarket → habits, Space → Budget → share / start day / learn.
+- Guards: `test:trip-look`, `test:spending`, `test:household` (new, in CI), `test:home` (packing, swap, sizes, old
+  layouts), `test:onboarding` (9 steps + the quick card), a smoke step per item (phone + computer); the smoke ignores
+  the scanner prewarm's "Failed to fetch" console line.
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.

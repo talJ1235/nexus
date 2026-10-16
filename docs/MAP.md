@@ -59,10 +59,15 @@ belongs in `SPEC.md` and the round briefs, not here.
 - **Tests:** `test:feed`, `test:live`.
 
 ## Home
-- Layout + widgets + presets `lib/home-layout.ts`; numbers `lib/home-widgets.ts`; grid + Customise `home-grid.tsx`;
-  `home-extra.tsx`; view `home-view.tsx` (carousel `StackHeight`, loop pager `pagerRelease({ loop })`, suggestions
-  auto-turn `useAutoAdvance`). Layout per user per space in `user_pref`. Widget `nextshop` (supermarket).
+- Layout + widgets + presets `lib/home-layout.ts` (R18 S5: sizes small / wide, `pack` dense, `swap`, `addTop`);
+  numbers `lib/home-widgets.ts`; cards + in-place edit (long-press, drag-swap) `home-grid.tsx` (`HomeCards`, CSS `.wv2*`
+  in globals.css); whole-row fitting `useFitRows` in `home-card.tsx`; `home-extra.tsx`; view `home-view.tsx` (carousel
+  `StackHeight`, loop pager `pagerRelease({ loop })`, suggestions auto-turn `useAutoAdvance`). Layout per user per
+  space in `user_pref`. Shopping widgets `home-shop-widgets.tsx` (`nextshop`, `due`, budget). Onboarding cards
+  `home-onboard-cards.tsx` (quick questions, learned budget).
 - AI wording: `lib/home-ai.ts` (`normalizeMoney`), cache keys `home:ai:v2:…` / `home:look:v2:…` (`HOME_AI_CACHE_V`).
+- Insights → Spending: month view `spending-month.tsx` (maths `lib/spending-month.ts`, trips via `smSpending`; start day
+  `pref:budget-start`), year overview below in `spending-view.tsx`. **Tests:** `test:spending`.
 - **Tests:** `test:home`, `test:sug`.
 
 ## Products (links, prices, tracking)
@@ -78,19 +83,20 @@ belongs in `SPEC.md` and the round briefs, not here.
 - Client-safe `lib/grocery/`: `sections.ts` (16 keys, default order), `dictionary.ts` + `normalize.ts` + `classify.ts`
   (`brandOf`), `parse.ts` (parseLine, splitList), `search.ts`, `staples.ts`, `holidays.ts`, `order.ts` (learned walking
   order), `trip.ts` (replay, TripOp), `merge.ts` (`mergeAdd`; note cleanup in the daily cron), `brands.ts`,
-  `routines.ts`, `trip-api.ts`. Server `grocery/classify-server.ts` (Open Food Facts, batched AI).
+  `routines.ts`, `trip-api.ts`, `trip-look.ts` (start-screen colours, contrast), `diet.ts` (suggestions vs food choices). Server `grocery/classify-server.ts` (Open Food Facts, batched AI).
 - Data `lib/db-scoped/`: `grocery.ts` (stores, order, add + merge, history, suggestions, staples, templates,
   `learningOf`, `learnedFacts`), `trips.ts` (trip + trip_check), `trip-sync.ts` (outbox merge), `brands.ts` (`brand_buy`).
 - Actions `app/supermarket-actions.ts`; routes `/api/grocery/search`, `/api/grocery/voice`. Client outbox
   `lib/shop-outbox.ts`, `lib/trip-client.ts` (SPEC "Trip API").
-- Screens `components/app/supermarket/`: `view.tsx` (the tab; computer `desk.tsx`), `row.tsx` (swipe delete +
-  `restoreSmItem`, quick quantity, inline rename), `add-screen.tsx` (+ `Voice`), `added.tsx` (add feedback),
+- Screens `components/app/supermarket/`: `view.tsx` (the tab — one card with section bands; computer `desk.tsx` +
+  `DeskAdd` / paste anywhere), `row.tsx` (two-way swipe: Delete at the end / stepper at the start, Undo, hover actions,
+  `restoreSmItem`, inline rename), `start-trip.tsx` (start screen + look sheet, `pref:tripLook`), `add-screen.tsx` (+ `Voice`), `added.tsx` (add feedback),
   `item-sheet.tsx`, `store-picker.tsx`, `store-mode.tsx`, `trip.tsx` (Home card + trip bar), `lists.tsx` (templates +
   past trips), `data.ts` (`useSmHome`). Settings `settings/supermarket.tsx`. History: Insights → History → Supermarket
   (`HistorySource`, `SmHistory`).
 - Senders `eveningDrafts` / `autoStaples` / `liveAdd` (kinds `draft`, `trip_add`) — see Notifications.
 - **Tests:** `test:grocery`, `test:staples`, `test:add`, `test:trips`, `test:trip-api`, `test:templates`,
-  `test:shop-offline`, `test:brands`, `test:voice`. Demo data `scripts/lib/seed-sm.mjs`; parity `scripts/parity-r18.mjs`;
+  `test:shop-offline`, `test:brands`, `test:voice`, `test:trip-look`, `test:household` (diet filter). Demo data `scripts/lib/seed-sm.mjs`; parity `scripts/parity-r18.mjs`;
   rehearsals `scripts/r18*-rehearsal.*` (newest = the one for the last DB change).
 
 ## Camera, barcode, voice
@@ -103,6 +109,8 @@ belongs in `SPEC.md` and the round briefs, not here.
 - **Tests:** `test:capture`, `test:barcode`, `test:voice`, `test:headers`.
 
 ## AI & assistant
+- Floating Ask button `components/app/ask-fab.tsx` (CSS `.ask-fab` in globals.css; side `pref:ask-side`, Settings →
+  Display); the assistant panel opens from that side.
 - Every model call goes through `lib/ai-gate.ts` with `use` (feature, user, space): switch, 40/day quota, redaction,
   `ai_usage`. Models / fallback `lib/ai.ts`; assistant `lib/assistant*.ts`; list prices `lib/ai-prices.ts`.
 - **Tests:** `test:ai-quota`, `test:actions`, `test:assistant-context`, `test:memory`.
@@ -120,7 +128,10 @@ belongs in `SPEC.md` and the round briefs, not here.
 
 ## Settings & profile
 - `components/app/settings/` (shell = desktop dialog / phone pages; `you.tsx`, `account.tsx`, `space.tsx`,
-  `profile.tsx`), deep links `/settings/[[...section]]`. Photo `/api/me-photo` + `lib/space-photo.ts`; name
+  `profile.tsx`, `household.tsx` — Household, Supermarket habits, Budget's shape), deep links `/settings/[[...section]]`.
+- Onboarding `/welcome` (`components/onboarding/`, 9 steps; `?quick=1` = steps 2, 4, 5, 6): answers `lib/onboarding.ts`
+  (`pref:onboarding`, R17 steps mapped), actions `app/onboarding-actions.ts` (+ `budgetShape` / `saveBudgetShape`: space
+  prefs `pref:budget-start`, `pref:budget-sm`; food `pref:home-food`). Tests `test:onboarding`, `test:household`. Photo `/api/me-photo` + `lib/space-photo.ts`; name
   `saveMyName`; `me` via `myProfile` (`lib/db-scoped/account.ts`); avatars `components/app/person-photo.tsx`.
 - **Tests:** `test:settings`.
 
