@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Monthly spending · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+  <div class="scr" style="padding-bottom:110px">
+    <div class="top"><h1>{{t.title}}</h1><button class="ib" aria-label="{{t.share}}"><svg class="s" viewBox="0 0 24 24"><path d="M12 3v12 M7 8l5-5 5 5 M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"></path></svg></button></div>
+    <div style="padding:0 16px 8px">
+      <div class="seg"><span class="pill" style="width:calc(50% - 3px);inset-inline-start:3px"></span><button class="on">{{t.spend}}</button><button>{{t.hist}}</button></div>
+    </div>
+    <div class="mon">
+      <button class="ib" aria-label="{{t.prevM}}" onClick="{{prevM}}"><svg class="s flip" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"></path></svg></button>
+      <span class="m">{{m.name}}</span>
+      <button class="ib" aria-label="{{t.nextM}}" onClick="{{nextM}}" disabled="{{isNow}}" style="{{nextSt}}"><svg class="s flip" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg></button>
+    </div>
+
+    <section class="hero" aria-label="{{t.total}}">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--muted)">{{t.total}}</div>
+          <div class="big xl num" style="margin-top:2px">{{m.total}}</div>
+          <div class="wsub" style="margin-top:4px">{{m.ofBudget}}</div>
+        </div>
+        <span class="{{m.deltaCls}}" style="margin-top:4px">{{m.delta}}</span>
+      </div>
+      <svg class="chart" viewBox="0 0 326 132" style="width:100%;height:132px;margin-top:10px;direction:ltr" role="img" aria-label="{{t.chartLbl}}">
+        <line class="grid" x1="0" y1="20" x2="326" y2="20"></line><line class="grid" x1="0" y1="60" x2="326" y2="60"></line><line class="grid" x1="0" y1="100" x2="326" y2="100"></line>
+        <line class="bud" x1="0" y1="20" x2="326" y2="20"></line>
+        <line class="pace" x1="0" y1="112" x2="326" y2="20"></line>
+        <path class="area" d="{{m.area}}"></path>
+        <path class="ln" d="{{m.line}}"></path>
+        <circle cx="{{m.dotX}}" cy="{{m.dotY}}" r="4.5" fill="var(--ink)" stroke="var(--raised)" stroke-width="2"></circle>
+        <text x="{{budX}}" y="14" text-anchor="{{endAnchor}}">{{t.budget}} {{m.budget}}</text>
+        <text x="{{startX}}" y="128" text-anchor="{{startAnchor}}">1</text><text x="{{midX}}" y="128" text-anchor="middle">15</text><text x="{{endX}}" y="128" text-anchor="{{endAnchor}}">{{m.days}}</text>
+      </svg>
+      <div class="split" style="margin-top:12px" aria-hidden="true"><sc-for list="{{m.split}}" as="x" hint-placeholder-count="3"><i style="{{x.st}}"></i></sc-for></div>
+      <div class="leg" style="margin-top:8px"><sc-for list="{{m.split}}" as="x" hint-placeholder-count="3"><span><i style="{{x.dot}}"></i>{{x.name}} <b class="num" style="color:var(--ink)">{{x.v}}</b></span></sc-for></div>
+    </section>
+
+    <div style="padding:6px 12px 10px">
+      <div class="seg"><span class="pill" style="{{tabPill}}"></span><sc-for list="{{tabs}}" as="b" hint-placeholder-count="3"><button class="{{b.cls}}" onClick="{{b.pick}}">{{b.name}}</button></sc-for></div>
+    </div>
+
+    <sc-if value="{{onCat}}" hint-placeholder-val="{{ true }}">
+      <section class="card">
+        <h3><span>{{t.catsT}}</span><span class="wsub" style="flex:none">{{m.smTotal}}</span></h3>
+        <sc-for list="{{m.cats}}" as="c" hint-placeholder-count="6">
+          <button class="brow" onClick="{{c.tog}}" aria-expanded="{{c.open}}">
+            <span class="{{c.siCls}}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{c.d}}"></path></svg></span>
+            <span class="nm"><b>{{c.name}}</b><span class="{{c.hbCls}}"><i style="{{c.w}}"></i></span></span>
+            <span class="v">{{c.v}}<small>{{c.chg}}</small></span>
+          </button>
+          <sc-if value="{{c.open}}" hint-placeholder-val="{{ false }}">
+            <div style="padding:2px 0 8px 0;padding-inline-start:44px;display:flex;flex-direction:column;gap:2px;animation:fade 200ms var(--ease-out) both">
+              <sc-for list="{{c.top}}" as="x" hint-placeholder-count="3"><div style="display:flex;font-size:13px;color:var(--ink2)"><span style="flex:1" class="bidi">{{x.n}}</span><b class="num">{{x.v}}</b></div></sc-for>
+            </div>
+          </sc-if>
+        </sc-for>
+      </section>
+    </sc-if>
+    <sc-if value="{{onStore}}" hint-placeholder-val="{{ false }}">
+      <section class="card">
+        <h3><span>{{t.storesT}}</span></h3>
+        <sc-for list="{{m.stores}}" as="c" hint-placeholder-count="5">
+          <div class="brow"><span class="{{c.chCls}}" style="width:34px;height:34px;font-size:11.5px">{{c.ini}}</span><span class="nm"><b class="bidi">{{c.name}}</b><span class="hb" style="--k:{{c.col}}"><i style="{{c.w}}"></i></span></span><span class="v">{{c.v}}<small>{{c.n}}</small></span></div>
+        </sc-for>
+      </section>
+    </sc-if>
+    <sc-if value="{{onProd}}" hint-placeholder-val="{{ false }}">
+      <section class="card">
+        <h3><span>{{t.prodT}}</span></h3>
+        <sc-for list="{{m.prods}}" as="c" hint-placeholder-count="4">
+          <div class="brow"><span class="si" style="--k:#2f6fd1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg></span><span class="nm"><b class="bidi">{{c.name}}</b><span style="font-size:12px;color:var(--muted)">{{c.meta}}</span></span><span class="v">{{c.v}}</span></div>
+        </sc-for>
+      </section>
+    </sc-if>
+
+    <section class="card">
+      <h3><span>{{t.vsT}}</span></h3>
+      <sc-for list="{{m.vs}}" as="x" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:10px;min-height:40px"><span style="flex:1;font-size:14px;font-weight:600">{{x.n}}</span><b class="num" style="font-size:14px">{{x.v}}</b><span class="{{x.cls}}">{{x.d}}</span></div>
+      </sc-for>
+    </section>
+  </div>
+
+  <button class="ask" style="left:318px" aria-label="{{t.ask}}"><svg class="sp" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" fill="var(--spark)"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="#fff"></path></svg></button>
+  <nav class="dock" aria-label="{{t.nav}}">
+    <button class="tab"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span>{{t.home}}</span></button>
+    <button class="tab"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg><span>{{t.products}}</span></button>
+    <button class="plus" aria-label="{{t.add}}"><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button>
+    <button class="tab"><svg viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg><span>{{t.sm}}</span></button>
+    <button class="tab on" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg><span>{{t.insights}}</span></button>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"view":{"editor":"enum","options":["categories","stores","products"],"default":"categories"},"month":{"editor":"enum","options":["October (in progress)","September (closed, over budget)"],"default":"October (in progress)"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const dark = !!p.dark, plum = (p.palette ?? 'graphite') === 'plum';
+        const P = {
+      produce:'M12 7c-3-2-7 0-7 5s3 9 7 9 7-4 7-9-4-7-7-5z M12 7c0-2 1-4 3-4',
+      meat:'M3 12c3-5 9-6 13-2l5-3v10l-5-3c-4 4-10 3-13-2z M8 11h.01',
+      deli:'M3 11h18a9 9 0 0 1-18 0z M7 7c1-2 3-2 4 0 M12 6c1-2 3-2 4 0',
+      dry:'M7 3h10 M8 3v3l-3 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10l-3-4V3 M5 13h14',
+      cans:'M6 5c0-1 2.7-2 6-2s6 1 6 2v14c0 1-2.7 2-6 2s-6-1-6-2z M6 5c0 1 2.7 2 6 2s6-1 6-2 M6 10h12',
+      spice:'M9 3h6l1 4H8z M8 7h8v13a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1z M11 11h.01 M13 13h.01 M11 15h.01',
+      bfast:'M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z M17 10h1.5a2.5 2.5 0 0 1 0 5H17 M8 3v3 M12 3v3',
+      snack:'M12 3a9 9 0 1 0 9 9 3 3 0 0 1-3-3 3 3 0 0 1-3-3 3 3 0 0 1-3-3z M8.5 11.5h.01 M12 16h.01 M15.5 14h.01',
+      drink:'M10 2h4 M10 2v4l-2 3v12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V9l-2-3V2 M8 13h8',
+      clean:'M9 9h6v12H9z M10 9V6h4 M14 6l4-2 M17 7h2',
+      toil:'M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7z M7 10l7 7',
+      baby:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M9 10h.01 M15 10h.01 M9.5 14.5a3.5 3.5 0 0 0 5 0',
+      pets:'M12 14c-2.8 0-5 2.6-5 4.4 0 1.6 2.2 1.6 5 1.6s5 0 5-1.6c0-1.8-2.2-4.4-5-4.4z M4.4 10a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0 M7.9 6.5a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0 M12.9 6.5a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0 M16.4 10a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0',
+      bread:'M6 11a4 4 0 0 1 0-8h12a4 4 0 0 1 0 8v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z',
+      dairy:'M7 6l2-4h6l2 4 M7 6v15a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6z M7 6l5 4 5-4 M12 10v12',
+      frozen:'M12 2v20 M3.3 7l17.4 10 M3.3 17 20.7 7 M9 4l3 3 3-3 M9 20l3-3 3 3'
+    };
+
+    const sep = s.mi != null ? s.mi === 0 : (p.month ?? '').startsWith('September');
+    const view = s.view || ({ categories: 'cat', stores: 'store', products: 'prod' })[p.view ?? 'categories'];
+    const W = 326, Hh = 112, top = 20;
+    const curve = (pts, days, budget) => {
+      const xy = pts.map((v, i) => [(i / (days - 1)) * W, Hh - (v / budget) * (Hh - top)]);
+      const d = 'M' + xy.map(q => q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' L');
+      const last = xy[xy.length - 1];
+      return { line: d, area: d + ' L' + last[0].toFixed(1) + ' ' + Hh + ' L0 ' + Hh + ' Z', dotX: last[0].toFixed(1), dotY: last[1].toFixed(1) };
+    };
+    const cum = (arr) => arr.reduce((a, v) => (a.push((a[a.length - 1] || 0) + v), a), []);
+    const OCT = cum([0,180,0,60,420,0,0,90,0,386,30,0,140,0,410]);
+    const SEP = cum([210,0,90,450,0,120,0,380,0,60,0,420,0,0,390,80,0,0,460,0,150,0,410,0,0,95,380,0,240,600]);
+    const M = sep ? {
+      name: L('September 2026','ספטמבר 2026'), total: '₪7,610', budget: '₪7,200', ofBudget: L('₪410 over the ₪7,200 budget','₪410 מעל תקציב של ₪7,200'), days: 30,
+      delta: L('+6% vs Aug','+6% מאוגוסט'), deltaCls: 'delta up', c: curve(SEP.map(v => v * 1.0), 30, 7200),
+      split: [[L('Supermarket','סופר'),'₪3,560',47,'#2f9a58'],[L('Products','מוצרים'),'₪3,280',43,'#2f6fd1'],[L('Delivery & other','משלוחים ואחר'),'₪770',10,'#8a8984']], smTotal: '₪3,560',
+      catsK: [['produce',540,'+8%'],['meat',820,'+12%'],['dairy',610,'−3%'],['dry',360,'0%'],['clean',420,'+40%'],['bread',260,'−5%'],['drink',300,'+2%'],['snack',250,'+9%']]
+    } : {
+      name: L('October 2026','אוקטובר 2026'), total: '₪4,180', budget: '₪7,200', ofBudget: L('of ₪7,200 · ₪3,020 left for 16 days','מתוך ₪7,200 · נשארו ₪3,020 ל־16 ימים'), days: 31,
+      delta: L('on pace','בקצב'), deltaCls: 'delta dn', c: curve(OCT, 31, 7200),
+      split: [[L('Supermarket','סופר'),'₪2,640',63,'#2f9a58'],[L('Products','מוצרים'),'₪1,190',29,'#2f6fd1'],[L('Delivery & other','משלוחים ואחר'),'₪350',8,'#8a8984']], smTotal: '₪2,640',
+      catsK: [['produce',410,'−6%'],['meat',560,'+4%'],['dairy',430,'−2%'],['dry',290,'+1%'],['clean',180,'−20%'],['bread',190,'0%'],['drink',320,'+15%'],['snack',260,'+11%']]
+    };
+    if (sep) M.c = curve(SEP.map(v => v * 7610 / 7610), 30, 7200);
+    const SECN = { produce:['Fruit & vegetables','פירות וירקות'], meat:['Meat, poultry & fish','בשר, עוף ודגים'], dairy:['Dairy & eggs','חלב וביצים'], dry:['Dry goods','יבשים'],
+      clean:['Cleaning & disposables','ניקיון וחד־פעמי'], bread:['Bread & bakery','לחם ומאפים'], drink:['Drinks','משקאות'], snack:['Snacks & sweets','חטיפים ומתוקים'] };
+    const TOP = { produce:[[L('Tomatoes','עגבניות'),'₪86'],[L('Bananas','בננות'),'₪54'],[L('Avocado','אבוקדו'),'₪48']], meat:[[L('Chicken breast','חזה עוף'),'₪240'],[L('Ground beef','בשר טחון'),'₪180'],[L('Salmon','סלמון'),'₪140']],
+      dairy:[[L('Milk 3%','חלב 3%'),'₪96'],[L('Cottage 5%','קוטג׳ 5%'),'₪84'],[L('Eggs','ביצים'),'₪76']] };
+    const maxC = Math.max.apply(null, M.catsK.map(x => x[1]));
+    const open = s.open || {};
+    const cats = M.catsK.slice().sort((a, b) => b[1] - a[1]).map(x => ({
+      name: he ? SECN[x[0]][1] : SECN[x[0]][0], d: P[x[0]], siCls: 'si k-' + x[0], hbCls: 'hb k-' + x[0], w: 'width:' + Math.round(x[1] / maxC * 100) + '%',
+      v: '₪' + x[1], chg: x[2] + L(' vs last',' מהקודם'), open: !!open[x[0]], top: (TOP[x[0]] || [[L('(top items)','(הפריטים המובילים)'),'']]).map(q => ({ n: q[0], v: q[1] })),
+      tog: () => this.setState({ open: Object.assign({}, open, { [x[0]]: !open[x[0]] }) })
+    }));
+    const stores = [['שד','SD',L('Shufersal Deal · Poleg','שופרסל דיל · פולג'),sep ? 2110 : 1520,sep ? 5 : 4,'#c2412d','chain'],['רל','RL',L('Rami Levy · Netanya','רמי לוי · נתניה'),sep ? 940 : 760,sep ? 2 : 2,'#2563c9','chain b'],
+      ['יב','YB',L('Yochananof','יוחננוף'),sep ? 510 : 360,1,'#127f78','chain c'],['KSP','KSP','KSP',sep ? 1890 : 640,sep ? 2 : 1,'#6a46c8','chain d']];
+    const maxS = Math.max.apply(null, stores.map(x => x[3]));
+    return {
+      cls: 'nx ph' + (dark ? ' dark' : '') + (plum ? ' plum' : ''), dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en',
+      t: { title: L('Insights','תובנות'), share: L('Share or export','שיתוף או ייצוא'), spend: L('Spending','הוצאות'), hist: L('History','היסטוריה'), prevM: L('Previous month','החודש הקודם'), nextM: L('Next month','החודש הבא'),
+        total: L('Spent this month','הוצאתם החודש'), chartLbl: L('Spending through the month against the budget pace','ההוצאות לאורך החודש מול קצב התקציב'), budget: L('Budget','תקציב'),
+        catsT: L('Supermarket by section','סופר לפי מחלקות'), storesT: L('By store','לפי חנות'), prodT: L('Products (not supermarket)','מוצרים (לא סופר)'), vsT: L('Against last month','מול החודש הקודם'),
+        ask: L('Ask Nexus','לשאול את Nexus'), nav: L('Main','ראשי'), home: L('Home','בית'), products: L('Products','מוצרים'), add: L('Add','הוספה'), sm: L('Supermarket','סופר'), insights: L('Insights','תובנות') },
+      m: Object.assign({}, M, M.c, { cats, stores: stores.map(x => ({ ini: he ? x[0] : x[1], name: x[2], v: '₪' + x[3].toLocaleString('en-US'), n: L(x[4] + (x[4] > 1 ? ' trips' : ' trip'), x[4] + ' קניות'), col: x[5], chCls: x[6], w: 'width:' + Math.round(x[3] / maxS * 100) + '%' })),
+        split: M.split.map(x => ({ name: x[0], v: x[1], st: 'flex-grow:' + x[2] + ';background:' + x[3], dot: 'background:' + x[3] })),
+        prods: [{ name: L('Wireless headphones','אוזניות אלחוטיות'), meta: L('KSP · Oct 3','KSP · 3 באוקטובר'), v: '₪390' }, { name: L('Air fryer','סיר אוויר'), meta: L('Price drop −18% · Oct 9','ירידת מחיר −18% · 9 באוקטובר'), v: '₪449' }, { name: L('Kids’ shoes','נעלי ילדים'), meta: L('Oct 11','11 באוקטובר'), v: '₪219' }, { name: L('Light bulbs ×6','נורות ×6'), meta: L('Oct 12','12 באוקטובר'), v: '₪132' }],
+        vs: sep ? [{ n: L('Supermarket','סופר'), v: '₪3,560', d: '+₪180', cls: 'delta up' }, { n: L('Products','מוצרים'), v: '₪3,280', d: '+₪640', cls: 'delta up' }, { n: L('Average shop','קנייה ממוצעת'), v: '₪395', d: '−₪15', cls: 'delta dn' }]
+                 : [{ n: L('Supermarket so far','סופר עד עכשיו'), v: '₪2,640', d: L('−₪120 vs same day','−₪120 מול אותו יום'), cls: 'delta dn' }, { n: L('Products so far','מוצרים עד עכשיו'), v: '₪1,190', d: L('−₪410','−₪410'), cls: 'delta dn' }, { n: L('Average shop','קנייה ממוצעת'), v: '₪410', d: '+₪15', cls: 'delta up' }] }),
+      isNow: !sep, nextSt: sep ? '' : 'opacity:.3',
+      prevM: () => this.setState({ mi: 0 }), nextM: () => this.setState({ mi: 1 }),
+      onCat: view === 'cat', onStore: view === 'store', onProd: view === 'prod',
+      tabs: [['cat',L('Sections','מחלקות')],['store',L('Stores','חנויות')],['prod',L('Products','מוצרים')]].map(x => ({ name: x[1], cls: view === x[0] ? 'on' : '', pick: () => this.setState({ view: x[0] }) })),
+      tabPill: 'width:calc(33.333% - 2px);inset-inline-start:calc(' + (['cat','store','prod'].indexOf(view) * 33.333) + '% + 3px)',
+      budX: W - 2, endAnchor: 'end', startAnchor: 'start', startX: 2, endX: W - 2, midX: W / 2
+    };
+  }
+}
+</script>
+</body>
+</html>

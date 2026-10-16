@@ -7,6 +7,19 @@ Setup of this chat (network, GitHub connector, rebuilding it on a new account): 
 to setup, tooling or workflow is recorded there in the same session.
 
 ## Current state & handoff (updated 2026-10-10 → read this first on any account)
+- **2026-10-16 — R18 S5 ready to run (account B done).** Boards approved (canvas "Nexus R18 — S5", 14 boards) and
+  **`docs/ROUND18-S5.md`** written (Parts A list v2, B start-trip look, C floating Ask, D Home widgets v2, E monthly
+  spending, F onboarding v2, G guards + docs). The planning chat couldn't `git push` (no push tool in that chat) →
+  Tal gets `nexus-r18-s5.zip` (boards for `docs/design/r18-s5/` + `r18-s5-planning.patch` with these PLANNER /
+  ENVIRONMENT lines); Claude Code's Step 0 applies and commits them on `main`. Prompt for Claude Code (account A):
+  ```
+  Round 18, session 5 (docs/ROUND18-S5.md) — Step 0, then Parts A, B, C, D, E, F, G, unattended, on branch round18-s5
+  from main. I unzipped nexus-r18-s5.zip at the repo root. Now while I'm here: make sure .claude/settings.local.json
+  allows "Bash(git push origin main)", "Bash(git push origin round18-s5)", "Bash(git push -u origin round18-s5)",
+  "Bash(git merge --ff-only round18-s5)", and take a fresh read-only prod snapshot (if refused, tell me the exact
+  command). Then go through everything without stopping. Merge to main only if all items are ticked, a full CI run on
+  the final commit is green, and (if the DB changed) the rehearsal passes.
+  ```
 - **2026-10-15 (night) — SPLIT BY ACCOUNT (Tal, to save usage):**
   - **This account (tal.jacoby1235, "A")** runs **Claude Code only** (R18 S4 tonight on `round18-s4`; S5 tomorrow).
   - **The other account ("B") is the planning + design chat** from now on: boards for S5 and the **S5 brief**.
@@ -502,6 +515,21 @@ to setup, tooling or workflow is recorded there in the same session.
   not found, live adds, tile, offline. **After R20** (needs the Android app). R18 S2 requirement now: every store-mode
   action goes through one trip API (the S1 trip outbox shape) so a watch client can reuse it.
 
+- **R18 S5 boards (Tal 2026-10-15/16, account B), canvas "Nexus R18 — S5" — all approved 2026-10-16:** floating Ask
+  on **phone and computer** (phone: physical right by default, just above the dock, rises above toasts; computer:
+  bottom corner of the content; **no dragging** — Settings "AI button side: Right / Left" moves it; the top-bar Ask
+  goes). Always a perfect, opaque circle in every state.
+  **Ask look = option 5 "pearl + ring", stars size C** (boards `Ask-configs` → `Ask-pearl-sizes` → `Ask-final-phone`):
+  light pearl orb + a thin muted violet→amber→orange→pink ring that turns only when Nexus has a message (slow), is
+  thinking (fast) or listening; two stars 34 px on 58 px, optically centred (shifted 1.85 px left, .55 px down) —
+  "feels AI, stays solid". Home widgets: **only what gives real value** — Next shop (+ live state when another member is
+  shopping), Due soon, Budget with the supermarket share; dropped: month bars, last shop, rhythm, templates widget.
+  Start-shopping screen colour is **the user's choice** (Auto = store colour, 8 colours, Vivid / Soft / Night, per
+  store). Onboarding asks the basics: household (who + adults / kids / babies / pets), how you shop (how often, usual
+  days, store / online / both), food at home (kosher, mehadrin, vegetarian, vegan, gluten-free, lactose-free, nut
+  allergy, organic; Shabbat and holidays), budget (household total, supermarket share, month start day, "learn it from
+  my first month", alerts 80 % / 100 %). Swipe on list rows: toward the start = delete, toward the end = quantity.
+
 ## Product direction (discussed 2026-10-03, not started)
 - Toward a multi-user product: sign-up on web or app, short onboarding questionnaire (habits, stores), Google sign-in,
   desktop login by QR from the phone, per-user data (schema already owner-aware), privacy policy.
@@ -531,6 +559,8 @@ to setup, tooling or workflow is recorded there in the same session.
 - Log each planning chat in one line below (date, account A/B, what was decided/written), newest first.
 
 ### Planning log
+- 2026-10-16 · B · R18 S4 result from Claude Code: on `main` as `d4bdeb0`, all items ticked, CI + guards + prod smoke green, no schema change. Voice never worked before because `Permissions-Policy` had `microphone=()` (now `self`); the vanished-row bug was a delete + Undo in one sync batch (fixed). Open: Tal's phone checklist in `ROUND18-S4.md` "For Tal"; status note `4030ed9` only on `round18-s4` → S5 Step 0 cherry-picks it; the smoke console filter → S5 G1.
+- 2026-10-16 · B · R18 S5 planned: new canvas "Nexus R18 — S5" (14 boards: list phone + computer, start trip with a colour / style picker, floating Ask states + six looks + 8 shapes × 8 states + star sizes + the final (pearl + ring, stars C), Home widgets v2 with long-press drag / swap / remove / size / add, widget catalog, monthly spending phone + computer, onboarding v2 steps 2/4/5/6). Tal: Ask floats on phone and computer, look = pearl + ring with bigger centred stars, only valuable widgets, start-trip colour is the user's, onboarding asks household / habits / food / budget; all approved. Wrote `docs/ROUND18-S5.md`; boards + these doc lines go via a zip + patch (no push from this chat).
 - 2026-10-15 (account A): R18 S3 notes + briefs S3, S4 written here; from tonight planning/design moves to account B (handoff block at top), A = Claude Code.
 - 2026-10-13 · this chat · R18 S1 confirmed merged. Boards part 2 on the R18 canvas (9 boards, `nx-sm2.css`). Tal simplified the supermarket (no staple states, only "don't suggest again"; Nexus-made templates; count + weight; no knobs; "My answers" → "What Nexus learned"; Galaxy Watch app after R20) → boards reworked, decisions recorded. S2 brief waits for Tal's board approval.
 - 2026-10-12 · this chat · Reviewed R18 S1 (all parts done, rehearsal on the prod snapshot passed). Verified the holiday table with a computed Hebrew calendar (all correct). Tal chose the staple states (not set → suggests; off = only by choice, never).

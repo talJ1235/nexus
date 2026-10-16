@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>List v2 · computer</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:1366px;height:860px;font-family:'Heebo',system-ui,sans-serif;position:relative">
+  <aside class="side" aria-label="{{t.nav}}">
+    <div class="logo"><i></i>Nexus</div>
+    <button class="nav"><svg class="s" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>{{t.home}}</button>
+    <button class="nav"><svg class="s" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg>{{t.products}}</button>
+    <button class="nav on" aria-current="page"><svg class="s" viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg>{{t.title}}</button>
+    <button class="nav"><svg class="s" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg>{{t.insights}}</button>
+    <button class="nav"><svg class="s" viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v10H3z"></path></svg>{{t.projects}}</button>
+  </aside>
+
+  <main class="main">
+    <div class="dtop">
+      <h1>{{t.title}}</h1>
+      <span class="pile"><span class="av c3">{{iniT}}</span><span class="av c2">{{iniN}}</span><span class="av c4">{{iniY}}</span></span>
+      <button class="btn sm"><svg class="s sm" viewBox="0 0 24 24"><path d="M7 2h10a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z M11 18h2"></path></svg>{{t.toPhone}}</button>
+    </div>
+
+    <div style="flex:1;min-height:0;display:flex;gap:20px;padding:4px 28px 24px">
+      <section class="panel" style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden" aria-label="{{t.title}}">
+        <div style="display:flex;align-items:center;gap:12px;padding:16px 18px 12px">
+          <button class="store" style="width:auto;padding:0 10px 0 6px;height:46px;border-radius:14px;box-shadow:inset 0 0 0 1px var(--line)">
+            <span class="chain" style="width:32px;height:32px;border-radius:10px;font-size:12px">{{chainIni}}</span>
+            <span style="display:flex;flex-direction:column;line-height:1.2;text-align:start"><b class="bidi" style="font-size:14px">{{chain}}</b><span class="bidi" style="font-size:12px;color:var(--muted)">{{branch}}</span></span>
+            <svg class="s sm" viewBox="0 0 24 24" style="color:var(--faint)"><path d="m6 9 6 6 6-6"></path></svg>
+          </button>
+          <span style="flex:1"></span>
+          <span class="num" style="font-size:13px;color:var(--muted)"><b style="color:var(--ink)">{{count}}</b> {{t.items}} · {{t.est}} <b style="color:var(--ink)">₪412</b></span>
+        </div>
+        <label class="addbar" style="margin:0 18px 12px;height:48px;box-shadow:inset 0 0 0 1px var(--line)">
+          <svg class="s" viewBox="0 0 24 24" style="color:var(--faint)"><path d="M12 5v14 M5 12h14"></path></svg>
+          <input type="text" placeholder="{{t.addPh}}" aria-label="{{t.addPh}}" style="font-size:15px">
+          <span class="chip" style="height:26px;color:var(--faint)">{{t.paste}}</span>
+        </label>
+        <div style="flex:1;min-height:0;overflow:auto;border-top:1px solid var(--line-in)">
+          <sc-for list="{{secs}}" as="sc" hint-placeholder-count="5">
+            <div class="{{sc.cls}}">
+              <div class="lsec" style="height:36px;padding:0 18px"><span class="dot"></span><span class="nm">{{sc.name}}</span><span class="n">{{sc.n}}</span></div>
+              <sc-for list="{{sc.rows}}" as="r" hint-placeholder-count="3">
+                <div class="{{r.cls}}">
+                  <button class="pt sm" aria-label="{{r.openLbl}}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path><path d="{{r.art.d4}}" fill="{{r.art.f4}}"></path><path d="{{r.art.d5}}" fill="{{r.art.f5}}"></path></svg></button>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start">
+                    <sc-if value="{{r.renaming}}" hint-placeholder-val="{{ false }}">
+                      <input class="ren" style="max-width:420px;height:34px;font-size:15px" value="{{renVal}}" onChange="{{renChange}}" onBlur="{{renDone}}" onKeyDown="{{renKey}}" aria-label="{{t.rename}}" autofocus="autofocus">
+                    </sc-if>
+                    <sc-if value="{{r.notRenaming}}" hint-placeholder-val="{{ true }}">
+                      <button class="bidi" onClick="{{r.ren}}" title="{{t.rename}}" style="border:0;background:transparent;padding:2px 4px;margin:-2px -4px;border-radius:6px;font-size:15px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:start">{{r.name}}</button>
+                      <sc-if value="{{r.hasSub}}" hint-placeholder-val="{{ true }}"><span class="bidi" style="font-size:12.5px;color:var(--muted)">{{r.sub}}</span></sc-if>
+                    </sc-if>
+                  </div>
+                  <div class="acts">
+                    <button class="mini" aria-label="{{t.less}}" onClick="{{r.dec}}"><svg class="s sm" viewBox="0 0 24 24"><path d="M5 12h14"></path></svg></button>
+                  </div>
+                  <span class="qty" style="min-width:44px;justify-content:center"><span>{{r.cnt}}</span><sc-if value="{{r.hasW}}" hint-placeholder-val="{{ false }}"><i>· {{r.w}}</i></sc-if></span>
+                  <div class="acts">
+                    <button class="mini" aria-label="{{t.more1}}" onClick="{{r.inc}}"><svg class="s sm" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button>
+                    <button class="mini del" aria-label="{{t.del}}" onClick="{{r.del}}"><svg class="s sm" viewBox="0 0 24 24"><path d="M4 7h16 M10 11v6 M14 11v6 M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13 M9 7V4h6v3"></path></svg></button>
+                  </div>
+                  <span class="whoav" style="width:8px;height:8px;border-radius:50%;background:{{r.whoC}}" title="{{r.whoLbl}}"></span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <div style="width:372px;flex-shrink:0;display:flex;flex-direction:column;gap:14px;overflow:auto">
+        <section class="panel" style="padding:18px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13.5px;font-weight:700;color:var(--ink2);flex:1">{{t.estT}}</span><span class="delta dn">{{t.vsUsual}}</span></div>
+          <div class="big num" style="margin-top:6px">₪412</div>
+          <div class="split" style="margin-top:12px;height:10px" aria-hidden="true"><sc-for list="{{secs}}" as="sc" hint-placeholder-count="6"><i class="{{sc.cls}}" style="flex-grow:{{sc.n}};background:var(--k)"></i></sc-for></div>
+          <div style="margin-top:14px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)"><span style="flex:1">{{t.monthLeft}}</span><b class="num" style="color:var(--ink)">₪1,180</b></div>
+          <div class="meter" style="margin-top:6px;flex:none"><i style="width:62%"></i></div>
+        </section>
+        <section class="panel w-ai" style="padding:6px 0 10px">
+          <div class="ph-h"><h2>{{t.sugs}}</h2><button class="btn sm ghost">{{t.addAll}}</button></div>
+          <sc-for list="{{sugs}}" as="g" hint-placeholder-count="4">
+            <div class="drow" style="height:52px">
+              <span class="{{g.ptCls}}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{g.art.d0}}" fill="{{g.art.f0}}"></path><path d="{{g.art.d1}}" fill="{{g.art.f1}}"></path><path d="{{g.art.d2}}" fill="{{g.art.f2}}"></path><path d="{{g.art.d3}}" fill="{{g.art.f3}}"></path><path d="{{g.art.d4}}" fill="{{g.art.f4}}"></path><path d="{{g.art.d5}}" fill="{{g.art.f5}}"></path></svg></span>
+              <div style="flex:1;min-width:0"><div class="bidi" style="font-weight:650;font-size:14px">{{g.name}}</div><div style="font-size:12px;color:var(--muted)">{{g.why}}</div></div>
+              <button class="addc" aria-label="{{g.addLbl}}"><svg class="s sm" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button>
+            </div>
+          </sc-for>
+        </section>
+        <section class="panel" style="padding:6px 0 14px">
+          <div class="ph-h"><h2>{{t.tpls}}</h2></div>
+          <sc-for list="{{tpls}}" as="tp" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 18px">
+              <span class="stack"><sc-for list="{{tp.tiles}}" as="r" hint-placeholder-count="3"><span class="{{r.ptCls}}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path><path d="{{r.art.d4}}" fill="{{r.art.f4}}"></path><path d="{{r.art.d5}}" fill="{{r.art.f5}}"></path></svg></span></sc-for></span>
+              <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px" class="bidi">{{tp.name}}</div><div style="font-size:12px;color:var(--muted)">{{tp.meta}}</div></div>
+              <button class="btn sm">{{t.apply}}</button>
+            </div>
+          </sc-for>
+        </section>
+      </div>
+    </div>
+  </main>
+  <button class="{{askCls}}" style="position:absolute;bottom:28px;left:{{askLeft}}px;width:60px;height:60px" aria-label="{{t.ask}}"
+    onPointerDown="{{askDown}}" onPointerMove="{{askMove}}" onPointerUp="{{askUp}}" onPointerCancel="{{askUp}}">
+    <svg class="sp" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" fill="var(--spark)"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="#fff"></path></svg>
+  </button>
+  <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+    <div class="toast" role="status" style="left:50%;right:auto;width:420px;margin-left:-210px;bottom:24px"><span class="bidi" style="flex:1">{{toastText}}</span><button class="u" onClick="{{undo}}">{{t.undo}}</button></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"state":{"editor":"enum","options":["normal","row hovered","renaming"],"default":"row hovered"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":1366,"height":860}}'>
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const dark = !!p.dark, plum = (p.palette ?? 'graphite') === 'plum', rm = (p.motion ?? 'full') === 'reduced';
+    const st = p.state ?? 'row hovered';
+        const C_ = (x, y, r) => 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z';
+    const E_ = (x, y, a, b) => 'M' + (x - a) + ' ' + y + 'a' + a + ' ' + b + ' 0 1 0 ' + (2 * a) + ' 0a' + a + ' ' + b + ' 0 1 0 ' + (-2 * a) + ' 0z';
+    const R_ = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + 'h' + (w - 2 * r) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r : '') + 'v' + (h - 2 * r) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r : '') + 'h' + (-(w - 2 * r)) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + (-r) : '') + 'v' + (-(h - 2 * r)) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + (-r) : '') + 'z';
+    const ART = {
+      tom: [[C_(24,27,14),'#e5483b'],[E_(18,22,4,2.5),'#ff9a8c'],['M24 9l2.2 4.6 4.8-1.6-2.8 4 4.2 2.6-5.2-.2-1.4 4.4-1.6-4.4-5.2.2 4.2-2.6-2.8-4 4.8 1.6z','#3f9d5a']],
+      pep: [['M14 18c0-4 4-6 10-6s10 2 10 6l-1 16c0 5-4 8-9 8s-9-3-9-8z','#d63a2f'],[E_(19,22,2.5,5),'#ff8a7a'],['M22 6h4v7h-4z','#3f8f4a']],
+      cuc: [['M9 36c-3-3-1-9 5-15l7-7c6-6 12-8 15-5s1 9-5 15l-7 7c-6 6-12 8-15 5z','#3d8b47'],[C_(17,28,1.4)+C_(23,22,1.4)+C_(29,16,1.4)+C_(21,31,1.2)+C_(27,25,1.2)+C_(32,20,1.1),'#93d48f']],
+      ban: [['M8 13c1 14 12 24 27 24 3 0 4 2 1 3C19 44 5 33 6 15c0-3 2-4 2-2z','#f5c542'],['M10 14c2 11 10 19 21 21-12 1-21-8-22-20z','#e0a92a'],[R_(5,9,4,6,1.5),'#6b4a2b']],
+      lem: [[E_(24,25,15,11),'#f2d23a'],['M8 25l-4-1.5 4-1.5z M40 25l4-1.5-4-1.5z','#e3bd22'],[E_(19,21,5,2.5),'#fbec95']],
+      par: [[R_(23,26,2.5,16,1.2),'#4f8a3a'],[C_(17,19,7)+C_(31,19,7)+C_(24,12,7)+C_(24,23,6),'#3f9d5a'],[C_(20,15,2.6)+C_(29,14,2.2)+C_(15,21,1.8),'#7cca72']],
+      chk: [['M10 30c0-10 8-18 18-18 7 0 11 5 11 11 0 10-10 17-20 17-6 0-9-4-9-10z','#f3b9a3'],['M20 34c6-1 12-6 14-12 1 4-3 11-10 13-2 .5-4 0-4-1z','#e49a83'],[E_(22,20,4,2),'#fbd9cc']],
+      hum: [['M6 24h36c0 10-8 17-18 17S6 34 6 24z','#5d86b5'],[E_(24,24,18,5),'#ecd39c'],[E_(24,24,7,2.2),'#c9a032'],[C_(31,22.5,1.4)+C_(17,25,1.2)+C_(26,26,1),'#6f8f2f']],
+      pen: [['M8 30l14-14 5 5-14 14z','#f0c35a'],['M20 36l14-14 5 5-14 14z','#e6ad3c'],['M14 20l12-12 4 4-12 12z','#f6d684']],
+      ric: [['M12 14c0-4 4-6 12-6s12 2 12 6l2 24c0 3-6 5-14 5s-14-2-14-5z','#f6f3ea'],[R_(14,22,20,10,3),'#3b7fc4'],['M15 10c3 3 15 3 18 0v3c-3 3-15 3-18 0z','#d9d3c3']],
+      crt: [[R_(12,9,24,32,4),'#d0573f'],[R_(12,17,24,15,0),'#f6efe4'],[C_(24,24.5,4.5),'#e5483b'],[E_(24,9.5,12,2.5),'#a93d2a']],
+      tah: [[R_(12,14,24,28,6),'#e7d2a7'],[R_(14,8,20,7,2),'#3a3a38'],[R_(16,24,16,9,2),'#ffffff'],[R_(19,27,10,3,1.5),'#c9a032']],
+      cor: [[R_(11,6,26,36,3),'#f08a24'],[C_(24,26,8),'#ffffff'],[C_(21,25,2.2)+C_(26,23.5,2)+C_(25,28.5,1.8)+C_(20.5,29,1.4),'#f2c14e'],[R_(14,9,20,4,2),'#ffd08a']],
+      cof: [['M13 12h22l3 30H10z','#6b4a2b'],['M13 12l3-5h16l3 5z','#4e3520'],[E_(24,27,4,6),'#c79a5e'],[R_(23.3,21.5,1.4,11,.7),'#6b4a2b']],
+      wat: [[R_(18,4,12,5,1.5),'#2f7fc1'],['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#8fd0f2'],[R_(15,22,18,9,0),'#2f7fc1'],[R_(19,13,3,25,1.5),'#c9ecfb']],
+      jui: [[R_(18,4,12,5,1.5),'#2f9d4a'],['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#f6a33a'],[C_(24,29,5.5),'#ffd36b'],[R_(19,13,3,25,1.5),'#ffc77a']],
+      oil: [[R_(21,3,6,6,1.5),'#3a3a38'],['M20 9h8v6l4 5v20c0 2-2 4-4 4h-8c-2 0-4-2-4-4V20l4-5z','#b9a43a'],[R_(17,24,14,10,2),'#f6efe4'],[C_(24,29,2.5),'#6f8f2f']],
+      dis: [[R_(22,4,4,6,1),'#1f7f62'],['M18 10h12l2 6v24c0 2-2 4-4 4h-8c-2 0-4-2-4-4V16z','#4cc3a0'],[C_(24,28,5.5),'#ffffff'],[C_(24,28,2.6),'#4cc3a0']],
+      trb: [[R_(10,13,28,26,6),'#3a3a38'],[E_(24,13,14,4),'#5b5b55'],[E_(24,13,5,1.6),'#1f1f1d'],['M10 31h28v3H10z','#4a4a46']],
+      tp: [[R_(8,12,22,28,5),'#ffffff'],[E_(19,12,11,4),'#ecebe6'],[E_(19,12,3.5,1.6),'#b8b5ac'],[R_(30,26,12,14,2),'#ffffff']],
+      tpa: [['M7 22l26-7 4 3-2 14-24 6c-3 1-5-1-5-4z','#f2f6fb'],['M33 15l6-2 2 6-4 1z','#3b7fc4'],['M13 25l17-4.5v4L13 29z','#e5483b']],
+      pit: [[E_(24,26,18,13),'#e3b97f'],[E_(24,24,15,10),'#f2d7a8'],[C_(18,22,1.2)+C_(28,27,1.2)+C_(25,20,1)+C_(21,29,1)+C_(31,22,1),'#c79a5e']],
+      brd: [['M8 22c0-7 7-11 16-11s16 4 16 11v15c0 2-2 4-4 4H12c-2 0-4-2-4-4z','#c98a3e'],['M14 18l4 6 M22 16l4 6 M30 17l4 6','none'],[R_(12,20,4,12,2)+R_(21,18,4,14,2)+R_(30,20,4,12,2),'#e6b06a']],
+      chl: [[E_(24,29,20,9),'#bf7428'],[E_(13,26,7.5,6)+E_(24,24,8,6.5)+E_(35,26,7.5,6),'#df9c4a'],[C_(15,23,.9)+C_(25,21,.9)+C_(33,24,.9)+C_(21,26,.8)+C_(29,27,.8),'#fbe7c2']],
+      mlk: [['M14 16l4-8h12l4 8z','#dfe9f5'],[R_(14,16,20,28,2),'#ffffff'],[R_(14,27,20,10,0),'#3b7fc4'],[R_(20,4,8,5,1),'#3b7fc4']],
+      cot: [['M10 18h28l-3 22c0 2-2 3-4 3H17c-2 0-4-1-4-3z','#ffffff'],[E_(24,18,15,4.5),'#3b7fc4'],[R_(14,26,20,8,2),'#cfe0f3']],
+      ylc: [['M6 34L36 12l6 6v20H6z','#f4c84a'],['M6 34L36 12l6 6z','#fbe08a'],[C_(20,32,3)+C_(32,28,2.5)+C_(28,35,1.8)+C_(37,33,1.5),'#dba62a']],
+      prm: [['M6 34L36 12l6 6v20H6z','#efdca0'],['M6 34L36 12l6 6z','#f8ecc4'],[R_(6,34,36,4,0),'#c9a24a']],
+      yog: [['M12 14h24l-3 26c0 2-2 3-4 3H19c-2 0-4-1-4-3z','#ffffff'],[R_(11,10,26,5,2),'#e86f8f'],[R_(14,22,20,8,0),'#f9c9d6']],
+      egg: [[R_(5,26,38,14,4),'#d9c3a0'],[E_(13,25,5,6.5)+E_(24,23,5,6.5)+E_(35,25,5,6.5),'#f7ecdc'],[E_(11.5,22,1.5,2.2)+E_(22.5,20,1.5,2.2)+E_(33.5,22,1.5,2.2),'#ffffff']],
+      pea: [['M6 30c6-12 22-20 36-16-4 14-22 22-36 16z','#4f9d4a'],[C_(16,27,4)+C_(24,23,4)+C_(32,19.5,4),'#8fd36b'],[C_(15,26,1.2)+C_(23,22,1.2)+C_(31,18.5,1.2),'#c8f0a8']]
+    };
+    const art = (key) => { const a = ART[key]; const o = { has: !!a }; for (let i = 0; i < 6; i++) { const x = a && (i === 0 ? [E_(24,44.5,13,2.2),'rgba(0,0,0,.10)'] : a[i - 1]); o['d' + i] = x ? x[0] : ''; o['f' + i] = x ? x[1] : 'none'; } return o; };
+
+    const t = {
+      nav: L('Main','ראשי'), home: L('Home','בית'), products: L('Products','מוצרים'), title: L('Supermarket','סופר'), insights: L('Insights','תובנות'), projects: L('Projects','פרויקטים'),
+      toPhone: L('Send to phone','שליחה לטלפון'), ask: L('Ask Nexus','לשאול את Nexus'), items: L('items','פריטים'), est: L('about','בערך'),
+      addPh: L('Add items — type, or paste a whole list','הוספת פריטים — להקליד, או להדביק רשימה שלמה'), paste: L('Ctrl+V','Ctrl+V'),
+      rename: L('Click to rename','לחיצה לשינוי שם'), less: L('Less','פחות'), more1: L('More','יותר'), del: L('Delete','מחיקה'),
+      estT: L('This list','הרשימה הזאת'), vsUsual: L('₪38 under usual','₪38 פחות מהרגיל'), monthLeft: L('Left in October','נשאר באוקטובר'),
+      sugs: L('Nexus suggests','Nexus מציע'), addAll: L('Add all','הוספת הכול'), tpls: L('Templates','תבניות'), apply: L('Add','הוספה'), undo: L('Undo','ביטול')
+    };
+    const SEC = { produce:['Fruit & vegetables','פירות וירקות'], meat:['Meat, poultry & fish','בשר, עוף ודגים'], dairy:['Dairy & eggs','חלב וביצים'],
+      bread:['Bread & bakery','לחם ומאפים'], dry:['Dry goods','יבשים'], clean:['Cleaning & disposables','ניקיון וחד־פעמי'] };
+    const WHO = { T:['#2f6fd1','Tal','טל'], N:['#c94673','Noa','נועה'], Y:['#1a9a8f','Yoav','יואב'] };
+    const I = (id, k, en, hh, c, uw, w, br, nt) => ({ id, k, en, hh, c, uw, w, br, nt });
+    const BASE = [
+      I('tom','produce','Tomatoes','עגבניות',6,0.17,'T'), I('cuc','produce','Cucumbers','מלפפונים',4,0.15,'T'),
+      I('ban','produce','Bananas','בננות',6,0.12,'N',null,['Not too ripe','לא בשלות מדי']), I('par','produce','Parsley','פטרוזיליה',2,0,'N'),
+      I('chk','meat','Chicken breast','חזה עוף',1,0,'T',null,['Thin slices · 1 kg','פרוס דק · 1 ק״ג']),
+      I('mlk','dairy','Milk 3%','חלב 3%',2,0,'N',['Tnuva','תנובה']), I('cot','dairy','Cottage cheese 5%','קוטג׳ 5%',3,0,'T',['Tara','טרה']),
+      I('egg','dairy','Eggs, size L','ביצים L',12,0,'Y'), I('yog','dairy','Yogurt','יוגורט',4,0,'Y'),
+      I('pit','bread','Pita','פיתות',10,0,'Y'),
+      I('pen','dry','Penne 500 g','פסטה פנה 500 גרם',2,0,'N',['Barilla','ברילה']), I('ric','dry','Basmati rice 1 kg','אורז בסמטי 1 ק״ג',1,0,'T'),
+      I('dis','clean','Dish soap','סבון כלים',1,0,'N'), I('tp','clean','Toilet paper, 32 rolls','נייר טואלט, 32 גלילים',1,0,'T')
+    ];
+    const names = s.names || {}, cnts = s.cnts || {}, gone = s.gone || {};
+    const renId = s.touched ? s.ren : (st === 'renaming' ? 'cot' : null);
+    const nameOf = (x) => names[x.id] ?? (he ? x.hh : x.en);
+    const cntOf = (x) => cnts[x.id] ?? x.c;
+    const wOf = (x) => { const kg = cntOf(x) * x.uw; return kg >= 1 ? L('~' + kg.toFixed(1).replace('.0','') + ' kg','~' + kg.toFixed(1).replace('.0','') + ' ק״ג') : L('~' + Math.round(kg * 20) * 50 + ' g','~' + Math.round(kg * 20) * 50 + ' גרם'); };
+    const touch = (o) => this.setState(Object.assign({ touched: true, ren: renId }, o));
+    const live = BASE.filter(x => !gone[x.id]);
+    const secs = ['produce','meat','dairy','bread','dry','clean'].map(k => {
+      const rows = live.filter(x => x.k === k).map(x => {
+        const sub = [x.br ? (he ? x.br[1] : x.br[0]) : '', x.nt ? (he ? x.nt[1] : x.nt[0]) : ''].filter(Boolean).join(' · ');
+        return {
+          art: art(x.id), name: nameOf(x), sub, hasSub: !!sub, cnt: (x.uw ? '' : '×') + cntOf(x), hasW: !!x.uw, w: x.uw ? wOf(x) : '',
+          cls: 'drow' + (!s.touched && st === 'row hovered' && x.id === 'cuc' ? ' hov' : ''), whoC: WHO[x.w][0], whoLbl: L('Added by ' + WHO[x.w][1], 'נוסף ע״י ' + WHO[x.w][2]),
+          openLbl: L('Open ' + nameOf(x), 'פתיחת ' + nameOf(x)), renaming: renId === x.id, notRenaming: renId !== x.id,
+          ren: () => touch({ ren: x.id, renv: nameOf(x) }),
+          inc: () => touch({ cnts: Object.assign({}, cnts, { [x.id]: cntOf(x) + 1 }) }),
+          dec: () => touch({ cnts: Object.assign({}, cnts, { [x.id]: Math.max(1, cntOf(x) - 1) }) }),
+          del: () => { touch({ gone: Object.assign({}, gone, { [x.id]: true }), toast: x.id }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: null }), 5000); }
+        };
+      });
+      return { cls: 'k-' + k, name: he ? SEC[k][1] : SEC[k][0], n: rows.length, rows };
+    }).filter(x => x.n);
+    const G = (id, k, en, hh, why) => ({ art: art(id), ptCls: 'pt sm k-' + k, name: he ? hh : en, why, addLbl: L('Add ' + en, 'הוספת ' + hh) });
+    const sugs = [G('chl','bread','Challah ×2','חלה ×2',L('Shabbat','שבת')), G('prm','dairy','Grated parmesan','פרמזן מגורר',L('usually with pasta','בדרך כלל עם פסטה')),
+      G('cof','bfast','Ground coffee','קפה טחון',L('every ~3 weeks','כל ~3 שבועות')), G('wat','drink','Sparkling water ×6','מים מוגזים ×6',L('every ~10 days','כל ~10 ימים'))];
+    const T = (k, id) => ({ art: art(id), ptCls: 'pt xs k-' + k });
+    const tpls = [
+      { name: L('Weekly basics','בסיס שבועי'), meta: L('Made by Nexus · 18 items · ~₪340','נוצר ע״י Nexus · 18 פריטים · ~₪340'), tiles: [T('dairy','mlk'),T('produce','tom'),T('bread','pit')] },
+      { name: L('Friday dinner','ארוחת שישי'), meta: L('Yours · 9 items · ~₪180','שלכם · 9 פריטים · ~₪180'), tiles: [T('bread','chl'),T('meat','chk'),T('produce','par')] }
+    ];
+    const tx = BASE.find(x => x.id === s.toast);
+    const commit = () => { const v = ((this.state || {}).renv || '').trim(); if (!renId) return; this.setState({ touched: true, ren: null, names: Object.assign({}, names, v ? { [renId]: v } : {}) }); };
+    return {
+      cls: 'nx dk' + (dark ? ' dark' : '') + (plum ? ' plum' : '') + (rm ? ' rm' : ''), dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      iniT: L('T','ט'), iniN: L('N','נ'), iniY: L('Y','י'), chainIni: L('SD','שד'), chain: L('Shufersal Deal','שופרסל דיל'), branch: L('Netanya, Poleg','נתניה, פולג'),
+      askCls: 'ask' + (s.adrag ? ' drag' : ''), askLeft: s.adrag ? s.afx : ((s.aside ?? 'right') === 'left' ? (he ? 24 : 256) : (he ? 1050 : 1282)),
+      askDown: (e) => { this._a = { x0: e.clientX, base: s.adrag ? s.afx : ((s.aside ?? 'right') === 'left' ? (he ? 24 : 256) : (he ? 1050 : 1282)), sc: (e.currentTarget.getBoundingClientRect().width / 60) || 1, moved: false }; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} },
+      askMove: (e) => { const a = this._a; if (!a) return; const dx = (e.clientX - a.x0) / a.sc; if (!a.moved && Math.abs(dx) < 6) return; a.moved = true; this.setState({ adrag: true, afx: Math.max(he ? 16 : 244, Math.min(he ? 1058 : 1290, a.base + dx)) }); },
+      askUp: () => { const a = this._a; this._a = null; if (!a || !a.moved) return; const fx = (this.state || {}).afx ?? a.base; this.setState({ adrag: false, aside: fx + 30 < (he ? 567 : 799) ? 'left' : 'right' }); },
+      count: live.length, secs, sugs, tpls,
+      toast: !!tx, toastText: tx ? L(nameOf(tx) + ' removed', nameOf(tx) + ' נמחק') : '',
+      undo: () => { const g = Object.assign({}, gone); delete g[s.toast]; touch({ gone: g, toast: null }); },
+      renVal: s.renv ?? (renId ? nameOf(BASE.find(x => x.id === renId)) : ''),
+      renChange: (e) => this.setState({ renv: e.target.value }), renDone: commit,
+      renKey: (e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') this.setState({ touched: true, ren: null, renv: null }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

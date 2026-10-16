@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Onboarding v2 — home, habits, food, budget · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;gap:8px;padding:12px 12px 0">
+    <button class="ib" aria-label="{{t.back}}" onClick="{{prev}}"><svg class="s flip" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"></path></svg></button>
+    <div style="flex:1;display:flex;gap:4px" role="progressbar" aria-valuemin="1" aria-valuemax="9" aria-valuenow="{{stepNo}}" aria-label="{{stepLbl}}">
+      <sc-for list="{{dots}}" as="d" hint-placeholder-count="9"><i style="{{d.st}}"></i></sc-for>
+    </div>
+    <button class="btn ghost sm" onClick="{{next}}">{{t.skip}}</button>
+  </div>
+
+  <div class="art-zone" style="margin:14px 16px 0;height:230px;border-radius:28px;position:relative;overflow:hidden;background:radial-gradient(70% 60% at 80% 10%,color-mix(in srgb,var(--spark) 22%,transparent),transparent 70%),radial-gradient(60% 60% at 10% 100%,color-mix(in srgb,var(--brand) 12%,transparent),transparent 70%),var(--raised);box-shadow:0 0 0 1px var(--line-in)">
+    <sc-if value="{{s1}}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;gap:10px;padding-bottom:34px;flex-wrap:wrap;align-content:flex-end">
+        <sc-for list="{{people}}" as="f" hint-placeholder-count="4">
+          <span style="{{f.st}}" class="grow2" aria-hidden="true"><svg viewBox="0 0 40 64" style="width:100%;height:100%"><circle cx="20" cy="12" r="10" fill="{{f.c}}"></circle><path d="M4 64V38a16 16 0 0 1 32 0v26z" fill="{{f.c}}"></path></svg></span>
+        </sc-for>
+      </div>
+      <div style="position:absolute;top:16px;inset-inline-start:18px;font-size:13px;font-weight:700;color:var(--muted)" class="num">{{peopleLine}}</div>
+    </sc-if>
+    <sc-if value="{{s2}}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:0 22px">
+        <div style="display:flex;gap:6px">
+          <sc-for list="{{week}}" as="d" hint-placeholder-count="7"><span style="{{d.st}}"><b style="font-size:13px">{{d.x}}</b><sc-if value="{{d.on}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18"></path></svg></sc-if></span></sc-for>
+        </div>
+        <div style="font-size:14px;font-weight:650;color:var(--ink2);text-align:center">{{habitLine}}</div>
+      </div>
+    </sc-if>
+    <sc-if value="{{s3}}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;display:grid;place-items:center">
+        <div style="width:150px;height:150px;border-radius:50%;background:var(--s2);box-shadow:inset 0 0 0 10px var(--raised),0 0 0 1px var(--line);display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:4px;padding:22px">
+          <sc-for list="{{plate}}" as="x" hint-placeholder-count="3"><span class="chip" style="height:24px;font-size:11.5px;padding:0 8px">{{x}}</span></sc-for>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{s4}}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:22px" class="w-shop">
+        <span class="ringbox"><svg width="150" height="150" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="35" fill="none" stroke="color-mix(in srgb,var(--brand) 14%,var(--s2))" stroke-width="10"></circle><circle cx="42" cy="42" r="35" fill="none" stroke="#2f9a58" stroke-width="10" stroke-linecap="round" stroke-dasharray="{{smDash}}" transform="rotate(-90 42 42)" style="transition:stroke-dasharray 500ms var(--ease-out)"></circle></svg><b class="num" style="font-size:22px">{{smPct}}</b></span>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:650">
+          <span style="display:flex;align-items:center;gap:6px"><i style="width:10px;height:10px;border-radius:3px;background:#2f9a58"></i>{{t.sm}}</span>
+          <span style="display:flex;align-items:center;gap:6px"><i style="width:10px;height:10px;border-radius:3px;background:color-mix(in srgb,var(--brand) 14%,var(--s2))"></i>{{t.rest}}</span>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="flex:1;min-height:0;overflow:auto;padding:18px 20px 0;scrollbar-width:none">
+    <h1 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-.025em;line-height:1.15">{{q.title}}</h1>
+    <p style="margin:6px 0 16px;font-size:14px;color:var(--muted)">{{q.sub}}</p>
+
+    <sc-if value="{{s1}}" hint-placeholder-val="{{ true }}">
+      <div class="seg" style="margin-bottom:14px">
+        <span class="pill" style="{{whoPill}}"></span>
+        <sc-for list="{{whoOpts}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for>
+      </div>
+      <sc-for list="{{counts}}" as="c" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:12px;min-height:54px;border-bottom:1px solid var(--line-in)">
+          <span style="flex:1;display:flex;flex-direction:column"><b style="font-size:15px">{{c.name}}</b><span style="font-size:12px;color:var(--muted)">{{c.hint}}</span></span>
+          <div class="stepper" style="height:40px;padding:3px"><button style="width:34px;height:34px" aria-label="{{c.lessL}}" onClick="{{c.dec}}"><svg class="s sm" viewBox="0 0 24 24"><path d="M5 12h14"></path></svg></button><b style="min-width:36px;font-size:16px">{{c.n}}</b><button style="width:34px;height:34px" aria-label="{{c.moreL}}" onClick="{{c.inc}}"><svg class="s sm" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button></div>
+        </div>
+      </sc-for>
+    </sc-if>
+
+    <sc-if value="{{s2}}" hint-placeholder-val="{{ false }}">
+      <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:8px">{{t.often}}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px"><sc-for list="{{freq}}" as="o" hint-placeholder-count="4"><button class="{{o.cls}}" style="height:38px;font-size:13.5px" onClick="{{o.pick}}">{{o.name}}</button></sc-for></div>
+      <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:8px">{{t.days}}</div>
+      <div style="display:flex;gap:6px;margin-bottom:18px"><sc-for list="{{dayBtns}}" as="o" hint-placeholder-count="7"><button class="{{o.cls}}" style="flex:1;height:40px;padding:0;justify-content:center" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></div>
+      <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:8px">{{t.how}}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{mode}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" style="height:38px;font-size:13.5px" onClick="{{o.pick}}">{{o.name}}</button></sc-for></div>
+    </sc-if>
+
+    <sc-if value="{{s3}}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px"><sc-for list="{{diet}}" as="o" hint-placeholder-count="8"><button class="{{o.cls}}" style="height:38px;font-size:13.5px" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></div>
+      <button onClick="{{togShabbat}}" style="display:flex;align-items:center;gap:12px;width:100%;border:0;background:var(--raised);box-shadow:0 0 0 1px var(--line);border-radius:16px;padding:12px 14px;text-align:start">
+        <span style="flex:1"><b style="display:block;font-size:15px">{{t.shabbat}}</b><span style="font-size:12.5px;color:var(--muted)">{{t.shabbatS}}</span></span>
+        <span style="{{shabbatTgl}}"><i style="{{shabbatKnob}}"></i></span>
+      </button>
+    </sc-if>
+
+    <sc-if value="{{s4}}" hint-placeholder-val="{{ false }}">
+      <label style="display:flex;align-items:center;gap:8px;height:56px;padding:0 16px;border-radius:16px;background:var(--raised);box-shadow:inset 0 0 0 1px var(--line)">
+        <span style="font-size:13px;color:var(--muted);flex:1">{{t.total}}</span><b class="num" style="font-size:22px">₪</b><input type="text" inputmode="numeric" value="{{total}}" aria-label="{{t.total}}" style="width:110px;border:0;outline:0;background:transparent;font-size:22px;font-weight:800;text-align:end" class="num">
+      </label>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:16px"><span style="font-size:13px;font-weight:700;color:var(--ink2);flex:1">{{t.smPart}}</span><b class="num" style="font-size:16px">{{smAmt}}</b></div>
+      <input type="range" min="10" max="90" step="5" value="{{smPctN}}" onInput="{{setSm}}" aria-label="{{t.smPart}}" style="width:100%;accent-color:#2f9a58;height:32px">
+      <div style="font-size:12px;color:var(--muted);margin-top:-2px">{{t.smHint}}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--ink2);margin:16px 0 8px">{{t.monthStart}}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{starts}}" as="o" hint-placeholder-count="4"><button class="{{o.cls}}" style="height:38px;font-size:13.5px" onClick="{{o.pick}}">{{o.name}}</button></sc-for></div>
+      <button class="btn ghost sm" style="margin-top:12px;color:var(--muted)">{{t.dunno}}</button>
+    </sc-if>
+  </div>
+
+  <div style="padding:12px 20px 22px">
+    <button class="btn pri blk" style="height:54px;font-size:16px" onClick="{{next}}">{{t.next}}</button>
+    <div style="text-align:center;font-size:12px;color:var(--faint);margin-top:8px">{{t.later}}</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"step":{"editor":"enum","options":["2 · your home","4 · how you shop","5 · food at home","6 · budget"],"default":"2 · your home"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const dark = !!p.dark, plum = (p.palette ?? 'graphite') === 'plum', rm = (p.motion ?? 'full') === 'reduced';
+    const MAP = { '2 · your home': 1, '4 · how you shop': 2, '5 · food at home': 3, '6 · budget': 4 };
+    const sc = s.sc ?? MAP[p.step ?? '2 · your home'] ?? 1;
+    const stepNo = [0, 2, 4, 5, 6][sc];
+    const set = (o) => this.setState(Object.assign({ sc }, o));
+    const t = {
+      back: L('Back','חזרה'), skip: L('Skip','דילוג'), next: L('Continue','המשך'), later: L('Every answer can be changed later where it acts.','כל תשובה אפשר לשנות אחר כך, במקום שבו היא פועלת.'),
+      often: L('How often do you shop for groceries?','כל כמה זמן קונים בסופר?'), days: L('Usual days','ימים קבועים'), how: L('How do you buy?','איך קונים?'),
+      shabbat: L('Shabbat and holidays at home','שבת וחגים בבית'), shabbatS: L('Nexus reminds you of challah, wine and holiday food in time.','Nexus יזכיר חלה, יין ואוכל לחג בזמן.'),
+      total: L('Household budget / month','תקציב משק הבית בחודש'), smPart: L('Of it, supermarket','מתוכו, סופר'), smHint: L('A starting point from your home’s size — change it any time.','נקודת התחלה לפי גודל הבית — אפשר לשנות מתי שרוצים.'),
+      monthStart: L('Your month starts on','החודש שלכם מתחיל ב־'), dunno: L('Not sure yet — learn it from my first month','עוד לא יודע — שילמד מהחודש הראשון'),
+      sm: L('Supermarket','סופר'), rest: L('Everything else','כל השאר')
+    };
+    const Q = [null,
+      { title: L('Your home','הבית שלכם'), sub: L('Who you shop for — sizes the basket, the estimates and who gets updates.','בשביל מי קונים — זה קובע את הסל, ההערכות ומי מקבל עדכונים.') },
+      { title: L('How you shop','איך אתם קונים'), sub: L('So Nexus knows when to prepare your list and what’s due.','כדי ש־Nexus ידע מתי להכין רשימה ומה כבר צריך.') },
+      { title: L('Food at home','מה נכנס הביתה'), sub: L('Suggestions and the starter basket follow this. Pick all that fit.','ההצעות וסל הפתיחה יתאימו לזה. אפשר לבחור כמה.') },
+      { title: L('Budget','תקציב'), sub: L('Nexus tracks it for you and warns before you go over.','Nexus יעקוב בשבילכם ויתריע לפני שעוברים.') }
+    ];
+    const who = s.who || 'family';
+    const C = Object.assign({ ad: 2, ki: 2, ba: 0, pe: 1 }, s.c || {});
+    const counts = [['ad',L('Adults','מבוגרים'),L('18 and over','מגיל 18'),1],['ki',L('Kids','ילדים'),L('2–17','גילאי 2–17'),0],['ba',L('Babies','תינוקות'),L('Under 2 — diapers, formula','עד גיל 2 — חיתולים, תמ״ל'),0],['pe',L('Pets','חיות מחמד'),L('Food and litter on the list','אוכל וחול על הרשימה'),0]].map(x => ({
+      name: x[1], hint: x[2], n: C[x[0]], lessL: L('Fewer','פחות'), moreL: L('More','יותר'),
+      inc: () => set({ c: Object.assign({}, C, { [x[0]]: Math.min(9, C[x[0]] + 1) }) }), dec: () => set({ c: Object.assign({}, C, { [x[0]]: Math.max(x[3], C[x[0]] - 1) }) }) }));
+    const people = [];
+    const P = (n, h, c) => { for (let i = 0; i < n; i++) people.push({ st: 'width:' + Math.round(h * .62) + 'px;height:' + h + 'px;display:inline-block;animation:rise 420ms var(--ease-out) both', c }); };
+    P(C.ad, 96, dark ? '#d6d6d3' : '#3a3a38'); P(C.ki, 70, '#2f6fd1'); P(C.ba, 46, '#d9668f');
+    for (let i = 0; i < C.pe; i++) people.push({ st: 'width:40px;height:34px;display:inline-block', c: '#c98a12' });
+    const WO = [['me',L('Just me','רק אני')],['partner',L('Couple','זוג')],['family',L('Family','משפחה')]];
+    const wi = WO.findIndex(x => x[0] === who);
+    const ch = (on) => 'chip' + (on ? ' on' : '');
+    const freqV = s.freq || 'week';
+    const FR = [['week',L('Once a week','פעם בשבוע')],['twice',L('Twice a week','פעמיים בשבוע')],['few',L('Every few days','כל כמה ימים')],['two',L('Every two weeks','פעם בשבועיים')]];
+    const days = s.days || { 4: true };
+    const DN = he ? ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'] : ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    const modeV = s.mode || 'store';
+    const MO = [['store',L('In the store','בחנות')],['online',L('Online delivery','משלוח אונליין')],['both',L('Both','גם וגם')]];
+    const DI = [['kosher',L('Kosher','כשר')],['meh',L('Mehadrin','מהדרין')],['veg',L('Vegetarian','צמחוני')],['vegan',L('Vegan','טבעוני')],['gf',L('Gluten-free','ללא גלוטן')],['lf',L('Lactose-free','ללא לקטוז')],['nuts',L('Nut allergy','אלרגיה לאגוזים')],['org',L('Organic when possible','אורגני כשאפשר')]];
+    const diet = s.diet || { kosher: true };
+    const shab = s.shab ?? true;
+    const smP = s.smp ?? 45, total = 7200;
+    const dash = (f) => (2 * Math.PI * 35 * f).toFixed(1) + ' ' + (2 * Math.PI * 35).toFixed(1);
+    const ST = [['1',L('1st','ב־1')],['10',L('10th','ב־10')],['15',L('15th','ב־15')],['o',L('Other day','יום אחר')]];
+    const stV = s.st || '10';
+    const dayName = Object.keys(days).filter(k => days[k]).map(k => DN[k]).join(L(', ',', '));
+    return {
+      cls: 'nx' + (dark ? ' dark' : '') + (plum ? ' plum' : '') + (rm ? ' rm' : ''), dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t, q: Q[sc],
+      s1: sc === 1, s2: sc === 2, s3: sc === 3, s4: sc === 4, stepNo, stepLbl: L('Step ' + stepNo + ' of 9', 'שלב ' + stepNo + ' מתוך 9'),
+      dots: Array.from({ length: 9 }, (_, i) => ({ st: 'display:block;flex:1;height:4px;border-radius:2px;background:' + (i < stepNo ? 'var(--brand)' : 'var(--s3)') + ';transition:background-color 300ms ease' })),
+      next: () => this.setState({ sc: Math.min(4, sc + 1) }), prev: () => this.setState({ sc: Math.max(1, sc - 1) }),
+      people, peopleLine: L((C.ad + C.ki + C.ba) + ' people' + (C.pe ? ' · ' + C.pe + ' pet' : ''), (C.ad + C.ki + C.ba) + ' נפשות' + (C.pe ? ' · ' + C.pe + ' חיית מחמד' : '')), counts,
+      whoOpts: WO.map(x => ({ name: x[1], cls: x[0] === who ? 'on' : '', pick: () => set({ who: x[0] }) })), whoPill: 'width:calc(33.333% - 2px);inset-inline-start:calc(' + (wi * 33.333) + '% + 3px)',
+      freq: FR.map(x => ({ name: x[1], cls: ch(freqV === x[0]), pick: () => set({ freq: x[0] }) })),
+      dayBtns: DN.map((x, i) => ({ name: x, on: !!days[i], cls: ch(!!days[i]), pick: () => set({ days: Object.assign({}, days, { [i]: !days[i] }) }) })),
+      mode: MO.map(x => ({ name: x[1], cls: ch(modeV === x[0]), pick: () => set({ mode: x[0] }) })),
+      week: DN.map((x, i) => ({ x, on: !!days[i], st: 'flex:1;height:62px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:background-color 200ms ease,color 200ms ease;' + (days[i] ? 'background:var(--brand);color:var(--on-brand)' : 'background:var(--s2);color:var(--muted)') })),
+      habitLine: dayName ? L('Your list will be ready the evening before ' + dayName, 'הרשימה תהיה מוכנה בערב שלפני ' + dayName) : L('Nexus learns your days from your trips','Nexus ילמד את הימים מהקניות'),
+      diet: DI.map(x => ({ name: x[1], on: !!diet[x[0]], cls: ch(!!diet[x[0]]), pick: () => set({ diet: Object.assign({}, diet, { [x[0]]: !diet[x[0]] }) }) })),
+      plate: DI.filter(x => diet[x[0]]).map(x => x[1]).concat(shab ? [L('Shabbat','שבת')] : []).slice(0, 6),
+      togShabbat: () => set({ shab: !shab }),
+      shabbatTgl: 'width:46px;height:28px;border-radius:14px;padding:3px;display:flex;flex-shrink:0;transition:background-color 200ms ease;background:' + (shab ? 'var(--ok)' : 'var(--s3)') + ';justify-content:' + (shab ? 'flex-end' : 'flex-start'),
+      shabbatKnob: 'display:block;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)',
+      total: total.toLocaleString('en-US'), smPctN: smP, smPct: smP + '%', smAmt: '₪' + Math.round(total * smP / 100 / 10) * 10 + '', smDash: dash(smP / 100),
+      setSm: (e) => set({ smp: +e.target.value }),
+      starts: ST.map(x => ({ name: x[1], cls: ch(stV === x[0]), pick: () => set({ st: x[0] }) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

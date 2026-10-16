@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Home widgets v2 · computer</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="position:relative;width:1366px;height:860px;font-family:'Heebo',system-ui,sans-serif">
+  <aside class="side" aria-label="{{t.nav}}">
+    <div class="logo"><i></i>Nexus</div>
+    <button class="nav on" aria-current="page"><svg class="s" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>{{t.home}}</button>
+    <button class="nav"><svg class="s" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg>{{t.products}}</button>
+    <button class="nav"><svg class="s" viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg>{{t.sm}}</button>
+    <button class="nav"><svg class="s" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg>{{t.insights}}</button>
+  </aside>
+  <main class="main">
+    <div class="dtop">
+      <sc-if value="{{notEdit}}" hint-placeholder-val="{{ true }}">
+        <h1>{{t.hello}}<span style="font-size:14px;font-weight:500;color:var(--muted);margin-inline-start:12px;letter-spacing:0">{{t.sub}}</span></h1>
+        <button class="btn sm" onClick="{{enterEdit}}"><svg class="s sm" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z M14 6l4 4"></path></svg>{{t.edit}}</button>
+      </sc-if>
+      <sc-if value="{{edit}}" hint-placeholder-val="{{ false }}">
+        <h1 style="font-size:18px">{{t.editing}}</h1>
+        <span style="font-size:13px;color:var(--muted)">{{t.hint}}</span>
+        <button class="btn sm" onClick="{{openTray}}"><svg class="s sm" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg>{{t.addW}}</button>
+        <button class="btn sm pri" onClick="{{done}}">{{t.done}}</button>
+      </sc-if>
+    </div>
+    <div style="flex:1;min-height:0;overflow:auto;padding:4px 28px 28px">
+      <div class="wgrid" style="height:{{gridH}}px;margin:0">
+        <sc-for list="{{ws}}" as="w" hint-placeholder-count="8">
+          <div class="{{w.cls}}" style="width:{{w.pw}}px;height:{{w.ph}}px;transform:{{w.tf}}" aria-label="{{w.title}}"
+            onPointerDown="{{w.down}}" onPointerMove="{{w.move}}" onPointerUp="{{w.up}}" onPointerCancel="{{w.up}}" onContextMenu="{{w.ctx}}">
+            <div class="inner">
+<div class="wh"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{w.icon}}"></path></svg></span><span class="tt">{{w.title}}</span><sc-if value="{{w.isNew}}" hint-placeholder-val="{{ false }}"><span class="newb">{{t.newb}}</span></sc-if></div>
+<sc-if value="{{w.isLive}}" hint-placeholder-val="{{ false }}">
+  <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:center;gap:8px"><span class="av c2" style="width:26px;height:26px;font-size:11px">{{t.iniN}}</span><b class="bidi" style="font-size:16px;font-weight:800;letter-spacing:-.01em">{{w.liveWho}}</b><span class="ping" aria-hidden="true" style="width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 22%,transparent)"></span></div>
+    <div class="wsub bidi">{{w.liveWhere}}</div>
+    <div class="track"><i style="{{w.livePct}}"></i></div>
+    <sc-if value="{{w.wide}}" hint-placeholder-val="{{ true }}"><button class="wbtn soft" style="align-self:flex-start;height:32px"><svg class="s sm" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg>{{w.liveBtn}}</button></sc-if>
+  </div>
+</sc-if>
+<sc-if value="{{w.notLive}}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{w.isnextshop}}" hint-placeholder-val="{{ false }}">
+  <div style="margin-top:auto;display:flex;align-items:flex-end;gap:10px">
+    <div style="flex:1;min-width:0">
+      <sc-if value="{{w.wide}}" hint-placeholder-val="{{ true }}"><div class="stack" style="margin-bottom:10px"><sc-for list="{{w.tiles}}" as="r" hint-placeholder-count="5"><span class="{{r.ptCls}}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path><path d="{{r.art.d4}}" fill="{{r.art.f4}}"></path><path d="{{r.art.d5}}" fill="{{r.art.f5}}"></path></svg></span></sc-for></div></sc-if>
+      <div class="big">{{w.big}}</div>
+      <div class="wsub"><b class="num">{{w.n1}}</b> {{w.n1l}} · <b class="num">{{w.n2}}</b></div>
+    </div>
+    <sc-if value="{{w.wide}}" hint-placeholder-val="{{ true }}"><button class="wbtn">{{w.btn}}<svg class="s sm flip" viewBox="0 0 24 24"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></button></sc-if>
+    <sc-if value="{{w.narrow}}" hint-placeholder-val="{{ false }}"><button class="addc" style="width:40px;height:40px;background:var(--k);color:#fff" aria-label="{{w.btn}}"><svg class="s flip" viewBox="0 0 24 24"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></button></sc-if>
+  </div>
+</sc-if>
+</sc-if>
+<sc-if value="{{w.isbudget}}" hint-placeholder-val="{{ false }}">
+  <div style="margin-top:auto;display:flex;align-items:center;gap:14px">
+    <span class="ringbox"><svg class="ring" width="84" height="84" viewBox="0 0 84 84" aria-hidden="true"><circle class="tr" cx="42" cy="42" r="35" fill="none" stroke-width="10"></circle><circle class="vl" cx="42" cy="42" r="35" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="{{w.da}}" transform="rotate(-90 42 42)"></circle></svg><b>{{w.pct}}</b></span>
+    <sc-if value="{{w.wide}}" hint-placeholder-val="{{ false }}"><div style="flex:1;min-width:0"><div class="big num">{{w.big}}</div><div class="wsub">{{w.sub}}</div><div class="leg" style="margin-top:8px"><span><i style="background:var(--k)"></i>{{w.sm}}</span><span><i style="background:color-mix(in srgb,var(--k) 35%,var(--s2))"></i>{{w.pr}}</span></div></div></sc-if>
+  </div>
+  <sc-if value="{{w.narrow}}" hint-placeholder-val="{{ true }}"><div class="wsub" style="margin-top:6px"><b class="num">{{w.big}}</b> {{w.sub}}</div></sc-if>
+</sc-if>
+<sc-if value="{{w.isdue}}" hint-placeholder-val="{{ false }}">
+  <sc-if value="{{w.wide}}" hint-placeholder-val="{{ true }}">
+    <div style="margin-top:4px;display:flex;flex-direction:column">
+      <sc-for list="{{w.rows}}" as="r" hint-placeholder-count="3">
+        <div class="wl"><span class="{{r.t.ptCls}}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.t.art.d0}}" fill="{{r.t.art.f0}}"></path><path d="{{r.t.art.d1}}" fill="{{r.t.art.f1}}"></path><path d="{{r.t.art.d2}}" fill="{{r.t.art.f2}}"></path><path d="{{r.t.art.d3}}" fill="{{r.t.art.f3}}"></path><path d="{{r.t.art.d4}}" fill="{{r.t.art.f4}}"></path><path d="{{r.t.art.d5}}" fill="{{r.t.art.f5}}"></path></svg></span><span class="nm bidi">{{r.name}}</span><span class="wsub">{{r.when}}</span><button class="addc" aria-label="{{t.add}}"><svg class="s sm" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button></div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{w.narrow}}" hint-placeholder-val="{{ false }}">
+    <div style="margin-top:auto"><div class="big xl num kc">{{w.big}}</div><div class="wsub">{{w.bigl}}</div><button class="wbtn soft" style="margin-top:10px;height:32px">{{w.btn}}</button></div>
+  </sc-if>
+</sc-if>
+<sc-if value="{{w.issuggest}}" hint-placeholder-val="{{ false }}">
+  <div style="margin-top:auto;display:flex;align-items:flex-end;gap:12px">
+    <sc-if value="{{w.wide}}" hint-placeholder-val="{{ true }}"><span class="{{w.t.ptCls}}" style="width:44px;height:44px;border-radius:13px"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{w.t.art.d0}}" fill="{{w.t.art.f0}}"></path><path d="{{w.t.art.d1}}" fill="{{w.t.art.f1}}"></path><path d="{{w.t.art.d2}}" fill="{{w.t.art.f2}}"></path><path d="{{w.t.art.d3}}" fill="{{w.t.art.f3}}"></path><path d="{{w.t.art.d4}}" fill="{{w.t.art.f4}}"></path><path d="{{w.t.art.d5}}" fill="{{w.t.art.f5}}"></path></svg></span></sc-if>
+    <div class="bidi" style="flex:1;min-width:0;font-size:14.5px;font-weight:650;line-height:1.35">{{w.line}}</div>
+  </div>
+  <button class="wbtn soft" style="margin-top:10px;height:32px;align-self:flex-start"><svg class="s sm" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg>{{w.btn}}</button>
+</sc-if>
+<sc-if value="{{w.isway}}" hint-placeholder-val="{{ false }}"><div style="margin-top:auto"><div class="big xl num kc">{{w.big}}</div><div class="wsub">{{w.sub}}</div></div></sc-if>
+<sc-if value="{{w.isdrops}}" hint-placeholder-val="{{ false }}"><div style="margin-top:auto"><div class="big xl num kc">{{w.big}}</div><div class="wsub">{{w.sub}}</div></div></sc-if>
+<sc-if value="{{w.issaved}}" hint-placeholder-val="{{ false }}"><div style="margin-top:auto"><div class="big num kc">{{w.big}}</div><div class="wsub">{{w.sub}}</div></div></sc-if>
+
+            </div>
+            <sc-if value="{{edit}}" hint-placeholder-val="{{ false }}">
+              <button class="wx" aria-label="{{w.rmLbl}}" onClick="{{w.rm}}" onPointerDown="{{stop}}"><svg viewBox="0 0 24 24"><path d="M6 12h12"></path></svg></button>
+              <sc-if value="{{w.canSize}}" hint-placeholder-val="{{ true }}"><button class="wsz" onClick="{{w.size}}" onPointerDown="{{stop}}" aria-label="{{t.size}}"><svg class="s xs" viewBox="0 0 24 24"><path d="M4 9V4h5 M20 15v5h-5 M4 4l6 6 M20 20l-6-6"></path></svg>{{w.szLbl}}</button></sc-if>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </main>
+  <sc-if value="{{notEdit}}" hint-placeholder-val="{{ true }}">
+  <button class="{{askCls}}" style="position:absolute;bottom:28px;left:{{askLeft}}px;width:60px;height:60px" aria-label="{{t.ask}}"
+    onPointerDown="{{askDown}}" onPointerMove="{{askMove}}" onPointerUp="{{askUp}}" onPointerCancel="{{askUp}}">
+    <svg class="sp" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" fill="var(--spark)"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="#fff"></path></svg>
+  </button>
+  </sc-if>
+  <sc-if value="{{tray}}" hint-placeholder-val="{{ false }}">
+    <button class="scrim" aria-label="{{t.close}}" onClick="{{closeTray}}"></button>
+    <div class="tray" role="dialog" aria-label="{{t.addW}}" style="inset-inline:auto;left:50%;margin-left:-300px;width:600px;bottom:auto;top:110px;border-radius:24px;animation:bub 260ms var(--ease-out) both">
+      <div class="tt" style="padding-top:10px">{{t.addW}}</div>
+      <div class="tsub">{{t.traySub}}</div>
+      <div class="tl" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <sc-for list="{{trayItems}}" as="x" hint-placeholder-count="6">
+          <button class="{{x.cls}}" onClick="{{x.add}}">
+            <span class="pv"><span class="{{x.kc}}" style="display:flex;align-items:center;gap:8px"><span class="si" style="border-radius:50%;width:38px;height:38px"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{x.icon}}"></path></svg></span><span class="big" style="font-size:22px">{{x.peek}}</span></span></span>
+            <span class="tn"><span>{{x.title}}</span><sc-if value="{{x.isNew}}" hint-placeholder-val="{{ false }}"><span class="newb">{{t.newb}}</span></sc-if></span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"state":{"editor":"enum","options":["normal","Noa is shopping","edit","dragging (swap in progress)","add-widget tray"],"default":"normal"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":1366,"height":860}}'>
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this._lp); clearTimeout(this._rm); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const dark = !!p.dark, plum = (p.palette ?? 'graphite') === 'plum', rm = (p.motion ?? 'full') === 'reduced';
+    const st = p.state ?? 'normal';
+        const C_ = (x, y, r) => 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z';
+    const E_ = (x, y, a, b) => 'M' + (x - a) + ' ' + y + 'a' + a + ' ' + b + ' 0 1 0 ' + (2 * a) + ' 0a' + a + ' ' + b + ' 0 1 0 ' + (-2 * a) + ' 0z';
+    const R_ = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + 'h' + (w - 2 * r) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r : '') + 'v' + (h - 2 * r) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r : '') + 'h' + (-(w - 2 * r)) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + (-r) : '') + 'v' + (-(h - 2 * r)) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + (-r) : '') + 'z';
+    const ART = {
+      tom: [[C_(24,27,14),'#e5483b'],[E_(18,22,4,2.5),'#ff9a8c'],['M24 9l2.2 4.6 4.8-1.6-2.8 4 4.2 2.6-5.2-.2-1.4 4.4-1.6-4.4-5.2.2 4.2-2.6-2.8-4 4.8 1.6z','#3f9d5a']],
+      pep: [['M14 18c0-4 4-6 10-6s10 2 10 6l-1 16c0 5-4 8-9 8s-9-3-9-8z','#d63a2f'],[E_(19,22,2.5,5),'#ff8a7a'],['M22 6h4v7h-4z','#3f8f4a']],
+      cuc: [['M9 36c-3-3-1-9 5-15l7-7c6-6 12-8 15-5s1 9-5 15l-7 7c-6 6-12 8-15 5z','#3d8b47'],[C_(17,28,1.4)+C_(23,22,1.4)+C_(29,16,1.4)+C_(21,31,1.2)+C_(27,25,1.2)+C_(32,20,1.1),'#93d48f']],
+      ban: [['M8 13c1 14 12 24 27 24 3 0 4 2 1 3C19 44 5 33 6 15c0-3 2-4 2-2z','#f5c542'],['M10 14c2 11 10 19 21 21-12 1-21-8-22-20z','#e0a92a'],[R_(5,9,4,6,1.5),'#6b4a2b']],
+      lem: [[E_(24,25,15,11),'#f2d23a'],['M8 25l-4-1.5 4-1.5z M40 25l4-1.5-4-1.5z','#e3bd22'],[E_(19,21,5,2.5),'#fbec95']],
+      par: [[R_(23,26,2.5,16,1.2),'#4f8a3a'],[C_(17,19,7)+C_(31,19,7)+C_(24,12,7)+C_(24,23,6),'#3f9d5a'],[C_(20,15,2.6)+C_(29,14,2.2)+C_(15,21,1.8),'#7cca72']],
+      chk: [['M10 30c0-10 8-18 18-18 7 0 11 5 11 11 0 10-10 17-20 17-6 0-9-4-9-10z','#f3b9a3'],['M20 34c6-1 12-6 14-12 1 4-3 11-10 13-2 .5-4 0-4-1z','#e49a83'],[E_(22,20,4,2),'#fbd9cc']],
+      hum: [['M6 24h36c0 10-8 17-18 17S6 34 6 24z','#5d86b5'],[E_(24,24,18,5),'#ecd39c'],[E_(24,24,7,2.2),'#c9a032'],[C_(31,22.5,1.4)+C_(17,25,1.2)+C_(26,26,1),'#6f8f2f']],
+      pen: [['M8 30l14-14 5 5-14 14z','#f0c35a'],['M20 36l14-14 5 5-14 14z','#e6ad3c'],['M14 20l12-12 4 4-12 12z','#f6d684']],
+      ric: [['M12 14c0-4 4-6 12-6s12 2 12 6l2 24c0 3-6 5-14 5s-14-2-14-5z','#f6f3ea'],[R_(14,22,20,10,3),'#3b7fc4'],['M15 10c3 3 15 3 18 0v3c-3 3-15 3-18 0z','#d9d3c3']],
+      crt: [[R_(12,9,24,32,4),'#d0573f'],[R_(12,17,24,15,0),'#f6efe4'],[C_(24,24.5,4.5),'#e5483b'],[E_(24,9.5,12,2.5),'#a93d2a']],
+      tah: [[R_(12,14,24,28,6),'#e7d2a7'],[R_(14,8,20,7,2),'#3a3a38'],[R_(16,24,16,9,2),'#ffffff'],[R_(19,27,10,3,1.5),'#c9a032']],
+      cor: [[R_(11,6,26,36,3),'#f08a24'],[C_(24,26,8),'#ffffff'],[C_(21,25,2.2)+C_(26,23.5,2)+C_(25,28.5,1.8)+C_(20.5,29,1.4),'#f2c14e'],[R_(14,9,20,4,2),'#ffd08a']],
+      cof: [['M13 12h22l3 30H10z','#6b4a2b'],['M13 12l3-5h16l3 5z','#4e3520'],[E_(24,27,4,6),'#c79a5e'],[R_(23.3,21.5,1.4,11,.7),'#6b4a2b']],
+      wat: [[R_(18,4,12,5,1.5),'#2f7fc1'],['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#8fd0f2'],[R_(15,22,18,9,0),'#2f7fc1'],[R_(19,13,3,25,1.5),'#c9ecfb']],
+      jui: [[R_(18,4,12,5,1.5),'#2f9d4a'],['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#f6a33a'],[C_(24,29,5.5),'#ffd36b'],[R_(19,13,3,25,1.5),'#ffc77a']],
+      oil: [[R_(21,3,6,6,1.5),'#3a3a38'],['M20 9h8v6l4 5v20c0 2-2 4-4 4h-8c-2 0-4-2-4-4V20l4-5z','#b9a43a'],[R_(17,24,14,10,2),'#f6efe4'],[C_(24,29,2.5),'#6f8f2f']],
+      dis: [[R_(22,4,4,6,1),'#1f7f62'],['M18 10h12l2 6v24c0 2-2 4-4 4h-8c-2 0-4-2-4-4V16z','#4cc3a0'],[C_(24,28,5.5),'#ffffff'],[C_(24,28,2.6),'#4cc3a0']],
+      trb: [[R_(10,13,28,26,6),'#3a3a38'],[E_(24,13,14,4),'#5b5b55'],[E_(24,13,5,1.6),'#1f1f1d'],['M10 31h28v3H10z','#4a4a46']],
+      tp: [[R_(8,12,22,28,5),'#ffffff'],[E_(19,12,11,4),'#ecebe6'],[E_(19,12,3.5,1.6),'#b8b5ac'],[R_(30,26,12,14,2),'#ffffff']],
+      tpa: [['M7 22l26-7 4 3-2 14-24 6c-3 1-5-1-5-4z','#f2f6fb'],['M33 15l6-2 2 6-4 1z','#3b7fc4'],['M13 25l17-4.5v4L13 29z','#e5483b']],
+      pit: [[E_(24,26,18,13),'#e3b97f'],[E_(24,24,15,10),'#f2d7a8'],[C_(18,22,1.2)+C_(28,27,1.2)+C_(25,20,1)+C_(21,29,1)+C_(31,22,1),'#c79a5e']],
+      brd: [['M8 22c0-7 7-11 16-11s16 4 16 11v15c0 2-2 4-4 4H12c-2 0-4-2-4-4z','#c98a3e'],['M14 18l4 6 M22 16l4 6 M30 17l4 6','none'],[R_(12,20,4,12,2)+R_(21,18,4,14,2)+R_(30,20,4,12,2),'#e6b06a']],
+      chl: [[E_(24,29,20,9),'#bf7428'],[E_(13,26,7.5,6)+E_(24,24,8,6.5)+E_(35,26,7.5,6),'#df9c4a'],[C_(15,23,.9)+C_(25,21,.9)+C_(33,24,.9)+C_(21,26,.8)+C_(29,27,.8),'#fbe7c2']],
+      mlk: [['M14 16l4-8h12l4 8z','#dfe9f5'],[R_(14,16,20,28,2),'#ffffff'],[R_(14,27,20,10,0),'#3b7fc4'],[R_(20,4,8,5,1),'#3b7fc4']],
+      cot: [['M10 18h28l-3 22c0 2-2 3-4 3H17c-2 0-4-1-4-3z','#ffffff'],[E_(24,18,15,4.5),'#3b7fc4'],[R_(14,26,20,8,2),'#cfe0f3']],
+      ylc: [['M6 34L36 12l6 6v20H6z','#f4c84a'],['M6 34L36 12l6 6z','#fbe08a'],[C_(20,32,3)+C_(32,28,2.5)+C_(28,35,1.8)+C_(37,33,1.5),'#dba62a']],
+      prm: [['M6 34L36 12l6 6v20H6z','#efdca0'],['M6 34L36 12l6 6z','#f8ecc4'],[R_(6,34,36,4,0),'#c9a24a']],
+      yog: [['M12 14h24l-3 26c0 2-2 3-4 3H19c-2 0-4-1-4-3z','#ffffff'],[R_(11,10,26,5,2),'#e86f8f'],[R_(14,22,20,8,0),'#f9c9d6']],
+      egg: [[R_(5,26,38,14,4),'#d9c3a0'],[E_(13,25,5,6.5)+E_(24,23,5,6.5)+E_(35,25,5,6.5),'#f7ecdc'],[E_(11.5,22,1.5,2.2)+E_(22.5,20,1.5,2.2)+E_(33.5,22,1.5,2.2),'#ffffff']],
+      pea: [['M6 30c6-12 22-20 36-16-4 14-22 22-36 16z','#4f9d4a'],[C_(16,27,4)+C_(24,23,4)+C_(32,19.5,4),'#8fd36b'],[C_(15,26,1.2)+C_(23,22,1.2)+C_(31,18.5,1.2),'#c8f0a8']]
+    };
+    const art = (key) => { const a = ART[key]; const o = { has: !!a }; for (let i = 0; i < 6; i++) { const x = a && (i === 0 ? [E_(24,44.5,13,2.2),'rgba(0,0,0,.10)'] : a[i - 1]); o['d' + i] = x ? x[0] : ''; o['f' + i] = x ? x[1] : 'none'; } return o; };
+
+        const ICO = { cart:'M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6', wallet:'M3 7h18v12H3z M3 11h18 M7 15h3', basket:'M4 9h16l-2 11H6z M9 9V6a3 3 0 0 1 6 0v3', clock:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2', receipt:'M6 3h12v18l-3-2-3 2-3-2-3 2z M9 8h6 M9 12h6', pulse:'M3 12h4l3-8 4 16 3-8h4', spark:'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z', truck:'M3 7h11v9H3z M14 10h4l3 3v3h-7 M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', tag:'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01', layers:'M12 3l9 5-9 5-9-5z M3 13l9 5 9-5', piggy:'M5 11a7 6 0 0 1 13-2h2v4l-2 1v3h-3v-2H9v2H6v-3a6 6 0 0 1-1-3z M15 9h.01' };
+    const WT = {
+      nextshop:{ k:'w-shop', ic:'cart', en:'Next shop', he:'הקנייה הבאה', sizes:['W','S'], nw:1 },
+      budget:{ k:'w-budget', ic:'wallet', en:'October budget', he:'תקציב אוקטובר', sizes:['S','W'], nw:1 },
+      due:{ k:'w-due', ic:'clock', en:'Due soon', he:'כדאי לקנות בקרוב', sizes:['W','S'], nw:1 },
+      suggest:{ k:'w-ai', ic:'spark', en:'Nexus suggests', he:'Nexus מציע', sizes:['W','S'] },
+      way:{ k:'w-way', ic:'truck', en:'On the way', he:'בדרך', sizes:['S','W'] },
+      drops:{ k:'w-drops', ic:'tag', en:'Price drops', he:'ירידות מחיר', sizes:['S','W'] },
+      saved:{ k:'w-saved', ic:'piggy', en:'Saved', he:'חסכת', sizes:['S','W'] }
+    };
+    const RC = 2 * Math.PI * 35;
+    const tl = (k, id) => ({ art: art(id), ptCls: 'pt xs k-' + k });
+    const DAYS = he ? ['א','ב','ג','ד','ה','ו','ש'] : ['S','M','T','W','T','F','S'];
+    const wdata = (type, sz, live) => {
+      const d = WT[type], wide = sz !== 'S';
+      const o = { type, k: 'w ' + d.k, kc: d.k, title: he ? d.he : d.en, icon: ICO[d.ic], isNew: !!d.nw, wide, narrow: !wide, sizes: d.sizes };
+      o['is' + type] = true;
+      if (type === 'nextshop' && live) Object.assign(o, { isLive: true, notLive: false, liveWho: L('Noa is shopping now','נועה בסופר עכשיו'), liveWhere: L('Shufersal Deal · Poleg · 9 of 24','שופרסל דיל · פולג · 9 מתוך 24'), livePct: 'width:37%', liveBtn: L('Add for her','להוסיף לה') });
+      if (type === 'nextshop') Object.assign(o, { isLive: !!live, notLive: !live, big: L('Today','היום'), n1: '24', n1l: L('items','פריטים'), n2: '~₪412', btn: L('Start','מתחילים'),
+        tiles: [tl('dairy','mlk'), tl('produce','tom'), tl('bread','pit'), tl('dairy','cot'), tl('produce','cuc')], store: L('Shufersal Deal · Poleg','שופרסל דיל · פולג') });
+      if (type === 'budget') Object.assign(o, { pct: '66%', da: (RC * 0.66).toFixed(1) + ' ' + RC.toFixed(1), big: '₪2,320', sub: L('of ₪3,500 · on pace','מתוך ₪3,500 · בקצב'),
+        sm: L('Supermarket ₪1,640','סופר ₪1,640'), pr: L('Products ₪680','מוצרים ₪680') });
+      if (type === 'smmonth') Object.assign(o, { big: '₪1,640', sub: L('4 shops · avg ₪410','4 קניות · ממוצע ₪410'), delta: L('₪120 under Sept','₪120 פחות מספטמבר'),
+        bars: [62, 88, 46, 74, 8].map((h, i) => ({ st: 'height:' + h + '%', cls: i === 4 ? '' : 'on' })), lbls: (he ? ['שבוע 1','2','3','4','5'] : ['Wk 1','2','3','4','5']).map((x, i) => ({ x, cls: i === 3 ? 'on' : '' })) });
+      if (type === 'due') Object.assign(o, { big: '5', bigl: L('items due','פריטים בקרוב'), btn: L('Add all','להוסיף הכול'),
+        rows: [ { t: tl('dairy','egg'), name: L('Eggs, size L','ביצים L'), when: L('due today','להיום') }, { t: tl('clean','tp'), name: L('Toilet paper','נייר טואלט'), when: L('in 2 days','בעוד יומיים') }, { t: tl('bfast','cof'), name: L('Ground coffee','קפה טחון'), when: L('this week','השבוע') } ] });
+      if (type === 'lasttrip') Object.assign(o, { line: L('Sunday · Shufersal Deal','יום ראשון · שופרסל דיל'), big: '₪386', sub: L('22 items · 31 min · Noa','22 פריטים · 31 דק׳ · נועה'), btn: L('Add again','שוב לרשימה'),
+        tiles: [tl('produce','ban'), tl('meat','chk'), tl('dry','pen'), tl('dairy','yog')] });
+      if (type === 'rhythm') Object.assign(o, { big: L('Thursday','חמישי'), sub: L('usually · every ~6 days','בדרך כלל · כל ~6 ימים'),
+        bars: [30, 12, 18, 40, 100, 52, 6].map((h, i) => ({ st: 'height:' + h + '%', cls: i === 4 ? 'on' : '' })), lbls: DAYS.map((x, i) => ({ x, cls: i === 4 ? 'on' : '' })) });
+      if (type === 'tpl') Object.assign(o, { big: '3', bigl: L('templates','תבניות'),
+        rows: [ { tiles: [tl('dairy','mlk'), tl('produce','tom'), tl('bread','pit')], name: L('Weekly basics','בסיס שבועי'), meta: L('By Nexus · 18 items','של Nexus · 18 פריטים') },
+                { tiles: [tl('bread','chl'), tl('meat','chk'), tl('produce','par')], name: L('Friday dinner','ארוחת שישי'), meta: L('Yours · 9 items','שלכם · 9 פריטים') } ] });
+      if (type === 'suggest') Object.assign(o, { line: L('Eggs — you buy them every ~9 days; last time Oct 6.','ביצים — קונים כל ~9 ימים; בפעם האחרונה ב־6 באוקטובר.'), btn: L('Add to list','לרשימה'), t: tl('dairy','egg') });
+      if (type === 'way') Object.assign(o, { big: '2', sub: L('Headphones arrive tomorrow','האוזניות מגיעות מחר') });
+      if (type === 'drops') Object.assign(o, { big: '3', sub: L('Biggest −18% · air fryer','הכי גדולה −18% · סיר אוויר') });
+      if (type === 'saved') Object.assign(o, { big: '₪214', sub: L('this month from drops','החודש מירידות מחיר') });
+      return o;
+    };
+
+    const t = {
+      hello: L('Good evening, Tal','ערב טוב, טל'), iniN: L('N','נ'), sub: L('Thursday, Oct 15 · shopping day','יום חמישי, 15 באוקטובר · יום קנייה'),
+      edit: L('Edit','עריכה'), editing: L('Editing Home','עריכת מסך הבית'), inbox: L('Inbox','התראות'), trip: L('Back to the shop','חזרה לקנייה'),
+      addW: L('Add widget','הוספת ווידג׳ט'), hint: L('Drag a card onto another to swap · − removes · size chip changes width','גוררים כרטיס על אחר כדי להחליף · − מסיר · שבב הגודל משנה רוחב'), done: L('Done','סיום'),
+      size: L('Change size','שינוי גודל'), ask: L('Ask Nexus','לשאול את Nexus'), newb: L('NEW','חדש'), add: L('Add','הוספה'),
+      home: L('Home','בית'), products: L('Products','מוצרים'), addItem: L('Add','הוספה'), sm: L('Supermarket','סופר'), insights: L('Insights','תובנות'), nav: L('Main','ראשי'),
+      close: L('Close','סגירה'), traySub: L('Click to add. Press and hold any card on Home to move it.','לחיצה מוסיפה. לחיצה ארוכה על כרטיס במסך מזיזה אותו.')
+    };
+    const DEF = [['nextshop','W'],['due','W'],['budget','S'],['way','S'],['suggest','W'],['drops','S'],['saved','S']];
+    let order = s.order || DEF.map(x => ({ id: x[0], sz: x[1] }));
+    if (!s.order && st === 'dragging (swap in progress)') order = [order[0], order[2], order[1]].concat(order.slice(3));
+    const edit = s.touched ? !!s.edit : (st.startsWith('edit') || st.startsWith('dragging') || st === 'add-widget tray');
+    const tray = s.touched ? !!s.tray : st === 'add-widget tray';
+    const drag = s.touched ? s.drag : (st.startsWith('dragging') ? { id: 'budget', x: 420, y: 120 } : null);
+    // pack: 4 columns, dense; wide = 2 columns
+    const COLS = 4, G = 14, CW = (1078 - G * (COLS - 1)) / COLS, H = 196, FULL = 1078;
+    const occ = []; const pos = {}; let rows = 0;
+    const free = (r, c) => !(occ[r] && occ[r][c]);
+    const take = (r, c) => { occ[r] = occ[r] || []; occ[r][c] = true; rows = Math.max(rows, r + 1); };
+    order.forEach(it => {
+      const span = it.sz === 'W' ? 2 : 1; let r = 0, c = 0;
+      for (;;) { let ok = false; for (c = 0; c + span <= COLS; c++) { let f = true; for (let j = 0; j < span; j++) if (!free(r, c + j)) f = false; if (f) { ok = true; break; } } if (ok) break; r++; }
+      for (let j = 0; j < span; j++) take(r, c + j);
+      pos[it.id] = { c, r, w: span * CW + (span - 1) * G };
+    });
+    const px = (q) => { const x = q.c * (CW + G); return he ? FULL - x - q.w : x; };
+    Object.keys(pos).forEach(id => { const q = pos[id]; q.x = px(q); q.y = q.r * (H + G); q.h = H; });
+    const touch = (o) => this.setState(Object.assign({ touched: true, edit, tray, drag, order }, o));
+    const ws = order.map(it => {
+      const q = pos[it.id], d = wdata(it.id, it.sz, st === 'Noa is shopping'), isDrag = drag && drag.id === it.id;
+      const x = isDrag ? drag.x : q.x, y = isDrag ? drag.y : q.y;
+      const k = isDrag ? 1.04 : (s.pressing === it.id ? 0.97 : (s.removing === it.id ? 0.86 : 1));
+      return Object.assign(d, {
+        pw: q.w, ph: q.h, tf: 'translate(' + x + 'px,' + y + 'px) scale(' + k + ')',
+        cls: d.k + (edit ? ' ed' : '') + (isDrag ? ' lift' : '') + (s.removing === it.id ? ' out' : '') + (s.fresh === it.id ? ' fresh' : ''),
+        canSize: d.sizes.length > 1, szLbl: it.sz === 'W' ? L('Wide','רחב') : L('Small','קטן'), rmLbl: L('Remove ' + d.title, 'הסרת ' + d.title),
+        ctx: (e) => e.preventDefault(),
+        rm: () => { touch({ removing: it.id }); clearTimeout(this._rm); this._rm = setTimeout(() => { const st2 = this.state || {}; this.setState({ order: (st2.order || order).filter(z => z.id !== it.id), removing: null }); }, rm ? 10 : 200); },
+        size: () => touch({ order: order.map(z => z.id === it.id ? { id: z.id, sz: z.sz === 'W' ? 'S' : 'W' } : z) }),
+        down: (e) => {
+          const r = e.currentTarget.getBoundingClientRect(); const sc = r.width / (q.w * k) || 1;
+          this._d = { id: it.id, cx: e.clientX, cy: e.clientY, x0: q.x, y0: q.y, sc, w: q.w, h: q.h, started: false, last: null, lt: 0 };
+          try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+          if (!edit) {
+            this.setState({ pressing: it.id });
+            clearTimeout(this._lp);
+            this._lp = setTimeout(() => { if (!this._d) return; this._d.started = true; this.setState({ touched: true, edit: true, pressing: null, drag: { id: it.id, x: q.x, y: q.y }, order }); }, 450);
+          }
+        },
+        move: (e) => {
+          const dd = this._d; if (!dd || dd.id !== it.id) return;
+          const dx = (e.clientX - dd.cx) / dd.sc, dy = (e.clientY - dd.cy) / dd.sc;
+          const st2 = this.state || {};
+          if (!st2.edit && !dd.started) { if (Math.hypot(dx, dy) > 10) { clearTimeout(this._lp); this._d = null; this.setState({ pressing: null }); } return; }
+          if (!dd.started) { if (Math.hypot(dx, dy) < 6) return; dd.started = true; }
+          const nx = dd.x0 + dx, ny = dd.y0 + dy;
+          const cxp = nx + dd.w / 2, cyp = ny + dd.h / 2;
+          let ord = st2.order || order;
+          const hit = Object.keys(pos).find(id2 => { if (id2 === it.id) return false; const z = pos[id2]; return cxp > z.x && cxp < z.x + z.w && cyp > z.y && cyp < z.y + z.h; });
+          if (hit && hit !== dd.last && Date.now() - dd.lt > 220) {
+            const a = ord.findIndex(z => z.id === it.id), b = ord.findIndex(z => z.id === hit);
+            ord = ord.slice(); const tmp = ord[a]; ord[a] = ord[b]; ord[b] = tmp; dd.last = hit; dd.lt = Date.now();
+          }
+          this.setState({ touched: true, edit: true, order: ord, drag: { id: it.id, x: nx, y: ny } });
+        },
+        up: () => { clearTimeout(this._lp); const dd = this._d; this._d = null; this.setState({ pressing: null, drag: null, touched: true, edit: (this.state || {}).edit ?? edit, order: (this.state || {}).order || order }); }
+      });
+    });
+    const inUse = order.map(z => z.id);
+    const PEEK = { tpl: '3', drops: '3', saved: '₪214', way: '2', smmonth: '₪1.6K', due: '5', lasttrip: '₪386', rhythm: L('Thu','ה׳'), suggest: '', budget: '66%', nextshop: '24' };
+    const trayItems = Object.keys(WT).filter(id => !inUse.includes(id)).map(id => {
+      const d = WT[id];
+      return { title: he ? d.he : d.en, icon: ICO[d.ic], kc: d.k, isNew: !!d.nw, peek: PEEK[id], cls: 'tcard',
+        add: () => { this.setState({ touched: true, edit: true, tray: false, order: [{ id, sz: d.sizes[0] }].concat(order), fresh: id }); } };
+    });
+    return {
+      cls: 'nx dk' + (dark ? ' dark' : '') + (plum ? ' plum' : '') + (rm ? ' rm' : ''), dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t,
+      askCls: 'ask' + (s.adrag ? ' drag' : ''), askLeft: s.adrag ? s.afx : ((s.aside ?? 'right') === 'left' ? (he ? 24 : 256) : (he ? 1050 : 1282)),
+      askDown: (e) => { this._a = { x0: e.clientX, base: s.adrag ? s.afx : ((s.aside ?? 'right') === 'left' ? (he ? 24 : 256) : (he ? 1050 : 1282)), sc: (e.currentTarget.getBoundingClientRect().width / 60) || 1, moved: false }; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} },
+      askMove: (e) => { const a = this._a; if (!a) return; const dx = (e.clientX - a.x0) / a.sc; if (!a.moved && Math.abs(dx) < 6) return; a.moved = true; this.setState({ adrag: true, afx: Math.max(he ? 16 : 244, Math.min(he ? 1058 : 1290, a.base + dx)) }); },
+      askUp: () => { const a = this._a; this._a = null; if (!a || !a.moved) return; const fx = (this.state || {}).afx ?? a.base; this.setState({ adrag: false, aside: fx + 30 < (he ? 567 : 799) ? 'left' : 'right' }); },
+      edit, notEdit: !edit, tray, ws, gridH: rows * (H + G) - G, trayItems,
+      enterEdit: () => touch({ edit: true }), done: () => touch({ edit: false, tray: false, drag: null }),
+      openTray: () => touch({ tray: true }), closeTray: () => touch({ tray: false }),
+      stop: (e) => e.stopPropagation()
+    };
+  }
+}
+</script>
+</body>
+</html>

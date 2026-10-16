@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Start shopping · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:390px;height:844px;font-family:'Heebo',system-ui,sans-serif">
+  <sc-if value="{{ready}}" hint-placeholder-val="{{ true }}">
+  <div class="{{tripCls}}" style="--c:{{c}}">
+    <div class="light" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <div style="position:relative;display:flex;align-items:center;gap:10px;padding:14px 16px 0">
+      <a class="tripx" href="List-phone.dc.html" aria-label="{{t.back}}"><svg class="s" viewBox="0 0 24 24"><path d="M6 6l12 12 M18 6 6 18"></path></svg></a>
+      <button class="tripx" aria-label="{{t.look}}" onClick="{{openLook}}"><svg class="s" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 1 9-9c0 2-1.5 3-3 3h-2a2 2 0 0 0-1 3.7A1.5 1.5 0 0 1 12 21z M7.5 11h.01 M10 7.5h.01 M14.5 7.5h.01"></path></svg></button>
+      <span style="flex:1"></span>
+      <sc-if value="{{offline}}" hint-placeholder-val="{{ false }}">
+        <span class="tchip" style="padding:0 12px;font-size:12.5px"><svg class="s sm" viewBox="0 0 24 24"><path d="M2 2l20 20 M17.5 17.5H7a5 5 0 0 1-1.3-9.8 M10 5.3A6 6 0 0 1 18 9h.5a3.5 3.5 0 0 1 2.4 6"></path></svg>{{t.offline}}</span>
+      </sc-if>
+      <button class="tchip" aria-label="{{t.change}}" style="max-width:250px">
+        <span class="cb">{{chainIni}}</span>
+        <span style="display:flex;flex-direction:column;line-height:1.15;text-align:start;min-width:0">
+          <b class="bidi" style="font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{chain}}</b>
+          <span class="bidi" style="font-size:11.5px;opacity:.85;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{branch}}</span>
+        </span>
+        <svg class="s sm" viewBox="0 0 24 24" style="margin-inline-end:6px"><path d="m6 9 6 6 6-6"></path></svg>
+      </button>
+    </div>
+
+    <div class="rise" style="position:relative;flex:1;display:flex;flex-direction:column;padding:26px 20px 0;min-height:0">
+      <div>
+        <div style="font-size:14px;font-weight:650;opacity:.9">{{when}}</div>
+        <h1 style="margin:4px 0 0;font-size:42px;line-height:1.02;font-weight:800;letter-spacing:-.035em">{{t.title}}</h1>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:22px">
+        <div class="tstat"><b>{{count}}</b><span>{{t.items}}</span></div>
+        <div class="tstat"><b>{{estimate}}</b><span>{{t.est}}</span></div>
+        <div class="tstat"><b>{{mins}}</b><span>{{t.mins}}</span></div>
+      </div>
+
+      <div class="route" style="margin-top:22px;padding:14px 16px 6px;border-radius:22px;background:rgba(0,0,0,.14);backdrop-filter:blur(10px)">
+        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:650;opacity:.9">
+          <svg class="s sm" viewBox="0 0 24 24"><path d="M3 6h18 M3 12h12 M3 18h7"></path></svg>
+          <span style="flex:1">{{orderNote}}</span>
+        </div>
+        <div class="aisle" style="margin:10px 0 6px" role="img" aria-label="{{t.route}}">
+          <sc-for list="{{secs}}" as="sc" hint-placeholder-count="6"><i class="{{sc.k}}" style="flex-grow:{{sc.n}}"></i></sc-for>
+        </div>
+        <sc-for list="{{secsTop}}" as="sc" hint-placeholder-count="5">
+          <div class="{{sc.rowCls}}"><span class="d"></span><span class="n">{{sc.name}}</span><span class="c">{{sc.n}}</span></div>
+        </sc-for>
+        <sc-if value="{{hasMore}}" hint-placeholder-val="{{ true }}"><div style="font-size:12.5px;font-weight:650;opacity:.8;padding:2px 20px 8px">{{moreText}}</div></sc-if>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-top:16px">
+        <span class="pile"><span class="av c2" style="box-shadow:0 0 0 2px var(--c)">{{iniN}}</span><span class="av c4" style="box-shadow:0 0 0 2px var(--c)">{{iniY}}</span></span>
+        <span style="font-size:13px;font-weight:600;opacity:.92">{{t.notify}}</span>
+      </div>
+    </div>
+
+    <div style="position:relative;padding:14px 20px 18px;display:flex;flex-direction:column;gap:6px">
+      <button class="letsgo" onClick="{{go}}"><span>{{t.go}}</span><span class="ar"><svg class="s flip" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></span></button>
+      <a class="tback" href="List-phone.dc.html" style="display:grid;place-items:center">{{t.edit}}</a>
+    </div>
+    <sc-if value="{{look}}" hint-placeholder-val="{{ false }}">
+      <button class="scrim" aria-label="{{t.close}}" onClick="{{closeLook}}"></button>
+      <div class="sheet" role="dialog" aria-label="{{t.look}}" style="color:var(--ink)">
+        <div class="grab"></div>
+        <div style="font-size:18px;font-weight:800">{{t.look}}</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:2px">{{t.lookSub}}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:16px">
+          <sc-for list="{{swatches}}" as="w" hint-placeholder-count="9">
+            <button class="{{w.cls}}" style="--sc:{{w.c}}" aria-label="{{w.name}}" aria-pressed="{{w.on}}" onClick="{{w.pick}}"><sc-if value="{{w.on}}" hint-placeholder-val="{{ false }}"><svg class="s" viewBox="0 0 24 24" style="stroke-width:3"><path d="M5 12l5 5L20 7"></path></svg></sc-if></button>
+          </sc-for>
+        </div>
+        <div style="font-size:13px;font-weight:700;margin-top:18px;color:var(--ink2)">{{t.style}}</div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <sc-for list="{{styles}}" as="m" hint-placeholder-count="3">
+            <button class="{{m.cls}}" aria-pressed="{{m.on}}" onClick="{{m.pick}}"><i style="{{m.prev}}"></i>{{m.name}}</button>
+          </sc-for>
+        </div>
+        <label style="display:flex;align-items:center;gap:10px;margin-top:16px;font-size:14px;font-weight:600"><input type="checkbox" checked="checked" style="width:20px;height:20px;accent-color:var(--brand)">{{t.perStore}}</label>
+        <button class="btn pri blk" style="margin-top:16px" onClick="{{closeLook}}">{{t.done}}</button>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{going}}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:#111;color:#f2f2f0;display:flex;flex-direction:column;animation:fade 260ms var(--ease-out) both">
+      <div style="padding:16px 20px 12px;background:var(--c);color:#fff">
+        <div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:40px;font-weight:800;letter-spacing:-.03em" class="num">0</b><span style="font-size:16px;font-weight:650;opacity:.9" class="num">/ {{count}}</span><span style="flex:1"></span><span style="font-size:13px;font-weight:650;opacity:.9">{{t.inStore}}</span></div>
+        <div class="aisle" style="margin-top:10px"><sc-for list="{{secs}}" as="sc" hint-placeholder-count="6"><i class="{{sc.k}}" style="flex-grow:{{sc.n}};opacity:.55"></i></sc-for></div>
+      </div>
+      <div style="padding:16px 20px;font-size:13px;opacity:.7">{{t.goNote}}</div>
+      <button class="btn sm" style="margin:0 20px;align-self:flex-start;background:#222;border-color:#333;color:#eee" onClick="{{reset}}">{{t.replay}}</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"chain colour":{"editor":"enum","options":["red","blue","teal","purple","orange"],"default":"red"},"state":{"editor":"enum","options":["ready","first trip at this branch","offline","look sheet open"],"default":"ready"},"data":{"editor":"enum","options":["demo","worst case"],"default":"demo"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const dark = !!p.dark, plum = (p.palette ?? 'graphite') === 'plum', rm = (p.motion ?? 'full') === 'reduced';
+    const st = p.state ?? 'ready', worst = (p.data ?? 'demo') === 'worst case';
+    const CC = { red:'#c2412d', blue:'#2563c9', teal:'#127f78', purple:'#6a46c8', orange:'#c8611a' };
+    const CC2 = Object.assign({}, CC, { green:'#2f8a4c', ink:'#2a2a2a', pink:'#c23d72' });
+    const chainC = CC[p['chain colour'] ?? 'red'] || CC.red;
+    const pick = s.color || 'auto', mode = s.mode || 'vivid';
+    let c = pick === 'auto' ? chainC : CC2[pick];
+    if (dark && mode === 'vivid') c = 'color-mix(in srgb,' + c + ' 62%,#0b0b0b)';
+    const firstHere = st === 'first trip at this branch';
+    const SEC = [
+      ['produce','Fruit & vegetables','פירות וירקות',7],['bread','Bread & bakery','לחם ומאפים',2],['deli','Deli & salads','מעדנייה וסלטים',2],
+      ['meat','Meat, poultry & fish','בשר, עוף ודגים',2],['dry','Dry goods','יבשים',3],['cans','Cans & sauces','שימורים ורטבים',2],
+      ['clean','Cleaning & disposables','ניקיון וחד־פעמי',2],['dairy','Dairy & eggs','חלב וביצים',4]
+    ];
+    const secs = SEC.map(x => ({ k: 'k-' + x[0], n: worst ? x[3] * 3 : x[3], name: he ? x[2] : x[1], rowCls: 'tsec k-' + x[0] }));
+    const total = secs.reduce((a, b) => a + b.n, 0);
+    const t = {
+      back: L('Back to the list','חזרה לרשימה'), change: L('Change store','החלפת חנות'), offline: L('Offline — works anyway','לא מקוון — עובד בכל זאת'),
+      title: L('Ready to shop','יוצאים לקנייה'), items: L('items','פריטים'), est: L('estimate','הערכה'), mins: L('minutes','דקות'),
+      route: L('Your route through the store','המסלול שלך בחנות'),
+      notify: L('Noa and Yoav will see you’re shopping','נועה ויואב יראו שאתה בקנייה'),
+      go: L('Let’s go','יאללה, מתחילים'), edit: L('Back to the list','חזרה לרשימה'),
+      inStore: L('Store mode','מצב חנות'), goNote: L('(Store mode itself — S3/S4 boards. This frame only shows the hand-off: same colour, the rail stays.)','(מצב החנות עצמו — לוחות S3/S4. כאן רק המעבר: אותו צבע, המסלול נשאר.)'),
+      replay: L('Replay','שוב'), look: L('Screen look','מראה המסך'), lookSub: L('Your start screen, your colour. Auto follows the store’s colour.','מסך ההתחלה שלך, בצבע שלך. אוטומטי = לפי צבע החנות.'), style: L('Style','סגנון'), perStore: L('Only for this store','רק לחנות הזאת'), done: L('Done','סיום'), close: L('Close','סגירה')
+    };
+    return {
+      cls: 'nx ph' + (dark ? ' dark' : '') + (plum ? ' plum' : '') + (rm ? ' rm' : ''), dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t, c,
+      tripCls: 'trip' + (mode !== 'vivid' ? ' ' + mode : '') + (s.leaving ? ' go-out' : ''), look: s.look ?? (st === 'look sheet open'),
+      openLook: () => this.setState({ look: true }), closeLook: () => this.setState({ look: false }),
+      swatches: ['auto','red','orange','green','teal','blue','purple','pink','ink'].map(k => ({ c: k === 'auto' ? chainC : CC2[k], on: pick === k, cls: 'sw' + (k === 'auto' ? ' auto' : '') + (pick === k ? ' on' : ''),
+        name: k === 'auto' ? L('Store colour (auto)','צבע החנות (אוטומטי)') : k, pick: () => this.setState({ color: k }) })),
+      styles: [['vivid',L('Vivid','מלא')],['soft',L('Soft','רך')],['night',L('Night','לילה')]].map(m => ({ name: m[1], on: mode === m[0], cls: 'stl' + (mode === m[0] ? ' on' : ''), pick: () => this.setState({ mode: m[0] }),
+        prev: m[0] === 'vivid' ? 'background:' + c : m[0] === 'soft' ? 'background:color-mix(in srgb,' + c + ' 14%,#f6f5f2);box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)' : 'background:radial-gradient(80% 80% at 80% 0%,' + c + ',#0c0c0c 75%)' })), ready: !s.going, going: !!s.going, offline: st === 'offline',
+      chainIni: L('SD','שד'), chain: L('Shufersal Deal','שופרסל דיל'),
+      branch: worst ? L('Netanya, Poleg — Giborei Israel St. 5','נתניה, פולג — גיבורי ישראל 5') : L('Netanya, Poleg','נתניה, פולג'),
+      when: L('Thursday · 18:40','יום חמישי · 18:40'),
+      count: total, estimate: worst ? '₪1,284' : '₪412', mins: worst ? '~70' : '~35',
+      orderNote: firstHere ? L('First time here — the usual store order. Nexus learns this branch as you shop.','פעם ראשונה כאן — הסדר הרגיל של סופר. Nexus ילמד את הסניף תוך כדי.')
+                           : L('In this branch’s order · learned from 4 trips','לפי הסדר של הסניף הזה · נלמד מ־4 קניות'),
+      secs, secsTop: secs.slice(0, 5), hasMore: secs.length > 5,
+      moreText: L('+ ' + (secs.length - 5) + ' more sections', '+ עוד ' + (secs.length - 5) + ' מחלקות'),
+      iniN: L('N','נ'), iniY: L('Y','י'),
+      go: () => { this.setState({ leaving: true }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ going: true, leaving: false }), rm ? 10 : 380); },
+      reset: () => this.setState({ going: false, leaving: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

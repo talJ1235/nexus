@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Ask · pearl — star sizes</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:1180px;height:1030px;font-family:'Heebo',system-ui,sans-serif;background:var(--bg);padding:28px 32px;box-sizing:border-box">
+  <div style="display:grid;grid-template-columns:230px repeat(5,minmax(0,1fr));align-items:center">
+    <span></span>
+    <sc-for list="{{cols}}" as="c" hint-placeholder-count="5"><div style="text-align:center;font-size:13px;font-weight:750;color:var(--ink2);padding-bottom:12px">{{c}}</div></sc-for>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+      <div style="padding:10px 12px 10px 0;border-top:1px solid var(--line-in);height:128px;display:flex;flex-direction:column;justify-content:center;gap:3px">
+        <b style="font-size:15px">{{r.name}}</b><span style="font-size:12px;color:var(--muted);line-height:1.4">{{r.line}}</span>
+      </div>
+      <sc-for list="{{r.cells}}" as="x" hint-placeholder-count="5">
+        <div class="{{x.wrap}}" style="{{x.wst}}">
+          <button class="{{x.cls}}" style="width:58px;height:58px" aria-label="{{t.ask}}">
+            <svg viewBox="0 0 24 24" aria-hidden="true" style="{{x.svgSt}}">
+              <path d="{{r.main}}" fill="var(--spark)"></path>
+              <sc-if value="{{r.two}}" hint-placeholder-val="{{ true }}"><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="{{x.star2}}"></path></sc-if>
+            </svg>
+            <sc-if value="{{x.dot}}" hint-placeholder-val="{{ false }}"><span class="dot"></span></sc-if>
+          </button>
+        </div>
+      </sc-for>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":1180,"height":1030}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const plum = (p.palette ?? 'graphite') === 'plum', rm = (p.motion ?? 'full') === 'reduced';
+    const S = [['',L('Rest','מנוחה')],['msg',L('Message','הודעה')],['think',L('Thinking','חושב')],['dark',L('Dark','כהה')],['dragx',L('Dragging','גרירה')]];
+    const STAR = 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z';
+    const BIG = 'M11 2.5l2.2 5.9 5.9 2.2-5.9 2.2L11 18.7l-2.2-5.9-5.9-2.2 5.9-2.2z';
+    const R = [
+      [L('A · 26 px (today)','A · 26px (היום)'), L('The current size — 45 % of the orb.','הגודל הנוכחי — 45% מהעיגול.'), 26, STAR, true],
+      [L('B · 30 px','B · 30px'), L('A step up; still airy.','צעד אחד למעלה; עדיין אוורירי.'), 30, STAR, true],
+      [L('C · 34 px','C · 34px'), L('~60 % of the orb — reads clearly at arm’s length.','~60% מהעיגול — קריא היטב.'), 34, STAR, true],
+      [L('C ✓ · 34 px, centred (final)','C ✓ · 34px, ממורכז (סופי)'), L('Moved 1.85 px left, .55 px down: the pair’s optical centre sits in the middle in every state.','הוזז 1.85px שמאלה ו־‎.55px למטה: המרכז האופטי של הכוכבים באמצע בכל מצב.'), 34, STAR, true, true],
+      [L('D · 38 px','D · 38px'), L('Fills the orb; the most present.','ממלא את העיגול; הכי נוכח.'), 38, STAR, true],
+      [L('E · 34 px, bigger main star','E · 34px, כוכב ראשי גדול'), L('Main star enlarged, small star kept small — clearer shape.','הכוכב הראשי גדל, הקטן נשאר קטן — צורה ברורה יותר.'), 34, BIG, true],
+      [L('F · 32 px, one star','F · 32px, כוכב אחד'), L('Single sparkle, centred — the calmest.','ניצוץ אחד במרכז — הכי רגוע.'), 32, 'M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z', false]
+    ];
+    const rows = R.map(r => ({ name: r[0], line: r[1], main: r[3], two: r[4], cells: S.map(st => {
+      const s = st[0], dark = s === 'dark';
+      return {
+        wrap: 'nx' + (dark ? ' dark' : '') + (plum ? ' plum' : '') + (rm ? ' rm' : ''),
+        wst: 'height:128px;display:grid;place-items:center;border-top:1px solid var(--line-in);background:' + (dark ? '#0e0e0e' : 'transparent'),
+        cls: 'ask cg k-glass' + (s && !dark ? ' ' + s : '') + (s === 'msg' ? ' nudge' : ''),
+        svgSt: 'width:' + r[2] + 'px;height:' + r[2] + 'px;position:relative;z-index:2;' + (r[5] ? 'translate:-1.85px .55px;' : '') + (s === 'think' ? 'animation:breathe 1.4s ease-in-out infinite' : ''),
+        star2: dark ? '#fff' : (plum ? '#5b33d6' : '#171717'), dot: s === 'msg'
+      };
+    }) }));
+    return { cls: 'nx' + (plum ? ' plum' : '') + (rm ? ' rm' : ''), dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en',
+      t: { ask: L('Ask Nexus','לשאול את Nexus') }, cols: S.map(x => x[1]), rows };
+  }
+}
+</script>
+</body>
+</html>

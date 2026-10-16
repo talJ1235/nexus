@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Ask button — configurations × states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:1380px;height:1180px;font-family:'Heebo',system-ui,sans-serif;background:var(--bg);padding:28px 32px;box-sizing:border-box">
+  <div style="display:grid;grid-template-columns:220px repeat(8,minmax(0,1fr));align-items:center;gap:0">
+    <span></span>
+    <sc-for list="{{cols}}" as="c" hint-placeholder-count="8"><div style="text-align:center;font-size:13px;font-weight:750;color:var(--ink2);padding-bottom:12px">{{c}}</div></sc-for>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+      <div style="padding:10px 12px 10px 0;border-top:1px solid var(--line-in);height:126px;display:flex;flex-direction:column;justify-content:center;gap:3px">
+        <b style="font-size:15px">{{r.name}}</b><span style="font-size:12px;color:var(--muted);line-height:1.4">{{r.line}}</span>
+      </div>
+      <sc-for list="{{r.cells}}" as="x" hint-placeholder-count="8">
+        <div class="{{x.wrap}}" style="{{x.wst}}">
+          <sc-if value="{{x.bubble}}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:10px;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--raised);box-shadow:var(--sh2);color:var(--ink);white-space:nowrap">{{t.bub}}</span></sc-if>
+          <button class="{{x.cls}}" style="{{x.st}}" aria-label="{{t.ask}}">
+            <sc-if value="{{x.glyph}}" hint-placeholder-val="{{ true }}"><svg class="sp" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" fill="var(--spark)"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="{{x.star2}}"></path></svg></sc-if>
+            <sc-if value="{{x.bars}}" hint-placeholder-val="{{ false }}"><span class="bars3" style="{{x.barSt}}"><i></i><i></i><i></i></span></sc-if>
+            <sc-if value="{{x.label}}" hint-placeholder-val="{{ false }}"><span>{{x.labelT}}</span></sc-if>
+            <sc-if value="{{x.dot}}" hint-placeholder-val="{{ false }}"><span class="dot"></span></sc-if>
+          </button>
+        </div>
+      </sc-for>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":1380,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const plum = (p.palette ?? 'graphite') === 'plum', rm = (p.motion ?? 'full') === 'reduced';
+    const S = [['',L('Rest','מנוחה')],['pressed',L('Pressed','לחיצה')],['msg',L('Message','הודעה')],['think',L('Thinking','חושב')],['listen',L('Listening','מקשיב')],['dragx',L('Dragging','גרירה')],['dark',L('Dark','כהה')],['off',L('Offline','לא מקוון')]];
+    const K = [
+      ['k-base', L('1 · Ink orb + thin ring','1 · כדור דיו + טבעת דקה'), L('Chosen B + C. Quiet; ring wakes on message.','הנבחר B + C. שקט; הטבעת מתעוררת בהודעה.')],
+      ['k-thick', L('2 · Bold ring','2 · טבעת עבה'), L('3.5 px ring, more colour at rest — clearly AI.','טבעת 3.5px, יותר צבע במנוחה — AI ברור.')],
+      ['k-halo', L('3 · Ink orb + colour halo','3 · כדור דיו + הילה'), L('No hard ring: a soft colour glow behind the orb.','בלי טבעת: זוהר צבעוני רך מאחורי הכדור.')],
+      ['k-fill', L('4 · Aurora fill','4 · מילוי זוהר'), L('The whole orb is the AI gradient; hues drift on message.','כל הכדור בגרדיאנט ה־AI; הגוונים זזים בהודעה.')],
+      ['k-glass', L('5 · Pearl + ring','5 · פנינה + טבעת'), L('Light orb, ink glyph, colour ring — lighter on busy screens.','כדור בהיר, טבעת צבע — קל יותר על מסכים עמוסים.')],
+      ['k-mini', L('6 · Compact 46 px','6 · קומפקטי 46px'), L('Same as 1, smaller — covers less of the list.','כמו 1, קטן יותר — מסתיר פחות.')],
+      ['k-pill', L('7 · Pill “Ask”','7 · גלולה “שאל”'), L('Says what it is; folds to 1 on scroll.','אומר מה הוא; מתקפל ל־1 בגלילה.')],
+      ['k-sq', L('8 · Squircle','8 · ריבוע מעוגל'), L('Breaks the “always a circle” rule in CLAUDE.md — only if you want to change it.','שובר את כלל "תמיד עיגול" ב־CLAUDE.md — רק אם רוצים לשנות אותו.')]
+    ];
+    const rows = K.map(k => ({ name: k[1], line: k[2], cells: S.map(st => {
+      const s = st[0], dark = s === 'dark';
+      const cls = 'ask cg ' + k[0] + (s && !dark ? ' ' + s : '') + (s === 'msg' ? ' nudge' : '');
+      const glass = k[0] === 'k-glass';
+      return {
+        wrap: 'nx' + (dark ? ' dark' : '') + (plum ? ' plum' : '') + (rm ? ' rm' : ''),
+        wst: 'position:relative;height:126px;display:grid;place-items:center;border-top:1px solid var(--line-in);background:' + (dark ? '#0e0e0e' : 'transparent'),
+        cls, st: k[0] === 'k-pill' ? 'height:54px' : 'width:58px;height:58px', glyph: s !== 'listen', bars: s === 'listen',
+        barSt: glass && !dark ? '--x:0' : '', star2: glass && !dark ? '#171717' : '#fff',
+        label: k[0] === 'k-pill', labelT: s === 'think' ? L('Thinking…','חושב…') : s === 'listen' ? L('Listening','מקשיב') : L('Ask Nexus','שאל את Nexus'),
+        dot: s === 'msg', bubble: s === 'msg'
+      };
+    }) }));
+    return { cls: 'nx' + (plum ? ' plum' : '') + (rm ? ' rm' : ''), dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en',
+      t: { ask: L('Ask Nexus','לשאול את Nexus'), bub: L('3 items due','3 פריטים חסרים') }, cols: S.map(x => x[1]), rows };
+  }
+}
+</script>
+</body>
+</html>

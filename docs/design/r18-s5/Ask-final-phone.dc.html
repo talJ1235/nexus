@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Ask button — final (ink orb + AI ring) · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="{{dir}}" lang="{{lang}}" style="width:1330px;height:760px;font-family:'Heebo',system-ui,sans-serif;background:var(--bg);padding:32px 40px;box-sizing:border-box">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:18px">
+    <b style="font-size:22px;font-weight:800;letter-spacing:-.02em">{{t.title}}</b>
+    <span style="font-size:13.5px;color:var(--muted)">{{t.sub}}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:26px 22px">
+    <sc-for list="{{cs}}" as="c" hint-placeholder-count="8">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:15px">{{c.name}}</b><span style="font-size:12px;color:var(--muted)">{{c.line}}</span></div>
+        <div class="{{c.crop}}" style="width:100%;height:270px;font-family:'Heebo',system-ui,sans-serif;color:var(--ink)">
+          <div style="padding:14px 12px 0;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;gap:10px;height:52px;padding:0 10px;border-radius:16px;background:var(--raised);box-shadow:0 0 0 1px var(--line-in)">
+                <span class="{{r.ptCls}}"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path><path d="{{r.art.d4}}" fill="{{r.art.f4}}"></path><path d="{{r.art.d5}}" fill="{{r.art.f5}}"></path></svg></span><b class="bidi" style="flex:1;font-size:14px">{{r.name}}</b><span class="qty">{{r.q}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{c.bubble}}" hint-placeholder-val="{{ false }}"><div class="bubble" style="right:14px;bottom:156px;max-width:200px;font-size:12.5px"><span class="who">Nexus</span>{{t.bubble}}</div></sc-if>
+          <sc-if value="{{c.toast}}" hint-placeholder-val="{{ false }}"><div class="toast" style="bottom:88px;height:50px;font-size:13px"><span style="flex:1">{{t.toast}}</span><button class="u">{{t.undo}}</button></div></sc-if>
+          <button class="{{c.ask}}" style="{{c.st}}" aria-label="{{t.ask}}">
+            <svg class="sp" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" fill="var(--spark)"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="#fff"></path></svg>
+            <sc-if value="{{c.dot}}" hint-placeholder-val="{{ false }}"><span class="dot"></span></sc-if>
+          </button>
+          <nav class="dock" aria-hidden="true" style="height:68px">
+            <span class="tab"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg></span>
+            <span class="tab"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg></span>
+            <span class="plus"><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></span>
+            <span class="tab on"><svg viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg></span>
+            <span class="tab"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg></span>
+          </nav>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.45">{{c.how}}</div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"language":{"editor":"enum","options":["עברית","English"],"default":"עברית"},"motion":{"editor":"enum","options":["full","reduced"],"default":"full"},"$preview":{"width":1330,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const he = (p.language ?? 'עברית') === 'עברית';
+    const L = (e, h) => he ? h : e;
+    const rm = (p.motion ?? 'full') === 'reduced';
+        const C_ = (x, y, r) => 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z';
+    const E_ = (x, y, a, b) => 'M' + (x - a) + ' ' + y + 'a' + a + ' ' + b + ' 0 1 0 ' + (2 * a) + ' 0a' + a + ' ' + b + ' 0 1 0 ' + (-2 * a) + ' 0z';
+    const R_ = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + 'h' + (w - 2 * r) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r : '') + 'v' + (h - 2 * r) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r : '') + 'h' + (-(w - 2 * r)) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + (-r) : '') + 'v' + (-(h - 2 * r)) + (r ? 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + (-r) : '') + 'z';
+    const ART = {
+      tom: [[C_(24,27,14),'#e5483b'],[E_(18,22,4,2.5),'#ff9a8c'],['M24 9l2.2 4.6 4.8-1.6-2.8 4 4.2 2.6-5.2-.2-1.4 4.4-1.6-4.4-5.2.2 4.2-2.6-2.8-4 4.8 1.6z','#3f9d5a']],
+      pep: [['M14 18c0-4 4-6 10-6s10 2 10 6l-1 16c0 5-4 8-9 8s-9-3-9-8z','#d63a2f'],[E_(19,22,2.5,5),'#ff8a7a'],['M22 6h4v7h-4z','#3f8f4a']],
+      cuc: [['M9 36c-3-3-1-9 5-15l7-7c6-6 12-8 15-5s1 9-5 15l-7 7c-6 6-12 8-15 5z','#3d8b47'],[C_(17,28,1.4)+C_(23,22,1.4)+C_(29,16,1.4)+C_(21,31,1.2)+C_(27,25,1.2)+C_(32,20,1.1),'#93d48f']],
+      ban: [['M8 13c1 14 12 24 27 24 3 0 4 2 1 3C19 44 5 33 6 15c0-3 2-4 2-2z','#f5c542'],['M10 14c2 11 10 19 21 21-12 1-21-8-22-20z','#e0a92a'],[R_(5,9,4,6,1.5),'#6b4a2b']],
+      lem: [[E_(24,25,15,11),'#f2d23a'],['M8 25l-4-1.5 4-1.5z M40 25l4-1.5-4-1.5z','#e3bd22'],[E_(19,21,5,2.5),'#fbec95']],
+      par: [[R_(23,26,2.5,16,1.2),'#4f8a3a'],[C_(17,19,7)+C_(31,19,7)+C_(24,12,7)+C_(24,23,6),'#3f9d5a'],[C_(20,15,2.6)+C_(29,14,2.2)+C_(15,21,1.8),'#7cca72']],
+      chk: [['M10 30c0-10 8-18 18-18 7 0 11 5 11 11 0 10-10 17-20 17-6 0-9-4-9-10z','#f3b9a3'],['M20 34c6-1 12-6 14-12 1 4-3 11-10 13-2 .5-4 0-4-1z','#e49a83'],[E_(22,20,4,2),'#fbd9cc']],
+      hum: [['M6 24h36c0 10-8 17-18 17S6 34 6 24z','#5d86b5'],[E_(24,24,18,5),'#ecd39c'],[E_(24,24,7,2.2),'#c9a032'],[C_(31,22.5,1.4)+C_(17,25,1.2)+C_(26,26,1),'#6f8f2f']],
+      pen: [['M8 30l14-14 5 5-14 14z','#f0c35a'],['M20 36l14-14 5 5-14 14z','#e6ad3c'],['M14 20l12-12 4 4-12 12z','#f6d684']],
+      ric: [['M12 14c0-4 4-6 12-6s12 2 12 6l2 24c0 3-6 5-14 5s-14-2-14-5z','#f6f3ea'],[R_(14,22,20,10,3),'#3b7fc4'],['M15 10c3 3 15 3 18 0v3c-3 3-15 3-18 0z','#d9d3c3']],
+      crt: [[R_(12,9,24,32,4),'#d0573f'],[R_(12,17,24,15,0),'#f6efe4'],[C_(24,24.5,4.5),'#e5483b'],[E_(24,9.5,12,2.5),'#a93d2a']],
+      tah: [[R_(12,14,24,28,6),'#e7d2a7'],[R_(14,8,20,7,2),'#3a3a38'],[R_(16,24,16,9,2),'#ffffff'],[R_(19,27,10,3,1.5),'#c9a032']],
+      cor: [[R_(11,6,26,36,3),'#f08a24'],[C_(24,26,8),'#ffffff'],[C_(21,25,2.2)+C_(26,23.5,2)+C_(25,28.5,1.8)+C_(20.5,29,1.4),'#f2c14e'],[R_(14,9,20,4,2),'#ffd08a']],
+      cof: [['M13 12h22l3 30H10z','#6b4a2b'],['M13 12l3-5h16l3 5z','#4e3520'],[E_(24,27,4,6),'#c79a5e'],[R_(23.3,21.5,1.4,11,.7),'#6b4a2b']],
+      wat: [[R_(18,4,12,5,1.5),'#2f7fc1'],['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#8fd0f2'],[R_(15,22,18,9,0),'#2f7fc1'],[R_(19,13,3,25,1.5),'#c9ecfb']],
+      jui: [[R_(18,4,12,5,1.5),'#2f9d4a'],['M17 12c0-2 2-3 3-3h8c1 0 3 1 3 3l2 4v24c0 2-2 4-4 4H19c-2 0-4-2-4-4V16z','#f6a33a'],[C_(24,29,5.5),'#ffd36b'],[R_(19,13,3,25,1.5),'#ffc77a']],
+      oil: [[R_(21,3,6,6,1.5),'#3a3a38'],['M20 9h8v6l4 5v20c0 2-2 4-4 4h-8c-2 0-4-2-4-4V20l4-5z','#b9a43a'],[R_(17,24,14,10,2),'#f6efe4'],[C_(24,29,2.5),'#6f8f2f']],
+      dis: [[R_(22,4,4,6,1),'#1f7f62'],['M18 10h12l2 6v24c0 2-2 4-4 4h-8c-2 0-4-2-4-4V16z','#4cc3a0'],[C_(24,28,5.5),'#ffffff'],[C_(24,28,2.6),'#4cc3a0']],
+      trb: [[R_(10,13,28,26,6),'#3a3a38'],[E_(24,13,14,4),'#5b5b55'],[E_(24,13,5,1.6),'#1f1f1d'],['M10 31h28v3H10z','#4a4a46']],
+      tp: [[R_(8,12,22,28,5),'#ffffff'],[E_(19,12,11,4),'#ecebe6'],[E_(19,12,3.5,1.6),'#b8b5ac'],[R_(30,26,12,14,2),'#ffffff']],
+      tpa: [['M7 22l26-7 4 3-2 14-24 6c-3 1-5-1-5-4z','#f2f6fb'],['M33 15l6-2 2 6-4 1z','#3b7fc4'],['M13 25l17-4.5v4L13 29z','#e5483b']],
+      pit: [[E_(24,26,18,13),'#e3b97f'],[E_(24,24,15,10),'#f2d7a8'],[C_(18,22,1.2)+C_(28,27,1.2)+C_(25,20,1)+C_(21,29,1)+C_(31,22,1),'#c79a5e']],
+      brd: [['M8 22c0-7 7-11 16-11s16 4 16 11v15c0 2-2 4-4 4H12c-2 0-4-2-4-4z','#c98a3e'],['M14 18l4 6 M22 16l4 6 M30 17l4 6','none'],[R_(12,20,4,12,2)+R_(21,18,4,14,2)+R_(30,20,4,12,2),'#e6b06a']],
+      chl: [[E_(24,29,20,9),'#bf7428'],[E_(13,26,7.5,6)+E_(24,24,8,6.5)+E_(35,26,7.5,6),'#df9c4a'],[C_(15,23,.9)+C_(25,21,.9)+C_(33,24,.9)+C_(21,26,.8)+C_(29,27,.8),'#fbe7c2']],
+      mlk: [['M14 16l4-8h12l4 8z','#dfe9f5'],[R_(14,16,20,28,2),'#ffffff'],[R_(14,27,20,10,0),'#3b7fc4'],[R_(20,4,8,5,1),'#3b7fc4']],
+      cot: [['M10 18h28l-3 22c0 2-2 3-4 3H17c-2 0-4-1-4-3z','#ffffff'],[E_(24,18,15,4.5),'#3b7fc4'],[R_(14,26,20,8,2),'#cfe0f3']],
+      ylc: [['M6 34L36 12l6 6v20H6z','#f4c84a'],['M6 34L36 12l6 6z','#fbe08a'],[C_(20,32,3)+C_(32,28,2.5)+C_(28,35,1.8)+C_(37,33,1.5),'#dba62a']],
+      prm: [['M6 34L36 12l6 6v20H6z','#efdca0'],['M6 34L36 12l6 6z','#f8ecc4'],[R_(6,34,36,4,0),'#c9a24a']],
+      yog: [['M12 14h24l-3 26c0 2-2 3-4 3H19c-2 0-4-1-4-3z','#ffffff'],[R_(11,10,26,5,2),'#e86f8f'],[R_(14,22,20,8,0),'#f9c9d6']],
+      egg: [[R_(5,26,38,14,4),'#d9c3a0'],[E_(13,25,5,6.5)+E_(24,23,5,6.5)+E_(35,25,5,6.5),'#f7ecdc'],[E_(11.5,22,1.5,2.2)+E_(22.5,20,1.5,2.2)+E_(33.5,22,1.5,2.2),'#ffffff']],
+      pea: [['M6 30c6-12 22-20 36-16-4 14-22 22-36 16z','#4f9d4a'],[C_(16,27,4)+C_(24,23,4)+C_(32,19.5,4),'#8fd36b'],[C_(15,26,1.2)+C_(23,22,1.2)+C_(31,18.5,1.2),'#c8f0a8']]
+    };
+    const art = (key) => { const a = ART[key]; const o = { has: !!a }; for (let i = 0; i < 6; i++) { const x = a && (i === 0 ? [E_(24,44.5,13,2.2),'rgba(0,0,0,.10)'] : a[i - 1]); o['d' + i] = x ? x[0] : ''; o['f' + i] = x ? x[1] : 'none'; } return o; };
+
+    const t = {
+      title: L('Ask — final: pearl + ring, stars C','כפתור ה־AI — סופי: פנינה + טבעת, כוכבים C'),
+      sub: L('Ink orb (B) + a thin AI colour ring (C). Calm at rest, the ring wakes only when Nexus has something.','כדור דיו (B) + טבעת צבע AI דקה (C). רגוע במנוחה; הטבעת מתעוררת רק כשיש ל־Nexus משהו.'),
+      ask: L('Ask Nexus','לשאול את Nexus'), bubble: L('3 items are due — add them?','3 פריטים חסרים — להוסיף?'),
+      toast: L('Eggs added to the list','ביצים נוספו לרשימה'), undo: L('Undo','ביטול')
+    };
+    const base = 'position:absolute;bottom:80px;right:14px;';
+    const C = (name, line, how, o) => Object.assign({ name, line, how, crop: 'nx ph crop' + (rm ? ' rm' : ''), ask: 'ask', st: base, dot: false, bubble: false, toast: false }, o);
+    const cs = [
+      C(L('Rest','מנוחה'), L('most of the time','רוב הזמן'), L('Ring is there but muted — the orb reads as solid and quiet.','הטבעת שם אבל מעומעמת — הכדור נראה סולידי ושקט.')),
+      C(L('Pressed','לחיצה'), L('scale .94','הקטנה ל־‎.94'), L('Press feedback on pointer-down, 160 ms ease-out. Haptic on phones that have it.','משוב לחיצה מיידי, 160ms. רטט בטלפונים שתומכים.'), { st: base + 'transform:scale(.94)' }),
+      C(L('Message','הודעה'), L('ring turns, dot, bubble','טבעת מסתובבת, נקודה, בועה'), L('Ring at full colour turning once every 5 s; amber dot; one small hop; bubble for 6 s.','טבעת בצבע מלא שמסתובבת פעם ב־5 שניות; נקודה כתומה; קפיצה קטנה אחת; בועה ל־6 שניות.'), { ask: 'ask msg nudge', dot: true, bubble: true }),
+      C(L('Thinking','חושב'), L('while a reply streams','בזמן שתשובה נכתבת'), L('Ring turns fast (1.4 s), the star breathes. Only while Nexus works in the background.','הטבעת מסתובבת מהר, הכוכב "נושם". רק כש־Nexus עובד ברקע.'), { ask: 'ask think' }),
+      C(L('Above a toast','מעל הודעה קופצת'), L('rises 64 px','עולה 64px'), L('Moves up with the toast (340 ms drawer ease) and back down when it leaves.','עולה יחד עם ההודעה ויורד כשהיא נעלמת.'), { st: base + 'transform:translateY(-62px)', toast: true }),
+      C(L('Dragging','גרירה'), L('lifts, ring full','מתרומם, טבעת מלאה'), L('Lifts to 1.08 with a deeper shadow; drops onto the nearest side with a soft spring and stays there.','מתרומם עם צל עמוק; נוחת לצד הקרוב בקפיץ רך ונשאר שם.'), { ask: 'ask drag', st: 'position:absolute;bottom:80px;left:120px;transform:scale(1.08)' }),
+      C(L('Dark','כהה'), L('graphite orb','כדור גרפיט'), L('Pearl turns graphite with a white small star and a faint amber glow.','הפנינה הופכת לגרפיט, כוכב קטן לבן וזוהר ענבר עדין.'), { crop: 'nx ph crop dark' + (rm ? ' rm' : '') }),
+      C(L('Plum','סגול'), L('palette follows','הפלטה משתנה'), L('Same pearl and ring; the small star turns plum.','אותה פנינה וטבעת; הכוכב הקטן הופך לסגול.'), { crop: 'nx ph crop plum' + (rm ? ' rm' : '') })
+    ];
+    const R = (id, k, en, hh, q) => ({ art: art(id), ptCls: 'pt sm k-' + k, name: he ? hh : en, q });
+    return {
+      cls: 'nx' + (rm ? ' rm' : ''), dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'en', t, cs,
+      rows: [R('tom','produce','Tomatoes','עגבניות','6'), R('mlk','dairy','Milk 3%','חלב 3%','×2')]
+    };
+  }
+}
+</script>
+</body>
+</html>

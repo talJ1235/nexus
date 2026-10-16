@@ -241,3 +241,8 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   ran from the agent (`node --env-file=.env.local scripts/db-snapshot.mjs`). Windows bash: a large `python - <<'EOF'`
   heredoc sometimes fails to parse ("unexpected EOF") — write the script to the scratchpad and run it. No new env vars
   or secrets. `.claude/settings.local.json` allows the round18-s4 push/merge commands.
+- 2026-10-16 (planning chat, account B): this chat had no `add_repo` push tool and the sandbox has no GitHub
+  credentials, so `git push` fails. New docs go to `main` through the GitHub connector (`create_or_update_file`; it needs
+  the whole file, fine for new / small files). Large docs (PLANNER, ENVIRONMENT) and boards travel as a zip: Tal unzips
+  at the repo root, Claude Code's Step 0 runs `git apply -3 <patch>` + commits the boards on `main`. Boards are made in
+  the Design canvas and composed with a small build script in the sandbox (shared CSS + widget partials).
