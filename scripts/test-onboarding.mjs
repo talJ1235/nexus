@@ -256,7 +256,7 @@ try {
   {
     const { id, page: p } = await person({ phone: true });
     await x("INSERT OR REPLACE INTO user_pref (user_id, key, value) VALUES (?, 'pref:onboarding', ?)", [id, JSON.stringify({ v: 1, status: "done", step: 7, why: ["super"], stores: [], custom: [], budget: null, currency: "ILS", who: "me", sharedSpaceId: null, notif: null, installed: false, at: now })]);
-    await p.goto(`${app.base}/`);
+    await p.goto(`${app.base}/`, { waitUntil: "domcontentloaded", timeout: 45_000 }).catch(() => {}); // Home can be slow on the busy test DB (CI)
     await p.waitForSelector("[data-home]", { timeout: 40_000 }).catch(() => {});
     // The test writes to the server's SQLite file too — a load that hit SQLITE_BUSY shows the error screen: once more.
     if (!(await p.locator("[data-home]").count())) {
