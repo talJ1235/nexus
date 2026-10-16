@@ -2,10 +2,10 @@
 
 import "./sm.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, History, LayoutList, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, ShoppingCart, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, History, LayoutList, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, ShoppingCart, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
-import { acceptSuggestions, dismissSuggestion, setSupermarketLayout } from "@/app/supermarket-actions";
+import { acceptSuggestions, dismissSuggestion, seenSwipeHint, setSupermarketLayout } from "@/app/supermarket-actions";
 import { basketFor, WEEKLY_BASKET_SIZE, type BasketItem } from "@/lib/grocery/basket";
 import { DEFAULT_ORDER, sectionName } from "@/lib/grocery/sections";
 import { formatMoney } from "@/lib/money";
@@ -109,7 +109,20 @@ export function SupermarketView() {
       setAdding("type");
     };
     window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
+    // R18 S5 A4: a list pasted anywhere on the page (not into a field) opens the paste review with its lines.
+    const paste = (e: ClipboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      const text = e.clipboardData?.getData("text/plain")?.trim();
+      if (!text || /^https?:\/\//i.test(text) || el?.closest?.("input, textarea, [contenteditable], [role=dialog]")) return;
+      e.preventDefault();
+      setAddSeed(text);
+      setAdding("paste");
+    };
+    window.addEventListener("paste", paste);
+    return () => {
+      window.removeEventListener("keydown", k);
+      window.removeEventListener("paste", paste);
+    };
   }, [desk, ro]);
   useEffect(() => {
     const on = (e: Event) => setOpenId((e as CustomEvent<string>).detail);
@@ -211,13 +224,15 @@ export function SupermarketView() {
     </div>
   );
   const firstTime = <FirstTime basketSize={Math.min(WEEKLY_BASKET_SIZE, basket.length)} onBasket={() => void addBasket(basket.slice(0, WEEKLY_BASKET_SIZE))} onBuild={() => setBasketOn(true)} onPaste={() => setAdding("paste")} />;
+  // R18 S5 A2: the first time (per person) the first row peeks once and a line names both swipes.
+  const hint = !ro && !desk && shown === "rows" && s.sm.length > 0 && !!home?.swipeHint;
   const list = (
     <>
-      {s.sm.length > 0 && <p className="tabular px-1 pt-1 text-[13px] font-semibold text-muted">{s.sm.length === 1 ? t.sm.main.itemsOne : f(t.sm.main.items, { n: s.sm.length })}</p>}
-      {/* R18 S3 B3: one list — one surface with the section headers inside it (not a card per section). */}
-      <div className="gro-one" data-sm-list>
-        {groups.map(([k, list]) => (
-          <Section key={k} section={k} items={list} tiles={shown === "tiles"} unitKg={home?.unitKg} />
+      {hint && <SwipeHint />}
+      {/* R18 S5 A1: one card for the whole list; sections are slim sticky bands inside it. */}
+      <div className="gro-one" role="list" data-sm-list>
+        {groups.map(([k, list], gi) => (
+          <Section key={k} section={k} items={list} tiles={shown === "tiles"} unitKg={home?.unitKg} peek={hint && gi === 0} />
         ))}
       </div>
     </>
@@ -236,21 +251,22 @@ export function SupermarketView() {
         {overlays}
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(300px,370px)] items-start gap-4">
           <div className="flex min-w-0 flex-col gap-3">
-            {!ro && !empty && <AddField onOpen={openAdd} />}
+            {/* R18 S5 A4 (board List-desktop): one panel — the store + this list's count and estimate, the add field
+                (a pasted list works anywhere on the page), then the list. */}
+            <section className="gro-panel" data-sm-panel>
+              <div className="flex items-center gap-3 px-4 pb-3 pt-4">
+                <DeskStore store={trip.store} onPick={() => setPicking(true)} />
+                <DeskCount home={home} />
+              </div>
+              {!ro && <DeskAdd onOpen={() => setAdding("type")} />}
+              {!first && !empty && list}
+            </section>
             {(first || empty) && <EmptyTemplates ro={ro} />}
-            {first ? firstTime : empty ? emptySuggestions : list}
-            {!ro && empty && <AddField onOpen={openAdd} />}
+            {first ? firstTime : empty ? emptySuggestions : null}
             {startBar}
           </div>
           <aside className="sticky top-4 flex min-w-0 flex-col gap-3" data-sm-side>
-            <div className="rounded-[18px] border border-line-strong bg-surface p-3 shadow-card">
-              <StoreLine home={home} store={trip.store} onPick={() => setPicking(true)} />
-              {s.sm.length > 0 && (
-                <div className="mt-3">
-                  <Rail groups={groups} />
-                </div>
-              )}
-            </div>
+            <ThisList home={home} groups={groups} />
             {!first && offer}
             {!first && !empty && suggestions}
             <DeskTemplates ro={ro} onOpen={() => openLists("templates")} onSave={() => openLists("save")} />
@@ -264,9 +280,12 @@ export function SupermarketView() {
     <div className="flex flex-col gap-3 pb-[calc(170px+env(safe-area-inset-bottom))]" data-sm-view data-sm-layout={shown}>
       {header}
       <Badges viewer={viewer} />
-      <StoreLine home={home} store={trip.store} onPick={() => setPicking(true)} />
+      {/* R18 S5 A1: the store row (chain badge, branch, chevron) and one summary line — items · estimate · month left. */}
+      <div className="-mt-1 flex flex-col">
+        <StoreRow store={trip.store} onPick={() => setPicking(true)} />
+        <SumRow home={home} />
+      </div>
       {overlays}
-      {s.sm.length > 0 && <Rail groups={groups} />}
       {!ro && !empty && <AddField onOpen={openAdd} />}
       {first ? (
         <>
@@ -335,45 +354,161 @@ function Badges({ viewer }: { viewer: boolean }) {
   );
 }
 
-/** Store chip (chain monogram, chain, branch) + the list's estimate against what's left of this month's budget. */
-function StoreLine({ home, store, onPick }: { home: SmHome | null; store: { chain: string; branch: string } | null; onPick: () => void }) {
+/** R18 S5 A1 (phone): the store row — chain badge, chain + branch, a chevron → change store. */
+function StoreRow({ store, onPick }: { store: { chain: string; branch: string } | null; onPick: () => void }) {
+  const { t, locale } = useI18n();
+  const def = chainDef(store?.chain);
+  const name = def ? (locale === "he" ? def.he : def.en) : store?.chain;
+  return (
+    <button type="button" onClick={onPick} className="flex h-[52px] w-full items-center gap-2.5 rounded-[16px] px-1.5 text-start transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]" aria-label={store ? `${t.sm.main.changeStore}: ${name}` : t.sm.main.chooseStore} data-sm-store>
+      {store ? (
+        <span className="grid size-9 shrink-0 place-items-center rounded-[11px] text-[13px] font-extrabold text-white" style={{ background: def ? monoColor(def.color) : "var(--muted)" }}>
+          {(locale === "he" ? def?.monoHe : def?.mono)?.slice(0, 2) ?? name?.slice(0, 1)}
+        </span>
+      ) : (
+        <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-surface-2 text-muted">
+          <ShoppingBasket className="size-[18px]" />
+        </span>
+      )}
+      <span className="flex min-w-0 flex-1 flex-col leading-tight">
+        <b className="bidi truncate text-[15px] font-extrabold">{store ? name : t.sm.main.chooseStore}</b>
+        {store?.branch && <span className="bidi truncate text-[12.5px] text-muted">{store.branch}</span>}
+      </span>
+      <ChevronDown className="size-4 shrink-0 text-muted" />
+    </button>
+  );
+}
+
+/** R18 S5 A1 (phone): "14 items · about ₪412 ▬▬ ₪1,180 left this month". */
+function SumRow({ home }: { home: SmHome | null }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
-  const def = chainDef(store?.chain);
   const est = useEstimate(home);
   const left = useMonthLeft(home);
-  const name = def ? (locale === "he" ? def.he : def.en) : store?.chain;
-  const pct = est != null && left != null && left > 0 ? Math.min(1, est / left) : null;
+  if (!s.sm.length) return null;
+  const pct = est != null && left != null && left > 0 ? Math.min(1, est / left) : left != null && left < 0 ? 1 : null;
+  const money = (n: number) => formatMoney(Math.round(n), s.currency, locale);
   return (
-    <div className="flex items-stretch gap-3">
-      <button type="button" onClick={onPick} className="flex min-h-14 min-w-0 flex-1 items-center gap-2.5 rounded-[16px] border border-line-strong bg-surface px-2.5 text-start shadow-card transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]" aria-label={store ? `${t.sm.main.changeStore}: ${name}` : t.sm.main.chooseStore} data-sm-store>
-        {store ? (
-          <span className="grid size-9 shrink-0 place-items-center rounded-[10px] text-[14px] font-extrabold text-white" style={{ background: def ? monoColor(def.color) : "var(--muted)" }}>
-            {(locale === "he" ? def?.monoHe : def?.mono)?.slice(0, 1) ?? name?.slice(0, 1)}
-          </span>
-        ) : (
-          <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-surface-2 text-muted">
-            <ShoppingBasket className="size-[18px]" />
-          </span>
-        )}
-        <span className="min-w-0 flex-1">
-          <b className="bidi block truncate text-[15px] font-extrabold">{store ? name : t.sm.main.chooseStore}</b>
-          {store?.branch && <span className="bidi block truncate text-[12.5px] text-muted">{store.branch}</span>}
-        </span>
-        <ChevronDown className="size-4 shrink-0 text-muted" />
-      </button>
-      <div className="flex min-w-[118px] flex-col items-end justify-center gap-1 text-end" data-sm-estimate>
-        <b className="tabular text-[19px] font-extrabold tracking-[-0.01em]">{est != null ? f(t.sm.main.estimate, { amount: formatMoney(Math.round(est), s.currency, locale) }) : "—"}</b>
-        {left != null && (
+    <div className="tabular flex min-w-0 items-center gap-2 px-1.5 pb-0.5 text-[13px] text-muted" data-sm-estimate data-sm-sum>
+      <span className="shrink-0 whitespace-nowrap">
+        <b className="font-extrabold text-ink">{s.sm.length}</b> {s.sm.length === 1 ? t.sm.main.itemWord : t.sm.main.itemsWord}
+        {est != null && (
           <>
-            <span className="h-1 w-24 overflow-hidden rounded-full bg-line-in" aria-hidden>
-              <i className={cn("block h-full rounded-full", left < 0 ? "bg-warn" : "bg-ink")} style={{ width: `${Math.round((pct ?? (left < 0 ? 1 : 0)) * 100)}%` }} />
-            </span>
-            <small className="tabular text-[11.5px] text-muted">{left >= 0 ? f(t.sm.main.leftMonth, { amount: formatMoney(Math.round(left), s.currency, locale) }) : f(t.sm.main.overMonth, { amount: formatMoney(Math.round(-left), s.currency, locale) })}</small>
+            {" · "}
+            <b className="font-extrabold text-ink">{f(t.sm.main.about, { amount: money(est) })}</b>
           </>
         )}
-      </div>
+      </span>
+      {left != null && (
+        <>
+          <span className="h-1.5 min-w-6 flex-1 overflow-hidden rounded-full bg-surface-3" aria-hidden>
+            <i className={cn("block h-full rounded-full transition-[width] duration-[400ms] ease-[var(--ease-out)]", left < 0 ? "bg-warn" : "bg-ok")} style={{ width: `${Math.round((pct ?? 0) * 100)}%` }} />
+          </span>
+          <span className="min-w-0 truncate whitespace-nowrap">{left >= 0 ? f(t.sm.main.leftMonth, { amount: money(left) }) : f(t.sm.main.overMonth, { amount: money(-left) })}</span>
+        </>
+      )}
     </div>
+  );
+}
+
+/** R18 S5 A4: the computer panel's store button (a bordered chip) — chain badge, chain + branch, chevron. */
+function DeskStore({ store, onPick }: { store: { chain: string; branch: string } | null; onPick: () => void }) {
+  return (
+    <div className="w-fit max-w-[60%] rounded-[16px] border border-line-strong pe-1">
+      <StoreRow store={store} onPick={onPick} />
+    </div>
+  );
+}
+
+/** A4: "14 · ₪412" at the panel's end. */
+function DeskCount({ home }: { home: SmHome | null }) {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const est = useEstimate(home);
+  if (!s.sm.length) return null;
+  return (
+    <span className="tabular ms-auto shrink-0 text-[14px] text-muted" data-sm-estimate>
+      <b className="font-extrabold text-ink">{s.sm.length}</b> {s.sm.length === 1 ? t.sm.main.itemWord : t.sm.main.itemsWord}
+      {est != null && (
+        <>
+          {" · "}
+          <b className="font-extrabold text-ink">{f(t.sm.main.about, { amount: formatMoney(Math.round(est), s.currency, locale) })}</b>
+        </>
+      )}
+    </span>
+  );
+}
+
+/** A4: the add field — type, or paste a whole list (Ctrl+V anywhere on the page). */
+function DeskAdd({ onOpen }: { onOpen: () => void }) {
+  const { t } = useI18n();
+  const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+  return (
+    <div className="px-4 pb-3">
+      <button type="button" className="flex h-12 w-full items-center gap-2.5 rounded-[14px] border border-line-strong bg-surface px-3.5 text-start text-[15px] text-muted transition-colors duration-150 hover:border-ink/30" onClick={onOpen} data-sm-add data-sm-add-open>
+        <Plus className="size-[18px] shrink-0" />
+        <span className="min-w-0 flex-1 truncate">{t.sm.main.addPhDesk}</span>
+        <kbd className="shrink-0 rounded-full border border-line-strong px-2 py-0.5 font-sans text-[12px] font-semibold text-muted">{mac ? "⌘V" : "Ctrl+V"}</kbd>
+      </button>
+    </div>
+  );
+}
+
+/** A4: "This list" — the estimate, the split by section (the aisle rail), what's left of the month. */
+function ThisList({ home, groups }: { home: SmHome | null; groups: readonly (readonly [string, ItemWithSources[]])[] }) {
+  const s = useStore();
+  const { t, locale } = useI18n();
+  const est = useEstimate(home);
+  const left = useMonthLeft(home);
+  const money = (n: number) => formatMoney(Math.round(n), s.currency, locale);
+  const month = new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { month: "long", timeZone: s.clock.tz }).format(new Date(s.clock.now));
+  const budget = left != null && home ? left + (home.monthSpent ?? 0) : null;
+  const usedPct = budget && budget > 0 && left != null ? Math.max(0, Math.min(1, left / budget)) : 0;
+  return (
+    <section className="gro-panel p-4" data-sm-this-list>
+      <span className="text-[13.5px] font-semibold text-muted">{t.sm.main.thisList}</span>
+      <b className="tabular mt-0.5 block text-[30px] font-extrabold leading-tight tracking-[-0.02em]" data-sm-this-est>
+        {est != null ? money(est) : "—"}
+      </b>
+      {groups.length > 0 && (
+        <div className="mt-3">
+          <Rail groups={groups} />
+        </div>
+      )}
+      {left != null && (
+        <>
+          <div className="mt-3 flex items-baseline justify-between gap-2 text-[13.5px]">
+            <span className="text-muted">{t.sm.main.leftIn.replace("{month}", month)}</span>
+            <b className={cn("tabular font-extrabold", left < 0 && "text-warn")}>{left < 0 ? `−${money(-left)}` : money(left)}</b>
+          </div>
+          <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-surface-3" aria-hidden>
+            <i className={cn("block h-full rounded-full", left < 0 ? "bg-warn" : "bg-ok")} style={{ width: `${Math.round((left < 0 ? 1 : usedPct) * 100)}%` }} />
+          </span>
+        </>
+      )}
+    </section>
+  );
+}
+
+/** R18 S5 A2: the one-time hint line (the first row peeks at the same time); marked seen once it has shown. */
+function SwipeHint() {
+  const { t } = useI18n();
+  useEffect(() => {
+    const id = setTimeout(() => void seenSwipeHint().catch(() => {}), 2600);
+    return () => clearTimeout(id);
+  }, []);
+  return (
+    <p className="gro-hint" data-sm-swipe-hint>
+      <span className="gro-kb">
+        <ArrowLeft className="size-3.5 rtl:-scale-x-100" />
+        {t.sm.row.hintDel}
+      </span>
+      <span className="gro-kb">
+        {t.sm.row.hintQty}
+        <ArrowRight className="size-3.5 rtl:-scale-x-100" />
+      </span>
+      <span>{t.sm.row.hintName}</span>
+    </p>
   );
 }
 
@@ -392,22 +527,33 @@ function Rail({ groups }: { groups: readonly (readonly [string, ItemWithSources[
 function AddField({ onOpen }: { onOpen: (mode: AddMode | "scan" | "photo") => void }) {
   const { t } = useI18n();
   const voice = useVoiceSupported();
+  const desk = useDevice() === "computer";
   const icon = "grid size-10 shrink-0 place-items-center rounded-full text-ink transition-transform duration-150 ease-[var(--ease-out)] active:scale-90 [&_svg]:size-[19px] [&_svg]:stroke-[1.8]";
+  // R18 S5 A1 (board List-phone): phones show voice + the camera (it opens on the barcode, Photo is one tab away);
+  // computers keep scan and photo apart.
   return (
-    <div className="flex h-14 items-center gap-1 rounded-[16px] border border-line-strong bg-surface pe-1.5 shadow-card" data-sm-add>
+    <div className="flex h-[52px] items-center gap-1 rounded-[16px] bg-surface pe-1.5 shadow-[inset_0_0_0_1px_var(--line),0_1px_2px_color-mix(in_srgb,var(--ink)_6%,transparent)]" data-sm-add>
       <button type="button" className="flex h-full min-w-0 flex-1 items-center gap-2.5 ps-3.5 text-start text-[16px] text-muted" onClick={() => onOpen("type")} data-sm-add-open>
         <Plus className="size-[18px] shrink-0" />
         <span className="truncate">{t.sm.main.addPh}</span>
       </button>
-      <button type="button" className={icon} aria-label={t.sm.main.scan} title={t.sm.main.scan} onClick={() => onOpen("scan")} data-sm-add-scan>
-        <ScanBarcode />
-      </button>
-      <button type="button" className={icon} aria-label={t.sm.main.photo} title={t.sm.main.photo} onClick={() => onOpen("photo")} data-sm-add-photo>
-        <Camera />
-      </button>
       {voice && (
         <button type="button" className={icon} aria-label={t.sm.main.voice} title={t.sm.main.voice} onClick={() => onOpen("voice")} data-sm-add-voice>
           <Mic />
+        </button>
+      )}
+      {desk ? (
+        <>
+          <button type="button" className={icon} aria-label={t.sm.main.scan} title={t.sm.main.scan} onClick={() => onOpen("scan")} data-sm-add-scan>
+            <ScanBarcode />
+          </button>
+          <button type="button" className={icon} aria-label={t.sm.main.photo} title={t.sm.main.photo} onClick={() => onOpen("photo")} data-sm-add-photo>
+            <Camera />
+          </button>
+        </>
+      ) : (
+        <button type="button" className={icon} aria-label={t.sm.main.camera} title={t.sm.main.camera} onClick={() => onOpen("scan")} data-sm-add-scan data-sm-add-camera>
+          <Camera />
         </button>
       )}
     </div>
@@ -580,35 +726,30 @@ function FirstTime({ basketSize, onBasket, onBuild, onPaste }: { basketSize: num
   );
 }
 
-function Section({ section, items, tiles, unitKg }: { section: string; items: ItemWithSources[]; tiles: boolean; unitKg?: Record<string, number> }) {
-  const { t, f, locale } = useI18n();
-  const [shut, setShut] = useState(false);
+/** R18 S5 A1: a section = a slim sticky band (colour dot, name, count) and its rows (or tiles) inside the list's card. */
+function Section({ section, items, tiles, unitKg, peek }: { section: string; items: ItemWithSources[]; tiles: boolean; unitKg?: Record<string, number>; peek?: boolean }) {
+  const { t, locale } = useI18n();
   const name = section === "other" ? t.sm.main.other : sectionName(section, locale);
   return (
-    <section className="gro-sec" style={{ "--k": sectionColor(section) } as React.CSSProperties} data-shut={shut ? "" : undefined} data-sm-section={section}>
-      <button type="button" className="gro-sec-h" onClick={() => setShut(!shut)} aria-expanded={!shut} aria-label={f(t.sm.main.sectionToggle, { section: name })}>
-        <SectionIcon section={section} size={26} />
+    <section className="gro-sec" style={{ "--k": sectionColor(section) } as React.CSSProperties} aria-label={name} data-sm-section={section}>
+      <div className="gro-band" data-sm-band>
+        <span className="gro-dot" aria-hidden />
         <span className="gro-nm">{name}</span>
         <span className="gro-n">{items.length}</span>
-        <ChevronDown className="gro-cv size-4" />
-      </button>
-      <div className="gro-sec-b">
-        <div>
-          {tiles ? (
-            <div className="gro-tiles">
-              {items.map((i) => (
-                <Tile key={i.id} item={i} unitKg={i.productKey ? unitKg?.[i.productKey] ?? null : null} />
-              ))}
-            </div>
-          ) : (
-            <div className="gro-box">
-              {items.map((i) => (
-                <Row key={i.id} item={i} unitKg={i.productKey ? unitKg?.[i.productKey] ?? null : null} />
-              ))}
-            </div>
-          )}
-        </div>
       </div>
+      {tiles ? (
+        <div className="gro-tiles">
+          {items.map((i) => (
+            <Tile key={i.id} item={i} unitKg={i.productKey ? unitKg?.[i.productKey] ?? null : null} />
+          ))}
+        </div>
+      ) : (
+        <div className="gro-box">
+          {items.map((i, k) => (
+            <Row key={i.id} item={i} unitKg={i.productKey ? unitKg?.[i.productKey] ?? null : null} peek={peek && k === 0} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

@@ -92,7 +92,7 @@ from step 1 is in):
 only as moves (same counts in − and +, plus the few new lines); no text lost (`rg` a few moved phrases in the archive).
 
 ## Part A — the list, v2 (boards `List-phone`, `List-desktop`)
-### A1 [ ] One list, compact rows
+### A1 [x] One list, compact rows
 One card for the whole list; sections are slim sticky bands inside it (colour dot, name, count; `position: sticky` —
 the card uses `overflow: clip`, not `hidden`). Row = 60 px: picture tile 44 (R18 art on the section tint), name 15.5
 bold, a second line only when there's a usual brand and/or a note ("Tnuva · Blue cap"), the quantity chip at the end
@@ -100,7 +100,7 @@ bold, a second line only when there's a usual brand and/or a note ("Tnuva · Blu
 colour of who added it (tooltip / label "Added by …"). Store row on top (chain badge, branch, chevron → change store),
 summary line (items · estimate · month left bar), the add field with voice + camera (S4). Worst case: long names and
 notes truncate on one line; the sheet shows them in full.
-### A2 [ ] Swipe both ways, with Undo
+### A2 [x] Swipe both ways, with Undo
 Horizontal drag on a row (8 px slop; a mostly vertical move is a scroll and never opens a row). Pulling the row
 **toward the start edge** reveals Delete at the end: release past 56 px → stays open with the red Delete button;
 past ~170 px or a fast fling → deletes (S4 D2 slide-out + collapse, Undo toast). Pulling **toward the end edge**
@@ -108,12 +108,12 @@ reveals the quantity stepper (− count +) at the start: past 56 px it stays ope
 merge rules. Rubber-band past the limits, one row open at a time, tapping elsewhere closes it, snap = 380 ms drawer
 ease. In Hebrew everything mirrors (the board does it with one sign flip). First time only (per user pref): the first
 row peeks once and a hint line names both directions. Smoke: drag both ways, fling, Undo.
-### A3 [ ] Rename inline, tile → item sheet
+### A3 [x] Rename inline, tile → item sheet
 Tap the name's letters (S4 D1) → an inline field in the row (16 px, Enter / blur saves, Esc cancels, empty = no
 change), then a short green pulse on the row. Tap the picture tile → the item sheet: big tile, name, section chip,
 usual brand chip (S4 F3), stepper with the weight line ("Weight follows the count"), note field, Done / Delete,
 "Don't suggest this again".
-### A4 [ ] Computer list
+### A4 [x] Computer list
 `List-desktop`: the list panel (add field accepts a pasted list) with hover / focus-within row actions (−, quantity,
 +, delete), click the name to rename; right column: this list's estimate + section split bar + month left, Nexus
 suggests (Add all), Templates (stacked pictures, Add). Undo toast centred at the bottom. Keyboard: every action
@@ -262,10 +262,15 @@ Tal" = a phone checklist (swipes, long-press on Home, the Ask button + its side 
 ### Progress
 - Step 0 + 0.3 on `main`: boards + planning patch (`R18.S5.0`), S4 note cherry-picked, `origin/docs/map` merged (logs: both sides kept), planning-docs diet (`R18.S5.0b`). Fresh read-only prod snapshot `snapshots/prod-2026-10-16.db`.
 - 0.1: guards.yml — paths-ignore (docs/**, **/*.md, .claude/**) on push + pull_request; four parallel jobs fast / server / browser / browser-clip (smoke.yml runs on deployment_status only — unchanged).
+- A1–A4: list v2 — one card with sticky section bands, 60 px rows (tile 44, brand · note line, "6 · ~1 kg" chip, who dot named "Added by …"), store row + summary line + add bar (voice + camera); swipes both ways (Delete at the end / stepper at the start, 56 px open, 170 px or fling deletes, Undo, rubber band, one row open, tap elsewhere closes, 380 ms), first-time peek + hint (`pref:sm-swipe-hint`); inline rename with a green pulse, sheet with section + brand chips and Done + round Delete (Undo); computer panel (store, count, paste a list anywhere, hover / focus actions, Delete key, centred Undo, "This list" card). Smoke: 4 new steps + C5 / D1+D2 / B3 / A2 steps updated, phone + desktop green.
 ### Decisions
 - 0.3: moves done exactly as listed. `docs/ENVIRONMENT.md` 12.3 KB (< 15 ✓); `docs/PLANNER.md` 35.7 KB — not < 30 KB: "Decisions that stand" alone is 19.4 KB and the brief lists no further moves, so nothing else was moved or rewritten. Diff: 401 lines out, 413 in (the archive headers + 3 "Older:" lines + the 3 bullets + 1 log line).
 - 0.1 step list: before 33 steps in one job (27 checks + checkout / setup-node / npm ci / build / playwright install / failure tail); after 46 steps in 4 jobs = the same 33 + per-job checkout / setup-node / npm ci (×3 more) + build / playwright install (×2 more). The sorted list of every non-setup step's name + run text is byte-identical before vs after (md5 593717a0…). Each job builds for itself: the build is ~58 s, about what an upload + download of `.next` costs, and it keeps the jobs independent. Wall time before: 55 min (run 38817428966, 2026-10-15); after: see the next line once the first split run finishes.
 - 0.2 refused: editing `.claude/settings.json` (and pruning `settings.local.json`) was denied by Claude Code's auto-mode classifier as self-modification, both via a script and via the Edit tool; not worked around. Left for Tal (For Tal).
+- A1–A4 went in as one commit: the four items share row.tsx / view.tsx / sm.css and could not be split cleanly.
+- A1 phone add bar = voice + one camera button (opens the scanner; Photo is the tab inside), as on the board; the computer keeps scan + photo apart. The phone's aisle rail moved to the computer's "This list" card (the board has none on the phone). Section bands no longer collapse (the board has no chevron).
+- A2 thresholds from the board's logic: open widths 92 (delete) / 168 (stepper), open past 56 px, delete past 170 px or a fling > 0.9 px/ms, rubber band from 360 / 200 px. `useSwipe` got optional `openAt / fullAt / flick / stop`; the inbox keeps its defaults. On a computer rows don't swipe (A4 hover actions instead), so the S3 C5 and S4 D1+D2 smoke steps are phone-only now.
+- A4: "₪38 under usual" chip on the board's "This list" card left out — the app has no per-trip "usual" total yet.
 ### For Tal
 - 0.2 needs you (the agent's permission edit was refused as self-modification): add to `.claude/settings.json` → `permissions.allow`: `Bash(npm run -s test:*)`, `Bash(npm run test:*)`, `Bash(git push origin round:*)`, `Bash(git push -u origin round:*)`, `Bash(git merge --ff-only round:*)`, `Bash(git merge --no-edit origin/main)`, `Bash(git fetch:*)`; then in `.claude/settings.local.json` delete the per-round `git push … roundN` / `git merge --ff-only roundN` lines and `git merge --no-edit origin/main` (keep `git push origin main`). Commit the settings.json change and 0.2 can be ticked.
 - `docs/PLANNER.md` is 35.7 KB after the listed moves (target < 30 KB): the planning chat could archive older items of "Decisions that stand" (19.4 KB) — your call which still stand.

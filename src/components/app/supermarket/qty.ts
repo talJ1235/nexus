@@ -13,6 +13,17 @@ export function unitWord(unit: string, locale: string) {
 
 const said = (i: Q, locale: string) => (i.unit && i.unit !== "u" && i.amount != null ? `${num(i.amount, locale)} ${unitWord(i.unit, locale)}` : null);
 
+/** R18 S5 A1: the list row's chip — "6 · ~1 kg" / "4 · ~600 g" (count + the weight it comes to), "1 kg", "×2". */
+export function rowChip(i: Q, locale: string, unitKg: number | null = null): { n: string; w: string | null } {
+  const m = measure(i, unitKg);
+  const weight = said(i, locale);
+  const approx = (kg: number) => (kg >= 1 ? `~${num(Math.round(kg * 10) / 10, locale)} ${unitWord("kg", locale)}` : `~${num(Math.max(50, Math.round((kg * 1000) / 50) * 50), locale)} ${unitWord("g", locale)}`);
+  if (i.count != null) return { n: String(i.count), w: weight ?? (m.kg != null ? approx(m.kg) : null) };
+  if (weight) return { n: weight, w: m.approx === "count" && m.count != null ? `~${m.count}` : null };
+  if (unitKg != null) return { n: String(i.quantity), w: approx(i.quantity * unitKg) };
+  return { n: `×${i.quantity}`, w: null };
+}
+
 /** `unitKg` = kg per piece for this product (null = unknown: nothing is estimated). */
 export function qtyLabel(i: Q, locale: string, unitKg: number | null = null) {
   const m = measure(i, unitKg);

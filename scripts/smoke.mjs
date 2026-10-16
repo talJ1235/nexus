@@ -1665,7 +1665,7 @@ try {
             sugH: Math.round(sug?.getBoundingClientRect().height ?? 0),
             boxes: document.querySelectorAll("[data-sm-list] .gro-box").length,
             boxBorder: getComputedStyle(document.querySelector("[data-sm-list] .gro-box") ?? document.body).borderTopWidth,
-            listBorder: getComputedStyle(list).borderTopWidth,
+            listCard: getComputedStyle(list).boxShadow !== "none" && parseFloat(getComputedStyle(list).borderTopLeftRadius) >= 20,
             rows,
           };
         });
@@ -1691,7 +1691,7 @@ try {
         await page.locator("[data-sm-more]").click();
         await page.locator('[data-sm-layout-pick="rows"]').click();
         await page.waitForTimeout(400);
-        ok(r.order && r.sug === "closed" && r.sugH <= 70 && r.listBorder === "1px" && r.boxBorder === "0px" && r.rows.every((h) => h >= 44 && h <= 56) && r.kept === "open" && r.tilesInView,
+        ok(r.order && r.sug === "closed" && r.sugH <= 70 && r.listCard && r.boxBorder === "0px" && r.rows.every((h) => h >= 44 && h <= 60) && r.kept === "open" && r.tilesInView,
           "supermarket list first (R18 S3 B3): suggestions collapsed + remembered, one surface, dense rows, tiles visible", JSON.stringify(r));
       });
 
@@ -2123,8 +2123,8 @@ try {
     // R18 S3 C5: row gestures on the list — toward the end deletes (button or full swipe) with a 5 s Undo (the same row
     // back) and no modal; toward the start a quick − count + that closes on a tap outside; a vertical drag
     // never swipes; the name renames inline, the picture opens the sheet; RTL mirrors; reduced motion opens without a slide.
-    if (WRITE)
-      await step("row gestures (R18 S3 C5): swipe delete + Undo, quick quantity, axis lock, rename, picture → sheet, RTL, reduced motion", async () => {
+    if (WRITE && MOBILE)
+      await step("row gestures (R18 S3 C5 → S5 A2): swipe delete + Undo, quick quantity, axis lock, rename, picture → sheet, RTL, reduced motion", async () => {
         const r = {};
         const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
         const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
@@ -2167,8 +2167,8 @@ try {
           await page.waitForTimeout(450);
         };
         const tx = (id) => page.locator(`[data-sm-row="${id}"]`).evaluate((e) => e.style.transform || "none");
-        // toward the end (LTR: right) → the bin, tap it → gone + Undo → back, and still there after the toast's 5 s
-        await drag(a, 70);
+        // S5 A2: toward the start (LTR: left) → Delete at the end, tap it → gone + Undo → back, still there after 5 s
+        await drag(a, -70);
         r.delOpen = await page.locator(`[data-sm-sw="${a}"] .gro-sw-del.on`).count();
         if (OUT) await page.screenshot({ path: join(OUT, `c5-delete${MOBILE ? "-m" : ""}.png`) });
         await page.locator(`[data-sm-sw="${a}"] [data-sm-swipe-delete]`).click();
@@ -2177,7 +2177,7 @@ try {
         await page.locator('[data-sonner-toast] button:has-text("Undo")').first().click();
         r.undone = await page.waitForSelector(`[data-sm-row="${a}"]`, { timeout: 3000 }).then(() => true, () => false);
         // a full swipe (a flick) → gone for good once the toast ends
-        await drag(b, 260, 0, true);
+        await drag(b, -260, 0, true);
         r.fullGone = await page.waitForSelector(`[data-sm-row="${b}"]`, { state: "detached", timeout: 3000 }).then(() => true, () => false);
         await page.waitForTimeout(5800);
         await page.reload();
@@ -2187,8 +2187,8 @@ try {
         // a mostly vertical drag never swipes
         await drag(a, 14, 90);
         r.axisLock = (await tx(a)) === "none";
-        // toward the start (LTR: left) → − count +; + changes the row; a tap outside closes
-        await drag(a, -90);
+        // toward the end (LTR: right) → − count + at the start; + changes the row; a tap outside closes
+        await drag(a, 90);
         r.qtyOpen = await page.locator(`[data-sm-quick="${a}"].on`).count();
         if (OUT) await page.screenshot({ path: join(OUT, `c5-qty${MOBILE ? "-m" : ""}.png`) });
         const n0 = Number(await page.locator(`[data-sm-quick="${a}"] [data-sm-quick-n]`).textContent());
@@ -2208,9 +2208,9 @@ try {
         r.sheet = await page.waitForSelector(`[data-sm-sheet="${a}"]`, { timeout: 8000 }).then(() => true, () => false);
         await page.keyboard.press("Escape");
         await page.waitForTimeout(400);
-        // RTL: the same "toward the end" is now to the left
+        // RTL: the same "toward the start" is now to the right
         await page.evaluate(() => (document.documentElement.dir = "rtl"));
-        await drag(a, -70);
+        await drag(a, 70);
         r.rtl = await page.locator(`[data-sm-sw="${a}"] .gro-sw-del.on`).count();
         await page.mouse.click(8, 8);
         await page.evaluate(() => (document.documentElement.dir = "ltr"));
@@ -2221,9 +2221,9 @@ try {
         const bb = await box(a);
         await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
         await page.mouse.down();
-        await page.mouse.move(bb.x + bb.width / 2 + 30, bb.y + bb.height / 2, { steps: 4 });
+        await page.mouse.move(bb.x + bb.width / 2 - 30, bb.y + bb.height / 2, { steps: 4 });
         r.reducedMid = await tx(a);
-        await page.mouse.move(bb.x + bb.width / 2 + 80, bb.y + bb.height / 2, { steps: 4 });
+        await page.mouse.move(bb.x + bb.width / 2 - 80, bb.y + bb.height / 2, { steps: 4 });
         await page.mouse.up();
         r.reducedOpen = await page.locator(`[data-sm-sw="${a}"] .gro-sw-del.on`).count();
         await page.emulateMedia({ reducedMotion: null });
@@ -2232,7 +2232,223 @@ try {
           throw new Error(`${String(e.message).split("\n")[0]} ${JSON.stringify(r)}`);
         }
         ok(r.delOpen === 1 && r.gone && r.noModal && r.undone && r.fullGone && r.kept && r.deleted && r.axisLock && r.qtyOpen === 1 && r.qty[1] === r.qty[0] + 1 && r.qtyClosed && r.renamed === "Swipe test oats 1kg" && r.sheet && r.rtl === 1 && r.reducedMid === "none" && r.reducedOpen === 1,
-          "row gestures (R18 S3 C5): swipe delete + Undo, quick quantity, axis lock, rename, picture → sheet, RTL, reduced motion", JSON.stringify(r));
+          "row gestures (R18 S3 C5 → S5 A2): swipe delete + Undo, quick quantity, axis lock, rename, picture → sheet, RTL, reduced motion", JSON.stringify(r));
+      });
+
+    // R18 S5 A1: one card for the whole list — sticky section bands (dot, name, count) inside it, 60 px rows (56 on a
+    // computer) with the tile, the name on one line, the chip and (shared) who added it; long names cut on one line.
+    await step("list v2 (R18 S5 A1): one card, sticky bands, compact rows, chip, names on one line", async () => {
+      await page.goto(`${BASE}/supermarket`);
+      await page.waitForSelector("[data-sm-view] [data-sm-row], [data-sm-view] [data-sm-first]", { timeout: 15000 });
+      if (await page.locator("[data-sm-list] .gro-tile").count()) {
+        await page.locator("[data-sm-more]").click();
+        await page.locator('[data-sm-layout-pick="rows"]').click();
+        await page.waitForTimeout(500);
+      }
+      const r = await page.evaluate(() => {
+        const list = document.querySelector("[data-sm-list]");
+        const bands = [...document.querySelectorAll("[data-sm-list] [data-sm-band]")];
+        const rows = [...document.querySelectorAll("[data-sm-list] [data-sm-row]")];
+        const names = [...document.querySelectorAll("[data-sm-list] [data-sm-row-name]")];
+        return {
+          cards: document.querySelectorAll("[data-sm-list]").length,
+          clip: list ? getComputedStyle(list).overflow : "",
+          sections: document.querySelectorAll("[data-sm-list] [data-sm-section]").length,
+          bands: bands.length,
+          sticky: bands.every((b) => getComputedStyle(b).position === "sticky"),
+          bandH: Math.round(bands[0]?.getBoundingClientRect().height ?? 0),
+          rows: rows.length,
+          heights: [...new Set(rows.slice(0, 12).map((e) => Math.round(e.getBoundingClientRect().height)))],
+          tile: Math.round(document.querySelector("[data-sm-list] [data-sm-row-tile]")?.getBoundingClientRect().width ?? 0),
+          oneLine: names.every((n) => n.getBoundingClientRect().height < 30),
+          chips: rows.slice(0, 12).every((e) => /^(×\d+|\d|[\d.,]+\s?\S+)/.test(e.querySelector("[data-sm-row-qty]")?.textContent?.trim() ?? "")),
+          tooWide: document.documentElement.scrollWidth > window.innerWidth + 1,
+        };
+      });
+      await shot(page, "s5-list");
+      // Scrolled: the band of the section under the top stays pinned.
+      if (r.rows > 8) {
+        await page.evaluate(() => window.scrollBy(0, 360));
+        await page.waitForTimeout(300);
+        r.pinned = await page.evaluate(() => [...document.querySelectorAll("[data-sm-list] [data-sm-band]")].some((b) => { const t = b.getBoundingClientRect().top; const sec = b.parentElement.getBoundingClientRect(); return sec.top < t - 1 && t >= 0; }));
+        await page.evaluate(() => window.scrollTo(0, 0));
+      } else r.pinned = true;
+      const rowH = MOBILE ? 60 : 56;
+      ok(r.cards === 1 && r.clip === "clip" && r.bands === r.sections && r.sticky && r.bandH === 34 && r.rows > 0 && r.heights.every((h) => h === rowH) && r.tile === 44 && r.oneLine && r.chips && !r.tooWide && r.pinned,
+        "list v2 (R18 S5 A1): one card, sticky bands, compact rows, chip, names on one line", JSON.stringify(r));
+    });
+
+    // R18 S5 A2: the first time (per person) the first row peeks and a line names both swipes — once; one row open at a
+    // time; past the limit the row rubber-bands; a fling toward the start deletes, Undo puts it back.
+    if (WRITE && MOBILE)
+      await step("list swipes (R18 S5 A2): hint + peek once, one row open at a time, rubber band, fling deletes, Undo", async () => {
+        const r = {};
+        if (/localhost|127\.0\.0\.1/.test(BASE)) {
+          const { createClient } = await import("@libsql/client");
+          const db = createClient({ url: `file:${process.env.SMOKE_DB || "smoke.db"}` });
+          await db.execute({ sql: "DELETE FROM user_pref WHERE key = ?", args: ["pref:sm-swipe-hint"] });
+          db.close();
+        }
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-list] [data-sm-row]", { timeout: 15000 });
+        await page.waitForTimeout(400);
+        r.hint = await page.locator("[data-sm-swipe-hint]").count();
+        r.peek = await page.locator("[data-sm-list] .gro-peek").count();
+        await shot(page, "s5-swipe-hint");
+        await page.waitForTimeout(3200);
+        await page.reload();
+        await page.waitForSelector("[data-sm-list] [data-sm-row]", { timeout: 15000 });
+        await page.waitForTimeout(1500);
+        r.hintAgain = await page.locator("[data-sm-swipe-hint]").count();
+        const ids = await page.locator("[data-sm-list] [data-sm-row]").evaluateAll((els) => els.slice(1, 3).map((e) => e.getAttribute("data-sm-row")));
+        const drag = async (id, dx, { hold = true, release = true, steps = 14 } = {}) => {
+          const el = page.locator(`[data-sm-row="${id}"]`);
+          await el.evaluate((e) => e.scrollIntoView({ block: "center" }));
+          const bb = await el.boundingBox();
+          const x0 = bb.x + bb.width / 2, y0 = bb.y + bb.height / 2;
+          await page.mouse.move(x0, y0);
+          await page.mouse.down();
+          for (let k = 1; k <= steps; k++) {
+            await page.mouse.move(x0 + (dx * k) / steps, y0);
+            if (hold) await page.waitForTimeout(25);
+          }
+          if (hold) await page.waitForTimeout(150);
+          if (release) {
+            await page.mouse.up();
+            await page.waitForTimeout(500);
+          }
+        };
+        const xOf = (id) => page.locator(`[data-sm-row="${id}"]`).evaluate((e) => (getComputedStyle(e).transform === "none" ? 0 : Math.round(new DOMMatrixReadOnly(getComputedStyle(e).transform).m41)));
+        // Opened past 56 px: stays open at its width.
+        await drag(ids[0], -70);
+        r.open1 = [await page.locator(`[data-sm-row="${ids[0]}"]`).getAttribute("data-open"), await xOf(ids[0])];
+        // Another row opens → the first closes.
+        await drag(ids[1], 80);
+        r.open2 = [await page.locator(`[data-sm-row="${ids[1]}"]`).getAttribute("data-open"), await xOf(ids[1])];
+        r.firstClosed = (await xOf(ids[0])) === 0;
+        await page.mouse.click(8, 120);
+        await page.waitForTimeout(500);
+        r.tapClosed = (await xOf(ids[1])) === 0;
+        // A short pull (< 56 px) snaps back.
+        await drag(ids[1], -40);
+        r.short = await xOf(ids[1]);
+        // Rubber band: 400 px toward the end stops well short (limit 200, then a quarter-ish).
+        await drag(ids[1], 400, { release: false });
+        r.band = await xOf(ids[1]);
+        await page.mouse.up();
+        await page.waitForTimeout(500);
+        await page.mouse.click(8, 120);
+        await page.waitForTimeout(450);
+        // A fling toward the start deletes; Undo puts the same row back.
+        await drag(ids[1], -150, { hold: false, steps: 3 });
+        r.flung = await page.waitForSelector(`[data-sm-row="${ids[1]}"]`, { state: "detached", timeout: 3000 }).then(() => true, () => false);
+        await page.locator("[data-sonner-toast] button", { hasText: /Undo|ביטול/ }).first().click();
+        r.back = await page.waitForSelector(`[data-sm-row="${ids[1]}"]`, { timeout: 5000 }).then(() => true, () => false);
+        ok(r.hint === 1 && r.peek === 1 && r.hintAgain === 0 && r.open1[0] === "delete" && Math.abs(r.open1[1]) === 92 && r.open2[0] === "qty" && Math.abs(r.open2[1]) === 168 && r.firstClosed && r.tapClosed && r.short === 0 && r.band > 200 && r.band < 300 && r.flung && r.back,
+          "list swipes (R18 S5 A2): hint + peek once, one row open at a time, rubber band, fling deletes, Undo", JSON.stringify(r));
+      });
+
+    // R18 S5 A3: the name's letters rename inline (16 px field, Enter saves, Esc cancels, empty = no change) and the row
+    // pulses green; the tile opens the sheet — big tile, section + brand chips, steppers, note, Done + Delete.
+    if (WRITE)
+      await step("rename inline + item sheet (R18 S5 A3): 16 px field, Esc / empty keep, pulse; sheet chips, Done + round Delete", async () => {
+        const r = {};
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        for (const id of await page.locator('[data-sm-row]:has(.gro-t:text-matches("^S5 rename"))').evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row"))).catch(() => [])) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "S5 rename oats" }]);
+        await page.goto(`${BASE}/supermarket`);
+        const row = page.locator('[data-sm-row]:has(.gro-t:text-is("S5 rename oats"))').first();
+        await row.waitFor({ timeout: 15000 });
+        const id = await row.getAttribute("data-sm-row");
+        const at = () => page.locator(`[data-sm-row="${id}"]`);
+        await at().evaluate((e) => e.scrollIntoView({ block: "center" }));
+        await at().locator("[data-sm-row-name]").click();
+        r.font = await page.locator("[data-sm-rename]").evaluate((e) => getComputedStyle(e).fontSize);
+        await page.locator("[data-sm-rename]").fill("Something else");
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(300);
+        r.esc = (await at().locator(".gro-t").textContent()).trim();
+        await at().locator("[data-sm-row-name]").click();
+        await page.locator("[data-sm-rename]").fill("   ");
+        await page.keyboard.press("Enter");
+        await page.waitForTimeout(300);
+        r.empty = (await at().locator(".gro-t").textContent()).trim();
+        await at().locator("[data-sm-row-name]").click();
+        await page.locator("[data-sm-rename]").fill("S5 rename oats 1kg");
+        await page.keyboard.press("Enter");
+        r.pulse = await page.waitForSelector(`[data-sm-row="${id}"].gro-pulse`, { timeout: 3000 }).then(() => true, () => false);
+        await page.waitForTimeout(400);
+        r.renamed = (await at().locator(".gro-t").textContent()).trim();
+        await at().locator("[data-sm-row-tile]").click();
+        await page.waitForSelector(`[data-sm-sheet="${id}"]`, { timeout: 8000 });
+        await page.waitForTimeout(500);
+        r.sheet = await page.evaluate(() => ({
+          section: !!document.querySelector("[data-sheet-section]"),
+          steppers: !!document.querySelector("[data-qty-steppers]"),
+          note: !!document.querySelector("[data-sheet-note]"),
+          done: !!document.querySelector("[data-sheet-done]"),
+          del: Math.round(document.querySelector("[data-sheet-remove]")?.getBoundingClientRect().width ?? 0),
+          dont: !!document.querySelector("[data-sheet-hide]"),
+        }));
+        await shot(page, "s5-sheet");
+        await page.locator("[data-sheet-remove]").click();
+        r.gone = await page.waitForSelector(`[data-sm-row="${id}"]`, { state: "detached", timeout: 3000 }).then(() => true, () => false);
+        r.undo = await page.locator("[data-sonner-toast] button", { hasText: /Undo|ביטול/ }).count();
+        ok(r.font === "16px" && r.esc === "S5 rename oats" && r.empty === "S5 rename oats" && r.pulse && r.renamed === "S5 rename oats 1kg" && r.sheet.section && r.sheet.steppers && r.sheet.note && r.sheet.done && r.sheet.del === 48 && r.sheet.dont && r.gone && r.undo >= 1,
+          "rename inline + item sheet (R18 S5 A3): 16 px field, Esc / empty keep, pulse; sheet chips, Done + round Delete", JSON.stringify(r));
+      });
+
+    // R18 S5 A4: the computer's list — hover / keyboard focus shows −, + and delete on a row; Tab reaches them; Delete on
+    // a focused row deletes with Undo centred at the bottom; a pasted list opens the paste review; "This list" card.
+    if (WRITE && !MOBILE)
+      await step("computer list (R18 S5 A4): hover actions, Tab + Delete key with centred Undo, paste a list, This list card", async () => {
+        const r = {};
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "S5 desk rice" }]);
+        await page.goto(`${BASE}/supermarket`);
+        const row = page.locator('[data-sm-row]:has(.gro-t:text-is("S5 desk rice"))').first();
+        await row.waitFor({ timeout: 15000 });
+        const id = await row.getAttribute("data-sm-row");
+        await row.evaluate((e) => e.scrollIntoView({ block: "center" }));
+        const vis = () => page.locator(`[data-sm-sw="${id}"] [data-sm-desk-more]`).evaluate((e) => getComputedStyle(e).opacity);
+        r.rest = await vis();
+        await row.hover();
+        await page.waitForTimeout(250);
+        r.hover = await vis();
+        await page.locator(`[data-sm-sw="${id}"] [data-sm-desk-more]`).click();
+        await page.waitForTimeout(400);
+        r.chip = (await page.locator(`[data-sm-row="${id}"] [data-sm-row-qty]`).textContent()).trim();
+        await page.mouse.move(5, 5);
+        await page.locator(`[data-sm-sw="${id}"]`).focus();
+        await page.waitForTimeout(200);
+        r.focus = await vis();
+        await page.keyboard.press("Tab");
+        r.tabInside = await page.evaluate((i) => !!document.activeElement?.closest(`[data-sm-sw="${i}"]`), id);
+        await page.locator(`[data-sm-sw="${id}"]`).focus();
+        await page.keyboard.press("Delete");
+        r.gone = await page.waitForSelector(`[data-sm-row="${id}"]`, { state: "detached", timeout: 3000 }).then(() => true, () => false);
+        const toast = page.locator("[data-sonner-toast]", { hasText: "S5 desk rice" }).first();
+        await toast.waitFor({ timeout: 3000 });
+        const tb = await toast.boundingBox();
+        const vw = page.viewportSize().width;
+        r.centred = Math.abs(tb.x + tb.width / 2 - vw / 2) < 40;
+        await toast.locator("button", { hasText: /Undo|ביטול/ }).click();
+        r.back = await page.waitForSelector(`[data-sm-row="${id}"]`, { timeout: 5000 }).then(() => true, () => false);
+        r.thisList = await page.locator("[data-sm-this-list] [data-sm-this-est]").count();
+        await page.evaluate(() => {
+          const dt = new DataTransfer();
+          dt.setData("text/plain", "milk\nbread\n2 tomatoes");
+          window.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true }));
+        });
+        r.paste = await page.waitForSelector("[data-add-paste], [data-paste-row], [data-add-split]", { timeout: 5000 }).then(() => true, () => false);
+        await shot(page, "s5-desk-paste");
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(400);
+        await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        ok(r.rest === "0" && r.hover === "1" && /2/.test(r.chip) && r.focus === "1" && r.tabInside && r.gone && r.centred && r.back && r.thisList === 1 && r.paste,
+          "computer list (R18 S5 A4): hover actions, Tab + Delete key with centred Undo, paste a list, This list card", JSON.stringify(r));
       });
 
     // R18 S3 C6: three barcode adds of Tnuva milk → the item sheet says "Usually: Tnuva 3% · 3 of 3 times"; What Nexus
@@ -2700,7 +2916,7 @@ try {
     // R18 S4 D1 + D2: a tap on a row's empty part doesn't rename (only the name's letters do); a fast fling deletes with
     // no jump — the row slides out, its height closes, the next row glides up (sampled every frame; or stays put where
     // the browser's scroll anchoring holds it) — and Undo opens it again in its place.
-    if (WRITE)
+    if (WRITE && MOBILE)
       await step("row name + fling delete (R18 S4 D1+D2): empty part no rename, letters rename; slide, close, glide; Undo in place", async () => {
         const r = {};
         const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
@@ -2756,7 +2972,7 @@ try {
         const y0 = ba.y + ba.height / 2;
         await page.mouse.move(x0, y0);
         await page.mouse.down();
-        await page.mouse.move(x0 + (rtl ? -1 : 1) * 160, y0, { steps: 4 });
+        await page.mouse.move(x0 + (rtl ? 1 : -1) * 160, y0, { steps: 4 });
         await page.mouse.up();
         await page.waitForTimeout(1300);
         const tops = await page.evaluate(() => window.__tops);
@@ -2947,7 +3163,7 @@ try {
         rows: document.querySelectorAll("[data-sm-list] [data-sm-row]").length,
         colours: new Set([...document.querySelectorAll("[data-sm-section]")].map((e) => getComputedStyle(e).getPropertyValue("--k").trim())).size,
         store: document.querySelector("[data-sm-store]")?.textContent ?? "",
-        estimate: document.querySelector("[data-sm-estimate] b")?.textContent ?? "",
+        estimate: document.querySelector("[data-sm-estimate]")?.textContent ?? "",
         sug: [...document.querySelectorAll("[data-sm-sug]")].map((e) => e.getAttribute("data-sm-sug")),
         rail: document.querySelectorAll("[data-sm-rail] > i").length,
       }));
@@ -2981,8 +3197,8 @@ try {
       const order = ["produce", "meat", "deli", "dry", "cans", "spice", "bfast", "snack", "drink", "clean", "toil", "baby", "pets", "bread", "dairy", "frozen", "other"];
       const inOrder = r.sections.every((k, i) => i === 0 || order.indexOf(r.sections[i - 1]) < order.indexOf(k));
       ok(
-        r.url === "supermarket" && r.rows >= 23 && r.sections.length >= 12 && inOrder && r.colours === r.sections.length && /Shufersal|שופרסל/.test(r.store) && /≈/.test(r.estimate) &&
-          (r.rows > 23 || (r.sug.some((k) => k.startsWith("eggs")) && r.sug.some((k) => k.startsWith("toilet-paper")) && r.sug.includes("parmesan"))) && r.sug.length > 0 && r.rail === r.sections.length && r.afterAccept >= r.rows + 2 && r.kept === "tiles",
+        r.url === "supermarket" && r.rows >= 23 && r.sections.length >= 12 && inOrder && r.colours === r.sections.length && /Shufersal|שופרסל/.test(r.store) && /about|בערך/.test(r.estimate) &&
+          (r.rows > 23 || (r.sug.some((k) => k.startsWith("eggs")) && r.sug.some((k) => k.startsWith("toilet-paper")) && r.sug.includes("parmesan"))) && r.sug.length > 0 && r.rail === (MOBILE ? 0 : r.sections.length) && r.afterAccept >= r.rows + 2 && r.kept === "tiles",
         "supermarket tab (R18 A2): sections, store + estimate, suggestions, add, accept, rows/tiles kept",
         JSON.stringify({ ...r, inOrder }),
       );

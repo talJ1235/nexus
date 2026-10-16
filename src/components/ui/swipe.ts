@@ -8,8 +8,10 @@ import { useRef, useState } from "react";
 // the physical direction. A side opens to its width (revealing the buttons underneath on the other side); a side with
 // `full` commits on a long swipe or a flick. Reduced motion: no follow — past the threshold the side just opens.
 
-/** `full(velocity)` — a full swipe commits; px/ms toward the side, so the exit can keep the finger's speed (R18 S4 D2). */
-export type SwipeSide = { width: number; full?: (velocity: number) => void };
+/** `full(velocity)` — a full swipe commits; px/ms toward the side, so the exit can keep the finger's speed (R18 S4 D2).
+ *  R18 S5 A2 (optional; defaults = the inbox's feel): `openAt` — released past it the side stays open (default width / 2);
+ *  `fullAt` / `flick` — the distance / px-per-ms that commit `full` (200 / 0.6); `stop` — where the rubber band starts. */
+export type SwipeSide = { width: number; full?: (velocity: number) => void; openAt?: number; fullAt?: number; flick?: number; stop?: number };
 
 const reducedMotion = () => typeof window !== "undefined" && (window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.getAttribute("data-motion") === "reduce");
 
@@ -59,7 +61,7 @@ export function useSwipe({ start, end, disabled }: { start?: SwipeSide; end?: Sw
       const a = Math.abs(v);
       if (!s) v *= 0.25;
       else {
-        const stop = s.full ? 240 : s.width;
+        const stop = s.stop ?? (s.full ? 240 : s.width);
         if (a > stop) v = Math.sign(v) * (stop + (a - stop) * 0.3);
       }
       setDrag(true);
@@ -83,8 +85,8 @@ export function useSwipe({ start, end, disabled }: { start?: SwipeSide; end?: Sw
       if (!s) return setX(0);
       const dir = Math.sign(x);
       const toward = vel * dir; // + = flicked further toward the open side
-      if (s.full && (Math.abs(x) > 200 || (toward > 0.6 && Math.abs(x) > 40))) return s.full(Math.max(0, toward));
-      setX(Math.abs(x) > s.width / 2 || toward > 0.3 ? dir * s.width : 0);
+      if (s.full && (Math.abs(x) > (s.fullAt ?? 200) || (toward > (s.flick ?? 0.6) && Math.abs(x) > 40))) return s.full(Math.max(0, toward));
+      setX(Math.abs(x) > (s.openAt ?? s.width / 2) || (s.openAt == null && toward > 0.3) ? dir * s.width : 0);
     },
     onPointerCancel: () => {
       d.current = null;

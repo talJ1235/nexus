@@ -2,12 +2,12 @@
 
 import "./sm.css";
 import { useEffect, useRef, useState } from "react";
-import { Ban, Camera, CalendarDays, Clock, Link2, MapPin, Plus, Sparkles, X } from "lucide-react";
+import { Ban, Camera, CalendarDays, Clock, Link2, MapPin, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Sheet } from "@/components/ui/overlays";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "@/components/ui/overlays";
 import { Spinner } from "@/components/ui/spinner";
-import { acceptSuggestions, dismissSuggestion, hideProduct, removeSmItem, smItemDetail, unhideProduct, updateSmItem } from "@/app/supermarket-actions";
+import { acceptSuggestions, dismissSuggestion, hideProduct, removeSmItem, restoreSmItem, smItemDetail, unhideProduct, updateSmItem } from "@/app/supermarket-actions";
 import { setItemPicture } from "@/app/picture-actions";
 import { SECTION_KEYS, sectionName } from "@/lib/grocery/sections";
 import type { Knowledge } from "@/lib/grocery/staples";
@@ -109,7 +109,16 @@ function Body({ item, onClose }: { item: ItemWithSources; onClose: () => void })
                 data-sheet-title
               />
             )}
-            <SectionPicker value={item.section ?? "other"} disabled={ro} onPick={(k) => void save({ section: k }, { section: k })} />
+            {/* R18 S5 A3: the section chip and the brand to buy (the usual one from history, S4 F3) side by side. */}
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <SectionPicker value={item.section ?? "other"} disabled={ro} onPick={(k) => void save({ section: k }, { section: k })} />
+              {(item.preferBrand || detail?.brand) && (
+                <span className="mt-1.5 inline-flex h-9 max-w-full items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--spark)_12%,var(--surface))] px-3 text-[13px] font-semibold" data-sheet-brand-chip>
+                  <span className="text-muted">{t.sm.sheet.usualShort}</span>
+                  <b className="bidi truncate font-bold">{item.preferBrand ?? detail?.brand?.brand}</b>
+                </span>
+              )}
+            </div>
           </div>
         </div>
         {ro && <p className="mt-3 rounded-[12px] bg-surface-2 px-3 py-2 text-[13px] text-muted" data-sheet-viewer>{t.sm.sheet.viewOnly}</p>}
@@ -185,16 +194,25 @@ function Body({ item, onClose }: { item: ItemWithSources; onClose: () => void })
         <History detail={detail} />
       </div>
       {!ro && (
-        <div className="flex gap-2.5 border-t border-line px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3">
+        // R18 S5 A3 (board List-phone sheet): Done wide, Delete a round button beside it (5 s to Undo, like a swipe).
+        <div className="flex items-center gap-2.5 border-t border-line px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3">
+          <button type="button" className="h-12 flex-1 rounded-full bg-ink text-[15px] font-bold text-bg transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97]" onClick={onClose} data-sheet-done>
+            {t.sm.sheet.done}
+          </button>
           <button
             type="button"
-            className="h-12 flex-1 rounded-[14px] border border-line-strong text-[15px] font-bold text-danger"
+            className="grid size-12 shrink-0 place-items-center rounded-full border border-line-strong text-danger transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.94]"
+            aria-label={t.sm.sheet.remove}
+            title={t.sm.sheet.remove}
             onClick={async () => {
               onClose();
               s.removeSm(item.id);
               try {
                 await removeSmItem(item.id);
-                toast(f(t.sm.sheet.removed, { title: item.title }));
+                toast(f(t.sm.sheet.removed, { title: item.title }), {
+                  duration: 5000,
+                  action: { label: t.sm.add.undo, onClick: () => void restoreSmItem(item.id).then((r) => r && s.upsertSm([asItem(r)]), () => toast.error(t.sm.sheet.failed)) },
+                });
               } catch {
                 s.upsertSm([item]);
                 toast.error(t.sm.sheet.failed);
@@ -202,10 +220,7 @@ function Body({ item, onClose }: { item: ItemWithSources; onClose: () => void })
             }}
             data-sheet-remove
           >
-            {t.sm.sheet.remove}
-          </button>
-          <button type="button" className="h-12 flex-[2] rounded-[14px] bg-ink text-[15px] font-bold text-bg" onClick={onClose} data-sheet-done>
-            {t.sm.sheet.done}
+            <Trash2 className="size-5" />
           </button>
         </div>
       )}

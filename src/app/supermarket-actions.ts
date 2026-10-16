@@ -151,10 +151,17 @@ export async function supermarketHome(locale?: "he" | "en") {
   const ctx = await requireCtx("view");
   const { tz } = await notifyPrefs(ctx.user.id);
   const who = await whoOf(ctx.user.id);
-  const [state, layout, offer] = await Promise.all([G.homeState(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who }), userPrefGet(ctx.user.id, SM_LAYOUT_KEY), G.routineOffer(scoped(ctx))]);
+  const [state, layout, offer, hint] = await Promise.all([G.homeState(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who }), userPrefGet(ctx.user.id, SM_LAYOUT_KEY), G.routineOffer(scoped(ctx)), userPrefGet(ctx.user.id, SM_SWIPE_HINT_KEY)]);
   // E1: the routine Nexus spotted (kept / turned down ones don't come back).
   const routine = offer ? { id: offer.id, day: offer.routineDay ?? 0, trips: offer.routineTrips ?? 0, items: offer.items.length } : null;
-  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const), routine };
+  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const), routine, swipeHint: hint !== "seen" };
+}
+
+/** R18 S5 A2: the list's swipe hint (first row peeks + a line naming both directions) shows once per person. */
+const SM_SWIPE_HINT_KEY = "pref:sm-swipe-hint";
+export async function seenSwipeHint() {
+  const ctx = await requireCtx("view");
+  await userPrefSet(ctx.user.id, SM_SWIPE_HINT_KEY, "seen");
 }
 
 /** Rows or tiles — remembered per person (the list's ⋯ menu, never in Settings). */

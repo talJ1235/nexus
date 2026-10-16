@@ -77,12 +77,13 @@
 .gro-sw > .gro-row { position: relative; z-index: 1; background: color-mix(in srgb, var(--k) 4%, var(--surface)); touch-action: pan-y; }
 .dark .gro-sw > .gro-row { background: color-mix(in srgb, var(--k) 7%, var(--surface)); }
 .gro-one .gro-sw > .gro-row { background: var(--surface); }
-.gro-sw > .gro-row.gro-settle { transition: transform 360ms var(--ease-drawer), background-color 150ms ease; }
+.gro-sw > .gro-row.gro-settle { transition: transform 380ms var(--ease-drawer), background-color 150ms ease; }
 .gro-sw-del, .gro-sw-qty { position: absolute; inset: 0; display: flex; align-items: center; visibility: hidden; }
 .gro-sw-del.on, .gro-sw-qty.on { visibility: visible; }
-.gro-sw-del { justify-content: flex-start; background: var(--danger); color: #fff; }
-.gro-sw-del button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 92px; height: 100%; font-size: 12.5px; font-weight: 700; }
-.gro-sw-qty { justify-content: flex-end; gap: 6px; padding-inline-end: 10px; background: var(--surface-2); }
+/* R18 S5 A2: Delete sits at the end (the row is pulled toward the start), the − count + stepper at the start. */
+.gro-sw-del { justify-content: flex-end; background: var(--danger); color: #fff; }
+.gro-sw-del button { display: flex; align-items: center; justify-content: center; gap: 6px; width: 92px; height: 100%; font-size: 13.5px; font-weight: 750; }
+.gro-sw-qty { justify-content: flex-start; gap: 6px; padding-inline-start: 12px; background: color-mix(in srgb, var(--info) 14%, var(--surface)); color: var(--info); }
 @media (prefers-reduced-motion: reduce) { .gro-sw > .gro-row.gro-settle { transition: none; } }
 :root[data-motion="reduce"] .gro-sw > .gro-row.gro-settle { transition: none; }
 .gro-row:active { transform: scale(0.985); background: color-mix(in srgb, var(--k) 7%, transparent); }
@@ -105,19 +106,71 @@
 }
 .gro-who { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-/* R18 S3 B3: the Supermarket tab's list reads as one list — one surface, section headers inside it (a hairline between
-   sections), no card per section; rows denser (52 px, still ≥ 44 px to tap). `overflow: clip` (not hidden) keeps the
-   section headers sticky. */
-.gro-one { border-radius: 18px; border: 1px solid var(--line-strong); background: var(--surface); overflow: clip; box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 5%, transparent); }
-.dark .gro-one { border-color: var(--line); box-shadow: none; }
-.gro-one .gro-sec + .gro-sec { border-top: 1px solid var(--line-in); }
-.gro-one .gro-sec-h { min-height: 44px; padding: 6px 12px 2px; background: var(--surface); }
+/* R18 S5 A1 (board List-phone, nx-s5.css `.listcard` / `.lsec` / `.lrow` / `.face`): one card for the whole list; the
+   sections are slim sticky bands inside it (dot, name, count) — `overflow: clip` (not hidden) keeps them sticky. A row is
+   60 px: tile 44 · name 15.5 bold (+ brand · note) · the quantity chip · who added it. */
+.gro-one { border-radius: 22px; background: var(--surface); overflow: clip; box-shadow: inset 0 0 0 1px var(--line), 0 1px 3px color-mix(in srgb, var(--ink) 8%, transparent), 0 4px 12px -2px color-mix(in srgb, var(--ink) 6%, transparent); }
+.dark .gro-one { box-shadow: inset 0 0 0 1px var(--line-strong); }
+.gro-band {
+  position: sticky; top: var(--app-header-h, 0px); z-index: 2;
+  display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 16px;
+  background: color-mix(in srgb, var(--k) 7%, var(--surface));
+  border-top: 1px solid color-mix(in srgb, var(--k) 18%, var(--line-in));
+}
+.gro-one > .gro-sec:first-child .gro-band { border-top: 0; }
+.gro-band > .gro-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--k); flex-shrink: 0; }
+.gro-band > .gro-nm { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 750; letter-spacing: 0.01em; color: color-mix(in srgb, var(--k) 62%, var(--ink)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dark .gro-band > .gro-nm { color: color-mix(in srgb, var(--k) 55%, #fff); }
+.gro-band > .gro-n { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
 .gro-one .gro-box { margin-top: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-.gro-one .gro-row { min-height: 52px; padding: 6px 12px; gap: 10px; }
-.gro-one .gro-row .gro-t { font-size: 15.5px; }
-.gro-one .gro-row .gro-s { font-size: 12.5px; }
-.gro-one .gro-row:first-child, .gro-one .gro-sw:first-child > .gro-row { border-top: 1px solid color-mix(in srgb, var(--k) 14%, var(--line-in)); }
-.gro-one .gro-tiles { margin-top: 0; padding: 4px 10px 10px; }
+.gro-one .gro-sw { height: 60px; }
+.gro-one .gro-sw > .gro-row { height: 60px; min-height: 0; padding-block: 0; padding-inline: 12px 10px; gap: 12px; border-top: 0; background: var(--surface); }
+.gro-one .gro-sw + .gro-sw > .gro-row::before { content: ""; position: absolute; top: 0; inset-inline: 68px 0; height: 1px; background: var(--line-in); }
+.gro-one .gro-row:active { transform: none; background: var(--surface); }
+.gro-one .gro-row .gro-t {
+  display: block; width: fit-content; max-width: 100%; margin: -2px -4px; padding: 2px 4px; border-radius: 6px;
+  font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; text-align: start;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gro-one .gro-row .gro-t:active { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.gro-one .gro-row .gro-s { display: block; margin-top: 1px; font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gro-one .gro-row .gro-br { color: color-mix(in srgb, var(--k) 70%, var(--ink)); font-weight: 650; }
+.gro-one .gro-row .gro-q { height: 26px; min-width: 0; padding: 0 9px; border: 0; border-radius: 999px; background: var(--surface-2); display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 750; }
+.gro-one .gro-row .gro-q i { font-style: normal; color: var(--muted); font-weight: 600; }
+.gro-one .gro-tile-btn { transition: transform 160ms var(--ease-out); }
+.gro-one .gro-tile-btn:active { transform: scale(0.94); }
+.gro-ren {
+  flex: 1; min-width: 0; height: 36px; border-radius: 10px; padding: 0 10px; font-size: 16px; font-weight: 700;
+  background: var(--surface-2); box-shadow: inset 0 0 0 2px var(--ink); outline: 0;
+}
+/* A3: a renamed row pulses green once. */
+.gro-one .gro-sw > .gro-row.gro-pulse { animation: gro-pulse 900ms var(--ease-out); }
+@keyframes gro-pulse { 0% { background: color-mix(in srgb, var(--ok) 18%, var(--surface)); } 100% { background: var(--surface); } }
+/* A2: the first time, the first row peeks once toward the start edge (Delete underneath) and back. */
+.gro-one .gro-sw > .gro-row.gro-peek { animation: gro-peek 1600ms cubic-bezier(0.77, 0, 0.175, 1) 600ms 1 both; }
+[dir="rtl"] .gro-one .gro-sw > .gro-row.gro-peek { animation-name: gro-peek-r; }
+@keyframes gro-peek { 0%, 100% { transform: translateX(0); } 30%, 55% { transform: translateX(-64px); } }
+@keyframes gro-peek-r { 0%, 100% { transform: translateX(0); } 30%, 55% { transform: translateX(64px); } }
+.gro-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 4px; font-size: 12.5px; color: var(--muted); }
+.gro-hint .gro-kb { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-weight: 650; color: var(--ink-2, var(--ink)); }
+.gro-one .gro-tiles { margin-top: 0; padding: 8px 10px 10px; }
+/* A4 (board List-desktop `.drow`): 56 px rows; −, + and delete show on hover or keyboard focus, the chip stays. */
+.gro-one .gro-sw.gro-desk { height: 56px; outline: none; }
+.gro-one .gro-sw.gro-desk > .gro-row { height: 56px; padding-inline: 16px 14px; gap: 12px; transition: background-color 120ms ease; }
+.gro-one .gro-sw.gro-desk + .gro-sw.gro-desk > .gro-row::before { inset-inline-start: 72px; }
+.gro-one .gro-desk .gro-act { opacity: 0; transition: opacity 120ms ease, transform 150ms var(--ease-out); }
+.gro-one .gro-desk:focus-within > .gro-row, .gro-one .gro-desk:focus-visible > .gro-row { background: color-mix(in srgb, var(--ink) 4%, var(--surface)); }
+.gro-one .gro-desk:focus-within .gro-act, .gro-one .gro-desk:focus-visible .gro-act { opacity: 1; }
+.gro-one .gro-desk:focus-visible { box-shadow: inset 0 0 0 2px var(--ink); }
+.gro-mini-del { color: var(--danger); }
+@media (hover: hover) and (pointer: fine) {
+  .gro-one .gro-desk:hover > .gro-row { background: color-mix(in srgb, var(--ink) 4%, var(--surface)); }
+  .gro-one .gro-desk:hover .gro-act { opacity: 1; }
+  .gro-mini:hover { background: var(--surface-2); }
+  .gro-mini-del:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .gro-one .gro-sw > .gro-row.gro-peek { animation: none; } .gro-one .gro-sw > .gro-row.gro-pulse { animation-duration: 1ms; } }
+:root[data-motion="reduce"] .gro-one .gro-sw > .gro-row.gro-peek { animation: none; }
 
 /* Tiles layout (⋯ menu): 3 per row on phones. */
 .gro-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
@@ -254,3 +307,10 @@ html[data-device="phone"] .store-scroll::-webkit-scrollbar { display: none; }
 /* E3: Finish rises over store mode. */
 .store-finish { animation: sm-rise 300ms var(--ease-drawer) both; }
 @media (prefers-reduced-motion: reduce) { .store-finish { animation: fade 150ms ease-out both; } .store-rail-hit > i { transition: none; } }
+
+/* R18 S5 A4: the computer's panels (board List-desktop `.panel`): the list panel holds the store, the add field and the
+   list (the list's own card drops its frame inside it); the side cards share the look. */
+.gro-panel { border-radius: 22px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line), 0 1px 2px color-mix(in srgb, var(--ink) 6%, transparent); overflow: clip; }
+.dark .gro-panel { box-shadow: inset 0 0 0 1px var(--line-strong); }
+.gro-panel > .gro-one { border-radius: 0; box-shadow: none; }
+.gro-panel > .gro-one > .gro-sec:first-child .gro-band { border-top: 1px solid color-mix(in srgb, var(--k) 18%, var(--line-in)); }
