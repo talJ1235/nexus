@@ -20,7 +20,11 @@ Results go to **"## Open" at the end of this file**. Tal runs it unattended.
      (The planning chat can't `git push`, and the GitHub connector needs whole files — too big for these two docs.)
   2. S4: `main` has its merge + the smoke follow-up (`d4bdeb0`). Check `guards` on `main` and the last prod smoke are
      green; if `round18-s4` has commits not on `main`, finish them with S4's rules first.
-  3. Branch **`round18-s5`** from `main`.
+  3. **Code map + planning-docs diet** (planning chat, Tal approved 2026-10-16; docs only, on `main`, after 1):
+     `git merge --no-edit origin/docs/map` — new `docs/MAP.md`, short `CLAUDE.md`, log lines. On a conflict in
+     `CLAUDE.md` keep `docs/map`'s side (its map lines incl. S4's already live in `docs/MAP.md`); in the two logs keep
+     both sides' lines. Then Part 0's item 0.3, commit `R18.S5.0b: code map + planning docs diet`, push `main`.
+  4. Branch **`round18-s5`** from `main`; Part 0 items 0.1 + 0.2 first, then Parts A–G.
 - **Commit and push after every single item** (`R18.S5.<part><k>: …`, `git push origin round18-s5`); tick `[x]` here +
   one line in "### Progress" in the same commit; decisions in "### Decisions" at once; anything for Tal in
   "### For Tal".
@@ -37,6 +41,54 @@ Results go to **"## Open" at the end of this file**. Tal runs it unattended.
   `--spring`); press = scale .94–.97 on pointer-down; hover only under `(hover:hover) and (pointer:fine)`.
 - The boards are reference, not code to paste: build with the app's components / Tailwind tokens; `nx-s5.css` tells
   you sizes, radii, colours and timings. Section colours are R18's (`k-*`); widget accents are listed in `nx-s5.css`.
+
+## Part 0 — workflow (Tal approved 2026-10-16; the planning chat's findings)
+Map area for both: "Tests, servers, data — tooling" in `docs/MAP.md`.
+### 0.1 [ ] CI: no runs for docs-only pushes, parallel jobs
+Today `guards.yml` is one job of 28 serial steps (timeout 120 min) that runs on **every** push, docs included, with
+`cancel-in-progress` — so a docs push cancels a running full check and the round waits again. (1) Add
+`paths-ignore: ['docs/**', '**/*.md', '.claude/**']` to both `push` and `pull_request` in `guards.yml` (and
+`smoke.yml` if it runs on push). (2) Split `guards` into parallel jobs, every step kept (none dropped or weakened):
+`fast` (types, lint, unit loop, authz / scope / ssrf / query-plans, audit, gitleaks), `server` (build + the
+server-started tests) and `browser` (the heavy Playwright suites: `test:polish`, `test:clip`, …); share the build with
+`actions/upload-artifact` / `download-artifact` (SHA-pinned like the others) if that is faster than building twice.
+Same env, same SHA pinning. **Acceptance:** a docs-only commit starts no `guards` run; a code commit runs all jobs;
+the step list before vs after is equal (paste both counts in Decisions); wall time of one full run before → after in
+Decisions. From then on "one full CI run on the final commit" (How to run) means the last commit that changed code —
+a docs-only commit on top needs no new run; write that into How to run above.
+### 0.2 [ ] Permanent permissions (no per-round Step 0)
+Add to `.claude/settings.json` `allow` (shared, committed): `Bash(npm run -s test:*)`, `Bash(npm run test:*)`,
+`Bash(git push origin round:*)`, `Bash(git push -u origin round:*)`, `Bash(git merge --ff-only round:*)`,
+`Bash(git merge --no-edit origin/main)`, `Bash(git fetch:*)`. Never a rule for pushing `main` or for prod DB access.
+Move the now-covered per-round lines out of `.claude/settings.local.json`. **Acceptance:** a session started with only
+"Round 18, session 6" can push its branch and run any test without a permission prompt; ENVIRONMENT log line.
+### 0.3 [ ] Planning docs diet (docs only, on `main` in Step 0; mechanical moves — never rewrite moved text)
+The planning chat reads `docs/PLANNER.md` (~72 KB) + `docs/ENVIRONMENT.md` (~26 KB) at the start of every chat, and
+its connector must resend whole files. Move history out, word for word, into `docs/archive/` (do it after the patch
+from step 1 is in):
+1. `docs/archive/PLANNER-history.md` (header: "Moved from `docs/PLANNER.md` on 2026-10-16 — history, not
+   instructions"). Move into it, in order: from "## Current state & handoff" every bullet dated before 2026-10-15
+   (night) except the "Blocked stores — parked" bullet, plus the whole "### Earlier (2026-10-07)" block; from
+   "## Decisions that stand" the three items marked superseded ("Roadmap (Tal 2026-10-04, superseded …", "Roadmap
+   update (2026-10-04, later; superseded …", "Staples (Tal 2026-10-12) — superseded …"); from "### Planning log"
+   every entry dated before 2026-10-13. Leave in PLANNER.md, under each of those three headings, one line:
+   "Older: `docs/archive/PLANNER-history.md`."
+2. `docs/archive/ENVIRONMENT-log.md`: move every "## Log" entry dated before 2026-10-12 out of
+   `docs/ENVIRONMENT.md`; first line of the remaining log: "Older entries: `docs/archive/ENVIRONMENT-log.md` (`rg` it
+   when needed)."
+3. In `docs/PLANNER.md` "## Working from two Claude accounts (coordination)", add these three bullets after the
+   first one, verbatim:
+   - At the start read this file, the latest brief's "## Open" and `docs/ENVIRONMENT.md` up to "## Log"; `rg` the
+     log, `docs/MAP.md` and `docs/archive/` only for what the task needs.
+   - While a round branch is finishing (its final CI run or merge is pending), push planning docs to branch
+     `docs/next`, not `main`; the builder merges `origin/docs/next` into `main` right after its own merge.
+   - Push from the chat with `git push` (sandbox with the repo attached with push access) when possible; the GitHub
+     connector resends whole files, so keep planning docs small and never paste a large file to change a line.
+4. `docs/PLANNER.md` "### Planning log", newest first: "2026-10-16 · planning chat · Workflow: code map
+   (`docs/MAP.md`), planning-docs diet (history → `docs/archive/`), `docs/next` rule, CI paths-ignore + parallel jobs
+   and permanent permissions → R18 S5 Part 0."
+**Acceptance:** `docs/PLANNER.md` < 30 KB, `docs/ENVIRONMENT.md` < 15 KB; `git diff --stat` shows the moved lines
+only as moves (same counts in − and +, plus the few new lines); no text lost (`rg` a few moved phrases in the archive).
 
 ## Part A — the list, v2 (boards `List-phone`, `List-desktop`)
 ### A1 [ ] One list, compact rows
@@ -185,7 +237,7 @@ month switch, onboarding new steps + the Home card. Unit: home-layout packing (d
 trip-look contrast over all colours, onboarding field parsing, spending aggregation (month start day, members,
 currency), diet filter for suggestions. Full phone + desktop smoke pass; `scripts/parity-r18.mjs` gets the S5 boards.
 ### G2 [ ] Docs
-`SPEC.md` R18 S5 section, `CLAUDE.md` map (floating Ask, widget edit, spending, onboarding fields), help topics (Home
+`SPEC.md` R18 S5 section, `docs/MAP.md` touched areas, in place (floating Ask, widget edit, spending, onboarding fields), help topics (Home
 widgets, Supermarket list swipes, Insights → Spending, Settings → Household), `docs/ENVIRONMENT.md` log line, "### For
 Tal" = a phone checklist (swipes, long-press on Home, the Ask button drag, the look picker, the new onboarding steps).
 
