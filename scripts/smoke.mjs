@@ -2231,15 +2231,21 @@ try {
         const side = await page.locator("aside, nav[aria-label]").first().boundingBox().catch(() => null);
         r.overSidebar = !!side && b0.x < side.x + side.width && side.x < 100;
       }
-      // Side → left (Settings → Display), then back.
+      // Side → left (Settings → Display), then back. It changes the person's setting and the toast part deletes a row
+      // (then Undo) — local runs with SMOKE_WRITE only, never against prod's real account.
       const setSide = async (v) => {
         await openSettings(page, "display");
-        await page.locator(`[data-display-ask-side] [role="radio"]`, { hasText: v === "left" ? /Left|שמאל/ : /Right|ימין/ }).click();
-        await page.waitForTimeout(900);
+        // Wait for the save itself: navigating on before it lands lost it once (prod, slow).
+        await Promise.all([
+          page.waitForResponse((res) => res.request().method() === "POST" && !!res.request().headers()["next-action"], { timeout: 10000 }).catch(() => {}),
+          page.locator(`[data-display-ask-side] [role="radio"]`, { hasText: v === "left" ? /Left|שמאל/ : /Right|ימין/ }).click(),
+        ]);
+        await page.waitForTimeout(300);
         await page.goto(`${BASE}/supermarket`);
         await page.waitForSelector("[data-ask-fab]");
         await page.waitForTimeout(500);
       };
+      if (WRITE) {
       await setSide("left");
       const b1 = await box();
       r.left = Math.round(b1.x);
@@ -2263,9 +2269,11 @@ try {
       r.rose = Number((await page.locator("[data-ask-fab]").getAttribute("data-ask-rise-by")) ?? 0);
       r.geo = { toast: [Math.round(tb.x), Math.round(tb.y), Math.round(tb.width), Math.round(tb.height)], fab: [Math.round(b2.x), Math.round(b2.y)] };
       r.clear = MOBILE ? b2.y + b2.height <= tb.y + 1 || tb.x + tb.width < b2.x : true;
+      // (the write part ends after Undo below)
       await t.locator("button", { hasText: /Undo|ביטול/ }).click();
       await page.waitForTimeout(1600);
       r.down = Number((await page.locator("[data-ask-fab]").getAttribute("data-ask-rise-by")) ?? 0);
+      }
       // Open from the button over the same screen and scroll; closing returns.
       await page.evaluate(() => window.scrollTo(0, 400));
       await page.waitForTimeout(300);
@@ -2280,7 +2288,7 @@ try {
       r.sameUrl = page.url() === url0;
       await page.evaluate(() => window.scrollTo(0, 0));
       ok(
-        r.right >= (MOBILE ? 10 : 20) && r.right <= (MOBILE ? 14 : 42) /* computer: 28 px from the scroller's edge */ && r.topBarAsk === 0 && (MOBILE ? r.aboveDock >= 10 && r.aboveDock <= 14 : !r.overSidebar) && r.sideAttr === "left" && r.left <= (MOBILE ? 14 : 400) && r.back === "right" && r.hiddenWithSheet === "hidden" && r.rose > 20 && r.clear && r.down === 0 && r.chat && r.sameScroll && r.sameUrl && (MOBILE || r.panelSide === "right"),
+        r.right >= (MOBILE ? 10 : 20) && r.right <= (MOBILE ? 14 : 42) /* computer: 28 px from the scroller's edge */ && r.topBarAsk === 0 && (MOBILE ? r.aboveDock >= 10 && r.aboveDock <= 14 : !r.overSidebar) && (!WRITE || (r.sideAttr === "left" && r.left <= (MOBILE ? 14 : 400) && r.back === "right" && r.hiddenWithSheet === "hidden" && r.rose > 20 && r.clear && r.down === 0)) && r.chat && r.sameScroll && r.sameUrl && (MOBILE || r.panelSide === "right"),
         "floating Ask behaviour (R18 S5 C2/C3): right by default, side setting ↔, rise over a toast, open/close keeps scroll, no top-bar Ask",
         JSON.stringify(r),
       );
@@ -2601,6 +2609,8 @@ try {
       await page.goto(`${BASE}/supermarket`);
       await page.waitForSelector("[data-sm-view] [data-sm-row], [data-sm-view] [data-sm-first]", { timeout: 15000 });
       if (await page.locator("[data-sm-list] .gro-tile").count()) {
+        // Switching to rows saves the person's choice — never on a real account (prod smoke): nothing to check then.
+        if (!WRITE) return console.log("SKIP list v2 (R18 S5 A1): this account shows tiles (switching would change its setting)");
         await page.locator("[data-sm-more]").click();
         await page.locator('[data-sm-layout-pick="rows"]').click();
         await page.waitForTimeout(500);
