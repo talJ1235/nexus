@@ -258,6 +258,11 @@ try {
     await x("INSERT OR REPLACE INTO user_pref (user_id, key, value) VALUES (?, 'pref:onboarding', ?)", [id, JSON.stringify({ v: 1, status: "done", step: 7, why: ["super"], stores: [], custom: [], budget: null, currency: "ILS", who: "me", sharedSpaceId: null, notif: null, installed: false, at: now })]);
     await p.goto(`${app.base}/`);
     await p.waitForSelector("[data-home]", { timeout: 40_000 }).catch(() => {});
+    // The test writes to the server's SQLite file too — a load that hit SQLITE_BUSY shows the error screen: once more.
+    if (!(await p.locator("[data-home]").count())) {
+      await p.reload();
+      await p.waitForSelector("[data-home]", { timeout: 40_000 }).catch(() => {});
+    }
     await p.waitForSelector("[data-home-quick]", { timeout: 20_000 }).catch(() => {});
     const quickN = await p.locator("[data-home-quick]").count();
     ok(quickN === 1, "F1: an old finished onboarding → the \"3 quick questions\" Home card", quickN ? "" : `${p.url()} · ${JSON.stringify(await pref(id))} · ${(await p.innerText("body").catch(() => "")).replace(/s+/g, " ").slice(0, 300)}`);
