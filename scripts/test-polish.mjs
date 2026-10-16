@@ -399,6 +399,9 @@ if (want("A2")) {
         await setLayout(space, z.items);
         await page.goto(`${BASE}/`);
         await page.waitForSelector("[data-home-grid] .wv2");
+        // R18 S5 G1: cards fit their rows in JS (useFitRows) — wait until every card in a cell has been fitted (a slow
+        // `next dev` on CI used to be measured before hydration).
+        await page.waitForFunction(() => !document.querySelector("[data-home-grid] .wv2 [data-fit]:not([data-fitted])"), null, { timeout: 30000 }).catch(() => {});
         await page.waitForTimeout(900);
         const rows = await page.evaluate(measure);
         for (const r of rows) {

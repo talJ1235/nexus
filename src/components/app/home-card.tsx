@@ -92,6 +92,8 @@ export function useFitRows(ref: React.RefObject<HTMLElement | null>, more = 0) {
         p.style.setProperty("-webkit-line-clamp", String(lines));
       }
       card.setAttribute("data-more", String(Math.max(0, more) + hidden));
+      // Tests wait for this before measuring (before hydration nothing is fitted yet).
+      card.setAttribute("data-fitted", "");
     };
     fit();
     // Re-fit when the card or its body changes size, and once the web fonts are in (text reflows without either
@@ -115,7 +117,7 @@ export function Card({ id, title, icon, count, badge, link, onLink, className, s
   const ref = useRef<HTMLElement>(null);
   useFitRows(ref, more ?? 0);
   return (
-    <section ref={ref} className={cn("r13-card r13-section flex min-w-0 flex-col", className)} style={style} data-home-section={id} data-more={Math.max(0, more ?? 0)}>
+    <section ref={ref} className={cn("r13-card r13-section flex min-w-0 flex-col", className)} style={style} data-home-section={id} data-more={Math.max(0, more ?? 0)} data-fit>
       <div data-card-head className="flex min-h-[42px] items-center gap-2 border-b border-line-in px-4 py-2 desk:min-h-[46px] desk:px-[18px] desk:py-2.5">
         {icon && <span className={cn("flex [&_svg]:size-4", ai ? "text-ai" : "text-ink")}>{icon}</span>}
         <h2 className={cn("text-[12px] font-bold uppercase tracking-[0.05em]", ai && "text-ai")} title={typeof title === "string" ? title : undefined}>{title}</h2>
