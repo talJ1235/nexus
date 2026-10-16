@@ -11,7 +11,7 @@ import { finishOnboarding, onboardingInvite, saveOnboarding } from "@/app/onboar
 import { useBeat } from "@/components/app/presence-beat";
 import { InviteQr } from "@/components/app/spaces/qr";
 import { useI18n } from "@/components/providers";
-import { monogram, presetFor, STORES, type Onboarding, type Who, type Why } from "@/lib/onboarding";
+import { countsFor, DIETS, FREQ, MODES, monogram, people, presetFor, QUICK_STEPS, smShareStart, STORES, type Onboarding, type Who, type Why } from "@/lib/onboarding";
 import { CHAINS } from "@/lib/grocery/chains";
 import type { ScreenKey } from "@/lib/presence-keys";
 import { notifyAsk } from "@/app/notify-actions";
@@ -54,18 +54,17 @@ const WHY_TILES: Record<Why, { g: string; pos: React.CSSProperties; icon: number
   proj: { g: "gr-blue", pos: { left: 110, top: 94, width: 56, height: 56 }, icon: 28 },
   price: { g: "gr-rose", pos: { left: 188, top: 44, width: 64, height: 64 }, icon: 30 },
 };
-const FACES: [string, React.CSSProperties][] = [
-  ["c1", { left: 30, top: 58 }],
-  ["c2", { left: 178, top: 58 }],
-  ["c4", { left: 62, top: 116 }],
-  ["c3", { left: 146, top: 116 }],
-];
 const SYM: Record<Onboarding["currency"], string> = { ILS: "₪", USD: "$", EUR: "€" };
 const CONF = ["#f59e0b", "#22936c", "#3172d4", "#c94673", "#7c5ad9"];
 
 const noop = () => () => {};
+/** The install prompt is used once. */
+const clearDeferred = () => {
+  deferred = null;
+};
 
-export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding; joined: boolean; name: string }) {
+/** `quick` (R18 S5 F1): only steps 2, 4, 5, 6 — the Home card for people who finished onboarding before S5. */
+export function OnboardingFlow({ initial, joined, name, quick = false }: { initial: Onboarding; joined: boolean; name: string; quick?: boolean }) {
   const { t, f, locale } = useI18n();
   const O = t.ob;
   const he = locale === "he";
@@ -88,17 +87,33 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
   );
 
   const [o, setO] = useState<Onboarding>(initial);
-  const skipped = useCallback(
+  // ---- R18 S5 F2: the household (counts start from "who you shop for"; the counts say who it is).
+  const base = countsFor(o.who);
+  const home5 = { adults: o.adults ?? base.adults, kids: o.kids ?? base.kids, babies: o.babies ?? 0, pets: o.pets ?? 0 };
+  const peopleN = people({ who: o.who, ...home5 });
+  const setWho = (w: Who) => setO((c) => ({ ...c, who: w, ...countsFor(w), babies: c.babies ?? 0 }));
+  const setCount = (k: keyof typeof home5, d: number) =>
+    setO((c) => {
+      const cur = { adults: c.adults ?? countsFor(c.who).adults, kids: c.kids ?? countsFor(c.who).kids, babies: c.babies ?? 0, pets: c.pets ?? 0 };
+      const next = { ...cur, [k]: Math.max(k === "adults" ? 1 : 0, Math.min(12, cur[k] + d)) };
+      const who: Who = next.kids + next.babies > 0 || next.adults > 2 ? "family" : next.adults === 2 ? "partner" : "me";
+      return { ...c, ...next, who };
+    });
+  // ---- F5: the supermarket's part of the budget (a starting point from the home's size until it's moved).
+  const [otherDay, setOtherDay] = useState(() => ![1, 10, 15].includes(initial.startDay ?? 1));
+  const skipped0 = useCallback(
     // R17 S5 S4: a computer always sees step 5 — when it can't install (installed already, or no install in this browser)
     // it shows only the phone's QR.
-    (i: number) => (i === 3 && joined) || (i === 4 && !desk && (env.standalone || (!env.iphone && !canInstall && !o.installed))) || (i === 5 && ((env.iphone && !env.standalone) || !env.notif)),
+    (i: number) => (i === 1 && joined) || (i === 6 && !desk && (env.standalone || (!env.iphone && !canInstall && !o.installed))) || (i === 7 && ((env.iphone && !env.standalone) || !env.notif)),
     [joined, env, canInstall, o.installed, desk],
   );
-  const [at, setIdx] = useState(() => Math.min(6, Math.max(0, initial.step - 1)));
+  // Quick (F1): only the household, habits, food and budget steps.
+  const skipped = useCallback((i: number) => (quick ? !(QUICK_STEPS as readonly number[]).includes(i + 1) : skipped0(i)), [quick, skipped0]);
+  const [at, setIdx] = useState(() => Math.min(8, Math.max(0, initial.step - 1)));
   const [dirn, setDirn] = useState<"f" | "b">("f");
   // A resumed step that has to be skipped on this device shows the next one.
   let idx = at;
-  while (hydrated && idx < 6 && skipped(idx)) idx++;
+  while (hydrated && idx < 8 && skipped(idx)) idx++;
   useBeat(hydrated ? (`onboarding-${idx + 1}` as ScreenKey) : null);
 
   // The answers on screen are the truth; saves go out one after another (the server merges each into the stored
@@ -111,7 +126,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
   };
   const nextIdx = (from: number) => {
     let i = from + 1;
-    while (i < 6 && skipped(i)) i++;
+    while (i < 8 && skipped(i)) i++;
     return i;
   };
   const prevIdx = (from: number) => {
@@ -142,7 +157,19 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
     .map((c) => ({ m: chainMono(c), c: c.color }));
 
   const answers = (i: number): Parameters<typeof saveOnboarding>[0] =>
-    i === 0 ? { why: o.why } : i === 1 ? { stores: o.stores, custom: o.custom, ...(phase !== "stores" ? { chains, branch: several ? null : branchQ.trim() || null, several } : {}) } : i === 2 ? { budget: o.budget ?? 2500, currency: o.currency } : i === 3 ? { who: o.who } : {};
+    i === 0
+      ? { why: o.why }
+      : i === 2
+        ? { stores: o.stores, custom: o.custom, ...(phase !== "stores" ? { chains, branch: several ? null : branchQ.trim() || null, several } : {}) }
+        : i === 5
+          ? { budget: o.budget ?? 2500, currency: o.currency, smShare: o.smShare ?? null, startDay: o.startDay ?? 1, learnBudget: !!o.learnBudget }
+          : i === 1
+            ? { who: o.who, adults: home5.adults, kids: home5.kids, babies: home5.babies, pets: home5.pets }
+            : i === 3
+              ? { freq: o.freq ?? null, days: o.days ?? [], mode: o.mode ?? null }
+              : i === 4
+                ? { diet: o.diet ?? [], shabbat: !!o.shabbat }
+                : {};
   const go = (to: number, d: "f" | "b") => {
     setDirn(d);
     setIdx(to);
@@ -150,32 +177,43 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
   const next = async () => {
     // R18 S2 F2: step 2 goes on to the supermarket's chains, then the main chain's branch (when the person shops for the
     // home or the supermarket), before the budget.
-    if (idx === 1 && smStep && phase === "stores") {
+    if (idx === 2 && smStep && phase === "stores") {
       void save({ stores: o.stores, custom: o.custom });
       // Supermarkets picked among the stores start the chain list (the first one = main).
       setChains((c) => (c.length ? c : o.stores.filter((x) => CHAINS.some((ch) => ch.id === x))));
       return setPhaseDir("chains", "f");
     }
-    if (idx === 1 && phase === "chains" && chains.length) {
+    if (idx === 2 && phase === "chains" && chains.length) {
       void save({ chains });
       return setPhaseDir("branch", "f");
     }
     const to = nextIdx(idx);
-    if (idx === 3 && o.who && o.who !== "me" && !o.sharedSpaceId) {
+    if (idx === 1 && o.who && o.who !== "me" && !o.sharedSpaceId) {
       await queue.current;
       await onboardingInvite(he ? "he" : "en", false).then((r) => setO((c) => ({ ...c, sharedSpaceId: r.spaceId })), () => toast.error(t.errors.generic));
+    }
+    // Quick questions: answers only (no step — the onboarding stays finished); after the budget, back to Home.
+    if (quick) {
+      void save(answers(idx));
+      if (to >= 6) return void leave(false);
+      return go(to, "f");
     }
     void save({ ...answers(idx), step: to + 1 });
     go(to, "f");
   };
   const back = () => {
-    if (idx === 1 && phase !== "stores") return setPhaseDir(phase === "branch" ? "chains" : "stores", "b");
+    if (idx === 2 && phase !== "stores") return setPhaseDir(phase === "branch" ? "chains" : "stores", "b");
     const to = prevIdx(idx);
-    void save({ step: to + 1 });
+    if (!quick) void save({ step: to + 1 });
     go(to, "b");
   };
   const leave = async (skip: boolean) => {
     await queue.current;
+    // Quick questions: back to Home, the card answered (or put away) — the onboarding itself stays as it was.
+    if (quick) {
+      await saveOnboarding({ quick: skip ? "dismissed" : "done" }).catch(() => {});
+      return window.location.assign("/");
+    }
     await finishOnboarding(skip).catch(() => {});
     window.location.assign("/?hint=try");
   };
@@ -199,8 +237,10 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
   const fanList = [...STORES.filter((s) => picked.has(s.id)).map((s) => ({ m: he ? s.monoHe : s.mono, c: s.color })), ...o.custom.filter((c) => picked.has(`custom:${c}`)).map((c, k) => ({ m: monogram(c), c: `m${(k % 9) + 1}` }))].slice(0, 5);
   const storeCount = o.stores.length;
 
-  // ---- step 3: budget
+  // ---- step 6: budget
   const budget = o.budget ?? 2500;
+  const smAmount = o.smShare ?? Math.round((budget * smShareStart(peopleN)) / 50) * 50;
+  const smPct = budget > 0 ? Math.round((Math.min(smAmount, budget) / budget) * 100) : 0;
   const cur = SYM[o.currency];
   const fmt = (v: number) => new Intl.NumberFormat("en-US").format(v);
   const setBudget = (v: number) => setO((c) => ({ ...c, budget: Math.max(0, Math.min(1_000_000, Math.round(v))) }));
@@ -225,7 +265,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
     if (!e) return void next();
     await e.prompt();
     const r = await e.userChoice.catch(() => ({ outcome: "dismissed" as const }));
-    deferred = null;
+    clearDeferred();
     if (r.outcome === "accepted") {
       setO((c) => ({ ...c, installed: true }));
       void save({ installed: true });
@@ -241,21 +281,21 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
   };
   // R17 S3 L1: "Not now" on the notifications step is the first "no" (the reminder card comes back after 3 days).
   const later_ = () => {
-    if (idx === 5) void notifyAsk("no").catch(() => {});
+    if (idx === 7) void notifyAsk("no").catch(() => {});
     void next();
   };
 
   // ---- the step's texts and the primary button
-  const titleKey = (["why", "stores", "budget", "who", "install", "notif", "done"] as const)[idx];
+  const titleKey = (["why", "home", "stores", "habits", "food", "budget", "install", "notif", "done"] as const)[idx];
   const phoneOnly = desk && !env.iphone && (env.standalone || (!canInstall && !o.installed));
-  const smTitle = idx === 1 && phase === "chains" ? O.titles.chains : idx === 1 && phase === "branch" ? f(O.titles.branch, { chain: mainChain ? (he ? mainChain.he : mainChain.en) : "" }) : null;
-  const smLine = idx === 1 && phase === "chains" ? O.lines.chains : idx === 1 && phase === "branch" ? O.lines.branch : null;
-  const title = smTitle ?? (idx === 4 ? (env.iphone ? O.titles.installIphone : phoneOnly ? O.titles.installPhone : desk ? O.titles.installDesk : O.titles.install) : idx === 6 ? f(O.titles.done, { name }) : O.titles[titleKey]);
-  const line = smLine ?? (idx === 4 ? (env.iphone ? O.lines.installIphone : phoneOnly ? O.lines.installPhone : desk ? O.lines.installDesk : O.lines.install) : idx === 1 ? f(O.lines.stores, { n: storeCount }) : O.lines[titleKey]);
+  const smTitle = idx === 2 && phase === "chains" ? O.titles.chains : idx === 2 && phase === "branch" ? f(O.titles.branch, { chain: mainChain ? (he ? mainChain.he : mainChain.en) : "" }) : null;
+  const smLine = idx === 2 && phase === "chains" ? O.lines.chains : idx === 2 && phase === "branch" ? O.lines.branch : null;
+  const title = smTitle ?? (idx === 6 ? (env.iphone ? O.titles.installIphone : phoneOnly ? O.titles.installPhone : desk ? O.titles.installDesk : O.titles.install) : idx === 8 ? f(O.titles.done, { name }) : O.titles[titleKey]);
+  const line = smLine ?? (idx === 6 ? (env.iphone ? O.lines.installIphone : phoneOnly ? O.lines.installPhone : desk ? O.lines.installDesk : O.lines.install) : idx === 2 ? f(O.lines.stores, { n: storeCount }) : O.lines[titleKey]);
   let cta = O.continue;
   let primary: () => void = () => void next();
   let later = false;
-  if (idx === 4) {
+  if (idx === 6) {
     if (env.iphone) cta = O.added;
     else if (!o.installed && canInstall) {
       cta = O.install;
@@ -263,17 +303,17 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
       later = true;
     }
   }
-  if (idx === 5 && o.notif !== "granted" && o.notif !== "denied") {
+  if (idx === 7 && o.notif !== "granted" && o.notif !== "denied") {
     cta = O.turnOn;
     primary = () => void notify();
     later = true;
   }
-  if (idx === 6) {
+  if (idx === 8) {
     cta = O.goHome;
     primary = () => void leave(false);
   }
-  const showBack = idx > 0 && idx < 6;
-  const showSkip = idx < 6;
+  const showBack = quick ? idx > 1 : idx > 0 && idx < 8;
+  const showSkip = idx < 8;
 
   // Desktop: Enter = the primary (not while typing a store name).
   useEffect(() => {
@@ -290,10 +330,15 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
   if (!hydrated) return <div className="nx ob" aria-busy="true" />;
 
   const enter = dirn === "b" ? "enter-b" : "enter-f";
+  // Progress: 8 segments (the done screen has none); the quick questions show their own 4.
+  const segN = quick ? QUICK_STEPS.length : 8;
+  const segAt = quick ? Math.max(0, (QUICK_STEPS as readonly number[]).indexOf(idx + 1)) : Math.min(7, idx);
+  // R18 S5: under the primary on the steps that set something.
+  const later5 = idx >= 1 && idx <= 5 ? <p className="tiny" style={{ textAlign: "center", margin: "8px 0 0" }} data-ob-later-note>{O.changeLater}</p> : null;
   const segs = (
-    <div className="prog" style={desk ? { maxWidth: 280 } : { padding: "0 6px" }} role="progressbar" aria-valuemin={1} aria-valuemax={6} aria-valuenow={Math.min(6, idx + 1)} aria-label={f(O.stepOf, { n: Math.min(6, idx + 1) })}>
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <i key={i} className={i <= idx ? "on" : ""} />
+    <div className="prog" style={desk ? { maxWidth: 320 } : { padding: "0 6px" }} role="progressbar" aria-valuemin={1} aria-valuemax={segN} aria-valuenow={segAt + 1} aria-label={f(O.stepOf, { n: segAt + 1 })}>
+      {Array.from({ length: segN }, (_, i) => (
+        <i key={i} className={i <= segAt ? "on" : ""} />
       ))}
     </div>
   );
@@ -305,7 +350,6 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
 
   // ---- the pictures (H3)
   const shared = o.who && o.who !== "me";
-  const nFaces = o.who === "family" ? 4 : o.who === "partner" ? 2 : 1;
   const scene = (
     <div key={`scene-${idx}`} className="scene-wrap" data-ob-scene={idx + 1}>
       {idx === 0 && (
@@ -319,7 +363,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
           ))}
         </div>
       )}
-      {idx === 1 && (
+      {idx === 2 && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 150, width: 260 }}>
           {(phase === "stores" ? fanList : chainFan).map((s, i, arr) => {
             const k = i - (arr.length - 1) / 2;
@@ -336,34 +380,74 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
           )}
         </div>
       )}
-      {idx === 2 && (
-        <div className="gauge grow-in" style={{ ["--g" as string]: `${Math.round(Math.min(100, (budget / 6000) * 100))}%` }}>
-          <span>
-            <b className="num" style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-.03em" }} dir="ltr">
-              {cur}
-              {fmt(budget)}
-            </b>
-            <span className="tiny" style={{ display: "block" }}>
-              {O.aMonth}
-            </span>
+      {idx === 1 && (
+        // R18 S5 F2: the household as figures — adults, kids, babies, pets — added as they're counted.
+        <div className="ob5-scene" data-ob-home-scene>
+          <span className="ob5-cap">
+            {peopleN === 1 ? O.home5.person : f(O.home5.people, { n: peopleN })}
+            {home5.pets ? ` · ${home5.pets === 1 ? O.home5.petOne : f(O.home5.petN, { n: home5.pets })}` : ""}
           </span>
+          <div className="ob5-figs">
+            {[
+              ...Array.from({ length: Math.min(4, home5.adults) }, (_, k) => ["a", k] as const),
+              ...Array.from({ length: Math.min(4, home5.kids) }, (_, k) => ["k", k] as const),
+              ...Array.from({ length: Math.min(3, home5.babies) }, (_, k) => ["b", k] as const),
+              ...Array.from({ length: Math.min(3, home5.pets) }, (_, k) => ["p", k] as const),
+            ].map(([t, k]) => (
+              <span key={`${t}${k}`} className={`ob5-fig ob5-${t} pop`}>
+                <i />
+                <b />
+              </span>
+            ))}
+          </div>
         </div>
       )}
       {idx === 3 && (
-        <div className="scene" style={{ width: 240 }}>
-          <span className="fl gr-green" style={{ left: 84, top: 30, width: 72, height: 72, borderRadius: 20 }}>
-            <svg viewBox="0 0 24 24" style={{ width: 36, height: 36 }} aria-hidden="true">
-              <path d={PATH.home} />
-            </svg>
-          </span>
-          {FACES.slice(0, nFaces).map(([c, pos], i) => (
-            <span key={`${o.who}-${i}`} className={`av lg pop face ${c}${i === 0 ? " ring-on" : ""}`} style={{ ...pos, animationDelay: `${i * 50}ms` }}>
-              {i === 0 ? (name.trim()[0] ?? "·").toUpperCase() : "+"}
-            </span>
-          ))}
+        // F3: the week, the usual days lit; "ready the evening before".
+        <div className="ob5-scene" data-ob-habits-scene>
+          <div className="ob5-week">
+            {O.habits.wd.map((d, k) => (
+              <span key={k} className={`ob5-day${(o.days ?? []).includes(k) ? " on" : ""}`}>
+                {d}
+              </span>
+            ))}
+          </div>
+          <span className="ob5-note">{(o.days ?? []).length ? f(O.habits.ready, { day: O.habits.wd[(o.days ?? [])[0]] }) : O.habits.readyNone}</span>
         </div>
       )}
-      {idx === 4 &&
+      {idx === 4 && (
+        // F4: a plate with the choices on it.
+        <div className="ob5-scene" data-ob-food-scene>
+          <div className="ob5-plate">
+            <div className="ob5-plate-in">
+              {[...(o.diet ?? []).map((d) => O.food[d]), ...(o.shabbat ? [O.food.shabbat.split(" ")[0]] : [])].slice(0, 4).map((x) => (
+                <span key={x} className="ob5-tag pop">
+                  {x}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {idx === 5 && (
+        // F5: the supermarket's part of the household budget.
+        <div className="ob5-scene" data-ob-budget-scene>
+          <div className="ob5-donut" style={{ ["--p" as string]: `${smPct}%` }}>
+            <b className="num">{o.learnBudget ? "?" : `${smPct}%`}</b>
+          </div>
+          <div className="ob5-legend">
+            <span>
+              <i style={{ background: "#2f9a58" }} />
+              {O.bud5.smPart}
+            </span>
+            <span>
+              <i style={{ background: "var(--s3)" }} />
+              {O.bud5.rest}
+            </span>
+          </div>
+        </div>
+      )}
+      {idx === 6 &&
         (desk ? (
           <div style={{ width: 190, height: 120, borderRadius: 12, border: "2.5px solid var(--ink2)", background: "var(--raised)", boxShadow: "var(--sh2)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ height: 18, borderBottom: "1.5px solid var(--line)", display: "flex", gap: 4, alignItems: "center", padding: "0 8px" }}>
@@ -399,7 +483,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
             <i style={{ width: 22, height: 22, borderRadius: 6, background: "var(--s3)" }} />
           </div>
         ))}
-      {idx === 5 && (
+      {idx === 7 && (
         <div style={{ width: desk ? 280 : 310, maxWidth: "88vw", display: "flex", flexDirection: "column", gap: 8 }} className="stg">
           {[
             [O.n1a, O.n1b, O.now],
@@ -420,7 +504,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
           ))}
         </div>
       )}
-      {idx === 6 && (
+      {idx === 8 && (
         <div className="conf-box">
           <span className="hero-t gr-green pop" style={{ width: 104, height: 104, borderRadius: 30 }}>
             <svg viewBox="0 0 24 24" style={{ width: 52, height: 52 }} aria-hidden="true">
@@ -439,7 +523,6 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
 
   // ---- the answers (H2)
   const whyLabels: Record<Why, [string, string]> = { home: [O.why.home, O.why.homeSub], super: [O.why.super, O.why.superSub], proj: [O.why.proj, O.why.projSub], price: [O.why.price, O.why.priceSub] };
-  const whoLabels: Record<Who, [string, string]> = { me: [O.me, PATH.me], partner: [O.partner, PATH.partner], family: [O.family, PATH.home] };
   const presetName = t.hc.presets[presetFor(o.why)];
   const tick = (
     <span className="tick">
@@ -465,7 +548,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
           })}
         </div>
       )}
-      {idx === 1 && phase === "chains" && (
+      {idx === 2 && phase === "chains" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }} data-ob-chains>
           <div className="stores" style={{ gap: desk ? 10 : 8 }}>
             {CHAINS.map((c) => {
@@ -492,7 +575,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
           </p>
         </div>
       )}
-      {idx === 1 && phase === "branch" && mainChain && (
+      {idx === 2 && phase === "branch" && mainChain && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }} data-ob-branch>
           <label className="input">
             {ico(PATH.search, 18)}
@@ -520,7 +603,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
           </div>
         </div>
       )}
-      {idx === 1 && phase === "stores" && (
+      {idx === 2 && phase === "stores" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label className="input">
             {ico(PATH.search, 18)}
@@ -574,84 +657,44 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
           )}
         </div>
       )}
-      {idx === 2 &&
-        (desk ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 18, alignItems: "flex-start" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <button type="button" className="btn icon lg" onClick={() => setBudget(budget - 250)} aria-label={O.less} data-ob-less>
-                {ico(PATH.minus, 20)}
+      {idx === 1 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }} data-ob-home>
+          <div className="seg" role="radiogroup" aria-label={title} style={{ width: "100%" }}>
+            {(["me", "partner", "family"] as const).map((w) => (
+              <button key={w} type="button" role="radio" aria-checked={o.who === w} className={o.who === w ? "on" : ""} style={{ flex: 1, justifyContent: "center", height: 40 }} onClick={() => setWho(w)} data-ob-who={w}>
+                {w === "me" ? O.home5.just : w === "partner" ? O.home5.couple : O.home5.family}
               </button>
-              <label className="input" style={{ width: 200, height: 46 }}>
-                <span className="sub">{cur}</span>
-                <input value={fmt(budget)} inputMode="decimal" aria-label={O.budgetLabel} style={{ fontSize: 20, fontWeight: 700 }} dir="ltr" onChange={(e) => setBudget(Number(e.target.value.replace(/[^\d]/g, "")) || 0)} data-ob-budget />
-              </label>
-              <button type="button" className="btn icon lg" onClick={() => setBudget(budget + 250)} aria-label={O.more} data-ob-more>
-                {ico(PATH.plus, 20)}
-              </button>
-              <div className="seg" style={{ marginInlineStart: 8 }} role="group">
-                {(Object.keys(SYM) as Onboarding["currency"][]).map((c) => (
-                  <button key={c} type="button" className={o.currency === c ? "on" : ""} aria-pressed={o.currency === c} style={{ minWidth: 48, justifyContent: "center" }} onClick={() => setO((x) => ({ ...x, currency: c }))} data-ob-cur={c}>
-                    {SYM[c]}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {[1500, 2500, 4000].map((v) => (
-                <button key={v} type="button" className={`chipb${budget === v ? " on" : ""}`} style={{ height: 38 }} onClick={() => setBudget(v)} dir="ltr">
-                  {cur}
-                  {fmt(v)}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <button type="button" className="btn icon lg" style={{ width: 52, height: 52, borderRadius: 14 }} onClick={() => setBudget(budget - 250)} aria-label={O.less} data-ob-less>
-                {ico(PATH.minus, 20)}
-              </button>
-              <div style={{ flex: 1, textAlign: "center" }}>
-                <b className="num" style={{ fontSize: 22 }} dir="ltr" data-ob-budget-show>
-                  {cur}
-                  {fmt(budget)}
+          <div className="card" style={{ padding: 0 }}>
+            {(
+              [
+                ["adults", O.home5.adults, O.home5.adultsSub, 1],
+                ["kids", O.home5.kids, O.home5.kidsSub, 0],
+                ["babies", O.home5.babies, O.home5.babiesSub, 0],
+                ["pets", O.home5.pets, O.home5.petsSub, 0],
+              ] as const
+            ).map(([k, label, sub, min]) => (
+              <div key={k} className="li" style={{ minHeight: 56 }} data-ob-count={k}>
+                <span className="grow" style={{ minWidth: 0 }}>
+                  <b>{label}</b>
+                  <br />
+                  <span className="tiny">{sub}</span>
+                </span>
+                <button type="button" className="btn icon" style={{ width: 40, height: 40, borderRadius: 20 }} onClick={() => setCount(k, -1)} disabled={home5[k] <= min} aria-label={f(O.home5.less, { what: label })} data-ob-count-less={k}>
+                  {ico(PATH.minus, 18)}
+                </button>
+                <b className="num" style={{ minWidth: 26, textAlign: "center", fontSize: 18 }} data-ob-count-n={k}>
+                  {home5[k]}
                 </b>
-                <div className="tiny">{O.household}</div>
-              </div>
-              <button type="button" className="btn icon lg" style={{ width: 52, height: 52, borderRadius: 14 }} onClick={() => setBudget(budget + 250)} aria-label={O.more} data-ob-more>
-                {ico(PATH.plus, 20)}
-              </button>
-            </div>
-            <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-              {[1500, 2500, 4000].map((v) => (
-                <button key={v} type="button" className={`chipb${budget === v ? " on" : ""}`} style={{ height: 40 }} onClick={() => setBudget(v)} dir="ltr">
-                  {cur}
-                  {fmt(v)}
+                <button type="button" className="btn icon" style={{ width: 40, height: 40, borderRadius: 20 }} onClick={() => setCount(k, 1)} disabled={home5[k] >= 12} aria-label={f(O.home5.more, { what: label })} data-ob-count-more={k}>
+                  {ico(PATH.plus, 18)}
                 </button>
-              ))}
-            </div>
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <div className="seg" role="group">
-                {(Object.keys(SYM) as Onboarding["currency"][]).map((c) => (
-                  <button key={c} type="button" className={o.currency === c ? "on" : ""} aria-pressed={o.currency === c} style={{ minWidth: 60, justifyContent: "center", height: 40 }} onClick={() => setO((x) => ({ ...x, currency: c }))} data-ob-cur={c}>
-                    {SYM[c]}
-                  </button>
-                ))}
               </div>
-            </div>
+            ))}
           </div>
-        ))}
-      {idx === 3 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }} role="radiogroup" aria-label={title}>
-          {(Object.keys(whoLabels) as Who[]).map((w) => (
-            <button key={w} type="button" role="radio" aria-checked={o.who === w} className={`who${o.who === w ? " on" : ""}`} onClick={() => setO((c) => ({ ...c, who: w }))} data-ob-who={w}>
-              <span className="ic round">{ico(whoLabels[w][1], 20)}</span>
-              <b style={{ flex: 1, fontSize: 15.5 }}>{whoLabels[w][0]}</b>
-              <span className="radio" />
-            </button>
-          ))}
           {shared && (
-            <div className="card rise" style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, marginTop: 2 }} data-ob-shared>
+            <div className="card rise" style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 12 }} data-ob-shared>
               <span className="tile t40 gr-green">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d={PATH.home} />
@@ -669,7 +712,112 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
           )}
         </div>
       )}
-      {idx === 4 &&
+      {idx === 3 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }} data-ob-habits>
+          <div>
+            <p className="ob5-q">{O.habits.often}</p>
+            <div className="ob5-chips" role="radiogroup" aria-label={O.habits.often}>
+              {FREQ.map((k) => (
+                <button key={k} type="button" role="radio" aria-checked={o.freq === k} className={`chipb${o.freq === k ? " on" : ""}`} onClick={() => setO((c) => ({ ...c, freq: k }))} data-ob-freq={k}>
+                  {O.habits[k]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="ob5-q">{O.habits.days}</p>
+            <div className="ob5-days" role="group" aria-label={O.habits.days}>
+              {O.habits.wd.map((d, k) => {
+                const on = (o.days ?? []).includes(k);
+                return (
+                  <button key={k} type="button" aria-pressed={on} className={`chipb ob5-dayb${on ? " on" : ""}`} onClick={() => setO((c) => ({ ...c, days: on ? (c.days ?? []).filter((x) => x !== k) : [...(c.days ?? []), k].sort() }))} data-ob-day={k}>
+                    {d}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <p className="ob5-q">{O.habits.how}</p>
+            <div className="ob5-chips" role="radiogroup" aria-label={O.habits.how}>
+              {MODES.map((k) => (
+                <button key={k} type="button" role="radio" aria-checked={o.mode === k} className={`chipb${o.mode === k ? " on" : ""}`} onClick={() => setO((c) => ({ ...c, mode: k }))} data-ob-mode={k}>
+                  {O.habits[k]}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {idx === 4 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }} data-ob-food>
+          <div className="ob5-chips" role="group" aria-label={title}>
+            {DIETS.map((k) => {
+              const on = (o.diet ?? []).includes(k);
+              return (
+                <button key={k} type="button" aria-pressed={on} className={`chipb${on ? " on" : ""}`} onClick={() => setO((c) => ({ ...c, diet: on ? (c.diet ?? []).filter((x) => x !== k) : [...(c.diet ?? []), k] }))} data-ob-diet={k}>
+                  {O.food[k]}
+                </button>
+              );
+            })}
+          </div>
+          <div className="card" style={{ padding: 0 }}>
+            <div className="li" style={{ minHeight: 64 }}>
+              <span className="grow" style={{ minWidth: 0 }}>
+                <b>{O.food.shabbat}</b>
+                <br />
+                <span className="tiny">{O.food.shabbatSub}</span>
+              </span>
+              <button type="button" role="switch" aria-checked={!!o.shabbat} aria-label={O.food.shabbat} className={`tgl${o.shabbat ? " on" : ""}`} onClick={() => setO((c) => ({ ...c, shabbat: !c.shabbat }))} data-ob-shabbat />
+            </div>
+          </div>
+        </div>
+      )}
+      {idx === 5 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, opacity: o.learnBudget ? 0.55 : 1 }} data-ob-budget5>
+          <label className="input" style={{ height: 58 }}>
+            <span className="sub" style={{ flex: 1 }}>{O.bud5.household}</span>
+            <button type="button" className="chipb" style={{ height: 34, minWidth: 40 }} onClick={() => setO((x) => ({ ...x, currency: x.currency === "ILS" ? "USD" : x.currency === "USD" ? "EUR" : "ILS" }))} aria-label={o.currency} data-ob-cur={o.currency}>
+              {cur}
+            </button>
+            <input value={fmt(budget)} inputMode="decimal" aria-label={O.budgetLabel} style={{ fontSize: 22, fontWeight: 800, width: 120, textAlign: "end" }} dir="ltr" disabled={!!o.learnBudget} onChange={(e) => setBudget(Number(e.target.value.replace(/[^\d]/g, "")) || 0)} data-ob-budget />
+          </label>
+          <div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+              <p className="ob5-q" style={{ flex: 1, margin: 0 }}>{O.bud5.sm}</p>
+              <b className="num" dir="ltr" data-ob-sm-amount>
+                {cur}
+                {fmt(smAmount)}
+              </b>
+            </div>
+            <input type="range" min={0} max={Math.max(100, budget)} step={50} value={Math.min(smAmount, Math.max(100, budget))} disabled={!!o.learnBudget} onChange={(e) => setO((x) => ({ ...x, smShare: Number(e.target.value) }))} className="ob5-range" style={{ ["--p" as string]: `${smPct}%` }} aria-label={O.bud5.sm} data-ob-sm-share />
+            <p className="tiny" style={{ margin: "4px 0 0" }}>{O.bud5.start}</p>
+          </div>
+          <div>
+            <p className="ob5-q">{O.bud5.monthStarts}</p>
+            <div className="ob5-chips" role="radiogroup" aria-label={O.bud5.monthStarts}>
+              {[1, 10, 15].map((d) => (
+                <button key={d} type="button" role="radio" aria-checked={(o.startDay ?? 1) === d} className={`chipb${(o.startDay ?? 1) === d ? " on" : ""}`} onClick={() => setO((x) => ({ ...x, startDay: d }))} data-ob-start={d}>
+                  {d === 1 ? O.bud5.d1 : d === 10 ? O.bud5.d10 : O.bud5.d15}
+                </button>
+              ))}
+              {otherDay ? (
+                <label className="input" style={{ height: 40, width: 120 }}>
+                  <input inputMode="numeric" value={o.startDay ?? 1} aria-label={O.bud5.other} onChange={(e) => setO((x) => ({ ...x, startDay: Math.max(1, Math.min(28, Number(e.target.value.replace(/[^\d]/g, "")) || 1)) }))} dir="ltr" data-ob-start-other />
+                </label>
+              ) : (
+                <button type="button" className="chipb" onClick={() => setOtherDay(true)} data-ob-start="other">
+                  {O.bud5.other}
+                </button>
+              )}
+            </div>
+          </div>
+          <button type="button" className={`chipb${o.learnBudget ? " on" : ""}`} style={{ alignSelf: "flex-start", height: 40, opacity: 1 }} aria-pressed={!!o.learnBudget} onClick={() => setO((x) => ({ ...x, learnBudget: !x.learnBudget }))} data-ob-learn>
+            {o.learnBudget ? O.bud5.learnOn : O.bud5.learn}
+          </button>
+        </div>
+      )}
+      {idx === 6 &&
         (env.iphone ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }} data-ob-iphone-guide>
             <div className="card">
@@ -742,7 +890,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
             )}
           </div>
         ))}
-      {idx === 5 && (
+      {idx === 7 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div className="card" style={{ padding: "4px 0" }}>
             {[
@@ -773,7 +921,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
           )}
         </div>
       )}
-      {idx === 6 && (
+      {idx === 8 && (
         <div>
           <div className="card stg" style={{ padding: "4px 0" }} data-ob-summary>
             <div className="sumr">
@@ -792,8 +940,24 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
               <span className="ic" style={{ width: 32, height: 32 }}>
                 {ico("M3 7a2 2 0 0 1 2-2h13v4 M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z M16 14h.01", 16)}
               </span>
-              {o.budget ? f(O.sumBudget, { amount: `${cur}${fmt(o.budget)}` }) : O.sumNoBudget}
+              {o.learnBudget ? O.bud5.learnOn : o.budget ? f(O.sumBudget, { amount: `${cur}${fmt(o.budget)}` }) : O.sumNoBudget}
             </div>
+            {/* R18 S5 F1: the home and the shopping habits. */}
+            <div className="sumr" data-ob-sum-home>
+              <span className="ic" style={{ width: 32, height: 32 }}>
+                {ico("M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M22 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.8", 16)}
+              </span>
+              {peopleN === 1 ? O.home5.person : f(O.home5.people, { n: peopleN })}
+              {home5.pets ? ` · ${home5.pets === 1 ? O.home5.petOne : f(O.home5.petN, { n: home5.pets })}` : ""}
+            </div>
+            {(o.freq || (o.days ?? []).length > 0) && (
+              <div className="sumr" data-ob-sum-habits>
+                <span className="ic" style={{ width: 32, height: 32 }}>
+                  {ico("M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M3 10h18 M8 2v4 M16 2v4", 16)}
+                </span>
+                {[o.freq ? O.habits[o.freq] : null, (o.days ?? []).map((d) => O.habits.wd[d]).join(" · ") || null].filter(Boolean).join(" — ")}
+              </div>
+            )}
             <div className="sumr">
               <span className="tile t28 gr-green">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -836,7 +1000,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
             <div className="big-scene">{scene}</div>
           </div>
           <div className="tiny" style={{ textAlign: "center" }}>
-            {idx < 6 ? f(O.stepOf, { n: idx + 1 }) : ""}
+            {idx < 8 ? f(O.stepOf, { n: idx + 1 }) : ""}
           </div>
         </div>
         <div className="main">
@@ -853,6 +1017,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
             <h1 className="qt">{title}</h1>
             <p className="ql">{line}</p>
             <div className="content">{content}</div>
+            {later5}
             <div className="actions">
               {showBack && backBtn("btn lg")}
               <span style={{ flex: 1 }} />
@@ -896,6 +1061,7 @@ export function OnboardingFlow({ initial, joined, name }: { initial: Onboarding;
         <button type="button" className="btn lg pri block" onClick={primary} data-ob-primary>
           {cta}
         </button>
+        {later5}
         {later && (
           <button type="button" className="btn lg ghost block" style={{ height: 44 }} onClick={later_} data-ob-later>
             {O.notNow}

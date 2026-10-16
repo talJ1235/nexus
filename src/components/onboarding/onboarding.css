@@ -38,3 +38,36 @@
  :where(html[data-device=computer]) .nx.ob .actions{margin-top:auto;padding-top:16px;display:flex;gap:10px;align-items:center}
  :where(html[data-device=computer]) .nx.ob input{font-size:14px}
 @media (max-height:760px){:where(html[data-device=computer]) .nx.ob .col{margin-top:28px}:where(html[data-device=computer]) .nx.ob .col .content{margin-top:20px}:where(html[data-device=computer]) .nx.ob .big-scene{transform:scale(1.25)}}
+
+/* ---------- R18 S5 F2–F5 (board Onboarding-v2-phone): your home · how you shop · food at home · budget ---------- */
+.ob5-scene { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 300px; max-width: 86vw; height: 170px; }
+.ob5-cap { position: absolute; top: 0; inset-inline-start: 0; font-size: 13px; font-weight: 700; color: var(--ink2); }
+.ob5-figs { display: flex; align-items: flex-end; justify-content: center; gap: 10px; height: 110px; margin-top: 20px; }
+.ob5-fig { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.ob5-fig i { display: block; border-radius: 50%; }
+.ob5-fig b { display: block; border-radius: 24px 24px 6px 6px; }
+.ob5-a i { width: 30px; height: 30px; background: #3a3a38; } .ob5-a b { width: 46px; height: 62px; background: #3a3a38; }
+.ob5-k i { width: 22px; height: 22px; background: #2f6fd1; } .ob5-k b { width: 34px; height: 42px; background: #2f6fd1; }
+.ob5-b i { width: 15px; height: 15px; background: #7aa7ff; } .ob5-b b { width: 22px; height: 24px; background: #7aa7ff; }
+.ob5-p i { width: 12px; height: 12px; background: #c98a12; } .ob5-p b { width: 18px; height: 20px; background: #c98a12; border-radius: 10px 10px 4px 4px; }
+:where(.dark) .ob5-a i, :where(.dark) .ob5-a b { background: #d6d6d3; }
+.ob5-week { display: flex; gap: 6px; }
+.ob5-day { display: grid; place-items: center; width: 38px; height: 54px; border-radius: 12px; background: var(--s2); font-size: 13px; font-weight: 700; color: var(--ink2); transition: background-color 200ms ease, color 200ms ease, transform 200ms var(--ease-out); }
+.ob5-day.on { background: var(--ink); color: var(--bg); transform: translateY(-4px); }
+.ob5-note { font-size: 13.5px; font-weight: 700; text-align: center; }
+.ob5-plate { display: grid; place-items: center; width: 150px; height: 150px; border-radius: 50%; background: var(--raised); box-shadow: inset 0 0 0 1px var(--line), 0 10px 30px -14px rgba(0, 0, 0, 0.3); }
+.ob5-plate-in { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 112px; height: 112px; border-radius: 50%; background: var(--s2); }
+.ob5-tag { padding: 2px 9px; border-radius: 999px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--line); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.ob5-donut { position: relative; display: grid; place-items: center; width: 130px; height: 130px; border-radius: 50%; background: conic-gradient(#2f9a58 var(--p, 0%), var(--s3) 0); transition: background 300ms var(--ease-out); }
+.ob5-donut::before { content: ""; position: absolute; inset: 18px; border-radius: 50%; background: var(--raised); }
+.ob5-donut b { position: relative; font-size: 24px; font-weight: 800; }
+.ob5-legend { display: flex; gap: 14px; font-size: 12.5px; font-weight: 700; }
+.ob5-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.ob5-legend i { width: 10px; height: 10px; border-radius: 3px; }
+.ob5-q { margin: 0 0 8px; font-size: 13.5px; font-weight: 700; }
+.ob5-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ob5-chips .chipb { height: 40px; }
+.ob5-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.ob5-dayb { height: 44px; padding: 0; justify-content: center; border-radius: 999px; }
+.ob5-range { width: 100%; height: 28px; accent-color: #2f9a58; }
+@media (prefers-reduced-motion: reduce) { .ob5-day, .ob5-donut { transition: none; } .ob5-day.on { transform: none; } }

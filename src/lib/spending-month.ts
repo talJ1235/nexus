@@ -5,6 +5,10 @@
 
 /** The space's budget month start day (F5; space pref, 1–28; missing = 1, calendar months). */
 export const BUDGET_START_KEY = "pref:budget-start";
+/** F5: of the household budget, the supermarket's part (space pref, an amount in the space's currency). */
+export const BUDGET_SM_KEY = "pref:budget-sm";
+/** F4: the home's food choices + Shabbat at home, noted on the space ({ diet, shabbat }). */
+export const HOME_FOOD_KEY = "pref:home-food";
 
 export type TripIn = { id: string; userId: string; chain: string | null; branch: string | null; finishedAt: number; total: number | null; currency: string; items: { productKey: string; title: string; section: string | null; price: number | null; qty: number; state: "bought" | "not_found" }[] };
 export type ProductIn = { id: string; title: string; at: number; value: number; shipping: number; store: string | null };

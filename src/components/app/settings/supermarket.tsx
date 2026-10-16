@@ -28,6 +28,7 @@ import { DEFAULT_ORDER, cleanOrder } from "@/lib/grocery/sections";
 import { typeOf } from "@/lib/grocery/classify";
 import { I, P, SectionHead } from "./ui";
 import type { PageProps } from "./shell";
+import { SmHabits } from "./household";
 
 // R18 S2 F1 — Settings → Supermarket (boards Settings-phone / Settings-desktop): only the main store (+ also shop at),
 // the section order, the products you hid (Suggest again) and "What Nexus learned". No draft switch, no colours switch, no
@@ -215,6 +216,10 @@ export function SupermarketPage({ go, phone }: PageProps) {
             <I d={P.chevron} size="sm" className="flip" />
           </button>
         </div>
+        {/* R18 S5 F6: how often, the usual days, store / online. */}
+        <div className="card" style={{ padding: 16 }}>
+          <SmHabits />
+        </div>
         <p className="tiny" style={{ margin: "0 4px" }}>
           {L.foot}
         </p>
@@ -339,6 +344,10 @@ export function SupermarketPage({ go, phone }: PageProps) {
             {L.learned}
           </button>
         </div>
+      </div>
+      <div className={rowCls}>
+        <b className="block text-[15px]">{t.sx.hh.habits}</b>
+        <SmHabits />
       </div>
       <p className="tiny" style={{ marginTop: 8 }}>
         {L.foot}

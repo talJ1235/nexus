@@ -10,6 +10,7 @@ import { initialOf } from "@/lib/initial";
 /** The boards' line icons (24-grid paths, stroked). */
 export const P = {
   // R18 S2 F1: Settings → Supermarket (a basket), its order, products you hid, what Nexus learned.
+  household: "M3 11l9-7 9 7 M5 9.5V20h14V9.5 M9.5 20v-5.5h5V20",
   supermarket: "M5 8h14l-1.5 11a2 2 0 0 1-2 1.7H8.5a2 2 0 0 1-2-1.7z M9 8l3-5 3 5",
   order: "M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01",
   smHidden: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M5.6 5.6l12.8 12.8",

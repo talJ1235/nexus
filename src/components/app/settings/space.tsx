@@ -31,6 +31,7 @@ import { deepOf, gradientOf, isSpacePhoto } from "../spaces/look";
 import { avatarColor, Facepile, openSpaces, reloadInto, SpaceLook, usePresence } from "../spaces/space-ui";
 import type { PageProps } from "./shell";
 import { SmHiddenPage, SmLearnedPage, SupermarketPage } from "./supermarket";
+import { BudgetShape, HouseholdPage } from "./household";
 import { Av, I, Li, P, SectionHead, Sel, Toggle } from "./ui";
 import { useDevice } from "@/components/ui/use-device";
 
@@ -551,6 +552,8 @@ function BudgetPage() {
           ))}
         </div>
       </div>
+      {/* R18 S5 F6: the supermarket's share, the month's start day, "learn it from my first month". */}
+      <BudgetShape ro={ro} />
       {s.space?.kind === "shared" && <BudgetRecipients />}
       <div className="card">
         <Li icon={P.bell} tone="warn" title={t.sx.warn80}>
@@ -769,7 +772,7 @@ function SpaceConfirms({ confirm, setConfirm, count, adminReauth, onDone }: { co
   );
 }
 
-export const SPACE_PAGES = { general: GeneralPage, people: PeoplePage, budget: BudgetPage, supermarket: SupermarketPage, smHidden: SmHiddenPage, smLearned: SmLearnedPage, danger: DangerPage };
+export const SPACE_PAGES = { general: GeneralPage, people: PeoplePage, household: HouseholdPage, budget: BudgetPage, supermarket: SupermarketPage, smHidden: SmHiddenPage, smLearned: SmLearnedPage, danger: DangerPage };
 
 /**
  * R17 S3 N2 (board Settings-notify-phone, "space budget"): who gets this space's budget alerts at 80 % / 100 %. The owner

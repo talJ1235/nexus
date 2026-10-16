@@ -6,10 +6,11 @@ import { requireCtx, type Ctx } from "@/lib/ctx";
 import { noteActivity } from "@/lib/activity";
 import { monthKeyIn, BUDGET_KV_PREFIX } from "@/lib/budget";
 import { Scoped } from "@/lib/db-scoped";
-import { spacePrefSet, userPrefGet, userPrefSet } from "@/lib/db-scoped/prefs";
+import { spacePrefGet, spacePrefSet, userPrefGet, userPrefSet } from "@/lib/db-scoped/prefs";
 import { presetItems, serialize } from "@/lib/home-layout";
 import { HOME_LAYOUT_KEY, homeLayoutKey } from "@/lib/home-prefs";
-import { freshOnboarding, ONBOARDING_KEY, parseOnboarding, presetFor, STEPS, WHO, WHY, type Onboarding } from "@/lib/onboarding";
+import { DIETS, FREQ, freshOnboarding, MODES, ONBOARDING_KEY, parseOnboarding, presetFor, STEPS, WHO, WHY, type Onboarding } from "@/lib/onboarding";
+import { BUDGET_SM_KEY, BUDGET_START_KEY, HOME_FOOD_KEY } from "@/lib/spending-month";
 import { createSharedSpace, createSpaceInvite, personalSpaceId, updateSpace } from "@/lib/spaces";
 import { hitLimit } from "@/lib/auth/limits";
 
@@ -51,6 +52,20 @@ const Patch = z
     chains: z.array(z.string().min(1).max(40)).max(12),
     branch: z.string().trim().max(120).nullable(),
     several: z.boolean(),
+    // R18 S5 F2–F5
+    adults: z.number().int().min(1).max(12),
+    kids: z.number().int().min(0).max(12),
+    babies: z.number().int().min(0).max(12),
+    pets: z.number().int().min(0).max(12),
+    freq: z.enum(FREQ).nullable(),
+    days: z.array(z.number().int().min(0).max(6)).max(7),
+    mode: z.enum(MODES).nullable(),
+    diet: z.array(z.enum(DIETS)).max(DIETS.length),
+    shabbat: z.boolean(),
+    smShare: z.number().int().min(0).max(1_000_000).nullable(),
+    startDay: z.number().int().min(1).max(28),
+    learnBudget: z.boolean(),
+    quick: z.enum(["done", "dismissed"]),
   })
   .partial()
   .strict();
@@ -59,11 +74,20 @@ const Patch = z
 export async function saveOnboarding(raw: z.input<typeof Patch>): Promise<Onboarding> {
   const ctx = await me();
   const p = Patch.parse(raw);
-  const cur = await load(ctx);
-  const next: Onboarding = { ...cur, ...p, status: cur.status === "done" || cur.status === "skipped" ? "active" : cur.status };
+  // Someone who never went through onboarding (an account from before it) and edits an answer in Settings stays out of
+  // /welcome: answers without a step start from a finished set.
+  const stored = parseOnboarding(await userPrefGet(ctx.user.id, ONBOARDING_KEY));
+  const cur = stored ?? (p.step == null ? { ...freshOnboarding(), status: "done" as const } : freshOnboarding());
+  // Saving a step reopens a finished onboarding (Settings → Getting started); answers alone (R18 S5's quick questions,
+  // Settings → Household) leave it finished.
+  const next: Onboarding = { ...cur, ...p, status: p.step != null && (cur.status === "done" || cur.status === "skipped") ? "active" : cur.status };
   const personal = await personalSpaceId(ctx.user.id);
   if (p.why && personal) await applyPreset(ctx.user.id, personal, p.why, next.sharedSpaceId);
-  if ((p.budget !== undefined || p.currency) && personal) await applyBudget(ctx.user.id, personal, next.budget, next.currency);
+  if ((p.budget !== undefined || p.currency || p.learnBudget !== undefined) && personal) await applyBudget(ctx.user.id, personal, next.learnBudget ? null : next.budget, next.currency);
+  // R18 S5 F5: the month's start day and the supermarket's part of the budget live on the space (Spending, Settings).
+  if ((p.startDay !== undefined || p.smShare !== undefined) && personal) await applyBudgetShape(ctx.user.id, personal, next);
+  // F4: the food choices are noted on the space (kosher / mehadrin / organic: nothing to filter on yet).
+  if ((p.diet !== undefined || p.shabbat !== undefined) && personal) await spacePrefSet(new Scoped({ spaceId: personal, userId: ctx.user.id }), HOME_FOOD_KEY, JSON.stringify({ diet: next.diet ?? [], shabbat: next.shabbat ?? false }));
   if (p.branch !== undefined || p.several !== undefined) await applyStores(ctx, next);
   if (p.step != null && p.step > cur.step) noteActivity({ userId: ctx.user.id, spaceId: ctx.space.id }, "onboarding_step", p.step - cur.step);
   return store(ctx, next);
@@ -92,6 +116,32 @@ async function applyStores(ctx: Ctx, o: Onboarding) {
   // A main store picked before (a chain change) loses its default; the branch typed for it moves with the choice.
   await G.saveStore(s, ids[0], branch, { isDefault: true });
   for (const c of ids.slice(1)) if (!existing.some((x) => x.chain === c)) await G.saveStore(s, c, "", { isDefault: false });
+}
+
+/** R18 S5 F6: Space → Budget — the current space's month start day and supermarket share (space prefs). */
+export async function budgetShape(): Promise<{ startDay: number; smShare: number | null }> {
+  const ctx = await requireCtx("view");
+  const s = new Scoped({ spaceId: ctx.space.id, userId: ctx.user.id });
+  const [start, sm] = await Promise.all([spacePrefGet(s, BUDGET_START_KEY), spacePrefGet(s, BUDGET_SM_KEY)]);
+  const d = Number(start);
+  const v = sm == null ? NaN : Number(sm);
+  return { startDay: Number.isInteger(d) && d >= 1 && d <= 28 ? d : 1, smShare: Number.isFinite(v) && v >= 0 ? Math.round(v) : null };
+}
+
+const Shape = z.object({ startDay: z.number().int().min(1).max(28), smShare: z.number().int().min(0).max(1_000_000).nullable() }).partial().strict();
+
+export async function saveBudgetShape(raw: z.input<typeof Shape>) {
+  const ctx = await requireCtx("edit");
+  const p = Shape.parse(raw);
+  const s = new Scoped({ spaceId: ctx.space.id, userId: ctx.user.id });
+  if (p.startDay !== undefined) await spacePrefSet(s, BUDGET_START_KEY, p.startDay > 1 ? String(p.startDay) : null);
+  if (p.smShare !== undefined) await spacePrefSet(s, BUDGET_SM_KEY, p.smShare != null ? String(p.smShare) : null);
+}
+
+async function applyBudgetShape(userId: string, personal: string, o: Onboarding) {
+  const s = new Scoped({ spaceId: personal, userId });
+  await spacePrefSet(s, BUDGET_START_KEY, o.startDay && o.startDay > 1 ? String(o.startDay) : null);
+  await spacePrefSet(s, BUDGET_SM_KEY, o.smShare != null ? String(o.smShare) : null);
 }
 
 async function applyBudget(userId: string, personal: string, cap: number | null, currency: Onboarding["currency"]) {

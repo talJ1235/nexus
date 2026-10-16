@@ -98,6 +98,7 @@ const VIEW_OK = new Set([
   // R17 E4: personal account actions (delete / restore your own account) — any role, about the caller only.
   // R17 H: onboarding — the caller's own answers and personal space (a shared Home they create is theirs).
   "onboarding-actions.ts#me",
+  "onboarding-actions.ts#budgetShape", // R18 S5 F6: reads the space's month start day / supermarket share
   "account-actions.ts#deletionBlocks", "account-actions.ts#requestAccountDeletion", "account-actions.ts#restoreMyAccount",
   // R17 P3: your own display name (Settings → Profile), whatever your role in the space.
   "account-actions.ts#saveMyName",

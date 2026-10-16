@@ -1,5 +1,7 @@
 import "server-only";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { dietAllows } from "@/lib/grocery/diet";
+import type { Diet } from "@/lib/onboarding";
 import { nanoid } from "nanoid";
 import { schema } from "@/db";
 import { classifyLocal } from "@/lib/grocery/classify";
@@ -355,18 +357,27 @@ export async function prefsOf(s: Scoped) {
   return new Map((await s.select(schema.suggestDismiss)).map((r) => [r.productKey, prefOf(r)]));
 }
 
-/** The cold-start basket for this home: sized by the onboarding answer; baby / pet items once the home bought some. */
-export function basketForHome(history: History, who: string | null | undefined, locale?: string) {
+/** R18 S5 F2 / F4: what the person said about the home in onboarding (counts, food choices, Shabbat at home). */
+export type HomeAnswers = { people?: number; babies?: number; pets?: number; diet?: Diet[]; shabbat?: boolean };
+
+/** The cold-start basket for this home: sized by the onboarding answers (people, babies, pets; R18 S5), baby / pet items
+ *  also once the home bought some; never what the home's food choices rule out. */
+export function basketForHome(history: History, who: string | null | undefined, locale?: string, home: HomeAnswers = {}) {
   const sections = new Set([...history.products.values()].map((p) => p.section));
-  return basketFor({ who, baby: sections.has("baby"), pets: sections.has("pets"), locale });
+  return basketFor({ who, people: home.people, baby: sections.has("baby") || (home.babies ?? 0) > 0, pets: sections.has("pets") || (home.pets ?? 0) > 0, locale }).filter((b) => dietAllows(b.productKey, home.diet));
 }
 
-export async function suggestFor(s: Scoped, o: { now?: number; tz: string; locale?: string; who?: string | null }): Promise<Suggestion[]> {
+/** F4: suggestions within the home's food choices; with Shabbat / holidays not at home, no Shabbat or holiday nudges. */
+export function forThisHome(list: Suggestion[], home: HomeAnswers = {}) {
+  return list.filter((x) => dietAllows(x.productKey, home.diet) && !(home.shabbat === false && (x.reasonKey === "shabbat" || x.reasonKey === "holiday")));
+}
+
+export async function suggestFor(s: Scoped, o: { now?: number; tz: string; locale?: string; who?: string | null; home?: HomeAnswers }): Promise<Suggestion[]> {
   const now = o.now ?? Date.now();
   const [{ history, baskets, trips }, list, prefs] = await Promise.all([historyOf(s, o.tz), supermarketList(s), prefsOf(s)]);
   const onList = new Set(list.map((i) => i.productKey).filter((k): k is string => !!k));
   const listTitles = new Map(list.filter((i) => i.productKey).map((i) => [i.productKey!, i.title]));
-  return suggest({ history, onList, listTitles, prefs, baskets, now, tz: o.tz, locale: o.locale, basket: basketForHome(history, o.who, o.locale), trips });
+  return forThisHome(suggest({ history, onList, listTitles, prefs, baskets, now, tz: o.tz, locale: o.locale, basket: basketForHome(history, o.who, o.locale, o.home), trips }), o.home);
 }
 
 // ---------- S2 A2: everything the Supermarket tab shows besides the list rows ----------
@@ -413,7 +424,7 @@ export async function openTripsOf(s: Scoped, now = Date.now()): Promise<OpenTrip
   return out.sort((a, b) => b.startedAt - a.startedAt);
 }
 
-export async function homeState(s: Scoped, o: { tz: string; locale?: string; now?: number; who?: string | null }): Promise<HomeState> {
+export async function homeState(s: Scoped, o: { tz: string; locale?: string; now?: number; who?: string | null; home?: HomeAnswers }): Promise<HomeState> {
   const now = o.now ?? Date.now();
   const [stores, { purchases, trips, dayTrips, raw }, list, prefs, tripRows] = await Promise.all([
     storesOf(s),
@@ -438,7 +449,7 @@ export async function homeState(s: Scoped, o: { tz: string; locale?: string; now
   for (const [k, ms] of Object.entries(spans)) if (ms.length >= 2) visits[k].minutes = Math.max(5, Math.round([...ms].sort((a, b) => a - b)[Math.floor(ms.length / 2)] / 5) * 5);
   const onList = new Set(list.map((i) => i.productKey).filter((k): k is string => !!k));
   const listTitles = new Map(list.filter((i) => i.productKey).map((i) => [i.productKey!, i.title]));
-  const suggestions = suggest({ history, onList, listTitles, prefs, baskets: trips.map((t) => t.keys), now, tz: o.tz, locale: o.locale, basket: basketForHome(history, o.who, o.locale), trips: trips.length });
+  const suggestions = forThisHome(suggest({ history, onList, listTitles, prefs, baskets: trips.map((t) => t.keys), now, tz: o.tz, locale: o.locale, basket: basketForHome(history, o.who, o.locale, o.home), trips: trips.length }), o.home);
   const prices: Record<string, number> = {};
   // Prices for the estimate come from every purchase (forgetting is about learning, not about what things cost).
   for (const p of [...raw.purchases].sort((a, b) => a.at - b.at)) if (p.price != null && p.price > 0) prices[p.productKey] = p.price;
@@ -733,4 +744,10 @@ export async function productHistory(s: Scoped, productKey: string) {
     rows: mine.slice(0, 8).map((p) => ({ at: p.at, chain: p.chain ?? null, branch: p.branch ?? null, price: p.price ?? null })),
     cheapest: cheapest ? { chain: cheapest.chain ?? null, branch: cheapest.branch ?? null, price: cheapest.price! } : null,
   };
+}
+
+/** R18 S5 F5: what the space's finished supermarket trips came to in [from, to) (budget alerts count them too). */
+export async function supermarketSpent(s: Scoped, from: number, to: number) {
+  const rows = await s.pick({ total: schema.trip.total, at: schema.trip.finishedAt }, schema.trip, isNotNull(schema.trip.finishedAt));
+  return rows.reduce((a, r) => a + (r.at != null && r.at >= from && r.at < to && r.total != null ? r.total : 0), 0);
 }

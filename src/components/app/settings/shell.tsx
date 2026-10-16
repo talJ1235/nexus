@@ -25,7 +25,8 @@ import { isPhone, useDevice } from "@/components/ui/use-device";
 
 export const YOU = ["profile", "account", "display", "ai", "calendar", "memory", "data"] as const;
 // R18 S2 F1: Supermarket (the space's stores, order, hidden products, what Nexus learned) after Budget.
-export const SPACE = ["general", "people", "budget", "supermarket", "danger"] as const;
+// R18 S5 F6: Household (who, people at home, food) after People.
+export const SPACE = ["general", "people", "household", "budget", "supermarket", "danger"] as const;
 /** Sub-pages and their parent. */
 const SUB: Record<string, string> = { activity: "account", reports: "account", notifications: "account", smHidden: "supermarket", smLearned: "supermarket" };
 export type SectionId = (typeof YOU)[number] | (typeof SPACE)[number] | "activity" | "reports" | "notifications" | "smHidden" | "smLearned";

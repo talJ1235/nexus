@@ -439,3 +439,27 @@ function Against({ m, money }: { m: MonthSpend; money: (n: number) => string }) 
     </section>
   );
 }
+
+/** R18 S5 F5: the last closed month's total (supermarket + products) — "learn the budget from my first month". `on` =
+ *  only then is anything fetched; null until known or when there's no closed month with spending yet. */
+export function useLastMonthTotal(on: boolean) {
+  const s = useStore();
+  const [data, setData] = useState<Data | null>(null);
+  useEffect(() => {
+    if (!on || s.offlineAt != null) return;
+    let live = true;
+    void smSpending().then((d) => live && setData(d), () => {});
+    return () => {
+      live = false;
+    };
+  }, [on, s.offlineAt]);
+  return useMemo(() => {
+    if (!on || !data) return null;
+    const key = shiftKey(monthOf(s.clock.now, data.startDay, s.clock.tz), -1);
+    const products: ProductIn[] = s.items
+      .filter((i) => i.status !== "to_buy")
+      .map((i) => ({ id: i.id, title: i.title, at: spendDate(i) ?? i.updatedAt, value: lineTotal(i, s.rates, s.currency) ?? 0, shipping: 0, store: null }));
+    const m = spendingMonth({ key, startDay: data.startDay, tz: s.clock.tz, now: s.clock.now, trips: data.trips, products, cap: null, toCur: (v, cur) => convert(v, cur, s.currency, s.rates) });
+    return m.total > 0 ? m.total : null;
+  }, [on, data, s.clock, s.items, s.rates, s.currency]);
+}

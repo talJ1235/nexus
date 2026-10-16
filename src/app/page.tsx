@@ -38,7 +38,7 @@ export default async function Home({ searchParams, settings, inbox }: { searchPa
   const tz = decodeURIComponent(jar.get("nexus_tz")?.value ?? "").slice(0, 60) || null;
   // `now` + `tz`: Home's first paint matches on server and client (store.tsx Clock). A server component renders once.
   // eslint-disable-next-line react-hooks/purity
-  const boot: AppBoot = { currency, ...prefs, settings: settings ?? null, inbox: !!inbox, view: typeof v === "string" ? v : null, filter: typeof f === "string" ? f : null, aiEnabled: aiEnabled(), now: Date.now(), tz: tz && isTimeZone(tz) ? tz : null, why: ob?.why ?? null, who: ob?.who ?? null };
+  const boot: AppBoot = { currency, ...prefs, settings: settings ?? null, inbox: !!inbox, view: typeof v === "string" ? v : null, filter: typeof f === "string" ? f : null, aiEnabled: aiEnabled(), now: Date.now(), tz: tz && isTimeZone(tz) ? tz : null, why: ob?.why ?? null, who: ob?.who ?? null, obQuick: ob?.status === "done" && !ob.quick && ob.adults == null && ob.kids == null && ob.freq == null && !ob.days?.length && !ob.diet?.length && ob.mode == null, obLearnBudget: !!ob?.learnBudget };
   // The user's language and currency for what the cron writes (it has no cookies).
   const locale = jar.get(LOCALE_COOKIE)?.value === "he" ? "he" : "en";
   after(() => rememberOwner(ctx.user.id, locale, currency).catch(() => {}));

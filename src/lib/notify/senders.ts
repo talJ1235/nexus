@@ -15,7 +15,7 @@ import { defaultStore, historyOf, refreshSuggestedOrder, suggestFor, supermarket
 import { kvGet, kvSet } from "../kv";
 import { type DraftData, type SentData, type TripAddData } from "./kinds";
 import { draftAllowed } from "../grocery/staples";
-import { ONBOARDING_KEY, parseOnboarding } from "../onboarding";
+import { ONBOARDING_KEY, parseOnboarding, people } from "../onboarding";
 import { isQuiet } from "./schedule";
 import { local, nextLocal } from "./schedule";
 
@@ -213,7 +213,9 @@ export async function budgetAlerts(now = Date.now()) {
     if (!cap?.cap) continue;
     const fc = monthForecast({ items: data.items, altGroups: data.altGroups, rates: data.rates, currency: sp.currency, from: monthStartIn(key, tz), to: monthStartIn(nextMonthKey(key), tz), cap, includeNormal: false });
     if (!fc.cap) continue;
-    const used = fc.spent + fc.committed;
+    // R18 S5 F5: the household budget covers the supermarket too — this month's finished trips count.
+    const { supermarketSpent } = await import("../db-scoped/grocery");
+    const used = fc.spent + fc.committed + (await supermarketSpent(s, monthStartIn(key, tz), monthStartIn(nextMonthKey(key), tz)));
     const pct = used >= fc.cap ? 100 : used >= fc.cap * 0.8 ? 80 : 0;
     if (!pct) continue;
     const to = await budgetRecipients(spaceId, sp.ownerId);
@@ -307,7 +309,10 @@ export async function eveningDrafts(now = Date.now()) {
       const s = new Scoped({ spaceId, userId, by: "system" });
       const { history } = await historyOf(s, p.tz);
       const tomorrow = local(now + DAY, p.tz);
-      if (!history.usualDay || history.usualDay.weekday !== tomorrow.weekday) continue;
+      // R18 S5 F3: before ≥ 3 trips teach the usual day, the days the person gave in onboarding ("How you shop").
+      const ob = parseOnboarding(await userPrefGet(userId, ONBOARDING_KEY));
+      const usualWeekday = history.usualDay?.weekday ?? (ob?.days?.includes(tomorrow.weekday) ? tomorrow.weekday : null);
+      if (usualWeekday == null || usualWeekday !== tomorrow.weekday) continue;
       const day = ymd(now + DAY, p.tz);
       const key = `draft:${spaceId}:${day}`;
       if (await notificationByGroup(userId, key)) continue;
@@ -315,13 +320,14 @@ export async function eveningDrafts(now = Date.now()) {
       const cacheKey = `sm:draft:${spaceId}:${day}`;
       let draft = parse<{ items: number; suggestions: unknown[] }>(await kvGet(cacheKey));
       if (!draft) {
-        const who = parseOnboarding(await userPrefGet(userId, ONBOARDING_KEY))?.who ?? null;
-        const [list, sug] = await Promise.all([supermarketList(s), suggestFor(s, { now, tz: p.tz, who })]);
+        const who = ob?.who ?? null;
+        const home = ob ? { people: ob.adults != null ? people(ob) : undefined, babies: ob.babies, pets: ob.pets, diet: ob.diet, shabbat: ob.shabbat } : {};
+        const [list, sug] = await Promise.all([supermarketList(s), suggestFor(s, { now, tz: p.tz, who, home })]);
         draft = { items: list.length, suggestions: sug };
         await kvSet(cacheKey, JSON.stringify({ ...draft, at: now }));
       }
       const gate = await draftGateOf(spaceId, userId);
-      if (!draftAllowed({ usualWeekday: history.usualDay.weekday, tomorrowWeekday: tomorrow.weekday, suggestions: draft.suggestions.length, listItems: draft.items, ...gate })) continue;
+      if (!draftAllowed({ usualWeekday, tomorrowWeekday: tomorrow.weekday, suggestions: draft.suggestions.length, listItems: draft.items, ...gate })) continue;
       const data: DraftData = { space: sp.name, items: draft.items, suggested: draft.suggestions.length, day };
       await notify([userId], "draft", key, data, { actor: null, spaceId, now });
       n++;

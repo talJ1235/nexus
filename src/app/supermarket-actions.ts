@@ -11,7 +11,7 @@ import * as B from "@/lib/db-scoped/brands";
 import { spacePrefGet, userPrefGet, userPrefLike, userPrefSet } from "@/lib/db-scoped/prefs";
 import { BUDGET_START_KEY } from "@/lib/spending-month";
 import { TRIP_COLOR_KEYS, TRIP_LOOK_KEY, TRIP_STYLES, tripLookKey } from "@/lib/grocery/trip-look";
-import { ONBOARDING_KEY, parseOnboarding } from "@/lib/onboarding";
+import { nextShopDay, ONBOARDING_KEY, parseOnboarding, people } from "@/lib/onboarding";
 import { kvGet, kvSet } from "@/lib/kv";
 import { noteActivity } from "@/lib/activity";
 import { aiAllowance, aiGate, aiUse, aiUseOf, recordAiUsage } from "@/lib/ai-gate";
@@ -143,20 +143,29 @@ export async function addParts(parts: z.input<typeof PartsZ>) {
 
 const SM_LAYOUT_KEY = "pref:sm-layout";
 
-/** The onboarding "who" answer (me / partner / family) — sizes the cold-start basket. */
+/** The onboarding "who" answer (me / partner / family) — sizes the cold-start basket. R18 S5: + the home's counts and
+ *  food choices (`home`), and the usual shopping days (F3, for Next shop's day before Nexus learns it). */
+async function onboardingOf(userId: string) {
+  const o = parseOnboarding(await userPrefGet(userId, ONBOARDING_KEY));
+  return {
+    who: o?.who ?? null,
+    home: o ? { people: o.adults != null ? people(o) : undefined, babies: o.babies, pets: o.pets, diet: o.diet, shabbat: o.shabbat } : {},
+    days: o?.days ?? [],
+  };
+}
 async function whoOf(userId: string) {
-  return parseOnboarding(await userPrefGet(userId, ONBOARDING_KEY))?.who ?? null;
+  return (await onboardingOf(userId)).who;
 }
 
 /** Store chip, section order, suggestions, prices for the estimate, this month's trips, the person's rows/tiles. */
 export async function supermarketHome(locale?: "he" | "en") {
   const ctx = await requireCtx("view");
   const { tz } = await notifyPrefs(ctx.user.id);
-  const who = await whoOf(ctx.user.id);
-  const [state, layout, offer, hint, tripLooks] = await Promise.all([G.homeState(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who }), userPrefGet(ctx.user.id, SM_LAYOUT_KEY), G.routineOffer(scoped(ctx)), userPrefGet(ctx.user.id, SM_SWIPE_HINT_KEY), userPrefLike(ctx.user.id, TRIP_LOOK_KEY)]);
+  const { who, home, days } = await onboardingOf(ctx.user.id);
+  const [state, layout, offer, hint, tripLooks] = await Promise.all([G.homeState(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who, home }), userPrefGet(ctx.user.id, SM_LAYOUT_KEY), G.routineOffer(scoped(ctx)), userPrefGet(ctx.user.id, SM_SWIPE_HINT_KEY), userPrefLike(ctx.user.id, TRIP_LOOK_KEY)]);
   // E1: the routine Nexus spotted (kept / turned down ones don't come back).
   const routine = offer ? { id: offer.id, day: offer.routineDay ?? 0, trips: offer.routineTrips ?? 0, items: offer.items.length } : null;
-  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const), routine, swipeHint: hint !== "seen", tripLooks };
+  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const), routine, swipeHint: hint !== "seen", tripLooks, usualDay: state.usualDay ?? usualFromDays(days, tz) };
 }
 
 /** R18 S5 B2: the start screen's look — for one store ("chain|branch") or for every store (clears the per-store pick). */
@@ -175,6 +184,12 @@ export async function clearTripLook(store: string) {
 
 /** R18 S5 A2: the list's swipe hint (first row peeks + a line naming both directions) shows once per person. */
 const SM_SWIPE_HINT_KEY = "pref:sm-swipe-hint";
+/** F3: before ≥ 3 trips teach the usual day, the next of the days given in onboarding (evening hour). */
+function usualFromDays(days: number[], tz: string) {
+  const wd = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(new Date()));
+  const d = nextShopDay(days, wd);
+  return d == null ? null : { weekday: d, hour: 18 };
+}
 export async function seenSwipeHint() {
   const ctx = await requireCtx("view");
   await userPrefSet(ctx.user.id, SM_SWIPE_HINT_KEY, "seen");
@@ -191,8 +206,8 @@ export async function setSupermarketLayout(layout: "rows" | "tiles") {
 /** `locale` = the reader's language (holiday products are named in it). */
 export async function supermarketSuggestions(locale?: "he" | "en") {
   const ctx = await requireCtx("view");
-  const [{ tz }, who] = await Promise.all([notifyPrefs(ctx.user.id), whoOf(ctx.user.id)]);
-  return G.suggestFor(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who });
+  const [{ tz }, { who, home }] = await Promise.all([notifyPrefs(ctx.user.id), onboardingOf(ctx.user.id)]);
+  return G.suggestFor(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who, home });
 }
 
 const PickZ = z.object({ productKey: Key, title: Title, qty: z.number().int().min(1).max(999), amount: z.number().nullable(), unit: z.string().max(4).nullable(), section: z.string().max(20), art: z.string().max(20).nullable() }).strip();

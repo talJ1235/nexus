@@ -28,6 +28,7 @@ import { useStore, type HomeSection } from "./store";
 import { Card, useFitRows } from "./home-card";
 import { HomeCards, WIDGET_ICON, type RenderWidget } from "./home-grid";
 import { BudgetWidget, DueWidget, NextShopWidget } from "./home-shop-widgets";
+import { HomeOnboardCards } from "./home-onboard-cards";
 import { useSmHome } from "./supermarket/data";
 import { ActivityWidget, ByCategoryWidget, DropsWidget, MostBoughtWidget, NextDeliveryWidget, VsLastWidget } from "./home-extra";
 import { rowsFor, type WidgetId } from "@/lib/home-layout";
@@ -224,6 +225,8 @@ export function HomeView() {
       <HomeHeader model={model} onCustomize={() => setEditReq((n) => n + 1)} />
       {/* R18 S3 C4: the running trip stays pinned at the top; the next shop is a widget (first by default). */}
       <NextShopCard part="trip" mineOnly={s.homeLayout.items.some((x) => x.id === "nextshop")} />
+      {/* R18 S5 F1 / F5: "3 quick questions", the budget learned from the first month. */}
+      <HomeOnboardCards />
       <HomeCards layout={s.homeLayout} render={render} onSave={s.setHomeLayout} stagger={stagger} shared={shared} editRequest={editReq} />
     </div>
   );
@@ -1825,6 +1828,7 @@ function HomeEmpty({ model }: { model: HomeModel }) {
         <p className="mt-2 text-[15px] font-semibold">{t.dash.emptyTitle}</p>
         <p className="mt-0.5 max-w-[52ch] text-[13.5px] text-muted">{t.dash.emptyHint}</p>
       </div>
+      <HomeOnboardCards />
       <NextShopCard />
       <div className="grid grid-cols-2 gap-2.5 desk:grid-cols-4 desk:gap-3.5">
         {actions.map((a, k) => (

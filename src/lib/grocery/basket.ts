@@ -56,11 +56,12 @@ const ROWS: Row[] = [
 ];
 
 export type BasketItem = { productKey: string; title: string; qty: number; amount: number | null; unit: string | null; section: string; art: string | null };
-export type BasketFor = { who?: string | null; baby?: boolean; pets?: boolean; locale?: string };
+export type BasketFor = { who?: string | null; baby?: boolean; pets?: boolean; locale?: string; /** R18 S5 F2: people at home (overrides `who`'s size). */ people?: number };
 
 /** The basket for this home (onboarding `who`: me / partner / family). Families get ×1.5 counts and family items. */
 export function basketFor(o: BasketFor = {}): BasketItem[] {
-  const family = o.who === "family";
+  // R18 S5 F2: the household's size when known (3+ people = a family's items).
+  const family = o.people != null ? o.people >= 3 : o.who === "family";
   const out: BasketItem[] = [];
   for (const r of ROWS) {
     if (r.family && !family) continue;
@@ -68,7 +69,8 @@ export function basketFor(o: BasketFor = {}): BasketItem[] {
     if (r.only === "pets" && !o.pets) continue;
     const t = TYPE_BY_KEY.get(r.key);
     if (!t) continue;
-    const scale = family ? 1.5 : 1;
+    // Rows are for one or two people; a family of four ×1.5 (as before), six ×2.25, at most ×2.5.
+    const scale = o.people != null ? (o.people <= 2 ? 1 : Math.min(2.5, (o.people * 1.5) / 4)) : family ? 1.5 : 1;
     out.push({
       productKey: t.key,
       title: o.locale === "he" ? t.he : t.en,

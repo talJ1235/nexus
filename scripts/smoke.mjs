@@ -4863,6 +4863,52 @@ try {
       ok(/\d/.test(r.total) && r.dir === "ltr" && r.dotRight !== false && r.split >= 1 && r.sub && r.next === true && r.prev < r.month && r.closed === 1 && r.back === r.month && okBlocks, "spending view (R18 S5 E1/E2): the month — hero, chart left → right, split, breakdowns, month switch (no future)", JSON.stringify(r));
     });
 
+    // R18 S5 F6: the onboarding answers where they act — Settings → Household (people, food), Supermarket → habits,
+    // Space → Budget (supermarket share, month start day). A change is saved at once (back after a reload), then undone.
+    await step("settings: household, shopping habits, budget shape (R18 S5 F6) — saved at once", async () => {
+      const r = {};
+      await page.goto(`${BASE}/settings/household`);
+      await page.waitForSelector("[data-settings-household] [data-hh-count]", { timeout: 15000 });
+      await shot(page, "s5-household");
+      r.counts = await page.locator("[data-hh-count]").count();
+      r.diets = await page.locator("[data-hh-diet]").count();
+      const kids = async () => Number(await page.locator('[data-hh-n="kids"]').innerText());
+      const k0 = await kids();
+      const vegan = page.locator('[data-hh-diet="vegan"]');
+      const v0 = await vegan.getAttribute("aria-pressed");
+      if (WRITE) {
+        await page.locator('[data-hh-more="kids"]').click();
+        await vegan.click();
+        await page.waitForTimeout(700);
+        await page.reload();
+        await page.waitForSelector("[data-settings-household] [data-hh-count]", { timeout: 15000 });
+        r.kidsSaved = (await kids()) === k0 + 1;
+        r.veganSaved = (await vegan.getAttribute("aria-pressed")) !== v0;
+        await page.locator('[data-hh-less="kids"]').click();
+        await vegan.click();
+        await page.waitForTimeout(500);
+      }
+      await page.goto(`${BASE}/settings/supermarket`);
+      await page.waitForSelector("[data-sm-habits] [data-hh-day]", { timeout: 15000 });
+      r.days = await page.locator("[data-sm-habits] [data-hh-day]").count();
+      r.freq = await page.locator("[data-sm-habits] [data-hh-freq]").count();
+      // Day chips stay ≥ 40 px tall on a phone.
+      r.dayH = await page.locator('[data-hh-day="0"]').evaluate((el) => el.getBoundingClientRect().height);
+      await page.goto(`${BASE}/settings/budget`);
+      await page.waitForSelector("[data-budget-shape] [data-budget-start]", { timeout: 15000 });
+      r.start = await page.locator("[data-budget-start]").inputValue();
+      if (WRITE) {
+        await page.locator("[data-budget-start]").selectOption("10");
+        await page.waitForTimeout(700);
+        await page.reload();
+        await page.waitForSelector("[data-budget-shape] [data-budget-start]", { timeout: 15000 });
+        r.startSaved = await page.locator("[data-budget-start]").inputValue();
+        await page.locator("[data-budget-start]").selectOption(r.start);
+        await page.waitForTimeout(500);
+      }
+      ok(r.counts === 4 && r.diets === 8 && r.days === 7 && r.freq === 4 && r.dayH >= 40 && (!WRITE || (r.kidsSaved && r.veganSaved && r.startSaved === "10")), "settings: household, shopping habits, budget shape (R18 S5 F6) — saved at once", JSON.stringify(r));
+    });
+
     await step("orders view: free-shipping row per store", async () => {
       await page.goto(`${BASE}/?v=orders`);
       await page.waitForSelector("[data-store-group]", { timeout: 15000 });

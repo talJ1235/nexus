@@ -45,7 +45,7 @@ export type SortKey = "newest" | "price" | "priority" | "name";
 type Editor = { mode: "create"; kind: "project" | "list" } | { mode: "edit"; collection: Collection } | null;
 
 /** Server-known state for the first paint: prefs from cookies, `?v=` from the URL. */
-export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; filter?: string | null; /** R17 A3: /settings[/<section>] — Settings is open from the first paint ("" = the section list). */ settings?: string | null; /** R17 S3: /inbox — the inbox is open from the first paint. */ inbox?: boolean; sidebarCollapsed?: boolean; phoneLayout?: PhoneLayout | null; homeLayout?: string | null; now?: number; tz?: string | null; /** R18 S2 A1: the onboarding "why" answers (the dock's tab 4) and "who" (the cold-start basket). */ why?: string[] | null; who?: string | null };
+export type UiInit = { layout: Layout | null; sort: SortKey | null; view: string | null; filter?: string | null; /** R17 A3: /settings[/<section>] — Settings is open from the first paint ("" = the section list). */ settings?: string | null; /** R17 S3: /inbox — the inbox is open from the first paint. */ inbox?: boolean; sidebarCollapsed?: boolean; phoneLayout?: PhoneLayout | null; homeLayout?: string | null; now?: number; tz?: string | null; /** R18 S2 A1: the onboarding "why" answers (the dock's tab 4) and "who" (the cold-start basket). */ why?: string[] | null; who?: string | null; /** R18 S5 F1: offer the "3 quick questions" Home card; F5: "learn the budget from my first month". */ obQuick?: boolean; obLearnBudget?: boolean };
 
 /** Home's clock: the first paint uses the server's time + the saved time zone (same HTML on both sides), then the
  *  device's. weekStartsOn from the browser locale (Monday-first where it says so). */
@@ -75,6 +75,9 @@ type Store = {
   removeSm: (id: string) => void;
   /** R18 S2: the onboarding "who" answer (me / partner / family) — sizes the cold-start basket. */
   obWho: string | null;
+  /** R18 S5 F1 / F5 (from the onboarding answers at load). */
+  obQuick: boolean;
+  obLearnBudget: boolean;
   collections: Collection[];
   altGroups: AltGroup[];
   setAltGroups: (g: AltGroup[]) => void;
@@ -857,6 +860,8 @@ export function StoreProvider({
       upsertSm,
       removeSm,
       obWho: ui.who ?? null,
+      obQuick: !!ui.obQuick,
+      obLearnBudget: !!ui.obLearnBudget,
       collections,
       altGroups,
       setAltGroups,
@@ -983,7 +988,7 @@ export function StoreProvider({
       fresh,
       markFresh,
     }),
-    [openSettings, settingsFrom, setSettingsOpen, loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, sm, upsertSm, removeSm, ui.who, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, budgetWarn, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, settingsSection, switching, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
+    [openSettings, settingsFrom, setSettingsOpen, loading, pending, addPending, patchPending, dropPending, fresh, markFresh, base, replaceData, getRev, applyChanges, present, items, sm, upsertSm, removeSm, ui.who, ui.obQuick, ui.obLearnBudget, collections, altGroups, upsertAltGroup, storeSettings, upsertStoreSetting, budget, alerts, homePrefs, homeLayout, setHomeLayout, clock, shopSort, setShopSort, upsertItems, removeItems, selected, toggleSelect, setSelected, clearSelection, altOpenId, currency, setCurrency, layout, setLayout, phoneLayout, setPhoneLayout, sort, setSort, view, setView, navSeq, navDir, query, tagFilter, categoryFilter, collectionFilter, historyQuery, historyMonth, historyStore, pasteOpen, scanner, setScanner, shop, imagePending, fillImages, compareItemId, importLimitUsd, budgetWarn, sidebarCollapsed, setSidebarCollapsed, upsertItem, removeItem, upsertCollection, removeCollection, editor, paletteOpen, navOpen, settingsOpen, settingsSection, switching, extOpen, reportDraft, openReport, closeReport, reportsOpen, meOpen, panel, askSeed, askAssistant, consumeAskSeed, receiptSeed, openReceipt, offlineAt, offline, focusAdd],
   );
 
   const dataValue = useMemo(
