@@ -147,13 +147,22 @@ icon) with the CSS `translate` property, so pressed / thinking scale never undoe
 States: rest; pressed (scale .94); **message** (ring full colour turning once per 5 s, amber dot, one 6 px hop,
 bubble with the message for 6 s, tapping the bubble opens the chat); **thinking** (ring turns every 1.4 s, the stars
 breathe — while an assistant request runs in the background); **listening** (voice input to Nexus: ring turns every
-3 s, three level bars replace the stars, see `Ask-configs`); dragging (lifts 1.08, ring full); offline (grey, 45 %,
-ring still). Reduced motion: no turning, no hop, the ring just brightens. Unit / visual check: the glyph's centre is
-within 1 px of the orb's centre in every state (screenshot test).
+3 s, three level bars replace the stars, see `Ask-configs`); offline (grey, 45 %, ring still). Reduced motion: no
+turning, no hop, the ring just brightens.
+**Two board artefacts not to copy (Tal 2026-10-16):** (1) the orb is **a perfect circle in every state** — the pearl
+disc, its shadow and its clip are `border-radius: 50%` always; the board's "message" cell draws a rounded square
+behind the ring, that's wrong. (2) The button is **fully opaque**: a solid pearl fill (no alpha, no blur, no
+`backdrop-filter`), and the 1.5–2 px gap between the orb and the ring is filled with the pearl's edge colour, so
+nothing underneath ever shows through — the board's "above a toast" cell shows the list through it, that's wrong.
+Screenshot test over every state (light + dark, Graphite + Plum): the glyph's centre within 1 px of the orb's centre,
+the corner pixels of the button's box are the page behind it (round), and a high-contrast striped background under
+the button doesn't show inside the ring.
 ### C2 [ ] Phone behaviour
-Default on the **physical right** side in both languages, 12 px above the dock (bottom = dock + 12), on every main tab
-(Home, Products, Supermarket, Insights). Horizontal drag (6 px slop) moves it; release → the nearest side (or the
-fling's direction), 420 ms `--spring`; the side is remembered per device + user. Rises with anything that appears
+**Fixed position, no dragging** (Tal 2026-10-16 — overrides the boards' drag demo): on the **physical right** side in
+both languages by default, 12 px above the dock (bottom = dock + 12), on every main tab (Home, Products, Supermarket,
+Insights). A setting moves it: Settings → the display / appearance section → "AI button side: Right / Left" (per user,
+synced, applies to phone and computer; changing it slides the button across once, 420 ms `--spring`). Pressing and
+holding the button does nothing special (no drag, no menu). Rises with anything that appears
 above the dock — the Undo / added toasts (S4 A2), the floating "Start shopping" bar shares the row and ends before it
 (S4 D3 adjusts) — 340 ms drawer ease, and comes back down after. Hidden: store mode, Home edit mode, camera, any open
 sheet / dialog, while the keyboard is open. Tap → the chat opens **from the button** (circle reveal from its centre,
@@ -162,7 +171,7 @@ The phone top bars lose their Ask button. Messages come from what Nexus already 
 suggestions) — at most one bubble per message, never during a trip.
 ### C3 [ ] Computer behaviour
 The same orb at 60 px in the bottom corner of the content area (24–28 px from the edges, never over the sidebar),
-right by default, draggable to the other corner and remembered. Opens the existing assistant panel from that side.
+right by default, left from the same setting as C2; no dragging. Opens the existing assistant panel from that side.
 The top-bar Ask pill goes; the command palette keeps "Ask Nexus".
 
 ## Part D — Home widgets v2 (boards `Home-widgets-phone`, `Home-widgets-desktop`, `Widgets-catalog`)
@@ -238,7 +247,7 @@ once (suggestions, reminders, Spending's month).
 ## Part G — guards and docs
 ### G1 [ ] Guards
 Smoke steps for every item (phone + desktop): row swipe both ways + Undo, inline rename, look picker persistence,
-Ask drag + rise over a toast + open / close keeping scroll, Home long-press drag-swap / remove / add / size, Spending
+Ask side setting (right ↔ left, phone + computer) + rise over a toast + open / close keeping scroll, Home long-press drag-swap / remove / add / size, Spending
 month switch, onboarding new steps + the Home card. Unit: home-layout packing (dense, swap, sizes, old layouts),
 trip-look contrast over all colours, onboarding field parsing, spending aggregation (month start day, members,
 currency), diet filter for suggestions. Full phone + desktop smoke pass; `scripts/parity-r18.mjs` gets the S5 boards.
@@ -247,7 +256,7 @@ From S4's prod smoke: widen the smoke's console-message filter so the barcode re
 ### G2 [ ] Docs
 `SPEC.md` R18 S5 section, `docs/MAP.md` touched areas, in place (floating Ask, widget edit, spending, onboarding fields), help topics (Home
 widgets, Supermarket list swipes, Insights → Spending, Settings → Household), `docs/ENVIRONMENT.md` log line, "### For
-Tal" = a phone checklist (swipes, long-press on Home, the Ask button drag, the look picker, the new onboarding steps).
+Tal" = a phone checklist (swipes, long-press on Home, the Ask button + its side setting, the look picker, the new onboarding steps).
 
 ## Open
 ### Progress
