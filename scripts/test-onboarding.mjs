@@ -257,8 +257,11 @@ try {
     const { id, page: p } = await person({ phone: true });
     await x("INSERT OR REPLACE INTO user_pref (user_id, key, value) VALUES (?, 'pref:onboarding', ?)", [id, JSON.stringify({ v: 1, status: "done", step: 7, why: ["super"], stores: [], custom: [], budget: null, currency: "ILS", who: "me", sharedSpaceId: null, notif: null, installed: false, at: now })]);
     await p.goto(`${app.base}/`);
+    await p.waitForSelector("[data-home]", { timeout: 40_000 }).catch(() => {});
     await p.waitForSelector("[data-home-quick]", { timeout: 20_000 }).catch(() => {});
-    ok((await p.locator("[data-home-quick]").count()) === 1, "F1: an old finished onboarding → the \"3 quick questions\" Home card");
+    const quickN = await p.locator("[data-home-quick]").count();
+    ok(quickN === 1, "F1: an old finished onboarding → the \"3 quick questions\" Home card", quickN ? "" : `${p.url()} · ${JSON.stringify(await pref(id))} · ${(await p.innerText("body").catch(() => "")).replace(/s+/g, " ").slice(0, 300)}`);
+    if (!quickN) throw new Error("no quick card");
     await p.click("[data-home-quick-go]");
     ok(await waitStep(p, 2), "the card opens step 2", p.url());
     const seen = [];
