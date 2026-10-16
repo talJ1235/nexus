@@ -1,8 +1,8 @@
 # Competitors, open-source projects, money — research (2026-10-16)
 
 Source: Tal's list (Grocy, InvenDo, SHULAM!, Mr Kolet, Sally, AddIt) + planner search (planning chat, account B).
-Status: **findings and proposals only — nothing here is decided.** Decisions go to `PLANNER.md` "Decisions that
-stand" when Tal makes them. Earlier desk research: `STRATEGY.md` §4 (2026-10-05). Questions for Tal: §8.
+Status: findings + proposals; Tal answered the five questions (§8) — the decisions live in `PLANNER.md` "Decisions
+that stand". Earlier desk research: `STRATEGY.md` §4 (2026-10-05). Answers: §8.
 
 ## 1. Competitors at a glance
 | App | What it is | Model | Worth taking | Weak spot |
@@ -73,16 +73,47 @@ Galaxy Watch planned (AddIt users ask for it); no ads.
 **Tier C — skip for now:** full pantry ERP (Grocy, InvenDo), chores, batteries/appliances, custom fields.
 
 ## 5. Code and projects (licence matters — Nexus may become commercial and closed)
-| Project | Licence | Use |
+Rule (Tal 2026-10-16): permissive code (MIT / Apache / BSD) may be used with its notice kept; AGPL / GPL,
+non-commercial and no-licence code is **read for ideas only** — the planner writes the idea in its own words, the
+builder implements from that note and never pastes from those repos. (Ideas, algorithms and architecture are not
+protected; the code text is. Not legal advice — before a paid launch, a short check with a lawyer.)
+
+| Project | Licence (checked 2026-10-16) | Use |
 |---|---|---|
-| `rxradar/israeli-prices` (Python, active Oct 2026) | MIT | usable in the data pipeline; prices, promos (club restrictions), stores, Super-Pharm |
-| `OpenIsraeliSupermarkets/israeli-supermarket-scarpers` + `-parsers` | "Other" | read the licence first; also a daily Kaggle dataset |
-| `ronilitman/grocery-price-data` + `grocery-price-scrapers` | none stated | ideas only (or ask the author); its README is the best design note found |
-| `phiresky/sql.js-httpvfs` | Apache-2.0 (last push 2024-08) | query a static SQLite over HTTP range requests; probably unnecessary since Nexus has Turso |
-| KitchenOwl, Mealie, Tandoor | AGPL-3.0 | **ideas only** — copying code would oblige Nexus to publish its own source |
-| Grocy | check | ideas: min-stock, due score, fast input, hide-module flags |
+| `rxradar/israeli-prices` (Python, v0.2.0, nightly health check) | **MIT**, commercial use explicitly allowed | **the fetch + parse layer of our price pipeline** — 31/32 chains implemented (one portal down); prices, promos, stores |
+| `OpenIsraeliSupermarkets/israeli-supermarket-scarpers` + `-parsers` | **custom, non-commercial only** (LICENSE.txt; setup.py's MIT classifier is misleading) | read only |
+| `ronilitman/grocery-price-data` + `grocery-price-scrapers` | none stated; built on the non-commercial library above | read only — design ideas (§5.1) |
+| `phiresky/sql.js-httpvfs` | Apache-2.0 (last push 2024-08) | not needed — Nexus has Turso |
+| KitchenOwl, Mealie, Tandoor | AGPL-3.0 | read only — conclusions in §5.2 |
+| Grocy | MIT (PHP) | ideas: min-stock, due score, fast input, hide-module flags |
+| `hhursev/recipe-scrapers` | MIT (Python) | reference for R18b recipe import; schema.org JSON-LD covers most Israeli recipe sites |
 | Open Food Facts, `zxing-wasm` | — | already used |
-| Market-basket rules (Apriori / FP-growth) | method | "usually bought with" should require lift ≥ ~1.5 so milk isn't paired with everything — builder to check `staples.ts` / `routines.ts` |
+
+### 5.1 What the price-data code teaches (read 2026-10-16)
+- **Join key = GTIN-14.** `israeli-prices` canonicalises UPC-12 / EAN-13 to GTIN-14 so one product isn't split in two.
+  Nexus should store barcodes the same way (builder: check `barcode.ts`).
+- **Reachability is daily-flaky:** the library's nightly check (2026-10-15, from a non-Israeli GitHub runner) reached
+  27/32 chains; Victory, Mahsanei HaShuk and Het Cohen answer **Israeli IPs only**; Shufersal timed out that night;
+  Hatzi Hinam gave 403. → keep the last good snapshot per chain and show "prices as of <date>"; the geo-blocked chains
+  need an Israeli machine (later: a self-hosted Actions runner in Israel).
+- **Collapse (idea from `ronilitman`):** one baseline price per (chain, GTIN) + only the branches that differ (≈ 50×
+  smaller); a word→GTIN index for search instead of `LIKE '%…%'`; weighted items flagged so a basket never sums a
+  per-kg price as per-item.
+- **Promotions are rich:** min / max quantity, reward type, discounted price or rate, groups, minimum purchase amount,
+  club id, coupon flag, "allow multiple discounts", start/end. → the basket estimate must compute the effective price
+  **for the quantity on the list**, and count club / coupon deals only for clubs the home has (new question in
+  Settings → Supermarket / onboarding: "which clubs do you have?").
+- Some chains publish a **city code**, not a name → map with the CBS locality list.
+
+### 5.2 What KitchenOwl's code teaches (AGPL — ideas only)
+- **"Usually bought with":** a background job mines pairs only (one item → one item) from past trips and keeps a pair
+  when lift > 1.2 and confidence > 0.1. Nexus today (`staples.ts`, "usually with") keeps a companion at confidence ≥ 0.6
+  over ≥ 3 trips **with no lift check** → items bought on every trip (milk, bread) qualify as "usually with" anything.
+  Fix for the builder: also require lift ≥ ~1.2 (companion share with A ÷ its share over all trips).
+- **Store order:** it learns one walking order from the order items were checked, with **exponential decay (0.75)** so
+  recent trips weigh more, then a greedy topological sort. Nexus (`order.ts`) asks ≥ 2 recent trips that never flip a
+  pair → one odd trip can block a suggestion. Possible upgrade: weighted precedence votes with decay, suggest when one
+  order clearly wins.
 
 ## 6. Making money — options
 Context: free stack today; commercial use needs Vercel Pro and an AI budget; `STRATEGY.md` rules out selling user data.
@@ -103,9 +134,10 @@ Keep "The smart way to run your household shopping". Angles this research suppor
 knows your home · all the home's buying, one budget · reliable and private. Don't promise "no ads forever" while option
 6.2 is open.
 
-## 8. Open questions for Tal
-1. WhatsApp door — yes / no / when?
-2. Splitting money inside a space — in scope?
-3. Money — subscription, sponsored products, or both; decide now or after 4 weeks of closed-circle data?
-4. "Use soon" for perishables (no pantry) — yes / no?
-5. Price layer — own pipeline (public data repo, MIT parser) vs asking `ronilitman` for a licence?
+## 8. Tal's answers (2026-10-16)
+1. WhatsApp door — **yes, after R20**, inbound first.
+2. Splitting money — **not now**.
+3. Money — **decide after 4 weeks of closed-circle data**; until then the free core is designed so nothing is taken away.
+4. "Use soon" for perishables (no pantry) — **yes**.
+5. Price layer — Tal left it to the planner ("best long term, smartest, user gets all the information") → own pipeline,
+   recorded in `PLANNER.md` "Decisions that stand".
