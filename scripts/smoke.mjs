@@ -1858,8 +1858,12 @@ try {
           await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
           const adds = await page.locator("[data-sm-add-open]").evaluateAll((es) => es.map((e) => `${e.closest("[data-sm-view]") ? "view" : "other"}:${Math.round(e.getBoundingClientRect().top)}:${e.closest("[data-sm-empty-templates], [data-sm-first], [data-sm-suggest]") ? "in-block" : ""}`));
           if (adds.length !== 1) res[`adds-${locale}`] = adds;
+          // A tap before the list hydrates can be lost — tap again if the Add screen isn't up after 5 s.
           await page.locator("[data-sm-add-open]").first().click();
-          await page.waitForSelector("[data-add-chips]");
+          if (!(await page.waitForSelector("[data-add-chips]", { timeout: 5000 }).then(() => true, () => false))) {
+            await page.locator("[data-sm-add-open]").first().click();
+            await page.waitForSelector("[data-add-chips]", { timeout: 15000 });
+          }
           res[locale] = await page.evaluate(() => {
             const row = document.querySelector("[data-add-chips]");
             const chips = [...row.querySelectorAll("[data-add-chip]")];
