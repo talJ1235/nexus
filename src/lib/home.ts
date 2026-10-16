@@ -665,6 +665,8 @@ export type HomePrefs = {
   notify?: NotifyPrefs;
   /** R16 E1: this space's Home layout (or the user's last one); null = never customised → the default preset. */
   layout?: HomeLayout | null;
+  /** R18 S5 C2: the floating Ask's side (physical, both languages; phone + computer). kv `pref:ask-side`; missing = right. */
+  askSide?: "right" | "left";
 };
 /** Which in-app notices the user wants: price drops (bell + Needs you; `minDropPct` is the tracker's threshold),
  *  budget at 80 %, deliveries due/late. Shared-list activity is the per-device "live activity" switch. */

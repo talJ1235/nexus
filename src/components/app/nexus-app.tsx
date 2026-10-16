@@ -33,6 +33,7 @@ import { FiltersRow, HomeSummary, SUMMARY_VIEWS } from "./home-summary";
 import { HomeView } from "./home-view";
 import { byArrival, groupByProject, ShopGroupHeader, ShoppingHeader } from "./shopping-tab";
 import { AssistantPanel } from "./assistant-panel";
+import { AskFab } from "./ask-fab";
 import { ShareDialog } from "./share-dialog";
 import { ReceiptDialog } from "./receipt-dialog";
 import { OfflineBanner, useReadOnly } from "./offline-banner";
@@ -138,7 +139,7 @@ function Shell({ incoming }: { incoming?: Incoming }) {
           <Sidebar floating={false} />
         </Sheet>
 
-        <div className="min-w-0">
+        <div className="min-w-0" data-app-content>
           {/* Phone / tablet header (Part C replaces it with the phone shell). */}
           <div className="empty:hidden desk:pt-4">
             <OfflineBanner />
@@ -214,6 +215,8 @@ function Shell({ incoming }: { incoming?: Incoming }) {
       </PanelBoundary>
       <PanelBoundary label="Assistant">
         <AssistantPanel />
+        {/* R18 S5 C1–C3: the floating Ask (phone + computer) — the top bars have no Ask button any more. */}
+        <AskFab />
       </PanelBoundary>
       <PanelBoundary label="Share">
         <ShareDialog />

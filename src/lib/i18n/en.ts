@@ -452,7 +452,7 @@ export const en = {
       usedBy: "Who used it",
       newCode: "New code",
     },
-    ai: {
+  ai: {
       d7: "7 days",
       d30: "30 days",
       today: "Calls today",
@@ -2235,6 +2235,15 @@ export const en = {
     watchHint: "Checked every morning",
     target: "Target price",
     targetPlaceholder: "Alert me at…",
+  },
+  /** R18 S5 C1–C3: the floating Ask. */
+  ask: {
+    due: "{n} items are due — add them?",
+    dueOne: "{title} is due — add it?",
+    side: "AI button side",
+    sideSub: "Where the round Ask Nexus button sits, on the phone and the computer",
+    right: "Right",
+    left: "Left",
   },
   ai: {
     status1: "Looking at your items…",

@@ -769,7 +769,7 @@ export function AssistantPanel() {
   const s = useStore();
   const seed = s.askSeed ? s.askSeed.split("\u200b")[0] : null;
   const seedKey = s.askSeed;
-  const { t } = useI18n();
+  const { t, dir } = useI18n();
   const [chat, setChat] = useState(0);
   const [model, setModel] = useState<ModelState>("idle");
   const [mode, setMode] = useState<ChatMode>("chat");
@@ -790,7 +790,8 @@ export function AssistantPanel() {
     if (s.panel === "planner") setMode("plan");
   }, [s.panel]);
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && s.setPanel(null)} title={t.ai.title} className="assistant-sheet sm:max-w-[420px]">
+    // R18 S5 C3: on a computer the panel opens from the floating Ask's side (physical right / left, both languages).
+    <Sheet open={open} onOpenChange={(o) => !o && s.setPanel(null)} title={t.ai.title} side={(s.homePrefs.askSide === "left") === (dir === "rtl") ? "end" : "start"} className="assistant-sheet sm:max-w-[420px]">
       <div className="flex h-full flex-col" data-assistant>
         <div className="flex items-center gap-2 px-4 pb-2 pt-1 sm:pt-4" data-sheet-grip data-ai-header>
           {/* Round 12 #3: History at the start, before the mark — a separate control (hairline between), mirrored in RTL. */}

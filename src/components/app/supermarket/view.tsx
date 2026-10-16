@@ -214,8 +214,15 @@ export function SupermarketView() {
     </>
   );
   const showStart = !ro && s.sm.length > 0 && !mineRunning;
+  // R18 S5 C2: floating, it shares the floating Ask's row (bottom = dock + 12) and ends before it, on its side.
+  const askGap = s.aiEnabled ? 82 : 12;
+  const askLeft = s.homePrefs.askSide === "left";
   const startBar = showStart && (
-    <div className={cn("pointer-events-none z-30 desk:static desk:mt-2", docked ? "relative" : "fixed inset-x-3 bottom-[calc(90px+env(safe-area-inset-bottom))]")} data-sm-start-bar={docked ? "docked" : "floating"}>
+    <div
+      className={cn("pointer-events-none z-30 desk:static desk:mt-2", docked ? "relative" : "fixed bottom-[calc(92px+env(safe-area-inset-bottom))]")}
+      style={docked || desk ? undefined : { left: askLeft ? askGap : 12, right: askLeft ? 12 : askGap }}
+      data-sm-start-bar={docked ? "docked" : "floating"}
+    >
       <button type="button" className={cn("pointer-events-auto flex h-14 w-full items-center justify-center gap-2.5 rounded-[18px] bg-ink text-[16px] font-extrabold text-bg transition-[transform,box-shadow] duration-200 ease-[var(--ease-out)] active:scale-[0.98]", docked ? "shadow-card" : "shadow-[0_10px_28px_color-mix(in_srgb,var(--ink)_24%,transparent)]")} onClick={() => setShopping(true)} data-sm-start>
         <ShoppingCart className="size-5" />
         {t.sm.start}

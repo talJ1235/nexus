@@ -451,7 +451,7 @@ export const he: Dict = {
       usedBy: "מי השתמש",
       newCode: "קוד חדש",
     },
-    ai: {
+  ai: {
       d7: "7 ימים",
       d30: "30 ימים",
       today: "קריאות היום",
@@ -2232,6 +2232,15 @@ export const he: Dict = {
     watchHint: "נבדק כל בוקר",
     target: "מחיר יעד",
     targetPlaceholder: "התרע לי ב…",
+  },
+  /** R18 S5 C1–C3: the floating Ask. */
+  ask: {
+    due: "{n} פריטים הגיע זמנם — להוסיף?",
+    dueOne: "הגיע הזמן ל{title} — להוסיף?",
+    side: "צד כפתור ה־AI",
+    sideSub: "איפה יושב הכפתור העגול של Nexus, בטלפון ובמחשב",
+    right: "ימין",
+    left: "שמאל",
   },
   ai: {
     status1: "מסתכל על הפריטים שלך…",

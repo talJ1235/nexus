@@ -7,6 +7,8 @@ import { DEFAULT_NOTIFY, type HomePrefs, type NotifyPrefs } from "./home";
 
 export const HOME_DISMISSED_KEY = "pref:home:dismissed";
 export const HOME_AI_KEY = "pref:home:ai";
+/** R18 S5 C2: "left" moves the floating Ask to the left (missing = right). */
+export const ASK_SIDE_KEY = "pref:ask-side";
 /** R16 D1: Settings → Notifications (JSON, missing keys = on). The drop threshold stays in the tracker's `pref:alerts`. */
 export const NOTIFY_KEY = "pref:notify";
 const ALERTS_KEY = "pref:alerts";
@@ -40,7 +42,7 @@ export const HOME_LAYOUT_KEY = "pref:home:layout";
 export const homeLayoutKey = (spaceId: string) => `${HOME_LAYOUT_KEY}:${spaceId}`;
 
 export async function loadHomePrefs(userId: string, spaceId?: string): Promise<HomePrefs> {
-  const kv = await userPrefGetMany(userId, [HOME_DISMISSED_KEY, HOME_AI_KEY, NOTIFY_KEY, ALERTS_KEY, HOME_LAYOUT_KEY, ONBOARDING_KEY, ...(spaceId ? [homeLayoutKey(spaceId)] : [])]);
+  const kv = await userPrefGetMany(userId, [HOME_DISMISSED_KEY, HOME_AI_KEY, NOTIFY_KEY, ALERTS_KEY, HOME_LAYOUT_KEY, ONBOARDING_KEY, ASK_SIDE_KEY, ...(spaceId ? [homeLayoutKey(spaceId)] : [])]);
   const layout = (spaceId ? parseLayout(kv[homeLayoutKey(spaceId)]) : null) ?? parseLayout(kv[HOME_LAYOUT_KEY]);
-  return { dismissed: parseDismissed(kv[HOME_DISMISSED_KEY]), aiSuggestions: kv[HOME_AI_KEY] !== "off", notify: parseNotify(kv[NOTIFY_KEY], kv[ALERTS_KEY]), layout, stores: parseOnboarding(kv[ONBOARDING_KEY])?.stores.filter((s) => !s.startsWith("custom:")) ?? [] };
+  return { dismissed: parseDismissed(kv[HOME_DISMISSED_KEY]), aiSuggestions: kv[HOME_AI_KEY] !== "off", notify: parseNotify(kv[NOTIFY_KEY], kv[ALERTS_KEY]), layout, stores: parseOnboarding(kv[ONBOARDING_KEY])?.stores.filter((s) => !s.startsWith("custom:")) ?? [], askSide: kv[ASK_SIDE_KEY] === "left" ? "left" : "right" };
 }

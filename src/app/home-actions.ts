@@ -13,7 +13,7 @@ import { getAppData, getItem } from "@/lib/data";
 import { dayKeyIn, HIDE_MS } from "@/lib/home";
 import { HOME_AI_CACHE_V, normalizeHomeAi, normalizeMoney, normalizePhrased, numbersIn, validateHomeAi, type HomeAi } from "@/lib/home-ai";
 import { CURRENCIES, formatMoney } from "@/lib/money";
-import { HOME_AI_KEY, HOME_DISMISSED_KEY, HOME_LAYOUT_KEY, homeLayoutKey, NOTIFY_KEY, parseDismissed } from "@/lib/home-prefs";
+import { ASK_SIDE_KEY, HOME_AI_KEY, HOME_DISMISSED_KEY, HOME_LAYOUT_KEY, homeLayoutKey, NOTIFY_KEY, parseDismissed } from "@/lib/home-prefs";
 import { parseLayout, serialize, type HomeLayout } from "@/lib/home-layout";
 import { setAlertPrefs } from "@/lib/tracker";
 import type { NotifyPrefs } from "@/lib/home";
@@ -37,6 +37,12 @@ export async function undismissHome(key: string): Promise<Record<string, number>
   delete map[z.string().max(300).parse(key)];
   await userPrefSet(ctx.user.id, HOME_DISMISSED_KEY, JSON.stringify(map));
   return map;
+}
+
+/** R18 S5 C2: Settings → Display → AI button side (the floating Ask, phone + computer). */
+export async function setAskSide(side: "right" | "left") {
+  const ctx = await requireCtx("view");
+  await userPrefSet(ctx.user.id, ASK_SIDE_KEY, z.enum(["right", "left"]).parse(side) === "left" ? "left" : null);
 }
 
 /** Settings → Assistant → "AI-written suggestions". */

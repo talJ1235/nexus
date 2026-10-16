@@ -2019,6 +2019,171 @@ try {
         ok(r.live === "blue:soft" && r.kept === "blue:soft" && r.all === "blue:night", "look picker (R18 S5 B2): colour + style persist per store, all stores when unticked, reset", JSON.stringify(r));
       });
 
+    // R18 S5 C1: the floating Ask is a perfect, opaque circle with an optically centred glyph in every state (rest,
+    // message, thinking, listening, offline) × light / dark × Graphite / Plum: the box's corners show the page behind it
+    // (round), a striped background under it never shows inside the ring (two stripe phases give the same pixels), and
+    // the stars' pixel centre is within 1 px of the orb's centre.
+    await step("floating Ask look (R18 S5 C1): round + opaque in every state × theme × palette, glyph centred ≤ 1 px", async () => {
+      await page.goto(`${BASE}/supermarket`);
+      await page.waitForSelector("[data-ask-fab]", { timeout: 15000 });
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.waitForTimeout(500);
+      const fab = page.locator("[data-ask-fab]");
+      const bb = await fab.boundingBox();
+      const pad = 8;
+      const clip = { x: Math.floor(bb.x - pad), y: Math.floor(bb.y - pad), width: Math.ceil(bb.width + pad * 2), height: Math.ceil(bb.height + pad * 2) };
+      const raw = async () => {
+        const buf = await page.screenshot({ clip, animations: "disabled", scale: "css" });
+        const { data, info } = await sharp(buf).raw().toBuffer({ resolveWithObject: true });
+        return { data, w: info.width, h: info.height, ch: info.channels };
+      };
+      const px = (img, x, y) => {
+        const i = (Math.round(y) * img.w + Math.round(x)) * img.ch;
+        return [img.data[i], img.data[i + 1], img.data[i + 2]];
+      };
+      const diff = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+      // Stripes under the button (a fixed layer just below it), two phases.
+      await page.evaluate((c) => {
+        const d = document.createElement("div");
+        d.id = "ask-stripes";
+        Object.assign(d.style, { position: "fixed", left: `${c.x - 20}px`, top: `${c.y - 20}px`, width: `${c.width + 40}px`, height: `${c.height + 40}px`, zIndex: "34", pointerEvents: "none" });
+        document.body.appendChild(d);
+      }, clip);
+      const stripes = (phase) => page.evaluate((p) => (document.getElementById("ask-stripes").style.background = `repeating-linear-gradient(45deg, ${p ? "#000" : "#fff"} 0 3px, ${p ? "#fff" : "#000"} 3px 6px)`), phase);
+      const cx = bb.x + bb.width / 2 - clip.x;
+      const cy = bb.y + bb.height / 2 - clip.y;
+      const R = bb.width / 2;
+      const bad = [];
+      for (const dark of [false, true])
+        for (const plum of [false, true])
+          for (const state of ["rest", "ask-msg", "ask-think", "ask-listen", "ask-off"]) {
+            await page.evaluate(([dk, pl, st]) => {
+              const h = document.documentElement;
+              h.classList.toggle("dark", dk);
+              if (pl) h.setAttribute("data-palette", "plum");
+              else h.removeAttribute("data-palette");
+              const el = document.querySelector("[data-ask-fab]");
+              el.classList.remove("ask-msg", "ask-think", "ask-listen", "ask-off");
+              el.querySelector("[data-ask-dot]")?.remove();
+              if (st !== "rest") el.classList.add(st);
+              el.querySelector(".ask-stars").style.visibility = "";
+            }, [dark, plum, state]);
+            await page.waitForTimeout(60);
+            await stripes(0);
+            const a = await raw();
+            await stripes(1);
+            const b = await raw();
+            const what = `${dark ? "dark" : "light"}·${plum ? "plum" : "graphite"}·${state}`;
+            // Corners of the button's box: the page (the stripes) — they change with the phase.
+            const corners = [[bb.x - clip.x + 1, bb.y - clip.y + 1], [bb.x - clip.x + bb.width - 2, bb.y - clip.y + 1], [bb.x - clip.x + 1, bb.y - clip.y + bb.height - 2], [bb.x - clip.x + bb.width - 2, bb.y - clip.y + bb.height - 2]];
+            if (!corners.every(([x, y]) => diff(px(a, x, y), px(b, x, y)) > 200)) bad.push(`${what}: a corner isn't the page`);
+            // Orb + the gap to the ring (r + 2): identical under both phases → nothing shows through.
+            let leak = 0;
+            for (let y = 0; y < a.h; y++)
+              for (let x = 0; x < a.w; x++) if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= R + 1.5 && diff(px(a, x, y), px(b, x, y)) > 24) leak++;
+            if (leak) bad.push(`${what}: ${leak} px show through`);
+            // The glyph's pixel centre (stars only; listening shows bars).
+            if (state !== "ask-listen") {
+              await page.evaluate(() => (document.querySelector("[data-ask-fab] .ask-stars").style.visibility = "hidden"));
+              await page.waitForTimeout(40);
+              const plain = await raw();
+              let sx = 0, sy = 0, sw = 0;
+              for (let y = 0; y < a.h; y++)
+                for (let x = 0; x < a.w; x++) {
+                  if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) > R - 3) continue;
+                  const d = diff(px(b, x, y), px(plain, x, y));
+                  // By area (each glyph pixel counts once), not by contrast — the ink star mustn't outweigh the spark one.
+                  if (d > 60) (sx += x + 0.5), (sy += y + 0.5), (sw += 1);
+                }
+              const off = sw ? Math.hypot(sx / sw - cx, sy / sw - cy) : 99;
+              if (off > 1) bad.push(`${what}: glyph off by ${off.toFixed(2)} px (${(sx / sw - cx).toFixed(2)}, ${(sy / sw - cy).toFixed(2)})`);
+            }
+          }
+      await page.evaluate(() => {
+        document.getElementById("ask-stripes")?.remove();
+        document.documentElement.removeAttribute("data-palette");
+      });
+      await page.emulateMedia({ reducedMotion: null });
+      await page.reload();
+      ok(bad.length === 0 && Math.round(bb.width) === (MOBILE ? 58 : 60) && Math.round(bb.height) === Math.round(bb.width), "floating Ask look (R18 S5 C1): round + opaque in every state × theme × palette, glyph centred ≤ 1 px", JSON.stringify({ size: [bb.width, bb.height], bad: bad.slice(0, 8) }));
+    });
+
+    // R18 S5 C2 + C3: fixed (no drag) on the physical right by default, 12 px above the dock on phones / in the content
+    // area's corner on a computer (never over the sidebar); Settings → Display → AI button side moves it left and back
+    // (it slides across); it rises over a toast and comes back down; tap → the chat over the same screen and scroll,
+    // closing returns there; hidden while a sheet is open; the top bars have no Ask button; the palette keeps "Ask Nexus".
+    await step("floating Ask behaviour (R18 S5 C2/C3): right by default, side setting ↔, rise over a toast, open/close keeps scroll, no top-bar Ask", async () => {
+      const r = {};
+      await page.goto(`${BASE}/supermarket`);
+      await page.waitForSelector("[data-ask-fab]", { timeout: 15000 });
+      await page.waitForTimeout(600);
+      const vw = await page.evaluate(() => document.documentElement.clientWidth); // without the scrollbar
+      const box = () => page.locator("[data-ask-fab]").boundingBox();
+      const b0 = await box();
+      r.right = Math.round(vw - (b0.x + b0.width));
+      r.topBarAsk = await page.locator("[data-app-header] [data-ask]").count();
+      if (MOBILE) {
+        const dock = await page.locator("[data-dock]").boundingBox();
+        r.aboveDock = Math.round(dock.y - (b0.y + b0.height));
+      } else {
+        const side = await page.locator("aside, nav[aria-label]").first().boundingBox().catch(() => null);
+        r.overSidebar = !!side && b0.x < side.x + side.width && side.x < 100;
+      }
+      // Side → left (Settings → Display), then back.
+      const setSide = async (v) => {
+        await openSettings(page, "display");
+        await page.locator(`[data-display-ask-side] [role="radio"]`, { hasText: v === "left" ? /Left|שמאל/ : /Right|ימין/ }).click();
+        await page.waitForTimeout(900);
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-ask-fab]");
+        await page.waitForTimeout(500);
+      };
+      await setSide("left");
+      const b1 = await box();
+      r.left = Math.round(b1.x);
+      r.sideAttr = await page.locator("[data-ask-fab]").getAttribute("data-ask-fab");
+      await setSide("right");
+      r.back = await page.locator("[data-ask-fab]").getAttribute("data-ask-fab");
+      // A toast: the button rises over it, then comes back down.
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const tile = page.locator("[data-sm-list] [data-sm-row-tile]").first();
+      await tile.click();
+      await page.waitForSelector("[data-sheet-remove]", { timeout: 8000 });
+      await page.waitForTimeout(300);
+      r.hiddenWithSheet = await page.locator("[data-ask-fab]").evaluate((e) => getComputedStyle(e).visibility);
+      await page.locator("[data-sheet-remove]").click();
+      const t = page.locator("[data-sonner-toast]").first();
+      await t.waitFor({ timeout: 4000 });
+      await page.waitForFunction(() => Number(document.querySelector("[data-ask-fab]")?.getAttribute("data-ask-rise-by") ?? 0) > 20, null, { timeout: 2500 }).catch(() => {});
+      await page.waitForTimeout(400);
+      const tb = await t.boundingBox();
+      const b2 = await box();
+      r.rose = Number((await page.locator("[data-ask-fab]").getAttribute("data-ask-rise-by")) ?? 0);
+      r.geo = { toast: [Math.round(tb.x), Math.round(tb.y), Math.round(tb.width), Math.round(tb.height)], fab: [Math.round(b2.x), Math.round(b2.y)] };
+      r.clear = MOBILE ? b2.y + b2.height <= tb.y + 1 || tb.x + tb.width < b2.x : true;
+      await t.locator("button", { hasText: /Undo|ביטול/ }).click();
+      await page.waitForTimeout(1600);
+      r.down = Number((await page.locator("[data-ask-fab]").getAttribute("data-ask-rise-by")) ?? 0);
+      // Open from the button over the same screen and scroll; closing returns.
+      await page.evaluate(() => window.scrollTo(0, 400));
+      await page.waitForTimeout(300);
+      const y0 = await page.evaluate(() => Math.round(window.scrollY));
+      const url0 = page.url();
+      await page.locator("[data-ask-fab]").click();
+      r.chat = await page.waitForSelector("[data-assistant]", { timeout: 5000 }).then(() => true, () => false);
+      if (!MOBILE) r.panelSide = await page.locator(".assistant-sheet").evaluate((e) => (e.getBoundingClientRect().right >= window.innerWidth - 2 ? "right" : "left"));
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(500);
+      r.sameScroll = Math.abs((await page.evaluate(() => Math.round(window.scrollY))) - y0) <= 2;
+      r.sameUrl = page.url() === url0;
+      await page.evaluate(() => window.scrollTo(0, 0));
+      ok(
+        r.right >= (MOBILE ? 10 : 20) && r.right <= (MOBILE ? 14 : 42) /* computer: 28 px from the scroller's edge */ && r.topBarAsk === 0 && (MOBILE ? r.aboveDock >= 10 && r.aboveDock <= 14 : !r.overSidebar) && r.sideAttr === "left" && r.left <= (MOBILE ? 14 : 400) && r.back === "right" && r.hiddenWithSheet === "hidden" && r.rose > 20 && r.clear && r.down === 0 && r.chat && r.sameScroll && r.sameUrl && (MOBILE || r.panelSide === "right"),
+        "floating Ask behaviour (R18 S5 C2/C3): right by default, side setting ↔, rise over a toast, open/close keeps scroll, no top-bar Ask",
+        JSON.stringify(r),
+      );
+    });
+
     // R18 S3 B9: sheets fit their content on phones — a row's actions in store mode, a suggestion's page and Save as
     // template are as tall as what's in them (no big empty area), and a sheet closes when its handle is dragged down
     // (S4 E3: store mode's Finish is a full screen — its own step). Ends by finishing the trip with nothing bought.
@@ -4885,7 +5050,7 @@ try {
       const btn = page.locator("[data-ask]").filter({ visible: true }).first();
       if (!(await btn.count())) return ok(true, "assistant panel (AI off or not in this layout, skipped)");
       // Round 12 #4: every Ask button on screen is a fully rounded pill (radius ≥ half its height).
-      const pills = await page.locator("[data-ask]").evaluateAll((els) => els.filter((e) => e.offsetParent).map((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius) >= e.offsetHeight / 2 - 0.5 && parseFloat(getComputedStyle(e).borderBottomRightRadius) >= e.offsetHeight / 2 - 0.5));
+      const pills = await page.locator("[data-ask]").evaluateAll((els) => els.filter((e) => e.getClientRects().length && getComputedStyle(e).visibility !== "hidden").map((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius) >= e.offsetHeight / 2 - 0.5 && parseFloat(getComputedStyle(e).borderBottomRightRadius) >= e.offsetHeight / 2 - 0.5));
       ok(pills.length > 0 && pills.every(Boolean), "Ask button is a fully rounded pill", JSON.stringify(pills));
       await btn.click();
       await page.getByRole("dialog").waitFor({ timeout: 5000 });

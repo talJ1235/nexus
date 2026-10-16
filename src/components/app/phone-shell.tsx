@@ -13,7 +13,6 @@ import { NotifyBell } from "../notify/inbox";
 import { useReadOnly } from "./offline-banner";
 import { usePlusOpen, useStore } from "./store";
 import { useAddActions } from "./add-actions";
-import { AskButton } from "./top-bar";
 import { PhoneSearchResults, rememberSearch } from "./phone-search";
 import { SpaceLook, useMeName } from "./spaces/space-ui";
 import { initialOf } from "@/lib/initial";
@@ -94,7 +93,6 @@ export function PhoneTopBar() {
           </button>
         </>
       )}
-      {s.aiEnabled && !open && <AskButton iconOnly className="size-9 [&_svg]:size-4 [&_svg]:text-spark" />}
       {/* R17 S3 K2: the bell is back in the phone header — it opens the inbox page. */}
       {!open && <NotifyBell variant="phone" className={cn(circle, "border border-line bg-surface text-ink [&_svg]:!size-[18px]")} />}
       {!open && (

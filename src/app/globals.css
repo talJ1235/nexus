@@ -1146,3 +1146,92 @@ html[data-motion="reduce"] :is(.sheet-in-end, .sheet-in-start, .sheet-phone, .mo
 html[data-motion="reduce"] :is(.actions-sheet:not([data-state]), .view-in.view-fwd, .view-in.view-back, .subpage-in, .subpage-back, .nx .sx-page) { animation: fade 150ms ease-out both !important; }
 html[data-motion="reduce"] :is(.sheet-in-end, .sheet-in-start, .sheet-phone, .modal-phone, .assistant-sheet, .animate-pop-in, .actions-sheet, .overlay-in)[data-state="closed"] { animation: fade-out 150ms ease-out both !important; }
 html[data-motion="reduce"] [data-sonner-toaster] [data-sonner-toast] { transition: opacity 150ms ease-out !important; }
+
+/* ---------- R18 S5 C1 — the floating Ask (board Ask-final-phone + nx-s5.css "FINAL v2"): a pearl orb with a 2 px AI
+   ring. Always a perfect, fully opaque circle: the disc, its shadow and its clip are 50 % in every state; the 2 px gap
+   between orb and ring is filled with the pearl's edge colour (a solid spread shadow), so nothing underneath shows
+   through. The stars are optically centred with `translate` (pressed / thinking scale never undoes it). ---------- */
+.ask-fab {
+  position: fixed; z-index: 35; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%;
+  isolation: isolate; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none;
+  --pearl-edge: #e3e0d9; --g2: #171717;
+  background: radial-gradient(120% 120% at 30% 18%, #ffffff 0%, #f4f2ee 60%, #e6e3dc 100%);
+  box-shadow: inset 0 1px 0 #fff, inset 0 -3px 8px rgb(0 0 0 / 0.08), 0 14px 30px -12px rgb(16 16 14 / 0.42), 0 2px 5px rgb(16 16 14 / 0.1);
+  transition: transform 340ms var(--ease-drawer), scale 160ms var(--ease-out), opacity 200ms ease, filter 200ms ease;
+}
+:root[data-palette="plum"]:not(.dark) .ask-fab { --g2: #5b33d6; }
+.dark .ask-fab {
+  --pearl-edge: #1d1d1d; --g2: #ffffff;
+  background: radial-gradient(120% 120% at 30% 18%, #3a3a3a 0%, #262626 60%, #1b1b1b 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 14px 30px -10px #000, 0 0 22px -6px color-mix(in srgb, var(--spark) 40%, transparent);
+}
+/* The ring: one disc under the orb — solid pearl edge up to the ring (the 2 px gap, and under the orb's own edge, so
+   its anti-aliasing never lets the page through), then the 2 px ring; muted at rest (desaturated, never see-through). */
+.ask-fab::before {
+  content: ""; position: absolute; inset: -4px; z-index: -1; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--pearl-edge) calc(100% - 2.25px), transparent calc(100% - 1.75px)), conic-gradient(from 210deg, #7c4dff, #f59e0b, #fb7a3c, #e8559b, #7c4dff);
+  filter: saturate(0.5) brightness(1.08);
+  transition: filter 400ms ease;
+  animation: ask-spin 9s linear infinite paused;
+}
+.ask-fab .ask-stars { width: 34px; height: 34px; translate: -1.85px 0.55px; transition: transform 160ms var(--ease-out); }
+.ask-fab-desk .ask-stars { width: 35px; height: 35px; translate: -1.9px 0.57px; }
+.ask-fab .ask-stars path:first-child { fill: var(--spark); }
+.ask-fab .ask-stars path:nth-child(2) { fill: var(--g2); }
+.ask-fab:active:not(:disabled) { scale: 0.94; }
+@media (hover: hover) and (pointer: fine) { .ask-fab:hover::before { filter: saturate(0.85) brightness(1.04); } }
+.ask-fab:focus-visible { outline: 2px solid var(--ink); outline-offset: 6px; }
+/* message: the ring in full colour, turning once per 5 s; an amber dot; one 6 px hop. */
+.ask-fab.ask-msg::before { filter: none; animation-play-state: running; animation-duration: 5s; }
+.ask-fab.ask-msg { animation: ask-hop 700ms var(--ease-out) 1; }
+.ask-dot { position: absolute; top: -1px; inset-inline-end: -1px; width: 14px; height: 14px; border-radius: 50%; background: var(--spark); box-shadow: 0 0 0 2.5px var(--bg); animation: ask-pop 260ms var(--ease-out) both; }
+/* thinking (any AI work in the background): the ring every 1.4 s, the stars breathe. */
+:root[data-ai-busy] .ask-fab:not(.ask-off)::before, .ask-fab.ask-think::before { filter: none; animation-play-state: running; animation-duration: 1.4s; }
+:root[data-ai-busy] .ask-fab:not(.ask-off) .ask-stars, .ask-fab.ask-think .ask-stars { animation: ask-breathe 1.4s ease-in-out infinite; }
+/* listening (voice to Nexus): the ring every 3 s, three level bars instead of the stars. */
+.ask-fab .ask-bars { display: none; gap: 3px; align-items: center; height: 22px; }
+.ask-fab .ask-bars i { display: block; width: 3.5px; height: 6px; border-radius: 2px; background: var(--g2); animation: ask-eq 900ms ease-in-out infinite; }
+.ask-fab .ask-bars i:nth-child(2) { animation-delay: -300ms; } .ask-fab .ask-bars i:nth-child(3) { animation-delay: -600ms; }
+:root[data-ask-listening] .ask-fab::before, .ask-fab.ask-listen::before { filter: none; animation-play-state: running; animation-duration: 3s; }
+:root[data-ask-listening] .ask-fab .ask-stars, .ask-fab.ask-listen .ask-stars { display: none; }
+:root[data-ask-listening] .ask-fab .ask-bars, .ask-fab.ask-listen .ask-bars { display: flex; }
+/* offline: grey, 45 %, the ring still (the orb stays opaque — the button is disabled, not see-through: a grey pearl). */
+.ask-fab.ask-off { filter: grayscale(1); cursor: default; }
+.ask-fab.ask-off .ask-stars { opacity: 0.45; }
+.ask-fab.ask-off::before { animation: none; }
+/* hidden: not on this screen, store mode, Home edit mode, an open sheet / dialog / the camera, the keyboard. */
+.ask-fab.ask-hidden, :root[data-store-mode] .ask-fab, :root[data-home-edit] .ask-fab, :root:has([role="dialog"][data-state="open"]) .ask-fab,
+:root[data-store-mode] .ask-bubble, :root[data-home-edit] .ask-bubble, :root:has([role="dialog"][data-state="open"]) .ask-bubble {
+  opacity: 0; pointer-events: none; transform: scale(0.6); visibility: hidden; transition: opacity 160ms ease, transform 200ms var(--ease-out), visibility 0s linear 200ms;
+}
+.ask-bubble {
+  position: fixed; z-index: 34; max-width: min(240px, calc(100vw - 32px)); padding: 10px 14px; border-radius: 18px; background: var(--raised); color: var(--ink);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 6%, transparent), 0 18px 40px -8px rgb(16 16 14 / 0.24), 0 3px 8px rgb(16 16 14 / 0.08);
+  font-size: 13.5px; font-weight: 600; line-height: 1.35; animation: ask-bubble 320ms var(--ease-out) both;
+}
+.ask-bubble-who { display: block; margin-bottom: 2px; font-size: 11.5px; font-weight: 750; color: var(--spark); }
+@keyframes ask-spin { to { transform: rotate(360deg); } }
+@keyframes ask-hop { 0% { translate: 0 0; } 35% { translate: 0 -6px; } 100% { translate: 0 0; } }
+@keyframes ask-pop { from { transform: scale(0); } }
+@keyframes ask-breathe { 50% { transform: scale(0.86); opacity: 0.8; } }
+@keyframes ask-eq { 0%, 100% { height: 6px; } 50% { height: 20px; } }
+@keyframes ask-bubble { from { opacity: 0; transform: translateY(8px) scale(0.96); } }
+/* Reduced motion: no turning, no hop — the ring just brightens. */
+@media (prefers-reduced-motion: reduce) {
+  .ask-fab::before, .ask-fab.ask-msg, .ask-fab .ask-stars, .ask-fab .ask-bars i { animation: none !important; }
+  .ask-bubble { animation: fade 150ms ease-out both; }
+}
+:root[data-motion="reduce"] .ask-fab::before, :root[data-motion="reduce"] :is(.ask-fab.ask-msg, .ask-fab .ask-stars, .ask-fab .ask-bars i) { animation: none !important; }
+/* C2: the chat opens from the button — a circle reveal from its centre (380 ms; reduced motion: the fade above). */
+@media (max-width: 639px) {
+  :where(html[data-device="phone"])[data-ask-from] .assistant-sheet[data-state="open"] { animation: ask-reveal 380ms var(--ease-drawer) both; }
+}
+@keyframes ask-reveal {
+  from { clip-path: circle(29px at var(--ask-x, 90%) calc(var(--ask-y, 90%) - max(10px, env(safe-area-inset-top)))); }
+  to { clip-path: circle(150% at var(--ask-x, 90%) calc(var(--ask-y, 90%) - max(10px, env(safe-area-inset-top)))); }
+}
+/* R18 S5 C3: the assistant panel opens from the floating Ask's side — on the start side its slide mirrors. */
+.assistant-sheet.sheet-in-start[data-state="open"] { animation-name: slide-from-left; }
+[dir="rtl"] .assistant-sheet.sheet-in-start[data-state="open"] { animation-name: slide-from-right; }
+.assistant-sheet.sheet-in-start[data-state="closed"] { animation-name: slide-to-left; }
+[dir="rtl"] .assistant-sheet.sheet-in-start[data-state="closed"] { animation-name: slide-to-right; }

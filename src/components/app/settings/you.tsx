@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 import { calendarInfo, markCalendarSubscribed, regenerateCalendar, setCalendarKinds, type CalendarInfo } from "@/app/cal-actions";
-import { homeDiag, setAiSuggestions, type HomeDiag } from "@/app/home-actions";
+import { homeDiag, setAiSuggestions, setAskSide, type HomeDiag } from "@/app/home-actions";
 import { pictureSearchStatus } from "@/app/picture-actions";
 import { useI18n } from "@/components/providers";
 import { usePalette } from "@/components/use-palette";
@@ -178,6 +178,24 @@ function DisplayPage() {
             ]}
             data-display-layout
           />
+        </Li>
+        {/* R18 S5 C2: the floating Ask's side — per person, synced, phone + computer; it slides across once. */}
+        <Li icon={P.screen} title={t.ask.side} sub={t.ask.sideSub}>
+          <span data-display-ask-side>
+          <Seg
+            label={t.ask.side}
+            value={s.homePrefs.askSide === "left" ? "left" : "right"}
+            onChange={(v) => {
+              const before = s.homePrefs;
+              s.setHomePrefs({ ...before, askSide: v });
+              void setAskSide(v).catch(() => s.setHomePrefs(before));
+            }}
+            options={[
+              { value: "left", label: t.ask.left },
+              { value: "right", label: t.ask.right },
+            ]}
+          />
+          </span>
         </Li>
         {/* R17 H: go through the first questions again (every answer can be changed). */}
         <Li icon={P.history} title={t.ob.again} sub={t.ob.againSub}>
