@@ -284,6 +284,22 @@ Older: `docs/archive/PLANNER-history.md`.
   days, store / online / both), food at home (kosher, mehadrin, vegetarian, vegan, gluten-free, lactose-free, nut
   allergy, organic; Shabbat and holidays), budget (household total, supermarket share, month start day, "learn it from
   my first month", alerts 80 % / 100 %). Swipe on list rows: toward the start = delete, toward the end = quantity.
+- **Research answers (Tal 2026-10-16), details `docs/RESEARCH-COMPETITORS.md`:** (1) **WhatsApp door — yes, after
+  R20**, inbound first (send items → added to the space list, reply with a link; user-opened 24 h window = free;
+  needs a number + Meta business verification). (2) Splitting money inside a space — **not now**. (3) Paid tier —
+  **decide after 4 weeks of closed-circle data**; until then the free core is designed so nothing is ever taken away.
+  (4) **"Use soon" for perishables — yes**, without a pantry: purchase date (trip / receipt) + a shelf-life table →
+  suggestions and Home "Due soon"; no stock counts. (5) Price layer (Tal left it to the planner): **own pipeline in a
+  separate public data repo** — nightly GitHub Action, fetch + parse with `israeli-prices` (MIT, 31/32 chains);
+  never `OpenIsraeliSupermarkets` (non-commercial licence) or `ronilitman` code (no licence) — their *ideas* only:
+  baseline price per (chain, GTIN-14) + differing branches, word→GTIN index, weighted flag. Load into Turso the
+  baselines + exceptions for branches of active spaces; price history only for GTINs on lists; last good snapshot
+  per chain + "prices as of"; geo-blocked chains (Victory, Mahsanei HaShuk, Het Cohen) wait for an Israeli runner.
+  Promo math per list quantity; club / coupon deals only for clubs the home has (new "your clubs" question).
+  Free text → product: the home's own product memory + word index + AI guess + user correction, remembered per space.
+- **Code reuse rule (Tal 2026-10-16):** MIT / Apache / BSD code may be used with its notice; AGPL / GPL,
+  non-commercial and unlicensed repos are read for ideas only — the planner writes the idea in its own words and the
+  builder implements from that note, never pasting from those repos.
 
 ## Product direction (discussed 2026-10-03, not started)
 - Toward a multi-user product: sign-up on web or app, short onboarding questionnaire (habits, stores), Google sign-in,
@@ -321,7 +337,7 @@ Older: `docs/archive/PLANNER-history.md`.
 
 ### Planning log
 Older: `docs/archive/PLANNER-history.md`.
-- 2026-10-16 · B · Competitor + open-source + money research → `docs/RESEARCH-COMPETITORS.md` (Tal's 6 apps + PriceZ, CHP, SnapList, IsraBis, Bring!, AnyList, KitchenOwl/Mealie; Israeli price-data repos with licences; WhatsApp door, split, "use soon", Plus tier). Nothing decided — 5 questions in its §8. Pushed to `docs/next` (S5 running). Sandbox note: no `rg` here (use `grep -rn`); anonymous GitHub API hits its 60/h limit fast → use the connector's search.
+- 2026-10-16 · B · Competitor + open-source + money research → `docs/RESEARCH-COMPETITORS.md` (Tal's 6 apps + PriceZ, CHP, SnapList, IsraBis, Bring!, AnyList, KitchenOwl/Mealie). Tal answered 1a 2b 3c 4a, left 5 to the planner → two decision lines above (research answers, code reuse rule). Licences checked by cloning: `israeli-prices` MIT; OpenIsraeliSupermarkets non-commercial; Grocy MIT; KitchenOwl/Mealie AGPL. Read KitchenOwl's suggestion + ordering jobs → `staples.ts` "usually with" lacks a lift check (§5.2, for the next supermarket brief). `STRATEGY.md` revenue row updated. Pushed to `docs/next` (S5 running). Sandbox: no `rg` (use `grep -rn`); anonymous GitHub API hits 60/h fast → connector search or `git clone --depth 1`.
 - 2026-10-16 · planning chat · Workflow: code map (`docs/MAP.md`), planning-docs diet (history → `docs/archive/`), `docs/next` rule, CI paths-ignore + parallel jobs and permanent permissions → R18 S5 Part 0.
 - 2026-10-16 · B · R18 S4 result from Claude Code: on `main` as `d4bdeb0`, all items ticked, CI + guards + prod smoke green, no schema change. Voice never worked before because `Permissions-Policy` had `microphone=()` (now `self`); the vanished-row bug was a delete + Undo in one sync batch (fixed). Open: Tal's phone checklist in `ROUND18-S4.md` "For Tal"; status note `4030ed9` only on `round18-s4` → S5 Step 0 cherry-picks it; the smoke console filter → S5 G1.
 - 2026-10-16 · B · R18 S5 planned: new canvas "Nexus R18 — S5" (14 boards: list phone + computer, start trip with a colour / style picker, floating Ask states + six looks + 8 shapes × 8 states + star sizes + the final (pearl + ring, stars C), Home widgets v2 with long-press drag / swap / remove / size / add, widget catalog, monthly spending phone + computer, onboarding v2 steps 2/4/5/6). Tal: Ask floats on phone and computer, look = pearl + ring with bigger centred stars, only valuable widgets, start-trip colour is the user's, onboarding asks household / habits / food / budget; all approved. Wrote `docs/ROUND18-S5.md`; boards + these doc lines go via a zip + patch (no push from this chat).
