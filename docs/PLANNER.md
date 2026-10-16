@@ -349,6 +349,9 @@ to setup, tooling or workflow is recorded there in the same session.
 - Prefer guards that keep bugs dead (e.g. dock-position-per-frame smoke, overflow-at-360 smoke).
 - Keys are optional: every feature degrades gracefully without them; say what Tal can add.
 - End with `## Open` (empty) — the builder fills it.
+- Point each item at its area in `docs/MAP.md` ("Area: Supermarket") and name the files you already know, so the
+  builder reads one section instead of exploring. The closing docs item says "`docs/MAP.md` (touched areas)", never
+  "CLAUDE.md map" — `CLAUDE.md` stays short because it loads on every session and after every `/compact`.
 
 ## Decisions that stand (don't re-open without Tal)
 - Design: UI v2 = design **U**; palettes **Graphite & Amber** (default) and **Plum**, light + dark; one brand colour +
@@ -542,7 +545,7 @@ to setup, tooling or workflow is recorded there in the same session.
 
 ## Where things are
 - Repo `talJ1235/nexus`; prod https://nexus-ashen-beta.vercel.app (auto-deploys from `main`).
-- `SPEC.md` (shipped features per round), `CLAUDE.md` (builder rules + map), `docs/ROUND*.md` (briefs + results),
+- `SPEC.md` (shipped features per round), `CLAUDE.md` (builder rules, kept short), `docs/MAP.md` (code map by area + tests per area), `docs/ROUND*.md` (briefs + results),
   `docs/UI-V2.md` (design history + motion plan), `docs/design/` (static mockups), `src/lib/help/topics/*.md`.
 - Design canvas "Nexus Style Directions" is a private claude.ai artifact on each account (A: original; B: rebuilt 2026-10-04 with Home v4); the exported mockups in
   `docs/design/` are the shareable copy. New design exploration: make a new canvas in your own account.
@@ -561,6 +564,7 @@ to setup, tooling or workflow is recorded there in the same session.
 ### Planning log
 - 2026-10-16 · B · R18 S4 result from Claude Code: on `main` as `d4bdeb0`, all items ticked, CI + guards + prod smoke green, no schema change. Voice never worked before because `Permissions-Policy` had `microphone=()` (now `self`); the vanished-row bug was a delete + Undo in one sync batch (fixed). Open: Tal's phone checklist in `ROUND18-S4.md` "For Tal"; status note `4030ed9` only on `round18-s4` → S5 Step 0 cherry-picks it; the smoke console filter → S5 G1.
 - 2026-10-16 · B · R18 S5 planned: new canvas "Nexus R18 — S5" (14 boards: list phone + computer, start trip with a colour / style picker, floating Ask states + six looks + 8 shapes × 8 states + star sizes + the final (pearl + ring, stars C), Home widgets v2 with long-press drag / swap / remove / size / add, widget catalog, monthly spending phone + computer, onboarding v2 steps 2/4/5/6). Tal: Ask floats on phone and computer, look = pearl + ring with bigger centred stars, only valuable widgets, start-trip colour is the user's, onboarding asks household / habits / food / budget; all approved. Wrote `docs/ROUND18-S5.md`; boards + these doc lines go via a zip + patch (no push from this chat).
+- 2026-10-15 · planning chat · Token saving for the builder: new `docs/MAP.md` (code map by area, tests per area, rules for keeping it true; S4's map lines included; 3 stale paths fixed, e.g. `alerts-panel` no longer exists); `CLAUDE.md` 16.4 KB → 6.8 KB (map → pointer + the always-rules; SPEC.md read by section; tests per area). Pushed as branch `docs/map` on top of `round18-s4` (S4 was finishing; a `CLAUDE.md` push to `main` would have conflicted with its map lines) → after S4 is on `main`, fast-forward `main` to `docs/map` (or merge `main` into it if S4 added commits; S4's map lines already live in MAP.md, keep our `CLAUDE.md` block). Brief template updated.
 - 2026-10-15 (account A): R18 S3 notes + briefs S3, S4 written here; from tonight planning/design moves to account B (handoff block at top), A = Claude Code.
 - 2026-10-13 · this chat · R18 S1 confirmed merged. Boards part 2 on the R18 canvas (9 boards, `nx-sm2.css`). Tal simplified the supermarket (no staple states, only "don't suggest again"; Nexus-made templates; count + weight; no knobs; "My answers" → "What Nexus learned"; Galaxy Watch app after R20) → boards reworked, decisions recorded. S2 brief waits for Tal's board approval.
 - 2026-10-12 · this chat · Reviewed R18 S1 (all parts done, rehearsal on the prod snapshot passed). Verified the holiday table with a computed Hebrew calendar (all correct). Tal chose the staple states (not set → suggests; off = only by choice, never).

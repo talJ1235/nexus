@@ -241,6 +241,8 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
   ran from the agent (`node --env-file=.env.local scripts/db-snapshot.mjs`). Windows bash: a large `python - <<'EOF'`
   heredoc sometimes fails to parse ("unexpected EOF") — write the script to the scratchpad and run it. No new env vars
   or secrets. `.claude/settings.local.json` allows the round18-s4 push/merge commands.
+- 2026-10-15 (chat): workflow — the code map moved from `CLAUDE.md` to `docs/MAP.md` (by area, tests per area); `CLAUDE.md`
+  keeps a pointer + the always-rules (16.4 KB → 6.8 KB per load). Builder reads one MAP section, updates it in place.
 - 2026-10-16 (planning chat, account B): this chat had no `add_repo` push tool and the sandbox has no GitHub
   credentials, so `git push` fails. New docs go to `main` through the GitHub connector (`create_or_update_file`; it needs
   the whole file, fine for new / small files). Large docs (PLANNER, ENVIRONMENT) and boards travel as a zip: Tal unzips
