@@ -45,7 +45,7 @@ metrics, unfair advantage instead of partners/resources/activities). A classic B
 | Unique value proposition | "The smart way to run your household shopping — shared lists, supermarket mode, prices and budget, all in one place." | untested |
 | Solution | shared live lists + supermarket mode + price comparison (transparency files) + budget | built partly (single-user) |
 | Channels | closed circle → built-in invites (every shared space invites ≥ 1 person) → Facebook parenting/household groups → word of mouth | low |
-| Revenue streams | unknown. Options to test: free; freemium (AI / price comparison / more spaces); affiliate with stores. Not: selling user data. | very low |
+| Revenue streams | Options (research 2026-10-16, `RESEARCH-COMPETITORS.md` §6): household subscription "Nexus Plus" (AnyList: $9.99 / $14.99 a year), native sponsored products at scale (Bring!), online-cart hand-off. **Tal: decide after 4 weeks of closed-circle data**; free core never shrinks. Not: selling user data. | very low |
 | Cost structure | hosting (Vercel Pro needed for any commercial use), AI calls, store fees (Google $25, Apple $99/yr), Tal's time | medium |
 | Key metrics | weekly active households, % of lists shared, items checked in supermarket mode / week, week-4 retention | — |
 | Unfair advantage | none yet (honest). Candidates: Hebrew-first + Israeli price data; AI that understands the household | low |
@@ -75,6 +75,12 @@ primary (H1 vs H2 vs H3) — the current app mixes all three; (c) someone would 
   keep only stores near users and products that appear on users' lists (Turso free-tier size).
 - Lessons for R16–R17: sync must feel instant and never lose an item; no paywall surprises; adding must be fastest
   path in the app; offline in the store; "someone is shopping now / finished" notification; duplicates merged.
+
+### 2026-10-16 · desk research · competitors, open source, money (planner)
+Full write-up: `docs/RESEARCH-COMPETITORS.md`. In short: price comparison + Hebrew shared list stay table stakes;
+WhatsApp is the Israeli input channel (Mr Kolet, Sally); every rival does one job; trust is weak (unencrypted data,
+broken sharing). Decisions in `PLANNER.md` (WhatsApp door after R20, "use soon" yes, split not now, money later,
+own price pipeline on the MIT `israeli-prices`).
 
 ## 5. Output — what the product should be
 (Filled after step 6. Feature rounds resume from here.)
