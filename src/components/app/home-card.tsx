@@ -29,6 +29,14 @@ export function useFitRows(ref: React.RefObject<HTMLElement | null>, more = 0) {
       const limit = cr.bottom - (parseFloat(getComputedStyle(card).paddingBottom) || 0) + 0.5;
       let hidden = 0;
       const head = card.querySelector("[data-card-head]");
+      // Optional parts of a row (`data-fit-drop`, e.g. a delivery track) go first when their row crosses the bottom —
+      // a lone row then still fits whole (R18 S5 G1: a small card on a computer with Linux font metrics).
+      for (const el of card.querySelectorAll<HTMLElement>("[data-fit-drop]")) {
+        const row = el.closest("button, li, a") ?? el.parentElement;
+        if (!row || row.getBoundingClientRect().bottom <= limit) continue;
+        el.style.display = "none";
+        el.setAttribute("data-fit-hidden", "");
+      }
       // A group (`data-fit-group`) is laid out as one block — its parts are not rows (lists inside it still are).
       const lists = [...card.querySelectorAll<HTMLElement>("*")].filter((p) => !head?.contains(p) && !p.hasAttribute("data-fit-group") && !p.closest("[data-fit-skip], [inert], [aria-hidden='true']") && p.children.length >= 2 && !(p instanceof SVGElement) && [...p.children].filter((c) => c.tagName === p.children[0].tagName).length >= 2);
       for (const list of lists) {

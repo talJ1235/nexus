@@ -1532,7 +1532,9 @@ function OnTheWayCard({ model, rows = 4, className, style }: { model: HomeModel;
                   )}
                 </span>
               </span>
-              <DeliveryTrack track={p.track} className="mt-1.5 desk:mt-2" />
+              <span className="block" data-fit-drop>
+                <DeliveryTrack track={p.track} className="mt-1.5 desk:mt-2" />
+              </span>
             </button>
           );
         })}
