@@ -25,6 +25,7 @@ below), not only on the boards.
 - A6 — Start shopping always floats: the floating bar is portaled to document.body and "docked" is read from the slot's box on every scroll / resize / layout change; new smoke opens the tab from every tab + Products segment (each scrolled to its end) and checks top / middle / bottom / back up — red on the old build (bar at top 2375 px), green now.
 - A7 — "Nexus suggests" opens as one soft push: grid-rows on ease-in-out (.42,0,.58,1) for max(320 ms, 1.3 ms per px, ≤ 520), rows rise in 30 ms apart (fade with reduced motion); frame trace: 249 px opened over 19 moving frames, worst frame 21.9 px, the list above moved 0 px. (Also A6 follow-up: when open suggestions carry the slot above the screen the bar floats again — the A6 smoke caught the docked bar cut at the top.)
 - A8 — chat: answers' markup through `lib/chat-inline.ts` (refs + amounts inside bold, a bold run is a chip only when it's a short figure, half-written refs held back while streaming; `test:chat-inline` has Tal's report verbatim); the answer's block exists from the question on (thinking → text in place), the list is placed at its end before paint and then glides ≤ 28 px a frame only while the person is at the end, messages rise + fade in; the phone reveal no longer re-slides ~700 ms in. Frame trace (phone + desktop): opened at the end, composer still from the first rest frame, one answer block, worst glide 10 px.
+- A9 — New chat: the thread fades + lifts away (140 ms, its composer disabled), the empty chat rises in (220 ms; fades with reduced motion); New chat marks the empty chat as the newest (`nexus.askNewestEmpty`, this device) so reopening — also after a reload — opens it empty until its first exchange is saved. Smoke (phone + desktop): messages → New chat (out → in) → close → open: empty; reload: empty; one exchange → reopens with it.
 ### Decisions" at once; anything for Tal in "
 - A2: the computer sidebar's active row already has a tint + a 3 px accent bar + 600 ink (R14 B1) — it reads clearly, left as is. The dock pill measures the icon from the pill's own parent (a parent's ref isn't attached yet in a child's layout effect).
 - A3: the Home menu only replaces the "+" on Home — Products / Insights keep the R16 add list (its barcode / receipt / plan / import flows and their tests stay). "Search a product" opens the Supermarket add screen; D5 turns its search into the catalog.
@@ -101,7 +102,7 @@ Opening the chat sometimes jumps; answers should arrive smoothly one after anoth
 pops. Read Tal's report about how an AI question renders (reports / error log) and fix that bug. Messages enter with a
 short rise + fade; the composer and the list never move under the finger; streaming text grows in place.
 **Acceptance:** frame trace of open + one answer; the reported case as a test.
-### A9 [ ] New chat = a nice transition; reopening opens the newest chat
+### A9 [x] New chat = a nice transition; reopening opens the newest chat
 "New chat" today just swaps: the old thread slides / fades out, the empty state rises in (≈ 300 ms). Reopening Ask
 opens the **newest** chat — if the newest is empty (New chat was pressed), it opens empty, not the last chat with
 messages. **Acceptance:** test: chat with messages → New chat → close → open → empty chat.

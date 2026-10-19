@@ -6046,6 +6046,62 @@ try {
           ok(r.openAtEnd && r.openComposer <= 1 && r.blocks.length === 1 && r.blocks[0] === blocks0 + 1 && r.sameBlock && r.waitedInPlace && r.composer <= 1 && r.worstGlide <= 30,
             "assistant chat motion (R19 A8): open + one answer, frame trace — composer still, one answer block, glide", JSON.stringify(r));
         });
+        // R19 A9: New chat is a transition (the thread fades + lifts away, the empty chat rises in), and reopening Ask
+        // opens the newest chat — empty when New chat was the last thing pressed, also after a reload; the first
+        // exchange there makes it a normal chat that reopens with its messages.
+        await step("assistant new chat (R19 A9): transition, reopen = the newest chat (empty after New chat, also after reload)", async () => {
+          const r = {};
+          const openAsk = async () => {
+            await page.locator("[data-ask]").filter({ visible: true }).first().click();
+            await page.locator("[data-assistant] [data-ai-list]").waitFor({ timeout: 8000 });
+            await page.waitForTimeout(600);
+          };
+          const close = async () => {
+            await page.keyboard.press("Escape");
+            await page.waitForSelector("[data-assistant]", { state: "detached", timeout: 5000 }).catch(() => {});
+          };
+          const msgs = () => page.locator("[data-assistant] [data-ai-msg]").count();
+          await page.goto(`${BASE}/?v=to_buy`);
+          await page.waitForSelector(READY);
+          await openAsk();
+          const dlg = page.getByRole("dialog");
+          if ((await msgs()) === 0) {
+            await dlg.locator("textarea").fill("How much is left to buy?");
+            await dlg.locator("textarea").press("Enter");
+            await dlg.locator("[data-ai-send=send]").waitFor({ timeout: 20000 });
+            await page.waitForTimeout(800);
+          }
+          r.before = await msgs();
+          await dlg.locator("[data-ai-new]").click();
+          await page.waitForTimeout(60);
+          r.out = await page.evaluate(() => {
+            const f = document.querySelector("[data-ai-chat-phase]");
+            return f ? { phase: f.getAttribute("data-ai-chat-phase"), op: Number(getComputedStyle(f).opacity), msgs: f.querySelectorAll("[data-ai-msg]").length } : null;
+          });
+          await page.waitForTimeout(140);
+          r.in = await page.evaluate(() => document.querySelector("[data-ai-chat-phase]")?.getAttribute("data-ai-chat-phase") ?? null);
+          await page.waitForTimeout(400);
+          r.emptyNow = await msgs();
+          await close();
+          await openAsk();
+          r.reopened = await msgs();
+          await close();
+          await page.reload();
+          await page.waitForSelector(READY);
+          await openAsk();
+          r.afterReload = await msgs();
+          // The first exchange in the new chat → it reopens with it.
+          await dlg.locator("textarea").fill("And what is urgent?");
+          await dlg.locator("textarea").press("Enter");
+          await dlg.locator("[data-ai-send=send]").waitFor({ timeout: 20000 });
+          await page.waitForTimeout(1200);
+          await close();
+          await openAsk();
+          r.withOne = await msgs();
+          await close();
+          ok(r.before > 0 && r.out?.phase === "out" && r.out.op < 1 && r.out.msgs > 0 && r.in === "in" && r.emptyNow === 0 && r.reopened === 0 && r.afterReload === 0 && r.withOne === 2,
+            "assistant new chat (R19 A9): transition, reopen = the newest chat (empty after New chat, also after reload)", JSON.stringify(r));
+        });
         // Needs NEXUS_AI_MOCK=1: the mock answer is streamed word by word through /api/ask.
         await step("assistant: streamed answer with lead line, mini cards, then follow-ups", async () => {
           await page.goto(`${BASE}/?v=to_buy`);

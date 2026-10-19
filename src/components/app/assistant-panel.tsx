@@ -436,6 +436,24 @@ let currentConversation: string | null = null;
 let lastActive = 0;
 // Set by "New chat" (and opening another conversation): the next mount must not fall back to the latest one.
 let freshChat = false;
+// R19 A9: "New chat" makes the empty chat the newest one — reopening Ask opens it empty (not the last chat with
+// messages) until its first exchange is saved. Kept on this device so a reload keeps it too.
+const NEWEST_EMPTY = "nexus.askNewestEmpty";
+const newestEmpty = {
+  get: () => {
+    try {
+      return localStorage.getItem(NEWEST_EMPTY) === "1";
+    } catch {
+      return false;
+    }
+  },
+  set: (v: boolean) => {
+    try {
+      if (v) localStorage.setItem(NEWEST_EMPTY, "1");
+      else localStorage.removeItem(NEWEST_EMPTY);
+    } catch {}
+  },
+};
 // Seeds already sent on this page (R14 A1): outside the component so a remount (New chat, reopen) can't resend one.
 const sentSeeds = new Set<string>();
 const REOPEN_MS = 2 * 3600_000;
@@ -511,7 +529,7 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
     if (currentConversation && Date.now() - lastActive > REOPEN_MS) currentConversation = null;
     const fresh = freshChat;
     freshChat = false;
-    const load = currentConversation ? getConversation(currentConversation) : seed || fresh ? Promise.resolve(null) : latestConversation();
+    const load = currentConversation ? getConversation(currentConversation) : seed || fresh || newestEmpty.get() ? Promise.resolve(null) : latestConversation();
     void load
       .catch(() => null)
       .then((r) => {
@@ -536,6 +554,7 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
     lastActive = Date.now();
     try {
       const r = await saveExchange({ conversationId: conv.current, mode: m, user: { text: user, data: { mode: m } }, assistant: { text: answer, data: { ...data, mode: m } } });
+      newestEmpty.set(false);
       conv.current = r.conversation.id;
       currentConversation = r.conversation.id;
       onConversation({ id: r.conversation.id, title: r.conversation.title });
@@ -805,13 +824,25 @@ export function AssistantPanel() {
   const [mode, setMode] = useState<ChatMode>("chat");
   const [pane, setPane] = useState<"chat" | "history">("chat");
   const [conv, setConv] = useState<{ id: string; title: string } | null>(null);
+  // R19 A9: New chat — the old thread fades and lifts away (140 ms), then the empty chat rises in (220 ms).
+  const [phase, setPhase] = useState<"" | "out" | "in">("");
+  const swap = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(swap.current), []);
   const newChat = () => {
     currentConversation = null;
     freshChat = true;
+    newestEmpty.set(true);
     lastActive = Date.now();
     setConv(null);
-    setPane("chat");
-    setChat((n) => n + 1);
+    const go = () => {
+      setPane("chat");
+      setChat((n) => n + 1);
+      setPhase("in");
+    };
+    clearTimeout(swap.current);
+    if (pane !== "chat") return go();
+    setPhase("out");
+    swap.current = setTimeout(go, 140);
   };
   const open = s.panel === "assistant" || s.panel === "planner";
   // "Plan with Nexus" (+ menu, project page) opens the one chat in Plan mode.
@@ -874,13 +905,17 @@ export function AssistantPanel() {
             onBack={() => setPane("chat")}
             onOpen={(id) => {
               currentConversation = id;
+              newestEmpty.set(false);
               lastActive = Date.now();
               setPane("chat");
               setChat((n) => n + 1);
             }}
           />
         ) : (
-          <ChatTab key={chat} seed={seed} seedKey={seedKey} onModel={setModel} mode={mode} onConversation={setConv} setMode={(m) => (setMode(m), m === "chat" && s.panel === "planner" && s.setPanel("assistant"))} />
+          // A fieldset so the leaving thread's composer is disabled for its 140 ms (nothing typed into a chat that's going).
+          <fieldset key={chat} disabled={phase === "out"} className={cn("m-0 flex min-h-0 min-w-0 flex-1 flex-col border-0 p-0", phase === "out" ? "chat-out" : phase === "in" ? "chat-in" : "")} onAnimationEnd={(e) => e.target === e.currentTarget && phase === "in" && setPhase("")} data-ai-chat-phase={phase || undefined}>
+          <ChatTab seed={seed} seedKey={seedKey} onModel={setModel} mode={mode} onConversation={setConv} setMode={(m) => (setMode(m), m === "chat" && s.panel === "planner" && s.setPanel("assistant"))} />
+          </fieldset>
         )}
       </div>
     </Sheet>

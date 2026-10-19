@@ -1170,6 +1170,14 @@ html[data-motion="reduce"] [data-sonner-toaster] [data-sonner-toast] { transitio
 .msg-in { animation: msg-in 260ms var(--ease-out) both; }
 @keyframes msg-in { from { opacity: 0; transform: translateY(8px); } }
 .ai-list-in { animation: fade 180ms ease-out both; }
+/* R19 A9: New chat — the thread leaves (fade + lift, 140 ms), the empty chat rises in (220 ms). */
+.chat-out { animation: chat-out 140ms ease-in both; pointer-events: none; }
+.chat-in { animation: chat-in 220ms var(--ease-out) both; }
+@keyframes chat-out { to { opacity: 0; transform: translateY(-10px); } }
+@keyframes chat-in { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) { .chat-out { animation: fade-out 120ms ease-out both; } .chat-in { animation: fade 150ms ease-out both; } }
+:root[data-motion="reduce"] .chat-out { animation: fade-out 120ms ease-out both; }
+:root[data-motion="reduce"] .chat-in { animation: fade 150ms ease-out both; }
 @media (prefers-reduced-motion: reduce) { .msg-in { animation: fade 150ms ease-out both; } }
 :root[data-motion="reduce"] .msg-in { animation: fade 150ms ease-out both; }
 
