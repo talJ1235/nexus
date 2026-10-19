@@ -16,7 +16,7 @@ import { useLocalTrip } from "./supermarket/local-trip";
 // ring is the pearl's edge colour). Phone: fixed 12 px above the dock on the physical right (or left: Settings → Display
 // → AI button side, `pref:ask-side`), on the main tabs only; rises over toasts / the added pill (340 ms drawer ease);
 // hidden in store mode, Home edit mode, the camera, any open sheet / dialog and while the keyboard is open. Computer:
-// 60 px in the content area's bottom corner (never over the sidebar). Tap → the chat, opening from the button (a circle
+// 52 px (R19 A1; phone 48 px) in the content area's bottom corner (never over the sidebar). Tap → the chat, opening from the button (a circle
 // reveal from its centre; reduced motion: a fade). States: message (ring turns, amber dot, one hop, a 6 s bubble),
 // thinking (any AI work: html[data-ai-busy]), listening (voice to Nexus), offline (grey).
 
@@ -189,7 +189,7 @@ export function AskFab() {
   };
 
   if (!s.aiEnabled) return null;
-  const size = phone ? 58 : 60;
+  const size = phone ? 48 : 52; // R19 A1: smaller (was 58 / 60)
   const edge = phone ? 12 : 28;
   const pos: React.CSSProperties = phone
     ? { [side]: `calc(${edge}px + env(safe-area-inset-${side}))`, bottom: "calc(92px + env(safe-area-inset-bottom))" }

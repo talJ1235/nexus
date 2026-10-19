@@ -41,7 +41,7 @@ below), not only on the boards.
   the ingestion secrets (B0) the price jobs run dry and say so in Open.
 
 ## Part A — Tal's fixes after S5 (`docs/R19-NOTES.md` §2, board `Fixes-phone`)
-### A1 [ ] Smaller floating Ask
+### A1 [x] Smaller floating Ask
 Too big next to everything else. Phone 48 px (stars 28 px, the same optical shift scaled: ≈ -1.5 px, +.45 px), computer
 52 px; the ring 2 px as now. Area: AI & assistant (`components/app/ask-fab.tsx`, `.ask-fab` in globals.css). Keep
 every S5 rule (perfect opaque circle in every state, rises over toasts, hidden in store mode / sheets). Update the S5
@@ -209,5 +209,6 @@ and the secrets / runner steps he must do.
 
 ## Open
 ### Progress
+- A1 — Ask 48 px phone / 52 px computer, stars 28 / 30 px with the optical shift scaled; S5 pixel test green at the new sizes (light/dark × Graphite/Plum, phone + desktop).
 ### Decisions
 ### For Tal

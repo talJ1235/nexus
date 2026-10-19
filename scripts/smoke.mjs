@@ -2125,7 +2125,7 @@ try {
     // message, thinking, listening, offline) × light / dark × Graphite / Plum: the box's corners show the page behind it
     // (round), a striped background under it never shows inside the ring (two stripe phases give the same pixels), and
     // the stars' pixel centre is within 1 px of the orb's centre.
-    await step("floating Ask look (R18 S5 C1): round + opaque in every state × theme × palette, glyph centred ≤ 1 px", async () => {
+    await step("floating Ask look (R18 S5 C1, R19 A1 48 / 52 px): round + opaque in every state × theme × palette, glyph centred ≤ 1 px", async () => {
       await page.goto(`${BASE}/supermarket`);
       await page.waitForSelector("[data-ask-fab]", { timeout: 15000 });
       await page.emulateMedia({ reducedMotion: "reduce" });
@@ -2207,7 +2207,7 @@ try {
       });
       await page.emulateMedia({ reducedMotion: null });
       await page.reload();
-      ok(bad.length === 0 && Math.round(bb.width) === (MOBILE ? 58 : 60) && Math.round(bb.height) === Math.round(bb.width), "floating Ask look (R18 S5 C1): round + opaque in every state × theme × palette, glyph centred ≤ 1 px", JSON.stringify({ size: [bb.width, bb.height], bad: bad.slice(0, 8) }));
+      ok(bad.length === 0 && Math.round(bb.width) === (MOBILE ? 48 : 52) && Math.round(bb.height) === Math.round(bb.width), "floating Ask look (R18 S5 C1, R19 A1 48 / 52 px): round + opaque in every state × theme × palette, glyph centred ≤ 1 px", JSON.stringify({ size: [bb.width, bb.height], bad: bad.slice(0, 8) }));
     });
 
     // R18 S5 C2 + C3: fixed (no drag) on the physical right by default, 12 px above the dock on phones / in the content
