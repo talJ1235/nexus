@@ -1,7 +1,7 @@
 "use client";
 import { useFailReport } from "./fail-toast";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, ArrowUpRight, Brain, Bug, ChartColumn, Check, ChevronRight, CircleHelp, History, MessageSquare, MessageSquareWarning, Send, Square, SquarePen, Wand2, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { LOGO_EDGE, LogoMark } from "@/components/logo";
@@ -35,6 +35,7 @@ import { ActionCard } from "./assistant-action-card";
 import { useStore } from "./store";
 import { useAiWork } from "@/lib/ai-work";
 import { isPhone } from "@/components/ui/use-device";
+import { chatRefs, chatTokens, type ChatTok } from "@/lib/chat-inline";
 
 // ---------- Suggested questions (Round 8 D1: a vertical list, never a sideways scroll; Round 12 #3: rows) ----------
 
@@ -102,6 +103,8 @@ function Chips({ list, onPick, label, heading, testId, compact }: { list: Sugges
   );
 }
 
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.getAttribute("data-motion") === "reduce";
+
 // ---------- Ask (streamed; Round 7 F1/F2) ----------
 
 type Msg = {
@@ -121,6 +124,8 @@ type Msg = {
   question?: string;
   streaming?: boolean;
   error?: boolean;
+  /** Added in this session (R19 A8): enters with a short rise + fade; loaded history doesn't animate. */
+  fresh?: boolean;
 };
 export type ModelState = "idle" | "ok" | "busy";
 export type ChatMode = "chat" | "plan";
@@ -154,8 +159,6 @@ function Waiting() {
   );
 }
 
-const MONEY = /([₪$€]\s?\d[\d,.]*|\d[\d,.]*\s?[₪$€])/;
-
 /** Words fade in as they arrive (keys by position, so words already shown never re-animate). */
 function Words({ text, base }: { text: string; base: string }) {
   return (
@@ -165,41 +168,27 @@ function Words({ text, base }: { text: string; base: string }) {
   );
 }
 
-function Inline({ text, onItem, base }: { text: string; onItem: (id: string) => void; base: string }) {
+/** R19 A8: the answer's inline markup through `chatTokens` — references and amounts work inside bold too. */
+function Inline({ text, onItem, base, streaming }: { text: string; onItem: (id: string) => void; base: string; streaming?: boolean }) {
   const s = useStore();
-  const parts = text.split(/(\*\*[^*]+\*\*|\[\[[\w-]{6,24}\]\])/g);
-  return (
-    <>
-      {parts.map((p, i) => {
-        const k = `${base}.${i}`;
-        if (/^\*\*[^*]+\*\*$/.test(p)) {
-          const inner = p.slice(2, -2);
-          return /\d/.test(inner) ? (
-            <span key={k} className="word-in mx-0.5 inline-block rounded-md bg-surface-2 px-1.5 font-bold tabular-nums text-ink">{inner}</span>
-          ) : (
-            <b key={k} className="font-bold text-ink"><Words text={inner} base={k} /></b>
-          );
-        }
-        const m = p.match(/^\[\[([\w-]{6,24})\]\]$/);
-        if (m) {
-          const item = s.items.find((x) => x.id === m[1]);
-          return item ? (
-            <button key={k} type="button" onClick={() => onItem(item.id)} className="word-in font-semibold text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink" title={item.title}>
-              ↗
-            </button>
-          ) : null;
-        }
-        // Plain money amounts become chips too.
-        return p.split(MONEY).map((q, j) =>
-          MONEY.test(q) && /^[₪$€\d]/.test(q.trim()) ? (
-            <span key={`${k}.${j}`} className="word-in mx-0.5 inline-block rounded-md bg-surface-2 px-1.5 font-semibold tabular-nums text-ink">{q.trim()}</span>
-          ) : (
-            <Words key={`${k}.${j}`} text={q} base={`${k}.${j}.`} />
-          ),
-        );
-      })}
-    </>
-  );
+  const chip = "word-in mx-0.5 inline-block rounded-md bg-surface-2 px-1.5 tabular-nums text-ink";
+  const draw = (ts: ChatTok[], at: string): React.ReactNode[] =>
+    ts.map((x, i) => {
+      const k = `${at}.${i}`;
+      if (x.k === "bold") return <b key={k} className="font-bold text-ink">{draw(x.parts, k)}</b>;
+      if (x.k === "figure") return <span key={k} className={cn(chip, "font-bold")}>{x.v}</span>;
+      if (x.k === "money") return <span key={k} className={cn(chip, "font-semibold")}>{x.v}</span>;
+      if (x.k === "ref") {
+        const item = s.items.find((it) => it.id === x.id);
+        return item ? (
+          <button key={k} type="button" onClick={() => onItem(item.id)} className="word-in font-semibold text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink" title={item.title} aria-label={item.title} data-ai-ref>
+            ↗
+          </button>
+        ) : null;
+      }
+      return <Words key={k} text={x.v} base={`${k}.`} />;
+    });
+  return <>{draw(chatTokens(text, streaming), base)}</>;
 }
 
 /** "Remember this?" (R9 C3): a preference the user stated, saved only when confirmed. */
@@ -335,7 +324,7 @@ function Answer({ text, streaming, onItem }: { text: string; streaming?: boolean
     else blocks.push({ list: isItem, lines: [body] });
   }
   const filled = blocks.filter((b) => b.lines.length);
-  const ids = [...new Set([...text.matchAll(/\[\[([\w-]{6,24})\]\]/g)].map((m) => m[1]))];
+  const ids = chatRefs(text);
   const refs = ids.map((id) => s.items.find((i) => i.id === id)).filter(Boolean) as typeof s.items;
   return (
     <div className="space-y-2.5 text-[14px] leading-relaxed text-ink/85" dir="auto" data-ai-answer>
@@ -347,7 +336,7 @@ function Answer({ text, streaming, onItem }: { text: string; streaming?: boolean
                 <li key={j} className="flex gap-2">
                   <span className="mt-[9px] size-1.5 shrink-0 rounded-full bg-muted" aria-hidden />
                   <span className="min-w-0">
-                    <Inline text={l} onItem={onItem} base={`${i}.${j}`} />
+                    <Inline text={l} onItem={onItem} base={`${i}.${j}`} streaming={streaming} />
                   </span>
                 </li>
               ))}
@@ -358,13 +347,13 @@ function Answer({ text, streaming, onItem }: { text: string; streaming?: boolean
           <p key={i}>
             {lead != null && (
               <span className="mb-1 block text-[15.5px] font-bold leading-snug text-ink" data-ai-lead>
-                <Inline text={lead} onItem={onItem} base={`${i}.l`} />
+                <Inline text={lead} onItem={onItem} base={`${i}.l`} streaming={streaming} />
               </span>
             )}
             {rest.map((l, j) => (
               <Fragment key={j}>
                 {j > 0 && <br />}
-                <Inline text={l} onItem={onItem} base={`${i}.${j}`} />
+                <Inline text={l} onItem={onItem} base={`${i}.${j}`} streaming={streaming} />
               </Fragment>
             ))}
           </p>
@@ -470,6 +459,9 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
   const [busy, setBusy] = useState(false);
   useAiWork(busy);
   const endRef = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  // At the end of the list (within 72 px): new content follows; scrolled up, it stays where the person put it.
+  const stick = useRef(true);
   const abort = useRef<AbortController | null>(null);
   const [recent, setRecent] = useState<string[]>(() => (typeof window === "undefined" ? [] : readRecent()));
   const [now] = useState(() => Date.now());
@@ -580,12 +572,15 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
     if (mode === "plan") return sendPlan(text);
     setRecent(recordRecent(text));
     const history = msgs.filter((m) => !m.error).map(({ role, text }) => ({ role, text }));
-    setMsgs((m) => [...m, { role: "user", text }]);
+    // R19 A8: the answer's place exists from the start — "thinking" shows in it and the text replaces it in place, so
+    // nothing pops in as a separate section.
+    stick.current = true;
+    setMsgs((m) => [...m, { role: "user", text, fresh: true }, { role: "assistant", text: "", streaming: true, fresh: true }]);
     setQ("");
     setBusy(true);
     const ctrl = new AbortController();
     abort.current = ctrl;
-    let started = false;
+    let started = true;
     try {
       const res = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: text, history, currency: s.currency, locale, diag: collectDiag(s.view.type, locale, extensionVersion()), conversationId: conv.current }), signal: ctrl.signal });
       if (!res.ok || !res.body) throw new Error(String(res.status));
@@ -603,10 +598,7 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
           const ev = JSON.parse(line) as { t: "route"; fallback: boolean } | { t: "delta"; text: string } | { t: "done"; text: string; proposal: Proposal | null; report?: ReportFields | null; memory?: string | null; route?: string } | { t: "error"; error: string };
           if (ev.t === "route") onModel(ev.fallback ? "busy" : "ok");
           else if (ev.t === "delta") {
-            if (!started) {
-              started = true;
-              setMsgs((m) => [...m, { role: "assistant", text: ev.text, streaming: true }]);
-            } else patchLast((m) => ({ ...m, text: m.text + ev.text }));
+            patchLast((m) => ({ ...m, text: m.text + ev.text }));
           } else if (ev.t === "done") {
             if (!started) setMsgs((m) => [...m, { role: "assistant", text: ev.text, proposal: ev.proposal, report: ev.report, memory: ev.memory, route: ev.route ?? null, question: text }]);
             else patchLast((m) => ({ ...m, text: ev.text, proposal: ev.proposal, report: ev.report, memory: ev.memory, route: ev.route ?? null, question: text, streaming: false }));
@@ -616,17 +608,19 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
             started = true;
           } else if (ev.t === "error") {
             const msg = ev.error === "no_ai" ? t.ai.noAi : t.ai.failed;
-            if (started) patchLast((m) => ({ ...m, streaming: false }));
-            else setMsgs((m) => [...m, { role: "assistant", text: msg, error: true }]);
-            started = true;
+            patchLast((m) => (m.text ? { ...m, streaming: false } : { ...m, text: msg, error: true, streaming: false }));
           }
         }
       }
       if (started) patchLast((m) => ({ ...m, streaming: false }));
     } catch {
-      // Stopped by the user (keeps what arrived) or a network error.
-      if (started) patchLast((m) => ({ ...m, streaming: false }));
-      else if (!ctrl.signal.aborted) setMsgs((m) => [...m, { role: "assistant", text: t.ai.failed, error: true }]);
+      // Stopped by the user (keeps what arrived; nothing arrived → no empty answer) or a network error.
+      setMsgs((list) => {
+        const last = list[list.length - 1];
+        if (!last || last.role !== "assistant") return list;
+        if (last.text) return [...list.slice(0, -1), { ...last, streaming: false }];
+        return ctrl.signal.aborted ? list.slice(0, -1) : [...list.slice(0, -1), { ...last, text: t.ai.failed, error: true, streaming: false }];
+      });
     } finally {
       abort.current = null;
       setBusy(false);
@@ -647,20 +641,54 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seedKey]);
 
-  // Braces matter: newer Chrome returns a Promise from scrollIntoView, and an effect must not return it.
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [msgs, busy]);
+  // R19 A8: the list follows the end only while the person is at the end (scrolled up, nothing moves under the
+  // finger). The loaded conversation is placed at its end before paint (no scroll on open); new content after that
+  // glides there (≤ 28 px a frame, so a whole answer arriving at once never jumps the list); reduced motion: placed.
+  const placed = useRef(false);
+  const raf = useRef(0);
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (!el || loading) return;
+    if (!placed.current) {
+      placed.current = true;
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+    if (!stick.current) return;
+    if (reducedMotion()) {
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+    cancelAnimationFrame(raf.current);
+    const tick = () => {
+      if (!stick.current) return;
+      const d = el.scrollHeight - el.clientHeight - el.scrollTop;
+      if (d <= 1) return;
+      el.scrollTop += Math.min(28, Math.max(1, d * 0.3));
+      raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+  }, [msgs, busy, loading]);
+  useEffect(() => () => cancelAnimationFrame(raf.current), []);
 
   const openItem = (id: string) => {
     s.setPanel(null);
     s.openItem(id);
   };
+  // Plan mode has no streamed answer: its "thinking" line sits under the question.
   const waiting = busy && msgs[msgs.length - 1]?.role === "user";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+      <div
+        ref={scroller}
+        className={cn("flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-4", !loading && "ai-list-in")}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 72;
+        }}
+        data-ai-list
+      >
         {!msgs.length && !loading && (
           <div className="flex flex-col items-start gap-3 pt-6">
             <BoxThinking className="size-10 [&_path]:animate-none" />
@@ -669,14 +697,16 @@ function ChatTab({ seed, seedKey, onModel, mode, setMode, onConversation }: { se
         )}
         {msgs.map((m, i) =>
           m.role === "user" ? (
-            <div key={i} className="flex justify-end">
+            <div key={i} className={cn("flex justify-end", m.fresh && "msg-in")} data-ai-msg="user">
               <div className="max-w-[85%] rounded-[20px] rounded-ee-[6px] bg-[color-mix(in_srgb,var(--ink)_8%,var(--surface))] px-3.5 py-2 text-[14px] text-ink" dir="auto" data-ai-user>
                 {m.text}
               </div>
             </div>
           ) : (
-            <div key={i} className="space-y-3">
-              {m.error ? (
+            <div key={i} className={cn("space-y-3", m.fresh && "msg-in")} data-ai-msg="assistant">
+              {m.streaming && !m.text ? (
+                <Waiting />
+              ) : m.error ? (
                 <p className="text-sm text-muted">
                   {m.text}{" "}
                   <button type="button" className="font-semibold text-accent-ink underline-offset-2 hover:underline" onClick={() => failReport("ai", { code: m.text === t.ai.noAi ? "no_ai" : "failed" })} data-ai-report>

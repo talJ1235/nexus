@@ -5958,6 +5958,94 @@ try {
           ok(prices.length >= 2, "compare stores: item sheet → results sorted by price", JSON.stringify(prices));
           await page.keyboard.press("Escape");
         });
+        // R19 A8: the chat never jumps — reopening places the conversation at its end before paint (no scroll animation),
+        // the composer never moves, the answer's place exists from the question on ("thinking" shows in it, the text
+        // replaces it — no second section pops), and the list glides ≤ 30 px a frame while the answer streams in.
+        await step("assistant chat motion (R19 A8): open + one answer, frame trace — composer still, one answer block, glide", async () => {
+          const r = {};
+          await page.goto(`${BASE}/?v=to_buy`);
+          await page.waitForSelector(READY);
+          await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          const dlg = page.getByRole("dialog");
+          await dlg.locator("[data-ai-new]").click();
+          const ask = async (q) => {
+            await dlg.locator("textarea").fill(q);
+            await dlg.locator("textarea").press("Enter");
+            await dlg.locator("[data-ai-send=send]").waitFor({ timeout: 20000 });
+          };
+          await ask("How much is left to buy?");
+          await ask("And what is urgent?");
+          await page.keyboard.press("Escape");
+          await page.waitForSelector("[data-assistant]", { state: "detached", timeout: 5000 }).catch(() => {});
+          await page.waitForTimeout(300);
+          // Open: trace the list's scroll and the composer from the tap.
+          await page.evaluate(() => {
+            const out = (window.__a8o = []);
+            const t0 = performance.now();
+            const tick = () => {
+              const list = document.querySelector("[data-ai-list]");
+              const form = document.querySelector("[data-assistant] form");
+              out.push({ t: performance.now() - t0, st: list ? Math.round(list.scrollTop) : null, max: list ? list.scrollHeight - list.clientHeight : null, form: form ? Math.round(form.getBoundingClientRect().top) : null });
+              if (performance.now() - t0 < 1400) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+          });
+          await page.locator("[data-ask]").filter({ visible: true }).first().click();
+          await dlg.locator("[data-ai-msg]").first().waitFor({ timeout: 8000 });
+          await page.waitForTimeout(1500);
+          const o = (await page.evaluate(() => window.__a8o)).filter((x) => x.st != null && x.max > 0);
+          // From the first frame with the conversation in it, it is at its end (no scroll travel after).
+          r.openFrames = o.length;
+          r.openAtEnd = o.length > 0 && o.every((x) => x.max - x.st <= 2);
+          // The sheet's own entrance moves the composer with it (phone: slides up); from the frame it first rests, it never moves.
+          const forms = o.map((x) => x.form).filter((v) => v != null);
+          const rest = forms.at(-1);
+          let k = forms.length - 1;
+          while (k > 0 && Math.abs(forms[k - 1] - rest) <= 1) k--;
+          // From the first frame the composer rests (3 frames in a row at its final place) it never leaves it — the
+          // phone's reveal used to end ~700 ms in by jumping the sheet down and sliding it up again.
+          r.openRestFrames = forms.length - k;
+          const first = forms.findIndex((v, i) => i + 2 < forms.length && [0, 1, 2].every((d) => Math.abs(forms[i + d] - rest) <= 1));
+          const rested = first < 0 ? [] : forms.slice(first);
+          r.openComposer = rested.length ? Math.max(...rested) - Math.min(...rested) : 99;
+          if (process.env.SMOKE_DEBUG) console.log("DEBUG a8 open", JSON.stringify(o.map((x) => [Math.round(x.t), x.form, x.st, x.max])));
+          // One answer: trace the composer, the question's bubble and the answer blocks.
+          const blocks0 = await dlg.locator('[data-ai-msg="assistant"]').count();
+          await page.evaluate(() => {
+            const out = (window.__a8 = []);
+            const t0 = performance.now();
+            const tick = () => {
+              const users = document.querySelectorAll('[data-ai-msg="user"]');
+              const u = users[users.length - 1];
+              const form = document.querySelector("[data-assistant] form");
+              const as = document.querySelectorAll('[data-ai-msg="assistant"]');
+              const last = as[as.length - 1];
+              if (last && !last.__a8) last.__a8 = out.length + 1;
+              out.push({ u: u ? u.getBoundingClientRect().top : null, form: Math.round(form.getBoundingClientRect().top), blocks: as.length, mark: last?.__a8 ?? 0, waiting: !!last?.querySelector("[data-ai-waiting]"), answer: !!last?.querySelector("[data-ai-answer]") });
+              if (performance.now() - t0 < 4000) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+          });
+          await dlg.locator("textarea").fill("Which store is cheapest?");
+          await dlg.locator("textarea").press("Enter");
+          await dlg.locator("[data-ai-send=send]").waitFor({ timeout: 20000 });
+          await page.waitForTimeout(1200);
+          const f = await page.evaluate(() => window.__a8);
+          const after = f.filter((x) => x.blocks > blocks0);
+          r.blocks = [...new Set(after.map((x) => x.blocks))];
+          r.sameBlock = new Set(after.map((x) => x.mark)).size === 1;
+          r.waitedInPlace = after.some((x) => x.waiting) && after.some((x) => x.answer);
+          r.composer = Math.max(...f.map((x) => x.form)) - Math.min(...f.map((x) => x.form));
+          // The question's own bubble from the frame it appears: per-frame moves.
+          const us = f.map((x) => x.u).filter((v) => v != null);
+          const ds = us.slice(1).map((v, i) => Math.abs(v - us[i]));
+          r.worstGlide = Math.round(Math.max(0, ...ds.slice(2)) * 10) / 10;
+          await shot(page, "a8-chat");
+          await page.keyboard.press("Escape");
+          console.log(`INFO chat motion (R19 A8): ${JSON.stringify(r)}`);
+          ok(r.openAtEnd && r.openComposer <= 1 && r.blocks.length === 1 && r.blocks[0] === blocks0 + 1 && r.sameBlock && r.waitedInPlace && r.composer <= 1 && r.worstGlide <= 30,
+            "assistant chat motion (R19 A8): open + one answer, frame trace — composer still, one answer block, glide", JSON.stringify(r));
+        });
         // Needs NEXUS_AI_MOCK=1: the mock answer is streamed word by word through /api/ask.
         await step("assistant: streamed answer with lead line, mini cards, then follow-ups", async () => {
           await page.goto(`${BASE}/?v=to_buy`);

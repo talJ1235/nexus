@@ -24,6 +24,7 @@ below), not only on the boards.
 - A5 — the whole row opens the product: a hit layer under the content (z −1 in the row's stacking context), the name area lets taps through except the name's own letters; smoke taps picture / brand line / empty middle / chip gap / end edge at 360 + 390 → the product every time, the name still renames.
 - A6 — Start shopping always floats: the floating bar is portaled to document.body and "docked" is read from the slot's box on every scroll / resize / layout change; new smoke opens the tab from every tab + Products segment (each scrolled to its end) and checks top / middle / bottom / back up — red on the old build (bar at top 2375 px), green now.
 - A7 — "Nexus suggests" opens as one soft push: grid-rows on ease-in-out (.42,0,.58,1) for max(320 ms, 1.3 ms per px, ≤ 520), rows rise in 30 ms apart (fade with reduced motion); frame trace: 249 px opened over 19 moving frames, worst frame 21.9 px, the list above moved 0 px. (Also A6 follow-up: when open suggestions carry the slot above the screen the bar floats again — the A6 smoke caught the docked bar cut at the top.)
+- A8 — chat: answers' markup through `lib/chat-inline.ts` (refs + amounts inside bold, a bold run is a chip only when it's a short figure, half-written refs held back while streaming; `test:chat-inline` has Tal's report verbatim); the answer's block exists from the question on (thinking → text in place), the list is placed at its end before paint and then glides ≤ 28 px a frame only while the person is at the end, messages rise + fade in; the phone reveal no longer re-slides ~700 ms in. Frame trace (phone + desktop): opened at the end, composer still from the first rest frame, one answer block, worst glide 10 px.
 ### Decisions" at once; anything for Tal in "
 - A2: the computer sidebar's active row already has a tint + a 3 px accent bar + 600 ink (R14 B1) — it reads clearly, left as is. The dock pill measures the icon from the pill's own parent (a parent's ref isn't attached yet in a child's layout effect).
 - A3: the Home menu only replaces the "+" on Home — Products / Insights keep the R16 add list (its barcode / receipt / plan / import flows and their tests stay). "Search a product" opens the Supermarket add screen; D5 turns its search into the catalog.
@@ -31,6 +32,7 @@ below), not only on the boards.
 - A5: "the product page" is the row's item sheet until D2 turns it into the product page (`openSmItem` stays the one entry point, so A5's smoke keeps holding).
 - A6 cause: after any tab switch the view wrapper keeps its entrance animation (`view-in view-fwd`, fill `both`) in effect, which makes it the containing block of `position: fixed` children — the "floating" bar sat at the list's foot (≈ 2 400 px down) instead of above the dock; a cold load has no entrance animation, hence "sometimes". Second, smaller cause: the IntersectionObserver only reports crossings, so a tab opened at the previous tab's scroll could stay "docked" out of sight. Fix: portal while floating + geometry reads.
 - A7: the ≈ 320 ms in the brief and "no frame > 24 px" can't both hold for a tall section (380 px in 320 ms peaks at 34 px a frame even on ease-in-out), so the duration follows the height: 320 ms up to ~250 px, then 1.3 ms per px, capped at 520 ms.
+- A8 — Tal's report r_mvWUA_ddri: the bold regex took the whole bold sentence, so its two [[id]] refs stayed raw, and because it had a digit (43") it was drawn as one grey number chip — the "[Electra [[h5pPbrt7puRe" Tal saw. The opening jump: `ask-fab` removed `data-ask-from` after 700 ms, which swapped the open sheet's animation from the circle reveal to the default slide-up mid-way — the sheet jumped down and slid up again; the marker now stays until the chat closes. Found by the A8 frame trace (red before the fix).
 ### For Tal".
 - **Resuming:** `git fetch`, check out `round19`, read Progress + `git log`, continue from the first unticked item.
 - Unattended; never stop to ask — take the reading closest to the board + this brief, write it in Decisions.
@@ -94,7 +96,7 @@ above the dock each time.
 ### A7 [x] "Nexus suggests" opens smoothly
 Its opening is a jump. Height + opacity with `--ease-drawer` ≈ 320 ms, rows stagger in 30 ms, no layout shift of the
 list below (it pushes smoothly). **Acceptance:** frame trace: no single frame moves the list by > 24 px.
-### A8 [ ] The AI chat: no jumps, answers flow, the reported bug
+### A8 [x] The AI chat: no jumps, answers flow, the reported bug
 Opening the chat sometimes jumps; answers should arrive smoothly one after another, not as a separate section that
 pops. Read Tal's report about how an AI question renders (reports / error log) and fix that bug. Messages enter with a
 short rise + fade; the composer and the list never move under the finger; streaming text grows in place.

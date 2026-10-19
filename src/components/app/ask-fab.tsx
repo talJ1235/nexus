@@ -184,9 +184,14 @@ export function AskFab() {
     root.style.setProperty("--ask-x", `${Math.round(r.left + r.width / 2)}px`);
     root.style.setProperty("--ask-y", `${Math.round(r.top + r.height / 2)}px`);
     root.setAttribute("data-ask-from", "");
-    setTimeout(() => root.removeAttribute("data-ask-from"), 700);
     s.setPanel("assistant");
   };
+  // R19 A8: the reveal's marker stays until the chat closes — removing it while open swapped the sheet's animation to
+  // the default slide-up mid-way (the open chat jumped down and slid up again ~700 ms after the tap).
+  const chatOpen = s.panel === "assistant" || s.panel === "planner";
+  useEffect(() => {
+    if (!chatOpen) document.documentElement.removeAttribute("data-ask-from");
+  }, [chatOpen]);
 
   if (!s.aiEnabled) return null;
   const size = phone ? 48 : 52; // R19 A1: smaller (was 58 / 60)

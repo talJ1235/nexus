@@ -1166,6 +1166,13 @@ html[data-motion="reduce"] [data-sonner-toaster] [data-sonner-toast] { transitio
 @media (prefers-reduced-motion: reduce) { .home-plus, .home-plus.home-plus-open { transform: none; transition: opacity 150ms ease; } }
 :root[data-motion="reduce"] :is(.home-plus, .home-plus.home-plus-open) { transform: none; transition: opacity 150ms ease; }
 
+/* R19 A8: chat messages enter with a short rise + fade; the loaded conversation fades in once, already at its end. */
+.msg-in { animation: msg-in 260ms var(--ease-out) both; }
+@keyframes msg-in { from { opacity: 0; transform: translateY(8px); } }
+.ai-list-in { animation: fade 180ms ease-out both; }
+@media (prefers-reduced-motion: reduce) { .msg-in { animation: fade 150ms ease-out both; } }
+:root[data-motion="reduce"] .msg-in { animation: fade 150ms ease-out both; }
+
 /* ---------- R18 S5 C1 — the floating Ask (board Ask-final-phone + nx-s5.css "FINAL v2"): a pearl orb with a 2 px AI
    ring. Always a perfect, fully opaque circle: the disc, its shadow and its clip are 50 % in every state; the 2 px gap
    between orb and ring is filled with the pearl's edge colour (a solid spread shadow), so nothing underneath shows
