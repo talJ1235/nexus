@@ -2810,6 +2810,62 @@ try {
           "list swipes (R18 S5 A2 + R19 A4): hint + peek once, one row open at a time, rubber band, a short fling keeps the row", JSON.stringify(r));
       });
 
+    // R19 A5 (board Main): the whole row opens the product — taps at 5 x-positions (picture, the brand line, the empty
+    // middle, between the chip and the end, the end edge) on phone 360 + 390 open it every time; the name still renames.
+    if (WRITE && MOBILE)
+      await step("whole row opens the product (R19 A5): 5 x-positions × 360 / 390, the name renames", async () => {
+        const r = {};
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        for (const id of await page.locator('[data-sm-row]:has(.gro-t:text-matches("^A5 tap"))').evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row"))).catch(() => [])) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "A5 tap pasta", notes: "Barilla, the blue box" }]);
+        await page.goto(`${BASE}/supermarket`);
+        const id = await page.locator('[data-sm-row]:has(.gro-t:text-is("A5 tap pasta"))').first().getAttribute("data-sm-row", { timeout: 15000 });
+        for (const width of [390, 360]) {
+          const q = (r[width] = {});
+          await page.setViewportSize({ width, height: 844 });
+          await page.goto(`${BASE}/supermarket`);
+          const row = page.locator(`[data-sm-row="${id}"]`);
+          await row.waitFor({ timeout: 15000 });
+          await row.evaluate((e) => e.scrollIntoView({ block: "center" }));
+          await page.waitForTimeout(300);
+          const g = await row.evaluate((e) => {
+            const rect = (sel) => e.querySelector(sel)?.getBoundingClientRect();
+            const b = e.getBoundingClientRect(), tile = rect("[data-sm-row-tile]"), name = rect("[data-sm-row-name]"), sub = rect("[data-sm-row-sub]"), chip = rect("[data-sm-row-qty]");
+            const lo = Math.min(name.right, name.left), hi = Math.max(name.right, name.left);
+            const rtl = getComputedStyle(e).direction === "rtl";
+            return {
+              y: b.y + b.height / 2,
+              picture: [tile.x + tile.width / 2, tile.y + tile.height / 2],
+              brand: sub ? [sub.x + Math.min(30, sub.width / 2), sub.y + sub.height / 2] : null,
+              middle: [rtl ? lo - 24 : hi + 24, name.y + name.height / 2],
+              chipGap: [rtl ? chip.left - 5 : chip.right + 5, b.y + b.height / 2],
+              end: [rtl ? b.left + 3 : b.right - 3, b.y + b.height / 2],
+            };
+          });
+          for (const k of ["picture", "brand", "middle", "chipGap", "end"]) {
+            if (!g[k]) {
+              q[k] = "missing";
+              continue;
+            }
+            await page.mouse.click(g[k][0], g[k][1]);
+            q[k] = await page.waitForSelector(`[data-sm-sheet="${id}"]`, { timeout: 4000 }).then(() => "sheet", () => "nothing");
+            await page.keyboard.press("Escape");
+            await page.waitForSelector(`[data-sm-sheet="${id}"]`, { state: "detached", timeout: 4000 }).catch(() => {});
+            await page.waitForTimeout(250);
+          }
+          await row.locator("[data-sm-row-name]").click();
+          q.rename = await page.waitForSelector("[data-sm-rename]", { timeout: 3000 }).then(() => true, () => false);
+          q.noSheet = (await page.locator(`[data-sm-sheet="${id}"]`).count()) === 0;
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(300);
+        }
+        await page.setViewportSize(VIEWPORT);
+        if (id) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        const good = (q) => ["picture", "brand", "middle", "chipGap", "end"].every((k) => q[k] === "sheet") && q.rename && q.noSheet;
+        ok(good(r[390]) && good(r[360]), "whole row opens the product (R19 A5): 5 x-positions × 360 / 390, the name renames", JSON.stringify(r));
+      });
+
     // R19 A4 (board Fixes-phone): calm, deliberate delete — 150 px released → open at 96 (grey, not deleted); past the
     // point (~55 % of the row) the underlay turns red with "Release to delete"; 230 px released → gone + Undo restores; the
     // fold moves the rows below smoothly (no frame jumps > 12 px, no jump when the row leaves the DOM). Phone 360 + 390.

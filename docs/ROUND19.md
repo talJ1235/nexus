@@ -21,10 +21,12 @@ below), not only on the boards.
 - A2 — dock: one 56×30 pill behind the active icon (ink 11 % / Plum brand 16 %) sliding between tabs on the drawer ease (260 ms, no slide with reduced motion), stroke 2.2, label 750; smoke checks the pill on every tab × light/dark × Graphite/Plum, label ≥ 4.5:1, and the slide.
 - A3 — Home "+" = Scan (Barcode · Product photo · Receipt → the Supermarket camera in scan / photo / photo + tall frame; new intent `receipt`) + "Paste a product link" + "Search a product" (the Supermarket add screen); other tabs keep the add list; smoke opens each tile in its mode, 5 entries, no duplicates.
 - A4 — swipe-delete v2: grey Delete at 96 px, delete point = 55 % of the row (clamped 170–260; 201 px at 390, 185 at 360), red + spring icon + "Release to delete" + one vibrate(8) only past it, flings never commit short of it; the exit slides while the row fades first and folds its height (360 ms ease-out, WAAPI); quantity side calm grey too. Smoke at 360 + 390: 150 px → open, 230 px → deleted, Undo back; fold trace 55 frames, 60 px moved, worst frame 7.1 px.
+- A5 — the whole row opens the product: a hit layer under the content (z −1 in the row's stacking context), the name area lets taps through except the name's own letters; smoke taps picture / brand line / empty middle / chip gap / end edge at 360 + 390 → the product every time, the name still renames.
 ### Decisions" at once; anything for Tal in "
 - A2: the computer sidebar's active row already has a tint + a 3 px accent bar + 600 ink (R14 B1) — it reads clearly, left as is. The dock pill measures the icon from the pill's own parent (a parent's ref isn't attached yet in a child's layout effect).
 - A3: the Home menu only replaces the "+" on Home — Products / Insights keep the R16 add list (its barcode / receipt / plan / import flows and their tests stay). "Search a product" opens the Supermarket add screen; D5 turns its search into the catalog.
 - A4: the fold runs on the row wrapper with the Web Animations API (height + opacity, fill forwards) instead of the old 200 ms height class — opacity reaches 0 at 40 % so the red underlay never shows across the whole row.
+- A5: "the product page" is the row's item sheet until D2 turns it into the product page (`openSmItem` stays the one entry point, so A5's smoke keeps holding).
 ### For Tal".
 - **Resuming:** `git fetch`, check out `round19`, read Progress + `git log`, continue from the first unticked item.
 - Unattended; never stop to ask — take the reading closest to the board + this brief, write it in Decisions.
@@ -73,7 +75,7 @@ it the underlay turns red, the icon grows (spring), the label says "Release to d
 point. Undo as now. The quantity side (stepper) gets the same calm look. Area: Supermarket (`row.tsx`, `useSwipe`
 thresholds from S5 A2). **Acceptance:** gesture test: 150 px release → open, not deleted; 230 px → deleted + Undo
 restores; frame trace of the fold has no layout jump in rows below.
-### A5 [ ] The whole row opens the product
+### A5 [x] The whole row opens the product
 Tal asked before and it still only opens from the picture. Every part of the row that is not the name (rename), the
 quantity chip or the price opens the product page (D2) — the empty space, the brand line, the deal line. Board `Main`:
 a full-row hit layer under the content. **Acceptance:** smoke taps 5 x-positions across a row (picture, brand line,

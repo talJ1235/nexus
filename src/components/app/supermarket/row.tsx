@@ -260,6 +260,9 @@ export function Row({ item, unitKg, peek = false }: { item: ItemWithSources; uni
         data-settled={useSettled(item.id)}
         data-open={delOpen ? "delete" : qtyOpen ? "qty" : undefined}
       >
+        {/* R19 A5 (board Main): the whole row opens the product — a hit layer under the content (z −1 in the row's
+            stacking context); only the name's letters (rename) and the chip / price sit above it as their own buttons. */}
+        {!renaming && <button type="button" className="gro-hit" onClick={() => openSmItem(item.id)} tabIndex={-1} aria-hidden data-sm-row-hit />}
         <button type="button" className="gro-tile-btn shrink-0 rounded-[13px]" onClick={() => openSmItem(item.id)} aria-label={f(t.sm.row.open, { title: item.title })} data-sm-row-tile>
           <ProductTile art={item.artKey} section={item.section} photo={item.imageUrl} size={44} />
         </button>
@@ -287,8 +290,9 @@ export function Row({ item, unitKg, peek = false }: { item: ItemWithSources; uni
             data-sm-rename
           />
         ) : (
-          // S4 D1: only the name's own letters rename (its inline box); the row's empty part does nothing.
-          <div className="min-w-0 flex-1 select-none text-start" data-sm-row-name-area>
+          // S4 D1: only the name's own letters rename (its inline box); R19 A5: the rest of this area (the brand / note
+          // line, the space after the name) lets the tap through to the row's hit layer → the product.
+          <div className="gro-na min-w-0 flex-1 select-none text-start" data-sm-row-name-area>
             <button type="button" className="gro-t bidi" onClick={() => (ro ? openSmItem(item.id) : setRenaming(true))} aria-label={ro ? undefined : f(t.sm.row.rename, { title: item.title })} data-sm-row-name>
               {item.title}
             </button>
