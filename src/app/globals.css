@@ -1147,6 +1147,19 @@ html[data-motion="reduce"] :is(.actions-sheet:not([data-state]), .view-in.view-f
 html[data-motion="reduce"] :is(.sheet-in-end, .sheet-in-start, .sheet-phone, .modal-phone, .assistant-sheet, .animate-pop-in, .actions-sheet, .overlay-in)[data-state="closed"] { animation: fade-out 150ms ease-out both !important; }
 html[data-motion="reduce"] [data-sonner-toaster] [data-sonner-toast] { transition: opacity 150ms ease-out !important; }
 
+/* R19 A2 (board Fixes-phone): the active dock tab's pill — 56×30 behind the icon, ink 11 % (Plum: brand 16 %); it slides
+   between tabs on the drawer ease (reduced motion: no slide). Positioned by DockPill (phone-shell.tsx). */
+.dock-pill {
+  position: absolute; top: 0; left: 0; width: 56px; height: 30px; border-radius: 999px; pointer-events: none;
+  background: color-mix(in srgb, var(--ink) 11%, transparent);
+  transition: transform 260ms var(--ease-drawer), opacity 160ms ease;
+}
+:root[data-palette="plum"] .dock-pill { background: color-mix(in srgb, var(--brand) 16%, transparent); }
+.dock-pill-off { opacity: 0; }
+.dock-pill-still { transition: none; }
+@media (prefers-reduced-motion: reduce) { .dock-pill { transition: opacity 160ms ease; } }
+:root[data-motion="reduce"] .dock-pill { transition: opacity 160ms ease; }
+
 /* ---------- R18 S5 C1 — the floating Ask (board Ask-final-phone + nx-s5.css "FINAL v2"): a pearl orb with a 2 px AI
    ring. Always a perfect, fully opaque circle: the disc, its shadow and its clip are 50 % in every state; the 2 px gap
    between orb and ring is filled with the pearl's edge colour (a solid spread shadow), so nothing underneath shows

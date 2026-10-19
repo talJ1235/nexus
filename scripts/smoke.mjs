@@ -1136,6 +1136,52 @@ try {
         ok(r.labels.length === 4 && r.labels.every(Boolean) && r.font === "10.5px" && r.activeInk && r.logo === "Nexus" && r.search === 36 && (r.ask === 36 || r.ask === 0) && r.avatar === 32 && r.bell === 36, "phone shell: dock labels, active ink, v4 top bar (36 px, bell, avatar)", JSON.stringify(r));
       });
 
+      // R19 A2 (board Fixes-phone): the active tab has a 56×30 pill behind its icon on every tab (light / dark, Graphite /
+      // Plum), it slides between tabs, and the active label reads ≥ 4.5:1 against the dock.
+      await step("dock active pill (R19 A2): under the current tab on every tab, label contrast ≥ 4.5", async () => {
+        const lum = (c) => {
+          const [r, g, b] = c.match(/[\d.]+/g).slice(0, 3).map(Number).map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const bad = [];
+        for (const [view, target] of [["home", "home"], ["to_buy", "shopping"], ["supermarket", "supermarket"], ["spending", "spending"]]) {
+          await page.goto(`${BASE}/?v=${view}`);
+          await page.waitForSelector(`[data-dock] [data-dock-target="${target}"][aria-current=page]`, { timeout: 15000 });
+          for (const [dark, plum] of [[false, false], [true, false], [false, true], [true, true]]) {
+            await page.evaluate(([dk, pl]) => {
+              document.documentElement.classList.toggle("dark", dk);
+              if (pl) document.documentElement.setAttribute("data-palette", "plum");
+              else document.documentElement.removeAttribute("data-palette");
+            }, [dark, plum]);
+            await page.waitForTimeout(320);
+            const r = await page.evaluate((t) => {
+              const pill = document.querySelector("[data-dock] [data-dock-pill]");
+              const ic = document.querySelector(`[data-dock] [data-dock-target="${t}"] [data-dock-icon]`);
+              const label = document.querySelector(`[data-dock] [data-dock-target="${t}"] [data-dock-label]`);
+              const p = pill.getBoundingClientRect();
+              const i = ic.getBoundingClientRect();
+              return { pillFor: pill.getAttribute("data-dock-pill"), w: Math.round(p.width), h: Math.round(p.height), dx: Math.abs(p.left + p.width / 2 - (i.left + i.width / 2)), dy: Math.abs(p.top + p.height / 2 - (i.top + i.height / 2)), op: getComputedStyle(pill).opacity, bg: getComputedStyle(pill).backgroundColor, fg: getComputedStyle(label).color, dockBg: getComputedStyle(document.querySelector("[data-dock]")).backgroundColor, weight: getComputedStyle(label).fontWeight };
+            }, target);
+            const L1 = lum(r.fg), L2 = lum(r.dockBg);
+            const cr = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+            const what = `${view}·${dark ? "dark" : "light"}·${plum ? "plum" : "graphite"}`;
+            if (r.pillFor !== target || r.w !== 56 || r.h !== 30 || r.dx > 1.5 || r.dy > 1.5 || r.op !== "1" || r.bg === "rgba(0, 0, 0, 0)") bad.push(`${what}: ${JSON.stringify(r)}`);
+            if (cr < 4.5 || r.weight !== "750") bad.push(`${what}: label ${cr.toFixed(2)}:1 w${r.weight}`);
+          }
+        }
+        // The pill slides: tap another tab → mid-way it's between the two.
+        await page.evaluate(() => (document.documentElement.classList.remove("dark"), document.documentElement.removeAttribute("data-palette")));
+        const x0 = await page.locator("[data-dock-pill]").evaluate((e) => e.getBoundingClientRect().left);
+        await page.locator('[data-dock] [data-dock-target="home"]').click();
+        await page.waitForTimeout(90);
+        const xMid = await page.locator("[data-dock-pill]").evaluate((e) => e.getBoundingClientRect().left);
+        await page.waitForTimeout(400);
+        const x1 = await page.locator("[data-dock-pill]").evaluate((e) => e.getBoundingClientRect().left);
+        const slides = Math.min(x0, x1) + 4 < xMid && xMid < Math.max(x0, x1) - 4;
+        await shot(page, "dock-pill");
+        ok(bad.length === 0 && slides, "dock active pill (R19 A2): under the current tab on every tab, label contrast ≥ 4.5", JSON.stringify({ bad: bad.slice(0, 6), x0, xMid, x1 }));
+      });
+
       await step("phone: dock + '+' menu opens the add list (4 cards + 3 compact) and closes on the scrim", async () => {
         await page.waitForSelector("[data-dock]", { timeout: 10000 });
         await page.click("[data-plus]");

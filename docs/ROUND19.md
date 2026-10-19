@@ -17,7 +17,11 @@ below), not only on the boards.
   `nx-r19.css` + `nx-s5.css` + `canvas.json`). On `main`: commit `R19.0: R19 boards (from the planning chat)`, push.
   Then branch **`round19`** from `main`.
 - **Commit and push after every single item** (`R19.<part><k>: …`, `git push origin round19`); tick `[x]` here + one
-  line in "### Progress" in the same commit; decisions in "### Decisions" at once; anything for Tal in "### For Tal".
+  line in "### Progress" in the same commit; decisions in "
+- A2 — dock: one 56×30 pill behind the active icon (ink 11 % / Plum brand 16 %) sliding between tabs on the drawer ease (260 ms, no slide with reduced motion), stroke 2.2, label 750; smoke checks the pill on every tab × light/dark × Graphite/Plum, label ≥ 4.5:1, and the slide.
+### Decisions" at once; anything for Tal in "
+- A2: the computer sidebar's active row already has a tint + a 3 px accent bar + 600 ink (R14 B1) — it reads clearly, left as is. The dock pill measures the icon from the pill's own parent (a parent's ref isn't attached yet in a child's layout effect).
+### For Tal".
 - **Resuming:** `git fetch`, check out `round19`, read Progress + `git log`, continue from the first unticked item.
 - Unattended; never stop to ask — take the reading closest to the board + this brief, write it in Decisions.
 - Read open reports and the error log first (Tal filed an AI-chat bug there — A8). Bugs with an unknown cause:
@@ -46,7 +50,7 @@ Too big next to everything else. Phone 48 px (stars 28 px, the same optical shif
 52 px; the ring 2 px as now. Area: AI & assistant (`components/app/ask-fab.tsx`, `.ask-fab` in globals.css). Keep
 every S5 rule (perfect opaque circle in every state, rises over toasts, hidden in store mode / sheets). Update the S5
 pixel test's sizes. **Acceptance:** pixel test green at the new sizes, light / dark × Graphite / Plum.
-### A2 [ ] The active dock tab is obvious
+### A2 [x] The active dock tab is obvious
 Today only grey → black. Board: a 56×30 pill behind the active icon (ink 11 %, Plum: brand 16 %), stroke 2.2, label
 750; the pill moves between tabs with `--ease-drawer` (≈ 260 ms; reduced motion: no slide). Area: App shell (`lib/dock.ts`,
 `phone-shell.tsx`). The computer sidebar's active row already has its tint — check it reads as clearly. **Acceptance:**

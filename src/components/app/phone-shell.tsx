@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Camera, ChartColumn, ChevronDown, House, Plus, ScanBarcode, Search, ShoppingBasket, ShoppingCart, Tag, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
@@ -167,13 +167,14 @@ function DockBar() {
         aria-label={id === "shopping" && urgent ? `${d.label(t)} (${urgent})` : d.label(t)}
         aria-current={active === id ? "page" : undefined}
         data-carry={`view:${id === "shopping" ? "to_buy" : id}`}
-        // R14 B2: icons with labels under them (Tal), active = ink, others muted.
+        // R14 B2: icons with labels under them (Tal), active = ink, others muted. R19 A2: the active tab also gets the
+        // pill behind its icon (DockPill), a 2.2 stroke and a 750 label.
         className={cn(
-          "flex h-full min-w-0 flex-col items-center justify-center gap-[3px] text-[10.5px] font-semibold leading-none transition-[color,transform] duration-200 active:scale-95 [&_svg]:size-[21px] [&_svg]:stroke-[1.8]",
-          active === id ? "text-ink" : "text-muted",
+          "relative flex h-full min-w-0 flex-col items-center justify-center gap-[3px] text-[10.5px] leading-none transition-[color,transform] duration-200 active:scale-95 [&_svg]:size-[21px]",
+          active === id ? "font-[750] text-ink [&_svg]:stroke-[2.2]" : "font-semibold text-muted [&_svg]:stroke-[1.8]",
         )}
       >
-        <span className="relative">
+        <span className="relative" data-dock-icon>
           {d.icon}
           {id === "shopping" && urgent > 0 && (
             <span className="tabular absolute -end-2.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-warn px-1 text-[10px] font-bold leading-none text-bg" data-dock-badge>
@@ -209,6 +210,7 @@ function DockBar() {
         aria-label="Main"
         data-dock
       >
+        <DockPill active={active} />
         {DOCK_ORDER.slice(0, 2).map(item)}
         {/* R15 C1: viewers get no "+" (nothing they could add). */}
         {s.space?.role === "viewer" ? (
@@ -239,6 +241,49 @@ function DockBar() {
       </nav>
       <QuickMenu open={quick} onClose={() => setQuick(false)} />
     </>
+  );
+}
+
+/**
+ * R19 A2 (board Fixes-phone): a 56×30 pill behind the active tab's icon (ink 11 %, Plum: brand 16 %, `.dock-pill` in
+ * globals.css). One element that slides between tabs (`--ease-drawer`, 260 ms; reduced motion: it just moves); measured
+ * from the icon, so it follows the tab whatever the label's length. No dock tab active (Settings…) → it fades out.
+ */
+function DockPill({ active }: { active: DockTarget | null }) {
+  const me = useRef<HTMLSpanElement>(null);
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  // No slide into the first place (the pill appears there); slides only between tabs after that.
+  const [live, setLive] = useState(false);
+  useLayoutEffect(() => {
+    // The pill's own parent (the dock): a parent's ref isn't attached yet when a child's layout effect runs.
+    const el = me.current?.parentElement;
+    if (!el) return;
+    const read = () => {
+      const ic = active ? el.querySelector(`[data-dock-target="${active}"] [data-dock-icon]`) : null;
+      if (!ic) return setAt(null);
+      const n = el.getBoundingClientRect();
+      const r = ic.getBoundingClientRect();
+      setAt({ x: Math.round(r.left + r.width / 2 - n.left - 28), y: Math.round(r.top + r.height / 2 - n.top - 15) });
+    };
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [active]);
+  const placed = !!at;
+  useEffect(() => {
+    if (!placed) return;
+    const f = requestAnimationFrame(() => setLive(true));
+    return () => cancelAnimationFrame(f);
+  }, [placed]);
+  return (
+    <span
+      ref={me}
+      aria-hidden
+      className={cn("dock-pill", !at && "dock-pill-off", !live && "dock-pill-still")}
+      style={at ? { transform: `translate(${at.x}px, ${at.y}px)` } : undefined}
+      data-dock-pill={active ?? ""}
+    />
   );
 }
 
