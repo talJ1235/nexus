@@ -3600,6 +3600,48 @@ try {
     // R18 S4 D3: Start shopping floats above the dock while the list goes on, docks into its slot after the list once
     // the end is in view, and never covers "Nexus suggests" or a row there.
     if (MOBILE)
+      // R19 A6: the pill is there every time the Supermarket tab shows — opened from every other tab and every Products
+      // segment (each scrolled to its end first: the case that used to leave it docked out of sight), at the top, the
+      // middle and the bottom of the list: visible, above the dock, nothing on top of it.
+      await step("start shopping always there (R19 A6): from every tab + segment, top / middle / bottom, above the dock", async () => {
+        const bad = [];
+        const seen = [];
+        for (const from of ["home", "to_buy", "ordered", "projects", "spending", "supermarket"]) {
+          await page.goto(`${BASE}/?v=${from}`);
+          await page.waitForSelector("[data-dock]", { timeout: 15000 });
+          await page.waitForTimeout(600);
+          await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+          await page.waitForTimeout(300);
+          if (from === "supermarket") {
+            // Leave and come back (another tab, then the Supermarket tab again).
+            await page.locator('[data-dock-target="home"]').click();
+            await page.waitForTimeout(500);
+          }
+          await page.locator('[data-dock-target="supermarket"]').click();
+          await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
+          await page.waitForSelector("[data-sm-start]", { timeout: 15000 });
+          for (const at of ["enter", "top", "middle", "bottom", "up"]) {
+            if (at !== "enter")
+              await page.evaluate((w) => {
+                const max = document.documentElement.scrollHeight - window.innerHeight;
+                window.scrollTo(0, w === "top" ? 0 : w === "middle" ? max / 2 : w === "bottom" ? max : max * 0.3);
+              }, at);
+            await page.waitForTimeout(at === "enter" ? 700 : 350);
+            const r = await page.evaluate(() => {
+              const b = document.querySelector("[data-sm-start]");
+              const d = document.querySelector("[data-dock]")?.getBoundingClientRect();
+              if (!b) return { none: true };
+              const q = b.getBoundingClientRect();
+              const hit = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+              return { state: b.parentElement.getAttribute("data-sm-start-bar"), top: Math.round(q.top), bottom: Math.round(q.bottom), dock: Math.round(d?.top ?? 0), mine: !!hit && b.contains(hit) };
+            });
+            seen.push(`${from}:${at}:${r.state}`);
+            if (r.none || r.top < 0 || r.bottom > r.dock - 2 || !r.mine) bad.push(`${from}/${at}: ${JSON.stringify(r)}`);
+          }
+        }
+        ok(bad.length === 0, "start shopping always there (R19 A6): from every tab + segment, top / middle / bottom, above the dock", JSON.stringify({ bad: bad.slice(0, 6), seen: seen.slice(0, 12) }));
+      });
+
       await step("start shopping floats, then docks (R18 S4 D3): above the dock, docked at the list's end, never over suggestions", async () => {
         const r = {};
         await page.goto(`${BASE}/supermarket`);

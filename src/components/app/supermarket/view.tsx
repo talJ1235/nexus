@@ -1,7 +1,8 @@
 "use client";
 
 import "./sm.css";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight, Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, History, LayoutList, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, ShoppingCart, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
@@ -51,6 +52,8 @@ export function bySection(items: ItemWithSources[], order: readonly string[] = D
   return [...order, "other"].filter((k) => m.has(k)).map((k) => [k, m.get(k)!] as const);
 }
 
+const noSub = () => () => {};
+
 export function SupermarketView() {
   const s = useStore();
   const { t, f, locale } = useI18n();
@@ -65,16 +68,34 @@ export function SupermarketView() {
   const localTrip = useLocalTrip(s.spaceId || "-");
   const mineRunning = serverTrip != null || localTrip != null;
   // S4 D3: docked once the slot after the list reaches the floating bar's place (90 px above the bottom).
-  const slot = useRef<HTMLDivElement>(null);
+  // R19 A6: read from the slot's box on every scroll / resize / layout change — an IntersectionObserver only reports
+  // threshold crossings, so a tab opened at the previous tab's scroll (slot above the screen → "docked") and then reset
+  // to the top (slot below the screen: still not intersecting, no callback) kept the bar docked out of sight.
+  const [slotEl, setSlotEl] = useState<HTMLDivElement | null>(null);
+  const hydrated = useSyncExternalStore(noSub, () => true, () => false);
   const [docked, setDocked] = useState(false);
   const deskView = useDevice() === "computer";
-  useEffect(() => {
-    const el = slot.current;
-    if (!el || deskView) return;
-    const io = new IntersectionObserver(([e]) => setDocked(e.isIntersecting || e.boundingClientRect.top < 0), { rootMargin: "0px 0px -90px 0px", threshold: 1 });
-    io.observe(el);
-    return () => io.disconnect();
-  });
+  useLayoutEffect(() => {
+    if (!slotEl || deskView) return;
+    const now = () => setDocked(slotEl.getBoundingClientRect().bottom <= window.innerHeight - 90);
+    let f = 0;
+    const soon = () => {
+      cancelAnimationFrame(f);
+      f = requestAnimationFrame(now);
+    };
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the first read, before paint
+    now();
+    window.addEventListener("scroll", now, { passive: true });
+    window.addEventListener("resize", soon);
+    const ro = new ResizeObserver(soon);
+    ro.observe(document.body);
+    return () => {
+      cancelAnimationFrame(f);
+      window.removeEventListener("scroll", now);
+      window.removeEventListener("resize", soon);
+      ro.disconnect();
+    };
+  }, [slotEl, deskView]);
   const order = trip.order;
   const [picking, setPicking] = useState(false);
   const [shopping, setShopping] = useState(false);
@@ -217,7 +238,9 @@ export function SupermarketView() {
   // R18 S5 C2: floating, it shares the floating Ask's row (bottom = dock + 12) and ends before it, on its side.
   const askGap = s.aiEnabled ? 82 : 12;
   const askLeft = s.homePrefs.askSide === "left";
-  const startBar = showStart && (
+  // R19 A6: floating, the bar lives in document.body (like the dock) — a tab's entrance slide (a transform on the view)
+  // would otherwise make `fixed` relative to the view and carry the bar off screen while it plays.
+  const startBarEl = showStart && (
     <div
       className={cn("pointer-events-none z-30 desk:static desk:mt-2", docked ? "relative" : "fixed bottom-[calc(92px+env(safe-area-inset-bottom))]")}
       style={docked || desk ? undefined : { left: askLeft ? askGap : 12, right: askLeft ? 12 : askGap }}
@@ -230,6 +253,7 @@ export function SupermarketView() {
       </button>
     </div>
   );
+  const startBar = startBarEl && (docked || desk || !hydrated ? startBarEl : createPortal(startBarEl, document.body));
   const firstTime = <FirstTime basketSize={Math.min(WEEKLY_BASKET_SIZE, basket.length)} onBasket={() => void addBasket(basket.slice(0, WEEKLY_BASKET_SIZE))} onBuild={() => setBasketOn(true)} onPaste={() => setAdding("paste")} />;
   // R18 S5 A2: the first time (per person) the first row peeks once and a line names both swipes.
   const hint = !ro && !desk && shown === "rows" && s.sm.length > 0 && !!home?.swipeHint;
@@ -313,7 +337,7 @@ export function SupermarketView() {
               S4 D3: Start shopping floats above the dock until the list's end reaches it, then sits in its slot here. */}
           {list}
           {showStart && (
-            <div ref={slot} className="h-14" data-sm-start-slot>
+            <div ref={setSlotEl} className="h-14" data-sm-start-slot>
               {startBar}
             </div>
           )}
