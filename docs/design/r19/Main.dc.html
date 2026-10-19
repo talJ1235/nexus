@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>List with prices · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+<link rel="stylesheet" href="./nx-r19.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="rtl" lang="he" style="width:390px;height:844px;position:relative;overflow:hidden;font-family:'Heebo',system-ui,sans-serif">
+  <div class="scr" style="padding-bottom:170px">
+    <div class="top">
+      <h1>סופר</h1>
+      <span class="pile" aria-label="משותף עם נועה ויואב"><span class="av c3">ט</span><span class="av c2">נ</span><span class="av c4">י</span></span>
+      <button class="ib" aria-label="עוד"><svg class="s lg" viewBox="0 0 24 24" style="stroke-width:2.6"><path d="M5 12h.01 M12 12h.01 M19 12h.01"></path></svg></button>
+    </div>
+    <div class="lhead">
+      <button class="store" aria-label="החלפת חנות">
+        <span class="logo">לוגו</span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25">
+          <b style="font-size:15px;font-weight:750">שופרסל דיל</b>
+          <span style="font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">נתניה · רח׳ הרצל 60 · 1.2 ק״מ</span>
+        </span>
+        <svg class="s sm" viewBox="0 0 24 24" style="color:var(--faint)"><path d="m6 9 6 6 6-6"></path></svg>
+      </button>
+    </div>
+
+    <div class="basket">
+      <div class="row1">
+        <span class="tot"><span class="cur">₪</span>{{total}}</span>
+        <span class="sub">סל משוער · {{count}} פריטים</span>
+        <span class="fresh" style="margin-inline-start:auto"><i></i>עדכני · 14:20</span>
+      </div>
+      <button class="better" aria-label="השוואת הסל בין חנויות">
+        <svg class="s" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8 M15 7h6v6"></path></svg>
+        <span>ברמי לוי · נתניה הסל זול ב-<b>₪{{save}}</b></span>
+        <svg class="s sm flip go" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"></path></svg>
+      </button>
+    </div>
+
+    <label class="addbar">
+      <svg class="s" viewBox="0 0 24 24" style="color:var(--faint)"><path d="M12 5v14 M5 12h14"></path></svg>
+      <input type="text" placeholder="הוספת פריט" aria-label="הוספת פריט">
+      <button class="ib" aria-label="הוספה בקול"><svg class="s" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z M19 11a7 7 0 0 1-14 0 M12 18v3"></path></svg></button>
+      <button class="ib" aria-label="מצלמה"><svg class="s" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path></svg></button>
+    </label>
+
+    <div class="listcard" role="list" aria-label="סופר">
+      <sc-for list="{{secs}}" as="sc" hint-placeholder-count="4">
+        <div class="{{sc.cls}}">
+          <div class="lsec"><span class="dot"></span><span class="nm">{{sc.name}}</span><span class="n">₪{{sc.sum}}</span></div>
+          <sc-for list="{{sc.rows}}" as="r" hint-placeholder-count="3">
+            <div class="{{r.rowCls}}" role="listitem">
+              <div class="face">
+                <button class="hit" aria-label="{{r.openLbl}}" onClick="{{r.open}}"></button>
+                <span class="pt"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="{{r.art.d0}}" fill="{{r.art.f0}}"></path><path d="{{r.art.d1}}" fill="{{r.art.f1}}"></path><path d="{{r.art.d2}}" fill="{{r.art.f2}}"></path><path d="{{r.art.d3}}" fill="{{r.art.f3}}"></path><path d="{{r.art.d4}}" fill="{{r.art.f4}}"></path></svg></span>
+                <span class="nm">
+                  <button class="t" aria-label="שינוי שם">{{r.name}}</button>
+                  <span class="s"><span class="br">{{r.brand}}</span>{{r.size}}</span>
+                  <sc-if value="{{r.hasDeal}}" hint-placeholder-val="{{ false }}">
+                    <span class="meta"><span class="{{r.dealCls}}"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg>{{r.deal}}</span></span>
+                  </sc-if>
+                </span>
+                <span class="qty"><span>{{r.cnt}}</span></span>
+                <span class="{{r.prCls}}"><b>{{r.price}}</b><sc-if value="{{r.hasWas}}" hint-placeholder-val="{{ false }}"><s>{{r.was}}</s></sc-if><sc-if value="{{r.hasUnit}}" hint-placeholder-val="{{ false }}"><small>{{r.unit}}</small></sc-if></span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:10px 20px 0;font-size:11.5px;color:var(--faint);text-align:center">המחירים מקובצי השקיפות של הרשתות · ייתכנו הבדלים בקופה</p>
+  </div>
+
+  <button class="startbar" style="left:12px;right:72px">
+    <svg class="s lg" viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg>
+    <span>מתחילים קנייה</span>
+    <span class="go"><svg class="s flip" viewBox="0 0 24 24"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></span>
+  </button>
+  <button class="ask r19" style="left:328px" aria-label="לשאול את Nexus">
+    <svg class="sp" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" fill="var(--spark)"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="#fff"></path></svg>
+  </button>
+
+  <sc-if value="{{opened}}" hint-placeholder-val="{{ false }}">
+    <div class="toast" role="status"><span style="flex:1">נגיעה בכל השורה פותחת את דף המוצר</span><button class="u" onClick="{{closeT}}">הבנתי</button></div>
+  </sc-if>
+
+  <nav class="dock" aria-label="ראשי">
+    <button class="tab"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg></span><span>בית</span></button>
+    <button class="tab"><span class="ic"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg></span><span>מוצרים</span></button>
+    <button class="plus" aria-label="הוספה"><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button>
+    <button class="tab on" aria-current="page"><span class="ic"><svg viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg></span><span>סופר</span></button>
+    <button class="tab"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg></span><span>תובנות</span></button>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const C_ = (x, y, r) => 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z';
+    const E_ = (x, y, a, b) => 'M' + (x - a) + ' ' + y + 'a' + a + ' ' + b + ' 0 1 0 ' + (2 * a) + ' 0a' + a + ' ' + b + ' 0 1 0 ' + (-2 * a) + ' 0z';
+    const R_ = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + 'h' + (w - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r + 'v' + (h - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r + 'h' + (-(w - 2 * r)) + 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + (-r) + 'v' + (-(h - 2 * r)) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + (-r) + 'z';
+    const ART = {
+      tom: [[C_(24,27,14),'#e5483b'],[E_(18,22,4,2.5),'#ff9a8c'],['M24 9l2.2 4.6 4.8-1.6-2.8 4 4.2 2.6-5.2-.2-1.4 4.4-1.6-4.4-5.2.2 4.2-2.6-2.8-4 4.8 1.6z','#3f9d5a']],
+      cuc: [['M9 36c-3-3-1-9 5-15l7-7c6-6 12-8 15-5s1 9-5 15l-7 7c-6 6-12 8-15 5z','#3d8b47'],[C_(17,28,1.4)+C_(23,22,1.4)+C_(29,16,1.4),'#93d48f']],
+      mlk: [['M14 16l4-8h12l4 8z','#dfe9f5'],[R_(14,16,20,28,2),'#ffffff'],[R_(14,27,20,10,.01),'#3b7fc4'],[R_(20,4,8,5,1),'#3b7fc4']],
+      cot: [['M10 18h28l-3 22c0 2-2 3-4 3H17c-2 0-4-1-4-3z','#ffffff'],[E_(24,18,15,4.5),'#3b7fc4'],[R_(14,26,20,8,2),'#cfe0f3']],
+      yog: [['M12 14h24l-3 26c0 2-2 3-4 3H19c-2 0-4-1-4-3z','#ffffff'],[R_(11,10,26,5,2),'#e86f8f'],[R_(14,22,20,8,.01),'#f9c9d6']],
+      egg: [[R_(5,26,38,14,4),'#d9c3a0'],[E_(13,25,5,6.5)+E_(24,23,5,6.5)+E_(35,25,5,6.5),'#f7ecdc']],
+      pen: [['M8 30l14-14 5 5-14 14z','#f0c35a'],['M20 36l14-14 5 5-14 14z','#e6ad3c'],['M14 20l12-12 4 4-12 12z','#f6d684']],
+      ric: [['M12 14c0-4 4-6 12-6s12 2 12 6l2 24c0 3-6 5-14 5s-14-2-14-5z','#f6f3ea'],[R_(14,22,20,10,3),'#3b7fc4']],
+      dis: [[R_(22,4,4,6,1),'#1f7f62'],['M18 10h12l2 6v24c0 2-2 4-4 4h-8c-2 0-4-2-4-4V16z','#4cc3a0'],[C_(24,28,5.5),'#ffffff']]
+    };
+    const art = (k) => { const a = ART[k] || []; const o = {}; for (let i = 0; i < 5; i++) { const x = i === 0 ? [E_(24,44.5,13,2.2),'rgba(0,0,0,.10)'] : a[i - 1]; o['d' + i] = x ? x[0] : ''; o['f' + i] = x ? x[1] : 'none'; } return o; };
+    // id, section, name, brand, size, count, price shown, was, unit, deal text, deal kind
+    const I = (id, k, name, brand, size, cnt, price, was, unit, deal, dk) => ({ id, k, name, brand, size, cnt, price, was, unit, deal, dk });
+    const ROWS = [
+      I('tom','produce','עגבניות','',' ~1 ק״ג',6,'₪7.90','','₪7.90 לק״ג'),
+      I('cuc','produce','מלפפונים','','~600 גרם',4,'₪4.20','','₪6.90 לק״ג'),
+      I('mlk','dairy','חלב 3%','תנובה',' · 1 ליטר',2,'₪13.60','','₪6.80 ליח׳'),
+      I('cot','dairy','קוטג׳ 5%','טרה',' · 250 גרם',3,'₪15.00','₪17.70','','3 ב-₪15 · יש לך 3 ✓','save'),
+      I('yog','dairy','יוגורט 3%','דנונה',' · 200 גרם',3,'₪11.70','','₪3.90 ליח׳','4 ב-₪12 · כדאי לקחת 4','deal'),
+      I('egg','dairy','ביצים L','',' · 12 יח׳',1,'₪13.90','','','מועדון: ₪11.90','club deal'),
+      I('pen','dry','פסטה פנה','ברילה',' · 500 גרם',2,'₪10.00','₪13.80','','2 ב-₪10 · יש לך 2 ✓','save'),
+      I('ric','dry','אורז בסמטי','','בחרו מוצר כדי לראות מחיר',1,'','','',''),
+      I('dis','clean','סבון כלים','פיירי',' · 750 מ״ל',1,'₪8.90','','')
+    ];
+    const SEC = { produce:'פירות וירקות', dairy:'חלב וביצים', dry:'יבשים', clean:'ניקיון וחד־פעמי' };
+    const num = (v) => parseFloat(String(v).replace('₪','')) || 0;
+    const secs = ['produce','dairy','dry','clean'].map(k => {
+      const list = ROWS.filter(x => x.k === k);
+      return { cls: 'k-' + k, name: SEC[k], sum: list.reduce((a, x) => a + num(x.price), 0).toFixed(2).replace('.00',''),
+        rows: list.map(x => ({
+          rowCls: 'lrow' + (x.deal || x.k === 'dry' && !x.price ? ' tall' : ''),
+          openLbl: 'פתיחת ' + x.name, open: () => this.setState({ opened: true }),
+          art: art(x.id), name: x.name, brand: x.brand, size: x.size, cnt: '×' + x.cnt,
+          hasDeal: !!x.deal, deal: x.deal, dealCls: 'deal ' + (x.dk || ''),
+          prCls: 'pr' + (x.price ? '' : ' none'), price: x.price || 'אין מחיר', hasWas: !!x.was, was: x.was, hasUnit: !!x.unit, unit: x.unit
+        })) };
+    });
+    const total = ROWS.reduce((a, x) => a + num(x.price), 0);
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      secs, total: Math.round(total), count: ROWS.length, save: 18,
+      opened: !!s.opened, closeT: () => this.setState({ opened: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

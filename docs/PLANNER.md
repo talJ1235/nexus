@@ -6,56 +6,30 @@ writes the round briefs. Everything durable lives in this repo, not in chat hist
 Setup of this chat (network, GitHub connector, rebuilding it on a new account): `docs/ENVIRONMENT.md` — any change
 to setup, tooling or workflow is recorded there in the same session.
 
-## Current state & handoff (updated 2026-10-10 → read this first on any account)
-- **2026-10-16 — R18 S5 ready to run (account B done).** Boards approved (canvas "Nexus R18 — S5", 14 boards) and
-  **`docs/ROUND18-S5.md`** written (Parts A list v2, B start-trip look, C floating Ask, D Home widgets v2, E monthly
-  spending, F onboarding v2, G guards + docs). The planning chat couldn't `git push` (no push tool in that chat) →
-  Tal gets `nexus-r18-s5.zip` (boards for `docs/design/r18-s5/` + `r18-s5-planning.patch` with these PLANNER /
-  ENVIRONMENT lines); Claude Code's Step 0 applies and commits them on `main`. Prompt for Claude Code (account A):
+## Current state & handoff (updated 2026-10-19 → read this first on any account)
+- **2026-10-19 — R19 ready to run.** R18 S5 is on `main` (0.2 permissions still Tal's). Brief **`docs/ROUND19.md`**
+  (Part A Tal's 10 fixes after S5, B price data — probe, chains + branches, intraday prices + deals, catalog, real
+  pictures, health; C real-product matching; D screens — list prices, product page, compare, store picker, catalog
+  search, real estimates; E deal alerts; F guards + docs). Notes `docs/R19-NOTES.md`. Boards: canvas "Nexus R19 —
+  Prices" (this account) → Tal downloads `nexus-r19-boards.zip`, Claude Code unzips it from Downloads (boards + `r19-planning.patch` with these PLANNER /
+  ENVIRONMENT lines) → Step 0 applies + commits. Run it overnight per ENVIRONMENT.md "Overnight runs" (Claude Code ≥
+  v2.1.269, PC never sleeps, auto mode, `/goal`). Setup prompt (Tal present):
   ```
-  Round 18, session 5 (docs/ROUND18-S5.md) — Step 0, then Parts A, B, C, D, E, F, G, unattended, on branch round18-s5
-  from main. I unzipped nexus-r18-s5.zip at the repo root. Now while I'm here: make sure .claude/settings.local.json
-  allows "Bash(git push origin main)", "Bash(git push origin round18-s5)", "Bash(git push -u origin round18-s5)",
-  "Bash(git merge --ff-only round18-s5)", and take a fresh read-only prod snapshot (if refused, tell me the exact
-  command). Then go through everything without stopping. Merge to main only if all items are ticked, a full CI run on
-  the final commit is green, and (if the DB changed) the rehearsal passes.
+  Round 19 (docs/ROUND19.md) — setup only, I'm here. I downloaded nexus-r19-boards.zip; find the newest
+  nexus-r19-boards*.zip in my Downloads folder and unzip it at the repo root yourself (overwrite; it holds
+  docs/design/r19/ and r19-planning.patch). Do Step 0: git apply -3 r19-planning.patch on main (PLANNER.md +
+  ENVIRONMENT.md; on a conflict keep both sides' lines), delete the patch, commit it with the boards as R19.0, push
+  main, create branch round19. Make sure .claude/settings.local.json allows "Bash(git push origin round19)",
+  "Bash(git push -u origin round19)", "Bash(git merge --ff-only round19)", and take a fresh read-only prod snapshot
+  (if refused, tell me the exact command). Then stop and tell me you're ready.
   ```
-- **2026-10-15 (night) — SPLIT BY ACCOUNT (Tal, to save usage):**
-  - **This account (tal.jacoby1235, "A")** runs **Claude Code only** (R18 S4 tonight on `round18-s4`; S5 tomorrow).
-  - **The other account ("B") is the planning + design chat** from now on: boards for S5 and the **S5 brief**.
-  - B's job, in order: (1) read this file, `docs/R18-S3-NOTES.md` (groups B + C + "After S3"), `docs/ROUND18-S4.md`
-    (so S5 doesn't redo S4), boards `docs/design/r18/` + `nx17.css` / `nx-sm*.css`; (2) new Design canvas
-    **"Nexus R18 — S5"** on account B with boards: `List-phone` (supermarket list redesign: one list, compact, real-looking
-    rows, swipe affordances, inline rename, picture tile → sheet), `List-desktop`, `StartTrip-phone` (start-shopping
-    screen, fixed, colour / light), `Home-widgets-phone` + `Home-widgets-desktop` (Samsung-Health-inspired cards +
-    long-press edit: drag, swap places like Android icons, remove), new shopping widgets, `Ask-fab-phone` (floating Ask:
-    **right side default, drag to the left and it stays, just above the dock, rises smoothly above toasts / bars, closing
-    the chat returns to the same screen**; a full circle per CLAUDE.md), `Spending-month-phone` + desktop (monthly
-    breakdown: supermarket vs products, stores, categories, vs budget), `Trips-history-phone` if S4's cards need a look;
-    design bar = `.claude/skills/` (emil-design-eng, apple-design, mobile-native, animate) + frontend-design;
-    (3) Tal approves → B commits the boards to **`docs/design/r18-s5/`** and pushes to `main` (attach the repo with push
-    access, clone `/home/claude/nexus`, commit as Tal — ENVIRONMENT "Planning chat setup"); (4) B writes
-    **`docs/ROUND18-S5.md`** in the S4 format (How to run, one commit per item, Step 0 = finish S4's merge if open) +
-    the Claude Code prompt into this section; (5) a line in the Planning log.
-  - Rules while split: B touches only `docs/` on `main` (never code, never `round18-s*` branches); always
-    `git pull --rebase` before pushing; Claude Code merges `origin/main` into its branch before its ff-merge. A doesn't
-    write planning docs while B is active, except Claude Code's own brief "Open" sections.
-- **2026-10-15 (night):** **`docs/ROUND18-S4.md`** written from Tal's notes after S3 (A adds merge into qty/weight —
-  cause in `addToList` notes —, feedback, empty list; B "+" = camera, scanner rebuilt (main lens, 1080p, focus, zoom,
-  freeze on detect), photo freeze/retake; C voice = record + AI (Tal approved, counts in quota) with level meter;
-  D rename on letters, swipe-delete motion, floating Start shopping; E store mode: fixed start screen, sections stay
-  open, no pop-ups, full-screen finish, one scroller, rail navigates; F desktop pill, history cards, brands). Step 0
-  finishes S3's merge first. Tal makes boards for S5 in a new chat in parallel (prompt: boards per
-  `R18-S3-NOTES.md` groups B + C and "After S3"; floating Ask on the right, draggable left). Prompt:
+  Then, in auto mode:
   ```
-  Round 18, session 4 (docs/ROUND18-S4.md) — Step 0, then Parts A, B, C, D, E, F, G, unattended, on branch round18-s4
-  from main. Now while I'm here: make sure .claude/settings.local.json allows "Bash(git push origin round18-s4)",
-  "Bash(git push -u origin round18-s4)", "Bash(git merge --ff-only round18-s4)" (and the round18-s3 ones), and take a
-  fresh read-only prod snapshot (if refused, tell me the exact command). Then go through everything without stopping.
-  Merge to main only if all items are ticked, a full CI run on the final commit is green, and (if the DB changed) the
-  rehearsal passes.
+  /goal Round 19 is finished per docs/ROUND19.md on branch round19: every item in Parts A–F is ticked [x] with its acceptance check shown passing in this conversation, a full CI run on the final code commit is green, the rehearsal passed, and round19 is fast-forward merged to main with guards and prod smoke green on main — or, for an item that truly can't be done unattended, docs/ROUND19.md Open → For Tal says exactly why and what Tal must do. Work through the parts in order without stopping to ask; commit and push after every item as How to run says; after a usage-limit pause, continue from the first unticked item.
   ```
-Older: `docs/archive/PLANNER-history.md`.
+- Next after R19: Tal's phone checklist → fixes; then R20 (Android app on Google Play, closed test 12 × 14 days) → the
+  family wave. Recipes (R18b) later.
+Older handoff blocks: `docs/ROUND18-S5.md` header and git history; `docs/archive/PLANNER-history.md`.
 - **Blocked stores — parked by Tal (2026-10-09), come back later.** Prod probe (ROUND17 Open "C1 — prod probe"):
   cwc/ksp/rami-levy/payngo etc. run Cloudflare bot management that challenges every datacenter IP, the CF Worker too.
   Free server-side fetching can't pass it. Options offered (not decided): (1) product name from the URL slug,
@@ -285,6 +259,23 @@ Older: `docs/archive/PLANNER-history.md`.
   allergy, organic; Shabbat and holidays), budget (household total, supermarket share, month start day, "learn it from
   my first month", alerts 80 % / 100 %). Swipe on list rows: toward the start = delete, toward the end = quantity.
 
+- **Road to family (Tal 2026-10-19):** the R20 gate stands — family / friends only after the Android app is on Google
+  Play; the first wave = at least 12 people (Play closed test 12 × 14 days). Domain + name postponed. Recipes (R18b)
+  postponed. R19 = Tal's fixes + price comparison in one ~8 h night run; boards approved, "apply every design rule while
+  building".
+- **Prices (Tal 2026-10-19):** current, not "morning prices" — nightly full files **and** the intraday partial price /
+  promo files; the app says "updated · HH:MM" + "verify at the till". Every list item is a real catalog product (gtin,
+  brand, size) matched by the household's learned brands, asked once when unsure; real pictures for every product
+  (barcode → Open Food Facts → own photos → Serper + AI check → illustration last); deals under the row ("4 for ₪12 ·
+  worth taking 4"); product page with the same product across chains + cheaper of the same type; store directory from
+  the chains' Stores files with real logos and addresses, no free-text stores. Ingestion builds on the maintained
+  OpenIsraeliSupermarkets scrapers; jobs on GitHub Actions, blocked chains → Tal's PC or a small Israeli server (Tal
+  decides after the probe). Money: ₪ smaller than the digits; tags never overlap.
+- **R19 fixes (Tal 2026-10-19):** Ask 48 px phone / 52 px computer; active dock tab = pill behind the icon; Home "+" =
+  Barcode · Product photo · Receipt + link + search; swipe-delete point at ~55 % of the row, grey until then, soft fold;
+  the whole row (not the name) opens the product page; Start shopping always floats on the Supermarket tab; reopening
+  Ask opens the newest chat even if empty.
+
 ## Product direction (discussed 2026-10-03, not started)
 - Toward a multi-user product: sign-up on web or app, short onboarding questionnaire (habits, stores), Google sign-in,
   desktop login by QR from the phone, per-user data (schema already owner-aware), privacy policy.
@@ -321,6 +312,7 @@ Older: `docs/archive/PLANNER-history.md`.
 
 ### Planning log
 Older: `docs/archive/PLANNER-history.md`.
+- 2026-10-19 · planning chat · Status for Tal; he keeps the R20 gate (family after Google Play, ≥ 12 testers), domain later, recipes later. Tal's S5 voice-note fixes + price-comparison wishes → `docs/R19-NOTES.md`; research (transparency files, OpenIsraeliSupermarkets scrapers, geo-blocking); canvas "Nexus R19 — Prices" (7 boards, approved after one review: current prices, ₪ size, tags); wrote `docs/ROUND19.md`; boards via `nexus-r19-boards.zip`.
 - 2026-10-16 · planning chat · Workflow: code map (`docs/MAP.md`), planning-docs diet (history → `docs/archive/`), `docs/next` rule, CI paths-ignore + parallel jobs and permanent permissions → R18 S5 Part 0.
 - 2026-10-16 · B · R18 S4 result from Claude Code: on `main` as `d4bdeb0`, all items ticked, CI + guards + prod smoke green, no schema change. Voice never worked before because `Permissions-Policy` had `microphone=()` (now `self`); the vanished-row bug was a delete + Undo in one sync batch (fixed). Open: Tal's phone checklist in `ROUND18-S4.md` "For Tal"; status note `4030ed9` only on `round18-s4` → S5 Step 0 cherry-picks it; the smoke console filter → S5 G1.
 - 2026-10-16 · B · R18 S5 planned: new canvas "Nexus R18 — S5" (14 boards: list phone + computer, start trip with a colour / style picker, floating Ask states + six looks + 8 shapes × 8 states + star sizes + the final (pearl + ring, stars C), Home widgets v2 with long-press drag / swap / remove / size / add, widget catalog, monthly spending phone + computer, onboarding v2 steps 2/4/5/6). Tal: Ask floats on phone and computer, look = pearl + ring with bigger centred stars, only valuable widgets, start-trip colour is the user's, onboarding asks household / habits / food / budget; all approved. Wrote `docs/ROUND18-S5.md`; boards + these doc lines go via a zip + patch (no push from this chat).

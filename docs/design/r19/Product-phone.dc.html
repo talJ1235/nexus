@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Product page · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+<link rel="stylesheet" href="./nx-r19.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="rtl" lang="he" style="width:390px;height:844px;position:relative;overflow:hidden;font-family:'Heebo',system-ui,sans-serif">
+  <div class="scr" style="padding-bottom:110px">
+    <div class="ptop">
+      <button class="ib" aria-label="חזרה"><svg class="s lg" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg></button>
+      <span style="flex:1"></span>
+      <button class="ib" aria-label="התראת מחיר"><svg class="s" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.9 1.9 0 0 0 3.4 0"></path></svg></button>
+      <button class="ib" aria-label="עוד"><svg class="s lg" viewBox="0 0 24 24" style="stroke-width:2.6"><path d="M5 12h.01 M12 12h.01 M19 12h.01"></path></svg></button>
+    </div>
+
+    <div class="phero">
+      <span class="photo"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 30l14-14 5 5-14 14z" fill="#f0c35a"></path><path d="M20 36l14-14 5 5-14 14z" fill="#e6ad3c"></path><path d="M14 20l12-12 4 4-12 12z" fill="#f6d684"></path></svg><span class="src">תמונת מוצר</span></span>
+      <div class="ptitle">
+        <h1>פסטה פנה ריגטה</h1>
+        <span class="br">ברילה · 500 גרם</span>
+        <span class="bc">[ברקוד]</span>
+        <div class="tags"><span class="tag">יבשים</span><span class="tag">כשר</span><span class="tag">₪1.38 ל-100 גרם</span></div>
+      </div>
+    </div>
+
+    <div class="here">
+      <div class="h">
+        <span class="logo sm">לוגו</span>
+        <span style="flex:1;min-width:0;font-size:13px;color:var(--muted)">אצלכם · שופרסל דיל נתניה</span>
+        <span class="fresh"><i></i>עדכני · 14:20</span>
+      </div>
+      <div class="h" style="margin-top:6px;align-items:baseline">
+        <span class="big"><span class="cur">₪</span>6.90</span>
+        <span class="unit">ליחידה</span>
+      </div>
+      <div class="tip">
+        <svg class="s sm" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg>
+        <span><b>2 ב-₪10</b> עד 31/10 · כדאי לקחת 2 — ₪5 ליחידה, חיסכון של ₪3.80. כדאי לוודא בקופה.</span>
+      </div>
+    </div>
+
+    <div class="sect"><span>אותו מוצר בחנויות קרובות</span><a href="#all">כל הרשתות</a></div>
+    <div class="card" style="padding:4px 16px">
+      <div class="cmp">
+        <sc-for list="{{cmp}}" as="c" hint-placeholder-count="5">
+          <div class="{{c.cls}}">
+            <span class="logo sm">לוגו</span>
+            <span class="nmx"><b>{{c.chain}}</b><span>{{c.where}}</span></span>
+            <span class="bar" aria-hidden="true"><i style="width:{{c.w}}"></i></span>
+            <span class="p"><b>{{c.price}}</b><sc-if value="{{c.hasNote}}" hint-placeholder-val="{{ false }}"><small class="{{c.noteCls}}">{{c.note}}</small></sc-if></span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div class="sect"><span>מחיר ב-90 הימים האחרונים</span></div>
+    <div class="card">
+      <svg class="hist" viewBox="0 0 340 84" preserveAspectRatio="none" role="img" aria-label="המחיר יציב סביב 6.90 שקלים, עם שלושה מבצעים">
+        <line class="gr" x1="0" y1="22" x2="340" y2="22"></line>
+        <path class="ar" d="M0 26 L60 26 L60 58 L84 58 L84 26 L170 26 L170 58 L196 58 L196 22 L280 22 L280 58 L340 58 L340 84 L0 84 Z"></path>
+        <path class="ln" d="M0 26 L60 26 L60 58 L84 58 L84 26 L170 26 L170 58 L196 58 L196 22 L280 22 L280 58 L340 58"></path>
+        <circle class="dl" cx="72" cy="58" r="4"></circle><circle class="dl" cx="183" cy="58" r="4"></circle><circle class="dl" cx="310" cy="58" r="4"></circle>
+      </svg>
+      <div class="hlbl"><span>יולי</span><span>אוגוסט</span><span>ספטמבר</span><span>היום</span></div>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--muted)">הנמוך ביותר: <b style="color:var(--ink)">₪5.00</b> במבצע · מבצע כמעט כל חודש ברשת שלכם</p>
+    </div>
+
+    <div class="sect"><span>אותו סוג, זול יותר</span></div>
+    <div class="alts">
+      <sc-for list="{{alts}}" as="a" hint-placeholder-count="3">
+        <button class="alt" aria-label="{{a.name}}">
+          <span class="pt k-dry"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 30l14-14 5 5-14 14z" fill="{{a.c1}}"></path><path d="M20 36l14-14 5 5-14 14z" fill="{{a.c2}}"></path></svg></span>
+          <b>{{a.name}}</b>
+          <span style="font-size:11.5px;color:var(--muted)">{{a.per}}</span>
+          <span class="pp"><strong>{{a.price}}</strong><span>{{a.save}}</span></span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div class="sect"><span>מה Nexus למד</span></div>
+    <div class="card">
+      <div class="learn">
+        <div class="tx">כש״פסטה״ נכנסת לרשימה — להציע את המוצר הזה<small>קניתם אותו ב-6 מתוך 7 הקניות האחרונות</small></div>
+        <button class="{{swCls}}" aria-label="להציע תמיד את המוצר הזה" aria-pressed="{{swOn}}" onClick="{{toggle}}"><i></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:absolute;inset-inline:0;bottom:0;padding:12px 16px 22px;background:linear-gradient(to top,var(--bg) 70%,transparent);display:flex;gap:10px;align-items:center">
+    <div class="stepper" style="display:flex;align-items:center;gap:4px;height:52px;padding:0 6px;border-radius:999px;background:var(--raised);box-shadow:inset 0 0 0 1px var(--line)">
+      <button class="ib" aria-label="פחות" onClick="{{dec}}"><svg class="s" viewBox="0 0 24 24"><path d="M5 12h14"></path></svg></button>
+      <span class="num" style="min-width:24px;text-align:center;font-weight:800;font-size:16px">{{n}}</span>
+      <button class="ib" aria-label="יותר" onClick="{{inc}}"><svg class="s" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button>
+    </div>
+    <button class="btn pri" style="flex:1;height:52px;font-size:15px">{{cta}}</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const n = s.n ?? 1;
+    const on = s.on ?? true;
+    const ROWS = [
+      ['אושר עד','נתניה, פולג · 6.8 ק״מ','₪5.70','זול ביותר','s', 83],
+      ['רמי לוי','נתניה, אזור התעשייה · 2.1 ק״מ','₪5.90','','', 86],
+      ['יוחננוף','נתניה, קריית השרון · 3.0 ק״מ','₪6.50','','', 94],
+      ['ויקטורי','נתניה, הרצל · 1.4 ק״מ','₪6.40','3 ב-₪15','d', 93],
+      ['שופרסל דיל · אצלכם','נתניה, הרצל 60 · 1.2 ק״מ','₪6.90','2 ב-₪10','d', 100]
+    ];
+    const cmp = ROWS.map((r, i) => ({ chain: r[0], where: r[1], price: r[2], hasNote: !!r[3], note: r[3], noteCls: r[4] === 'd' ? 'dl' : '',
+      w: r[5] + '%', cls: 'r' + (i === 0 ? ' best' : '') + (i === 4 ? ' mine' : '') }));
+    const alts = [
+      { name: 'פנה אסם', per: '500 גרם · ₪0.98 ל-100 גרם', price: '₪4.90', save: 'זול ב-₪2.00', c1: '#e9c46a', c2: '#d8a93a' },
+      { name: 'פנה שופרסל', per: '500 גרם · ₪0.78 ל-100 גרם', price: '₪3.90', save: 'זול ב-₪3.00', c1: '#efd38c', c2: '#dcb553' },
+      { name: 'פנה מחיטה מלאה, ברילה', per: '500 גרם · ₪1.58 ל-100 גרם', price: '₪7.90', save: '', c1: '#c79a5e', c2: '#a8743a' }
+    ];
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      cmp, alts, n, cta: n === 1 ? 'ברשימה · 1' : 'עדכון לרשימה · ' + n,
+      inc: () => this.setState({ n: n + 1 }), dec: () => this.setState({ n: Math.max(1, n - 1) }),
+      swCls: 'sw2' + (on ? ' on' : ''), swOn: on ? 'true' : 'false', toggle: () => this.setState({ on: !on })
+    };
+  }
+}
+</script>
+</body>
+</html>

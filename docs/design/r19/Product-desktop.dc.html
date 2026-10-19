@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Product page · computer</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+<link rel="stylesheet" href="./nx-r19.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="rtl" lang="he" style="width:1366px;height:860px;position:relative;overflow:hidden;font-family:'Heebo',system-ui,sans-serif;display:flex">
+  <aside style="width:232px;flex-shrink:0;padding:18px 12px;display:flex;flex-direction:column;gap:4px;border-inline-end:1px solid var(--line)">
+    <b style="font-size:20px;font-weight:800;padding:4px 12px 16px;letter-spacing:-.02em">Nexus</b>
+    <sc-for list="{{nav}}" as="n" hint-placeholder-count="4">
+      <a href="#nav" style="{{n.st}}">{{n.t}}</a>
+    </sc-for>
+  </aside>
+  <main style="flex:1;min-width:0;overflow:auto;padding:22px 32px 40px">
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:14px">
+      <a href="#back" style="color:var(--muted);text-decoration:none">סופר</a><span>‹</span><span>פסטה פנה ריגטה</span>
+      <span style="flex:1"></span>
+      <button class="btn sm">התראת מחיר</button>
+      <button class="btn sm pri">ברשימה · 2</button>
+    </div>
+    <div style="display:grid;grid-template-columns:420px 1fr;gap:20px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card" style="margin:0;display:flex;gap:16px;align-items:center">
+          <span class="photo" style="width:120px;height:120px"><svg class="art" viewBox="0 0 48 48" aria-hidden="true" style="width:96px;height:96px"><path d="M8 30l14-14 5 5-14 14z" fill="#f0c35a"></path><path d="M20 36l14-14 5 5-14 14z" fill="#e6ad3c"></path><path d="M14 20l12-12 4 4-12 12z" fill="#f6d684"></path></svg><span class="src">תמונת מוצר</span></span>
+          <div class="ptitle"><h1 style="font-size:24px">פסטה פנה ריגטה</h1><span class="br">ברילה · 500 גרם</span><span class="bc">[ברקוד]</span>
+            <div class="tags"><span class="tag">יבשים</span><span class="tag">כשר</span><span class="tag">₪1.38 ל-100 גרם</span></div></div>
+        </div>
+        <div class="here" style="margin:0">
+          <div class="h"><span class="logo sm">לוגו</span><span style="flex:1;font-size:13px;color:var(--muted)">אצלכם · שופרסל דיל נתניה</span><span class="fresh"><i></i>עדכני · 14:20</span></div>
+          <div class="h" style="margin-top:6px;align-items:baseline"><span class="big"><span class="cur">₪</span>6.90</span><span class="unit">ליחידה</span></div>
+          <div class="tip"><svg class="s sm" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg><span><b>2 ב-₪10</b> עד 31/10 · כדאי לקחת 2 — ₪5 ליחידה. כדאי לוודא בקופה.</span></div>
+        </div>
+        <div class="card" style="margin:0">
+          <h3><span>מחיר ב-90 הימים האחרונים</span></h3>
+          <svg class="hist" viewBox="0 0 340 84" preserveAspectRatio="none" role="img" aria-label="המחיר יציב סביב 6.90 שקלים עם שלושה מבצעים" style="height:110px">
+            <line class="gr" x1="0" y1="22" x2="340" y2="22"></line>
+            <path class="ar" d="M0 26 L60 26 L60 58 L84 58 L84 26 L170 26 L170 58 L196 58 L196 22 L280 22 L280 58 L340 58 L340 84 L0 84 Z"></path>
+            <path class="ln" d="M0 26 L60 26 L60 58 L84 58 L84 26 L170 26 L170 58 L196 58 L196 22 L280 22 L280 58 L340 58"></path>
+            <circle class="dl" cx="72" cy="58" r="4"></circle><circle class="dl" cx="183" cy="58" r="4"></circle><circle class="dl" cx="310" cy="58" r="4"></circle>
+          </svg>
+          <div class="hlbl"><span>יולי</span><span>אוגוסט</span><span>ספטמבר</span><span>היום</span></div>
+        </div>
+        <div class="card" style="margin:0"><div class="learn"><div class="tx">כש״פסטה״ נכנסת לרשימה — להציע את המוצר הזה<small>קניתם אותו ב-6 מתוך 7 הקניות האחרונות</small></div><button class="sw2 on" aria-label="להציע תמיד את המוצר הזה" aria-pressed="true"><i></i></button></div></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div class="card" style="margin:0;padding:14px 20px">
+          <h3><span>אותו מוצר בכל הרשתות</span><button class="chip">קרוב אליי · 10 ק״מ</button><button class="chip on">עם מועדון</button></h3>
+          <div class="cmp">
+            <sc-for list="{{cmp}}" as="c" hint-placeholder-count="8">
+              <div class="{{c.cls}}" style="{{c.st}}">
+                <span class="logo sm">לוגו</span>
+                <span class="nmx"><b>{{c.chain}}</b><span>{{c.where}}</span></span>
+                <span class="bar" style="width:160px" aria-hidden="true"><i style="width:{{c.w}}"></i></span>
+                <span style="width:120px;font-size:12px;font-weight:700;color:var(--deal);text-align:start">{{c.note}}</span>
+                <span class="p"><b>{{c.price}}</b></span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div class="card" style="margin:0">
+          <h3><span>אותו סוג, זול יותר</span></h3>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+            <sc-for list="{{alts}}" as="a" hint-placeholder-count="3">
+              <button class="alt" style="flex:none;box-shadow:inset 0 0 0 1px var(--line-in)">
+                <b>{{a.name}}</b><span style="font-size:11.5px;color:var(--muted)">{{a.per}}</span>
+                <span class="pp"><strong>{{a.price}}</strong><span>{{a.save}}</span></span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <button class="ask r19" style="left:28px;bottom:28px;width:52px;height:52px" aria-label="לשאול את Nexus">
+    <svg class="sp" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" fill="var(--spark)"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="#fff"></path></svg>
+  </button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":1366,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const base = 'display:block;height:40px;line-height:40px;padding:0 12px;border-radius:12px;text-decoration:none;font-weight:650;font-size:14px;';
+    const nav = ['בית','מוצרים','סופר','תובנות'].map((t, i) => ({ t, st: base + (i === 2 ? 'background:color-mix(in srgb,var(--ink) 9%,transparent);color:var(--ink);font-weight:750' : 'color:var(--ink2)') }));
+    const R = [
+      ['אושר עד','נתניה, פולג · 6.8 ק״מ','₪5.70','',83],
+      ['רמי לוי','נתניה, אזור התעשייה · 2.1 ק״מ','₪5.90','',86],
+      ['חצי חינם','נתניה · 4.0 ק״מ','₪6.20','',90],
+      ['ויקטורי','נתניה, הרצל · 1.4 ק״מ','₪6.40','3 ב-₪15',93],
+      ['יוחננוף','נתניה, קריית השרון · 3.0 ק״מ','₪6.50','',94],
+      ['טיב טעם','נתניה · 5.2 ק״מ','₪7.40','',100],
+      ['שופרסל דיל · אצלכם','נתניה, הרצל 60 · 1.2 ק״מ','₪6.90','2 ב-₪10',100],
+      ['קרפור','נתניה · 3.7 ק״מ','₪6.90','',100]
+    ];
+    const cmp = R.map((r, i) => ({ chain: r[0], where: r[1], price: r[2], note: r[3], w: r[4] + '%',
+      cls: 'r' + (i === 0 ? ' best' : '') + (i === 6 ? ' mine' : ''), st: i === 6 ? 'margin:0 -20px;padding-inline:20px' : '' }));
+    const alts = [
+      { name: 'פנה אסם', per: '500 גרם · ₪0.98 ל-100 גרם', price: '₪4.90', save: 'זול ב-₪2.00' },
+      { name: 'פנה שופרסל', per: '500 גרם · ₪0.78 ל-100 גרם', price: '₪3.90', save: 'זול ב-₪3.00' },
+      { name: 'פנה מחיטה מלאה, ברילה', per: '500 גרם · ₪1.58 ל-100 גרם', price: '₪7.90', save: '' }
+    ];
+    return { cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''), nav, cmp, alts };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Where is my list cheapest · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+<link rel="stylesheet" href="./nx-r19.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="rtl" lang="he" style="width:390px;height:844px;position:relative;overflow:hidden;font-family:'Heebo',system-ui,sans-serif">
+  <div class="scr" style="padding-bottom:40px">
+    <div class="ptop">
+      <button class="ib" aria-label="חזרה"><svg class="s lg" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg></button>
+    </div>
+    <div style="padding:0 16px 10px">
+      <h1 style="margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em">איפה הרשימה הכי זולה</h1>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--muted)">9 פריטים · כולל מבצעים · <span class="fresh" style="font-size:13px"><i></i>מחירים עדכניים · 14:20</span></p>
+    </div>
+    <div style="display:flex;gap:8px;padding:0 12px 12px;flex-wrap:wrap">
+      <div class="seg" style="flex:1;min-width:200px">
+        <span class="pill" style="inset-inline-start:{{pillX}};width:calc(50% - 3px)"></span>
+        <button class="{{segA}}" onClick="{{setNear}}">קרוב אליי</button>
+        <button class="{{segB}}" onClick="{{setAll}}">כל הרשתות</button>
+      </div>
+      <button class="chip">עד 5 ק״מ<svg class="s xs" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <button class="chip on">עם כרטיס מועדון</button>
+    </div>
+
+    <sc-for list="{{ranks}}" as="r" hint-placeholder-count="4">
+      <div class="{{r.cls}}">
+        <div class="h">
+          <span class="logo">לוגו</span>
+          <span class="tx"><b>{{r.chain}}</b><span>{{r.where}}</span></span>
+          <span class="tot"><b><span class="cur">₪</span>{{r.total}}</b><span class="{{r.dCls}}">{{r.delta}}</span></span>
+        </div>
+        <div class="facts">
+          <sc-for list="{{r.facts}}" as="f" hint-placeholder-count="2"><span class="{{f.cls}}">{{f.t}}</span></sc-for>
+        </div>
+        <sc-if value="{{r.hasMiss}}" hint-placeholder-val="{{ false }}">
+          <div class="miss"><svg class="s sm" viewBox="0 0 24 24"><path d="M7 17 17 7 M7 7h10v10"></path></svg><span>{{r.miss}}</span></div>
+        </sc-if>
+        <sc-if value="{{r.isBest}}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:8px">
+            <button class="btn pri sm" style="flex:1;height:40px">לקנות שם הפעם</button>
+            <button class="btn sm" style="height:40px">מה שונה</button>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+
+    <div class="card" style="display:flex;gap:12px;align-items:flex-start">
+      <svg class="s" viewBox="0 0 24 24" style="color:var(--muted);margin-top:2px"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 16v-4 M12 8h.01"></path></svg>
+      <span style="font-size:12.5px;color:var(--muted);line-height:1.5">פיצול בין רמי לוי לויקטורי חוסך עוד ₪4 — כנראה לא שווה נסיעה נוספת. פריט שחסר בחנות נספר לפי המחיר הממוצע ברשתות.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const all = !!s.all;
+    const F = (t, c) => ({ t, cls: 'badge' + (c ? ' ' + c : '') });
+    let R = [
+      { chain: 'רמי לוי', where: 'נתניה, אזור התעשייה · 2.1 ק״מ', total: 124, delta: 'זול ב-₪18', dCls: 's', facts: [F('8 מתוך 9 פריטים','w'), F('3 מבצעים','ok')], miss: 'קוטג׳ טרה חסר שם · תחליף: קוטג׳ תנובה ₪4.90' },
+      { chain: 'אושר עד', where: 'נתניה, פולג · 6.8 ק״מ', total: 127, delta: 'זול ב-₪15', dCls: 's', facts: [F('כל 9 הפריטים','ok'), F('2 מבצעים')] },
+      { chain: 'ויקטורי', where: 'נתניה, הרצל · 1.4 ק״מ', total: 136, delta: 'זול ב-₪6', dCls: 's', facts: [F('כל 9 הפריטים','ok'), F('פנה: 3 ב-₪15')] },
+      { chain: 'שופרסל דיל · החנות שלכם', where: 'נתניה, הרצל 60 · 1.2 ק״מ', total: 142, delta: 'הסל הנוכחי', dCls: '', facts: [F('כל 9 הפריטים','ok'), F('2 מבצעים')] }
+    ];
+    if (all) R = [{ chain: 'שופרסל אונליין', where: 'משלוח עד הבית · ₪29.90', total: 139, delta: 'כולל משלוח', dCls: 'm', facts: [F('כל 9 הפריטים','ok')] }].concat(R);
+    const ranks = R.map((r, i) => Object.assign({}, r, { hasMiss: !!r.miss, isBest: !all && i === 0, cls: 'rank' + (!all && i === 0 ? ' best' : '') }));
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      ranks, pillX: all ? 'calc(50%)' : '3px', segA: all ? '' : 'on', segB: all ? 'on' : '',
+      setNear: () => this.setState({ all: false }), setAll: () => this.setState({ all: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

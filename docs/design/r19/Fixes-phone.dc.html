@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Fixes · swipe delete v2 + the + menu</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+<link rel="stylesheet" href="./nx-r19.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="rtl" lang="he" style="width:390px;height:844px;position:relative;overflow:hidden;font-family:'Heebo',system-ui,sans-serif">
+  <div class="scr" style="padding-bottom:170px">
+    <div class="top"><h1>{{title}}</h1></div>
+    <p style="margin:0 16px 12px;font-size:12.5px;color:var(--muted)">{{hint}}</p>
+    <div class="listcard" role="list">
+      <div class="k-dairy"><div class="lsec"><span class="dot"></span><span class="nm">חלב וביצים</span><span class="n">4</span></div></div>
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+        <div class="{{r.rowCls}}" role="listitem">
+          <div class="under" aria-hidden="{{r.uh}}" style="justify-content:flex-end">
+            <div class="{{r.uCls}}" style="flex:1;justify-content:flex-end;padding-inline-start:0;padding-inline-end:0;padding-left:20px;position:relative">
+              <button style="border:0;background:transparent;color:inherit;font-weight:750;font-size:14px;height:44px;display:inline-flex;align-items:center;gap:8px;padding:0 4px;transform:scale({{r.iconScale}});transition:transform 200ms var(--spring)" onClick="{{r.del}}">
+                <svg class="s" viewBox="0 0 24 24"><path d="M4 7h16 M10 11v6 M14 11v6 M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13 M9 7V4h6v3"></path></svg>{{r.uText}}
+              </button>
+            </div>
+          </div>
+          <div class="{{r.faceCls}}" style="transform:translateX({{r.x}}px)" onPointerDown="{{r.down}}" onPointerMove="{{r.move}}" onPointerUp="{{r.up}}" onPointerCancel="{{r.up}}">
+            <button class="hit" aria-label="{{r.openLbl}}"></button>
+            <span class="pt k-dairy" style="background:color-mix(in srgb,var(--k) 14%,var(--raised))"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="M12 14h24l-3 26c0 2-2 3-4 3H19c-2 0-4-1-4-3z" fill="#ffffff"></path><path d="M13 10h22a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H13a2 2 0 0 1-2-2v-1a2 2 0 0 1 2-2z" fill="{{r.col}}"></path></svg></span>
+            <span class="nm"><button class="t">{{r.name}}</button><span class="s">{{r.sub}}</span></span>
+            <span class="qty"><span>{{r.cnt}}</span></span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <button class="startbar" style="left:12px;right:72px">
+    <svg class="s lg" viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg>
+    <span>מתחילים קנייה</span>
+    <span class="go"><svg class="s flip" viewBox="0 0 24 24"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></span>
+  </button>
+  <button class="ask r19" style="left:328px" aria-label="לשאול את Nexus">
+    <svg class="sp" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" fill="var(--spark)"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="#fff"></path></svg>
+  </button>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+    <div class="toast" role="status" style="z-index:31"><span style="flex:1">{{toastText}} נמחק</span><button class="u" onClick="{{undo}}">ביטול</button></div>
+  </sc-if>
+
+  <sc-if value="{{menu}}" hint-placeholder-val="{{ false }}">
+    <button class="scrim" aria-label="סגירה" onClick="{{closeMenu}}"></button>
+    <div class="qm" role="dialog" aria-label="הוספה">
+      <span class="lbl2">סריקה</span>
+      <div class="scan">
+        <button><svg class="s" viewBox="0 0 24 24"><path d="M4 7V5a1 1 0 0 1 1-1h2 M17 4h2a1 1 0 0 1 1 1v2 M20 17v2a1 1 0 0 1-1 1h-2 M7 20H5a1 1 0 0 1-1-1v-2 M8 8v8 M11 8v8 M14 8v8 M17 8v8"></path></svg>ברקוד</button>
+        <button><svg class="s" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path></svg>צילום מוצר</button>
+        <button><svg class="s" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z M9 8h6 M9 12h6 M9 16h3"></path></svg>קבלה</button>
+      </div>
+      <button class="rowb"><svg class="s" viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1 M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg>הדבקת קישור למוצר</button>
+      <button class="rowb"><svg class="s" viewBox="0 0 24 24"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4"></path></svg>חיפוש מוצר</button>
+    </div>
+  </sc-if>
+
+  <nav class="dock" aria-label="ראשי" style="z-index:42">
+    <button class="{{tabHome}}"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg></span><span>בית</span></button>
+    <button class="tab"><span class="ic"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"></path></svg></span><span>מוצרים</span></button>
+    <button class="plus" aria-label="הוספה" onClick="{{toggleMenu}}" style="transform:rotate({{plusRot}}deg);transition:transform 260ms var(--ease-drawer)"><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"></path></svg></button>
+    <button class="{{tabSm}}"><span class="ic"><svg viewBox="0 0 24 24"><path d="M5 10l2 10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l2-10 M3 10h18 M8 10l3-6 M16 10l-3-6"></path></svg></span><span>סופר</span></button>
+    <button class="tab"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg></span><span>תובנות</span></button>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["swipe to delete (try it)","swipe: before the line","swipe: past the line","+ menu on Home"],"default":"swipe to delete (try it)"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const st = p.state ?? 'swipe to delete (try it)';
+    const OPEN = 96, ARM = 210;
+    const D = [['yog','יוגורט 3%','דנונה · 200 גרם','×3','#e86f8f'],['mlk','חלב 3%','תנובה · 1 ליטר','×2','#3b7fc4'],['cot','קוטג׳ 5%','טרה · 250 גרם','×3','#2f9d6a'],['egg','ביצים L','12 יח׳','×1','#c9a032']];
+    const gone = s.gone || {};
+    let drag = s.drag || null;
+    if (!s.touched) {
+      if (st === 'swipe: before the line') drag = { id: 'mlk', x: 150 };
+      if (st === 'swipe: past the line') drag = { id: 'mlk', x: 250 };
+    }
+    const rows = D.filter(d => !gone[d[0]] || s.collapsing === d[0]).map(d => {
+      const id = d[0];
+      const x = drag && drag.id === id ? drag.x : 0;
+      const armed = x >= ARM;
+      const live = drag && drag.id === id && drag.live;
+      return {
+        name: d[1], sub: d[2], cnt: d[3], col: d[4], openLbl: 'פתיחת ' + d[1], x,
+        rowCls: 'lrow' + (s.collapsing === id ? ' collapse' : ''), uh: x ? 'false' : 'true',
+        uCls: 'u-d ' + (armed ? 'arm' : 'calm'), uText: armed ? 'שחררו למחיקה' : (x > OPEN ? 'עוד קצת…' : 'מחיקה'),
+        iconScale: armed ? 1.15 : 1,
+        faceCls: 'face' + (live ? '' : ' snap'),
+        del: () => doDelete(id, d[1]),
+        down: (e) => { this._sx = e.clientX - x; this.setState({ touched: true, drag: { id, x, live: true } }); },
+        move: (e) => { if (this._sx == null) return; let nx = Math.max(0, e.clientX - this._sx); if (nx > 300) nx = 300 + (nx - 300) * .3; this.setState({ drag: { id, x: nx, live: true } }); },
+        up: () => { if (this._sx == null) return; this._sx = null; const cur = (this.state.drag || {}).x || 0;
+          if (cur >= ARM) doDelete(id, d[1]); else this.setState({ drag: { id, x: cur > OPEN * .6 ? OPEN : 0, live: false } }); }
+      };
+    });
+    const doDelete = (id, name) => {
+      this.setState({ touched: true, drag: { id, x: 420, live: false }, gone: Object.assign({}, gone, { [id]: true }), collapsing: id, toast: name });
+      clearTimeout(this._t);
+      this._t = setTimeout(() => this.setState({ collapsing: null }), 520);
+      clearTimeout(this._t2); this._t2 = setTimeout(() => this.setState({ toast: null }), 5000);
+    };
+    const menu = st === '+ menu on Home' ? !s.menuClosed : !!s.menuOpen;
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      title: menu ? 'בית' : 'סופר',
+      hint: 'החלקה ימינה: עד הקו — כפתור מחיקה אפור; אחרי הקו — אדום, שחרור מוחק, והשורה מתקפלת ברכות.',
+      rows, toast: !!s.toast, toastText: s.toast || '',
+      undo: () => this.setState({ gone: {}, toast: null, drag: null, collapsing: null }),
+      menu, plusRot: menu ? 45 : 0,
+      toggleMenu: () => this.setState(menu ? { menuOpen: false, menuClosed: true } : { menuOpen: true, menuClosed: false }),
+      closeMenu: () => this.setState({ menuOpen: false, menuClosed: true }),
+      tabHome: 'tab' + (menu ? ' on' : ''), tabSm: 'tab' + (menu ? '' : ' on')
+    };
+  }
+}
+</script>
+</body>
+</html>

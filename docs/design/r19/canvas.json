@@ -1,0 +1,13 @@
+{"v":3,"createdOnFiles":{"v":1,"at":"2026-10-19T19:30:00Z"},"title":"Nexus R19 — Prices","launch":{"view":"canvas"},"pages":[],
+"boards":{
+"Main.dc.html":{"x":0,"y":0,"w":390,"h":844,"title":"List-prices-phone","is_interactive":true},
+"Product-phone.dc.html":{"x":470,"y":0,"w":390,"h":844,"title":"Product-phone","is_interactive":true},
+"Match-phone.dc.html":{"x":940,"y":0,"w":390,"h":844,"title":"Match-phone","is_interactive":true},
+"Compare-phone.dc.html":{"x":1410,"y":0,"w":390,"h":844,"title":"Compare-phone","is_interactive":true},
+"Stores-phone.dc.html":{"x":1880,"y":0,"w":390,"h":844,"title":"Stores-phone","is_interactive":true},
+"Fixes-phone.dc.html":{"x":2350,"y":0,"w":390,"h":844,"title":"Fixes-phone","is_interactive":true},
+"Product-desktop.dc.html":{"x":0,"y":1190,"w":1366,"h":860,"title":"Product-desktop","is_interactive":true}
+},
+"order":["Main.dc.html","Product-phone.dc.html","Match-phone.dc.html","Compare-phone.dc.html","Stores-phone.dc.html","Fixes-phone.dc.html","Product-desktop.dc.html"],
+"notes":{"t1":{"x":0,"y":-260,"text":"R19 — real products, prices, deals","kind":"title1","maxW":2740},"t2":{"x":0,"y":964,"text":"Computer","kind":"title1","maxW":1366}},
+"designSystems":[]}

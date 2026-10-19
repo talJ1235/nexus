@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Choose a supermarket · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+<link rel="stylesheet" href="./nx-r19.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="rtl" lang="he" style="width:390px;height:844px;position:relative;overflow:hidden;font-family:'Heebo',system-ui,sans-serif">
+  <div class="scr" style="padding-bottom:30px">
+    <div class="ptop">
+      <button class="ib" aria-label="סגירה"><svg class="s lg" viewBox="0 0 24 24"><path d="M6 6l12 12 M18 6 6 18"></path></svg></button>
+    </div>
+    <div style="padding:0 16px 4px">
+      <h1 style="margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em">איפה קונים?</h1>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--muted)">כל רשתות המזון בארץ · סניפים וכתובות מקובצי הרשתות</p>
+    </div>
+    <div class="search">
+      <svg class="s" viewBox="0 0 24 24"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4"></path></svg>
+      <input type="text" placeholder="רשת, עיר או רחוב" aria-label="חיפוש סופר">
+      <button class="ib" style="width:36px;height:36px" aria-label="לפי המיקום שלי"><svg class="s" viewBox="0 0 24 24"><path d="M12 2v3 M12 19v3 M2 12h3 M19 12h3 M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"></path></svg></button>
+    </div>
+
+    <div class="chains" role="group" aria-label="רשתות">
+      <sc-for list="{{chains}}" as="c" hint-placeholder-count="8">
+        <button class="{{c.cls}}" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}"><span class="logo lg">לוגו</span><span>{{c.name}}</span></button>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:center;padding:2px 0 10px"><button class="btn ghost sm">עוד 24 רשתות<svg class="s sm" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+
+    <div class="sect"><span>{{chainName}} · סניפים קרובים</span><a href="#map">מפה</a></div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <sc-for list="{{branches}}" as="b" hint-placeholder-count="4">
+        <button class="br2">
+          <span class="logo sm">לוגו</span>
+          <span class="tx"><b>{{b.name}}</b><span>{{b.addr}}</span><em class="{{b.openCls}}">{{b.open}}</em></span>
+          <span class="est"><b>{{b.est}}</b><span>{{b.km}}</span></span>
+        </button>
+      </sc-for>
+    </div>
+    <p style="margin:2px 20px 0;font-size:11.5px;color:var(--faint);line-height:1.5">המחיר לצד כל סניף = הרשימה הנוכחית שלכם שם. אפשר לסמן סניף כקבוע מהתפריט שלו.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const NAMES = ['שופרסל','רמי לוי','ויקטורי','יוחננוף','אושר עד','טיב טעם','קרפור','חצי חינם'];
+    const sel = s.sel ?? 1;
+    const chains = NAMES.map((n, i) => ({ name: n, cls: 'ch' + (sel === i ? ' on' : ''), pressed: sel === i ? 'true' : 'false', pick: () => this.setState({ sel: i }) }));
+    const B = [
+      ['נתניה · אזור התעשייה','[כתובת הסניף מקובץ הסניפים]','','','₪124','2.1 ק״מ'],
+      ['נתניה · פולג','[כתובת הסניף מקובץ הסניפים]','','','₪126','6.4 ק״מ'],
+      ['כפר יונה','[כתובת הסניף מקובץ הסניפים]','','','₪125','9.8 ק״מ'],
+      ['חדרה · מרכז','[כתובת הסניף מקובץ הסניפים]','','','₪124','17 ק״מ']
+    ];
+    const branches = B.map(b => ({ name: NAMES[sel] + ' ' + b[0], addr: b[1], open: b[2], openCls: b[3], est: b[4], km: b[5] }));
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      chains, chainName: NAMES[sel], branches
+    };
+  }
+}
+</script>
+</body>
+</html>

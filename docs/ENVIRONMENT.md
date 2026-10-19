@@ -57,6 +57,22 @@ Standard: clone the repo, `npm install`, `cp .env.example .env.local` and fill v
 password manager, never from the repo). `.claude/settings.json` holds the SessionStart pull hook and allowed
 commands; per-machine extras (push/merge permissions for a round) go in `.claude/settings.local.json`.
 
+### Overnight runs — keep going through usage limits (Tal 2026-10-19)
+A long unattended round must survive the claude.ai usage limit and finish by itself:
+- Claude Code **v2.1.269 or later** (`claude update`, check `claude --version`). Interactive sessions signed in with
+  the subscription wait at a usage limit and continue on their own after the reset — **keep the session window open**
+  (exiting ends the wait; it doesn't restart on resume). It re-arms on its own at most twice in a row, then stops with
+  "Automatic continue stopped…" — in the morning send "continue from the first unticked item".
+  Docs: https://code.claude.com/docs/en/interactive-mode (Wait for a usage limit to reset).
+- **No sleep:** Windows Settings ← System ← Power ← Screen and sleep ← "When plugged in, put my device to sleep after"
+  = Never. After > 30 min of sleep the continue waits for Enter. (Tal sets this; the builder never touches power settings.)
+- **Auto mode** (Shift+Tab until "auto") so no tool prompt stops the night; anything auto mode refuses goes to the
+  brief's "For Tal".
+- **`/goal`** after the setup prompt: a separate model checks after every turn whether the round is done and starts the
+  next turn if not; on a usage limit the goal pauses and resumes with the automatic continue.
+  Docs: https://code.claude.com/docs/en/goal. The planner puts the exact `/goal` line in the handoff block of
+  `docs/PLANNER.md` with each round's prompt.
+
 ## Vercel (Hobby) — deployments and the Function Storage limit
 - Hobby has a **10 GB Function Storage** cap = the server bundles of *every retained deployment*, all projects together.
   One Nexus deployment is roughly 100 MB (mostly `sharp`), so ~100 kept deployments fill it, and at the cap new
@@ -92,6 +108,7 @@ commands; per-machine extras (push/merge permissions for a round) go in `.claude
 
 ## Log
 Older entries: `docs/archive/ENVIRONMENT-log.md` (`rg` it when needed).
+- 2026-10-19 (planning chat): overnight runs keep going through usage limits — Claude Code ≥ v2.1.269 auto-continue after the reset (session left open), PC never sleeps when plugged in, auto mode, `/goal` with the round's completion condition (section "Overnight runs" under Claude Code setup).
 - 2026-10-12 (PC, R17 Session 7): new checks `test:adblock` (built app, port 3126: EasyList generic cosmetic rules from
   the vendored `scripts/fixtures/easylist-generic.txt` — refresh by hand with `node scripts/refresh-easylist.mjs`, it
   downloads easylist.to), `test:device` (built app, port 3127: computer / phone / tablet contexts, first paint with the

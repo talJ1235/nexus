@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="he">
+<head>
+<meta charset="utf-8">
+<title>Which product? · phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./nx-s5.css">
+<link rel="stylesheet" href="./nx-r19.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{cls}}" dir="rtl" lang="he" style="width:390px;height:844px;position:relative;overflow:hidden;font-family:'Heebo',system-ui,sans-serif">
+  <div class="scr">
+    <div class="top"><h1>סופר</h1></div>
+    <label class="addbar">
+      <svg class="s" viewBox="0 0 24 24" style="color:var(--faint)"><path d="M12 5v14 M5 12h14"></path></svg>
+      <input type="text" value="{{typed}}" aria-label="הוספת פריט">
+    </label>
+    <div class="listcard" style="height:420px;opacity:.55"></div>
+  </div>
+
+  <sc-if value="{{asks}}" hint-placeholder-val="{{ true }}">
+    <button class="scrim" aria-label="סגירה"></button>
+    <div class="sheet" role="dialog" aria-label="איזה חלב?" style="padding-bottom:22px">
+      <div class="grab"></div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px">
+        <b style="font-size:19px;font-weight:800">איזה חלב?</b>
+        <span style="font-size:12.5px;color:var(--muted)">כדי לדעת את המחיר המדויק</span>
+      </div>
+      <div class="search" style="margin:10px 0 8px">
+        <svg class="s" viewBox="0 0 24 24"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4"></path></svg>
+        <input type="text" placeholder="חיפוש בקטלוג · מותג, אחוז, גודל" aria-label="חיפוש בקטלוג">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <sc-for list="{{cands}}" as="c" hint-placeholder-count="5">
+          <button class="{{c.cls}}" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}">
+            <span class="pt sm k-dairy"><svg class="art" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 16l4-8h12l4 8z" fill="#dfe9f5"></path><path d="M16 16h16a2 2 0 0 1 2 2v24a2 2 0 0 1-2 2H16a2 2 0 0 1-2-2V18a2 2 0 0 1 2-2z" fill="#ffffff"></path><path d="M14 27h20v10H14z" fill="{{c.col}}"></path></svg></span>
+            <span class="tx"><b>{{c.name}}</b><span>{{c.sub}}</span><sc-if value="{{c.hasWhy}}" hint-placeholder-val="{{ false }}"><span class="why"><svg class="s xs" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>{{c.why}}</span></sc-if></span>
+            <span class="pr"><b>{{c.price}}</b><sc-if value="{{c.hasDeal}}" hint-placeholder-val="{{ false }}"><small style="color:var(--deal);font-weight:700">{{c.deal}}</small></sc-if></span>
+            <span class="radio" aria-hidden="true"></span>
+          </button>
+        </sc-for>
+      </div>
+      <button class="cand" style="min-height:52px;margin-top:2px" onClick="{{pickAny}}">
+        <span class="pt sm" style="background:var(--s2)"><svg class="s" viewBox="0 0 24 24"><path d="M4 6h16 M4 12h16 M4 18h10"></path></svg></span>
+        <span class="tx"><b>לא משנה איזה</b><span>חלב 3% · ₪6.10–₪6.90 · Nexus יבחר את הזול בחנות</span></span>
+      </button>
+      <label style="display:flex;align-items:center;gap:10px;margin:12px 4px 14px;font-size:13.5px;color:var(--ink2)">
+        <input type="checkbox" checked="checked" style="width:20px;height:20px;accent-color:var(--ink)">
+        <span>לזכור — בפעם הבאה ש״חלב״ נכנס לרשימה, לא לשאול</span>
+      </label>
+      <button class="btn pri blk" style="height:52px;font-size:15px">הוספה · {{chosen}}</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{learned}}" hint-placeholder-val="{{ false }}">
+    <div class="toast" role="status" style="bottom:96px">
+      <span style="flex:1;min-width:0;line-height:1.3"><b>חלב 3% תנובה, 1 ליטר</b><br><span style="font-weight:500;opacity:.75;font-size:12.5px">כמו תמיד · ₪6.80</span></span>
+      <button class="u">שינוי</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["first time (asks)","learned (no question)"],"default":"first time (asks)"},"dark":{"editor":"boolean","default":false},"palette":{"editor":"enum","options":["graphite","plum"],"default":"graphite"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, s = this.state || {};
+    const learned = (p.state ?? '') === 'learned (no question)';
+    const sel = s.sel ?? 0;
+    const C = [
+      ['חלב 3% תנובה','1 ליטר · קרטון','₪6.80','','קניתם אותו 5 פעמים','#3b7fc4'],
+      ['חלב 3% טרה','1 ליטר · קרטון','₪6.80','','','#2f9d6a'],
+      ['חלב 3% יטבתה','1 ליטר · בקבוק','₪7.90','2 ב-₪14','','#e5483b'],
+      ['חלב 1% תנובה','1 ליטר · קרטון','₪6.60','','','#7aa7d8'],
+      ['חלב 3% שופרסל','1 ליטר · שקית','₪6.10','','','#c2452d']
+    ];
+    const cands = C.map((c, i) => ({ name: c[0], sub: c[1], price: c[2], hasDeal: !!c[3], deal: c[3], hasWhy: !!c[4], why: c[4], col: c[5],
+      cls: 'cand' + (sel === i ? ' sel' : ''), pressed: sel === i ? 'true' : 'false', pick: () => this.setState({ sel: i }) }));
+    return {
+      cls: 'nx' + (p.dark ? ' dark' : '') + ((p.palette ?? 'graphite') === 'plum' ? ' plum' : ''),
+      asks: !learned, learned, typed: learned ? '' : 'חלב', cands,
+      chosen: sel === -1 ? 'חלב 3%' : C[sel][0], pickAny: () => this.setState({ sel: -1 })
+    };
+  }
+}
+</script>
+</body>
+</html>
