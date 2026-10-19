@@ -290,6 +290,8 @@ export const smEn = {
   // R18 S3 C5: swipe a row.
   row: {
     delete: "Delete",
+    keepGoing: "Keep going…",
+    releaseDelete: "Release to delete",
     open: "Open {title}",
     rename: "Rename {title}",
     addedBy: "Added by {name}",

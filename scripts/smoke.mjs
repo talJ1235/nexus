@@ -2800,13 +2800,92 @@ try {
         await page.waitForTimeout(500);
         await page.mouse.click(8, 120);
         await page.waitForTimeout(450);
-        // A fling toward the start deletes; Undo puts the same row back.
+        // R19 A4: a fling short of the delete point (~55 % of the row) never deletes — it opens or closes.
         await drag(ids[1], -150, { hold: false, steps: 3 });
-        r.flung = await page.waitForSelector(`[data-sm-row="${ids[1]}"]`, { state: "detached", timeout: 3000 }).then(() => true, () => false);
-        await page.locator("[data-sonner-toast] button", { hasText: /Undo|ביטול/ }).first().click();
-        r.back = await page.waitForSelector(`[data-sm-row="${ids[1]}"]`, { timeout: 5000 }).then(() => true, () => false);
-        ok(r.hint === 1 && r.peek === 1 && r.hintAgain === 0 && r.open1[0] === "delete" && Math.abs(r.open1[1]) === 92 && r.open2[0] === "qty" && Math.abs(r.open2[1]) === 168 && r.firstClosed && r.tapClosed && r.short === 0 && r.band > 200 && r.band < 300 && r.flung && r.back,
-          "list swipes (R18 S5 A2): hint + peek once, one row open at a time, rubber band, fling deletes, Undo", JSON.stringify(r));
+        await page.waitForTimeout(400);
+        r.flungKept = (await page.locator(`[data-sm-row="${ids[1]}"]`).count()) === 1;
+        await page.mouse.click(8, 120);
+        await page.waitForTimeout(450);
+        ok(r.hint === 1 && r.peek === 1 && r.hintAgain === 0 && r.open1[0] === "delete" && Math.abs(r.open1[1]) === 96 && r.open2[0] === "qty" && Math.abs(r.open2[1]) === 168 && r.firstClosed && r.tapClosed && r.short === 0 && r.band > 200 && r.band < 300 && r.flungKept,
+          "list swipes (R18 S5 A2 + R19 A4): hint + peek once, one row open at a time, rubber band, a short fling keeps the row", JSON.stringify(r));
+      });
+
+    // R19 A4 (board Fixes-phone): calm, deliberate delete — 150 px released → open at 96 (grey, not deleted); past the
+    // point (~55 % of the row) the underlay turns red with "Release to delete"; 230 px released → gone + Undo restores; the
+    // fold moves the rows below smoothly (no frame jumps > 12 px, no jump when the row leaves the DOM). Phone 360 + 390.
+    if (WRITE && MOBILE)
+      await step("swipe delete v2 (R19 A4): 150 px opens grey, past the point red, 230 px deletes, Undo, soft fold", async () => {
+        const r = {};
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        for (const width of [390, 360]) {
+          const q = (r[width] = {});
+          await page.setViewportSize({ width, height: 844 });
+          for (const id of await page.locator('[data-sm-row]:has(.gro-t:text-matches("^A4 swipe"))').evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row"))).catch(() => [])) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+          await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "A4 swipe oats" }]);
+          await page.goto(`${BASE}/supermarket`);
+          const row = page.locator('[data-sm-row]:has(.gro-t:text-is("A4 swipe oats"))').first();
+          await row.waitFor({ timeout: 15000 });
+          const id = await row.getAttribute("data-sm-row");
+          const el = () => page.locator(`[data-sm-row="${id}"]`);
+          const xOf = () => el().evaluate((e) => (getComputedStyle(e).transform === "none" ? 0 : Math.round(new DOMMatrixReadOnly(getComputedStyle(e).transform).m41)));
+          const pull = async (dx, release = true) => {
+            await el().evaluate((e) => e.scrollIntoView({ block: "center" }));
+            const bb = await el().boundingBox();
+            const x0 = bb.x + bb.width - 20, y0 = bb.y + bb.height / 2;
+            await page.mouse.move(x0, y0);
+            await page.mouse.down();
+            for (let k = 1; k <= 16; k++) {
+              await page.mouse.move(x0 + (dx * k) / 16, y0);
+              await page.waitForTimeout(22);
+            }
+            await page.waitForTimeout(150);
+            if (release) await page.mouse.up();
+          };
+          q.rowW = Math.round((await el().boundingBox()).width);
+          // 150 px: grey, then released → open at 96, not deleted.
+          await pull(-150, false);
+          q.at150 = await page.locator(`[data-sm-sw="${id}"] [data-sm-del-state]`).getAttribute("data-sm-del-state");
+          await page.mouse.up();
+          await page.waitForTimeout(500);
+          q.open150 = [await el().getAttribute("data-open"), await xOf()];
+          await page.mouse.click(8, 120);
+          await page.waitForTimeout(450);
+          // 230 px: red + "Release to delete" before letting go; then gone, and the row below glides up.
+          await pull(-230, false);
+          q.at230 = await page.locator(`[data-sm-sw="${id}"] [data-sm-del-state]`).getAttribute("data-sm-del-state");
+          q.label = (await page.locator(`[data-sm-sw="${id}"] [data-sm-swipe-delete]`).textContent()).trim();
+          q.bg = await page.locator(`[data-sm-sw="${id}"] .gro-sw-del`).evaluate((e) => getComputedStyle(e).backgroundColor);
+          if (width === 390) await shot(page, "a4-armed");
+          await page.evaluate((rid) => {
+            // The next thing below the row (a row or a band), or the list card's bottom edge when it is the last.
+            const w = document.querySelector(`[data-sm-sw="${rid}"]`);
+            const all = [...document.querySelectorAll("[data-sm-list] [data-sm-sw], [data-sm-list] [data-sm-band]")];
+            const next = all[all.indexOf(w) + 1] ?? null;
+            const list = document.querySelector("[data-sm-list]");
+            const ys = (window.__a4 = []);
+            const t0 = performance.now();
+            const tick = () => {
+              ys.push(Math.round((next?.isConnected ? next.getBoundingClientRect().top : list.getBoundingClientRect().bottom) * 10) / 10);
+              if (performance.now() - t0 < 900) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+          }, id);
+          await page.mouse.up();
+          q.gone = await page.waitForSelector(`[data-sm-row="${id}"]`, { state: "detached", timeout: 3000 }).then(() => true, () => false);
+          await page.waitForTimeout(700);
+          const ys = (await page.evaluate(() => window.__a4)).filter((v) => !Number.isNaN(v));
+          const steps = ys.slice(1).map((v, i) => Math.abs(v - ys[i]));
+          q.fold = { frames: ys.length, moved: Math.round(ys[0] - ys.at(-1)), worst: Math.max(0, ...steps) };
+          await page.locator("[data-sonner-toast] button", { hasText: /Undo|ביטול/ }).first().click();
+          q.back = await page.waitForSelector(`[data-sm-row="${id}"]`, { timeout: 5000 }).then(() => true, () => false);
+          await page.waitForTimeout(600);
+          await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        }
+        await page.setViewportSize(VIEWPORT);
+        console.log(`INFO swipe fold (R19 A4): ${JSON.stringify({ 390: r[390].fold, 360: r[360].fold })}`);
+        const good = (q) => q.at150 === "calm" && q.open150[0] === "delete" && Math.abs(q.open150[1]) === 96 && q.at230 === "arm" && /Release to delete|שחררו למחיקה/.test(q.label) && q.bg !== "" && q.gone && q.fold.moved >= 50 && q.fold.worst <= 12 && q.back;
+        ok(good(r[390]) && good(r[360]), "swipe delete v2 (R19 A4): 150 px opens grey, past the point red, 230 px deletes, Undo, soft fold", JSON.stringify(r));
       });
 
     // R18 S5 A3: the name's letters rename inline (16 px field, Enter saves, Esc cancels, empty = no change) and the row

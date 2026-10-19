@@ -292,6 +292,8 @@ export const smHe: Widen<typeof smEn> = {
   },
   row: {
     delete: "מחיקה",
+    keepGoing: "עוד קצת…",
+    releaseDelete: "שחררו למחיקה",
     open: "פתיחת {title}",
     rename: "שינוי שם: {title}",
     addedBy: "נוסף ע״י {name}",

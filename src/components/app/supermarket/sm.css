@@ -81,9 +81,15 @@
 .gro-sw-del, .gro-sw-qty { position: absolute; inset: 0; display: flex; align-items: center; visibility: hidden; }
 .gro-sw-del.on, .gro-sw-qty.on { visibility: visible; }
 /* R18 S5 A2: Delete sits at the end (the row is pulled toward the start), the − count + stepper at the start. */
-.gro-sw-del { justify-content: flex-end; background: var(--danger); color: #fff; }
-.gro-sw-del button { display: flex; align-items: center; justify-content: center; gap: 6px; width: 92px; height: 100%; font-size: 13.5px; font-weight: 750; }
-.gro-sw-qty { justify-content: flex-start; gap: 6px; padding-inline-start: 12px; background: color-mix(in srgb, var(--info) 14%, var(--surface)); color: var(--info); }
+/* R19 A4: calm grey until the delete point; past it red, the icon grows on a spring, "Release to delete". The label
+   rides with the row's edge (min 96 px wide) so the longer words fit. The quantity side is the same calm grey. */
+.gro-sw-del { justify-content: flex-end; background: color-mix(in srgb, var(--ink) 9%, var(--surface)); color: var(--ink); transition: background-color 180ms ease, color 180ms ease; }
+.gro-sw-del.arm { background: var(--danger); color: #fff; }
+.gro-sw-del button { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 96px; max-width: 70%; height: 100%; padding-inline: 14px; font-size: 13.5px; font-weight: 750; white-space: nowrap; }
+.gro-sw-del button svg { flex-shrink: 0; transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.gro-sw-del.arm button svg { transform: scale(1.15); }
+.gro-sw-qty { justify-content: flex-start; gap: 6px; padding-inline-start: 12px; background: color-mix(in srgb, var(--ink) 7%, var(--surface)); color: var(--ink); }
+.gro-sw[data-sm-folding] { pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .gro-sw > .gro-row.gro-settle { transition: none; } }
 :root[data-motion="reduce"] .gro-sw > .gro-row.gro-settle { transition: none; }
 .gro-row:active { transform: scale(0.985); background: color-mix(in srgb, var(--k) 7%, transparent); }

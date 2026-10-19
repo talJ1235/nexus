@@ -19,7 +19,10 @@ import { countOf, withCountOf } from "./qty-steppers";
 // picture tile 44 (→ the item sheet), the name (its letters rename inline), a second line only for the usual brand and /
 // or a note, the quantity chip ("6 · ~1 kg", "×2"), a dot in the colour of who added it. A2: drag toward the start edge →
 // Delete at the end (past 56 px it stays open, past ~170 px or a fling it deletes, Undo 5 s); toward the end edge → the
-// − count + stepper at the start (past 56 px it stays open). 8 px slop + axis lock (a vertical move scrolls), rubber band
+// − count + stepper at the start (past 56 px it stays open). R19 A4 (board Fixes-phone): calm and deliberate — the row
+// opens to a grey Delete at 96 px; the delete point is ~55 % of the row (≈ 210 px): only past it the underlay turns red,
+// the icon grows, "Release to delete", one haptic tick; released there the row slides out while it folds its height
+// (360 ms ease-out, opacity first — no red flash). A fling deletes only when it also crosses the point. 8 px slop + axis lock (a vertical move scrolls), rubber band
 // past the limits, one row open at a time, a tap elsewhere closes it, snap = 380 ms drawer ease; RTL mirrors.
 
 /** Rows open the item sheet (C2): an event, so the memoised rows don't take a callback. */
@@ -73,16 +76,14 @@ export function Row({ item, unitKg, peek = false }: { item: ItemWithSources; uni
       const width = w.offsetWidth;
       const now = new DOMMatrixReadOnly(getComputedStyle(r).transform === "none" ? undefined : getComputedStyle(r).transform).m41;
       const left = Math.max(0, width - Math.abs(now));
-      // The exit keeps the release's speed (px/ms), between a quick 120 ms and a calm 260 ms — toward the start edge.
-      const ms = Math.round(Math.min(260, Math.max(120, velocity > 0.05 ? left / velocity : 240)));
+      // The slide keeps the release's speed (px/ms), between 160 and 260 ms — toward the start edge — while the whole
+      // row (with what's under it) fades first and then folds its height: one soft 360 ms ease-out, no gap to jump.
+      const ms = Math.round(Math.min(260, Math.max(160, velocity > 0.05 ? left / velocity : 240)));
       r.style.transition = `transform ${ms}ms cubic-bezier(0.2, 0.7, 0.3, 1)`;
       r.style.transform = `translateX(${startSign() * (width + 24)}px)`;
-      await after(ms);
-      w.style.height = `${w.offsetHeight}px`;
-      void w.offsetHeight;
-      w.classList.add("gro-closing");
-      w.style.height = "0px";
-      await after(200);
+      const h = w.offsetHeight;
+      w.setAttribute("data-sm-folding", "");
+      await w.animate([{ height: `${h}px`, opacity: 1 }, { height: `${Math.round(h * 0.78)}px`, opacity: 0, offset: 0.4 }, { height: "0px", opacity: 0 }], { duration: 360, easing: "cubic-bezier(0.25, 0.1, 0.25, 1)", fill: "forwards" }).finished.catch(() => {});
     }
     s.removeSm(item.id);
     try {
@@ -139,11 +140,30 @@ export function Row({ item, unitKg, peek = false }: { item: ItemWithSources; uni
     };
   }, [item.id]);
   // x < 0 = pulled toward the start edge (Delete shows at the end); x > 0 = toward the end edge (the stepper at the start).
+  // A4: the delete point = 55 % of the row's width (≈ 210 px on a 390 phone); a fling never commits short of it.
+  const [rowW, setRowW] = useState(382);
+  useLayoutEffect(() => {
+    const w = wrap.current;
+    if (!w || desk) return;
+    const read = () => w.offsetWidth && setRowW(w.offsetWidth);
+    read();
+    const ro2 = new ResizeObserver(read);
+    ro2.observe(w);
+    return () => ro2.disconnect();
+  }, [desk]);
+  const arm = Math.round(Math.min(260, Math.max(170, rowW * 0.55)));
   const sw = useSwipe({
     disabled: ro || renaming || desk,
-    start: { width: 92, openAt: 56, fullAt: 170, flick: 0.9, stop: 360, full: (v) => void remove(v) },
+    start: { width: 96, openAt: 58, fullAt: arm, flick: Infinity, stop: arm + 80, full: (v) => void remove(v) },
     end: { width: 168, openAt: 56, stop: 200 },
   });
+  const armed = sw.drag && -sw.x >= arm;
+  useEffect(() => {
+    if (!armed) return;
+    try {
+      navigator.vibrate?.(8);
+    } catch {}
+  }, [armed]);
   const delOpen = sw.x < 0;
   const qtyOpen = sw.x > 0;
   const { setX } = sw;
@@ -187,7 +207,7 @@ export function Row({ item, unitKg, peek = false }: { item: ItemWithSources; uni
   const dir = typeof document !== "undefined" && document.documentElement.dir === "rtl" ? "rtl" : "ltr";
   const chip = rowChip(item, locale, unitKg);
   const sub = [item.preferBrand, item.notes].filter(Boolean);
-  const stepBtn = "grid size-10 shrink-0 place-items-center rounded-full bg-surface text-info shadow-card transition-transform duration-150 ease-[var(--ease-out)] active:scale-90 disabled:opacity-40";
+  const stepBtn = "grid size-10 shrink-0 place-items-center rounded-full bg-surface text-ink shadow-card transition-transform duration-150 ease-[var(--ease-out)] active:scale-90 disabled:opacity-40";
   const mini = "gro-mini grid size-8 shrink-0 place-items-center rounded-[9px] text-ink transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.92] disabled:opacity-40";
   return (
     <div
@@ -223,10 +243,10 @@ export function Row({ item, unitKg, peek = false }: { item: ItemWithSources; uni
               <Plus className="size-[18px]" />
             </button>
           </div>
-          <div className={cn("gro-sw-del", delOpen && "on")} aria-hidden={!delOpen}>
+          <div className={cn("gro-sw-del", delOpen && "on", armed && "arm")} aria-hidden={!delOpen} data-sm-del-state={armed ? "arm" : delOpen ? "calm" : undefined}>
             <button type="button" onClick={() => void remove()} tabIndex={delOpen ? 0 : -1} data-sm-swipe-delete>
               <Trash2 className="size-[18px]" />
-              {t.sm.row.delete}
+              <span className="truncate">{armed ? t.sm.row.releaseDelete : sw.drag && -sw.x > 104 ? t.sm.row.keepGoing : t.sm.row.delete}</span>
             </button>
           </div>
         </>

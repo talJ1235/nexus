@@ -20,9 +20,11 @@ below), not only on the boards.
   line in "### Progress" in the same commit; decisions in "
 - A2 — dock: one 56×30 pill behind the active icon (ink 11 % / Plum brand 16 %) sliding between tabs on the drawer ease (260 ms, no slide with reduced motion), stroke 2.2, label 750; smoke checks the pill on every tab × light/dark × Graphite/Plum, label ≥ 4.5:1, and the slide.
 - A3 — Home "+" = Scan (Barcode · Product photo · Receipt → the Supermarket camera in scan / photo / photo + tall frame; new intent `receipt`) + "Paste a product link" + "Search a product" (the Supermarket add screen); other tabs keep the add list; smoke opens each tile in its mode, 5 entries, no duplicates.
+- A4 — swipe-delete v2: grey Delete at 96 px, delete point = 55 % of the row (clamped 170–260; 201 px at 390, 185 at 360), red + spring icon + "Release to delete" + one vibrate(8) only past it, flings never commit short of it; the exit slides while the row fades first and folds its height (360 ms ease-out, WAAPI); quantity side calm grey too. Smoke at 360 + 390: 150 px → open, 230 px → deleted, Undo back; fold trace 55 frames, 60 px moved, worst frame 7.1 px.
 ### Decisions" at once; anything for Tal in "
 - A2: the computer sidebar's active row already has a tint + a 3 px accent bar + 600 ink (R14 B1) — it reads clearly, left as is. The dock pill measures the icon from the pill's own parent (a parent's ref isn't attached yet in a child's layout effect).
 - A3: the Home menu only replaces the "+" on Home — Products / Insights keep the R16 add list (its barcode / receipt / plan / import flows and their tests stay). "Search a product" opens the Supermarket add screen; D5 turns its search into the catalog.
+- A4: the fold runs on the row wrapper with the Web Animations API (height + opacity, fill forwards) instead of the old 200 ms height class — opacity reaches 0 at 40 % so the red underlay never shows across the whole row.
 ### For Tal".
 - **Resuming:** `git fetch`, check out `round19`, read Progress + `git log`, continue from the first unticked item.
 - Unattended; never stop to ask — take the reading closest to the board + this brief, write it in Decisions.
@@ -62,7 +64,7 @@ Board `Fixes-phone` state "+ menu on Home": three tiles **Barcode · Product pho
 Supermarket "+", opened in that mode), then rows "Paste a product link" and "Search a product" (opens the catalog search,
 D5). Remove the separate "scan receipt" entry. Areas: App shell (dock quick menu), Camera. **Acceptance:** smoke opens
 each tile → the camera in that mode; no duplicate entries.
-### A4 [ ] Swipe-to-delete v2 — calm, deliberate, soft
+### A4 [x] Swipe-to-delete v2 — calm, deliberate, soft
 Tal: the quick menu looks bad, deleting is a "boom", accidental swipes delete. Board `Fixes-phone` (try the drag): the
 row opens to a **grey** Delete button at ~96 px; the delete point moves to **~210 px (≈ 55 % of the row)** — only past
 it the underlay turns red, the icon grows (spring), the label says "Release to delete", one haptic tick
