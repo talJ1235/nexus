@@ -12,6 +12,9 @@ Boards: canvas "Nexus R19 — Prices" (account of this chat), copies go to `docs
   maintained open-source work (OpenIsraeliSupermarkets `israeli-supermarket-scarpers`, daily-tested per chain) so it keeps
   working; first job = probe which chains answer from GitHub Actions (some chain portals block non-Israeli IPs) and from
   Tal's PC; blocked ones → decide (Tal's PC nightly or a small Israeli server).
+- **Prices are current, not "this morning's"** (Tal): besides the nightly full files, ingest the chains' partial
+  price / promo files published during the day (frequent runs), and show "updated · HH:MM" (time of the newest file
+  used), never "morning prices". Still "verify at the till".
 - Boards in this chat first (2a); recipes: Tal said 3a but asked to rethink → planner recommends postponing (see chat).
 
 ## 2. Tal's fixes after S5 (voice note 2026-10-19)
@@ -41,3 +44,5 @@ Boards: canvas "Nexus R19 — Prices" (account of this chat), copies go to `docs
 - Product page: price at my store, the same product across chains / branches nearby, history, cheaper alternatives of
   the same type.
 - "Where is my list cheapest" across stores; store picker shows the basket estimate per branch.
+- Board review 1 (Tal): money in proportion — the ₪ sign smaller than the digits (`.cur`, .66 em); tags never overlap
+  (one line each, wrap to the next row); a missing item is its own line under the tags, not a tag.
