@@ -1704,6 +1704,12 @@ export const en = {
     planHint: "Describe a project, get a parts list",
     importShort: "Import",
     moreAdd: "More ways to add",
+    scanGroup: "Scan",
+    tileBarcode: "Barcode",
+    tilePhoto: "Product photo",
+    tileReceipt: "Receipt",
+    pasteProduct: "Paste a product link",
+    searchProduct: "Search a product",
     toFreeShipping: "To free shipping",
   },
   projects: {

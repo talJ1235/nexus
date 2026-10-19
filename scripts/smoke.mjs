@@ -1183,6 +1183,8 @@ try {
       });
 
       await step("phone: dock + '+' menu opens the add list (4 cards + 3 compact) and closes on the scrim", async () => {
+        // R19 A3: Home's "+" is the scan menu — the add list lives on the other tabs (Products here).
+        await page.goto(`${BASE}/?v=to_buy`);
         await page.waitForSelector("[data-dock]", { timeout: 10000 });
         await page.click("[data-plus]");
         await page.waitForSelector("[data-plus-menu=open]", { state: "attached" });
@@ -2490,6 +2492,47 @@ try {
         await page.keyboard.press("Escape");
         ok(r.order && r.chain.length >= 1 && r.chain.every((x) => x.startsWith("shufersal|")) && r.narrow.length >= 1 && r.narrow.length <= r.chain.length && r.narrow.every((x) => /herzl/i.test(x)) && r.note === 1 && r.disabled <= 1 && /^Yochananof $/.test(r.filled) && r.focused && r.picked === "true",
           "store picker (R18 S3 B11): choice first, words narrow, every row tappable, R19 note", JSON.stringify(r));
+      });
+
+    // R19 A3 (board Fixes-phone): Home's "+" = Scan (Barcode · Product photo · Receipt — the Supermarket camera in that
+    // mode) + "Paste a product link" + "Search a product"; nothing else, no duplicates.
+    if (MOBILE && WRITE)
+      await step("Home + scan menu (R19 A3): 3 tiles open the camera in their mode, paste + search rows, no duplicates", async () => {
+        const r = { modes: {} };
+        const openMenu = async () => {
+          await page.goto(`${BASE}/`);
+          await page.waitForSelector('[data-dock] [data-dock-target="home"][aria-current=page]', { timeout: 15000 });
+          await page.locator('[data-dock-target="plus"]').click();
+          await page.waitForSelector("[data-home-plus][data-plus-menu=open]", { state: "attached", timeout: 4000 });
+          await page.waitForTimeout(380);
+        };
+        await openMenu();
+        r.items = await page.locator("[data-home-plus] [role=menuitem]:visible").evaluateAll((els) => els.map((e) => e.textContent.trim()));
+        r.oldList = await page.locator("[data-plus-action]:visible").count();
+        await shot(page, "home-plus");
+        for (const k of ["scan", "photo", "receipt"]) {
+          if (k !== "scan") await openMenu();
+          await page.locator(`[data-home-scan="${k}"]`).click();
+          await page.waitForSelector("[data-sm-capture]", { timeout: 6000 });
+          await page.waitForTimeout(250);
+          r.modes[k] = {
+            mode: await page.locator('[data-cap-mode][aria-selected="true"]').getAttribute("data-cap-mode"),
+            frame: await page.locator("[data-cap-frame]").getAttribute("data-cap-frame"),
+          };
+          await page.keyboard.press("Escape");
+          await page.waitForSelector("[data-sm-capture]", { state: "detached", timeout: 5000 }).catch(() => {});
+        }
+        await openMenu();
+        await page.locator('[data-home-row="search"]').click();
+        r.search = await page.waitForSelector("[data-add-screen] [data-add-input]", { timeout: 6000 }).then(() => true, () => false);
+        await page.keyboard.press("Escape");
+        await openMenu();
+        await page.locator('[data-home-row="paste"]').click();
+        r.paste = await page.waitForFunction(() => { const c = document.querySelector("[data-paste-capsule]"); return c && getComputedStyle(c).pointerEvents !== "none" && document.activeElement?.closest("[data-paste-capsule]"); }, null, { timeout: 6000 }).then(() => true, () => false);
+        await page.keyboard.press("Escape");
+        const m = r.modes;
+        ok(r.items.length === 5 && new Set(r.items).size === 5 && r.oldList === 0 && m.scan?.mode === "scan" && m.photo?.mode === "photo" && m.photo?.frame === "product" && m.receipt?.mode === "photo" && m.receipt?.frame === "doc" && r.search && r.paste,
+          "Home + scan menu (R19 A3): 3 tiles open the camera in their mode, paste + search rows, no duplicates", JSON.stringify(r));
       });
 
     // R18 S3 C1: "+" on the Supermarket tab is the camera, barcode first — Photo is one tap, "Type instead" goes to the Add

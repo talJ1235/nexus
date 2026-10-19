@@ -44,7 +44,7 @@ const FRAME = {
   doc: "h-[min(118vw,560px)] w-[min(68vw,360px)]",
 } as const;
 
-export function Capture({ open, mode: start, onClose, onType }: { open: boolean; mode: "scan" | "photo"; onClose: () => void; onType: OnType }) {
+export function Capture({ open, mode: start, onClose, onType }: { open: boolean; mode: "scan" | "photo" | "receipt"; onClose: () => void; onType: OnType }) {
   // R18 S3 A3: the phone's Back closes the camera instead of leaving the page.
   useBackClose(open, onClose);
   const { t } = useI18n();
@@ -60,12 +60,13 @@ export function Capture({ open, mode: start, onClose, onType }: { open: boolean;
   );
 }
 
-function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onClose: () => void; onType: OnType }) {
+function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo" | "receipt"; onClose: () => void; onType: OnType }) {
   const s = useStore();
   const { t, f } = useI18n();
   // The last photo: the small copy the AI read and a sharper one for the receipt review.
   const shot = useRef<{ image: string; full: Blob | null } | null>(null);
-  const [mode, setMode] = useState(start);
+  // R19 A3: "receipt" = photo mode with the tall frame from the start (Home "+" → Receipt).
+  const [mode, setMode] = useState<"scan" | "photo">(start === "receipt" ? "photo" : start);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [typing, setTyping] = useState(false);
   const [typed, setTyped] = useState("");
@@ -74,7 +75,7 @@ function CaptureBody({ start, onClose, onType }: { start: "scan" | "photo"; onCl
   // S4 B3: a photo taken = the still on screen and the camera off, until Retake.
   const [still, setStill] = useState<{ image: string; full: Blob | null } | null>(null);
   // The frame the person shoots in: a square for a product, a tall one for a receipt / list (a hint to the AI).
-  const [frame, setFrame] = useState<"product" | "doc">("product");
+  const [frame, setFrame] = useState<"product" | "doc">(start === "receipt" ? "doc" : "product");
   const { videoRef, state: cam, torch, toggleTorch, focus } = useCamera(!still, { scan: true });
   // The frame a barcode was read on stays on screen (outlined) while the result shows — the phone can move away.
   const [frozen, setFrozen] = useState<Seen | null>(null);

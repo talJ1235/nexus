@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { Camera, ChartColumn, ChevronDown, House, Plus, ScanBarcode, Search, ShoppingBasket, ShoppingCart, Tag, X } from "lucide-react";
+import { Camera, ChartColumn, ChevronDown, House, Link2, Plus, ReceiptText, ScanBarcode, Search, ShoppingBasket, ShoppingCart, Tag, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
@@ -442,6 +442,8 @@ function PlusMenuSheet() {
   const all = useAddActions();
   const actions = all.filter((a) => a.primary);
   const more = all.filter((a) => !a.primary);
+  // R19 A3: on Home the "+" is one scan entry (board Fixes-phone "+ menu on Home"); the other tabs keep the add list.
+  if (s.view.type === "home") return <HomeScanMenu open={open} onClose={() => s.setPlusOpen(false)} readOnly={ro.ro} />;
   return (
     <div className="desk:hidden" data-plus-menu={open ? "open" : "closed"}>
       <div
@@ -511,6 +513,79 @@ function PlusMenuSheet() {
             </button>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * R19 A3 (board Fixes-phone, "+ menu on Home"): Scan — three tiles Barcode · Product photo · Receipt, each the Supermarket
+ * camera opened in that mode — then "Paste a product link" and "Search a product" (the Supermarket add screen's search).
+ * Rises from the dock on the drawer ease (320 ms; reduced motion: a fade), scrim closes it.
+ */
+function HomeScanMenu({ open, onClose, readOnly }: { open: boolean; onClose: () => void; readOnly: boolean }) {
+  const s = useStore();
+  const { t } = useI18n();
+  const toSm = (k: SmIntent) => {
+    onClose();
+    s.setView({ type: "supermarket" });
+    setTimeout(() => requestSm(k), 30);
+  };
+  const tiles = [
+    { k: "scan" as const, icon: <ScanBarcode />, label: t.phone.tileBarcode },
+    { k: "photo" as const, icon: <Camera />, label: t.phone.tilePhoto },
+    { k: "receipt" as const, icon: <ReceiptText />, label: t.phone.tileReceipt },
+  ];
+  const rows = [
+    { k: "paste", icon: <Link2 />, label: t.phone.pasteProduct, run: () => (onClose(), setTimeout(() => s.setPasteOpen(true), 60)) },
+    { k: "search", icon: <Search />, label: t.phone.searchProduct, run: () => toSm("add") },
+  ];
+  return (
+    <div className="desk:hidden" data-plus-menu={open ? "open" : "closed"} data-home-plus>
+      <div
+        aria-hidden
+        onClick={onClose}
+        className={cn("fixed inset-0 z-[35] bg-[color-mix(in_srgb,var(--bg)_55%,transparent)] backdrop-blur-[8px] transition-opacity", open ? "opacity-100 duration-300" : "pointer-events-none opacity-0 duration-[220ms] ease-[var(--ease-out)]")}
+      />
+      <div
+        role={open ? "menu" : undefined}
+        aria-label={t.phone.add}
+        aria-hidden={!open}
+        className={cn("home-plus fixed inset-x-3 bottom-[calc(92px+env(safe-area-inset-bottom))] z-[36] mx-auto flex max-w-[420px] flex-col gap-1.5 rounded-[26px] bg-raised p-2.5", open ? "home-plus-open" : "pointer-events-none")}
+      >
+        <span className="px-1.5 pt-1 text-[12px] font-bold text-muted">{t.phone.scanGroup}</span>
+        <div className="grid grid-cols-3 gap-1.5">
+          {tiles.map((x) => (
+            <button
+              key={x.k}
+              type="button"
+              role="menuitem"
+              tabIndex={open ? 0 : -1}
+              disabled={readOnly && x.k !== "scan"}
+              onClick={() => toSm(x.k)}
+              data-home-scan={x.k}
+              className="flex h-[84px] min-w-0 flex-col items-center justify-center gap-2 rounded-[18px] bg-surface-2 px-1 text-[13px] font-bold text-ink transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.96] disabled:opacity-50 [&_svg]:size-[26px] [&_svg]:stroke-[1.8]"
+            >
+              {x.icon}
+              <span className="max-w-full truncate">{x.label}</span>
+            </button>
+          ))}
+        </div>
+        {rows.map((r) => (
+          <button
+            key={r.k}
+            type="button"
+            role="menuitem"
+            tabIndex={open ? 0 : -1}
+            disabled={readOnly}
+            onClick={r.run}
+            data-home-row={r.k}
+            className="flex h-[52px] w-full items-center gap-3 rounded-[16px] px-3 text-start text-[14.5px] font-semibold text-ink transition-[background-color,transform] duration-150 ease-[var(--ease-out)] active:scale-[0.98] active:bg-surface-2 disabled:opacity-50 [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-muted"
+          >
+            {r.icon}
+            <span className="min-w-0 truncate">{r.label}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

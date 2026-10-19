@@ -1699,6 +1699,12 @@ export const he: Dict = {
     planHint: "תאר פרויקט, קבל רשימת חלקים",
     importShort: "ייבוא",
     moreAdd: "עוד דרכים להוסיף",
+    scanGroup: "סריקה",
+    tileBarcode: "ברקוד",
+    tilePhoto: "צילום מוצר",
+    tileReceipt: "קבלה",
+    pasteProduct: "הדבקת קישור למוצר",
+    searchProduct: "חיפוש מוצר",
     toFreeShipping: "למשלוח חינם",
   },
   projects: {

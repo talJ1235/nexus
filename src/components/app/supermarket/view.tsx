@@ -88,7 +88,7 @@ export function SupermarketView() {
   // B2: the Add screen (typing / voice / paste); scan + photo arrive with B3.
   const [adding, setAdding] = useState<AddMode | null>(null);
   const [addHint, setAddHint] = useState<"camera" | null>(null);
-  const [capturing, setCapturing] = useState<"scan" | "photo" | null>(null);
+  const [capturing, setCapturing] = useState<"scan" | "photo" | "receipt" | null>(null);
   // The camera's "Type instead" (or a refused camera permission, with a one-line hint): the Add screen.
   // C2: a photo of a list → the Paste review with its lines.
   const [addSeed, setAddSeed] = useState<string | null>(null);
@@ -144,7 +144,7 @@ export function SupermarketView() {
     const runIntent = (k: SmIntent) => {
       if (k === "add") setAdding("type");
       if (k === "build") setBasketOn(true);
-      if (k === "scan" || k === "photo") setCapturing(k);
+      if (k === "scan" || k === "photo" || k === "receipt") setCapturing(k);
       if (k === "shop") setShopping(true);
     };
     take();

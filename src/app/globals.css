@@ -1160,6 +1160,12 @@ html[data-motion="reduce"] [data-sonner-toaster] [data-sonner-toast] { transitio
 @media (prefers-reduced-motion: reduce) { .dock-pill { transition: opacity 160ms ease; } }
 :root[data-motion="reduce"] .dock-pill { transition: opacity 160ms ease; }
 
+/* R19 A3: the Home "+" scan menu rises from the dock (drawer ease, 320 ms), closes faster; reduced motion: a fade. */
+.home-plus { box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 6%, transparent), 0 22px 48px -12px rgb(16 16 14 / 0.3); opacity: 0; transform: translateY(18px) scale(0.97); transform-origin: 50% 100%; transition: opacity 200ms ease, transform 220ms var(--ease-out); }
+.home-plus.home-plus-open { opacity: 1; transform: none; transition: opacity 240ms ease, transform 320ms var(--ease-drawer); }
+@media (prefers-reduced-motion: reduce) { .home-plus, .home-plus.home-plus-open { transform: none; transition: opacity 150ms ease; } }
+:root[data-motion="reduce"] :is(.home-plus, .home-plus.home-plus-open) { transform: none; transition: opacity 150ms ease; }
+
 /* ---------- R18 S5 C1 — the floating Ask (board Ask-final-phone + nx-s5.css "FINAL v2"): a pearl orb with a 2 px AI
    ring. Always a perfect, fully opaque circle: the disc, its shadow and its clip are 50 % in every state; the 2 px gap
    between orb and ring is filled with the pearl's edge colour (a solid spread shadow), so nothing underneath shows

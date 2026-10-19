@@ -4,8 +4,9 @@
 // (`/?v=supermarket&do=…`) ask for one of these; the screen takes it once (module state + an event, no store re-render).
 
 /** `build` = show the cold-start suggestions ("Build my list", Home's first-list card). */
-export type SmIntent = "add" | "scan" | "photo" | "shop" | "build";
-export const SM_INTENTS: readonly SmIntent[] = ["add", "scan", "photo", "shop", "build"];
+/** `receipt` (R19 A3) = the camera in photo mode with the tall receipt frame (Home "+" → Receipt). */
+export type SmIntent = "add" | "scan" | "photo" | "receipt" | "shop" | "build";
+export const SM_INTENTS: readonly SmIntent[] = ["add", "scan", "photo", "receipt", "shop", "build"];
 const EVENT = "nexus:sm-intent";
 
 let pending: SmIntent | null = null;

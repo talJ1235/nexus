@@ -19,8 +19,10 @@ below), not only on the boards.
 - **Commit and push after every single item** (`R19.<part><k>: …`, `git push origin round19`); tick `[x]` here + one
   line in "### Progress" in the same commit; decisions in "
 - A2 — dock: one 56×30 pill behind the active icon (ink 11 % / Plum brand 16 %) sliding between tabs on the drawer ease (260 ms, no slide with reduced motion), stroke 2.2, label 750; smoke checks the pill on every tab × light/dark × Graphite/Plum, label ≥ 4.5:1, and the slide.
+- A3 — Home "+" = Scan (Barcode · Product photo · Receipt → the Supermarket camera in scan / photo / photo + tall frame; new intent `receipt`) + "Paste a product link" + "Search a product" (the Supermarket add screen); other tabs keep the add list; smoke opens each tile in its mode, 5 entries, no duplicates.
 ### Decisions" at once; anything for Tal in "
 - A2: the computer sidebar's active row already has a tint + a 3 px accent bar + 600 ink (R14 B1) — it reads clearly, left as is. The dock pill measures the icon from the pill's own parent (a parent's ref isn't attached yet in a child's layout effect).
+- A3: the Home menu only replaces the "+" on Home — Products / Insights keep the R16 add list (its barcode / receipt / plan / import flows and their tests stay). "Search a product" opens the Supermarket add screen; D5 turns its search into the catalog.
 ### For Tal".
 - **Resuming:** `git fetch`, check out `round19`, read Progress + `git log`, continue from the first unticked item.
 - Unattended; never stop to ask — take the reading closest to the board + this brief, write it in Decisions.
@@ -55,7 +57,7 @@ Today only grey → black. Board: a 56×30 pill behind the active icon (ink 11 %
 750; the pill moves between tabs with `--ease-drawer` (≈ 260 ms; reduced motion: no slide). Area: App shell (`lib/dock.ts`,
 `phone-shell.tsx`). The computer sidebar's active row already has its tint — check it reads as clearly. **Acceptance:**
 smoke asserts the pill under the current tab on every tab; contrast of the active label ≥ 4.5:1.
-### A3 [ ] Home "+" = one scan entry
+### A3 [x] Home "+" = one scan entry
 Board `Fixes-phone` state "+ menu on Home": three tiles **Barcode · Product photo · Receipt** (the same camera as the
 Supermarket "+", opened in that mode), then rows "Paste a product link" and "Search a product" (opens the catalog search,
 D5). Remove the separate "scan receipt" entry. Areas: App shell (dock quick menu), Camera. **Acceptance:** smoke opens
