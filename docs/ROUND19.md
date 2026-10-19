@@ -23,12 +23,14 @@ below), not only on the boards.
 - A4 — swipe-delete v2: grey Delete at 96 px, delete point = 55 % of the row (clamped 170–260; 201 px at 390, 185 at 360), red + spring icon + "Release to delete" + one vibrate(8) only past it, flings never commit short of it; the exit slides while the row fades first and folds its height (360 ms ease-out, WAAPI); quantity side calm grey too. Smoke at 360 + 390: 150 px → open, 230 px → deleted, Undo back; fold trace 55 frames, 60 px moved, worst frame 7.1 px.
 - A5 — the whole row opens the product: a hit layer under the content (z −1 in the row's stacking context), the name area lets taps through except the name's own letters; smoke taps picture / brand line / empty middle / chip gap / end edge at 360 + 390 → the product every time, the name still renames.
 - A6 — Start shopping always floats: the floating bar is portaled to document.body and "docked" is read from the slot's box on every scroll / resize / layout change; new smoke opens the tab from every tab + Products segment (each scrolled to its end) and checks top / middle / bottom / back up — red on the old build (bar at top 2375 px), green now.
+- A7 — "Nexus suggests" opens as one soft push: grid-rows on ease-in-out (.42,0,.58,1) for max(320 ms, 1.3 ms per px, ≤ 520), rows rise in 30 ms apart (fade with reduced motion); frame trace: 249 px opened over 19 moving frames, worst frame 21.9 px, the list above moved 0 px. (Also A6 follow-up: when open suggestions carry the slot above the screen the bar floats again — the A6 smoke caught the docked bar cut at the top.)
 ### Decisions" at once; anything for Tal in "
 - A2: the computer sidebar's active row already has a tint + a 3 px accent bar + 600 ink (R14 B1) — it reads clearly, left as is. The dock pill measures the icon from the pill's own parent (a parent's ref isn't attached yet in a child's layout effect).
 - A3: the Home menu only replaces the "+" on Home — Products / Insights keep the R16 add list (its barcode / receipt / plan / import flows and their tests stay). "Search a product" opens the Supermarket add screen; D5 turns its search into the catalog.
 - A4: the fold runs on the row wrapper with the Web Animations API (height + opacity, fill forwards) instead of the old 200 ms height class — opacity reaches 0 at 40 % so the red underlay never shows across the whole row.
 - A5: "the product page" is the row's item sheet until D2 turns it into the product page (`openSmItem` stays the one entry point, so A5's smoke keeps holding).
 - A6 cause: after any tab switch the view wrapper keeps its entrance animation (`view-in view-fwd`, fill `both`) in effect, which makes it the containing block of `position: fixed` children — the "floating" bar sat at the list's foot (≈ 2 400 px down) instead of above the dock; a cold load has no entrance animation, hence "sometimes". Second, smaller cause: the IntersectionObserver only reports crossings, so a tab opened at the previous tab's scroll could stay "docked" out of sight. Fix: portal while floating + geometry reads.
+- A7: the ≈ 320 ms in the brief and "no frame > 24 px" can't both hold for a tall section (380 px in 320 ms peaks at 34 px a frame even on ease-in-out), so the duration follows the height: 320 ms up to ~250 px, then 1.3 ms per px, capped at 520 ms.
 ### For Tal".
 - **Resuming:** `git fetch`, check out `round19`, read Progress + `git log`, continue from the first unticked item.
 - Unattended; never stop to ask — take the reading closest to the board + this brief, write it in Decisions.
@@ -89,7 +91,7 @@ Supermarket tab is shown, float above the dock while scrolling up or down, and s
 (as S4 D3 meant). Find why it misses (mount / observer / scroll container) — Decisions names the cause. **Acceptance:**
 smoke: open the tab from each other tab and from each segment, scroll top / middle / bottom → the pill is visible
 above the dock each time.
-### A7 [ ] "Nexus suggests" opens smoothly
+### A7 [x] "Nexus suggests" opens smoothly
 Its opening is a jump. Height + opacity with `--ease-drawer` ≈ 320 ms, rows stagger in 30 ms, no layout shift of the
 list below (it pushes smoothly). **Acceptance:** frame trace: no single frame moves the list by > 24 px.
 ### A8 [ ] The AI chat: no jumps, answers flow, the reported bug

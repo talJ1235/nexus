@@ -77,7 +77,12 @@ export function SupermarketView() {
   const deskView = useDevice() === "computer";
   useLayoutEffect(() => {
     if (!slotEl || deskView) return;
-    const now = () => setDocked(slotEl.getBoundingClientRect().bottom <= window.innerHeight - 90);
+    // Docked only while the slot is wholly on screen above the bar's line; scrolled past it (open suggestions under the
+    // list), the bar floats again — the view's 170 px end padding keeps the last content clear of it.
+    const now = () => {
+      const r = slotEl.getBoundingClientRect();
+      setDocked(r.top >= 0 && r.bottom <= window.innerHeight - 90);
+    };
     let f = 0;
     const soon = () => {
       cancelAnimationFrame(f);
@@ -625,7 +630,13 @@ function Suggestions({ home, basket, draft, ro, forceOpen = false }: { home: SmH
       if (v === "1" || v === "0") setOpenState(v === "1" || draft);
     } catch {}
   }, [draft]);
+  // R19 A7: opening is one soft push — height on a gentle ease-in-out whose length follows the height (≈ 320 ms for a
+  // few rows, ≤ 520 ms for many, so no frame moves what's below by more than ~24 px), the rows rise in 30 ms apart.
+  const body = useRef<HTMLDivElement>(null);
+  const [motion, setMotion] = useState<{ ms: number; rows: boolean }>({ ms: 320, rows: false });
   const setOpen = (v: boolean) => {
+    const h = body.current?.scrollHeight ?? 0;
+    setMotion({ ms: Math.round(Math.min(520, Math.max(v ? 320 : 220, h * (v ? 1.3 : 0.7)))), rows: v });
     setOpenState(v);
     try {
       localStorage.setItem(SUG_OPEN_KEY, v ? "1" : "0");
@@ -668,7 +679,7 @@ function Suggestions({ home, basket, draft, ro, forceOpen = false }: { home: SmH
   };
   const day = new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { weekday: "long", timeZone: s.clock.tz }).format(new Date(s.clock.now + 86_400_000));
   return (
-    <section className="gro-sug" data-sm-suggest={open ? "open" : "closed"}>
+    <section className={cn("gro-sug", motion.rows && "gro-sug-anim")} data-sm-suggest={open ? "open" : "closed"}>
       <SuggestionActions sug={acting} reason={acting ? reason(acting) : ""} onClose={() => setActing(null)} />
       <button type="button" className="flex min-h-[56px] w-full items-center gap-3 px-3.5 text-start" onClick={() => setOpen(!open)} aria-expanded={open} aria-label={t.sm.sug.open} data-sm-sug-toggle>
         <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-spark text-white">
@@ -680,10 +691,10 @@ function Suggestions({ home, basket, draft, ro, forceOpen = false }: { home: SmH
         </span>
         <ChevronDown className={cn("size-4 shrink-0 text-muted transition-transform duration-200 ease-[var(--ease-out)]", !open && "-rotate-90 rtl:rotate-90")} />
       </button>
-      <div className="gro-sec-b" style={{ gridTemplateRows: open ? "1fr" : "0fr" }}>
-        <div>
-          {list.map((x) => (
-            <div key={x.productKey} className="gro-sug-row flex min-h-[64px] items-center gap-3 px-3.5 py-2" data-sm-sug={x.productKey}>
+      <div className="gro-sec-b gro-sug-b" style={{ gridTemplateRows: open ? "1fr" : "0fr", transitionDuration: `${motion.ms}ms` }}>
+        <div ref={body}>
+          {list.map((x, i) => (
+            <div key={x.productKey} className="gro-sug-row flex min-h-[64px] items-center gap-3 px-3.5 py-2" style={{ "--i": Math.min(i, 8) } as React.CSSProperties} data-sm-sug={x.productKey}>
               <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-start" onClick={() => !ro && setActing(x)} aria-label={f(t.sm.sugAct.open, { title: x.title })} data-sm-sug-open>
               <ProductTile art={x.art} section={x.section} size={44} />
               <span className="min-w-0 flex-1">
@@ -706,7 +717,7 @@ function Suggestions({ home, basket, draft, ro, forceOpen = false }: { home: SmH
             </div>
           ))}
           {!ro && (
-            <div className="gro-sug-foot flex min-h-14 items-center gap-3 px-3.5 py-2">
+            <div className="gro-sug-foot flex min-h-14 items-center gap-3 px-3.5 py-2" style={{ "--i": Math.min(list.length, 9) } as React.CSSProperties}>
               <span className="min-w-0 flex-1 text-[13px] text-muted">{t.sm.sug.foot}</span>
               <button type="button" className="h-10 shrink-0 rounded-[12px] bg-ink px-3.5 text-[14px] font-bold text-bg transition-transform duration-150 ease-[var(--ease-out)] active:scale-95" onClick={() => void accept(list)} data-sm-sug-all>
                 {t.sm.sug.addAll}

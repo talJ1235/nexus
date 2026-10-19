@@ -208,6 +208,14 @@
 /* Suggestions card ("Nexus suggests"). */
 .gro-sug { border-radius: 18px; border: 1px solid color-mix(in srgb, var(--spark) 34%, var(--line-strong)); background: color-mix(in srgb, var(--spark) 7%, var(--surface)); overflow: hidden; }
 .dark .gro-sug { background: color-mix(in srgb, var(--spark) 9%, var(--surface)); }
+/* R19 A7: the suggestions open as one soft push (duration set inline from the height), rows rise in 30 ms apart. */
+.gro-sug .gro-sug-b { transition-property: grid-template-rows; transition-timing-function: cubic-bezier(0.42, 0, 0.58, 1); }
+.gro-sug-anim[data-sm-suggest="open"] :is(.gro-sug-row, .gro-sug-foot) { animation: gro-sug-in 280ms var(--ease-out) both; animation-delay: calc(60ms + var(--i, 0) * 30ms); }
+@keyframes gro-sug-in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .gro-sug .gro-sug-b { transition: none; } }
+:root[data-motion="reduce"] .gro-sug .gro-sug-b { transition: none; }
+@media (prefers-reduced-motion: reduce) { .gro-sug-anim[data-sm-suggest="open"] :is(.gro-sug-row, .gro-sug-foot) { animation: fade 150ms ease-out both; } }
+:root[data-motion="reduce"] .gro-sug-anim[data-sm-suggest="open"] :is(.gro-sug-row, .gro-sug-foot) { animation: fade 150ms ease-out both; }
 .gro-sug-row + .gro-sug-row, .gro-sug-foot { border-top: 1px solid color-mix(in srgb, var(--spark) 22%, var(--line-in)); }
 
 @media (hover: hover) and (pointer: fine) {

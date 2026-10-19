@@ -3600,6 +3600,47 @@ try {
     // R18 S4 D3: Start shopping floats above the dock while the list goes on, docks into its slot after the list once
     // the end is in view, and never covers "Nexus suggests" or a row there.
     if (MOBILE)
+      // R19 A7: "Nexus suggests" opens as one soft push — a frame trace of the opening: the list above never moves, the
+      // section's bottom edge (what pushes the content below) grows every frame by ≤ 24 px, and the rows rise in staggered.
+      await step("Nexus suggests opens smoothly (R19 A7): frame trace, ≤ 24 px per frame, list above still, rows stagger", async () => {
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-list]", { timeout: 15000 });
+        const tog = page.locator("[data-sm-sug-toggle]");
+        await tog.waitFor({ timeout: 10000 });
+        if ((await page.locator("[data-sm-suggest]").getAttribute("data-sm-suggest")) === "open") {
+          await tog.click();
+          await page.waitForTimeout(700);
+        }
+        await page.locator("[data-sm-suggest]").evaluate((e) => window.scrollTo(0, window.scrollY + e.getBoundingClientRect().top - 160));
+        await page.waitForTimeout(300);
+        await page.evaluate(() => {
+          const list = document.querySelector("[data-sm-list]");
+          const sec = document.querySelector("[data-sm-suggest]");
+          const out = (window.__a7 = []);
+          const t0 = performance.now();
+          const tick = () => {
+            const rows = [...sec.querySelectorAll(".gro-sug-row")].map((r) => Number(getComputedStyle(r).opacity));
+            out.push({ list: list.getBoundingClientRect().top, bottom: sec.getBoundingClientRect().bottom, rows });
+            if (performance.now() - t0 < 1000) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        });
+        await tog.click();
+        await page.waitForTimeout(1150);
+        const f = await page.evaluate(() => window.__a7);
+        const d = f.slice(1).map((x, i) => x.bottom - f[i].bottom);
+        const listMoved = Math.max(...f.map((x) => Math.abs(x.list - f[0].list)));
+        const grew = f.at(-1).bottom - f[0].bottom;
+        const worst = Math.max(...d);
+        const back = Math.min(...d);
+        const moving = d.filter((x) => x > 0.5).length;
+        // Stagger: at some frame the first row is further in than the last.
+        const stagger = f.some((x) => x.rows.length > 1 && x.rows[0] - x.rows.at(-1) > 0.15);
+        await shot(page, "a7-suggest-open");
+        console.log(`INFO suggest open (R19 A7): ${JSON.stringify({ frames: f.length, grew: Math.round(grew), worst: Math.round(worst * 10) / 10, moving, listMoved })}`);
+        ok(grew > 60 && worst <= 24 && back > -1 && listMoved <= 1 && stagger, "Nexus suggests opens smoothly (R19 A7): frame trace, ≤ 24 px per frame, list above still, rows stagger", JSON.stringify({ grew, worst, back, listMoved, stagger, moving }));
+      });
+
       // R19 A6: the pill is there every time the Supermarket tab shows — opened from every other tab and every Products
       // segment (each scrolled to its end first: the case that used to leave it docked out of sight), at the top, the
       // middle and the bottom of the list: visible, above the dock, nothing on top of it.
@@ -3656,6 +3697,8 @@ try {
         await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
         await page.waitForTimeout(500);
         r.end = await page.locator("[data-sm-start-bar]").getAttribute("data-sm-start-bar");
+        // R19 A6: open suggestions can carry the slot above the screen — then the bar floats again (clear of them).
+        r.slotAbove = await page.locator("[data-sm-start-slot]").evaluate((e) => e.getBoundingClientRect().top < 0);
         const b2 = await page.locator("[data-sm-start]").boundingBox();
         const sug = await page.locator("[data-sm-suggest]").boundingBox().catch(() => null);
         const rows = await page.locator("[data-sm-list] [data-sm-row]").evaluateAll((els) => els.map((e) => { const q = e.getBoundingClientRect(); return [q.top, q.bottom]; }));
@@ -3663,7 +3706,7 @@ try {
         r.overSug = sug ? over(sug.y, sug.y + sug.height) : false;
         r.overRow = rows.some(([t, bt]) => over(t, bt));
         r.dockClear = b2.y + b2.height <= vh;
-        ok(r.top === "floating" && r.aboveDock && r.end === "docked" && !r.overSug && !r.overRow, "start shopping floats, then docks (R18 S4 D3): above the dock, docked at the list's end, never over suggestions", JSON.stringify(r));
+        ok(r.top === "floating" && r.aboveDock && (r.end === "docked" || (r.end === "floating" && r.slotAbove)) && !r.overSug && !r.overRow, "start shopping floats, then docks (R18 S4 D3): above the dock, docked at the list's end, never over suggestions", JSON.stringify(r));
       });
 
     // R18 S4 F1: the Templates · Past trips switch — its thumb stays inside the track on every frame of the slide
