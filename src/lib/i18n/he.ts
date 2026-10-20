@@ -550,6 +550,11 @@ export const he: Dict = {
       people: "{n} אנשים",
     },
     sys: {
+      prices: "מחירים",
+      pricePictures: "ל־{n} מתוך {all} מוצרים יש תמונה אמיתית",
+      pricesNone: "עוד לא נקראו קובצי מחירים",
+      priceToday: "היום: {files} קבצים · {rows} שורות · {changed} השתנו",
+      priceStale: "ייתכן שהמחירים ישנים",
       healthy: "תקין",
       attention: "צריך תשומת לב",
       services: "שירותים",

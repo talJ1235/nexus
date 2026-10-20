@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { createClient } from "@libsql/client";
 import { CHAINS } from "../src/lib/grocery/chains";
 import { dealOf } from "../src/lib/prices/deals";
+import { isStale } from "../src/lib/prices/health";
 import { ingestDump, planStores } from "../src/lib/prices/ingest";
 import { decodeXml, fileInfo, parsePrices, parsePromos, parseStores } from "../src/lib/prices/parse";
 
@@ -65,6 +66,9 @@ assert.deepEqual(fileInfo("PriceFull7290058108879-000-340-20261019-045059.xml"),
 assert.deepEqual(fileInfo("price7290058140886-039-202607151000.xml"), { kind: "Price", chainId: "7290058140886", storeId: 39, stamp: "202607151000" });
 assert.equal(fileInfo("StoresFull7290000000003-000-202610191100.xml")?.kind, "Stores");
 assert.equal(fileInfo("PromoFull7290058140886-001-001-20261020-001114.xml")?.kind, "PromoFull");
+
+// ---- B5: stale after 26 h without a file.
+assert.ok(!isStale(Date.now() - 25 * 3_600_000) && isStale(Date.now() - 27 * 3_600_000) && isStale(null));
 
 // ---- Every chain in the registry has a scraper name.
 for (const c of CHAINS) assert.ok(c.scraper, `${c.id} has a scraper`);

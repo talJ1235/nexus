@@ -121,6 +121,20 @@ try {
       ok(!st.overflow, `U1 System → Push ${w}: fits`);
       await ctx.close();
     }
+    // R19 B5: Prices — a chain whose newest file is 30 h old is flagged "Prices may be old", a fresh one shows today's rows.
+    await x("INSERT OR REPLACE INTO chain (id, gov_id, he, en, branches, last_file_at, last_ok_at, updated_at) VALUES ('rami-levy', '7290058140886', 'רמי לוי', 'Rami Levy', 99, ?, ?, ?)", [now - 3_600_000, now, now]);
+    await x("INSERT OR REPLACE INTO chain (id, gov_id, he, en, branches, last_file_at, last_ok_at, updated_at) VALUES ('king-store', '7290058108879', 'קינג סטור', 'King Store', 48, ?, ?, ?)", [now - 30 * 3_600_000, now - 30 * 3_600_000, now]);
+    await x("INSERT OR REPLACE INTO price_file (name, chain_id, store_id, kind, stamp, read_at, rows, changed, ms) VALUES ('PriceFull7290058140886-001-001-x', 'rami-levy', 1, 'PriceFull', '202610200300', ?, 12953, 140, 200)", [now]);
+    {
+      const pc = await browser.newContext({ viewport: { width: 1366, height: 768 } });
+      await pc.addCookies(app.cookies(app.personal, "en"));
+      const pp = await pc.newPage();
+      await pp.goto(`${app.base}/admin/system`);
+      await pp.locator("[data-system-prices]").waitFor({ timeout: 20000 });
+      const pr = await pp.evaluate(() => Object.fromEntries([...document.querySelectorAll("[data-price-chain]")].map((e) => [e.getAttribute("data-price-chain"), [e.getAttribute("data-stale"), e.textContent]])));
+      ok(pr["king-store"]?.[0] === "yes" && /may be old/.test(pr["king-store"][1]) && pr["rami-levy"]?.[0] === "no" && /12,953 rows/.test(pr["rami-levy"][1]), "R19 B5 System → Prices: a stale chain (30 h) is flagged, a fresh one shows today's rows", JSON.stringify(pr));
+      await pc.close();
+    }
     const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } });
     await ctx.addCookies(app.cookies(app.personal, "en"));
     const page = await ctx.newPage();

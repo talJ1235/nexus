@@ -552,6 +552,11 @@ export const en = {
       people: "{n} people",
     },
     sys: {
+      prices: "Prices",
+      pricePictures: "{n} of {all} products have a real picture",
+      pricesNone: "No price files read yet",
+      priceToday: "today: {files} files · {rows} rows · {changed} changed",
+      priceStale: "Prices may be old",
       healthy: "Healthy",
       attention: "Needs attention",
       services: "Services",

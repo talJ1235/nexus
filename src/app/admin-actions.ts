@@ -1,5 +1,6 @@
 "use server";
 
+import { priceHealth } from "@/lib/db-scoped/prices";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { aiAllowance, resetAiToday as resetAiUsage, writeAiQuota, type Allowance } from "@/lib/ai-gate";
@@ -144,9 +145,9 @@ export async function getAiStats(days: 7 | 30) {
 /** Services, the daily job's last run, DB size + rows per table, keys set / missing (names only, never values). */
 export async function getSystem() {
   await admin();
-  const [dbInfo, cron, notify, diag, last, sm] = await Promise.all([adminSystemDb(), cronSummary(), notifyCounts(dayStart()), pushDiagnostics(), kvGet(LAST_NOTIFY_KEY), supermarketMetrics()]);
+  const [dbInfo, cron, notify, diag, last, sm, prices] = await Promise.all([adminSystemDb(), cronSummary(), notifyCounts(dayStart()), pushDiagnostics(), kvGet(LAST_NOTIFY_KEY), supermarketMetrics(), priceHealth().catch(() => null)]);
   const keys = KEYS.map(([name, group]) => ({ name, group, set: !!process.env[name] }));
-  return { db: dbInfo, cron, keys, notify: { ...notify, configured: pushConfigured(), ...diag, last: lastNotify(last) }, storeReader: !!process.env.CF_FETCH_URL, realtime: !!process.env.ABLY_API_KEY, issues: !!process.env.GITHUB_ISSUES_TOKEN, sm };
+  return { db: dbInfo, cron, keys, notify: { ...notify, configured: pushConfigured(), ...diag, last: lastNotify(last) }, storeReader: !!process.env.CF_FETCH_URL, realtime: !!process.env.ABLY_API_KEY, issues: !!process.env.GITHUB_ISSUES_TOKEN, sm, prices };
 }
 
 /** R17 S6 U1: the dispatcher's last run (`/api/cron/notify` or an opportunistic run) — when, how long, sent / failed. */

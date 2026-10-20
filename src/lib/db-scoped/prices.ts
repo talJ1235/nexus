@@ -11,6 +11,7 @@ import { kvGet, kvSet } from "@/lib/kv";
 import { safeFetch } from "@/lib/safe-fetch";
 import { picturesFor } from "@/lib/product-pictures";
 import { catalogLineInfo, catalogThumb, pictureDayKey, underCap } from "@/lib/catalog-picture";
+import { isStale } from "@/lib/prices/health";
 
 export type BranchHit = {
   id: string;
@@ -169,4 +170,34 @@ export async function mostBought(limit = 40): Promise<string[]> {
     .orderBy(sql`count(*) desc`)
     .limit(limit);
   return rows.map((r) => r.gtin!).filter(Boolean);
+}
+
+// ---------- B5: freshness, health ----------
+
+export type ChainHealth = { id: string; branches: number; lastFileAt: number | null; lastOkAt: number | null; error: string | null; filesToday: number; rowsToday: number; changedToday: number; failedToday: number; stale: boolean };
+
+/** Admin → System: per chain the newest file, today's rows / changes / failed files, staleness; picture coverage. */
+export async function priceHealth(now = Date.now()) {
+  const dayStart = now - ((now + 3 * 3600_000) % 86_400_000);
+  const chains = await db.select().from(schema.chain);
+  const today = await db
+    .select({ chain: schema.priceFile.chainId, files: sql<number>`count(*)`, rows: sql<number>`coalesce(sum(${schema.priceFile.rows}), 0)`, changed: sql<number>`coalesce(sum(${schema.priceFile.changed}), 0)`, failed: sql<number>`sum(${schema.priceFile.error} IS NOT NULL)` })
+    .from(schema.priceFile)
+    .where(sql`${schema.priceFile.readAt} >= ${dayStart}`)
+    .groupBy(schema.priceFile.chainId);
+  const by = new Map(today.map((r) => [r.chain, r]));
+  const [pics] = await db.select({ all: sql<number>`count(*)`, real: sql<number>`sum(${schema.catalog.imageUrl} IS NOT NULL)` }).from(schema.catalog);
+  const rows: ChainHealth[] = chains
+    .map((c) => {
+      const t = by.get(c.id);
+      return { id: c.id, branches: c.branches, lastFileAt: c.lastFileAt, lastOkAt: c.lastOkAt, error: c.lastError, filesToday: Number(t?.files ?? 0), rowsToday: Number(t?.rows ?? 0), changedToday: Number(t?.changed ?? 0), failedToday: Number(t?.failed ?? 0), stale: isStale(c.lastFileAt, now) };
+    })
+    .sort((a, b) => Number(b.stale) - Number(a.stale) || (b.lastFileAt ?? 0) - (a.lastFileAt ?? 0));
+  return { chains: rows, products: Number(pics?.all ?? 0), withPicture: Number(pics?.real ?? 0) };
+}
+
+/** The app's side: which chains' prices may be old (for "prices may be old" next to their estimates). */
+export async function staleChains(now = Date.now()): Promise<string[]> {
+  const rows = await db.select({ id: schema.chain.id, at: schema.chain.lastFileAt }).from(schema.chain);
+  return rows.filter((r) => isStale(r.at, now)).map((r) => r.id);
 }

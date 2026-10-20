@@ -1,5 +1,6 @@
 "use client";
 
+import { chainById } from "@/lib/grocery/chains";
 import { getSystem } from "@/app/admin-actions";
 import { useI18n } from "@/components/providers";
 import type { Go } from "./admin-app";
@@ -11,11 +12,12 @@ import { BackToNexus, Failed, PATH, Skeleton, Svg, useLoad, useNow, useTimes } f
 // and the keys — set / missing, names only (never a value).
 
 const DAY = 86_400_000;
+const chainName = (id: string, lang: string) => ((c) => (c ? (lang === "he" ? c.he : c.en) : id))(chainById(id));
 const PROVIDER_KEY: Record<string, string> = { gemini: "GEMINI_API_KEY", groq: "GROQ_API_KEY", openrouter: "OPENROUTER_API_KEY" };
 const PROVIDER_NAME: Record<string, string> = { gemini: "Gemini", groq: "Groq", openrouter: "OpenRouter" };
 
 export function SystemTab({ phone, go }: { phone: boolean; go: Go }) {
-  const { t, f } = useI18n();
+  const { t, f, locale } = useI18n();
   const S = t.adm.sys;
   const { data, failed, reload } = useLoad(() => getSystem(), []);
   const { ago, time, num } = useTimes();
@@ -146,6 +148,30 @@ export function SystemTab({ phone, go }: { phone: boolean; go: Go }) {
               })()}
             </div>
           </section>
+          {/* R19 B5: prices — the newest file per chain, today's rows / changes / failures, stale chains (> 26 h), pictures. */}
+          {data.prices && (
+            <section className="panel" data-system-prices>
+              <div className="ph">
+                <h2>{S.prices}</h2>
+                <span className="tiny" data-price-pictures>{f(S.pricePictures, { n: num(data.prices.withPicture), all: num(data.prices.products) })}</span>
+              </div>
+              <div className="pb">
+                {data.prices.chains.length === 0 && hl("off", S.pricesNone, "—", "prices-none")}
+                {data.prices.chains.map((c) => (
+                  <div className="hl" key={c.id} data-price-chain={c.id} data-stale={c.stale ? "yes" : "no"}>
+                    <span className={`dot ${c.error || c.failedToday ? "dng" : c.stale ? "warn" : "ok"}`} aria-hidden="true" />
+                    <span className="grow">
+                      {chainName(c.id, locale)}
+                      <span className="tiny" style={{ display: "block" }}>
+                        {c.error ? c.error.slice(0, 80) : f(S.priceToday, { files: num(c.filesToday), rows: num(c.rowsToday), changed: num(c.changedToday) })}
+                      </span>
+                    </span>
+                    <span className="r">{c.stale ? S.priceStale : c.lastFileAt ? ago(c.lastFileAt) : "—"}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
           <section className="panel" data-system-keys>
             <div className="ph">
               <h2>{S.keys}</h2>
