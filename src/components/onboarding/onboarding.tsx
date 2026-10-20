@@ -1,5 +1,6 @@
 "use client";
 
+import { ChainLogo } from "@/components/app/supermarket/store-picker";
 import "../auth/nx.css";
 import "../app/settings/nx16.css";
 import "../admin/nx17.css";
@@ -551,11 +552,12 @@ export function OnboardingFlow({ initial, joined, name, quick = false }: { initi
       {idx === 2 && phase === "chains" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }} data-ob-chains>
           <div className="stores" style={{ gap: desk ? 10 : 8 }}>
-            {CHAINS.map((c) => {
+            {CHAINS.filter((c) => c.big).map((c) => {
               const k = chains.indexOf(c.id);
               return (
                 <button key={c.id} type="button" className={`st${k >= 0 ? " on" : ""}`} aria-pressed={k >= 0} onClick={() => toggleChain(c.id)} data-ob-chain={c.id} style={{ position: "relative" }}>
-                  <span className={`mono-t ${c.color}`}>{chainMono(c)}</span>
+                  {/* R19 A10: the chain's real logo, never a first letter. */}
+                  <ChainLogo chain={c.id} size={40} />
                   <span className="nm" title={he ? c.he : c.en}>
                     {he ? c.he : c.en}
                   </span>

@@ -1,5 +1,6 @@
 "use client";
 
+import { ChainLogo } from "./store-picker";
 import "./sm.css";
 import { useMemo, useState } from "react";
 import { ArrowRight, Check, ChevronDown, CloudOff, ListOrdered, Palette, X } from "lucide-react";
@@ -110,7 +111,7 @@ export function StartTrip({
             </span>
           )}
           <button type="button" onClick={onPickStore} className="trip-chip min-w-0 max-w-[60%] pe-2 ps-1.5" aria-label={store ? `${t.sm.shop.changeStore}: ${name}` : t.sm.shop.changeStore} data-store-another>
-            <span className="trip-cb">{(locale === "he" ? def?.monoHe : def?.mono)?.slice(0, 2) ?? "·"}</span>
+            {store ? <ChainLogo chain={store.chain} size={26} /> : <span className="trip-cb">·</span>}
             <span className="flex min-w-0 flex-col text-start leading-tight">
               <b className="bidi truncate text-[13.5px]">{store ? name : t.sm.shop.noStore}</b>
               {store?.branch && <span className="bidi truncate text-[11.5px] font-semibold opacity-85">{store.branch}</span>}

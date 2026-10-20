@@ -5,7 +5,7 @@
 // written on a second run. npm run test:prices
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createClient } from "@libsql/client";
@@ -68,6 +68,10 @@ assert.equal(fileInfo("PromoFull7290058140886-001-001-20261020-001114.xml")?.kin
 
 // ---- Every chain in the registry has a scraper name.
 for (const c of CHAINS) assert.ok(c.scraper, `${c.id} has a scraper`);
+// A10: the big chains (the picker's first grid) have their real logo file; the list the app reads matches the files.
+const logos: string[] = JSON.parse(readFileSync("src/lib/grocery/chain-logos.json", "utf8"));
+for (const c of CHAINS.filter((x) => x.big)) assert.ok(logos.includes(c.id), `${c.id} has a logo`);
+for (const id of logos) assert.ok(existsSync(join("public/chains", `${id}.webp`)), `public/chains/${id}.webp`);
 
 void (async () => {
 // ---- Ingestion into a scratch DB.

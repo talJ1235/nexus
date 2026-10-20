@@ -16,13 +16,13 @@ const SITES = {
   "hatzi-hinam": "https://shop.hazi-hinam.co.il/",
   "am-pm": "https://www.ampm.co.il/",
   "keshet-teamim": "https://www.keshet-teamim.co.il/",
-  "super-yuda": "https://www.superyuda.co.il/",
+  "super-yuda": "https://www.yuda.co.il/",
   "mahsanei-hashuk": "https://www.mck.co.il/",
   "king-store": "https://www.kingstore.co.il/",
   freshmarket: "https://www.freshmarket.co.il/",
   "netiv-hahesed": "https://www.netivhahesed.co.il/",
   "zol-vebegadol": "https://www.zolvebegadol.com/",
-  "shuk-hair": "https://www.shuk-hair.co.il/",
+  "shuk-hair": "https://www.shukcity.co.il/",
   "city-market": "https://www.citymarket.co.il/",
   "city-market-kg": "https://www.citymarket.co.il/",
   "stop-market": "https://www.stopmarket.co.il/",
@@ -39,6 +39,20 @@ const SITES = {
   "wolt-market": "https://wolt.com/he/isr",
   "super-pharm": "https://shop.super-pharm.co.il/",
   "good-pharm": "https://www.good-pharm.co.il/",
+};
+// Sites behind Cloudflare (403 to a script): the image the site itself shows, read once in a browser (2026-10-20) —
+// their CDN serves it directly. Square app icons first (they fit the tile), the header logo otherwise.
+const DIRECT = {
+  victory: "https://d226b0iufwcjmj.cloudfront.net/retailers/1470/icon.png",
+  carrefour: "https://d226b0iufwcjmj.cloudfront.net/retailers/1540/favIcon/1727349614297.png",
+  "keshet-teamim": "https://d226b0iufwcjmj.cloudfront.net/retailers/1219/icon/1723638693910.png",
+  "mahsanei-hashuk": "https://d226b0iufwcjmj.cloudfront.net/retailers/1107/icon.png",
+  "super-sapir": "https://d226b0iufwcjmj.cloudfront.net/retailers/1339/icon/1683713691801.png",
+  "hatzi-hinam": "https://cdn.hazi-hinam.co.il/app/V_1.3029/assets/images/header_logo.svg",
+  "super-yuda": "https://d226b0iufwcjmj.cloudfront.net/retailers/1492/logo/1701077319899.png",
+  "shuk-hair": "https://d226b0iufwcjmj.cloudfront.net/retailers/1254/logo.png",
+  // Its app icon is a generic "online" hand — the header wordmark instead.
+  "rami-levy": "https://www.rami-levy.co.il/images/new_logo.png",
 };
 const arg = (n) => {
   const i = process.argv.indexOf(n);
@@ -95,6 +109,26 @@ for (const [id, site] of Object.entries(SITES)) {
   const file = join(OUT, `${id}.webp`);
   if (existsSync(file) && !force) continue;
   let ok = false;
+  // A logo Tal saved by hand (public/chains/<id>.png / .jpg / .svg) → the tile.
+  const own = ["png", "jpg", "svg"].map((x) => join(OUT, `${id}.${x}`)).find((f) => existsSync(f));
+  if (own) {
+    writeFileSync(file, await toTile(readFileSync(own)));
+    sources[id] = { from: "saved by Tal", site, at: new Date().toISOString().slice(0, 10) };
+    done.push(`${id} ← ${own}`);
+    continue;
+  }
+  if (DIRECT[id]) {
+    try {
+      const buf = Buffer.from(await (await get(DIRECT[id])).arrayBuffer());
+      writeFileSync(file, await toTile(buf));
+      sources[id] = { from: DIRECT[id], site, at: new Date().toISOString().slice(0, 10) };
+      done.push(`${id} ← ${DIRECT[id]}`);
+      continue;
+    } catch (e) {
+      failed.push(`${id}: direct ${e.message}`);
+      continue;
+    }
+  }
   try {
     const page = await get(site);
     const html = await page.text();

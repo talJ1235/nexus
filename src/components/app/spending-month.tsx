@@ -1,5 +1,6 @@
 "use client";
 
+import { ChainLogo } from "./supermarket/store-picker";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, CloudOff, Tag } from "lucide-react";
 import { useI18n } from "@/components/providers";
@@ -354,9 +355,7 @@ function Stores({ m, money }: { m: MonthSpend; money: (n: number) => string }) {
             const color = def ? monoColor(def.color) : "var(--muted)";
             return (
               <li key={`${x.chain}|${x.branch}`} className="flex items-center gap-3 py-1.5" data-spm-store={x.chain ?? ""}>
-                <span className="grid size-9 shrink-0 place-items-center rounded-full text-[12px] font-extrabold text-white" style={{ background: color }}>
-                  {(locale === "he" ? def?.monoHe : def?.mono)?.slice(0, 2) ?? name.slice(0, 1)}
-                </span>
+                {x.chain ? <ChainLogo chain={x.chain} size={36} /> : <span className="size-9 shrink-0 rounded-full" style={{ background: color }} aria-hidden />}
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline gap-2">
                     <b className="bidi min-w-0 flex-1 truncate text-[14px] font-bold">{x.branch ? `${name} · ${x.branch}` : name}</b>

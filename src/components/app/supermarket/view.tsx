@@ -1,5 +1,6 @@
 "use client";
 
+import { ChainLogo } from "./store-picker";
 import "./sm.css";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
@@ -398,9 +399,8 @@ function StoreRow({ store, onPick }: { store: { chain: string; branch: string } 
   return (
     <button type="button" onClick={onPick} className="flex h-[52px] w-full items-center gap-2.5 rounded-[16px] px-1.5 text-start transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.98]" aria-label={store ? `${t.sm.main.changeStore}: ${name}` : t.sm.main.chooseStore} data-sm-store>
       {store ? (
-        <span className="grid size-9 shrink-0 place-items-center rounded-[11px] text-[13px] font-extrabold text-white" style={{ background: def ? monoColor(def.color) : "var(--muted)" }}>
-          {(locale === "he" ? def?.monoHe : def?.mono)?.slice(0, 2) ?? name?.slice(0, 1)}
-        </span>
+        // R19 A10: the chain's real logo (or a plain store tile) — no letters.
+        <ChainLogo chain={store.chain} size={36} />
       ) : (
         <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-surface-2 text-muted">
           <ShoppingBasket className="size-[18px]" />

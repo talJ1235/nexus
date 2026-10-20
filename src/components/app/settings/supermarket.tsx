@@ -1,5 +1,6 @@
 "use client";
 
+import { ChainLogo } from "../supermarket/store-picker";
 import "../supermarket/sm.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pencil, X } from "lucide-react";
@@ -58,25 +59,8 @@ function useLearned() {
   return { facts, setFacts, load };
 }
 
-function Mono({ chain, size = 40 }: { chain: string; size?: number }) {
-  const { locale } = useI18n();
-  const def = chainDef(chain);
-  return (
-    <span
-      className="grid shrink-0 place-items-center rounded-[11px] font-extrabold text-white"
-      style={{
-        width: size,
-        height: size,
-        background: def ? monoColor(def.color) : "var(--muted)",
-        fontSize: size * 0.38,
-      }}
-      aria-hidden
-    >
-      {(locale === "he" ? def?.monoHe : def?.mono)?.slice(0, 1) ??
-        chain.slice(0, 1).toUpperCase()}
-    </span>
-  );
-}
+// R19 A10: the chain's real logo (store-picker.tsx), never a first letter.
+const Mono = ChainLogo;
 
 /** The store chip's name ("Shufersal Deal · Herzl St."). */
 function useStoreName() {

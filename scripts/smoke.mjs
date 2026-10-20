@@ -2457,41 +2457,56 @@ try {
           "forget everything (R18 S3 B10): fact ✕ + Undo; sheet goes / stays; hold 2 s to confirm", JSON.stringify(r));
       });
 
-    // R18 S3 B11: the store picker — "This trip only" / "Make it my default" above the search (seen before any branch);
-    // a chain shows the household's branches, more words narrow (any order); a chain with no known branch is a
-    // tappable row (puts the chain in the search) with the "branch lists come later" note; a typed branch is a New
-    // branch row that can be picked. No disabled rows.
+    // R19 A10 (board Stores-phone): the store directory — every chain of the transparency list (8 + more, real logos for
+    // the big ones, never a first letter), real branches from the Stores files: a street finds its branch, a city too, a
+    // chain narrows; no free-text stores; the household's old typed stores stay (the unmatched ones ask once).
     if (WRITE)
-      await step("store picker (R18 S3 B11): choice first, words narrow, every row tappable, R19 note", async () => {
+      await step("store directory (R19 A10): chains with logos, search by street / city / chain, real branches only, old stores kept", async () => {
         const r = {};
         await page.goto(`${BASE}/supermarket`);
-        await page.waitForSelector("[data-sm-store]", { timeout: 15000 });
-        await page.locator("[data-sm-store]").click();
+        await page.locator("[data-sm-store]").filter({ visible: true }).first().waitFor({ timeout: 15000 });
+        await page.locator("[data-sm-store]").filter({ visible: true }).first().click();
         await page.waitForSelector("[data-store-picker] [data-store-search]");
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(600);
         r.order = await page.evaluate(() => {
           const m = document.querySelector('[data-store-mode="trip"]')?.getBoundingClientRect();
           const q = document.querySelector("[data-store-search]")?.getBoundingClientRect();
           return !!m && !!q && m.bottom <= q.top && m.top >= 0 && m.bottom <= innerHeight;
         });
+        r.grid = await page.locator("[data-store-chains] [data-store-chain]").count();
+        r.gridLogos = await page.locator("[data-store-chains] [data-store-chain] img[data-chain-logo]").count();
+        r.letters = await page.locator("[data-store-chains] [data-store-chain] [data-chain-logo]").evaluateAll((els) => els.filter((e) => /^\p{L}$/u.test(e.textContent.trim())).length);
+        await page.locator("[data-store-more-chains]").click();
+        r.all = await page.locator("[data-store-chains] [data-store-chain]").count();
+        await page.locator("[data-store-more-chains]").click();
+        // The old typed stores (Herzl St., Modiin) are still the household's — they ask for the exact branch.
+        r.old = await page.locator("[data-store-option][data-store-exact=ask]").count();
         const opts = () => page.locator("[data-store-picker] [data-store-option]").evaluateAll((els) => els.map((e) => e.getAttribute("data-store-option")));
-        await page.locator("[data-store-search]").fill("Shufersal");
+        const search = async (q) => {
+          await page.locator("[data-store-search]").fill(q);
+          await page.waitForFunction((v) => document.querySelector("[data-store-search]")?.value === v, q);
+          await page.waitForTimeout(700);
+          return opts();
+        };
+        r.street = await search("האומן");
+        r.city = await search("ירושלים");
+        r.none = await search("zzzz nowhere");
+        r.noneMsg = await page.locator("[data-store-no-hits]").count();
+        await search("");
+        await page.locator('[data-store-chain="shufersal"]').click();
+        await page.waitForTimeout(700);
         r.chain = await opts();
-        await page.locator("[data-store-search]").fill("Shufersal herzl");
-        r.narrow = await opts();
-        await page.locator("[data-store-search]").fill("Yochananof");
-        await page.waitForTimeout(200);
-        r.note = await page.locator("[data-store-no-branches]").count();
-        r.disabled = await page.locator("[data-store-picker] button:disabled").count();
-        await page.locator('[data-store-option="yochananof|"]').click();
-        r.filled = await page.locator("[data-store-search]").inputValue();
-        r.focused = await page.evaluate(() => document.activeElement?.hasAttribute("data-store-search"));
-        await page.keyboard.type("Modiin");
-        await page.locator('[data-store-option="yochananof|Modiin"]').click();
-        r.picked = await page.locator('[data-store-option="yochananof|Modiin"]').getAttribute("aria-checked");
-        await page.keyboard.press("Escape");
-        ok(r.order && r.chain.length >= 1 && r.chain.every((x) => x.startsWith("shufersal|")) && r.narrow.length >= 1 && r.narrow.length <= r.chain.length && r.narrow.every((x) => /herzl/i.test(x)) && r.note === 1 && r.disabled <= 1 && /^Yochananof $/.test(r.filled) && r.focused && r.picked === "true",
-          "store picker (R18 S3 B11): choice first, words narrow, every row tappable, R19 note", JSON.stringify(r));
+        await page.locator('[data-store-chain="shufersal"]').click();
+        r.street2 = await search("האומן");
+        await page.locator('[data-store-option="rami-levy:1"]').click();
+        await shot(page, "a10-store-directory");
+        await page.locator('[data-store-mode="trip"]').click();
+        await page.locator("[data-store-go]").click();
+        await page.waitForTimeout(1200);
+        r.chip = (await page.locator("[data-sm-store]").filter({ visible: true }).first().textContent()) ?? "";
+        await page.evaluate(() => Object.keys(sessionStorage).filter((k) => k.startsWith("nexus.tripStore:")).forEach((k) => sessionStorage.removeItem(k)));
+        ok(r.order && r.grid === 8 && r.gridLogos === 8 && r.letters === 0 && r.all >= 30 && r.old >= 1 && r.street.includes("rami-levy:1") && r.city.length >= 2 && r.city.every((x) => /:/.test(x)) && r.none.length === 0 && r.noneMsg === 1 && r.chain.length >= 2 && r.chain.every((x) => x.startsWith("shufersal:")) && /תלפיות/.test(r.chip),
+          "store directory (R19 A10): chains with logos, search by street / city / chain, real branches only, old stores kept", JSON.stringify(r));
       });
 
     // R19 A3 (board Fixes-phone): Home's "+" = Scan (Barcode · Product photo · Receipt — the Supermarket camera in that
@@ -4020,9 +4035,10 @@ try {
         await page.locator("[data-sm-store]").click();
         await page.waitForSelector("[data-store-picker]");
         r.recent = await page.locator("[data-store-option]").count();
-        await page.locator("[data-store-search]").fill("rami levy rehovot");
-        await page.waitForSelector('[data-store-option="rami-levy|rehovot"]');
-        await page.locator('[data-store-option="rami-levy|rehovot"]').click();
+        // R19 A10: a real branch from the directory (Rami Levy · Talpiot, "האומן 15").
+        await page.locator("[data-store-search]").fill("תלפיות");
+        await page.waitForSelector('[data-store-option="rami-levy:1"]');
+        await page.locator('[data-store-option="rami-levy:1"]').click();
         await shot(page, "sm-store-picker");
         await page.locator("[data-store-go]").click();
         await page.waitForTimeout(1200);
@@ -4033,7 +4049,7 @@ try {
         r.chipAfterReload = await page.locator("[data-sm-store]").textContent();
         await page.evaluate(() => Object.keys(sessionStorage).filter((k) => k.startsWith("nexus.tripStore:")).forEach((k) => sessionStorage.removeItem(k)));
         ok(
-          /dairy|Dairy/.test(r.banner) && r.movedMarks === 2 && r.dairyFirst && r.reset && r.recent === 2 && /Rami Levy/.test(r.chip) && /rehovot/i.test(r.chip) && /Rami Levy/.test(r.chipAfterReload),
+          /dairy|Dairy/.test(r.banner) && r.movedMarks === 2 && r.dairyFirst && r.reset && r.recent >= 2 && /Rami Levy/.test(r.chip) && /תלפיות/.test(r.chip) && /Rami Levy/.test(r.chipAfterReload),
           "store + order (R18 D2): learned order banner, use + reset, picker search, this trip only",
           JSON.stringify(r),
         );

@@ -20,6 +20,8 @@ npx tsx src/db/migrate.ts > /dev/null || { echo "FAIL migrate"; exit 1; }
 # One retry each: node has segfaulted here on Windows now and then (R18 S3), never twice in a row.
 node scripts/seed-local.mjs > /dev/null || node scripts/seed-local.mjs > /dev/null || { echo "FAIL seed-local"; exit 1; }
 node scripts/seed-worst.mjs > /dev/null 2>&1 || node scripts/seed-worst.mjs > /dev/null || { echo "FAIL seed-worst"; exit 1; }
+# R19: the store directory + a Rami Levy price file (real trimmed files through the real ingestion).
+npx tsx scripts/seed-prices.ts > /dev/null || { echo "FAIL seed-prices"; exit 1; }
 # R17 E1: the smoke signs in with a fresh session row per sign-in (scripts/lib/sign-in.mjs) — no password.
 mkdir -p .next
 if [ -n "$WIN" ]; then
