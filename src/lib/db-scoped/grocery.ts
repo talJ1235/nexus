@@ -45,11 +45,13 @@ export async function storeOf(s: Scoped, chain: string, branch: string) {
 }
 
 /** Add / update a store; `isDefault` makes it the only default. */
-export async function saveStore(s: Scoped, chain: string, branch: string, o: { isDefault?: boolean } = {}) {
+export async function saveStore(s: Scoped, chain: string, branch: string, o: { isDefault?: boolean; branchId?: string | null } = {}) {
   if (o.isDefault) await s.update(schema.spaceStore, { isDefault: false }, eq(schema.spaceStore.isDefault, true));
+  // R19 A10: a store picked from the directory carries its real branch.
+  const set = { ...(o.isDefault !== undefined ? { isDefault: !!o.isDefault } : { chain }), ...(o.branchId ? { branchId: o.branchId } : {}) };
   await s
-    .insert(schema.spaceStore, { chain, branch, isDefault: !!o.isDefault })
-    .onConflictDoUpdate({ target: [schema.spaceStore.spaceId, schema.spaceStore.chain, schema.spaceStore.branch], set: o.isDefault !== undefined ? { isDefault: !!o.isDefault } : { chain } });
+    .insert(schema.spaceStore, { chain, branch, isDefault: !!o.isDefault, branchId: o.branchId ?? null })
+    .onConflictDoUpdate({ target: [schema.spaceStore.spaceId, schema.spaceStore.chain, schema.spaceStore.branch], set });
   return storeOf(s, chain, branch);
 }
 

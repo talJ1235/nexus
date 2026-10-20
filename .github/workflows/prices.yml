@@ -3,14 +3,14 @@
 # variables → Actions): TURSO_DATABASE_URL + TURSO_AUTH_TOKEN (the prod DB's, read-write). Without them every run is dry
 # (reads the files into a scratch DB, prints the counts, keeps nothing) and says so.
 #   nightly  — 05:40 Israel: every chain's Stores file + the full price / promo files of the planned stores
-#   intraday — every 2 h 08:10–22:10 Israel: the partial price / promo files of the last 3 h ("current, not this morning's")
+#   intraday — every 3 h 08:10–23:10 Israel: the partial price / promo files of the last 3 h ("current, not this morning's")
 #   probe    — on a push to scripts/prices on a branch, or by hand: which chains answer from GitHub's servers
 # Chains a portal blocks from here run on Tal's PC (scripts/prices/prices-local.cmd); see docs/ENVIRONMENT.md "Prices".
 name: prices
 on:
   schedule:
     - cron: "40 2 * * *"
-    - cron: "10 5-19/2 * * *"
+    - cron: "10 5-20/3 * * *"
   workflow_dispatch:
     inputs:
       mode:

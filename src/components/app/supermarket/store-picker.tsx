@@ -1,14 +1,16 @@
 "use client";
 
 import "./sm.css";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog as D } from "radix-ui";
-import { Activity, ArrowLeft, ChevronDown, ChevronRight, GripVertical, Plus, Search } from "lucide-react";
+import { Activity, ArrowLeft, ChevronDown, ChevronRight, GripVertical, LocateFixed, Search, Store } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Sheet } from "@/components/ui/overlays";
 import { useBackClose } from "@/components/ui/sheet-drag";
-import { dismissSectionOrder, saveSupermarketStore, setSectionOrder } from "@/app/supermarket-actions";
-import { parseStoreQuery } from "@/lib/grocery/chains";
+import { dismissSectionOrder, findBranches, mapSupermarketStores, saveSupermarketStore, setSectionOrder } from "@/app/supermarket-actions";
+import { Spinner } from "@/components/ui/spinner";
+import logos from "@/lib/grocery/chain-logos.json";
+import { CHAINS, chainLogo } from "@/lib/grocery/chains";
 import { normalize } from "@/lib/grocery/normalize";
 import { cleanOrder, DEFAULT_ORDER, sectionName, type SectionKey } from "@/lib/grocery/sections";
 import { toast } from "@/lib/toast";
@@ -23,16 +25,23 @@ import { setTripStore, useTripStore, type StoreRef } from "./trip-store";
 // street (no location), recent branches; and the section order per branch (P8): drag (or move up / down), the learned
 // suggestion banner (Use this order · Not now, the moved sections marked), reset.
 
-export function Mono({ chain, size = 40 }: { chain: string; size?: number }) {
-  const { locale } = useI18n();
+/** R19 A10: a chain's real logo (public/chains), or a plain store tile in the chain's colour — never a first letter. */
+export function ChainLogo({ chain, size = 40 }: { chain: string; size?: number }) {
   const d = chainDef(chain);
+  const r = Math.round(size * 0.28);
+  if (HAS_LOGO.has(chain))
+    // eslint-disable-next-line @next/next/no-img-element -- a 128 px local webp, already the size it shows at
+    return <img src={chainLogo(chain)} alt="" width={size} height={size} className="shrink-0 bg-white object-contain shadow-[0_0_0_1px_var(--line-in)]" style={{ width: size, height: size, borderRadius: r }} data-chain-logo={chain} />;
   return (
-    <span className="grid shrink-0 place-items-center rounded-[11px] font-extrabold text-white" style={{ width: size, height: size, fontSize: size * 0.36, background: d ? monoColor(d.color) : "var(--muted)" }} aria-hidden>
-      {(locale === "he" ? d?.monoHe : d?.mono)?.slice(0, 1) ?? chain.slice(0, 1).toUpperCase()}
+    <span className="grid shrink-0 place-items-center text-white" style={{ width: size, height: size, borderRadius: r, background: d ? monoColor(d.color) : "var(--muted)" }} aria-hidden data-chain-logo="tile">
+      <Store style={{ width: size * 0.5, height: size * 0.5 }} strokeWidth={2} />
     </span>
   );
 }
+/** Kept for the settings / onboarding callers. */
+export const Mono = ChainLogo;
 
+const HAS_LOGO = new Set<string>(logos);
 const keyOf = (s: StoreRef) => `${s.chain}|${s.branch}`;
 
 export function StorePicker({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -44,6 +53,9 @@ export function StorePicker({ open, onClose }: { open: boolean; onClose: () => v
   );
 }
 
+type Hit = Awaited<ReturnType<typeof findBranches>>[number];
+const GRID = 8;
+
 function PickerBody({ onClose }: { onClose: () => void }) {
   const s = useStore();
   const { t, f, locale } = useI18n();
@@ -52,31 +64,54 @@ function PickerBody({ onClose }: { onClose: () => void }) {
   const trip = useTripStore(space, home);
   const [mode, setMode] = useState<"trip" | "default">(home?.store ? "trip" : "default");
   const [q, setQ] = useState("");
+  const [chainSel, setChainSel] = useState<string | null>(null);
+  const [near, setNear] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [moreChains, setMoreChains] = useState(false);
+  const [hits, setHits] = useState<Hit[] | null>(null);
   const [picked, setPicked] = useState<StoreRef | null>(trip.store);
   const def = home?.store ?? null;
   const visits = useMemo(() => home?.visits ?? {}, [home?.visits]);
+  const rows = useMemo(() => home?.stores ?? [], [home?.stores]);
   const known: StoreRef[] = useMemo(() => {
-    const rows = (home?.stores ?? []).map((x) => ({ chain: x.chain, branch: x.branch }));
-    return rows.sort((a, b) => (def && keyOf(a) === keyOf(def) ? -1 : def && keyOf(b) === keyOf(def) ? 1 : (visits[keyOf(b)]?.last ?? 0) - (visits[keyOf(a)]?.last ?? 0)));
-  }, [home?.stores, def, visits]);
-  const parsed = parseStoreQuery(q);
+    const list = rows.map((x) => ({ chain: x.chain, branch: x.branch, branchId: x.branchId ?? null }));
+    return list.sort((a, b) => (def && keyOf(a) === keyOf(def) ? -1 : def && keyOf(b) === keyOf(def) ? 1 : (visits[keyOf(b)]?.last ?? 0) - (visits[keyOf(a)]?.last ?? 0)));
+  }, [rows, def, visits]);
   const input = useRef<HTMLInputElement>(null);
-  const results: (StoreRef & { fresh?: boolean })[] = useMemo(() => {
-    if (!q.trim()) return known;
-    // R18 S3 B11: every typed word narrows, in any order ("רמי לוי נתניה", "netanya rami").
-    const words = (s: string) => normalize(s).split(" ").filter(Boolean);
-    const all = (hay: string, need: string[]) => need.every((w) => hay.split(" ").some((h) => h.startsWith(w)));
-    const label = (x: StoreRef) => normalize(`${chainDef(x.chain)?.en ?? x.chain} ${chainDef(x.chain)?.he ?? ""} ${x.branch}`);
-    const match = known.filter((x) => (parsed.chain ? x.chain === parsed.chain.id && all(normalize(x.branch), words(parsed.branch)) : all(label(x), words(q))));
-    const out: (StoreRef & { fresh?: boolean })[] = [...match];
-    // A new branch only when no known one already matches what was typed ("Shufersal herzl" finds "Herzl St.").
-    if (parsed.chain && parsed.branch && !match.length) out.push({ chain: parsed.chain.id, branch: parsed.branch, fresh: true });
-    if (parsed.chain && !parsed.branch && !match.length) out.push({ chain: parsed.chain.id, branch: "", fresh: true });
-    for (const c of parsed.partial) if (!out.some((x) => x.chain === c.id)) out.push({ chain: c.id, branch: "", fresh: true });
-    return out;
-  }, [q, known, parsed.chain, parsed.branch, parsed.partial]);
-  const sub = (x: StoreRef & { fresh?: boolean }) => {
-    if (x.fresh) return x.branch ? t.sm.store.newBranch : t.sm.store.typeBranch;
+  // Stores typed before the directory: matched to their real branch once (the rest ask: "Choose the exact branch").
+  const mappedOnce = useRef(false);
+  useEffect(() => {
+    if (mappedOnce.current || s.space?.role === "viewer" || !rows.some((x) => !x.branchId)) return;
+    mappedOnce.current = true;
+    void mapSupermarketStores().then((n) => { if (n > 0) void refreshSmHome(space, locale); }, () => {});
+  }, [rows, s.space?.role, space, locale]);
+  const searching = !!q.trim() || !!chainSel || !!near;
+  useEffect(() => {
+    if (!searching) return;
+    let live = true;
+    const id = setTimeout(() => void findBranches(q, chainSel, near).then((r) => live && setHits(r), () => live && setHits([])), 160);
+    return () => {
+      live = false;
+      clearTimeout(id);
+    };
+  }, [q, chainSel, near, searching]);
+  const chains = useMemo(() => [...CHAINS].sort((a, b) => Number(!!b.big) - Number(!!a.big) || Number(HAS_LOGO.has(b.id)) - Number(HAS_LOGO.has(a.id)) || Number(!!a.pharm) - Number(!!b.pharm)), []);
+  const name = (id: string) => {
+    const d = chainDef(id);
+    return d ? (locale === "he" ? d.he : d.en) : id;
+  };
+  const locate = () => {
+    if (near) return setNear(null);
+    if (!navigator.geolocation) return toast(t.sm.store.nearOff);
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (p) => (setLocating(false), setNear({ lat: Math.round(p.coords.latitude * 1000) / 1000, lng: Math.round(p.coords.longitude * 1000) / 1000 })),
+      () => (setLocating(false), toast(t.sm.store.nearOff)),
+      { timeout: 8000, maximumAge: 600_000 },
+    );
+  };
+  const sub = (x: StoreRef) => {
+    if (!x.branchId && x.branch) return t.sm.store.pickExact;
     const v = visits[keyOf(x)];
     const times = !v ? "" : v.trips === 1 ? t.sm.store.once : v.trips === 2 ? t.sm.store.twice : f(t.sm.store.times, { n: v.trips });
     const last = v ? f(t.sm.store.lastTrip, { date: new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { day: "numeric", month: "short", timeZone: s.clock.tz }).format(new Date(v.last)) }) : "";
@@ -87,13 +122,13 @@ function PickerBody({ onClose }: { onClose: () => void }) {
     const label = storeLabel(picked.chain, picked.branch, locale) ?? picked.chain;
     try {
       if (mode === "default") {
-        await saveSupermarketStore(picked.chain, picked.branch, true);
+        await saveSupermarketStore(picked.chain, picked.branch, true, picked.branchId ?? null);
         setTripStore(space, null);
         await refreshSmHome(space, locale);
         toast.success(f(t.sm.store.saved, { store: label }));
       } else {
         // Known to the space (its own section order lives there), not the default.
-        if (!known.some((x) => keyOf(x) === keyOf(picked))) await saveSupermarketStore(picked.chain, picked.branch, false);
+        if (!known.some((x) => keyOf(x) === keyOf(picked))) await saveSupermarketStore(picked.chain, picked.branch, false, picked.branchId ?? null);
         setTripStore(space, def && keyOf(def) === keyOf(picked) ? null : picked);
         await refreshSmHome(space, locale);
         toast(f(t.sm.store.tripOnly, { store: label }));
@@ -104,10 +139,17 @@ function PickerBody({ onClose }: { onClose: () => void }) {
     }
   };
   const seg = (on: boolean) => cn("flex min-h-[64px] flex-col justify-center rounded-[16px] border px-3.5 py-2 text-start transition-colors duration-150", on ? "border-ink border-2 bg-surface" : "border-line-strong bg-surface");
+  const radio = (on: boolean) => (
+    <span className={cn("grid size-6 shrink-0 place-items-center rounded-full border-2", on ? "border-ink" : "border-line-strong")} aria-hidden>
+      {on && <i className="size-3 rounded-full bg-ink" />}
+    </span>
+  );
+  const row = "flex min-h-[68px] w-full items-center gap-3 border-t border-line-in px-3 py-2 text-start first:border-t-0 active:bg-surface-2";
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-store-picker>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-1">
         <h2 className="text-[21px] font-extrabold">{t.sm.store.title}</h2>
+        <p className="mt-0.5 text-[13px] text-muted">{t.sm.store.fromFiles}</p>
         {/* R18 S3 B11: first how this choice counts — before any branch is picked. */}
         <p className="mb-1.5 mt-3 px-1 text-[13px] font-semibold text-muted" id="store-mode-q">{t.sm.store.modeQ}</p>
         <div className="grid grid-cols-2 gap-2.5" role="radiogroup" aria-labelledby="store-mode-q">
@@ -120,59 +162,97 @@ function PickerBody({ onClose }: { onClose: () => void }) {
             <span className="text-[12.5px] text-muted">{t.sm.store.makeDefaultSub}</span>
           </button>
         </div>
-        <label className="mt-3 flex h-[52px] items-center gap-2.5 rounded-[16px] border border-line-strong bg-surface px-3.5 focus-within:border-ink">
+        <div className="mt-3 flex h-[52px] items-center gap-2.5 rounded-[16px] border border-line-strong bg-surface ps-3.5 pe-1.5 focus-within:border-ink">
           <Search className="size-[18px] shrink-0 text-muted" />
           <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t.sm.store.search} aria-label={t.sm.store.search} className="h-full min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-muted" data-store-search />
-        </label>
-        <p className="mb-1.5 mt-4 flex items-baseline justify-between px-1 text-[13px] font-semibold text-muted">
-          {q.trim() ? t.sm.store.branches : t.sm.store.recent}
-          {q.trim() && <span>{f(t.sm.store.found, { n: results.filter((x) => !x.fresh || x.branch).length })}</span>}
+          <button type="button" onClick={locate} aria-pressed={!!near} aria-label={t.sm.store.nearMe} title={t.sm.store.nearMe} className={cn("grid size-10 shrink-0 place-items-center rounded-full transition-transform duration-150 active:scale-95", near ? "bg-ink text-bg" : "text-muted")} data-store-near>
+            {locating ? <Spinner /> : <LocateFixed className="size-[18px]" />}
+          </button>
+        </div>
+        {/* The chains (logos): 8, then all of them; a tap narrows the branches to that chain. */}
+        <div className="mt-3 grid grid-cols-4 gap-2" role="group" aria-label={t.sm.store.chains} data-store-chains>
+          {(moreChains ? chains : chains.slice(0, GRID)).map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              aria-pressed={chainSel === c.id}
+              onClick={() => setChainSel(chainSel === c.id ? null : c.id)}
+              className={cn("flex min-h-[86px] flex-col items-center justify-center gap-1.5 rounded-[18px] bg-surface px-1 py-2 text-center text-[11.5px] font-bold leading-tight text-ink/80 transition-transform duration-150 active:scale-[0.96]", chainSel === c.id ? "shadow-[0_0_0_2px_var(--ink)]" : "shadow-[0_0_0_1px_var(--line-in)]")}
+              data-store-chain={c.id}
+            >
+              <ChainLogo chain={c.id} size={40} />
+              <span className="bidi line-clamp-2">{name(c.id)}</span>
+            </button>
+          ))}
+        </div>
+        <div className="mt-1.5 flex justify-center">
+          <button type="button" onClick={() => setMoreChains(!moreChains)} className="flex h-10 items-center gap-1 rounded-full px-3 text-[13px] font-bold text-muted" data-store-more-chains>
+            {moreChains ? t.sm.store.fewerChains : f(t.sm.store.moreChains, { n: chains.length - GRID })}
+            <ChevronDown className={cn("size-4 transition-transform duration-200", moreChains && "rotate-180")} />
+          </button>
+        </div>
+        <p className="mb-1.5 mt-2 flex items-baseline justify-between px-1 text-[13px] font-semibold text-muted">
+          {searching ? (chainSel ? f(t.sm.store.branchesOf, { chain: name(chainSel) }) : t.sm.store.branches) : t.sm.store.recent}
+          {searching && hits && <span>{f(t.sm.store.found, { n: hits.length })}</span>}
         </p>
-        {results.length > 0 && (
-          <div className="overflow-hidden rounded-[18px] border border-line-strong bg-surface" role="radiogroup">
-            {results.map((x) => {
-              const on = !!picked && keyOf(picked) === keyOf(x);
-              const d = chainDef(x.chain);
-              // A chain without a branch yet: tapping it puts the chain in the search to type the branch after it.
-              const chainOnly = x.fresh && !x.branch;
-              return (
-                <button
-                  key={keyOf(x)}
-                  type="button"
-                  role={chainOnly ? undefined : "radio"}
-                  aria-checked={chainOnly ? undefined : on}
-                  onClick={() => {
-                    if (!chainOnly) return setPicked({ chain: x.chain, branch: x.branch });
-                    setQ(`${d ? (locale === "he" ? d.he : d.en) : x.chain} `);
-                    input.current?.focus();
-                  }}
-                  className="gro-hit flex min-h-[64px] w-full items-center gap-3 px-3 py-2 text-start"
-                  data-store-option={keyOf(x)}
-                >
-                  <Mono chain={x.chain} />
-                  <span className="min-w-0 flex-1">
-                    <b className="bidi block truncate text-[16px] font-extrabold">{d ? (locale === "he" ? d.he : d.en) : x.chain}</b>
-                    <span className="bidi block truncate text-[13px] text-muted">{sub(x)}</span>
-                  </span>
-                  {def && keyOf(def) === keyOf(x) && <span className="shrink-0 rounded-[7px] bg-surface-2 px-2 py-0.5 text-[12px] font-bold text-muted">{t.sm.store.default}</span>}
-                  {x.fresh && x.branch ? <Plus className="size-5 shrink-0 text-muted" /> : null}
-                  {chainOnly ? (
-                    <ChevronRight className="size-5 shrink-0 text-muted rtl:-scale-x-100" />
-                  ) : (
-                    <span className={cn("grid size-6 shrink-0 place-items-center rounded-full border-2", on ? "border-ink" : "border-line-strong")} aria-hidden>
-                      {on && <i className="size-3 rounded-full bg-ink" />}
+        {searching ? (
+          hits && hits.length > 0 ? (
+            <div className="overflow-hidden rounded-[18px] border border-line-strong bg-surface" role="radiogroup">
+              {hits.map((b) => {
+                const ref: StoreRef = { chain: b.chain, branch: b.name, branchId: b.id };
+                const on = !!picked && (picked.branchId ? picked.branchId === b.id : keyOf(picked) === keyOf(ref));
+                const where = [b.address, locale === "he" ? b.city : b.cityEn || b.city].filter(Boolean).join(", ");
+                return (
+                  <button key={b.id} type="button" role="radio" aria-checked={on} onClick={() => setPicked(ref)} className={row} data-store-option={b.id}>
+                    <ChainLogo chain={b.chain} size={36} />
+                    <span className="min-w-0 flex-1">
+                      <b className="bidi block truncate text-[15px] font-extrabold">{name(b.chain)} · {b.name}</b>
+                      <span className="bidi block truncate text-[12.5px] text-muted">{b.online ? t.sm.store.online : where || "—"}</span>
                     </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {/* No branch of this chain known to the household yet: real branch lists (and nearest first) come with R19. */}
-        {parsed.chain && !known.some((x) => x.chain === parsed.chain!.id) && (
-          <p className="mt-3 rounded-[12px] bg-surface-2 px-3 py-2 text-[13px] text-muted" data-store-no-branches>
-            {f(t.sm.store.noBranches, { chain: locale === "he" ? parsed.chain.he : parsed.chain.en })}
-          </p>
+                    {b.km != null && <span className="tabular shrink-0 text-[12px] font-semibold text-muted" data-store-km>{f(t.sm.store.km, { n: b.km })}</span>}
+                    {radio(on)}
+                  </button>
+                );
+              })}
+            </div>
+          ) : hits ? (
+            <p className="rounded-[12px] bg-surface-2 px-3 py-2 text-[13px] text-muted" data-store-no-hits>{t.sm.store.noHits}</p>
+          ) : null
+        ) : (
+          known.length > 0 && (
+            <div className="overflow-hidden rounded-[18px] border border-line-strong bg-surface" role="radiogroup">
+              {known.map((x) => {
+                const on = !!picked && keyOf(picked) === keyOf(x);
+                const exact = !!x.branchId || !x.branch;
+                return (
+                  <button
+                    key={keyOf(x)}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => {
+                      if (exact) return setPicked(x);
+                      // Typed before the directory and not matched: find the real branch (asked once — then it's saved).
+                      setChainSel(x.chain);
+                      setQ(x.branch);
+                      input.current?.focus();
+                    }}
+                    className={row}
+                    data-store-option={keyOf(x)}
+                    data-store-exact={exact ? undefined : "ask"}
+                  >
+                    <ChainLogo chain={x.chain} size={36} />
+                    <span className="min-w-0 flex-1">
+                      <b className="bidi block truncate text-[15px] font-extrabold">{x.branch ? `${name(x.chain)} · ${x.branch}` : name(x.chain)}</b>
+                      <span className={cn("bidi block truncate text-[12.5px]", exact ? "text-muted" : "font-semibold text-info")}>{sub(x)}</span>
+                    </span>
+                    {def && keyOf(def) === keyOf(x) && <span className="shrink-0 rounded-[7px] bg-surface-2 px-2 py-0.5 text-[12px] font-bold text-muted">{t.sm.store.default}</span>}
+                    {exact ? radio(on) : <ChevronRight className="size-5 shrink-0 text-muted rtl:-scale-x-100" />}
+                  </button>
+                );
+              })}
+            </div>
+          )
         )}
         <p className="mt-3 px-1 text-[12.5px] text-muted">{t.sm.store.note}</p>
       </div>

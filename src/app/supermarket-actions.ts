@@ -1,4 +1,5 @@
 "use server";
+import * as P from "@/lib/db-scoped/prices";
 import { after } from "next/server";
 import { and, eq, isNotNull } from "drizzle-orm";
 import { z } from "zod";
@@ -359,9 +360,25 @@ export async function supermarketStores() {
   return G.storesOf(scoped(ctx));
 }
 
-export async function saveSupermarketStore(chain: string, branch: string, isDefault: boolean) {
+export async function saveSupermarketStore(chain: string, branch: string, isDefault: boolean, branchId?: string | null) {
   const ctx = await requireCtx("edit");
-  return G.saveStore(scoped(ctx), Store.parse(chain), Branch.parse(branch), { isDefault: z.boolean().parse(isDefault) });
+  return G.saveStore(scoped(ctx), Store.parse(chain), Branch.parse(branch), { isDefault: z.boolean().parse(isDefault), branchId: BranchId.nullish().parse(branchId) ?? null });
+}
+
+const BranchId = z.string().regex(/^[a-z0-9-]{2,40}:\d{1,6}$/);
+const Near = z.object({ lat: z.number().min(29).max(34), lng: z.number().min(34).max(36.5) }).nullish();
+
+/** R19 A10: the store directory — every chain's branches from its Stores file (search by chain / city / street, near me). */
+export async function findBranches(q: string, chain?: string | null, near?: { lat: number; lng: number } | null) {
+  const ctx = await requireCtx("view");
+  void ctx;
+  return P.searchBranches({ q: z.string().max(80).parse(q), chain: Store.nullish().parse(chain) ?? null, near: Near.parse(near) ?? null, limit: 40 });
+}
+
+/** R19 A10: the space's stores typed before the directory → their real branch (once; unmatched ones ask in the picker). */
+export async function mapSupermarketStores() {
+  const ctx = await requireCtx("edit");
+  return P.mapStores(scoped(ctx));
 }
 
 export async function setSectionOrder(chain: string, branch: string, order: string[] | null) {

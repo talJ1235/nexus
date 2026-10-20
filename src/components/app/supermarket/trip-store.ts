@@ -7,7 +7,8 @@ import type { SmHome } from "./data";
 // R18 S2 D2 — "This trip only": the store picked for this trip, kept on this device for the session (per space) while the
 // default stays. The list and store mode follow its branch's section order; the trip API's `start` carries it.
 
-export type StoreRef = { chain: string; branch: string };
+/** R19 A10: `branchId` = the real branch from the directory (null for a store typed before it). */
+export type StoreRef = { chain: string; branch: string; branchId?: string | null };
 const KEY = (space: string) => `nexus.tripStore:${space}`;
 const listeners = new Set<() => void>();
 const emit = () => {
