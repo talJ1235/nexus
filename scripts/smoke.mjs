@@ -2791,8 +2791,8 @@ try {
         await page.goto(`${BASE}/supermarket`);
         await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
         for (const id of await page.locator('[data-sm-row]:has(.gro-t:text-matches("^Swipe test"))').evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row")))) await callAction(BASE, cookie, act("removeSmItem"), [id]);
-        await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "Swipe test oats" }]);
-        await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "Swipe test rice" }]);
+        await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "Swipe test alpha" }]);
+        await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "Swipe test beta" }]);
         await page.goto(`${BASE}/supermarket`);
         const idOf = (title) => page.locator(`[data-sm-row]:has(.gro-t:text-is("${title}"))`).first().getAttribute("data-sm-row", { timeout: 15000 });
         // Rows (an earlier step may have left the list as tiles — tiles don't swipe).
@@ -2801,8 +2801,8 @@ try {
           await page.locator('[data-sm-layout-pick="rows"]').click();
           await page.waitForSelector("[data-sm-list] [data-sm-sw]", { timeout: 5000 });
         }
-        const a = await idOf("Swipe test oats");
-        const b = await idOf("Swipe test rice");
+        const a = await idOf("Swipe test alpha");
+        const b = await idOf("Swipe test beta");
         const box = async (id) => {
           await page.locator(`[data-sm-row="${id}"]`).evaluate((e) => e.scrollIntoView({ block: "center" }));
           return page.locator(`[data-sm-row="${id}"]`).boundingBox();
@@ -2858,7 +2858,7 @@ try {
         r.qtyClosed = (await tx(a)) === "none" || (await tx(a)) === "translateX(0px)";
         // the name renames inline (Enter saves), the picture opens the sheet
         await page.locator(`[data-sm-row="${a}"] [data-sm-row-name]`).click();
-        await page.locator("[data-sm-rename]").fill("Swipe test oats 1kg");
+        await page.locator("[data-sm-rename]").fill("Swipe test alpha 1kg");
         await page.keyboard.press("Enter");
         await page.waitForTimeout(500);
         r.renamed = (await page.locator(`[data-sm-row="${a}"] .gro-t`).textContent()).trim();
@@ -2889,7 +2889,7 @@ try {
         } catch (e) {
           throw new Error(`${String(e.message).split("\n")[0]} ${JSON.stringify(r)}`);
         }
-        ok(r.delOpen === 1 && r.gone && r.noModal && r.undone && r.fullGone && r.kept && r.deleted && r.axisLock && r.qtyOpen === 1 && r.qty[1] === r.qty[0] + 1 && r.qtyClosed && r.renamed === "Swipe test oats 1kg" && r.sheet && r.rtl === 1 && r.reducedMid === "none" && r.reducedOpen === 1,
+        ok(r.delOpen === 1 && r.gone && r.noModal && r.undone && r.fullGone && r.kept && r.deleted && r.axisLock && r.qtyOpen === 1 && r.qty[1] === r.qty[0] + 1 && r.qtyClosed && r.renamed === "Swipe test alpha 1kg" && r.sheet && r.rtl === 1 && r.reducedMid === "none" && r.reducedOpen === 1,
           "row gestures (R18 S3 C5 → S5 A2): swipe delete + Undo, quick quantity, axis lock, rename, picture → sheet, RTL, reduced motion", JSON.stringify(r));
       });
 

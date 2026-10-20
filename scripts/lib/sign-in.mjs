@@ -25,6 +25,8 @@ export async function mintLocalSession() {
   if (!existsSync(file) || !e.BETTER_AUTH_SECRET || !e.ADMIN_EMAIL) return null;
   const db = createClient({ url: `file:${file}` });
   try {
+    // The server may be writing (R19 after() mapping / picture fills): wait for its lock instead of SQLITE_BUSY.
+    await db.execute("PRAGMA busy_timeout = 10000");
     const u = (await db.execute({ sql: `SELECT id FROM "user" WHERE lower(email) = ?`, args: [e.ADMIN_EMAIL.toLowerCase()] })).rows[0];
     if (!u) return null;
     const token = randomBytes(24).toString("base64url");
