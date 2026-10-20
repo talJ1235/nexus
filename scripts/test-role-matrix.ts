@@ -49,6 +49,8 @@ const VIEW_OK = new Set([
   "supermarket-actions.ts#previewSplit",
   "supermarket-actions.ts#supermarketSuggestions",
   "supermarket-actions.ts#supermarketHome",
+  // R19: the price screens read (the store directory, catalog search, Which one?, the product page, compare).
+  "supermarket-actions.ts#findBranches", "supermarket-actions.ts#searchCatalog", "supermarket-actions.ts#smProductCandidates", "supermarket-actions.ts#smProductPage", "supermarket-actions.ts#compareSmList", "supermarket-actions.ts#smPricesAt", "supermarket-actions.ts#smProductChoices",
   "supermarket-actions.ts#setSupermarketLayout",
   // R18 S5: the person's own swipe hint, start-screen look and Ask side (their prefs, not the space's data).
   "supermarket-actions.ts#seenSwipeHint", "supermarket-actions.ts#smSpending", "supermarket-actions.ts#setTripLook", "supermarket-actions.ts#clearTripLook", "home-actions.ts#setAskSide",

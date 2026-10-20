@@ -305,7 +305,7 @@ async function dealCounts(gtins: string[], chainId: string) {
 
 /** The products this home already has on its list / bought (household products lead the search). */
 export async function homeGtins(s: Scoped): Promise<Set<string>> {
-  const rows = await s.pick({ g: schema.items.catalogGtin }, schema.items, sql`${schema.items.catalogGtin} IS NOT NULL`);
+  const rows = await s.pick({ g: schema.items.catalogGtin }, schema.items, and(eq(schema.items.list, "supermarket"), sql`${schema.items.catalogGtin} IS NOT NULL`));
   return new Set(rows.map((r) => r.g!).filter(Boolean));
 }
 
