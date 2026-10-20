@@ -1945,6 +1945,8 @@ try {
         const row = page.locator('[data-sm-row]:has-text("Tomatoes")').first();
         await row.evaluate((e) => e.scrollIntoView({ block: "center" }));
         await row.locator("[data-sm-row-tile]").click();
+        // R19 D2: a row with its product opens the product page — the row's own sheet is its pencil.
+        if (await page.waitForSelector("[data-product-page] [data-product-edit]", { timeout: 4000 }).then(() => true, () => false)) await page.locator("[data-product-edit]").click();
         await page.waitForSelector("[data-sm-sheet] [data-qty-steppers]", { timeout: 10000 });
         const read = async () => ({ c: (await page.locator("[data-sm-sheet] [data-qty-count]").textContent()).trim(), w: (await page.locator("[data-sm-sheet] [data-qty-weight]").textContent()).trim() });
         r.start = await read();
@@ -2586,6 +2588,46 @@ try {
         const totalOf = (list, k) => list.find((x) => x[0] === k)?.[1];
         ok(r.line === "rami-levy" && r.on.length >= 2 && r.on[0][0] === "rami-levy" && r.on[0][1] <= r.on[1][1] && r.mine.includes("shufersal") && totalOf(r.off, "rami-levy") > totalOf(r.on, "rami-levy") && /Rami Levy|רמי לוי/.test(r.chip) && Math.abs(totalOf(r.on, "shufersal") - r.basket) < 0.05,
           "where is my list cheapest (R19 D3): basket line → ranked stores, club on / off, shop there", JSON.stringify(r));
+      });
+
+    // R19 D5: typing in the add bar searches the catalog — "פסט" → Barilla penne with its photo, brand + size and the
+    // price at the home's store; + adds it (mapped to that product, so the row is priced at once).
+    if (WRITE && MOBILE)
+      await step("catalog search (R19 D5): פסט → Barilla penne with photo + price → add, priced", async () => {
+        const r = {};
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        for (const id of await page.locator('[data-sm-row][data-sm-gtin="8076800195057"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row"))).catch(() => [])) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        const hitSel = '[data-add-hit="gtin:8076800195057"]';
+        const type = async () => {
+          await page.goto(`${BASE}/supermarket`);
+          await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
+          for (let k = 0; k < 3 && !(await page.locator("[data-add-screen] [data-add-input]").count()); k++) {
+            await page.locator("[data-sm-add-open]").first().click().catch(() => {});
+            await page.waitForTimeout(800);
+          }
+          await page.waitForSelector("[data-add-screen] [data-add-input]", { timeout: 8000 });
+          await page.locator("[data-add-input]").fill("פסט");
+          await page.waitForSelector(hitSel, { timeout: 8000 });
+        };
+        await type();
+        // The first search fills the pictures in the background; the next one shows them.
+        await page.waitForTimeout(2500);
+        await page.keyboard.press("Escape");
+        await type();
+        r.source = await page.locator(hitSel).getAttribute("data-add-hit-source");
+        r.photo = await page.locator(`${hitSel} img`).count();
+        r.price = await page.locator(`${hitSel} .money`).getAttribute("data-money").catch(() => null);
+        r.text = (await page.locator(hitSel).textContent())?.trim();
+        await shot(page, "d5-catalog-search");
+        await page.locator(`${hitSel} [data-add-hit-plus]`).click();
+        await page.waitForTimeout(800);
+        await page.keyboard.press("Escape");
+        await page.goto(`${BASE}/supermarket`);
+        r.row = await page.waitForSelector('[data-sm-row][data-sm-gtin="8076800195057"]', { timeout: 15000 }).then(() => true, () => false);
+        r.rowPrice = await page.locator('[data-sm-sw]:has([data-sm-gtin="8076800195057"]) [data-sm-row-price]').getAttribute("data-sm-row-price").catch(() => null);
+        ok(r.source === "catalog" && r.photo >= 1 && r.price === "7.50" && /ברילה/.test(r.text) && r.row && r.rowPrice != null,
+          "catalog search (R19 D5): פסט → Barilla penne with photo + price → add, priced", JSON.stringify(r));
       });
 
     // R19 A10 (board Stores-phone): the store directory — every chain of the transparency list (8 + more, real logos for

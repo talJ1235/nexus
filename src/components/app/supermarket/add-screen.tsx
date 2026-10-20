@@ -1,6 +1,7 @@
 "use client";
 
 import { openChoose } from "./choose-product";
+import { Money } from "./money";
 import "./sm.css";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Dialog as D } from "radix-ui";
@@ -121,7 +122,8 @@ function AddBody({ onClose, startMode, onCapture, hint, seed }: { onClose: () =>
     setSteppers(false);
     input.current?.focus();
     try {
-      const r = await addToSupermarket({ title, qty: m.quantity, amount: m.amount, unit: (m.unit as "kg" | "g" | "l" | null) ?? null, count: m.count, ...(hit ? { productKey: hit.productKey } : {}) });
+      const gtin = hit?.catalog && /^\d{8,14}$/.test(hit.catalog.gtin) ? hit.catalog.gtin : null;
+      const r = await addToSupermarket({ title, qty: m.quantity, amount: m.amount, unit: (m.unit as "kg" | "g" | "l" | null) ?? null, count: m.count, ...(hit && !hit.productKey.startsWith("cat:") ? { productKey: hit.productKey } : {}), ...(gtin ? { gtin } : {}) });
       s.upsertSm([asItem(r.item)]);
       // S4 A2: one inline line under the field (replaced by the next add) — no toast while the Add screen is open.
       const x: Added = { id: r.item.id, title: r.item.title, qty: qtyLabel(r.item, locale, unitKgFor(r.item.productKey, home?.unitKg)), merged: r.merged };
@@ -296,7 +298,7 @@ function HitRow({ hit, listed, unitKg, onAdd }: { hit: Hit; listed: Measure | nu
   const [a, b] = hit.match ?? [0, 0];
   return (
     <div className="gro-hit flex min-h-[64px] items-center gap-3 px-3 py-2" data-add-hit={hit.productKey} data-add-hit-source={hit.source}>
-      <ProductTile art={hit.art} section={hit.section} size={44} />
+      <ProductTile art={hit.art} section={hit.section} photo={hit.catalog?.imageUrl ?? null} size={44} />
       <span className="min-w-0 flex-1">
         <span className="bidi block truncate text-[15.5px] font-medium">
           {hit.match ? (
@@ -309,11 +311,17 @@ function HitRow({ hit, listed, unitKg, onAdd }: { hit: Hit; listed: Measure | nu
             title
           )}
         </span>
-        <span className="block truncate text-[12.5px] text-muted">
-          {hit.section === "other" ? t.sm.main.other : sectionName(hit.section, locale)}
+        <span className="bidi block truncate text-[12.5px] text-muted">
+          {hit.catalog
+            ? [hit.catalog.brand, hit.catalog.weighted ? (locale === "he" ? "לפי משקל" : "by weight") : hit.catalog.qty != null && hit.catalog.unit ? `${hit.catalog.qty} ${hit.catalog.unit === "u" ? (locale === "he" ? "יח׳" : "pcs") : hit.catalog.unit}` : null].filter(Boolean).join(" · ")
+            : hit.section === "other"
+              ? t.sm.main.other
+              : sectionName(hit.section, locale)}
           {hit.count ? ` · ${f(t.sm.add.bought, { n: hit.count })}` : ""}
         </span>
       </span>
+      {/* R19 D5: the price at the home's store. */}
+      {hit.catalog?.price != null && <Money v={hit.catalog.price} className="shrink-0 text-[14px] font-extrabold" />}
       {listed && <span className="shrink-0 rounded-[7px] bg-info-soft px-1.5 py-0.5 text-[12px] font-bold text-info">{f(t.sm.add.onList, { qty: qtyLabel(listed, locale, unitKg) })}</span>}
       <button type="button" className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-surface-2 text-ink transition-transform duration-150 ease-[var(--ease-out)] active:scale-90" aria-label={`${t.sm.quick.add}: ${title}`} onClick={onAdd} data-add-hit-plus>
         <Plus className="size-5" />

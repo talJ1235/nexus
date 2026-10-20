@@ -227,7 +227,7 @@ async function catalogRows(q: string, limit: number) {
   if (!n) return [] as (typeof schema.catalog.$inferSelect)[];
   if (n.replace(/\s/g, "").length >= 3) {
     const terms = n.split(" ").filter((w) => w.length >= 3).map((w) => `"${w.replace(/"/g, "")}"`).join(" AND ") || `"${n.replace(/"/g, "")}"`;
-    const ids = await db.all<{ gtin: string }>(sql`SELECT gtin FROM catalog_fts WHERE catalog_fts MATCH ${terms} LIMIT ${limit}`).catch(() => [] as { gtin: string }[]);
+    const ids = await db.all<{ gtin: string }>(sql`SELECT gtin FROM catalog_fts WHERE catalog_fts MATCH ${terms} LIMIT ${Math.min(limit, 120)}`).catch(() => [] as { gtin: string }[]);
     if (!ids.length) return [];
     return db.select().from(schema.catalog).where(inArray(schema.catalog.gtin, ids.map((r) => r.gtin)));
   }
@@ -275,14 +275,32 @@ export async function pricesAt(gtins: string[], at: PriceAt): Promise<Map<string
   return out;
 }
 
+/**
+ * The deals of some products: barcodes → promotion ids (promo_item's primary key), then those promotions (by id).
+ * Two lookups on their keys — a join let SQLite walk the chain's thousands of deals instead (400 ms → ~5 ms).
+ */
+async function promosFor(gtins: string[], o: { chainId?: string | null; now?: number } = {}) {
+  const out: { gtin: string; p: typeof schema.promo.$inferSelect }[] = [];
+  for (let i = 0; i < gtins.length; i += 300) {
+    const links = await db.select().from(schema.promoItem).where(inArray(schema.promoItem.gtin, gtins.slice(i, i + 300)));
+    if (!links.length) continue;
+    const ids = [...new Set(links.map((l) => l.promoId))].filter((id) => !o.chainId || id.startsWith(`${o.chainId}:`));
+    const promos = new Map<string, typeof schema.promo.$inferSelect>();
+    for (let k = 0; k < ids.length; k += 300) for (const p of await db.select().from(schema.promo).where(inArray(schema.promo.id, ids.slice(k, k + 300)))) promos.set(p.id, p);
+    for (const l of links) {
+      const p = promos.get(l.promoId);
+      if (!p) continue;
+      if (o.now != null && ((p.ends != null && p.ends < o.now) || (p.starts != null && p.starts > o.now))) continue;
+      out.push({ gtin: l.gtin, p });
+    }
+  }
+  return out;
+}
+
 async function dealCounts(gtins: string[], chainId: string) {
-  const rows = await db
-    .select({ gtin: schema.promoItem.gtin, n: sql<number>`count(*)` })
-    .from(schema.promoItem)
-    .innerJoin(schema.promo, eq(schema.promo.id, schema.promoItem.promoId))
-    .where(and(inArray(schema.promoItem.gtin, gtins.slice(0, 300)), eq(schema.promo.chainId, chainId)))
-    .groupBy(schema.promoItem.gtin);
-  return new Map(rows.map((r) => [r.gtin, Number(r.n)]));
+  const m = new Map<string, number>();
+  for (const { gtin } of await promosFor(gtins.slice(0, 300), { chainId, now: Date.now() })) m.set(gtin, (m.get(gtin) ?? 0) + 1);
+  return m;
 }
 
 /** The products this home already has on its list / bought (household products lead the search). */
@@ -386,12 +404,8 @@ export async function smPrices(s: Scoped, pick?: { chain: string; branchId?: str
 async function dealsFor(gtins: string[], at: PriceAt, now: number) {
   const out = new Map<string, ListDeal[]>();
   const storeId = at.branchId ? Number(at.branchId.split(":")[1]) : null;
-  for (let i = 0; i < gtins.length; i += 300) {
-    const rows = await db
-      .select({ gtin: schema.promoItem.gtin, p: schema.promo })
-      .from(schema.promoItem)
-      .innerJoin(schema.promo, eq(schema.promo.id, schema.promoItem.promoId))
-      .where(and(inArray(schema.promoItem.gtin, gtins.slice(i, i + 300)), eq(schema.promo.chainId, at.chainId!), sql`(${schema.promo.ends} IS NULL OR ${schema.promo.ends} >= ${now})`, sql`(${schema.promo.starts} IS NULL OR ${schema.promo.starts} <= ${now})`));
+  {
+    const rows = await promosFor(gtins, { chainId: at.chainId, now });
     for (const { gtin, p } of rows) {
       // A deal of some stores only: shown for those (unknown branch → the chain's deals).
       if (p.stores && storeId != null && !p.stores.includes(storeId)) continue;
@@ -481,11 +495,7 @@ export async function compareList(s: Scoped, o: { club?: boolean; now?: number }
   const allG = [...new Set([...eqv.values()].flat())];
   const chainRows = await db.select().from(schema.chainPrice).where(inArray(schema.chainPrice.gtin, allG));
   const ownRows = await db.select().from(schema.branchPrice).where(inArray(schema.branchPrice.gtin, allG));
-  const promoRows = await db
-    .select({ gtin: schema.promoItem.gtin, p: schema.promo })
-    .from(schema.promoItem)
-    .innerJoin(schema.promo, eq(schema.promo.id, schema.promoItem.promoId))
-    .where(and(inArray(schema.promoItem.gtin, allG), sql`(${schema.promo.ends} IS NULL OR ${schema.promo.ends} >= ${now})`));
+  const promoRows = await promosFor(allG, { now });
   const dealOfRow = (p: typeof schema.promo.$inferSelect): Deal => ({ kind: p.kind as Deal["kind"], n: p.minQty ?? 1, price: p.price, rate: p.rate, club: p.club, minBasket: p.minBasket, ends: p.ends, description: p.description });
   // Branch keys: only branches people chose (own prices) — the rest are their chain.
   const picked = new Set((await s.select(schema.spaceStore)).map((x) => x.branchId).filter(Boolean) as string[]);

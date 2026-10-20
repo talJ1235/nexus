@@ -9,7 +9,9 @@ import type { SectionOrOther } from "./sections";
 
 export type HouseholdProduct = { productKey: string; title: string; count: number; lastAt: number; section: SectionOrOther; art: string | null };
 export type Hit = {
-  source: "household" | "dictionary" | "off";
+  source: "household" | "dictionary" | "off" | "catalog";
+  /** R19 D5: a catalog product (the price files) — its photo, brand + size, price at the home's store. */
+  catalog?: { gtin: string; imageUrl: string | null; brand: string | null; qty: number | null; unit: string | null; weighted: boolean; price: number | null; deals: number };
   productKey: string;
   title: string;
   section: SectionOrOther;

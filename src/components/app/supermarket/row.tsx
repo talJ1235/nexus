@@ -272,7 +272,7 @@ export function Row({ item, unitKg, peek = false }: { item: ItemWithSources; uni
       >
         {/* R19 A5 (board Main): the whole row opens the product — a hit layer under the content (z −1 in the row's
             stacking context); only the name's letters (rename) and the chip / price sit above it as their own buttons. */}
-        {!renaming && <button type="button" className="gro-hit" onClick={() => openSmItem(item.id)} tabIndex={-1} aria-hidden data-sm-row-hit />}
+        {!renaming && <button type="button" className="gro-tap" onClick={() => openSmItem(item.id)} tabIndex={-1} aria-hidden data-sm-row-hit />}
         <button type="button" className="gro-tile-btn shrink-0 rounded-[13px]" onClick={() => openSmItem(item.id)} aria-label={f(t.sm.row.open, { title: item.title })} data-sm-row-tile>
           <ProductTile art={item.artKey} section={item.section} photo={item.imageUrl ?? shelf?.items[item.id]?.imageUrl ?? null} size={44} />
         </button>

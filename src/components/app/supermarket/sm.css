@@ -91,7 +91,7 @@
 .gro-sw-qty { justify-content: flex-start; gap: 6px; padding-inline-start: 12px; background: color-mix(in srgb, var(--ink) 7%, var(--surface)); color: var(--ink); }
 .gro-sw[data-sm-folding] { pointer-events: none; }
 /* R19 A5: the row's hit layer — under every bit of content, above the row's own background. */
-.gro-hit { position: absolute; inset: 0; z-index: -1; display: block; border: 0; padding: 0; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.gro-tap { position: absolute; inset: 0; z-index: -1; display: block; border: 0; padding: 0; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .gro-row .gro-na { pointer-events: none; }
 .gro-row .gro-na .gro-t { pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) { .gro-sw > .gro-row.gro-settle { transition: none; } }
