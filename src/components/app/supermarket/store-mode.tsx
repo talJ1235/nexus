@@ -1,5 +1,6 @@
 "use client";
 
+import { estimateList } from "./shelf";
 import "./sm.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog as D } from "radix-ui";
@@ -108,7 +109,8 @@ function Start({ onGo, onClose, onPickStore }: { onGo: () => void; onClose: () =
   const space = s.spaceId || "-";
   const { store, order } = useTripStore(space, home);
   const groups = useMemo(() => bySection(s.sm, order), [s.sm, order]);
-  const est = useMemo(() => estimateOf(s.sm, home?.prices), [s.sm, home?.prices]);
+  // R19 D6: the start screen's estimate and store mode's total use the store's prices + deals (fallback: last paid).
+  const est = useMemo(() => estimateList(s.sm, { shelf: home?.shelf, last: home?.prices, unitKg: home?.unitKg }), [s.sm, home?.shelf, home?.prices, home?.unitKg]);
   const go = () => {
     writeTrip(space, { chain: store?.chain ?? null, branch: store?.branch ?? null, startedAt: Date.now(), rows: s.sm, checked: {}, notFound: {}, prices: {}, live: {} });
     void tripApi.start({ chain: store?.chain ?? null, branch: store?.branch ?? null, planned: s.sm.length });
@@ -121,18 +123,7 @@ function Start({ onGo, onClose, onPickStore }: { onGo: () => void; onClose: () =
 
 const minutesSince = (at: number) => Math.max(1, Math.round((Date.now() - at) / 60_000));
 
-function estimateOf(rows: ItemWithSources[], prices: Record<string, number> | undefined) {
-  if (!prices) return null;
-  let sum = 0;
-  let priced = 0;
-  for (const i of rows) {
-    const p = i.productKey ? prices[i.productKey] : undefined;
-    if (p == null) continue;
-    priced++;
-    sum += p * (i.unit && i.unit !== "u" && i.amount ? i.amount : i.quantity);
-  }
-  return priced ? sum : null;
-}
+
 
 // ---------- in the store ----------
 
@@ -177,8 +168,9 @@ function Shop({ trip, onClose, onFinished }: { trip: LocalTrip; onClose: () => v
   const pct = total ? Math.round(((boughtN + notFoundN) / total) * 100) : 0;
   const current = groups.find(([, list]) => list.some((i) => !isDone(i) && !trip.notFound[i.id]));
   const prices = home?.prices ?? {};
-  const spent = rows.filter(isDone).reduce((a, i) => a + (trip.prices[i.id] ?? (i.productKey && prices[i.productKey] != null ? prices[i.productKey] * (i.unit && i.unit !== "u" && i.amount ? i.amount : i.quantity) : 0)), 0);
-  const est = estimateOf(rows, prices);
+  const opts = { shelf: home?.shelf, last: prices, unitKg: home?.unitKg };
+  const spent = rows.filter(isDone).reduce((a, i) => a + (trip.prices[i.id] ?? estimateList([i], opts) ?? 0), 0);
+  const est = estimateList(rows, opts);
   const money = (n: number) => formatMoney(Math.round(n * 100) / 100, s.currency, locale);
   const allIn = total > 0 && left === 0 && boughtN > 0;
   const prevAll = useRef(allIn);

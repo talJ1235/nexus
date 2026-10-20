@@ -1,5 +1,6 @@
 "use client";
 
+import { estimateList } from "./shelf";
 import { useMemo } from "react";
 import { acceptSuggestions } from "@/app/supermarket-actions";
 import { announceAdded } from "./added";
@@ -37,15 +38,8 @@ export function useEstimate(home: SmHome | null) {
   const s = useStore();
   return useMemo(() => {
     if (!home) return null;
-    let sum = 0;
-    let priced = 0;
-    for (const i of s.sm) {
-      const p = i.productKey ? home.prices[i.productKey] : undefined;
-      if (p == null) continue;
-      priced++;
-      sum += p * (i.unit && i.unit !== "u" && i.amount ? i.amount : i.quantity);
-    }
-    return priced ? sum : null;
+    // R19 D6: the store's prices (with deals) for rows that have their product, the last price paid for the rest.
+    return estimateList(s.sm.filter((i) => i.status === "to_buy"), { shelf: home.shelf, last: home.prices, unitKg: home.unitKg });
   }, [home, s.sm]);
 }
 

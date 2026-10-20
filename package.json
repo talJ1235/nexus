@@ -68,6 +68,7 @@
     "test:match": "tsx scripts/test-match.ts",
     "test:deals": "tsx scripts/test-deals.ts",
     "test:compare": "tsx scripts/test-compare.ts",
+    "test:estimate": "tsx scripts/test-estimate.ts",
     "test:blocked": "tsx --conditions=react-server scripts/test-blocked.ts",
     "test:check-now": "tsx --conditions=react-server scripts/test-check-now.ts",
     "test:delete-account": "tsx --conditions=react-server scripts/test-delete-account.ts",

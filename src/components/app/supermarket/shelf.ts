@@ -62,3 +62,28 @@ export function rowPrice(item: Pick<ItemWithSources, "quantity" | "count" | "amo
         : null,
   };
 }
+
+/**
+ * R19 D6: the list's estimate everywhere it shows (header, Home "Next shop", the trip bar, the start screen, store mode):
+ * a row with its product = the store's price with its deal (rowPrice); otherwise the last price paid, as before.
+ */
+export function estimateList(
+  rows: Pick<ItemWithSources, "id" | "productKey" | "quantity" | "count" | "amount" | "unit">[],
+  o: { shelf?: Shelf | null; last?: Record<string, number>; unitKg?: Record<string, number> },
+): number | null {
+  let sum = 0;
+  let priced = 0;
+  for (const i of rows) {
+    const rp = rowPrice(i, o.shelf?.items[i.id], i.productKey ? o.unitKg?.[i.productKey] ?? null : null);
+    if (rp) {
+      sum += rp.total;
+      priced++;
+      continue;
+    }
+    const p = i.productKey ? o.last?.[i.productKey] : undefined;
+    if (p == null) continue;
+    priced++;
+    sum += p * (i.unit && i.unit !== "u" && i.amount ? i.amount : i.quantity);
+  }
+  return priced ? Math.round(sum * 100) / 100 : null;
+}
