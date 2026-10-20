@@ -2843,6 +2843,7 @@ try {
         // edge so the finger stays on screen → gone for good once the toast ends
         await drag(b, -280, 0, false, 0.92);
         r.fullGone = await page.waitForSelector(`[data-sm-row="${b}"]`, { state: "detached", timeout: 3000 }).then(() => true, () => false);
+        if (!r.fullGone) r.fullState = await page.locator(`[data-sm-row="${b}"]`).first().evaluate((e) => ({ t: e.style.transform, open: e.getAttribute("data-open"), w: Math.round(e.getBoundingClientRect().width), dialogs: document.querySelectorAll("[role=dialog]").length, trip: document.querySelector("[data-store-mode-screen], [data-store-row]") ? 1 : 0 })).catch((x) => String(x).slice(0, 80));
         await page.waitForTimeout(5800);
         await page.reload();
         await page.waitForSelector(`[data-sm-row="${a}"]`, { timeout: 15000 });
@@ -4009,11 +4010,14 @@ try {
         const tnuva = page.locator('[data-sm-row]:has(.gro-t:text-is("Tnuva milk 3% 1L"))').first();
         await tnuva.waitFor({ timeout: 15000 });
         const tid = await tnuva.getAttribute("data-sm-row");
+        let pid = null;
+        try {
         await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "S4 milk", productKey: "milk s4", section: "dairy" }]);
         await page.goto(`${BASE}/supermarket`);
         const plain = page.locator('[data-sm-row]:has(.gro-t:text-is("S4 milk"))').first();
         await plain.waitFor({ timeout: 15000 });
-        const pid = await plain.getAttribute("data-sm-row");
+        pid = await plain.getAttribute("data-sm-row");
+        r.at = "sheet";
         await page.locator(`[data-sm-row="${pid}"] [data-sm-row-tile]`).click(); await toSheet(page);
         await page.waitForSelector(`[data-sm-sheet="${pid}"] [data-sheet-usual]`, { timeout: 10000 });
         r.chip = await page.locator(`[data-sm-sheet="${pid}"] [data-sheet-usual]`).evaluate((e) => e.tagName);
@@ -4022,20 +4026,31 @@ try {
         r.prefer = await page.locator(`[data-sm-sheet="${pid}"] [data-sheet-brand]`).inputValue();
         await page.keyboard.press("Escape");
         if (MOBILE) {
+          r.at = "start";
           await page.goto(`${BASE}/supermarket`);
           await page.locator("[data-sm-start]").click();
-          await page.locator("[data-store-go]").click();
+          r.at = "go";
+          await page.locator("[data-store-go]").filter({ visible: true }).first().click();
+          r.at = "store";
           await page.waitForSelector(`[data-store-row="${pid}"]`, { timeout: 10000 });
           r.storeLine = (await page.locator(`[data-store-row="${pid}"] [data-store-brand]`).textContent().catch(() => null))?.trim() ?? null;
           r.tnuvaLine = await page.locator(`[data-store-row="${tid}"] [data-store-brand]`).count();
+          r.at = "finish";
           await page.locator("[data-store-finish]").click();
           await page.locator("[data-store-finish-confirm]").click();
           await page.waitForSelector("[data-store-summary]", { timeout: 8000 });
+          r.at = "summary";
           await page.locator("[data-summary-skip]").click();
           await page.waitForSelector("[data-store-saved]");
           await page.locator("[data-saved-list]").click();
         }
-        for (const id of [tid, pid]) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        r.at = "done";
+        } catch (e) {
+          r.err = String(e.message ?? e).split(/\r?\n/)[0].slice(0, 160);
+        } finally {
+          // Taken off again even when a click failed — later steps match "milk" rows by name.
+          for (const id of [tid, pid]) if (id) await callAction(BASE, cookie, act("removeSmItem"), [id]).catch(() => {});
+        }
         ok(/Tnuva/.test(r.first ?? "") && r.usual && r.chip === "BUTTON" && /Tnuva 3%/i.test(r.prefer) && (!MOBILE || (/Tnuva 3%/i.test(r.storeLine ?? "") && r.tnuvaLine === 0)),
           "brands find the exact product (R18 S4 F3): search ranks the usual brand first, sheet chip, store mode line", JSON.stringify(r));
       });
@@ -4148,7 +4163,7 @@ try {
         await shot(page, "add-paste");
         await page.locator("[data-add-back]").click();
         await page.waitForTimeout(400);
-        const milk = await page.locator('[data-sm-row]:has-text("Milk 3%") .gro-q').textContent().catch(() => "");
+        const milk = await page.locator('[data-sm-row]:has(.gro-t:text-is("Milk 3%")) .gro-q').first().textContent().catch(() => "");
         ok(
           r.focused && r.first === "household" && r.bold?.toLowerCase() === "mil" && /On list/.test(r.onList) && /Tomatoes/.test(r.dym) && r.asNew === 1 && /×2/.test(r.parse) &&
             /Milk 3% · now ×4/.test(r.toast) && milk === "×2" && r.parts >= 4 && r.checkedParts === 3 && /Add 3/.test(r.button),
