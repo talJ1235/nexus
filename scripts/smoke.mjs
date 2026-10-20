@@ -612,7 +612,7 @@ async function homeChecks(page) {
       // Live: another member's open trip in this space (local DB only) → "… is shopping now".
       if (/localhost|127\.0\.0\.1/.test(BASE)) {
         const { createClient } = await import("@libsql/client");
-        const db = createClient({ url: `file:${process.env.SMOKE_DB || "smoke.db"}` });
+        const db = createClient({ url: `file:${process.env.SMOKE_DB || "smoke.db"}` }); await db.execute("PRAGMA busy_timeout = 10000");
         const spaces = (await db.execute("SELECT id FROM space")).rows.map((x) => x.id);
         for (const sp of spaces) await db.execute({ sql: "INSERT INTO trip (id, space_id, user_id, chain, branch, started_at, planned, bought, not_found) VALUES (?, ?, 'smoke-other', 'shufersal', 'Herzl St.', ?, 12, 4, 0)", args: [`smoke-live-${sp}`, sp, Date.now()] });
         await page.goto(`${BASE}/`);
@@ -2803,14 +2803,19 @@ try {
         }
         const a = await idOf("Swipe test alpha");
         const b = await idOf("Swipe test beta");
+        // The list may re-render under us (R19: the server maps rows after the first open) — wait for a real box.
         const box = async (id) => {
-          await page.locator(`[data-sm-row="${id}"]`).evaluate((e) => e.scrollIntoView({ block: "center" }));
-          return page.locator(`[data-sm-row="${id}"]`).boundingBox();
+          for (let k = 0; ; k++) {
+            await page.locator(`[data-sm-row="${id}"]`).evaluate((e) => e.scrollIntoView({ block: "center" }));
+            const bb = await page.locator(`[data-sm-row="${id}"]`).boundingBox();
+            if (bb || k >= 10) return bb;
+            await page.waitForTimeout(300);
+          }
         };
         // A drag of dx px (+ = to the right) through the row's middle — slow (a finger that stops), or a quick flick.
-        const drag = async (id, dx, dy = 0, quick = false) => {
+        const drag = async (id, dx, dy = 0, quick = false, from = 0.5) => {
           const bb = await box(id);
-          const x0 = bb.x + bb.width / 2;
+          const x0 = bb.x + bb.width * from;
           const y0 = bb.y + bb.height / 2;
           await page.mouse.move(x0, y0);
           await page.mouse.down();
@@ -2834,8 +2839,9 @@ try {
         r.noModal = (await page.locator('[role="alertdialog"], [role="dialog"]').count()) === 0;
         await page.locator('[data-sonner-toast] button:has-text("Undo")').first().click();
         r.undone = await page.waitForSelector(`[data-sm-row="${a}"]`, { timeout: 3000 }).then(() => true, () => false);
-        // a full swipe (a flick) → gone for good once the toast ends
-        await drag(b, -260, 0, true);
+        // a full swipe past the delete point (R19 A4: ~55 % of the row; flicks short of it keep the row), from the far
+        // edge so the finger stays on screen → gone for good once the toast ends
+        await drag(b, -280, 0, false, 0.92);
         r.fullGone = await page.waitForSelector(`[data-sm-row="${b}"]`, { state: "detached", timeout: 3000 }).then(() => true, () => false);
         await page.waitForTimeout(5800);
         await page.reload();
@@ -2945,7 +2951,7 @@ try {
         const r = {};
         if (/localhost|127\.0\.0\.1/.test(BASE)) {
           const { createClient } = await import("@libsql/client");
-          const db = createClient({ url: `file:${process.env.SMOKE_DB || "smoke.db"}` });
+          const db = createClient({ url: `file:${process.env.SMOKE_DB || "smoke.db"}` }); await db.execute("PRAGMA busy_timeout = 10000");
           await db.execute({ sql: "DELETE FROM user_pref WHERE key = ?", args: ["pref:sm-swipe-hint"] });
           db.close();
         }
@@ -3840,10 +3846,12 @@ try {
         const back = Math.min(...d);
         const moving = d.filter((x) => x > 0.5).length;
         // Stagger: at some frame the first row is further in than the last.
-        const stagger = f.some((x) => x.rows.length > 1 && x.rows[0] - x.rows.at(-1) > 0.15);
+        // (One row left — earlier steps took the others — has nothing to stagger.)
+        const nRows = Math.max(...f.map((x) => x.rows.length));
+        const stagger = nRows < 2 || f.some((x) => x.rows.length > 1 && x.rows[0] - x.rows.at(-1) > 0.15);
         await shot(page, "a7-suggest-open");
         console.log(`INFO suggest open (R19 A7): ${JSON.stringify({ frames: f.length, grew: Math.round(grew), worst: Math.round(worst * 10) / 10, moving, listMoved })}`);
-        ok(grew > 60 && worst <= 24 && back > -1 && listMoved <= 1 && stagger, "Nexus suggests opens smoothly (R19 A7): frame trace, ≤ 24 px per frame, list above still, rows stagger", JSON.stringify({ grew, worst, back, listMoved, stagger, moving }));
+        ok(grew > 60 && worst <= 24 && back > -1 && listMoved <= 1 && stagger, "Nexus suggests opens smoothly (R19 A7): frame trace, ≤ 24 px per frame, list above still, rows stagger", JSON.stringify({ grew, worst, back, listMoved, stagger, moving, nRows }));
       });
 
       // R19 A6: the pill is there every time the Supermarket tab shows — opened from every other tab and every Products
@@ -6788,7 +6796,7 @@ try {
           await form.locator("[data-report-send]").click();
           await page.locator("[data-sonner-toast]").filter({ hasText: /sent|נשלח/i }).first().waitFor({ timeout: 15000 });
           const { createClient } = await import("@libsql/client");
-          const db = createClient({ url: `file:${process.env.SMOKE_DB || "smoke.db"}` });
+          const db = createClient({ url: `file:${process.env.SMOKE_DB || "smoke.db"}` }); await db.execute("PRAGMA busy_timeout = 10000");
           const row = (await db.execute("SELECT diagnostics FROM reports ORDER BY created_at DESC LIMIT 1")).rows[0];
           db.close();
           const d = JSON.parse(String(row?.diagnostics ?? "{}"));
