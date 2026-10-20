@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, Tag, Trash2 } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { useSwipe } from "@/components/ui/swipe";
 import { useDevice } from "@/components/ui/use-device";
@@ -14,6 +14,10 @@ import { ProductTile } from "./art";
 import { asItem } from "./numbers";
 import { rowChip } from "./qty";
 import { countOf, withCountOf } from "./qty-steppers";
+import { openChoose } from "./choose-product";
+import { useSmHome } from "./data";
+import { Money } from "./money";
+import { rowPrice, type RowPrice } from "./shelf";
 
 // One row of the supermarket list (not store mode — there a tap checks). R18 S5 A1–A3 (board List-phone): a 60 px row —
 // picture tile 44 (→ the item sheet), the name (its letters rename inline), a second line only for the usual brand and /
@@ -206,13 +210,18 @@ export function Row({ item, unitKg, peek = false }: { item: ItemWithSources; uni
   };
   const dir = typeof document !== "undefined" && document.documentElement.dir === "rtl" ? "rtl" : "ltr";
   const chip = rowChip(item, locale, unitKg);
+  // R19 D1: the price for the count at the store, the deal that fits, or "Choose a product".
+  const { home } = useSmHome();
+  const shelf = home?.shelf ?? null;
+  const rp = rowPrice(item, shelf?.items[item.id], unitKg);
+  const choose = !!shelf?.chain && !shelf.items[item.id] && (item.matchState === "ask" || item.matchState === "none");
   const sub = [item.preferBrand, item.notes].filter(Boolean);
   const stepBtn = "grid size-10 shrink-0 place-items-center rounded-full bg-surface text-ink shadow-card transition-transform duration-150 ease-[var(--ease-out)] active:scale-90 disabled:opacity-40";
   const mini = "gro-mini grid size-8 shrink-0 place-items-center rounded-[9px] text-ink transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.92] disabled:opacity-40";
   return (
     <div
       ref={wrap}
-      className={cn("gro-sw", desk && "gro-desk")}
+      className={cn("gro-sw", desk && "gro-desk", rp?.deal && "gro-tall")}
       role="listitem"
       tabIndex={desk && !ro && !renaming ? 0 : undefined}
       aria-label={desk ? `${item.title}, ${chip.n}${chip.w ? ` ${chip.w}` : ""}` : undefined}
@@ -303,6 +312,7 @@ export function Row({ item, unitKg, peek = false }: { item: ItemWithSources; uni
                 {item.notes}
               </span>
             )}
+            {rp?.deal && <DealLine rp={rp} onTake={ro ? undefined : (n) => step(n)} />}
           </div>
         )}
         {!renaming && desk && !ro && (
@@ -326,8 +336,65 @@ export function Row({ item, unitKg, peek = false }: { item: ItemWithSources; uni
             </button>
           </>
         )}
+        {!renaming && rp && (
+          <span className="gro-pr" data-sm-row-price={rp.total.toFixed(2)}>
+            <Money v={rp.total} className="gro-pr-t" />
+            {rp.total < rp.regular - 0.004 ? <Money v={rp.regular} strike className="gro-pr-s" /> : rp.per && <small className="gro-pr-s">{perLabel(rp.per, locale)}</small>}
+          </span>
+        )}
+        {!renaming && !rp && choose && !ro && (
+          <button type="button" className="gro-choose" onClick={() => openChoose(item.id)} data-sm-choose={item.id}>
+            {t.sm.match.choose}
+          </button>
+        )}
         {who && !renaming && <i className="gro-who" style={{ background: who.color }} title={f(t.sm.row.addedBy, { name: who.name })} role="img" aria-label={f(t.sm.row.addedBy, { name: who.name })} data-sm-who />}
       </div>
     </div>
+  );
+}
+
+const PER: Record<string, [string, string]> = { kg: ["לק״ג", "/kg"], l: ["לליטר", "/L"], "100g": ["ל־100 גרם", "/100 g"], "100ml": ["ל־100 מ״ל", "/100 ml"] };
+function perLabel(per: NonNullable<RowPrice["per"]>, locale: string) {
+  return `₪${per.v.toFixed(2)} ${PER[per.unit][locale === "he" ? 0 : 1]}`;
+}
+
+/** R19 D1: the deal under the name, in the list's terms — "3 for ₪15 · you have 3 ✓", "4 for ₪12 · worth taking 4". */
+function DealLine({ rp, onTake }: { rp: RowPrice; onTake?: (n: number) => void }) {
+  const { t, f } = useI18n();
+  const d = rp.deal!;
+  const what =
+    d.kind === "n_for" && d.price != null
+      ? f(t.sm.shelf.nFor, { n: d.n, price: `₪${d.price.toFixed(2).replace(/\.00$/, "")}` })
+      : d.kind === "price" && d.price != null
+        ? f(t.sm.shelf.dealPrice, { price: `₪${d.price.toFixed(2)}` })
+        : d.kind === "pct" && d.rate
+          ? f(t.sm.shelf.pct, { rate: Math.round(d.rate) })
+          : d.kind === "second"
+            ? d.price === 0
+              ? t.sm.shelf.oneOne
+              : d.rate
+                ? f(t.sm.shelf.secondPct, { rate: Math.round(d.rate) })
+                : f(t.sm.shelf.second, { price: `₪${(d.price ?? 0).toFixed(2)}` })
+            : d.description;
+  const hint = d.hint === "have" && d.kind !== "price" && d.kind !== "pct" ? f(t.sm.shelf.have, { n: d.n }) : d.hint === "take" ? f(t.sm.shelf.take, { n: Math.round(rp.units + d.take) }) : null;
+  const cls = cn("gro-deal bidi", d.club && "club", d.hint === "take" && onTake && "tap");
+  const body = (
+    <>
+      <Tag className="size-3 shrink-0" />
+      <span className="truncate">
+        {what}
+        {d.club ? ` · ${t.sm.shelf.club}` : ""}
+        {hint ? ` · ${hint}` : ""}
+      </span>
+    </>
+  );
+  return d.hint === "take" && onTake ? (
+    <button type="button" className={cls} onClick={() => onTake(d.take)} data-sm-deal="take">
+      {body}
+    </button>
+  ) : (
+    <span className={cls} data-sm-deal={d.hint}>
+      {body}
+    </span>
   );
 }

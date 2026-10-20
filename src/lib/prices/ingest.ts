@@ -292,6 +292,9 @@ export async function ingestDump(db: Client, dir: string, opts: { dry?: boolean;
       if (o && o.name === e.name && o.brand === e.brand && o.qty === e.qty && o.unit === e.unit && o.chains >= e.chains) continue;
       if (o) report.catalog.changed++;
       else report.catalog.new++;
+      // D5's search index follows the name.
+      if (o) w.add({ sql: "DELETE FROM catalog_fts WHERE gtin = ?", args: [gtin] });
+      w.add({ sql: "INSERT INTO catalog_fts (search, gtin) VALUES (?, ?)", args: [e.search, gtin] });
       w.add({
         sql: `INSERT INTO catalog (gtin, name, short, brand, manufacturer, qty, unit, weighted, internal, section, search, chains, branches, seen_at, updated_at)
               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)

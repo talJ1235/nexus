@@ -20,6 +20,9 @@ import { patchSmHome, useSmHome, type SmHome } from "./data";
 import { asItem, chainDef, monoColor, useAddMany, useEstimate, useMonthLeft, useTrips } from "./numbers";
 import { onSmIntent, takeSmIntent, type SmIntent } from "./intent";
 import { AddScreen, type AddMode } from "./add-screen";
+import { ChooseProduct } from "./choose-product";
+import { Money } from "./money";
+import { rowPrice } from "./shelf";
 import { Capture } from "./capture";
 import { SectionOrder, StorePicker } from "./store-picker";
 import { useTripStore } from "./trip-store";
@@ -236,6 +239,7 @@ export function SupermarketView() {
       <Lists open={lists != null} onClose={() => setLists(null)} routine={home?.routine ?? null} start={lists ?? "templates"} />
       {!ro && <Capture open={capturing != null} mode={capturing ?? "scan"} onClose={() => setCapturing(null)} onType={typeInstead} />}
       <SmItemSheet itemId={openId} onClose={closeSheet} />
+      <ChooseProduct />
       <StoreMode open={shopping} onClose={() => setShopping(false)} onPickStore={() => setPicking(true)} />
       <AddScreen open={adding != null} mode={adding ?? "type"} hint={addHint} seed={addSeed} onClose={() => (setAdding(null), setAddHint(null), setAddSeed(null))} onCapture={(k) => (setAdding(null), capture(k))} />
     </>
@@ -266,6 +270,8 @@ export function SupermarketView() {
   const list = (
     <>
       {hint && <SwipeHint />}
+      {/* R19 D1: the basket — the estimate at the store, when the prices are from, "verify at the till". */}
+      <BasketCard items={s.sm} unitKg={home?.unitKg} />
       {/* R18 S5 A1: one card for the whole list; sections are slim sticky bands inside it. */}
       <div className="gro-one" role="list" data-sm-list>
         {groups.map(([k, list], gi) => (
@@ -788,12 +794,16 @@ function FirstTime({ basketSize, onBasket, onBuild, onPaste }: { basketSize: num
 function Section({ section, items, tiles, unitKg, peek }: { section: string; items: ItemWithSources[]; tiles: boolean; unitKg?: Record<string, number>; peek?: boolean }) {
   const { t, locale } = useI18n();
   const name = section === "other" ? t.sm.main.other : sectionName(section, locale);
+  // R19 D1: the band's subtotal (the priced rows, with their deals).
+  const { home } = useSmHome();
+  const sub = home?.shelf ? items.reduce((a, i) => a + (rowPrice(i, home.shelf!.items[i.id], i.productKey ? unitKg?.[i.productKey] ?? null : null)?.total ?? 0), 0) : 0;
   return (
     <section className="gro-sec" style={{ "--k": sectionColor(section) } as React.CSSProperties} aria-label={name} data-sm-section={section}>
       <div className="gro-band" data-sm-band>
         <span className="gro-dot" aria-hidden />
         <span className="gro-nm">{name}</span>
         <span className="gro-n">{items.length}</span>
+        {sub > 0 && <Money v={sub} className="gro-sub" />}
       </div>
       {tiles ? (
         <div className="gro-tiles">
@@ -820,5 +830,53 @@ function Tile({ item, unitKg }: { item: ItemWithSources; unitKg: number | null }
       <span className="gro-t bidi">{item.title}</span>
       <span className="gro-q">{qtyLabel(item, locale, unitKg)}</span>
     </button>
+  );
+}
+
+/**
+ * R19 D1 (board Main): the basket card — the list's estimate at the chosen store (deals in), how many rows are priced,
+ * "updated · HH:MM" (the newest price file read for that branch, never "morning prices"), "verify at the till", and
+ * "prices may be old" when the chain's files stopped (B5).
+ */
+export function BasketCard({ items, unitKg }: { items: ItemWithSources[]; unitKg?: Record<string, number> }) {
+  const s = useStore();
+  const { t, f, locale } = useI18n();
+  const { home } = useSmHome();
+  const shelf = home?.shelf;
+  if (!shelf) return null;
+  const open = items.filter((i) => i.status === "to_buy");
+  if (!open.length) return null;
+  if (!shelf.chain)
+    return (
+      <p className="gro-basket gro-basket-empty text-[13px] text-muted" data-sm-basket="no-store">
+        {t.sm.shelf.noStore}
+      </p>
+    );
+  let total = 0;
+  let priced = 0;
+  for (const i of open) {
+    const r = rowPrice(i, shelf.items[i.id], i.productKey ? unitKg?.[i.productKey] ?? null : null);
+    if (!r) continue;
+    total += r.total;
+    priced++;
+  }
+  const time = shelf.updatedAt ? new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "en-GB", { hour: "2-digit", minute: "2-digit", timeZone: s.clock.tz }).format(new Date(shelf.updatedAt)) : null;
+  return (
+    <div className="gro-basket" data-sm-basket={priced ? "priced" : "none"} data-sm-stale={shelf.stale ? "yes" : undefined}>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[13px] font-semibold text-muted">{t.sm.shelf.estimate}</span>
+        <Money v={total} className="text-[22px] font-extrabold" />
+      </div>
+      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-muted">
+        <span>{f(t.sm.shelf.priced, { n: priced, m: open.length })}</span>
+        {time && <span data-sm-updated>· {f(t.sm.shelf.updated, { time })}</span>}
+        <span>· {t.sm.shelf.verify}</span>
+      </div>
+      {shelf.stale && (
+        <p className="mt-1 text-[12px] font-bold text-warn" data-sm-stale-note>
+          {t.sm.shelf.stale}
+        </p>
+      )}
+    </div>
   );
 }

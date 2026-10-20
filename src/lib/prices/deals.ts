@@ -69,7 +69,7 @@ const r2 = (x: number) => Math.round(x * 100) / 100;
 
 /**
  * A deal on a row of `count` units (or kg when weighted) at `unit` each. "worth taking N" only when filling the bundle
- * costs no more than ~a unit's price over what's on the list now (it's then the cheaper way to buy N).
+ * costs at most one more unit's price than what's on the list now (2 at ₪6 + "3 for ₪15" → take 3: ₪15 instead of ₪12).
  */
 export function applyDeal(deal: Deal, count: number, unit: number, opts: { weighted?: boolean; basket?: number; club?: boolean } = {}): DealUse {
   const regular = r2(count * unit);
@@ -92,7 +92,7 @@ export function applyDeal(deal: Deal, count: number, unit: number, opts: { weigh
         // Filling the next bundle: is N for the deal price worth it next to what's on the list?
         const need = deal.n - rest;
         const fill = (groups + 1) * deal.price;
-        if (fill <= total + unit * 0.5 && deal.price < deal.n * unit) return { total: r2(total), regular, saved: r2(regular - total), hint: "take", take: need };
+        if (fill <= total + unit + 0.001 && deal.price < deal.n * unit) return { total: r2(total), regular, saved: r2(regular - total), hint: "take", take: need };
       }
       return groups > 0 ? done(total) : none;
     }

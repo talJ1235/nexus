@@ -32,6 +32,10 @@ below), not only on the boards.
 - A10 — store directory: the picker lists every chain of the transparency list (`CHAINS` now 33, each with its scraper) — 8 + "more" with real logos, no letter tiles anywhere (picker, Supermarket chip, start screen, Settings, Spending, onboarding — onboarding keeps the 12 big chains); search by chain / city / street over the `branch` table (`findBranches`, every word narrows), near me (location asked on tap), no free-text stores; old `space_store` rows keep their store and map to a branch when one fits (`mapStores`), the rest ask once ("Choose the exact branch"). Smoke (phone + desktop) green; `test:prices` checks the big chains' logo files.
 - B3 — the catalog: every barcode in the price files → one `catalog` row (`lib/prices/catalog.ts`): the best name across chains (a cut spelling loses to its continuation), brand = the cleaned manufacturer, size as number + unit (g / kg / ml / l / u), weighted, store codes kept per chain (`<chain>#<code>`), section from the dictionary, a short display name for long names; `test:catalog` green (names, merge by gtin, weighted produce / in-store codes).
 - B5 — freshness + health: Admin → System → Prices (`priceHealth`): per chain the newest file, today's files / rows / changes, failures (red), stale (> 26 h, `lib/prices/health.ts` `isStale`) flagged "Prices may be old"; the catalog's picture coverage in the header. `test:admin-access` seeds a fresh and a 30 h-old chain → flagged / not; `test:prices` covers the 26 h rule. The app shows the same "prices may be old" line for a stale chain on the list's basket card (D1, from `staleChains()`).
+- C1 — matching + learning: `lib/prices/match.ts` (`decideMatch`: barcode exact → the remembered choice → the usual brand + typed size → one clear candidate → else ask; "doesn't matter which" = the cheapest of the type per kg / litre at the store) on top of a trigram FTS5 catalog search (`catalog_fts`, ranking: word starts, the same dictionary type, the home's own products, popularity); English row names search by their type's Hebrew name. `addToSupermarket` matches new rows and returns it — "As always · ₪6.80 · Change" toast when the choice / usual brand decided; choices kept per typed name in `product_choice`, `forgetSmProductChoice` forgets one or all. `test:match` green.
+- C2 — "Which one?" sheet (`choose-product.tsx`, board Match-phone): candidates with photo, size, price at the store, deal, why ("Your usual brand" / "On your list before"), catalog search, "Doesn't matter which" (with the price range), "Remember" (on); opens after an ambiguous add and from a row's "Choose a product". Smoke (phone + desktop): add "חלב" → asks → 3 milks → Tnuva → the row shows ₪6.90; the same name again maps silently (why: choice).
+- C3 — existing lists get mapped: the first Supermarket open after the update runs C1's rules on the unmatched rows in the background (`mapRows`, 40 a time; the rows update through live sync); never changes what was typed; unmatched rows show "Choose a product".
+- D1 — prices and deals in the list (board Main): each row the price for its count at the store + the unit price (₪/kg, ₪/L, ₪/100 g) or the struck regular price under a deal; the deal line under the name in the list's terms ("4 for ₪12 · you have 4 ✓", "3 for ₪15 · worth taking 3" — tap sets the count; club deals in their own colour); the section band's subtotal; the basket card (estimate, "n of m priced", "updated · HH:MM", "verify at the till", "prices may be old" when the chain is stale); "Choose a product" → C2. Money: ₪ at .66 em, tabular, LTR-isolated (`Money`). `test:deals` green; smoke on the rows + basket (phone + desktop).
 ### Decisions" at once; anything for Tal in "
 - A2: the computer sidebar's active row already has a tint + a 3 px accent bar + 600 ink (R14 B1) — it reads clearly, left as is. The dock pill measures the icon from the pill's own parent (a parent's ref isn't attached yet in a child's layout effect).
 - A3: the Home menu only replaces the "+" on Home — Products / Insights keep the R16 add list (its barcode / receipt / plan / import flows and their tests stay). "Search a product" opens the Supermarket add screen; D5 turns its search into the catalog.
@@ -51,6 +55,9 @@ below), not only on the boards.
 - A10 — logos: from each chain's own site (`scripts/prices/logos.mjs`, sources + dates in `public/chains/sources.json`, 2026-10-20): 13 by script (Shufersal, Yochananof, Osher Ad, Tiv Taam, AM:PM, Freshmarket, Stop Market, Mishnat Yosef ×2, Yellow, Wolt, Super-Pharm), 9 behind Cloudflare read once in the in-app browser and taken from the sites' own CDN (Rami Levy, Victory, Carrefour, Keshet Teamim, Mahsanei HaShuk, Super Sapir, Hatzi Hinam, Super Yuda, Shuk HaIr) — 21 of 33. Rami Levy's app icon is a generic "online" hand, so its header wordmark is used. Chains without a logo show a plain store tile in the chain's colour (never a first letter).
 - A10 — near me: the Stores files carry no coordinates and geocoding isn't built yet, so "near me" asks for the location but can't sort by distance yet (the km column shows when a branch has lat / lng). Next step: a nightly Nominatim pass for branches without coordinates (≤ 1 request / s, cached in `branch.lat/lng`).
 - B3 — today's real catalog (29 chains read): 196,035 products — 184,552 real barcodes, 11,483 store codes (weighed produce / deli, per chain), 15,449 weighted; 45,103 sold in ≥ 2 chains, 16,872 in ≥ 5. The dictionary places 108,245 in a section; 87,790 stay unsectioned at ingest (no AI there: the batched AI classification of 88 k names would cost ~900 calls) — a product gets its section the first time a list row matches it (C1, `classify-server.ts`) or a search shows it.
+- C1 — the toast and the sheet only follow the Add screen's adds; barcode / camera adds map exactly (the gtin) and stay quiet. AI is never used to match (the brief allows it only where rules can't decide — C2 asks the person instead).
+- C3 — shares (rules only, no AI): the seeded demo list 21 of 24 rows mapped silently (88 %), 3 ask (Penne — Barilla or Osem; Hummus; Yogurt), 0 with nothing in the catalog. A copy of prod (snapshot 2026-10-19 + today's real catalog, 196 k products): 1 of 12 open rows silently (מלח הימלאיה 1 ק"ג — one exact product), 11 ask once (חלב, לחם, ביצים, קוטג׳, גבינה צהובה … — the real catalog has 5–40 of each and the home has no brand history yet), 0 with nothing. After Tal picks once per name they stay mapped. Stores: 2 of 4 matched a real branch (Rami Levy באר שבע → store 27; Shufersal המחקר → BE Cinema City Netanya, store 621); Rami Levy סינמה סיטי and Rami Levy נתניה ask once in the picker.
+- D1 — "worth taking N" only when filling the bundle costs at most one more unit than what's on the list now (2 at ₪6 + "3 for ₪15" → take 3; 1 at ₪6 → just the deal line). Club deals are counted in the estimate (most homes have the card); E1 / a setting can turn that off later. Deal rows are 76 px tall (the board's `.lrow.tall`).
 ### For Tal".
 - **Resuming:** `git fetch`, check out `round19`, read Progress + `git log`, continue from the first unticked item.
 - Unattended; never stop to ask — take the reading closest to the board + this brief, write it in Decisions.
@@ -177,23 +184,23 @@ coverage of pictures. A chain silent for > 26 h shows "prices may be old" in the
 `test:admin-access` covers the new admin view; a stale-chain fixture shows the warning.
 
 ## Part C — every item is a real product (board `Match-phone`)
-### C1 [ ] Matching + learning
+### C1 [x] Matching + learning
 A supermarket item maps to a catalog product: barcode adds map exactly; typed names map by the household's learned
 brand (`brand_buy`, S3 C6) + size + the catalog ranking; if confident → mapped silently (toast "as always · ₪6.80 ·
 Change"); if not → C2 asks once. "Doesn't matter which" = a product-type item priced as the cheapest match in the
 chosen store. The choice is remembered per household per typed name (forgettable in "What Nexus learned").
 **Acceptance:** `test:match` (exact gtin, learned brand, ambiguous → ask, "any" → cheapest, forget).
-### C2 [ ] "Which one?" sheet
+### C2 [x] "Which one?" sheet
 Board `Match-phone`: candidates with photo, size, price at the store, deal, why ("you bought it 5 times"), search in
 the catalog, "doesn't matter which", "remember" (on). Opens when adding an ambiguous item and from a row without a
 price ("choose a product"). **Acceptance:** smoke: add "חלב" → sheet → pick → row shows the product + price.
-### C3 [ ] Existing lists get mapped
+### C3 [x] Existing lists get mapped
 Nightly + on first open after the update: map existing supermarket items with the C1 rules (batched AI only where
 rules can't decide; system budget); unmapped rows show "choose a product". Never changes what the user typed.
 **Acceptance:** on the seeded demo + a copy of prod, the share mapped in Decisions.
 
 ## Part D — the screens
-### D1 [ ] Prices and deals in the list (board `Main`)
+### D1 [x] Prices and deals in the list (board `Main`)
 Each row: price for the count at the chosen branch + unit price (₪/kg, ₪/unit), an old price struck through when a
 deal applies, and a deal line under the name that fits the list: "3 for ₪15 · you have 3 ✓", "4 for ₪12 · worth
 taking 4" (tap → set the count), club deals in their own colour. Section band shows its subtotal. Basket card on top:

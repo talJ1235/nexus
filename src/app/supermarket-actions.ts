@@ -95,11 +95,74 @@ export async function addToSupermarket(input: z.input<typeof AddZ>) {
   const r = await G.addToList(s, { ...i, unit: i.unit ?? null, by: ctx.user.id });
   // C6: a product added by its barcode tells the home's brand.
   if (i.gtin) await B.recordBrand(s, { title: r.item.title, source: "scan", ref: `add:${r.item.id}`, by: ctx.user.id }).catch(() => false);
+  // R19 C1: the row's product (silently when the home's choice / usual brand / one candidate decides; else it asks).
+  let match: P.RowMatch | null = null;
   if (!r.merged) {
     classifyAfter(s, [r.item]);
     announceAdd(s, ctx.user.id, [r.item]);
+    const usual = await B.usualBrandFor(s, r.item.title).catch(() => null);
+    match = await P.matchRow(s, { id: r.item.id, title: r.item.title, gtin: i.gtin ?? null }, { usualBrand: usual?.brand ?? null }).catch(() => null);
+    if (match?.gtin) r.item.catalogGtin = match.gtin;
   }
-  return { item: r.item, merged: r.merged, before: r.before, now: { quantity: r.item.quantity, amount: r.item.amount, unit: r.item.unit, notes: r.item.notes, count: r.item.count } };
+  return { item: r.item, merged: r.merged, before: r.before, now: { quantity: r.item.quantity, amount: r.item.amount, unit: r.item.unit, notes: r.item.notes, count: r.item.count }, match: match && { state: match.state, why: match.why ?? null, gtin: match.gtin, name: match.name ?? null, price: match.price ?? null } };
+}
+
+const Gtin = z.string().min(1).max(60);
+
+/** R19 C2: the candidates for a row ("Which one?"): photo, size, price at the store, deal; `q` searches the catalog. */
+export async function smProductCandidates(itemId: string, q?: string) {
+  const ctx = await requireCtx("view");
+  const s = scoped(ctx);
+  const it = await s.byId(schema.items, Id.parse(itemId));
+  if (!it || it.list !== "supermarket") throw new AccessError("not_found");
+  const at = await P.priceStoreOf(s);
+  const typed = z.string().max(80).optional().parse(q)?.trim();
+  // An English row name searches by its type's Hebrew name (the catalog is the chains' Hebrew names).
+  const { classifyLocal, typeOf } = await import("@/lib/grocery/classify");
+  const typeHe = /[֐-׿]/.test(it.title) ? null : typeOf(classifyLocal(it.title).type)?.he;
+  const query = typed || typeHe || it.title;
+  const hits = await P.catalogSearch(query, at, { limit: 12, mine: await P.homeGtins(s) });
+  const usual = await B.usualBrandFor(s, it.title).catch(() => null);
+  after(() => P.fillCatalogPictures(hits.filter((h) => !h.imageUrl).map((h) => h.gtin), { budgetMs: 12_000 }).catch(() => {}));
+  return { hits, usual: usual?.brand ?? null, chain: at.chainId, current: it.catalogGtin ?? null };
+}
+
+/** R19 C2: the home picks a product (or "doesn't matter which" of a type); remembered per typed name unless off. */
+export async function chooseSmProduct(itemId: string, pick: { gtin: string | null; anyType: string | null }, remember: boolean) {
+  const ctx = await requireCtx("edit");
+  const s = scoped(ctx);
+  const it = await s.byId(schema.items, Id.parse(itemId));
+  if (!it || it.list !== "supermarket") throw new AccessError("not_found");
+  const p = z.object({ gtin: Gtin.nullable(), anyType: z.string().max(40).nullable() }).parse(pick);
+  let gtin = p.gtin;
+  if (p.anyType && !gtin) {
+    // "Doesn't matter which": the cheapest of the type at the store now.
+    const hits = await P.catalogSearch(it.title, await P.priceStoreOf(s), { limit: 40 });
+    const { cheapest } = await import("@/lib/prices/match");
+    gtin = cheapest(hits, p.anyType);
+  }
+  await P.chooseProduct(s, { id: it.id, title: it.title }, { gtin, anyType: p.anyType }, { remember: z.boolean().parse(remember), by: ctx.user.id });
+  const fresh = await s.byId(schema.items, it.id);
+  return fresh;
+}
+
+/** R19 D5: the catalog search under the add bar — photo, name, brand + size, price at my store; the home's first. */
+export async function searchCatalog(q: string) {
+  const ctx = await requireCtx("view");
+  const s = scoped(ctx);
+  const hits = await P.catalogSearch(z.string().max(80).parse(q), await P.priceStoreOf(s), { limit: 8, mine: await P.homeGtins(s) });
+  after(() => P.fillCatalogPictures(hits.filter((h) => !h.imageUrl).map((h) => h.gtin), { budgetMs: 12_000 }).catch(() => {}));
+  return hits;
+}
+
+/** R19 C1: "What Nexus learned" — the remembered products, and forgetting one (null = all). */
+export async function smProductChoices() {
+  const ctx = await requireCtx("view");
+  return P.productChoices(scoped(ctx));
+}
+export async function forgetSmProductChoice(key: string | null) {
+  const ctx = await requireCtx("edit");
+  await P.forgetChoice(scoped(ctx), z.string().max(120).nullable().parse(key));
 }
 
 const BeforeZ = z.object({ quantity: z.number().int().min(0).max(9999), amount: z.number().nullable(), unit: z.string().nullable(), notes: z.string().max(500).nullable(), count: z.number().int().min(0).max(9999).nullish() }).strict();
@@ -166,7 +229,18 @@ export async function supermarketHome(locale?: "he" | "en") {
   const [state, layout, offer, hint, tripLooks] = await Promise.all([G.homeState(scoped(ctx), { tz, locale: z.enum(["he", "en"]).optional().parse(locale), who, home }), userPrefGet(ctx.user.id, SM_LAYOUT_KEY), G.routineOffer(scoped(ctx)), userPrefGet(ctx.user.id, SM_SWIPE_HINT_KEY), userPrefLike(ctx.user.id, TRIP_LOOK_KEY)]);
   // E1: the routine Nexus spotted (kept / turned down ones don't come back).
   const routine = offer ? { id: offer.id, day: offer.routineDay ?? 0, trips: offer.routineTrips ?? 0, items: offer.items.length } : null;
-  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const), routine, swipeHint: hint !== "seen", tripLooks, usualDay: state.usualDay ?? usualFromDays(days, tz) };
+  // R19 C3: rows from before the catalog get their product on the first open (rules only, in the background; the rows
+  // update through live sync). D1: the list's prices + deals at the store.
+  const s = scoped(ctx);
+  if (ctx.role !== "viewer") after(() => P.mapRows(s, 40, (title) => B.usualBrandFor(s, title).then((u) => u?.brand ?? null)).catch(() => {}));
+  const shelf = await P.smPrices(s).catch(() => null);
+  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const), routine, swipeHint: hint !== "seen", tripLooks, usualDay: state.usualDay ?? usualFromDays(days, tz), shelf };
+}
+
+/** R19 D1 / D4: the list's prices at another store (the trip-only pick, the picker's estimate). */
+export async function smPricesAt(chain: string, branchId?: string | null) {
+  const ctx = await requireCtx("view");
+  return P.smPrices(scoped(ctx), { chain: Store.parse(chain), branchId: BranchId.nullish().parse(branchId) ?? null });
 }
 
 /** R18 S5 B2: the start screen's look — for one store ("chain|branch") or for every store (clears the per-store pick). */

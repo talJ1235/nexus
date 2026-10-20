@@ -2457,6 +2457,61 @@ try {
           "forget everything (R18 S3 B10): fact ✕ + Undo; sheet goes / stays; hold 2 s to confirm", JSON.stringify(r));
       });
 
+    // R19 C3 + D1 + C2 (boards Main, Match-phone): the demo list gets its products on the first open (C3, in the
+    // background), rows show the price for the count at the store (Shufersal, demo price files) + the deal line that fits
+    // ("4 for ₪12 · you have 4 ✓"), the basket card the estimate + "updated · HH:MM" + "verify at the till"; adding
+    // "חלב" (three milks) asks "Which one?" → pick → the row shows that product's price; rows still unsure say
+    // "Choose a product".
+    if (WRITE)
+      await step("prices in the list (R19 C3 + D1 + C2): mapped rows priced, deal line, basket card, which one? → priced", async () => {
+        const r = {};
+        const cookie = (await ctx.cookies(BASE)).map((c) => `${c.name}=${c.value}`).join("; ");
+        const act = (name) => actionTable().find((a) => a.name === name && /supermarket-actions/.test(a.file));
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        // C3 runs after the first load; the next load has the products.
+        await page.waitForTimeout(2500);
+        await page.reload();
+        await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
+        await page.waitForFunction(() => document.querySelectorAll("[data-sm-row-price]").length >= 5, null, { timeout: 15000 }).catch(() => {});
+        r.priced = await page.locator("[data-sm-row-price]").count();
+        r.rows = await page.locator("[data-sm-list] [data-sm-row]").count();
+        r.choose = await page.locator("[data-sm-choose]").count();
+        r.deal = await page.locator("[data-sm-deal]").evaluateAll((els) => els.map((e) => [e.getAttribute("data-sm-deal"), e.textContent.trim()]));
+        r.basket = await page.locator("[data-sm-basket]").getAttribute("data-sm-basket");
+        r.updated = (await page.locator("[data-sm-updated]").textContent().catch(() => "")) ?? "";
+        r.money = await page.locator("[data-sm-row-price] .money").first().evaluate((e) => ({ dir: getComputedStyle(e).direction, cur: parseFloat(getComputedStyle(e.querySelector(".cur")).fontSize) / parseFloat(getComputedStyle(e).fontSize) }));
+        await shot(page, "d1-list-prices");
+        // C2: "חלב" → Which one? → Tnuva → the row shows its price.
+        await callAction(BASE, cookie, act("forgetSmProductChoice"), [null]);
+        for (const id of await page.locator('[data-sm-row]:has(.gro-t:text-is("חלב"))').evaluateAll((els) => els.map((e) => e.getAttribute("data-sm-row")))) await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        const added = await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "חלב" }]);
+        r.addAsks = /"state":"ask"/.test(added.text);
+        await page.goto(`${BASE}/supermarket`);
+        const row = page.locator('[data-sm-row]:has(.gro-t:text-is("חלב"))').first();
+        await row.waitFor({ timeout: 15000 });
+        const id = await row.getAttribute("data-sm-row");
+        await page.locator(`[data-sm-choose="${id}"]`).click();
+        await page.waitForSelector(`[data-choose="${id}"] [data-choose-option]`, { timeout: 10000 });
+        r.options = await page.locator("[data-choose-option]").count();
+        r.any = await page.locator("[data-choose-any]").count();
+        await shot(page, "c2-which-one");
+        await page.locator('[data-choose-option="7290000066318"]').click();
+        await page.locator("[data-choose-go]").click();
+        await page.waitForSelector(`[data-choose="${id}"]`, { state: "detached", timeout: 8000 }).catch(() => {});
+        await page.reload();
+        await page.waitForSelector(`[data-sm-row="${id}"] [data-sm-row-price]`, { timeout: 15000 }).catch(() => {});
+        r.after = await page.locator(`[data-sm-row="${id}"] [data-sm-row-price]`).getAttribute("data-sm-row-price").catch(() => null);
+        // Remembered: the same name again maps silently to the same product.
+        await callAction(BASE, cookie, act("removeSmItem"), [id]);
+        const again = await callAction(BASE, cookie, act("addToSupermarket"), [{ title: "חלב" }]);
+        r.remembered = /"why":"choice"/.test(again.text);
+        const id2 = again.text.match(/"item":\{"id":"([^"]+)"/)?.[1];
+        if (id2) await callAction(BASE, cookie, act("removeSmItem"), [id2]);
+        ok(r.priced >= 5 && r.deal.some(([h, txt]) => /4/.test(txt)) && r.basket === "priced" && /\d{2}:\d{2}/.test(r.updated) && r.money.dir === "ltr" && r.money.cur < 0.75 && r.addAsks && r.options >= 2 && r.any === 1 && r.after === "6.90" && r.remembered,
+          "prices in the list (R19 C3 + D1 + C2): mapped rows priced, deal line, basket card, which one? → priced", JSON.stringify(r));
+      });
+
     // R19 A10 (board Stores-phone): the store directory — every chain of the transparency list (8 + more, real logos for
     // the big ones, never a first letter), real branches from the Stores files: a street finds its branch, a city too, a
     // chain narrows; no free-text stores; the household's old typed stores stay (the unmatched ones ask once).

@@ -386,3 +386,27 @@ html[data-device="phone"] .store-scroll::-webkit-scrollbar { display: none; }
 .trip-head .store-rail-hit[aria-current] > i { box-shadow: 0 0 0 2px var(--c), 0 0 0 4px #fff; }
 @media (prefers-reduced-motion: reduce) { .trip-light, .trip-rise > * { animation: none; } .trip-go-out { animation: none; } }
 :root[data-motion="reduce"] :is(.trip-light, .trip-rise > *, .trip-go-out) { animation: none; }
+
+/* R19 — money (₪ at .66 em, tabular, isolated LTR), deals, prices (boards nx-r19.css). */
+:root { --deal: #b45309; --deal-t: #fdf0dc; --save: #0f7a52; --save-t: #e0f3ea; }
+.dark { --deal: #fbbf24; --deal-t: rgb(251 191 36 / 0.13); --save: #4ade9a; --save-t: rgb(74 222 154 / 0.12); }
+:root[data-palette="plum"]:not(.dark) { --deal: #a3480a; }
+.money { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.money .cur { font-size: 0.66em; font-weight: 700; margin-inline-end: 1px; vertical-align: 0.12em; }
+.money-was { text-decoration: line-through; text-decoration-thickness: 1px; color: var(--muted); font-weight: 600; }
+
+/* R19 D1: the row's price (end), the deal line (under the name), "Choose a product". A deal row is 76 px tall. */
+.gro-one .gro-sw.gro-tall, .gro-one .gro-sw.gro-tall > .gro-row { height: 76px; }
+.gro-pr { display: flex; flex-shrink: 0; flex-direction: column; align-items: flex-end; min-width: 52px; line-height: 1.15; text-align: end; }
+.gro-pr .gro-pr-t { font-size: 14.5px; font-weight: 800; color: var(--ink); }
+.gro-pr .gro-pr-s { font-size: 11px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.gro-deal { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; height: 22px; margin-top: 3px; padding: 0 8px 0 7px; border-radius: 7px; background: var(--deal-t); color: var(--deal); font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; border: 0; }
+.gro-deal.club { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); }
+.gro-row .gro-na .gro-deal.tap { pointer-events: auto; cursor: pointer; transition: transform 150ms var(--ease-out); }
+.gro-row .gro-na .gro-deal.tap:active { transform: scale(0.96); }
+.gro-choose { flex-shrink: 0; height: 30px; padding: 0 10px; border-radius: 999px; background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); font-size: 12.5px; font-weight: 750; white-space: nowrap; transition: transform 150ms var(--ease-out); }
+.gro-choose:active { transform: scale(0.96); }
+
+.gro-band > .gro-sub { margin-inline-start: auto; font-size: 12.5px; font-weight: 800; color: var(--ink); }
+.gro-basket { margin: 0 0 10px; padding: 12px 14px; border-radius: 18px; background: var(--surface); box-shadow: 0 0 0 1px var(--line-in); }
+.gro-basket-empty { padding: 10px 14px; }

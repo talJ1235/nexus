@@ -1,5 +1,6 @@
 "use client";
 
+import { openChoose } from "./choose-product";
 import "./sm.css";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Dialog as D } from "radix-ui";
@@ -125,6 +126,10 @@ function AddBody({ onClose, startMode, onCapture, hint, seed }: { onClose: () =>
       // S4 A2: one inline line under the field (replaced by the next add) — no toast while the Add screen is open.
       const x: Added = { id: r.item.id, title: r.item.title, qty: qtyLabel(r.item, locale, unitKgFor(r.item.productKey, home?.unitKg)), merged: r.merged };
       announceAdded([x]);
+      // R19 C1: matched by the home's choice / usual brand → a quiet "As always · ₪6.80 · Change"; unsure → "Which one?".
+      if (r.match?.state === "ask") openChoose(r.item.id);
+      else if (r.match?.state === "auto" && (r.match.why === "brand" || r.match.why === "choice") && r.match.price != null)
+        toast(r.match.name ?? r.item.title, { description: f(t.sm.match.asAlways, { price: `₪${r.match.price.toFixed(2)}` }), action: { label: t.sm.match.change, onClick: () => openChoose(r.item.id) } });
       setLast({ key: Date.now(), text: line([x]), undo: () => void undoSupermarketAdd(r.item.id, r.before).then((u) => (u.item ? s.upsertSm([asItem(u.item)]) : s.removeSm(r.item.id))) });
     } catch {
       setQ(q);

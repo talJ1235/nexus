@@ -77,6 +77,12 @@ export async function migrateR19(client: Client, log: (s: string) => void = cons
       read_at integer NOT NULL, rows integer NOT NULL DEFAULT 0, changed integer NOT NULL DEFAULT 0, ms integer, error text)`,
     ["CREATE INDEX IF NOT EXISTS price_file_chain_idx ON price_file (chain_id, read_at)"],
   );
+  // D5: the catalog search — FTS5 trigram over the normalized names (≥ 3 letters, any position, Hebrew too).
+  await client.execute("CREATE VIRTUAL TABLE IF NOT EXISTS catalog_fts USING fts5(search, gtin UNINDEXED, tokenize='trigram')");
+  if (!tables.has("catalog_fts")) {
+    await client.execute("INSERT INTO catalog_fts (search, gtin) SELECT search, gtin FROM catalog");
+    log("created catalog_fts");
+  }
   // C1: the household's choice per typed name ("milk" → this gtin, or "any" = the cheapest of its type).
   await make(
     "product_choice",

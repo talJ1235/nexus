@@ -65,6 +65,8 @@
     "test:chat-inline": "tsx scripts/test-chat-inline.ts",
     "test:prices": "tsx scripts/test-prices.ts",
     "test:catalog": "tsx scripts/test-catalog.ts",
+    "test:match": "tsx scripts/test-match.ts",
+    "test:deals": "tsx scripts/test-deals.ts",
     "test:blocked": "tsx --conditions=react-server scripts/test-blocked.ts",
     "test:check-now": "tsx --conditions=react-server scripts/test-check-now.ts",
     "test:delete-account": "tsx --conditions=react-server scripts/test-delete-account.ts",
