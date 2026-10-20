@@ -1,0 +1,62 @@
+<Root>
+  <ChainId>7290058140886</ChainId>
+  <SubChainId>1</SubChainId>
+  <StoreId>39</StoreId>
+  <BikoretNo>3</BikoretNo>
+  <Items>
+    <Item>
+      <PriceUpdateDate>2026-07-15 09:01:03</PriceUpdateDate>
+      <ItemCode>116</ItemCode>
+      <ItemType>1</ItemType>
+      <ItemNm>תפוח עץ ירוק גרנד סמיט</ItemNm>
+      <ManufacturerName>ביכורי השקמה</ManufacturerName>
+      <ManufactureCountry>לא ידוע</ManufactureCountry>
+      <ManufacturerItemDescription>תפוח עץ ירוק גרנד סמיט</ManufacturerItemDescription>
+      <UnitQty>ק"ג</UnitQty>
+      <Quantity>1</Quantity>
+      <UnitOfMeasure>1 ק"ג  </UnitOfMeasure>
+      <bIsWeighted>1</bIsWeighted>
+      <QtyInPackage>0.0000</QtyInPackage>
+      <ItemPrice>13</ItemPrice>
+      <UnitOfMeasurePrice>13</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus>1</ItemStatus>
+    </Item>
+<Item>
+      <PriceUpdateDate>2026-07-15 09:01:19</PriceUpdateDate>
+      <ItemCode>118</ItemCode>
+      <ItemType>1</ItemType>
+      <ItemNm>מנגו</ItemNm>
+      <ManufacturerName>ביכורי השקמה</ManufacturerName>
+      <ManufactureCountry>לא ידוע</ManufactureCountry>
+      <ManufacturerItemDescription>מנגו</ManufacturerItemDescription>
+      <UnitQty>ק"ג</UnitQty>
+      <Quantity>1</Quantity>
+      <UnitOfMeasure>1 ק"ג  </UnitOfMeasure>
+      <bIsWeighted>1</bIsWeighted>
+      <QtyInPackage>1.0000</QtyInPackage>
+      <ItemPrice>17.2</ItemPrice>
+      <UnitOfMeasurePrice>17.2</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus>1</ItemStatus>
+    </Item>
+<Item>
+      <PriceUpdateDate>2026-07-15 10:01:32</PriceUpdateDate>
+      <ItemCode>140</ItemCode>
+      <ItemType>1</ItemType>
+      <ItemNm>מלון</ItemNm>
+      <ManufacturerName>ביכורי השקמה</ManufacturerName>
+      <ManufactureCountry>לא ידוע</ManufactureCountry>
+      <ManufacturerItemDescription>מלון</ManufacturerItemDescription>
+      <UnitQty>ק"ג</UnitQty>
+      <Quantity>1</Quantity>
+      <UnitOfMeasure>1 ק"ג  </UnitOfMeasure>
+      <bIsWeighted>1</bIsWeighted>
+      <QtyInPackage>12.0000</QtyInPackage>
+      <ItemPrice>5.9</ItemPrice>
+      <UnitOfMeasurePrice>5.9</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus>1</ItemStatus>
+    </Item>
+  </Items>
+</Root>

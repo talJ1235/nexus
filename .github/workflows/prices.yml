@@ -1,0 +1,86 @@
+# R19 B0–B2 — the chains' price-transparency files → Turso (scripts/prices: fetch.py downloads with the pinned
+# OpenIsraeliSupermarkets scrapers, ingest.mts writes only what changed). Setup once (repo Settings → Secrets and
+# variables → Actions): TURSO_DATABASE_URL + TURSO_AUTH_TOKEN (the prod DB's, read-write). Without them every run is dry
+# (reads the files into a scratch DB, prints the counts, keeps nothing) and says so.
+#   nightly  — 05:40 Israel: every chain's Stores file + the full price / promo files of the planned stores
+#   intraday — every 2 h 08:10–22:10 Israel: the partial price / promo files of the last 3 h ("current, not this morning's")
+#   probe    — on a push to scripts/prices on a branch, or by hand: which chains answer from GitHub's servers
+# Chains a portal blocks from here run on Tal's PC (scripts/prices/prices-local.cmd); see docs/ENVIRONMENT.md "Prices".
+name: prices
+on:
+  schedule:
+    - cron: "40 2 * * *"
+    - cron: "10 5-19/2 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [probe, nightly, intraday]
+        default: probe
+  push:
+    branches-ignore: [main]
+    paths: ["scripts/prices/**", ".github/workflows/prices.yml"]
+concurrency: { group: prices, cancel-in-progress: false }
+permissions: { contents: read }
+jobs:
+  prices:
+    runs-on: ubuntu-24.04 # pinned: ubuntu-latest moves to 26.04 on 2026-10-19
+    timeout-minutes: 45
+    env:
+      TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+      PRICES_DRY_DB: ${{ github.workspace }}/prices-dry.db
+      SAMPLE: "12"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: mode
+        id: mode
+        run: |
+          m="${{ inputs.mode }}"
+          if [ "${{ github.event_name }}" = "push" ]; then m=probe; fi
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            if [ "${{ github.event.schedule }}" = "40 2 * * *" ]; then m=nightly; else m=intraday; fi
+          fi
+          echo "mode=${m:-probe}" >> "$GITHUB_OUTPUT"
+          [ -z "$TURSO_DATABASE_URL" ] && echo "::notice::TURSO_DATABASE_URL not set — this run is dry (nothing is written)"
+          echo "mode: ${m:-probe}"
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: { python-version: "3.12" }
+      - name: scrapers (pinned)
+        run: python -m pip install -q -r scripts/prices/requirements.txt
+      - name: probe
+        if: steps.mode.outputs.mode == 'probe'
+        run: python scripts/prices/probe.py --timeout 90 --out probe.json | grep -E '^\{|SUMMARY'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: steps.mode.outputs.mode == 'probe'
+        with: { name: prices-probe, path: probe.json, retention-days: 14 }
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.mode.outputs.mode != 'probe'
+        with: { node-version: 24, cache: npm }
+      - if: steps.mode.outputs.mode != 'probe'
+        run: npm ci --ignore-scripts
+      # The scrapers remember which files they already downloaded (status under prices-dump): incremental runs.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: steps.mode.outputs.mode != 'probe'
+        with:
+          path: prices-dump/status
+          key: prices-status-${{ github.run_id }}
+          restore-keys: prices-status-
+      - name: nightly — Stores, plan, full price + promo files
+        if: steps.mode.outputs.mode == 'nightly'
+        run: |
+          python scripts/prices/fetch.py --out prices-dump --types Stores --limit 1 --timeout 300 | grep -E '^\{|SUMMARY'
+          npx tsx scripts/prices/ingest.mts --dump prices-dump
+          npx tsx scripts/prices/ingest.mts --plan plan.txt --sample "$SAMPLE"
+          python scripts/prices/fetch.py --out prices-dump --types PriceFull,PromoFull --stores "$(cat plan.txt)" --since-hours 30 --timeout 600 | grep -E '^\{|SUMMARY'
+          npx tsx scripts/prices/ingest.mts --dump prices-dump --report report.json
+      - name: intraday — the partial price + promo files of the last 3 h
+        if: steps.mode.outputs.mode == 'intraday'
+        run: |
+          npx tsx scripts/prices/ingest.mts --plan plan.txt --sample "$SAMPLE"
+          if [ ! -s plan.txt ]; then echo "no planned stores yet (the nightly run fills them)"; exit 0; fi
+          python scripts/prices/fetch.py --out prices-dump --types Price,Promo --stores "$(cat plan.txt)" --since-hours 3 --timeout 300 | grep -E '^\{|SUMMARY'
+          npx tsx scripts/prices/ingest.mts --dump prices-dump --report report.json
+      - name: keep only the status for the next run
+        if: always() && steps.mode.outputs.mode != 'probe'
+        run: find prices-dump -type f \( -name '*.xml' -o -name '*.gz' \) -delete 2>/dev/null || true

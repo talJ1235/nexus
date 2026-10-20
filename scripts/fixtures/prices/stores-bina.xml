@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Root>
+  <ChainID>7290058108879</ChainID>
+  <ChainName>אלמשהדאוי קינג סטור בע"מ</ChainName>
+  <LastUpdateDate>2026-10-19</LastUpdateDate>
+  <LastUpdateTime>04:51:06.401</LastUpdateTime>
+  <SubChains>
+    <SubChain>
+      <SubChainID>000</SubChainID>
+      <SubChainName />
+      <Stores>
+        <Store>
+          <StoreID>001</StoreID>
+          <BikoretNo>0</BikoretNo>
+          <StoreType>1</StoreType>
+          <StoreName>אום אלפחם</StoreName>
+          <Address>שרפה 22, כביש ראשי של העיר 0</Address>
+          <City>2710</City>
+          <ZIPCode>0030010</ZIPCode>
+        </Store>
+<Store>
+          <StoreID>002</StoreID>
+          <BikoretNo>0</BikoretNo>
+          <StoreType>1</StoreType>
+          <StoreName>דבוריה</StoreName>
+          <Address>דרך אלשראר,כביש ראשי 0</Address>
+          <City>489</City>
+          <ZIPCode>0016910</ZIPCode>
+        </Store>
+<Store>
+          <StoreID>003</StoreID>
+          <BikoretNo>0</BikoretNo>
+          <StoreType>1</StoreType>
+          <StoreName>פרידיס</StoreName>
+          <Address>כביש 4, בכניסה לפוריידיס 0</Address>
+          <City>537</City>
+          <ZIPCode>0030898</ZIPCode>
+        </Store>
+      </Stores>
+    </SubChain>
+  </SubChains>
+</Root>

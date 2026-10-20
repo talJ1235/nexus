@@ -1,0 +1,47 @@
+<root>
+  <ChainId>7290000000003</ChainId>
+  <ChainName>סיטי מרקט</ChainName>
+  <LastUpdateDate>2026-10-19</LastUpdateDate>
+  <LastUpdateTime>08:00:00</LastUpdateTime>
+  <SubChains>
+    <SubChainsXMLObject>
+      <SubChain>
+        <SubChainId>1</SubChainId>
+        <SubChainName>סיטי מרקט</SubChainName>
+        <Stores>
+          <SubChainStoresXMLObject>
+            <Store>
+              <SubChainStoreXMLObject>
+                <StoreId>027</StoreId>
+                <BikoretNo>1</BikoretNo>
+                <StoreType>1</StoreType>
+                <StoreName> סיטי מרקט אגמים בע"מ , עמק האלה 47 אשקלון</StoreName>
+                <Address>unknown</Address>
+                <City>unknown</City>
+                <ZipCode>unknown</ZipCode>
+              </SubChainStoreXMLObject>
+<SubChainStoreXMLObject>
+                <StoreId>067</StoreId>
+                <BikoretNo>1</BikoretNo>
+                <StoreType>1</StoreType>
+                <StoreName>כ.פ.ד בינ"ו אחזקות בע"מ, הרצל 39 פתח תקווה</StoreName>
+                <Address>unknown</Address>
+                <City>unknown</City>
+                <ZipCode>unknown</ZipCode>
+              </SubChainStoreXMLObject>
+<SubChainStoreXMLObject>
+                <StoreId>010</StoreId>
+                <BikoretNo>1</BikoretNo>
+                <StoreType>1</StoreType>
+                <StoreName>מתוק בעצמאות (סיטי מרקט)(זכיינות), העצמאות 35 אור יהודה</StoreName>
+                <Address>unknown</Address>
+                <City>unknown</City>
+                <ZipCode>unknown</ZipCode>
+              </SubChainStoreXMLObject>
+            </Store>
+          </SubChainStoresXMLObject>
+        </Stores>
+      </SubChain>
+    </SubChainsXMLObject>
+  </SubChains>
+</root>

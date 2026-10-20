@@ -63,6 +63,7 @@
     "test:ai-quota": "tsx --conditions=react-server scripts/test-ai-quota.ts",
     "test:short-name": "tsx scripts/test-short-name.ts",
     "test:chat-inline": "tsx scripts/test-chat-inline.ts",
+    "test:prices": "tsx scripts/test-prices.ts",
     "test:blocked": "tsx --conditions=react-server scripts/test-blocked.ts",
     "test:check-now": "tsx --conditions=react-server scripts/test-check-now.ts",
     "test:delete-account": "tsx --conditions=react-server scripts/test-delete-account.ts",

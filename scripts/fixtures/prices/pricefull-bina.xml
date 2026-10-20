@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Root>
+  <ChainID>7290058108879</ChainID>
+  <SubChainID>000</SubChainID>
+  <StoreID>340</StoreID>
+  <BikoretNo>9</BikoretNo>
+  <Items>
+    <Item>
+      <PriceUpdateTime>2026-10-18T22:03:00.000</PriceUpdateTime>
+      <ItemCode>12345</ItemCode>
+      <LastSaleDateTime>2026-10-17T17:28:00.000</LastSaleDateTime>
+      <ItemType>1</ItemType>
+      <ItemName>פיקדון בקבוקים</ItemName>
+      <ManufactureName>לא ידוע</ManufactureName>
+      <ManufactureCountry>unknown</ManufactureCountry>
+      <ManufactureItemDescription>פיקדון בקבוקים</ManufactureItemDescription>
+      <UnitQty>יחידות</UnitQty>
+      <Quantity>1</Quantity>
+      <UnitOfMeasure>יחידות</UnitOfMeasure>
+      <bIsWeighted>0</bIsWeighted>
+      <QtyInPackage />
+      <ItemPrice>0.30</ItemPrice>
+      <UnitOfMeasurePrice>0.3</UnitOfMeasurePrice>
+      <AllowDiscount>0</AllowDiscount>
+      <ItemStatus>0</ItemStatus>
+    </Item>
+<Item>
+      <PriceUpdateTime>2026-10-19T00:49:00.000</PriceUpdateTime>
+      <ItemCode>13006</ItemCode>
+      <LastSaleDateTime>2026-10-18T08:25:00.000</LastSaleDateTime>
+      <ItemType>1</ItemType>
+      <ItemName>פסטרמה מקסיקנית</ItemName>
+      <ManufactureName>לא ידוע</ManufactureName>
+      <ManufactureCountry>IL2</ManufactureCountry>
+      <ManufactureItemDescription>פסטרמה מקסיקנית</ManufactureItemDescription>
+      <UnitQty>גרם</UnitQty>
+      <Quantity>1000</Quantity>
+      <UnitOfMeasure>1 קילוגרם</UnitOfMeasure>
+      <bIsWeighted>1</bIsWeighted>
+      <QtyInPackage />
+      <ItemPrice>99.00</ItemPrice>
+      <UnitOfMeasurePrice>99</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus>0</ItemStatus>
+    </Item>
+<Item>
+      <PriceUpdateTime>2026-10-19T00:49:00.000</PriceUpdateTime>
+      <ItemCode>13174</ItemCode>
+      <LastSaleDateTime>2026-10-18T14:59:00.000</LastSaleDateTime>
+      <ItemType>1</ItemType>
+      <ItemName>פסטרמה של פעם</ItemName>
+      <ManufactureName>לא ידוע</ManufactureName>
+      <ManufactureCountry>IL2</ManufactureCountry>
+      <ManufactureItemDescription>פסטרמה של פעם</ManufactureItemDescription>
+      <UnitQty>גרם</UnitQty>
+      <Quantity>1000</Quantity>
+      <UnitOfMeasure>1 קילוגרם</UnitOfMeasure>
+      <bIsWeighted>1</bIsWeighted>
+      <QtyInPackage />
+      <ItemPrice>99.00</ItemPrice>
+      <UnitOfMeasurePrice>99</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus>0</ItemStatus>
+    </Item>
+<Item>
+      <PriceUpdateTime>2026-10-19T00:49:00.000</PriceUpdateTime>
+      <ItemCode>13747</ItemCode>
+      <LastSaleDateTime>2026-10-14T08:29:00.000</LastSaleDateTime>
+      <ItemType>1</ItemType>
+      <ItemName>תה סלמי מפולפל</ItemName>
+      <ManufactureName>לא ידוע</ManufactureName>
+      <ManufactureCountry>IL2</ManufactureCountry>
+      <ManufactureItemDescription>תה סלמי מפולפל</ManufactureItemDescription>
+      <UnitQty>גרם</UnitQty>
+      <Quantity>1000</Quantity>
+      <UnitOfMeasure>1 קילוגרם</UnitOfMeasure>
+      <bIsWeighted>1</bIsWeighted>
+      <QtyInPackage />
+      <ItemPrice>59.00</ItemPrice>
+      <UnitOfMeasurePrice>59</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus>0</ItemStatus>
+    </Item>
+  </Items>
+</Root>

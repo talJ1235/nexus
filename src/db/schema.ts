@@ -72,6 +72,10 @@ export const items = sqliteTable(
     productInfo: text("product_info", { mode: "json" }).$type<LineInfo | null>(),
     imageCandidates: text("image_candidates", { mode: "json" }).$type<Candidate[] | null>(),
     imageCheck: integer("image_check", { mode: "boolean" }).notNull().default(false),
+    /** R19 C1: the catalog product a supermarket row is (gtin), how it got it (auto / picked / any / ask), when. */
+    catalogGtin: text("catalog_gtin"),
+    matchState: text("match_state", { enum: ["auto", "picked", "any", "ask", "none"] }),
+    matchAt: integer("match_at"),
     // Price tracking: alert when the price reaches this (in targetCurrency). `watch` = include in daily checks.
     targetPrice: real("target_price"),
     targetCurrency: text("target_currency"),
@@ -592,6 +596,8 @@ export const spaceStore = sqliteTable(
     suggestedOrder: text("suggested_order"),
     suggestedAt: integer("suggested_at"),
     dismissedAt: integer("dismissed_at"),
+    /** R19 A10: the real branch (`branch.id`) this store is, from the chains' Stores files (null = not matched yet). */
+    branchId: text("branch_id"),
   },
   (t) => [primaryKey({ columns: [t.spaceId, t.chain, t.branch] })],
 );
@@ -679,3 +685,195 @@ export type Trip = typeof trip.$inferSelect;
 export type TripCheck = typeof tripCheck.$inferSelect;
 export type SpaceStore = typeof spaceStore.$inferSelect;
 export type Template = typeof template.$inferSelect;
+
+// ---------- R19 — prices (B1–B5) and matching (C1). Price data is global (public files): no space_id. ----------
+
+/** A food chain from the transparency list: our id (= `CHAINS` id), the government chain id, names, logo. */
+export const chain = sqliteTable(
+  "chain",
+  {
+    id: text("id").primaryKey(),
+    govId: text("gov_id").notNull(),
+    he: text("he").notNull(),
+    en: text("en").notNull(),
+    logo: text("logo"),
+    color: text("color"),
+    branches: integer("branches").notNull().default(0),
+    /** The branch whose prices stand for the chain when nobody chose one of its branches (the most items read). */
+    repStore: integer("rep_store"),
+    lastFileAt: integer("last_file_at"),
+    lastOkAt: integer("last_ok_at"),
+    lastError: text("last_error"),
+    updatedAt: integer("updated_at"),
+  },
+  (t) => [uniqueIndex("chain_gov_idx").on(t.govId)],
+);
+
+/** A branch from the chain's Stores file (`id` = `<chain>:<store id>`); lat / lng geocoded once on the server. */
+export const branch = sqliteTable(
+  "branch",
+  {
+    id: text("id").primaryKey(),
+    chainId: text("chain_id").notNull(),
+    storeId: integer("store_id").notNull(),
+    subChain: text("sub_chain"),
+    name: text("name").notNull(),
+    address: text("address").notNull().default(""),
+    city: text("city").notNull().default(""),
+    cityEn: text("city_en").notNull().default(""),
+    cityCode: integer("city_code"),
+    zip: text("zip"),
+    /** The law's StoreType: 1 shop · 2 online · 3 both. */
+    kind: integer("kind"),
+    lat: real("lat"),
+    lng: real("lng"),
+    geoAt: integer("geo_at"),
+    /** Normalized "chain name city address" for the picker's search. */
+    search: text("search").notNull().default(""),
+    /** The newest price file read for this branch (the app's "updated · HH:MM"). */
+    pricesAt: integer("prices_at"),
+    updatedAt: integer("updated_at"),
+    goneAt: integer("gone_at"),
+  },
+  (t) => [index("branch_chain_idx").on(t.chainId), index("branch_city_idx").on(t.cityCode)],
+);
+
+/** Every barcode in the price files (B3): the cleanest name across chains, brand, size, section, picture (B4). */
+export const catalog = sqliteTable(
+  "catalog",
+  {
+    gtin: text("gtin").primaryKey(),
+    name: text("name").notNull(),
+    short: text("short"),
+    brand: text("brand"),
+    manufacturer: text("manufacturer"),
+    qty: real("qty"),
+    unit: text("unit", { enum: ["g", "kg", "ml", "l", "u"] }),
+    weighted: integer("weighted", { mode: "boolean" }).notNull().default(false),
+    /** A store's own code (weighed produce, deli), not a real barcode — matched per chain only. */
+    internal: integer("internal", { mode: "boolean" }).notNull().default(false),
+    section: text("section"),
+    search: text("search").notNull().default(""),
+    chains: integer("chains").notNull().default(0),
+    branches: integer("branches").notNull().default(0),
+    imageUrl: text("image_url"),
+    imageSrc: text("image_src", { enum: ["off", "own", "search", "none"] }),
+    imageAt: integer("image_at"),
+    imageTries: integer("image_tries").notNull().default(0),
+    seenAt: integer("seen_at"),
+    updatedAt: integer("updated_at"),
+  },
+  (t) => [index("catalog_section_idx").on(t.section)],
+);
+
+/** A chain's current price for a product (the most common across the branches read), written only when it changes. */
+export const chainPrice = sqliteTable(
+  "chain_price",
+  {
+    chainId: text("chain_id").notNull(),
+    gtin: text("gtin").notNull(),
+    price: real("price").notNull(),
+    low: real("low"),
+    high: real("high"),
+    branches: integer("branches").notNull().default(1),
+    unitPrice: real("unit_price"),
+    priceAt: integer("price_at"),
+    seenAt: integer("seen_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.chainId, t.gtin] }), index("chain_price_gtin_idx").on(t.gtin)],
+);
+
+/** A branch's own price — for the branches people chose + one representative per chain (sizes: ROUND19 Decisions). */
+export const branchPrice = sqliteTable(
+  "branch_price",
+  {
+    branchId: text("branch_id").notNull(),
+    gtin: text("gtin").notNull(),
+    price: real("price").notNull(),
+    unitPrice: real("unit_price"),
+    priceAt: integer("price_at"),
+    seenAt: integer("seen_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.branchId, t.gtin] }), index("branch_price_gtin_idx").on(t.gtin)],
+);
+
+/** The 90-day chart: a point per product per chain on the days its price (or best deal) changed. */
+export const priceDay = sqliteTable(
+  "price_day",
+  {
+    chainId: text("chain_id").notNull(),
+    gtin: text("gtin").notNull(),
+    day: text("day").notNull(),
+    price: real("price").notNull(),
+    deal: real("deal"),
+  },
+  (t) => [primaryKey({ columns: [t.gtin, t.chainId, t.day] })],
+);
+
+/** A deal from the Promo files (`id` = `<chain>:<promotion id>`); `stores` = the store ids it runs in, null = all. */
+export const promo = sqliteTable(
+  "promo",
+  {
+    id: text("id").primaryKey(),
+    chainId: text("chain_id").notNull(),
+    promoId: text("promo_id").notNull(),
+    description: text("description").notNull(),
+    /** `n_for` (N for ₪X) · `price` (₪X each) · `pct` (X % off) · `second` (the 2nd at …) · `other`. */
+    kind: text("kind").notNull(),
+    minQty: real("min_qty"),
+    price: real("price"),
+    rate: real("rate"),
+    club: integer("club", { mode: "boolean" }).notNull().default(false),
+    minBasket: real("min_basket"),
+    starts: integer("starts"),
+    ends: integer("ends"),
+    stores: text("stores", { mode: "json" }).$type<number[] | null>(),
+    items: integer("items").notNull().default(0),
+    updatedAt: integer("updated_at"),
+    seenAt: integer("seen_at").notNull(),
+  },
+  (t) => [index("promo_chain_idx").on(t.chainId, t.ends)],
+);
+
+export const promoItem = sqliteTable(
+  "promo_item",
+  { promoId: text("promo_id").notNull(), gtin: text("gtin").notNull() },
+  (t) => [primaryKey({ columns: [t.gtin, t.promoId] }), index("promo_item_promo_idx").on(t.promoId)],
+);
+
+/** Every price file read (B5 health): chain / store / kind, its publish stamp, rows, changes, time, error. */
+export const priceFile = sqliteTable(
+  "price_file",
+  {
+    name: text("name").primaryKey(),
+    chainId: text("chain_id").notNull(),
+    storeId: integer("store_id"),
+    kind: text("kind").notNull(),
+    stamp: text("stamp").notNull(),
+    readAt: integer("read_at").notNull(),
+    rows: integer("rows").notNull().default(0),
+    changed: integer("changed").notNull().default(0),
+    ms: integer("ms"),
+    error: text("error"),
+  },
+  (t) => [index("price_file_chain_idx").on(t.chainId, t.readAt)],
+);
+
+/** C1: what the home means by a typed name — a product (gtin) or "doesn't matter which" of a type (`anyType`). */
+export const productChoice = sqliteTable(
+  "product_choice",
+  {
+    spaceId: text("space_id").notNull(),
+    nameKey: text("name_key").notNull(),
+    gtin: text("gtin"),
+    anyType: text("any_type"),
+    byUser: text("by_user"),
+    at: integer("at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.spaceId, t.nameKey] })],
+);
+
+export type Catalog = typeof catalog.$inferSelect;
+export type Branch = typeof branch.$inferSelect;
+export type ChainRow = typeof chain.$inferSelect;
+export type Promo = typeof promo.$inferSelect;

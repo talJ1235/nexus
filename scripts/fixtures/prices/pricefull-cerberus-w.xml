@@ -1,0 +1,46 @@
+<Root>
+  <ChainID>7290058140886</ChainID>
+  <SubChainID>001</SubChainID>
+  <StoreID>001</StoreID>
+  <BikoretNo>4</BikoretNo>
+  <Items>
+    <Item>
+      <PriceUpdateTime>2023-01-08T09:45:32.000</PriceUpdateTime>
+      <ItemCode>7290006030061</ItemCode>
+      <LastSaleDateTime>2026-10-02T11:15:30.000</LastSaleDateTime>
+      <ItemType>1</ItemType>
+      <ItemName>גבינת שמנת זיתים 25%</ItemName>
+      <ManufactureName>לא ידוע</ManufactureName>
+      <ManufactureCountry>לא ידוע</ManufactureCountry>
+      <ManufactureItemDescription>גבינת שמנת זיתים 25%</ManufactureItemDescription>
+      <UnitQty>קילוגרם</UnitQty>
+      <Quantity>1.00</Quantity>
+      <UnitOfMeasure>קילוגרם </UnitOfMeasure>
+      <bIsWeighted>1</bIsWeighted>
+      <QtyInPackage>לא ידוע</QtyInPackage>
+      <ItemPrice>35.00</ItemPrice>
+      <UnitOfMeasurePrice>35.00</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus/>
+    </Item>
+<Item>
+      <PriceUpdateTime>2025-06-03T08:53:49.000</PriceUpdateTime>
+      <ItemCode>7290004725600</ItemCode>
+      <LastSaleDateTime>2026-10-19T11:22:58.000</LastSaleDateTime>
+      <ItemType>1</ItemType>
+      <ItemName>גבינה סקנדינבית</ItemName>
+      <ManufactureName>לא ידוע</ManufactureName>
+      <ManufactureCountry>ישראל</ManufactureCountry>
+      <ManufactureItemDescription>גבינה סקנדינבית</ManufactureItemDescription>
+      <UnitQty>קילוגרם</UnitQty>
+      <Quantity>1.00</Quantity>
+      <UnitOfMeasure>קילוגרם </UnitOfMeasure>
+      <bIsWeighted>1</bIsWeighted>
+      <QtyInPackage>לא ידוע</QtyInPackage>
+      <ItemPrice>75.00</ItemPrice>
+      <UnitOfMeasurePrice>75.00</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus/>
+    </Item>
+  </Items>
+</Root>

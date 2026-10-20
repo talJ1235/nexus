@@ -8,6 +8,7 @@ import { migrateR17, migrateR17s2, migrateR17s3, migrateR17s6 } from "./migrate-
 import { migrateR18 } from "./migrate-r18";
 import { migrateR18s2 } from "./migrate-r18s2";
 import { migrateR18s3 } from "./migrate-r18s3";
+import { migrateR19 } from "./migrate-r19";
 
 async function main() {
   const url = process.env.TURSO_DATABASE_URL ?? "file:local.db";
@@ -118,6 +119,8 @@ async function main() {
   await migrateR18s2(client, (m) => console.log(`[migrate-r18s2] ${m}`));
   // Round 18 Session 3: the usual brand per product type (additive).
   await migrateR18s3(client, (m) => console.log(`[migrate-r18s3] ${m}`));
+  // Round 19: prices, catalog, deals, the store directory, product matching (additive).
+  await migrateR19(client, (m) => console.log(`[migrate-r19] ${m}`));
   console.log("[migrate] done:", url.replace(/\/\/.*@/, "//***@").split("?")[0]);
   client.close();
 }

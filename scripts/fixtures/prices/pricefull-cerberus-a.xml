@@ -1,0 +1,103 @@
+<Root>
+  <ChainID>7290058140886</ChainID>
+  <SubChainID>001</SubChainID>
+  <StoreID>001</StoreID>
+  <BikoretNo>4</BikoretNo>
+  <Items>
+    <Item>
+      <PriceUpdateTime>2025-01-01T13:48:35.000</PriceUpdateTime>
+      <ItemCode>7290018023204</ItemCode>
+      <LastSaleDateTime>2026-10-16T09:09:08.000</LastSaleDateTime>
+      <ItemType>1</ItemType>
+      <ItemName>זיתים מתובלים לימון</ItemName>
+      <ManufactureName>שמן</ManufactureName>
+      <ManufactureCountry>ישראל</ManufactureCountry>
+      <ManufactureItemDescription>זיתים מתובלים לימון</ManufactureItemDescription>
+      <UnitQty>לא ידוע</UnitQty>
+      <Quantity>215.00</Quantity>
+      <UnitOfMeasure>100 גרם</UnitOfMeasure>
+      <bIsWeighted>0</bIsWeighted>
+      <QtyInPackage>לא ידוע</QtyInPackage>
+      <ItemPrice>9.60</ItemPrice>
+      <UnitOfMeasurePrice>0.04</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus/>
+    </Item>
+<Item>
+      <PriceUpdateTime>2025-04-27T09:11:00.000</PriceUpdateTime>
+      <ItemCode>7290108355123</ItemCode>
+      <LastSaleDateTime>2026-10-18T13:00:39.000</LastSaleDateTime>
+      <ItemType>1</ItemType>
+      <ItemName>בייבי כיף קרם גוף לפ</ItemName>
+      <ManufactureName>קוסמופארם</ManufactureName>
+      <ManufactureCountry>ישראל</ManufactureCountry>
+      <ManufactureItemDescription>בייבי כיף קרם גוף לפ</ManufactureItemDescription>
+      <UnitQty>לא ידוע</UnitQty>
+      <Quantity>500.00</Quantity>
+      <UnitOfMeasure>100 מיליליטר</UnitOfMeasure>
+      <bIsWeighted>0</bIsWeighted>
+      <QtyInPackage>לא ידוע</QtyInPackage>
+      <ItemPrice>19.90</ItemPrice>
+      <UnitOfMeasurePrice>0.04</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus/>
+    </Item>
+<Item>
+      <PriceUpdateTime>2026-08-03T11:24:55.000</PriceUpdateTime>
+      <ItemCode>7290015325806</ItemCode>
+      <LastSaleDateTime>2026-10-15T11:17:09.000</LastSaleDateTime>
+      <ItemType>1</ItemType>
+      <ItemName>תחליב רחצה בניחוח קק</ItemName>
+      <ManufactureName>לא ידוע</ManufactureName>
+      <ManufactureCountry>לא ידוע</ManufactureCountry>
+      <ManufactureItemDescription>תחליב רחצה בניחוח קק</ManufactureItemDescription>
+      <UnitQty>לא ידוע</UnitQty>
+      <Quantity>750.00</Quantity>
+      <UnitOfMeasure>100 מיליליטר</UnitOfMeasure>
+      <bIsWeighted>0</bIsWeighted>
+      <QtyInPackage>לא ידוע</QtyInPackage>
+      <ItemPrice>8.90</ItemPrice>
+      <UnitOfMeasurePrice>0.01</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus/>
+    </Item>
+<Item>
+      <PriceUpdateTime>2026-04-26T13:41:45.000</PriceUpdateTime>
+      <ItemCode>7290008804745</ItemCode>
+      <LastSaleDateTime>2026-10-14T08:21:45.000</LastSaleDateTime>
+      <ItemType>1</ItemType>
+      <ItemName>יין גוורצטרמינר סדרה</ItemName>
+      <ManufactureName>לא ידוע</ManufactureName>
+      <ManufactureCountry>ישראל</ManufactureCountry>
+      <ManufactureItemDescription>יין גוורצטרמינר סדרה</ManufactureItemDescription>
+      <UnitQty>לא ידוע</UnitQty>
+      <Quantity>750.00</Quantity>
+      <UnitOfMeasure>100 מיליליטר</UnitOfMeasure>
+      <bIsWeighted>0</bIsWeighted>
+      <QtyInPackage>לא ידוע</QtyInPackage>
+      <ItemPrice>69.90</ItemPrice>
+      <UnitOfMeasurePrice>0.09</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus/>
+    </Item>
+<Item>
+      <PriceUpdateTime>2026-04-07T14:27:12.000</PriceUpdateTime>
+      <ItemCode>7290018296868</ItemCode>
+      <LastSaleDateTime>2026-10-19T22:30:02.000</LastSaleDateTime>
+      <ItemType>1</ItemType>
+      <ItemName>לחם פרו דל פחמימות 4</ItemName>
+      <ManufactureName>לא ידוע</ManufactureName>
+      <ManufactureCountry>ישראל</ManufactureCountry>
+      <ManufactureItemDescription>לחם פרו דל פחמימות 4</ManufactureItemDescription>
+      <UnitQty>לא ידוע</UnitQty>
+      <Quantity>400.00</Quantity>
+      <UnitOfMeasure>100 גרם</UnitOfMeasure>
+      <bIsWeighted>0</bIsWeighted>
+      <QtyInPackage>לא ידוע</QtyInPackage>
+      <ItemPrice>23.50</ItemPrice>
+      <UnitOfMeasurePrice>0.06</UnitOfMeasurePrice>
+      <AllowDiscount>1</AllowDiscount>
+      <ItemStatus/>
+    </Item>
+  </Items>
+</Root>

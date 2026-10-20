@@ -1,0 +1,83 @@
+<Root>
+  <ChainId>7290058140886</ChainId>
+  <SubChainId>1</SubChainId>
+  <StoreId>39</StoreId>
+  <BikoretNo>3</BikoretNo>
+  <Promotions count="2">
+    <Promotion>
+      <PromotionId>910369733</PromotionId>
+      <PromotionDescription>שמן זית כתית מעולה רמי לוי ב-19.80 ש"ח</PromotionDescription>
+      <PromotionUpdateDate>2026-07-15 08:08:00</PromotionUpdateDate>
+      <PromotionStartDate>2026-05-03</PromotionStartDate>
+      <PromotionStartHour>00:00:00</PromotionStartHour>
+      <PromotionEndDate>2026-08-01</PromotionEndDate>
+      <PromotionEndHour>23:59:00</PromotionEndHour>
+      <RewardType>1</RewardType>
+      <DiscountType>1</DiscountType>
+      <DiscountRate>0.00</DiscountRate>
+      <AllowMultipleDiscounts>0</AllowMultipleDiscounts>
+      <MinQty>1</MinQty>
+      <MAXQTY>0</MAXQTY>
+      <DiscountedPrice>19.8</DiscountedPrice>
+      <DiscountedPricePerMida>19.8</DiscountedPricePerMida>
+      <MinNoOfItemOfered>10</MinNoOfItemOfered>
+      <AdditionalRestrictions>
+        <AdditionalIsCoupon>0</AdditionalIsCoupon>
+        <AdditionalGiftCount>0</AdditionalGiftCount>
+        <Clubs>
+          <ClubId>0</ClubId>
+        </Clubs>
+        <AdditionalIsTotal>0</AdditionalIsTotal>
+        <AdditionalIsActive>1</AdditionalIsActive>
+      </AdditionalRestrictions>
+      <PromotionItems count="1">
+        <Item>
+          <ItemCode>7290117263389</ItemCode>
+          <IsGiftItem>0</IsGiftItem>
+          <ItemType>1</ItemType>
+        </Item>
+      </PromotionItems>
+      <Remarks>שמן זית כתית מעולה ר</Remarks>
+    </Promotion>
+<Promotion>
+      <PromotionId>910369732</PromotionId>
+      <PromotionDescription>מחית עגבניות בלה איטליה ב-9.90 ש"ח</PromotionDescription>
+      <PromotionUpdateDate>2026-07-15 08:05:00</PromotionUpdateDate>
+      <PromotionStartDate>2026-07-05</PromotionStartDate>
+      <PromotionStartHour>00:00:00</PromotionStartHour>
+      <PromotionEndDate>2026-08-01</PromotionEndDate>
+      <PromotionEndHour>23:59:00</PromotionEndHour>
+      <RewardType>1</RewardType>
+      <DiscountType>1</DiscountType>
+      <DiscountRate>0.00</DiscountRate>
+      <AllowMultipleDiscounts>0</AllowMultipleDiscounts>
+      <MinQty>1</MinQty>
+      <MAXQTY>0</MAXQTY>
+      <DiscountedPrice>9.9</DiscountedPrice>
+      <DiscountedPricePerMida>9.9</DiscountedPricePerMida>
+      <MinNoOfItemOfered>10</MinNoOfItemOfered>
+      <AdditionalRestrictions>
+        <AdditionalIsCoupon>0</AdditionalIsCoupon>
+        <AdditionalGiftCount>0</AdditionalGiftCount>
+        <Clubs>
+          <ClubId>0</ClubId>
+        </Clubs>
+        <AdditionalIsTotal>0</AdditionalIsTotal>
+        <AdditionalIsActive>1</AdditionalIsActive>
+      </AdditionalRestrictions>
+      <PromotionItems count="2">
+        <Item>
+          <ItemCode>7290015150088</ItemCode>
+          <IsGiftItem>0</IsGiftItem>
+          <ItemType>1</ItemType>
+        </Item>
+        <Item>
+          <ItemCode>7290017513485</ItemCode>
+          <IsGiftItem>0</IsGiftItem>
+          <ItemType>1</ItemType>
+        </Item>
+      </PromotionItems>
+      <Remarks>מחית עגבניות בלה איט</Remarks>
+    </Promotion>
+  </Promotions>
+</Root>
