@@ -1910,7 +1910,7 @@ try {
           await ctx.addCookies([{ name: "nexus_locale", value: locale, url: BASE }]);
           await page.goto(`${BASE}/supermarket`);
           await page.waitForSelector("[data-sm-view]", { timeout: 15000 });
-          const adds = await page.locator("[data-sm-add-open]").evaluateAll((es) => es.map((e) => `${e.closest("[data-sm-view]") ? "view" : "other"}:${Math.round(e.getBoundingClientRect().top)}:${e.closest("[data-sm-empty-templates], [data-sm-first], [data-sm-suggest]") ? "in-block" : ""}`));
+          const adds = await page.locator("[data-sm-add-open]").evaluateAll((es) => es.filter((e) => e.getClientRects().length > 0).map((e) => `${e.closest("[data-sm-view]") ? "view" : "other"}:${Math.round(e.getBoundingClientRect().top)}:${e.closest("[data-sm-empty-templates], [data-sm-first], [data-sm-suggest]") ? "in-block" : ""}`));
           if (adds.length !== 1) res[`adds-${locale}`] = adds;
           // A tap before the list hydrates can be lost — tap again if the Add screen isn't up after 5 s.
           await page.locator("[data-sm-add-open]").first().click();
