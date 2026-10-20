@@ -21,6 +21,9 @@ import { asItem, chainDef, monoColor, useAddMany, useEstimate, useMonthLeft, use
 import { onSmIntent, takeSmIntent, type SmIntent } from "./intent";
 import { AddScreen, type AddMode } from "./add-screen";
 import { ChooseProduct } from "./choose-product";
+import { chainById } from "@/lib/grocery/chains";
+import { Compare, openCompare } from "./compare";
+import { compareSmList } from "@/app/supermarket-actions";
 import { openProduct, ProductPage } from "./product-page";
 import { Money } from "./money";
 import { rowPrice } from "./shelf";
@@ -252,6 +255,7 @@ export function SupermarketView() {
       <SmItemSheet itemId={openId} onClose={closeSheet} />
       <ChooseProduct />
       <ProductPage onEdit={(id) => setOpenId(id)} />
+      <Compare />
       <StoreMode open={shopping} onClose={() => setShopping(false)} onPickStore={() => setPicking(true)} />
       <AddScreen open={adding != null} mode={adding ?? "type"} hint={addHint} seed={addSeed} onClose={() => (setAdding(null), setAddHint(null), setAddSeed(null))} onCapture={(k) => (setAdding(null), capture(k))} />
     </>
@@ -889,6 +893,38 @@ export function BasketCard({ items, unitKg }: { items: ItemWithSources[]; unitKg
           {t.sm.shelf.stale}
         </p>
       )}
+      <CheaperLine count={open.length} />
     </div>
+  );
+}
+
+/** R19 D3: "At Rami Levy the list is ₪12.40 cheaper" → the compare sheet (or just "Compare stores"). */
+function CheaperLine({ count }: { count: number }) {
+  const { t, f, locale } = useI18n();
+  const [best, setBest] = useState<{ store: string; saving: number } | null>(null);
+  useEffect(() => {
+    let live = true;
+    const id = setTimeout(
+      () =>
+        void compareSmList(true).then(
+          (d) => {
+            const top = d.ranked[0];
+            if (live) setBest(top && top.store !== d.mine && top.saving > 1 ? { store: top.store, saving: top.saving } : null);
+          },
+          () => {},
+        ),
+      600,
+    );
+    return () => {
+      live = false;
+      clearTimeout(id);
+    };
+  }, [count]);
+  const name = best ? ((c) => (c ? (locale === "he" ? c.he : c.en) : best.store))(chainById(best.store.split(":")[0])) : "";
+  return (
+    <button type="button" onClick={openCompare} className="mt-2 flex min-h-10 w-full items-center gap-2 rounded-[12px] bg-surface-2 px-3 text-start text-[13px] font-bold active:scale-[0.99]" data-sm-cheaper={best ? best.store : "none"}>
+      <span className="bidi min-w-0 flex-1 truncate">{best ? f(t.sm.shelf.cheaper, { store: name, amount: `₪${best.saving.toFixed(2)}` }) : t.sm.cmp.title}</span>
+      <span className="shrink-0 text-muted">{t.sm.shelf.compare}</span>
+    </button>
   );
 }

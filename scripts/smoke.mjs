@@ -2559,6 +2559,35 @@ try {
           "product page (R19 D2): from a priced row, at my store + every chain + history, worst case fits", JSON.stringify(r));
       });
 
+    // R19 D3 (board Compare-phone): the basket card says where the list is cheaper → the compare sheet ranks the stores
+    // (Rami Levy below Shufersal in the demo files), mine marked, the club switch changes totals, "Shop there this time"
+    // moves the trip's store.
+    if (WRITE)
+      await step("where is my list cheapest (R19 D3): basket line → ranked stores, club on / off, shop there", async () => {
+        const r = {};
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row-price]", { timeout: 20000 });
+        await page.waitForFunction(() => document.querySelector("[data-sm-cheaper]")?.getAttribute("data-sm-cheaper") !== "none", null, { timeout: 10000 }).catch(() => {});
+        r.line = await page.locator("[data-sm-cheaper]").getAttribute("data-sm-cheaper");
+        r.basket = Number(await page.locator("[data-sm-basket] .money").first().getAttribute("data-money"));
+        await page.locator("[data-sm-cheaper]").click();
+        await page.waitForSelector("[data-compare-list] [data-compare-store]", { timeout: 10000 });
+        const read = () => page.locator("[data-compare-store]").evaluateAll((els) => els.map((e) => [e.getAttribute("data-compare-store"), Number(e.querySelector(".money")?.getAttribute("data-money"))]));
+        r.on = await read();
+        r.mine = await page.locator("[data-compare-store]").evaluateAll((els) => els.filter((e) => e.textContent.includes("your store") || e.textContent.includes("הסופר שלכם")).map((e) => e.getAttribute("data-compare-store")));
+        await shot(page, "d3-compare");
+        await page.locator("[data-compare-club]").click();
+        await page.waitForFunction((before) => JSON.stringify([...document.querySelectorAll("[data-compare-store] .money")].map((m) => m.getAttribute("data-money"))) !== before, JSON.stringify(r.on.map((x) => x[1].toFixed(2))), { timeout: 8000 }).catch(() => {});
+        r.off = await read();
+        await page.locator(`[data-compare-shop="${r.on[0][0]}"]`).click();
+        await page.waitForTimeout(800);
+        r.chip = (await page.locator("[data-sm-store]").filter({ visible: true }).first().textContent()) ?? "";
+        await page.evaluate(() => Object.keys(sessionStorage).filter((k) => k.startsWith("nexus.tripStore:")).forEach((k) => sessionStorage.removeItem(k)));
+        const totalOf = (list, k) => list.find((x) => x[0] === k)?.[1];
+        ok(r.line === "rami-levy" && r.on.length >= 2 && r.on[0][0] === "rami-levy" && r.on[0][1] <= r.on[1][1] && r.mine.includes("shufersal") && totalOf(r.off, "rami-levy") > totalOf(r.on, "rami-levy") && /Rami Levy|רמי לוי/.test(r.chip) && Math.abs(totalOf(r.on, "shufersal") - r.basket) < 0.05,
+          "where is my list cheapest (R19 D3): basket line → ranked stores, club on / off, shop there", JSON.stringify(r));
+      });
+
     // R19 A10 (board Stores-phone): the store directory — every chain of the transparency list (8 + more, real logos for
     // the big ones, never a first letter), real branches from the Stores files: a street finds its branch, a city too, a
     // chain narrows; no free-text stores; the household's old typed stores stay (the unmatched ones ask once).

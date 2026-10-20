@@ -155,6 +155,12 @@ export async function searchCatalog(q: string) {
   return hits;
 }
 
+/** R19 D3: where the open list is cheapest (every chain + the chosen branches), club deals on or off. */
+export async function compareSmList(club: boolean) {
+  const ctx = await requireCtx("view");
+  return P.compareList(scoped(ctx), { club: z.boolean().parse(club) });
+}
+
 /** R19 D2: the product page (opened from a row, the search, the compare screen). */
 export async function smProductPage(gtin: string, itemId?: string | null) {
   const ctx = await requireCtx("view");

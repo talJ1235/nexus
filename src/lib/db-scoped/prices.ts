@@ -14,6 +14,11 @@ import { catalogLineInfo, catalogThumb, pictureDayKey, underCap } from "@/lib/ca
 import { isStale } from "@/lib/prices/health";
 import { decideMatch, nameKey, rankCandidates, type Cand } from "@/lib/prices/match";
 import { classifyLocal, typeOf } from "@/lib/grocery/classify";
+import { compareStores, splitHint, type CompareRow, type StoreTotal } from "@/lib/prices/compare";
+import type { Deal } from "@/lib/prices/deals";
+import { unitsFor } from "@/lib/prices/units";
+import { learnUnitWeights, unitKgFor } from "@/lib/grocery/weights";
+import { purchasesOf } from "./grocery";
 
 export type BranchHit = {
   id: string;
@@ -453,4 +458,66 @@ export async function productPage(s: Scoped, gtin: string, o: { itemId?: string 
     cheaper,
     learned,
   };
+}
+
+// ---------- D3: where is my list cheapest ----------
+
+/** D3: every chain's total for the open list (+ the branches with their own prices), deals in, club on / off. */
+export async function compareList(s: Scoped, o: { club?: boolean; now?: number } = {}) {
+  const now = o.now ?? Date.now();
+  const at = await priceStoreOf(s);
+  const items = await s.select(schema.items, and(eq(schema.items.list, "supermarket"), sql`${schema.items.status} = 'to_buy'`, sql`${schema.items.catalogGtin} IS NOT NULL`));
+  const gtins = [...new Set(items.map((i) => i.catalogGtin!))];
+  if (!gtins.length) return { mine: at.chainId, ranked: [] as StoreTotal[], split: null, names: {} as Record<string, string>, rows: items.length };
+  const catRows = await db.select({ gtin: schema.catalog.gtin, weighted: schema.catalog.weighted, internal: schema.catalog.internal, search: schema.catalog.search }).from(schema.catalog).where(inArray(schema.catalog.gtin, gtins));
+  const cat = new Map(catRows.map((c) => [c.gtin, c]));
+  // Store codes (weighed produce, deli) are per chain: the same name at another chain is the same product there.
+  const eqv = new Map<string, string[]>(gtins.map((g) => [g, [g]]));
+  const local = catRows.filter((c) => c.internal && c.search);
+  if (local.length) {
+    const same = await db.select({ gtin: schema.catalog.gtin, search: schema.catalog.search }).from(schema.catalog).where(and(eq(schema.catalog.internal, true), inArray(schema.catalog.search, [...new Set(local.map((c) => c.search))])));
+    for (const c of local) eqv.set(c.gtin, [...new Set([c.gtin, ...same.filter((x) => x.search === c.search).map((x) => x.gtin)])]);
+  }
+  const allG = [...new Set([...eqv.values()].flat())];
+  const chainRows = await db.select().from(schema.chainPrice).where(inArray(schema.chainPrice.gtin, allG));
+  const ownRows = await db.select().from(schema.branchPrice).where(inArray(schema.branchPrice.gtin, allG));
+  const promoRows = await db
+    .select({ gtin: schema.promoItem.gtin, p: schema.promo })
+    .from(schema.promoItem)
+    .innerJoin(schema.promo, eq(schema.promo.id, schema.promoItem.promoId))
+    .where(and(inArray(schema.promoItem.gtin, allG), sql`(${schema.promo.ends} IS NULL OR ${schema.promo.ends} >= ${now})`));
+  const dealOfRow = (p: typeof schema.promo.$inferSelect): Deal => ({ kind: p.kind as Deal["kind"], n: p.minQty ?? 1, price: p.price, rate: p.rate, club: p.club, minBasket: p.minBasket, ends: p.ends, description: p.description });
+  // Branch keys: only branches people chose (own prices) — the rest are their chain.
+  const picked = new Set((await s.select(schema.spaceStore)).map((x) => x.branchId).filter(Boolean) as string[]);
+  // The home's kg per piece (the list's "6 bananas" ≈ 0.9 kg) — the same numbers the rows use.
+  const learned = learnUnitWeights((await purchasesOf(s)).purchases);
+  const ownByBranch = new Map<string, Map<string, number>>();
+  for (const r of ownRows) if (picked.has(r.branchId)) (ownByBranch.get(r.branchId) ?? ownByBranch.set(r.branchId, new Map()).get(r.branchId)!).set(r.gtin, r.price);
+  const stores = [...new Set(chainRows.map((r) => r.chainId)), ...ownByBranch.keys()];
+  const rows: CompareRow[] = items.map((i) => {
+    const g = i.catalogGtin!;
+    const weighted = !!cat.get(g)?.weighted;
+    const units = unitsFor(i, weighted, unitKgFor(i.productKey, learned));
+    const atStore: CompareRow["at"] = {};
+    const same = new Set(eqv.get(g) ?? [g]);
+    for (const c of chainRows) if (same.has(c.gtin)) atStore[c.chainId] = { price: c.price, deals: [] };
+    for (const [bid, m] of ownByBranch) for (const x of same) if (m.has(x)) atStore[bid] = { price: m.get(x)!, deals: [] };
+    for (const { gtin, p } of promoRows) {
+      if (!same.has(gtin)) continue;
+      for (const key of Object.keys(atStore)) {
+        const [chain, store] = key.split(":");
+        if (chain !== p.chainId) continue;
+        if (store && p.stores && !p.stores.includes(Number(store))) continue;
+        atStore[key].deals.push(dealOfRow(p));
+      }
+    }
+    return { id: i.id, title: i.title, units, weighted, at: atStore };
+  });
+  const mine = at.branchId && ownByBranch.has(at.branchId) ? at.branchId : at.chainId;
+  const ranked = compareStores(rows, stores, mine, { club: o.club ?? true });
+  const split = splitHint(rows, ranked, { club: o.club ?? true });
+  const branchNames = await branchesById([...ownByBranch.keys()]);
+  const names: Record<string, string> = {};
+  for (const [id, b] of branchNames) names[id] = b.name;
+  return { mine, ranked, split, names, rows: items.length };
 }

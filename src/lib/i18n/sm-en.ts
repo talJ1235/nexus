@@ -287,6 +287,25 @@ export const smEn = {
     addedProducts: "Added to Products: {title}",
     productNone: "No product could be read — type it instead.",
   },
+  // R19 D3: where is my list cheapest.
+  cmp: {
+    title: "Where is my list cheapest?",
+    sub: "{n} of {m} rows have a product · deals in",
+    all: "All chains",
+    clubOn: "Club deals: on",
+    clubOff: "Club deals: off",
+    none: "No prices for this list yet — choose products for the rows first",
+    found: "{n} of {m} found",
+    deals: "{n} deals",
+    yours: "your store",
+    saves: "{amount} less",
+    more: "{amount} more",
+    missing: "Not there: {items} (counted at the average price)",
+    shopThere: "Shop there this time",
+    splitWorth: "Split: {a} + {b} saves {amount} more",
+    splitNot: "Splitting between {a} and {b} saves only {amount} — probably not worth the extra trip",
+    note: "Prices from the chains' files; deals as published. Near-me distances come when the branches get their coordinates.",
+  },
   // R19 D2: the product page.
   product: {
     title: "Product",

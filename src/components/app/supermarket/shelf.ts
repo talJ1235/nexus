@@ -3,7 +3,7 @@
 // subtotal and the basket card, so they always agree.
 import { bestDeal, type Deal } from "@/lib/prices/deals";
 import type { ItemWithSources } from "@/lib/types";
-import { countOf } from "./qty-steppers";
+import { unitsFor } from "@/lib/prices/units";
 
 export type ShelfItem = {
   gtin: string;
@@ -32,12 +32,7 @@ export type RowPrice = {
 
 /** How many units the row buys: the count (packs), or kg for a weighed product. */
 export function unitsOf(item: Pick<ItemWithSources, "quantity" | "count" | "amount" | "unit">, s: ShelfItem, unitKg: number | null) {
-  if (s.weighted) {
-    if (item.amount && item.unit === "kg") return item.amount;
-    if (item.amount && item.unit === "g") return item.amount / 1000;
-    return (item.quantity || 1) * (unitKg ?? 1);
-  }
-  return countOf({ quantity: item.quantity, count: item.count ?? null, amount: item.amount, unit: item.unit }, unitKg).shown ?? item.quantity ?? 1;
+  return unitsFor(item, s.weighted, unitKg);
 }
 
 export function rowPrice(item: Pick<ItemWithSources, "quantity" | "count" | "amount" | "unit">, s: ShelfItem | undefined, unitKg: number | null): RowPrice | null {
