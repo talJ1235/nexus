@@ -47,6 +47,8 @@ export async function startApp({ db: file, port, dev = false, env: extra = {} })
   execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", "src/db/migrate.ts"], { env, stdio: "ignore" });
   execFileSync(process.execPath, ["scripts/seed-local.mjs"], { env, stdio: "ignore" });
   execFileSync(process.execPath, ["scripts/seed-worst.mjs"], { env, stdio: "ignore" });
+  // R19: the store directory + demo prices / deals (real file layout through the real ingestion), as on the smoke server.
+  execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", "scripts/seed-prices.ts"], { env, stdio: "ignore" });
   const db = createClient({ url: `file:${file}` });
   // The test writes while the server writes (presence beats): wait for the lock instead of failing.
   await db.execute("PRAGMA busy_timeout = 10000");

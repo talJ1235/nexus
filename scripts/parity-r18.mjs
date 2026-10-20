@@ -30,9 +30,10 @@ const browser = await chromium.launch();
 async function mockShot(name, props, viewport) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1 });
   const p = await ctx.newPage();
-  // R18 S5: "s5:<board>" = a board from docs/design/r18-s5.
+  // R18 S5: "s5:<board>" = a board from docs/design/r18-s5; R19: "r19:<board>" from docs/design/r19.
   const s5 = name.startsWith("s5:");
-  await renderBoard(p, s5 ? "docs/design/r18-s5" : MOCK, s5 ? name.slice(3) : name, { motion: "reduced", ...props });
+  const r19 = name.startsWith("r19:");
+  await renderBoard(p, s5 ? "docs/design/r18-s5" : r19 ? "docs/design/r19" : MOCK, s5 ? name.slice(3) : r19 ? name.slice(4) : name, { motion: "reduced", ...props });
   await p.waitForTimeout(900);
   const buf = await p.screenshot();
   await ctx.close();
@@ -203,6 +204,14 @@ const SHOTS = [
   ["f2-onboarding-store", [["board · chains", "Settings-phone", { ...EN, state: "onboarding · chain" }, PHONE], ["app", "/welcome", PHONE, { fresh: true, act: obTo("chains") }], ["board · branch", "Settings-phone", { ...EN, state: "onboarding · branch" }, PHONE], ["app", "/welcome", PHONE, { fresh: true, act: obTo("branch") }], ["board · he dark", "Settings-phone", { ...HE, state: "onboarding · chain", dark: true }, PHONE], ["app · he dark", "/welcome", PHONE, { fresh: true, he: true, dark: true, act: obTo("chains") }]], 300],
   // F3 — the computer's Supermarket page: list + side panel, the item drawer, Send to phone.
   ["f3-desktop", [["board", "Supermarket-desktop", { ...EN, state: "normal" }, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]" }], ["board · send to phone", "Supermarket-desktop", { ...EN, state: "send to phone" }, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]", act: async (p) => { await p.click("[data-sm-send]"); await p.waitForSelector("[data-sm-send-target]"); } }], ["board · item open", "Supermarket-desktop", { ...EN, state: "item open" }, DESK], ["app", "/supermarket", DESK, { wait: "[data-sm-desk-templates]", act: async (p) => { await p.locator("[data-sm-desk] [data-sm-row] [data-sm-row-tile]").first().click(); await p.waitForTimeout(500); } }], ["board · he dark", "Supermarket-desktop", { ...HE, state: "normal", dark: true }, DESK], ["app · he dark", "/supermarket", DESK, { wait: "[data-sm-desk-templates]", he: true, dark: true }]], 680],
+  // ---- R19 (boards in docs/design/r19, Hebrew; the app in he with the demo price files, scripts/lib/demo-prices.ts).
+  ["r19-main", [["board", "r19:Main", {}, PHONE], ["app · he", "/supermarket", PHONE, { wait: "[data-sm-basket]", he: true }], ["app · he dark plum", "/supermarket", PHONE, { wait: "[data-sm-basket]", he: true, dark: true, plum: true }]], 300],
+  ["r19-product", [["board", "r19:Product-phone", {}, PHONE], ["app · he", "/supermarket", PHONE, { wait: "[data-sm-basket]", he: true, act: async (p) => { await p.evaluate(() => window.dispatchEvent(new CustomEvent("nexus:sm-product", { detail: { gtin: "8076800195057", itemId: null } }))); await p.waitForSelector("[data-product-here]"); await p.waitForTimeout(600); } }]], 300],
+  ["r19-product-desktop", [["board", "r19:Product-desktop", {}, DESK], ["app · he", "/supermarket", DESK, { wait: "[data-sm-basket]", he: true, act: async (p) => { await p.evaluate(() => window.dispatchEvent(new CustomEvent("nexus:sm-product", { detail: { gtin: "8076800195057", itemId: null } }))); await p.waitForSelector("[data-product-here]"); await p.waitForTimeout(600); } }]], 680],
+  ["r19-compare", [["board", "r19:Compare-phone", {}, PHONE], ["app · he", "/supermarket", PHONE, { wait: "[data-sm-cheaper]", he: true, act: async (p) => { await p.waitForTimeout(1500); await p.click("[data-sm-cheaper]"); await p.waitForSelector("[data-compare-store]"); await p.waitForTimeout(500); } }]], 300],
+  ["r19-stores", [["board", "r19:Stores-phone", {}, PHONE], ["app · he", "/supermarket", PHONE, { wait: "[data-sm-store]", he: true, act: async (p) => { await p.waitForTimeout(1500); await p.locator("[data-sm-store]").first().click(); await p.waitForSelector("[data-store-chains]"); await p.waitForTimeout(500); } }]], 300],
+  ["r19-match", [["board", "r19:Match-phone", {}, PHONE], ["app · he", "/supermarket", PHONE, { wait: "[data-sm-choose]", he: true, act: async (p) => { await p.locator("[data-sm-choose]").first().click(); await p.waitForSelector("[data-choose-option]"); await p.waitForTimeout(500); } }]], 300],
+  ["r19-fixes", [["board", "r19:Fixes-phone", { state: "+ menu on Home" }, PHONE], ["app · he", "/", PHONE, { wait: "[data-dock]", he: true, act: async (p) => { await p.waitForTimeout(1500); await p.click('[data-dock-target="plus"]'); await p.waitForTimeout(500); } }]], 300],
   // ---- R18 S5 (boards in docs/design/r18-s5, their default state next to the app).
   // A — the list v2 (one card, section bands, 60 px rows, add bar), phone + computer.
   ["s5-a-list", [["board", "s5:List-phone", EN, PHONE], ["app", "/supermarket", PHONE, { wait: SM }], ["app · he dark", "/supermarket", PHONE, { wait: SM, he: true, dark: true }]], 300],

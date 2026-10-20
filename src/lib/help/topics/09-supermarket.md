@@ -5,12 +5,13 @@
 - The **Supermarket** tab (in the dock, 4th) is the household's grocery list, kept apart from **Products**. It shows
   your store, an estimate against what's left of this month's budget, and the list **in sections** in the order your
   branch is walked (produce first, bread and dairy at the back, frozen last). Rows or tiles: **⋯ → Show as**.
-- Tap a row's **picture** for its sheet: count and weight ("6 · ≈ 1 kg"), a note, a photo of the exact product,
+- Tap a row (anywhere but its name) for its **product page** when it has its product (see Prices), or its sheet: count and weight ("6 · ≈ 1 kg"), a note, a photo of the exact product,
   section, preferred brand and substitutes ("Usually: Tnuva 3% · 8 of 10 times" once Nexus has seen it), one store only,
   and its history (date, store, price, cheapest). Once Nexus knows your usual brand it shows it as a chip — tap it to
   make it the brand to buy. Tap the **name's letters** to rename it right there.
-- **Swipe a row** toward the end of the line to show **Delete** (swipe further, or fast, to delete at once — **Undo**
-  for 5 seconds brings it back), or toward the start for a quick **− / +** on the quantity. One row opens at a time; a
+- **Swipe a row** toward the end of the line to show a grey **Delete**; keep going past about half the row until it turns
+  red ("Release to delete") to delete at once — a short or fast swipe never deletes by itself; **Undo** for 5 seconds
+  brings it back — or toward the start for a quick **− / +** on the quantity. One row opens at a time; a
   tap anywhere else closes it. On a computer: hover a row for its actions, **Delete** removes the selected row, and
   pasting a list anywhere on the page adds it.
 - **Start shopping** opens the start screen in your colour (the palette chip picks a look, per store if you like):

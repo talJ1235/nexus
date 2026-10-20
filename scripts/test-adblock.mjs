@@ -47,7 +47,8 @@ const { startApp } = await import("./lib/test-app.mjs");
 const { seedAdmin } = await import("./lib/seed-admin.mjs");
 const { seedInbox } = await import("./lib/seed-notify.mjs");
 const app = await startApp({ db: "adblock-test.db", port: Number(process.env.PORT || 3126) });
-const PAGES = ["/", "/?v=to_buy", "/settings/display", "/settings/notifications", "/inbox", "/welcome"];
+// R19 F1: the Supermarket with prices, deal lines, the basket card (new deal / price class names).
+const PAGES = ["/", "/?v=to_buy", "/supermarket", "/settings/display", "/settings/notifications", "/inbox", "/welcome"];
 const ADMIN = ["/admin", "/admin/live", "/admin/people", "/admin/people/ad_noa", "/admin/invites", "/admin/ai", "/admin/reports", "/admin/errors", "/admin/system", "/admin/more"];
 const PHONE = devices["Pixel 7"];
 const CONTEXTS = [

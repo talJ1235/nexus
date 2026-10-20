@@ -1090,6 +1090,48 @@ Shipped (S5):
   layouts), `test:onboarding` (9 steps + the quick card), a smoke step per item (phone + computer); the smoke ignores
   the scanner prewarm's "Failed to fetch" console line.
 
+## Round 19 — Tal's fixes after S5 + real products, current prices, deals, store directory
+
+Brief: `docs/ROUND19.md` (progress, decisions, "For Tal" in its "## Open"); boards `docs/design/r19/`; parity
+`docs/design/parity-r18/r19-*.png` (`scripts/parity-r18.mjs r19`). DB: additive (`db/migrate-r19.ts`: chain, branch,
+catalog + `catalog_fts`, chain_price, branch_price, price_day, promo, promo_item, price_file, product_choice; nullable
+`items.catalog_gtin / match_state / match_at`, `space_store.branch_id`).
+
+Shipped:
+- *Tal's fixes* (A1–A9): the floating Ask 48 px phone / 52 px computer; the active dock tab has a sliding pill behind
+  its icon; Home "+" = Scan (Barcode · Product photo · Receipt — the Supermarket camera in that mode) + Paste a product
+  link + Search a product; swipe-to-delete v2 (grey Delete at 96 px, red + "Release to delete" only past ~55 % of the
+  row, flings never delete short of it, a soft 360 ms fold); the whole row opens the product; Start shopping always
+  floats (portaled out of the animated view); "Nexus suggests" opens as one soft push; the chat: references and amounts
+  inside bold (Tal's report), the answer's place from the question on, glide-follow, no re-slide on open; New chat is a
+  transition and reopening opens the newest chat (empty after New chat).
+- *Store directory* (A10, D4): every chain of the price-transparency list (`CHAINS`, 33) with real logos
+  (`public/chains/`, 21 of 33), real branches with addresses from the chains' Stores files (`branch`), search by chain /
+  city / street, near me, no free-text stores; old stores map to a branch or ask once; each branch shows the list's
+  estimate there.
+- *Prices* (B0–B5): `.github/workflows/prices.yml` (nightly full files + intraday partial files every 3 h, dry without
+  secrets) with the pinned OpenIsraeliSupermarkets scrapers (`scripts/prices/fetch.py`) and `scripts/prices/ingest.mts`
+  (only changes); chains GitHub can't reach run on Tal's PC (`scripts/prices/prices-local.cmd`). A chain's price per
+  product + a branch's own prices for the chosen branches and each chain's representative, a daily point when a price
+  changes, deals (N for ₪X, price, % off, 2nd at, club, min basket, ends), "updated · HH:MM" = the newest file read.
+  Catalog: every barcode with the best name across chains, brand, size, section, a short name; real pictures (Open
+  Food Facts → own photos → search + AI check → ≤ 20 KB webp), lazily + nightly for the most bought. Admin → System →
+  Prices: newest file per chain, rows today, failures, stale (> 26 h → "prices may be old").
+- *Every row a real product* (C1–C3): barcode → exact; the home's remembered choice per typed name; its usual brand +
+  size; one clear candidate — silently ("As always · ₪6.80 · Change"); else "Which one?" (candidates with photo, size,
+  price, deal, why; "Doesn't matter which" = the cheapest of the type; Remember). Existing lists mapped on the first open.
+- *Screens* (D1–D6): rows show the price for their count + unit price or the struck regular price, the deal line in
+  the list's terms ("4 for ₪12 · you have 4 ✓", "worth taking 3"), section subtotals, the basket card (estimate,
+  updated · HH:MM, verify at the till, "At Rami Levy the list is ₪N cheaper"); the product page (my store, every chain,
+  90 days, cheaper of the type, learned switch, stepper); "Where is my list cheapest" (stores ranked with deals, club on
+  / off, missing rows at the average, shop there, split hint); catalog search with pictures + price in the add bar;
+  every estimate uses the store's prices + deals.
+- *Deals that matter* (E1): one batched notification a day per space when the home's usual products are on a deal at
+  its store (owner + members, never viewers), a line in "Nexus suggests".
+- Guards: `test:prices`, `test:catalog`, `test:match`, `test:deals`, `test:compare`, `test:estimate`,
+  `test:chat-inline` (new, in CI), `test:pictures` / `test:notify` / `test:admin-access` / `test:adblock` extended, a
+  smoke step per item (phone + computer), demo price files for test servers (`scripts/seed-prices.ts`).
+
 ## UI
 - English default, full Hebrew with RTL (logical CSS only). Locale toggle.
 - Two palettes (Graphite & Amber, Plum) × dark/light (system default), no flash on load.

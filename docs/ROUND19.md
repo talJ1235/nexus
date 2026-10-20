@@ -43,6 +43,7 @@ below), not only on the boards.
 - D5 — catalog search with pictures: the add bar's type-ahead (`/api/grocery/search`) puts catalog products after the home's own (photo, brand · size, the price at the home's store; the typed letters bold; the home's products / usual brands lead the ranking; "did you mean" kept; Open Food Facts only when the catalog has nothing); + adds with the barcode so C1 maps it exactly; Enter on free text adds as before (then C1). "Search a product" (A3) lands here. Smoke: "פסט" → Barilla penne with its photo + ₪7.50 → added, priced.
 - D6 — real prices everywhere they're estimated: one `estimateList` (`shelf.ts`) for the Supermarket header, Home's "Next shop" / budget pace (`useEstimate`), the trip bar, the start screen and store mode's total + spent — rows with their product at the store's price with the deal that fits, the rest at the last price paid as before; the same units rule as the rows (`lib/prices/units.ts`). `test:estimate` green (deals, fallback, weighed kg, no store, the row's price).
 - E1 — "Your usual product is on a deal": `usualDeals` (in the hourly notify sweeps) finds deals running now at the home's store on the products it chose for a typed name or has on its list, sends one batched notification a day per space at most ("פסטה פנה ברילה · 2 for ₪10" · "at Shufersal · and 2 more of your usual"), owner + members, never viewers, the usual push rules (quiet at night), each promotion told once (60 days); a tap opens the Supermarket; the same deals show as a line in "Nexus suggests". New kind `deal` (TypeScript enum only — no DB change). `test:notify` case green.
+- F2 — docs: `SPEC.md` "Round 19" section; `docs/MAP.md` new **Prices** area (tables, jobs, libs, reads / actions, screens, tests) + the chat's `lib/chat-inline.ts`; help topic `10-prices.md` (prices + deals, choosing a product, comparing stores, the store directory) + the swipe / product page lines in `09-supermarket.md` (`test:help` green); `docs/ENVIRONMENT.md` section "Prices" (workflow, secrets, minutes, scraper pin, blocked chains + the local runner) + log line; For Tal: the phone checklist + the secrets / runner / logo steps.
 ### Decisions" at once; anything for Tal in "
 - A2: the computer sidebar's active row already has a tint + a 3 px accent bar + 600 ink (R14 B1) — it reads clearly, left as is. The dock pill measures the icon from the pill's own parent (a parent's ref isn't attached yet in a child's layout effect).
 - A3: the Home menu only replaces the "+" on Home — Products / Insights keep the R16 add list (its barcode / receipt / plan / import flows and their tests stay). "Search a product" opens the Supermarket add screen; D5 turns its search into the catalog.
@@ -255,7 +256,7 @@ and a line in "Nexus suggests". **Acceptance:** `test:notify` case.
 Smoke steps per item (phone + desktop). Unit: `test:prices`, `test:catalog`, `test:match`, `test:deals`,
 `test:compare`, extended `test:pictures` — all in CI. `test:adblock` covers the new deal / price class names.
 `scripts/parity-r18.mjs` (or a new `parity-r19`) gets the R19 boards. Full phone + desktop smoke pass.
-### F2 [ ] Docs
+### F2 [x] Docs
 `SPEC.md` R19 section, `docs/MAP.md` — a new **Prices** area (jobs, tables, catalog, pictures, admin) + touched areas
 in place, help topics (prices + deals, choosing a product, comparing stores, the store directory),
 `docs/ENVIRONMENT.md` (the prices workflow, secrets, the local runner, schedule + minutes) + log line. "### For Tal" =
@@ -271,3 +272,13 @@ and the secrets / runner steps he must do.
 - **Prices — the 3 chains GitHub can't reach** (Hatzi Hinam, Netiv HaHesed, Super-Pharm): on the PC add `PRICES_TURSO_DATABASE_URL` + `PRICES_TURSO_AUTH_TOKEN` (same values) to `nexus/.env.local`, then once in a terminal: `schtasks /Create /TN "Nexus prices" /SC HOURLY /MO 3 /ST 05:50 /TR "\"C:\Users\talja\OneDrive\שולחן העבודה\Project Nexus\nexus\scripts\prices\prices-local.cmd\"" /F` (needs Python 3.12, already installed). Decide later: keep the PC, or a small Israeli server running the same script.
 - **Prices — Victory, Mahsanei HaShuk, H. Cohen** are disabled in the pinned scraper (1.0.15). Newer releases (1.0.16+, Oct 2026) may bring them back; bump `scripts/prices/requirements.txt` once a release is 14 days old and the probe (`gh workflow run prices -f mode=probe`) shows them.
 - **Logos still missing (12 chains — no website a script or the browser could find, or Facebook-only):** King Store, Netiv HaHesed, Zol VeBegadol, City Market, City Market Kiryat Gat, Maayan 2000, Shefa Birkat HaShem, Bareket, Polizer, Salach Dabach, H. Cohen, Good Pharm. Save each official logo as `nexus/public/chains/<id>.png` (ids in `src/lib/grocery/chains.ts`) and run `node scripts/prices/logos.mjs` — or send the site addresses and the script picks them up (`SITES` in that file).
+- **Phone checklist (after the merge, on the phone):** A1 the Ask button is smaller (48 px) · A2 the active tab has a
+  grey pill behind its icon that slides when you switch · A3 Home "+" = Barcode · Product photo · Receipt + Paste a link
+  + Search a product · A4 swipe a row: grey Delete first, red only past half the row, release → it folds softly; a quick
+  flick doesn't delete · A5 tap the empty part / the brand line of a row → the product · A6 Start shopping is there
+  after switching tabs and while scrolling · A7 "Nexus suggests" opens smoothly · A8 the chat opens without a jump and
+  an answer with item links in bold renders right · A9 New chat slides; close + reopen → the empty new chat · A10 the
+  store picker: every chain with logos, search a street / city, your old stores marked "Choose the exact branch".
+  Prices (once the secrets are in and the first nightly run happened): rows show prices + deal lines, the basket card
+  says "updated · HH:MM"; a product page; "Which one?" when you add "חלב"; Compare stores; search "פסט" in the add bar
+  shows products with photos.

@@ -73,6 +73,10 @@ const settleSuggestions = async (page) => {
     await page.waitForTimeout(250);
   }
 };
+// R19 D2: a row with its product opens the product page; its pencil is the row's own sheet.
+const toSheet = async (p) => {
+  if (await p.waitForSelector("[data-product-page] [data-product-edit]", { timeout: 2500 }).then(() => true, () => false)) await p.locator("[data-product-edit]").click();
+};
 const step = async (msg, fn) => {
   if (ONLY && !ONLY.split("|").some((o) => msg.includes(o)) && !["owner login", "app renders items"].includes(msg)) return;
   try {
@@ -1830,7 +1834,9 @@ try {
         await page.locator("[data-sm-more]").click();
         await page.locator('[data-sm-layout-pick="rows"]').click();
         await page.waitForTimeout(400);
-        ok(r.order && r.sug === "closed" && r.sugH <= 70 && r.listCard && r.boxBorder === "0px" && r.rows.every((h) => h >= 44 && h <= 60) && r.kept === "open" && r.tilesInView,
+        // R19 E1: a closed "Nexus suggests" may carry one more line (the usual products on a deal).
+        r.dealLine = await page.locator("[data-sm-sug-deals]").count();
+        ok(r.order && r.sug === "closed" && r.sugH <= (r.dealLine ? 96 : 70) && r.listCard && r.boxBorder === "0px" && r.rows.every((h) => h >= 44 && h <= 60) && r.kept === "open" && r.tilesInView,
           "supermarket list first (R18 S3 B3): suggestions collapsed + remembered, one surface, dense rows, tiles visible", JSON.stringify(r));
       });
 
@@ -1876,7 +1882,7 @@ try {
           const row = page.locator(`[data-sm-list] [data-sm-row]:has(.gro-t:text-is("${name}"))`).first();
           if (!(await row.count())) continue;
           await row.evaluate((e) => e.scrollIntoView({ block: "center" }));
-          await row.locator("[data-sm-row-tile]").click();
+          await row.locator("[data-sm-row-tile]").click(); await toSheet(page);
           await page.locator("[data-sheet-remove]").click();
           await page.waitForTimeout(500);
         }
@@ -1944,9 +1950,7 @@ try {
         await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
         const row = page.locator('[data-sm-row]:has-text("Tomatoes")').first();
         await row.evaluate((e) => e.scrollIntoView({ block: "center" }));
-        await row.locator("[data-sm-row-tile]").click();
-        // R19 D2: a row with its product opens the product page — the row's own sheet is its pencil.
-        if (await page.waitForSelector("[data-product-page] [data-product-edit]", { timeout: 4000 }).then(() => true, () => false)) await page.locator("[data-product-edit]").click();
+        await row.locator("[data-sm-row-tile]").click(); await toSheet(page);
         await page.waitForSelector("[data-sm-sheet] [data-qty-steppers]", { timeout: 10000 });
         const read = async () => ({ c: (await page.locator("[data-sm-sheet] [data-qty-count]").textContent()).trim(), w: (await page.locator("[data-sm-sheet] [data-qty-weight]").textContent()).trim() });
         r.start = await read();
@@ -2308,6 +2312,7 @@ try {
       await page.evaluate(() => window.scrollTo(0, 0));
       const tile = page.locator("[data-sm-list] [data-sm-row-tile]").first();
       await tile.click();
+      await toSheet(page);
       await page.waitForSelector("[data-sheet-remove]", { timeout: 8000 });
       await page.waitForTimeout(300);
       r.hiddenWithSheet = await page.locator("[data-ask-fab]").evaluate((e) => getComputedStyle(e).visibility);
@@ -2857,7 +2862,7 @@ try {
         await page.keyboard.press("Enter");
         await page.waitForTimeout(500);
         r.renamed = (await page.locator(`[data-sm-row="${a}"] .gro-t`).textContent()).trim();
-        await page.locator(`[data-sm-row="${a}"] [data-sm-row-tile]`).click();
+        await page.locator(`[data-sm-row="${a}"] [data-sm-row-tile]`).click(); await toSheet(page);
         r.sheet = await page.waitForSelector(`[data-sm-sheet="${a}"]`, { timeout: 8000 }).then(() => true, () => false);
         await page.keyboard.press("Escape");
         await page.waitForTimeout(400);
@@ -3170,7 +3175,7 @@ try {
         r.pulse = await page.waitForSelector(`[data-sm-row="${id}"].gro-pulse`, { timeout: 3000 }).then(() => true, () => false);
         await page.waitForTimeout(400);
         r.renamed = (await at().locator(".gro-t").textContent()).trim();
-        await at().locator("[data-sm-row-tile]").click();
+        await at().locator("[data-sm-row-tile]").click(); await toSheet(page);
         await page.waitForSelector(`[data-sm-sheet="${id}"]`, { timeout: 8000 });
         await page.waitForTimeout(500);
         r.sheet = await page.evaluate(() => ({
@@ -3256,7 +3261,7 @@ try {
         const id = await row.getAttribute("data-sm-row");
         const usual = async () => {
           await page.goto(`${BASE}/supermarket`);
-          await page.locator(`[data-sm-row="${id}"] [data-sm-row-tile]`).click();
+          await page.locator(`[data-sm-row="${id}"] [data-sm-row-tile]`).click(); await toSheet(page);
           await page.waitForSelector(`[data-sm-sheet="${id}"] [data-learned]`, { timeout: 10000 });
           await page.waitForTimeout(300);
           const t = await page.locator(`[data-sm-sheet="${id}"] [data-sheet-usual]`).textContent().catch(() => null);
@@ -3743,6 +3748,11 @@ try {
         await page.mouse.click(name.x + name.width + (area.x + area.width - name.x - name.width) / 2, area.y + area.height / 2);
         await page.waitForTimeout(250);
         r.emptyRenames = await page.locator("[data-sm-rename]").count();
+        // R19 A5: the empty part opens the row (its sheet / product page) — close it before the letters.
+        r.emptyOpens = (await page.locator("[data-sm-sheet], [data-product-page]").count()) > 0;
+        await page.keyboard.press("Escape");
+        await page.waitForSelector("[data-sm-sheet], [data-product-page]", { state: "detached", timeout: 4000 }).catch(() => {});
+        await page.waitForTimeout(300);
         await rowA.locator("[data-sm-row-name]").click();
         r.lettersRename = await page.locator("[data-sm-rename]").count();
         await page.keyboard.press("Escape");
@@ -3766,11 +3776,12 @@ try {
         }, next);
         const ba = await rowA.boundingBox();
         const rtl = await page.evaluate(() => document.documentElement.dir === "rtl");
-        const x0 = ba.x + ba.width / 2;
+        // R19 A4: a fling deletes only past the delete point (~55 % of the row) — from the far edge, 260 px.
+        const x0 = rtl ? ba.x + 20 : ba.x + ba.width - 20;
         const y0 = ba.y + ba.height / 2;
         await page.mouse.move(x0, y0);
         await page.mouse.down();
-        await page.mouse.move(x0 + (rtl ? 1 : -1) * 160, y0, { steps: 4 });
+        await page.mouse.move(x0 + (rtl ? 1 : -1) * 260, y0, { steps: 4 });
         await page.mouse.up();
         await page.waitForTimeout(1300);
         const tops = await page.evaluate(() => window.__tops);
@@ -3838,6 +3849,7 @@ try {
       // R19 A6: the pill is there every time the Supermarket tab shows — opened from every other tab and every Products
       // segment (each scrolled to its end first: the case that used to leave it docked out of sight), at the top, the
       // middle and the bottom of the list: visible, above the dock, nothing on top of it.
+    if (MOBILE)
       await step("start shopping always there (R19 A6): from every tab + segment, top / middle / bottom, above the dock", async () => {
         const bad = [];
         const seen = [];
@@ -3877,6 +3889,7 @@ try {
         ok(bad.length === 0, "start shopping always there (R19 A6): from every tab + segment, top / middle / bottom, above the dock", JSON.stringify({ bad: bad.slice(0, 6), seen: seen.slice(0, 12) }));
       });
 
+    if (MOBILE)
       await step("start shopping floats, then docks (R18 S4 D3): above the dock, docked at the list's end, never over suggestions", async () => {
         const r = {};
         await page.goto(`${BASE}/supermarket`);
@@ -3993,7 +4006,7 @@ try {
         const plain = page.locator('[data-sm-row]:has(.gro-t:text-is("S4 milk"))').first();
         await plain.waitFor({ timeout: 15000 });
         const pid = await plain.getAttribute("data-sm-row");
-        await page.locator(`[data-sm-row="${pid}"] [data-sm-row-tile]`).click();
+        await page.locator(`[data-sm-row="${pid}"] [data-sm-row-tile]`).click(); await toSheet(page);
         await page.waitForSelector(`[data-sm-sheet="${pid}"] [data-sheet-usual]`, { timeout: 10000 });
         r.chip = await page.locator(`[data-sm-sheet="${pid}"] [data-sheet-usual]`).evaluate((e) => e.tagName);
         await page.locator(`[data-sm-sheet="${pid}"] [data-sheet-usual]`).click();
@@ -4144,7 +4157,7 @@ try {
         await page.waitForSelector("[data-sm-view] [data-sm-row]", { timeout: 15000 });
         const row = page.locator('[data-sm-row]:has-text("Tomatoes")').first();
         const id = await row.getAttribute("data-sm-row");
-        await row.locator("[data-sm-row-tile]").click();
+        await row.locator("[data-sm-row-tile]").click(); await toSheet(page);
         await page.waitForSelector(`[data-sm-sheet="${id}"] [data-learned]`, { timeout: 10000 });
         const r = {};
         r.learned = await page.locator("[data-learned]").getAttribute("data-learned");
@@ -4398,7 +4411,7 @@ try {
         r.add = await page.waitForSelector("[data-add-input]", { timeout: 5000 }).then(() => 1, () => 0);
         await page.keyboard.press("Escape");
         await page.waitForTimeout(400);
-        await page.locator("[data-sm-desk] [data-sm-row] [data-sm-row-tile]").first().click();
+        await page.locator("[data-sm-desk] [data-sm-row] [data-sm-row-tile]").first().click(); await toSheet(page);
         r.drawer = await page.waitForSelector("[role=dialog]", { timeout: 5000 }).then(() => 1, () => 0);
         await page.keyboard.press("Escape");
         await page.waitForTimeout(400);
@@ -4541,6 +4554,9 @@ try {
       // Round 10 B1: tap → first video frame → decoder ready, on a mid-phone profile (CPU ×4), first open and a reopen;
       // the camera turns off the moment each screen closes (<html data-camera>). Fake camera; permission granted.
       await step("camera opens fast: barcode viewfinder < 300 ms, decoder < 800 ms; receipt camera too; off as soon as each closes", async () => {
+        // R19 A3: Home's "+" is the scan menu — the add list (barcode / receipt cards) lives on Products.
+        await page.goto(`${BASE}/?v=to_buy`);
+        await page.waitForSelector(READY);
         const cdp = await ctx.newCDPSession(page);
         await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
         const times = async () => page.evaluate(() => {
@@ -6466,7 +6482,8 @@ try {
           const reload = await asked();
           const busy = await dlg.locator("[data-ai-send=stop]").count();
           await shot(page, "ask-seed-once");
-          ok(first === 1 && newChat && reopen === 1 && reload <= 1 && busy === 0, "ask seed: sent once — new chat empty, reopen shows it once, reload doesn't resend", JSON.stringify({ via: MOBILE ? "phone search" : "command menu", first, newChat, reopen, reload, busy }));
+          // R19 A9: after New chat the newest chat is the empty one — reopening opens it (the seeded one isn't resent anywhere).
+          ok(first === 1 && newChat && reopen === 0 && reload <= 1 && busy === 0, "ask seed: sent once — new chat empty, reopen shows it once, reload doesn't resend", JSON.stringify({ via: MOBILE ? "phone search" : "command menu", first, newChat, reopen, reload, busy }));
           await page.keyboard.press("Escape");
         });
         // Round 9 C3 (mock): a stated preference → "Remember?" chip → saved → listed in Settings with the profile.

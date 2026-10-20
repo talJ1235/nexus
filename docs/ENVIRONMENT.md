@@ -73,6 +73,24 @@ A long unattended round must survive the claude.ai usage limit and finish by its
   Docs: https://code.claude.com/docs/en/goal. The planner puts the exact `/goal` line in the handoff block of
   `docs/PLANNER.md` with each round's prompt.
 
+## Prices — the chains' transparency files (R19)
+- **GitHub Actions `prices.yml`**: nightly 05:40 Israel (every Stores file → plan → the planned stores' PriceFull +
+  PromoFull), intraday every 3 h 08:10–23:10 (Price + Promo of the last 3 h), probe on a push to `scripts/prices/**`
+  or by hand (`gh workflow run prices -f mode=probe`). Secrets (repo Settings → Secrets → Actions): `TURSO_DATABASE_URL`
+  + `TURSO_AUTH_TOKEN` (prod, read-write). Without them a run is dry (a scratch DB, counts printed, nothing kept).
+- **Minutes**: ≈ 25 min nightly + 6 × 5 min intraday ≈ 55 min/day ≈ 1,650/month — inside the 2,000 free minutes of a
+  private repo (unlimited while public). Over budget → intraday every 4 h.
+- **Scrapers**: OpenIsraeliSupermarkets `il-supermarket-scraper`, pinned in `scripts/prices/requirements.txt`
+  (Python 3.12 — 3.13+ not supported by 1.0.15). 1.0.15's default output path is broken: always pass `file_output`
+  (fetch.py does). Bump only to a release ≥ 14 days old; re-run the probe after.
+- **Blocked from GitHub** (geo-blocked, PC works): Hatzi Hinam, Netiv HaHesed, Super-Pharm →
+  `scripts/prices/prices-local.cmd` on Tal's PC (venv in `%LOCALAPPDATA%
+exus-prices`, secrets
+  `PRICES_TURSO_DATABASE_URL` / `PRICES_TURSO_AUTH_TOKEN` in `.env.local`, Task Scheduler every 3 h). Disabled in the
+  pinned scraper: Victory, Mahsanei HaShuk, H. Cohen.
+- Local tools: dry run `npx tsx scripts/prices/ingest.mts --dump <dir>` (no `TURSO_DATABASE_URL` → scratch DB);
+  logos `node scripts/prices/logos.mjs` (sites behind Cloudflare: read the image URL once in a browser → `DIRECT`).
+
 ## Vercel (Hobby) — deployments and the Function Storage limit
 - Hobby has a **10 GB Function Storage** cap = the server bundles of *every retained deployment*, all projects together.
   One Nexus deployment is roughly 100 MB (mostly `sharp`), so ~100 kept deployments fill it, and at the cap new
@@ -108,6 +126,10 @@ A long unattended round must survive the claude.ai usage limit and finish by its
 
 ## Log
 Older entries: `docs/archive/ENVIRONMENT-log.md` (`rg` it when needed).
+- 2026-10-20 (PC, R19): prices — `prices.yml` workflow (secrets `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN`, dry without
+  them), the pinned scraper on Python 3.12 (`py -3.12`), `scripts/prices/prices-local.cmd` for the 3 chains GitHub
+  can't reach (section "Prices"); test servers seed demo prices (`scripts/seed-prices.ts`); new unit tests in CI
+  (`prices catalog match deals compare estimate chat-inline`).
 - 2026-10-19 (planning chat): overnight runs keep going through usage limits — Claude Code ≥ v2.1.269 auto-continue after the reset (session left open), PC never sleeps when plugged in, auto mode, `/goal` with the round's completion condition (section "Overnight runs" under Claude Code setup).
 - 2026-10-12 (PC, R17 Session 7): new checks `test:adblock` (built app, port 3126: EasyList generic cosmetic rules from
   the vendored `scripts/fixtures/easylist-generic.txt` — refresh by hand with `node scripts/refresh-easylist.mjs`, it

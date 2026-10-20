@@ -99,6 +99,31 @@ belongs in `SPEC.md` and the round briefs, not here.
   `test:shop-offline`, `test:brands`, `test:voice`, `test:trip-look`, `test:household` (diet filter). Demo data `scripts/lib/seed-sm.mjs`; parity `scripts/parity-r18.mjs`;
   rehearsals `scripts/r18*-rehearsal.*` (newest = the one for the last DB change).
 
+## Prices (R19: price files, catalog, deals, the store directory)
+- Global price data (public files, no space_id): tables `chain`, `branch`, `catalog` + FTS5 `catalog_fts` (trigram),
+  `chain_price`, `branch_price`, `price_day`, `promo`, `promo_item`, `price_file` (`db/migrate-r19.ts`); per space
+  `product_choice` (C1), `items.catalog_gtin / match_state`, `space_store.branch_id`.
+- Jobs: `.github/workflows/prices.yml` (nightly / intraday / probe; dry without `TURSO_*` secrets) → `scripts/prices/
+  fetch.py` (pinned `il-supermarket-scraper`, `requirements.txt`) + `scripts/prices/ingest.mts` (`--plan` = stores to
+  fetch); PC-only chains `scripts/prices/prices-local.cmd`; probe `scripts/prices/probe.py`; logos `scripts/prices/
+  logos.mjs` → `public/chains/<id>.webp` + `src/lib/grocery/chain-logos.json`; reports `map-report.ts`,
+  `picture-report.ts`, `search-bench.ts`.
+- Pure libs `lib/prices/`: `parse.ts` (Stores / prices / promos, encodings, `cities.json` CBS codes), `ingest.ts`
+  (only changes, `planStores`), `catalog.ts` (best name, brand, size), `deals.ts` (`dealOf`, `applyDeal`, `bestDeal`),
+  `match.ts` (C1 `decideMatch`, search ranking), `compare.ts` (D3), `units.ts` (one units rule), `health.ts` (stale
+  > 26 h); `lib/catalog-picture.ts` (B4 thumbs, caps).
+- Reads / writes `lib/db-scoped/prices.ts` (branch search + `mapStores`, `catalogSearch`, `matchRow` / `mapRows`,
+  `smPrices`, `productPage`, `compareList`, `fillCatalogPictures`, `priceHealth`, `usualDealsFor`); actions in
+  `app/supermarket-actions.ts` (`findBranches`, `smProductCandidates`, `chooseSmProduct`, `searchCatalog`,
+  `smProductPage`, `compareSmList`, `smPricesAt`, forget / learned); `/api/grocery/search` adds catalog hits.
+- Screens `components/app/supermarket/`: `shelf.ts` (row price, `estimateList`), `money.tsx` (₪ .66 em), `choose-product.tsx`
+  (Which one?), `product-page.tsx`, `compare.tsx`, the basket card + band subtotals in `view.tsx`, `ChainLogo` + the
+  directory in `store-picker.tsx`. Admin → System → Prices (`components/admin/system.tsx`). Deal pushes: kind `deal`,
+  `usualDeals` in `lib/notify/senders.ts`. Help `lib/help/topics/10-prices.md`. Demo data `scripts/seed-prices.ts` +
+  `scripts/lib/demo-prices.ts` (smoke + test servers).
+- **Tests:** `test:prices`, `test:catalog`, `test:match`, `test:deals`, `test:compare`, `test:estimate`, `test:pictures`,
+  `test:notify`, `test:admin-access`; smoke steps "R19 …".
+
 ## Camera, barcode, voice
 - Capture `supermarket/capture.tsx` (`smPhoto`: product / receipt / list / unsure in one AI call); hook
   `components/app/use-camera.ts`; lens + scan tuning `lib/camera.ts` (`pickMainCamera`, `tuneForScan`, `focusAt`);
@@ -109,6 +134,7 @@ belongs in `SPEC.md` and the round briefs, not here.
 - **Tests:** `test:capture`, `test:barcode`, `test:voice`, `test:headers`.
 
 ## AI & assistant
+- Chat inline markup `lib/chat-inline.ts` (refs / amounts inside bold; `test:chat-inline`).
 - Floating Ask button `components/app/ask-fab.tsx` (CSS `.ask-fab` in globals.css; side `pref:ask-side`, Settings →
   Display); the assistant panel opens from that side.
 - Every model call goes through `lib/ai-gate.ts` with `use` (feature, user, space): switch, 40/day quota, redaction,
