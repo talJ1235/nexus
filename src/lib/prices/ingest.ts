@@ -293,12 +293,12 @@ export async function ingestDump(db: Client, dir: string, opts: { dry?: boolean;
       if (o) report.catalog.changed++;
       else report.catalog.new++;
       w.add({
-        sql: `INSERT INTO catalog (gtin, name, brand, manufacturer, qty, unit, weighted, internal, section, search, chains, branches, seen_at, updated_at)
-              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-              ON CONFLICT(gtin) DO UPDATE SET name = excluded.name, brand = excluded.brand, manufacturer = excluded.manufacturer, qty = excluded.qty,
+        sql: `INSERT INTO catalog (gtin, name, short, brand, manufacturer, qty, unit, weighted, internal, section, search, chains, branches, seen_at, updated_at)
+              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+              ON CONFLICT(gtin) DO UPDATE SET name = excluded.name, short = excluded.short, brand = excluded.brand, manufacturer = excluded.manufacturer, qty = excluded.qty,
                 unit = excluded.unit, weighted = excluded.weighted, section = coalesce(catalog.section, excluded.section), search = excluded.search,
                 chains = max(catalog.chains, excluded.chains), branches = max(catalog.branches, excluded.branches), seen_at = excluded.seen_at, updated_at = excluded.updated_at`,
-        args: [gtin, e.name, e.brand, e.manufacturer, e.qty, e.unit, e.weighted ? 1 : 0, e.internal ? 1 : 0, e.section, e.search, e.chains, e.branches, now, now],
+        args: [gtin, e.name, e.short, e.brand, e.manufacturer, e.qty, e.unit, e.weighted ? 1 : 0, e.internal ? 1 : 0, e.section, e.search, e.chains, e.branches, now, now],
       });
       await w.flush();
     }

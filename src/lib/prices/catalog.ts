@@ -3,6 +3,7 @@
 // weighted or not, a section from the dictionary, a short display name. Pure — test:catalog.
 import { classifyLocal } from "../grocery/classify";
 import { normalize } from "../grocery/normalize";
+import { ruleShortName } from "../short-name";
 import type { PriceRow } from "./parse";
 
 export type Unit = "g" | "kg" | "ml" | "l" | "u";
@@ -88,6 +89,8 @@ export function isRealGtin(code: string) {
 export type CatalogEntry = {
   gtin: string;
   name: string;
+  /** The list's display name when the chains' name is long (the short-name rules, ≤ 40 letters). */
+  short: string | null;
   brand: string | null;
   manufacturer: string | null;
   qty: number | null;
@@ -110,9 +113,11 @@ export function mergeProduct(gtin: string, rows: [string, PriceRow][]): CatalogE
   const size = modeBy(sizes, (s) => `${s.qty}${s.unit}`) ?? { qty: null, unit: rows.map(([, r]) => unitOf(r.unit)).find(Boolean) ?? null };
   const weighted = rows.filter(([, r]) => r.weighted).length * 2 > rows.length;
   const c = classifyLocal(name, isRealGtin(gtin) ? gtin : null);
+  const sh = name.length > 30 ? ruleShortName(name).name : null;
   return {
     gtin,
     name,
+    short: sh && sh !== name ? sh : null,
     brand,
     manufacturer: brand,
     qty: size.qty,
