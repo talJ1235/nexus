@@ -2334,14 +2334,26 @@ try {
       // Open from the button over the same screen and scroll; closing returns.
       await page.evaluate(() => window.scrollTo(0, 400));
       await page.waitForTimeout(300);
+      // What's on screen must stay put. scrollY alone isn't it: on real data the list can still grow above (R19 maps
+      // rows after the first open), and scroll anchoring moves scrollY while the content stays where it was.
+      const anchor = () =>
+        page.evaluate(() => {
+          window.__askAnchor ??= document.elementFromPoint(innerWidth / 3, innerHeight / 2)?.closest("[data-sm-row], section, li, article, div") ?? null;
+          const a = window.__askAnchor;
+          return a && a.isConnected ? Math.round(a.getBoundingClientRect().top) : null;
+        });
       const y0 = await page.evaluate(() => Math.round(window.scrollY));
+      const a0 = await anchor();
       const url0 = page.url();
       await page.locator("[data-ask-fab]").click();
       r.chat = await page.waitForSelector("[data-assistant]", { timeout: 5000 }).then(() => true, () => false);
       if (!MOBILE) r.panelSide = await page.locator(".assistant-sheet").evaluate((e) => (e.getBoundingClientRect().right >= window.innerWidth - 2 ? "right" : "left"));
       await page.keyboard.press("Escape");
       await page.waitForTimeout(500);
-      r.sameScroll = Math.abs((await page.evaluate(() => Math.round(window.scrollY))) - y0) <= 2;
+      const a1 = await anchor();
+      r.sameScroll = a0 != null && a1 != null ? Math.abs(a1 - a0) <= 2 : Math.abs((await page.evaluate(() => Math.round(window.scrollY))) - y0) <= 2;
+      if (!r.sameScroll) r.scroll = { y0, y1: await page.evaluate(() => Math.round(window.scrollY)), a0, a1 };
+      await page.evaluate(() => delete window.__askAnchor);
       r.sameUrl = page.url() === url0;
       await page.evaluate(() => window.scrollTo(0, 0));
       ok(
