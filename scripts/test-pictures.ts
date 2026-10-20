@@ -127,4 +127,25 @@ async function cacheTests() {
 
 }
 
-void cacheTests().then(() => console.log("OK test:pictures (line normalization, filtering, ranking, cache)"));
+// ---------- R19 B4: catalog products ----------
+async function catalogTests() {
+  const { catalogLineInfo, catalogThumb, underCap, PICTURE_CAPS } = await import("../src/lib/catalog-picture");
+  const { readFileSync } = await import("node:fs");
+  const milk = catalogLineInfo({ gtin: "7290000066318", name: "חלב טרי 3% תנובה", brand: "תנובה", qty: 1, unit: "l", internal: false });
+  assert.equal(milk.barcode, "7290000066318", "a real barcode leads the search (Open Food Facts first)");
+  assert.match(milk.queryHe, /חלב/);
+  assert.equal(milk.size, "1l");
+  const apple = catalogLineInfo({ gtin: "rami-levy#116", name: "תפוח עץ ירוק", brand: null, qty: 1, unit: "kg", internal: true });
+  assert.equal(apple.barcode, null, "a store code is never searched as a barcode");
+  // ≤ 20 KB webp thumbnail from a big photo.
+  const t = await catalogThumb(readFileSync("scripts/fixtures/space-photo-gps.jpg"));
+  assert.ok(t.length <= 20_000 && t.subarray(8, 12).toString() === "WEBP", `thumb ${t.length} bytes`);
+  // The day's cap.
+  assert.equal(underCap(0, 8), 8);
+  assert.equal(underCap(PICTURE_CAPS.products - 3, 8), 3);
+  assert.equal(underCap(PICTURE_CAPS.products, 8), 0);
+}
+
+void cacheTests()
+  .then(catalogTests)
+  .then(() => console.log("OK test:pictures (line normalization, filtering, ranking, cache, catalog lines + thumbnails + caps)"));

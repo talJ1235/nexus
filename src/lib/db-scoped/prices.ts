@@ -6,6 +6,11 @@ import { db, schema } from "@/db";
 import { CHAINS, chainById } from "@/lib/grocery/chains";
 import { normalize } from "@/lib/grocery/normalize";
 import type { Scoped } from "./index";
+import { put } from "@vercel/blob";
+import { kvGet, kvSet } from "@/lib/kv";
+import { safeFetch } from "@/lib/safe-fetch";
+import { picturesFor } from "@/lib/product-pictures";
+import { catalogLineInfo, catalogThumb, pictureDayKey, underCap } from "@/lib/catalog-picture";
 
 export type BranchHit = {
   id: string;
@@ -105,4 +110,63 @@ export async function mapStores(s: Scoped): Promise<number> {
     mapped++;
   }
   return mapped;
+}
+
+// ---------- B4: catalog pictures ----------
+
+/**
+ * Pictures for catalog products that have none yet (lazy: the first time they're shown / searched; nightly: the most
+ * bought). Bounded by time, by the day's cap (PICTURE_CAPS) and 3 tries per product; the system's AI budget, never a
+ * person's. The thumbnail goes to Blob (`catalog/<gtin>.webp`); without Blob the source URL is kept.
+ */
+export async function fillCatalogPictures(gtins: string[], o: { budgetMs?: number; now?: number } = {}) {
+  const now = o.now ?? Date.now();
+  const day = new Date(now + 3 * 3600_000).toISOString().slice(0, 10);
+  const used = Number((await kvGet(pictureDayKey(day))) ?? 0);
+  const rows = gtins.length
+    ? await db
+        .select()
+        .from(schema.catalog)
+        .where(and(inArray(schema.catalog.gtin, gtins.slice(0, 200)), isNull(schema.catalog.imageUrl), sql`${schema.catalog.imageTries} < 3`))
+        .limit(underCap(used, 8))
+    : [];
+  if (!rows.length) return { tried: 0, filled: 0 };
+  await kvSet(pictureDayKey(day), String(used + rows.length));
+  const out = await picturesFor(rows.map((r) => ({ name: r.name, info: catalogLineInfo({ gtin: r.gtin.split("#").pop()!, name: r.name, brand: r.brand, qty: r.qty, unit: r.unit, internal: r.internal }) })), o.budgetMs ?? 15_000);
+  let filled = 0;
+  for (const [i, r] of out.entries()) {
+    const row = rows[i];
+    const c = r.ranked.chosen;
+    const real = !!c && c.source !== "icon" && c.source !== "generic";
+    let url: string | null = null;
+    if (real) url = await thumbToBlob(c.url, row.gtin).catch(() => null);
+    await db
+      .update(schema.catalog)
+      .set(url ? { imageUrl: url, imageSrc: c!.source === "barcode" || c!.source === "off" ? "off" : c!.source === "own" ? "own" : "search", imageAt: now, imageTries: row.imageTries + 1 } : { imageTries: row.imageTries + 1, imageSrc: row.imageTries >= 2 ? "none" : null })
+      .where(eq(schema.catalog.gtin, row.gtin));
+    if (url) filled++;
+  }
+  return { tried: rows.length, filled };
+}
+
+async function thumbToBlob(src: string, gtin: string): Promise<string | null> {
+  const m = src.match(/^data:image\/[a-z0-9.+-]+;base64,(.+)$/i);
+  if (m && !process.env.BLOB_READ_WRITE_TOKEN) return src.length < 6000 ? src : null;
+  const buf = m ? Buffer.from(m[1], "base64") : (await safeFetch(src, { timeoutMs: 7000, maxBytes: 8_000_000, headers: { accept: "image/*" } })).body;
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return src;
+  const webp = await catalogThumb(buf);
+  const blob = await put(`catalog/${gtin.replace(/[^\w-]/g, "_")}.webp`, webp, { access: "public", contentType: "image/webp", addRandomSuffix: true });
+  return blob.url;
+}
+
+/** The products the homes buy most (mapped list rows), for the nightly picture batch. */
+export async function mostBought(limit = 40): Promise<string[]> {
+  const rows = await db
+    .select({ gtin: schema.items.catalogGtin, n: sql<number>`count(*)` })
+    .from(schema.items)
+    .where(sql`${schema.items.catalogGtin} IS NOT NULL`)
+    .groupBy(schema.items.catalogGtin)
+    .orderBy(sql`count(*) desc`)
+    .limit(limit);
+  return rows.map((r) => r.gtin!).filter(Boolean);
 }

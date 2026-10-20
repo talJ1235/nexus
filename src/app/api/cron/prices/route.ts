@@ -1,3 +1,4 @@
+import { fillCatalogPictures, mostBought } from "@/lib/db-scoped/prices";
 import { del } from "@vercel/blob";
 import { type NextRequest } from "next/server";
 import { safeEqualStr } from "@/lib/auth/crypto";
@@ -99,6 +100,10 @@ export async function GET(req: NextRequest) {
       await getProfile({ user: { id: sp.ownerId }, space: { id: sp.id } }, currency, true).catch(failed("profile", null));
     }
   }
+  // R19 B4: real pictures for the catalog products the homes buy most (the day's cap, the system's AI budget).
+  const catalogPictures = await mostBought(40)
+    .then((g) => fillCatalogPictures(g, { budgetMs: Math.max(3_000, 55_000 - (Date.now() - started)) }))
+    .catch(failed("catalog-pictures", { tried: 0, filled: 0 }));
   const purged = await purgeDeletedSpaces().catch(failed("purge-spaces", 0));
   // R16 B1: change-feed tombstones are kept 30 days. C2: error samples too (counts stay).
   const tombstones = await purgeTombstones().catch(failed("tombstones", 0));
@@ -118,7 +123,7 @@ export async function GET(req: NextRequest) {
   const notifyPurged = await purgeNotifications().catch(failed("notify-purge", { notifications: 0, subscriptions: 0 }));
   // R18 S2 G1: the supermarket's kv caches and one-time marks (lib/kv GROCERY_KV_KEEP).
   const groceryKv = await purgeGroceryKv().catch(failed("grocery-kv", 0));
-  const summary = { at: Date.now(), ms: Date.now() - started, presence: presence.presence + presence.activity, notifyPurged, groceryKv, notified, spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, shortNames, smNotes, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
+  const summary = { at: Date.now(), ms: Date.now() - started, presence: presence.presence + presence.activity, notifyPurged, groceryKv, notified, spaces: spaces.length, fetched: result.fetched, checked: result.checked, blocked: result.blocked, remaining: result.remaining, alerts: result.alerts.length, repair, images, pictures, catalogPictures, shortNames, smNotes, purged, tombstones, errorSamples, errorsPurged, accountsPurged };
   await kvSet("pref:last_check", JSON.stringify(summary));
   return Response.json(summary);
 }
