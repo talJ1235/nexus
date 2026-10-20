@@ -397,3 +397,60 @@ async function dealsFor(gtins: string[], at: PriceAt, now: number) {
   }
   return out;
 }
+
+// ---------- D2: the product page ----------
+
+/** D2: one product — at my store (price, deals, when), every chain's price (+ the branches people chose), 90 days of my
+ *  chain's price, cheaper products of the same type (by unit price at my store), and what the home taught Nexus. */
+export async function productPage(s: Scoped, gtin: string, o: { itemId?: string | null; now?: number } = {}) {
+  const now = o.now ?? Date.now();
+  const [p] = await db.select().from(schema.catalog).where(eq(schema.catalog.gtin, gtin)).limit(1);
+  if (!p) return null;
+  const at = await priceStoreOf(s);
+  const [here, deals, chains, own, history, branchRow] = await Promise.all([
+    pricesAt([gtin], at),
+    at.chainId ? dealsFor([gtin], at, now) : Promise.resolve(new Map<string, ListDeal[]>()),
+    db.select().from(schema.chainPrice).where(eq(schema.chainPrice.gtin, gtin)),
+    db.select().from(schema.branchPrice).where(eq(schema.branchPrice.gtin, gtin)),
+    at.chainId ? db.select().from(schema.priceDay).where(and(eq(schema.priceDay.gtin, gtin), eq(schema.priceDay.chainId, at.chainId), sql`${schema.priceDay.day} >= ${new Date(now - 90 * 86_400_000).toISOString().slice(0, 10)}`)) : Promise.resolve([]),
+    at.branchId ? db.select().from(schema.branch).where(eq(schema.branch.id, at.branchId)).limit(1) : Promise.resolve([]),
+  ]);
+  const ownBranches = own.length ? await branchesById(own.map((b) => b.branchId)) : new Map<string, BranchHit>();
+  const rows = [
+    ...chains.map((c) => ({ chain: c.chainId, branchId: null as string | null, where: null as string | null, price: c.price, low: c.low, high: c.high })),
+    ...own
+      .filter((b) => ownBranches.has(b.branchId))
+      .map((b) => ({ chain: b.branchId.split(":")[0], branchId: b.branchId, where: ownBranches.get(b.branchId)!.name, price: b.price, low: null, high: null })),
+  ].sort((a, b) => a.price - b.price);
+  // Same type, cheaper per unit at my store.
+  const type = classifyLocal(p.name).type;
+  const typeHe = typeOf(type)?.he;
+  let cheaper: CatalogHit[] = [];
+  const myPrice = here.get(gtin)?.price ?? null;
+  if (typeHe && at.chainId && myPrice != null) {
+    const per = (h: { price: number | null; qty: number | null; unit: string | null }) => (h.price == null ? 9e9 : h.qty && h.unit && h.unit !== "u" ? h.price / (h.unit === "g" || h.unit === "ml" ? h.qty / 1000 : h.qty) : h.price);
+    const mine = per({ price: myPrice, qty: p.qty, unit: p.unit });
+    cheaper = (await catalogSearch(typeHe, at, { limit: 40 }))
+      .filter((h) => h.gtin !== gtin && h.price != null && classifyLocal(h.name).type === type && (h.unit === p.unit || (["g", "kg"].includes(h.unit ?? "") && ["g", "kg"].includes(p.unit ?? "")) || (["ml", "l"].includes(h.unit ?? "") && ["ml", "l"].includes(p.unit ?? ""))) && per(h) < mine * 0.97)
+      .sort((a, b) => per(a) - per(b))
+      .slice(0, 3);
+  }
+  // What the home taught Nexus: this product for the row's typed name.
+  let learned: { key: string; on: boolean; label: string } | null = null;
+  if (o.itemId) {
+    const it = await s.byId(schema.items, o.itemId);
+    if (it) {
+      const key = nameKey(it.title);
+      const [ch] = await s.select(schema.productChoice, eq(schema.productChoice.nameKey, key)).limit(1);
+      learned = { key, on: ch?.gtin === gtin, label: it.title };
+    }
+  }
+  return {
+    product: { gtin: p.gtin, name: p.name, short: p.short, brand: p.brand, qty: p.qty, unit: p.unit, weighted: p.weighted, internal: p.internal, section: p.section, imageUrl: p.imageUrl, imageSrc: p.imageSrc },
+    here: { chain: at.chainId, branchId: at.branchId, branchName: branchRow[0]?.name ?? null, price: myPrice, unitPrice: here.get(gtin)?.unit ?? null, deals: deals.get(gtin) ?? [], updatedAt: branchRow[0]?.pricesAt ?? null },
+    chains: rows,
+    history: history.map((h) => ({ day: h.day, price: h.price, deal: h.deal })).sort((a, b) => a.day.localeCompare(b.day)),
+    cheaper,
+    learned,
+  };
+}

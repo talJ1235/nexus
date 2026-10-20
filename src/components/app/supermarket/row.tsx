@@ -266,6 +266,7 @@ export function Row({ item, unitKg, peek = false }: { item: ItemWithSources; uni
         style={sw.x ? { transform: `translateX(${sw.offset(dir)}px)` } : undefined}
         {...sw.bind}
         data-sm-row={item.id}
+        data-sm-gtin={item.catalogGtin ?? undefined}
         data-settled={useSettled(item.id)}
         data-open={delOpen ? "delete" : qtyOpen ? "qty" : undefined}
       >
@@ -273,7 +274,7 @@ export function Row({ item, unitKg, peek = false }: { item: ItemWithSources; uni
             stacking context); only the name's letters (rename) and the chip / price sit above it as their own buttons. */}
         {!renaming && <button type="button" className="gro-hit" onClick={() => openSmItem(item.id)} tabIndex={-1} aria-hidden data-sm-row-hit />}
         <button type="button" className="gro-tile-btn shrink-0 rounded-[13px]" onClick={() => openSmItem(item.id)} aria-label={f(t.sm.row.open, { title: item.title })} data-sm-row-tile>
-          <ProductTile art={item.artKey} section={item.section} photo={item.imageUrl} size={44} />
+          <ProductTile art={item.artKey} section={item.section} photo={item.imageUrl ?? shelf?.items[item.id]?.imageUrl ?? null} size={44} />
         </button>
         {renaming ? (
           <input

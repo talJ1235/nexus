@@ -21,6 +21,7 @@ import { asItem, chainDef, monoColor, useAddMany, useEstimate, useMonthLeft, use
 import { onSmIntent, takeSmIntent, type SmIntent } from "./intent";
 import { AddScreen, type AddMode } from "./add-screen";
 import { ChooseProduct } from "./choose-product";
+import { openProduct, ProductPage } from "./product-page";
 import { Money } from "./money";
 import { rowPrice } from "./shelf";
 import { Capture } from "./capture";
@@ -154,8 +155,18 @@ export function SupermarketView() {
       window.removeEventListener("paste", paste);
     };
   }, [desk, ro]);
+  // R19 A5 / D2: a row with its product opens the product page (the row's own sheet is its pencil); others the sheet.
+  const smRef = useRef(s.sm);
   useEffect(() => {
-    const on = (e: Event) => setOpenId((e as CustomEvent<string>).detail);
+    smRef.current = s.sm;
+  }, [s.sm]);
+  useEffect(() => {
+    const on = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      const it = smRef.current.find((x) => x.id === id);
+      if (it?.catalogGtin) openProduct({ gtin: it.catalogGtin, itemId: it.id });
+      else setOpenId(id);
+    };
     window.addEventListener(OPEN_ITEM, on);
     return () => window.removeEventListener(OPEN_ITEM, on);
   }, []);
@@ -240,6 +251,7 @@ export function SupermarketView() {
       {!ro && <Capture open={capturing != null} mode={capturing ?? "scan"} onClose={() => setCapturing(null)} onType={typeInstead} />}
       <SmItemSheet itemId={openId} onClose={closeSheet} />
       <ChooseProduct />
+      <ProductPage onEdit={(id) => setOpenId(id)} />
       <StoreMode open={shopping} onClose={() => setShopping(false)} onPickStore={() => setPicking(true)} />
       <AddScreen open={adding != null} mode={adding ?? "type"} hint={addHint} seed={addSeed} onClose={() => (setAdding(null), setAddHint(null), setAddSeed(null))} onCapture={(k) => (setAdding(null), capture(k))} />
     </>

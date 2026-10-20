@@ -155,6 +155,28 @@ export async function searchCatalog(q: string) {
   return hits;
 }
 
+/** R19 D2: the product page (opened from a row, the search, the compare screen). */
+export async function smProductPage(gtin: string, itemId?: string | null) {
+  const ctx = await requireCtx("view");
+  const s = scoped(ctx);
+  const r = await P.productPage(s, Gtin.parse(gtin), { itemId: itemId ? Id.parse(itemId) : null });
+  if (r && !r.product.imageUrl) after(() => P.fillCatalogPictures([r.product.gtin], { budgetMs: 12_000 }).catch(() => {}));
+  return r;
+}
+
+/** R19 D2: the page's "what Nexus learned" switch — this product for the row's name, or forget it. */
+export async function setProductLearned(itemId: string, gtin: string, on: boolean) {
+  const ctx = await requireCtx("edit");
+  const s = scoped(ctx);
+  const it = await s.byId(schema.items, Id.parse(itemId));
+  if (!it || it.list !== "supermarket") throw new AccessError("not_found");
+  if (z.boolean().parse(on)) await P.chooseProduct(s, { id: it.id, title: it.title }, { gtin: Gtin.parse(gtin), anyType: null }, { remember: true, by: ctx.user.id });
+  else {
+    const { nameKey } = await import("@/lib/prices/match");
+    await P.forgetChoice(s, nameKey(it.title));
+  }
+}
+
 /** R19 C1: "What Nexus learned" — the remembered products, and forgetting one (null = all). */
 export async function smProductChoices() {
   const ctx = await requireCtx("view");

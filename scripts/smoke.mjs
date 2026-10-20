@@ -2512,6 +2512,53 @@ try {
           "prices in the list (R19 C3 + D1 + C2): mapped rows priced, deal line, basket card, which one? → priced", JSON.stringify(r));
       });
 
+    // R19 D2 (boards Product-phone, Product-desktop): a priced row opens the product page — photo / name / brand + size,
+    // the price at my store, every chain (Shufersal + Rami Levy, the cheapest marked, mine highlighted), the 90-day line,
+    // the stepper + "In the list"; the worst case (a 90-letter name, ₪1,234.90) fits at 360 / 390 / 1366 without sideways scroll.
+    if (WRITE)
+      await step("product page (R19 D2): from a priced row, at my store + every chain + history, worst case fits", async () => {
+        const r = {};
+        await page.goto(`${BASE}/supermarket`);
+        await page.waitForSelector("[data-sm-view] [data-sm-row-price]", { timeout: 20000 });
+        // A row whose product is a real barcode (sold by both demo chains); its picture opens the product.
+        const id = await page.locator("[data-sm-sw]:has([data-sm-row-price]) [data-sm-row]").evaluateAll((els) => els.find((e) => /^\d{13}$/.test(e.getAttribute("data-sm-gtin") ?? ""))?.getAttribute("data-sm-row"));
+        const tile = page.locator(`[data-sm-row="${id}"] [data-sm-row-tile]`);
+        await tile.evaluate((e) => e.scrollIntoView({ block: "center" }));
+        await tile.click();
+        await page.waitForSelector("[data-product-page] [data-product-here]", { timeout: 10000 });
+        r.name = (await page.locator("[data-product-name]").textContent())?.trim();
+        r.here = await page.locator("[data-product-here] .money").count();
+        r.chains = await page.locator("[data-product-chain]").count();
+        r.mine = await page.locator("[data-product-chain][data-mine=yes]").count();
+        r.history = Number(await page.locator("[data-product-history]").getAttribute("data-product-history").catch(() => 0));
+        r.cta = (await page.locator("[data-product-cta]").textContent())?.trim();
+        await page.waitForTimeout(500);
+        await shot(page, "d2-product");
+        await page.keyboard.press("Escape");
+        await page.waitForSelector("[data-product-page]", { state: "detached", timeout: 5000 }).catch(() => {});
+        // Worst case at each width.
+        r.fit = {};
+        for (const w of MOBILE ? [360, 390] : [1366]) {
+          await page.setViewportSize({ width: w, height: MOBILE ? 800 : 860 });
+          await page.evaluate(() => window.dispatchEvent(new CustomEvent("nexus:sm-product", { detail: { gtin: "7290000099999", itemId: null } })));
+          await page.waitForSelector("[data-product-page] [data-product-here]", { timeout: 10000 });
+          await page.waitForTimeout(400);
+          r.fit[w] = await page.evaluate(() => {
+            const b = document.querySelector("[data-product-body]");
+            const n = document.querySelector("[data-product-name]");
+            const big = document.querySelector("[data-product-here] .money");
+            return { over: b.scrollWidth > b.clientWidth + 1, nameCut: n.scrollWidth > n.clientWidth + 1, price: big?.textContent, priceIn: big ? big.getBoundingClientRect().right <= innerWidth && big.getBoundingClientRect().left >= 0 : false };
+          });
+          if (w === 360) await shot(page, "d2-product-worst-360");
+          await page.keyboard.press("Escape");
+          await page.waitForSelector("[data-product-page]", { state: "detached", timeout: 5000 }).catch(() => {});
+        }
+        await page.setViewportSize(VIEWPORT);
+        const fits = Object.values(r.fit).every((x) => !x.over && !x.nameCut && x.priceIn && /1,234.90/.test(x.price));
+        ok(r.name && r.here >= 1 && r.chains >= 2 && r.mine >= 1 && r.history >= 1 && /\d/.test(r.cta) && fits,
+          "product page (R19 D2): from a priced row, at my store + every chain + history, worst case fits", JSON.stringify(r));
+      });
+
     // R19 A10 (board Stores-phone): the store directory — every chain of the transparency list (8 + more, real logos for
     // the big ones, never a first letter), real branches from the Stores files: a street finds its branch, a city too, a
     // chain narrows; no free-text stores; the household's old typed stores stay (the unmatched ones ask once).

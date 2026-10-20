@@ -287,6 +287,27 @@ export const smEn = {
     addedProducts: "Added to Products: {title}",
     productNone: "No product could be read — type it instead.",
   },
+  // R19 D2: the product page.
+  product: {
+    title: "Product",
+    edit: "Edit the row",
+    gone: "This product isn't in the catalog any more.",
+    per100: "{price} per 100 {unit}",
+    atYours: "At your store · {store}",
+    each: "each",
+    perKg: "per kg",
+    until: "until {date}",
+    history: "Price in the last 90 days",
+    lowest: "Lowest: {price}",
+    allChains: "The same product at every chain",
+    cheapest: "cheapest",
+    yours: "yours",
+    cheaper: "Same type, cheaper",
+    learned: "When “{name}” goes on the list — this product",
+    inList: "In the list · {n}",
+    add: "Add to the list",
+    added: "{name} added",
+  },
   // R19 D1: prices and deals in the list.
   shelf: {
     nFor: "{n} for {price}",
