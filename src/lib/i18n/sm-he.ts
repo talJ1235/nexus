@@ -50,6 +50,8 @@ export const smHe: Widen<typeof smEn> = {
     failed: "לא נשמר — אפשר לנסות שוב",
   },
   sug: {
+    deals: "במבצע עכשיו: {title} · {deal}",
+    dealsMore: "ועוד {n} מהקבועים",
     title: "Nexus מציע",
     sub: "{n} דברים שאתם קונים בדרך כלל",
     subOne: "דבר אחד שאתם קונים בדרך כלל",

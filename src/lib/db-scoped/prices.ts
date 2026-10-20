@@ -531,3 +531,34 @@ export async function compareList(s: Scoped, o: { club?: boolean; now?: number }
   for (const [id, b] of branchNames) names[id] = b.name;
   return { mine, ranked, split, names, rows: items.length };
 }
+
+// ---------- E1: the home's usual products on a deal ----------
+
+export type UsualDeal = { gtin: string; title: string; promoId: string; kind: string; n: number; price: number | null; rate: number | null; club: boolean; ends: number | null };
+
+/**
+ * E1: deals running now at the home's store on the products it buys regularly — the ones it chose for a typed name
+ * (`product_choice`) and the ones on its supermarket list (any state). `skip` = promotion ids already told.
+ */
+export async function usualDealsFor(s: Scoped, o: { now?: number; skip?: Set<string> } = {}): Promise<{ chain: string | null; deals: UsualDeal[] }> {
+  const now = o.now ?? Date.now();
+  const at = await priceStoreOf(s);
+  if (!at.chainId) return { chain: null, deals: [] };
+  const chosen = (await s.select(schema.productChoice)).map((c) => c.gtin).filter(Boolean) as string[];
+  const listed = (await s.pick({ g: schema.items.catalogGtin }, schema.items, and(eq(schema.items.list, "supermarket"), sql`${schema.items.catalogGtin} IS NOT NULL`))).map((r) => r.g!) as string[];
+  const gtins = [...new Set([...chosen, ...listed])];
+  if (!gtins.length) return { chain: at.chainId, deals: [] };
+  const rows = await promosFor(gtins, { chainId: at.chainId, now });
+  const storeId = at.branchId ? Number(at.branchId.split(":")[1]) : null;
+  const names = new Map((await db.select({ gtin: schema.catalog.gtin, name: schema.catalog.name, short: schema.catalog.short }).from(schema.catalog).where(inArray(schema.catalog.gtin, gtins))).map((c) => [c.gtin, c.short ?? c.name]));
+  const seen = new Set<string>();
+  const deals: UsualDeal[] = [];
+  for (const { gtin, p } of rows) {
+    if (seen.has(p.id) || o.skip?.has(p.id)) continue;
+    if (p.stores && storeId != null && !p.stores.includes(storeId)) continue;
+    if (p.kind === "other") continue;
+    seen.add(p.id);
+    deals.push({ gtin, title: names.get(gtin) ?? gtin, promoId: p.id, kind: p.kind, n: p.minQty ?? 1, price: p.price, rate: p.rate, club: p.club, ends: p.ends });
+  }
+  return { chain: at.chainId, deals };
+}

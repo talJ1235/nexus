@@ -335,10 +335,48 @@ async function supermarket() {
   console.log("ok D4 supermarket pushes: draft / adds while you shopped / sent from the computer (he + en), payload kind + Open the list, send targets");
 }
 
+/** R19 E1: "your usual product is on a deal" — once a day per space, owner + members (never viewers), told once. */
+async function deals() {
+  const { db, schema } = await import("../src/db");
+  const { and, eq } = await import("drizzle-orm");
+  const S = await import("../src/lib/notify/senders");
+  const { rowText } = await import("../src/lib/notify/text");
+  const { dictionaries } = await import("../src/lib/i18n");
+  const d = new Date(IL(10, 12));
+  await db.insert(schema.space).values({ id: "dl", name: "Deal Home", slug: "dl", kind: "shared", createdBy: "noa", createdAt: d } as never);
+  let mid = 50;
+  for (const [u, r] of [["noa", "owner"], ["yoav", "member"], ["maya", "viewer"]]) await db.insert(schema.member).values({ id: `mm${mid++}`, organizationId: "dl", userId: u, role: r, createdAt: d } as never);
+  await db.insert(schema.spaceStore).values({ spaceId: "dl", chain: "shufersal", branch: "", isDefault: true } as never);
+  await db.insert(schema.catalog).values({ gtin: "8076800195057", name: "פסטה פנה ריגטה ברילה 500 גרם", short: "פסטה פנה ברילה", search: "פסטה פנה", chains: 3 } as never);
+  await db.insert(schema.items).values({ id: "dl-pen", spaceId: "dl", title: "Penne", list: "supermarket", status: "to_buy", quantity: 2, catalogGtin: "8076800195057", createdAt: IL(10, 9), updatedAt: IL(10, 9) } as never);
+  const now = IL(10, 12);
+  await db.insert(schema.promo).values({ id: "shufersal:9001", chainId: "shufersal", promoId: "9001", description: "פסטה ברילה 2 ב-10", kind: "n_for", minQty: 2, price: 10, starts: now - 86_400_000, ends: now + 5 * 86_400_000, items: 1, seenAt: now } as never);
+  await db.insert(schema.promoItem).values({ promoId: "shufersal:9001", gtin: "8076800195057" } as never);
+  const rows = (u: string) => db.select().from(schema.notification).where(and(eq(schema.notification.userId, u), eq(schema.notification.kind, "deal")));
+  assert.ok((await S.usualDeals(now)) >= 2);
+  assert.equal((await rows("noa")).length, 1, "the owner hears about it");
+  assert.equal((await rows("yoav")).length, 1, "a member too");
+  assert.equal((await rows("maya")).length, 0, "never a viewer");
+  const data = JSON.parse((await rows("yoav"))[0].data);
+  assert.deepEqual([rowText("deal", data, dictionaries.en.nt, "en").title, rowText("deal", data, dictionaries.en.nt, "en").sub], ["פסטה פנה ברילה · 2 for ₪10", "at Shufersal"]);
+  assert.match(rowText("deal", data, dictionaries.he.nt, "he").sub, /^בשופרסל$/);
+  // Same day again: nothing new; the next day: the same promotion isn't told twice.
+  assert.equal(await S.usualDeals(now + 3_600_000), 0);
+  assert.equal(await S.usualDeals(now + 86_400_000), 0);
+  assert.equal((await rows("yoav")).length, 1);
+  // A new deal the next day → one more (a new day's row).
+  await db.insert(schema.promo).values({ id: "shufersal:9002", chainId: "shufersal", promoId: "9002", description: "פסטה ברילה ב-5.90", kind: "price", minQty: 1, price: 5.9, starts: now, ends: now + 5 * 86_400_000, items: 1, seenAt: now } as never);
+  await db.insert(schema.promoItem).values({ promoId: "shufersal:9002", gtin: "8076800195057" } as never);
+  assert.ok((await S.usualDeals(now + 86_400_000)) >= 1);
+  assert.equal((await rows("yoav")).length, 2);
+  console.log("ok R19 E1 usual deals: once a day per space, owner + members (no viewers), a promotion told once, he + en text");
+}
+
 unit()
   .then(withDb)
   .then(senders)
   .then(supermarket)
+  .then(deals)
   .then(() => process.exit(0))
   .catch((e) => {
     console.error(e);

@@ -4,7 +4,7 @@ import { ChainLogo } from "./store-picker";
 import "./sm.css";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, ArrowRight, Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, History, LayoutList, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, ShoppingCart, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, ChevronDown, ChevronRight, ClipboardPaste, CloudOff, Eye, History, LayoutList, ListOrdered, Mic, MoreHorizontal, Plus, ScanBarcode, ShoppingBasket, ShoppingCart, Sparkles, Tag, X } from "lucide-react";
 import { useI18n } from "@/components/providers";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/overlays";
 import { acceptSuggestions, dismissSuggestion, seenSwipeHint, setSupermarketLayout } from "@/app/supermarket-actions";
@@ -713,6 +713,16 @@ function Suggestions({ home, basket, draft, ro, forceOpen = false }: { home: SmH
         </span>
         <ChevronDown className={cn("size-4 shrink-0 text-muted transition-transform duration-200 ease-[var(--ease-out)]", !open && "-rotate-90 rtl:rotate-90")} />
       </button>
+      {/* R19 E1: the home's usual products on a deal at its store, as one line. */}
+      {(home?.usualDeals?.length ?? 0) > 0 && (
+        <p className="bidi flex items-center gap-1.5 px-3.5 pb-2 text-[12.5px] font-semibold text-[var(--deal)]" data-sm-sug-deals={home!.usualDeals!.length}>
+          <Tag className="size-3.5 shrink-0" />
+          <span className="truncate">
+            {f(t.sm.sug.deals, { title: home!.usualDeals![0].title, deal: home!.usualDeals![0].kind === "n_for" && home!.usualDeals![0].price != null ? f(t.sm.shelf.nFor, { n: home!.usualDeals![0].n, price: `₪${home!.usualDeals![0].price}` }) : home!.usualDeals![0].price != null ? f(t.sm.shelf.dealPrice, { price: `₪${home!.usualDeals![0].price.toFixed(2)}` }) : t.sm.match.deal })}
+            {home!.usualDeals!.length > 1 ? ` · ${f(t.sm.sug.dealsMore, { n: home!.usualDeals!.length - 1 })}` : ""}
+          </span>
+        </p>
+      )}
       <div className="gro-sec-b gro-sug-b" style={{ gridTemplateRows: open ? "1fr" : "0fr", transitionDuration: `${motion.ms}ms` }}>
         <div ref={body}>
           {list.map((x, i) => (

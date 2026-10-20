@@ -42,6 +42,7 @@ below), not only on the boards.
 - D4 — the store picker shows the estimate (board Stores-phone): every branch row (search results and the home's stores) carries the open list's total there — the branch's own prices when it has them, else its chain's (from D3's `compareSmList`). Smoke: Rami Levy · Talpiot shows its estimate.
 - D5 — catalog search with pictures: the add bar's type-ahead (`/api/grocery/search`) puts catalog products after the home's own (photo, brand · size, the price at the home's store; the typed letters bold; the home's products / usual brands lead the ranking; "did you mean" kept; Open Food Facts only when the catalog has nothing); + adds with the barcode so C1 maps it exactly; Enter on free text adds as before (then C1). "Search a product" (A3) lands here. Smoke: "פסט" → Barilla penne with its photo + ₪7.50 → added, priced.
 - D6 — real prices everywhere they're estimated: one `estimateList` (`shelf.ts`) for the Supermarket header, Home's "Next shop" / budget pace (`useEstimate`), the trip bar, the start screen and store mode's total + spent — rows with their product at the store's price with the deal that fits, the rest at the last price paid as before; the same units rule as the rows (`lib/prices/units.ts`). `test:estimate` green (deals, fallback, weighed kg, no store, the row's price).
+- E1 — "Your usual product is on a deal": `usualDeals` (in the hourly notify sweeps) finds deals running now at the home's store on the products it chose for a typed name or has on its list, sends one batched notification a day per space at most ("פסטה פנה ברילה · 2 for ₪10" · "at Shufersal · and 2 more of your usual"), owner + members, never viewers, the usual push rules (quiet at night), each promotion told once (60 days); a tap opens the Supermarket; the same deals show as a line in "Nexus suggests". New kind `deal` (TypeScript enum only — no DB change). `test:notify` case green.
 ### Decisions" at once; anything for Tal in "
 - A2: the computer sidebar's active row already has a tint + a 3 px accent bar + 600 ink (R14 B1) — it reads clearly, left as is. The dock pill measures the icon from the pill's own parent (a parent's ref isn't attached yet in a child's layout effect).
 - A3: the Home menu only replaces the "+" on Home — Products / Insights keep the R16 add list (its barcode / receipt / plan / import flows and their tests stay). "Search a product" opens the Supermarket add screen; D5 turns its search into the catalog.
@@ -244,7 +245,7 @@ Start-trip estimate, store mode total, trip finish vs budget, Home "Next shop" /
 forecast use the catalog prices when mapped (fallback as today). **Acceptance:** unit on the estimate function.
 
 ## Part E — deals that matter (optional if time is short)
-### E1 [ ] "Your usual product is on a deal"
+### E1 [x] "Your usual product is on a deal"
 When a product the home buys regularly gets a deal at its store: one batched notification per day at most ("Barilla
 penne 2 for ₪10 at Shufersal Deal"), following the existing push rules (night quiet, owner + members, never viewers),
 and a line in "Nexus suggests". **Acceptance:** `test:notify` case.

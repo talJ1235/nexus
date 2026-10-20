@@ -47,6 +47,8 @@ export const smEn = {
   },
   sug: {
     title: "Nexus suggests",
+    deals: "On a deal now: {title} · {deal}",
+    dealsMore: "{n} more of your usual",
     sub: "{n} things you usually buy",
     subOne: "1 thing you usually buy",
     readyFor: "Ready for {day}",

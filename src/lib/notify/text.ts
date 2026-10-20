@@ -3,7 +3,7 @@
 
 import { fmt, type Dict } from "../i18n";
 import { formatMoney } from "../money";
-import type { ActivityData, BudgetData, DeliveryData, DraftData, NotifyKind, PriceData, SentData, ShopData, TripAddData, WeekData } from "./kinds";
+import type { ActivityData, BudgetData, DealData, DeliveryData, DraftData, NotifyKind, PriceData, SentData, ShopData, TripAddData, WeekData } from "./kinds";
 import { chainById } from "../grocery/chains";
 
 type NT = Dict["nt"];
@@ -70,6 +70,14 @@ export function rowText(kind: NotifyKind, raw: unknown, nt: NT, locale: string):
     case "delivery": {
       const d = raw as DeliveryData;
       return { title: nt.delToday, sub: [short(d.title, 40), d.store].filter(Boolean).join(" · "), action: d.received ? undefined : "received", done: !!d.received };
+    }
+    case "deal": {
+      const d = raw as DealData;
+      const c = chainById(d.chain);
+      const store = c ? (locale === "he" ? c.he : c.en) : d.chain;
+      const deal =
+        d.kind === "n_for" && d.price != null ? fmt(nt.dealNFor, { n: d.n, price: money(d.price, "ILS") }) : d.kind === "price" && d.price != null ? fmt(nt.dealPrice, { price: money(d.price, "ILS") }) : d.kind === "pct" && d.rate ? fmt(nt.dealPct, { rate: Math.round(d.rate) }) : nt.dealSecond;
+      return { title: fmt(nt.deal, { title: short(d.title, 40), deal }), sub: [fmt(nt.dealAt, { store }), d.club ? nt.dealClub : null, d.more ? fmt(nt.dealMore, { n: d.more }) : null].filter(Boolean).join(" · "), action: "open" };
     }
     case "budget": {
       const d = raw as BudgetData;

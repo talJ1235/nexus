@@ -13,7 +13,7 @@ import { notify, notifyPrefs, sendNow } from "./enqueue";
 import { addCheck, finishTrip, openTripOf, openTrips, openTripsIn, SAME_TRIP_MS, setTripLeft, draftGateOf, shoppingSpaces, startTrip, tripScope, type TripRow } from "../db-scoped/trips";
 import { defaultStore, historyOf, refreshSuggestedOrder, suggestFor, supermarketList } from "../db-scoped/grocery";
 import { kvGet, kvSet } from "../kv";
-import { type DraftData, type SentData, type TripAddData } from "./kinds";
+import { type DealData, type DraftData, type SentData, type TripAddData } from "./kinds";
 import { draftAllowed } from "../grocery/staples";
 import { ONBOARDING_KEY, parseOnboarding, people } from "../onboarding";
 import { isQuiet } from "./schedule";
@@ -412,6 +412,40 @@ export async function sentToPhone(byId: string, spaceId: string, to: string[], l
 }
 
 /** The hourly dispatcher's sweeps (each step on its own: one failing never stops the others). */
+/**
+ * R19 E1: "Your usual product is on a deal" — per space, the home's regular products (chosen / on its list) on a deal at
+ * its store, one batched notification a day at most (the first + "and N more"), owner + members, never viewers; the
+ * usual push rules (quiet at night). A promotion is told once (kv `deal:told:<space>`, 60 days).
+ */
+export async function usualDeals(now = Date.now()) {
+  const { usualDealsFor } = await import("../db-scoped/prices");
+  const { systemSpaces } = await import("../db-scoped/system");
+  let n = 0;
+  for (const sp of await systemSpaces()) {
+    const s = new Scoped({ spaceId: sp.id, userId: sp.ownerId, by: "system" });
+    const toldKey = `deal:told:${sp.id}`;
+    const told = parse<Record<string, number>>(await kvGet(toldKey)) ?? {};
+    const { chain, deals } = await usualDealsFor(s, { now, skip: new Set(Object.keys(told)) }).catch(() => ({ chain: null, deals: [] as never[] }));
+    if (!chain || !deals.length) continue;
+    const tz = (await notifyPrefs(sp.ownerId ?? "", now)).tz;
+    const day = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date(now));
+    const group = `deal:${sp.id}:${day}`;
+    const to = (await spaceAudience(sp.id, null)).filter((m) => m.role !== "viewer").map((m) => m.userId);
+    const fresh: string[] = [];
+    for (const u of to) if (!(await notificationByGroup(u, group))) fresh.push(u);
+    if (!fresh.length) continue;
+    const brief = await spaceBrief(sp.id);
+    const first = deals[0];
+    const data: DealData = { space: brief?.name ?? "", chain, title: first.title, kind: first.kind, n: first.n, price: first.price, rate: first.rate, club: first.club, more: deals.length - 1 };
+    await notify(fresh, "deal", group, data, { actor: null, spaceId: sp.id, now });
+    for (const d of deals) told[d.promoId] = now;
+    for (const [k, at] of Object.entries(told)) if (now - at > 60 * DAY) delete told[k];
+    await kvSet(toldKey, JSON.stringify(told));
+    n += fresh.length;
+  }
+  return n;
+}
+
 export async function runNotifySweeps(now = Date.now()) {
   const step = async (f: () => Promise<number>) => {
     try {
@@ -426,6 +460,7 @@ export async function runNotifySweeps(now = Date.now()) {
     budget: await step(() => budgetAlerts(now)),
     week: await step(() => weeklySummaries(now)),
     drafts: await step(() => eveningDrafts(now)),
+    deals: await step(() => usualDeals(now)),
   };
 }
 

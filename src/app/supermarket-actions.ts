@@ -261,11 +261,11 @@ export async function supermarketHome(locale?: "he" | "en") {
   // update through live sync). D1: the list's prices + deals at the store.
   const s = scoped(ctx);
   if (ctx.role !== "viewer") after(() => P.mapRows(s, 40, (title) => B.usualBrandFor(s, title).then((u) => u?.brand ?? null)).catch(() => {}));
-  const shelf = await P.smPrices(s).catch(() => null);
+  const [shelf, usualDeals] = await Promise.all([P.smPrices(s).catch(() => null), P.usualDealsFor(s).then((r) => r.deals.slice(0, 5)).catch(() => [])]);
   // B4: the list's products without a real picture get one in the background (the day's cap applies).
   const bare = Object.values(shelf?.items ?? {}).filter((x) => !x.imageUrl).map((x) => x.gtin);
   if (bare.length) after(() => P.fillCatalogPictures(bare, { budgetMs: 15_000 }).catch(() => {}));
-  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const), routine, swipeHint: hint !== "seen", tripLooks, usualDay: state.usualDay ?? usualFromDays(days, tz), shelf };
+  return { ...state, layout: layout === "tiles" ? ("tiles" as const) : ("rows" as const), routine, swipeHint: hint !== "seen", tripLooks, usualDay: state.usualDay ?? usualFromDays(days, tz), shelf, usualDeals };
 }
 
 /** R19 D1 / D4: the list's prices at another store (the trip-only pick, the picker's estimate). */

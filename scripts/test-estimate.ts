@@ -18,7 +18,7 @@ const shelf: Shelf = {
     gone: item({ price: null }),
   },
 };
-const row = (id: string, o: Partial<{ productKey: string | null; quantity: number; count: number | null; amount: number | null; unit: string | null }> = {}) => ({ id, productKey: id, quantity: 1, count: null, amount: null, unit: null, ...o });
+const row = (id: string, o: Partial<{ productKey: string | null; quantity: number; count: number | null; amount: number | null; unit: string | null }> = {}) => ({ id, productKey: id, quantity: 1, count: null, amount: null, unit: null, ...o }) as never;
 
 // 4 yogurts on "4 for ₪12" = ₪12; 2 penne = ₪15; 6 bananas at 0.15 kg each = 0.9 kg × ₪7.9 = ₪7.11.
 assert.equal(estimateList([row("yog", { quantity: 4 }), row("pen", { quantity: 2 }), row("ban", { quantity: 6 })], { shelf, unitKg: { ban: 0.15 } }), 34.11);

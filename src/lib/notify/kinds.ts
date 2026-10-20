@@ -4,7 +4,8 @@
 // R18 B3 / D2: `draft` = the evening-before list (Open list → /supermarket?draft=1); `trip_add` = "Noa added milk" to a
 // shopper in the store (first at once, then ≤ 1 per 10 min per trip). R18 S2 D4: `sent` = "Tal sent the list to your
 // phone" (the computer's Send to phone).
-export const NOTIFY_KINDS = ["shop", "activity", "week", "price", "delivery", "budget", "draft", "trip_add", "sent"] as const;
+// R19 E1: `deal` = "Barilla penne · 2 for ₪10 at Shufersal" — the home's usual products on a deal (≤ 1 a day per space).
+export const NOTIFY_KINDS = ["shop", "activity", "week", "price", "delivery", "budget", "draft", "trip_add", "sent", "deal"] as const;
 export type NotifyKind = (typeof NOTIFY_KINDS)[number];
 
 // R17 S6 U2: every kind is sent at once (quiet hours aside); only the weekly summary waits (Thursday, active hour) and
@@ -25,7 +26,10 @@ export type TripAddData = { who: string; whoIds: string[]; titles: string[]; n: 
 /** `chain` = a chain id (lib/grocery/chains) or the name the home typed; the reader's language picks the name. */
 export type SentData = { who: string; whoId: string; self: boolean; items: number; chain: string | null; branch: string | null; space: string };
 
-export type NotifyData = ShopData | ActivityData | PriceData | DeliveryData | BudgetData | WeekData | DraftData | TripAddData | SentData;
+/** R19 E1: the first usual product on a deal (the reader's language builds the words), + how many more. */
+export type DealData = { space: string; chain: string; title: string; kind: string; n: number; price: number | null; rate: number | null; club: boolean; more: number };
+
+export type NotifyData = ShopData | ActivityData | PriceData | DeliveryData | BudgetData | WeekData | DraftData | TripAddData | SentData | DealData;
 
 /** N2: the space pref listing the members (besides the owner) who get budget alerts. */
 export const BUDGET_TO_KEY = "pref:budget-alerts";
