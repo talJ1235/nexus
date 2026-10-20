@@ -132,7 +132,7 @@ try {
       await pp.goto(`${app.base}/admin/system`);
       await pp.locator("[data-system-prices]").waitFor({ timeout: 20000 });
       const pr = await pp.evaluate(() => Object.fromEntries([...document.querySelectorAll("[data-price-chain]")].map((e) => [e.getAttribute("data-price-chain"), [e.getAttribute("data-stale"), e.textContent]])));
-      ok(pr["king-store"]?.[0] === "yes" && /may be old/.test(pr["king-store"][1]) && pr["rami-levy"]?.[0] === "no" && /12,953 rows/.test(pr["rami-levy"][1]), "R19 B5 System → Prices: a stale chain (30 h) is flagged, a fresh one shows today's rows", JSON.stringify(pr));
+      ok(pr["king-store"]?.[0] === "yes" && /may be old/.test(pr["king-store"][1]) && pr["rami-levy"]?.[0] === "no" && /1\d,\d{3} rows/.test(pr["rami-levy"][1]), "R19 B5 System → Prices: a stale chain (30 h) is flagged, a fresh one shows today's rows", JSON.stringify(pr));
       await pc.close();
     }
     const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } });

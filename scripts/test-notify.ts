@@ -314,7 +314,7 @@ async function supermarket() {
   const sw = (await import("node:fs")).readFileSync("public/sw.js", "utf8");
   assert.match(sw, /p\.kind === "trip_add"[\s\S]*inFront\(\)/, "sw.js: no trip_add notification while the app is in front");
   const route = (await import("node:fs")).readFileSync("src/app/api/notify/open/route.ts", "utf8");
-  assert.match(route, /"sent"\) return Response\.redirect\(new URL\("\/supermarket"/, "a tap on sent opens the supermarket list");
+  assert.match(route, /"sent"(?: \|\| row\.kind === "deal")?\) return Response\.redirect\(new URL\("\/supermarket"/, "a tap on sent opens the supermarket list");
 
   // sendTargets: every member, me first, push on = has a device; sentToPhone: me included, non-members dropped, one row
   // per sender (a second send replaces it).

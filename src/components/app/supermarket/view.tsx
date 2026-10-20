@@ -89,7 +89,9 @@ export function SupermarketView() {
     // list), the bar floats again — the view's 170 px end padding keeps the last content clear of it.
     const now = () => {
       const r = slotEl.getBoundingClientRect();
-      setDocked(r.top >= 0 && r.bottom <= window.innerHeight - 90);
+      // Below the top bar, not under it (a short list with tall suggestions scrolls the slot up behind the bar).
+      const line = document.querySelector("[data-phone-top]")?.parentElement?.getBoundingClientRect().bottom ?? 0;
+      setDocked(r.top >= line && r.bottom <= window.innerHeight - 90);
     };
     let f = 0;
     const soon = () => {
