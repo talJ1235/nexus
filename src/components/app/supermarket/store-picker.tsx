@@ -7,7 +7,8 @@ import { Activity, ArrowLeft, ChevronDown, ChevronRight, GripVertical, LocateFix
 import { useI18n } from "@/components/providers";
 import { Sheet } from "@/components/ui/overlays";
 import { useBackClose } from "@/components/ui/sheet-drag";
-import { dismissSectionOrder, findBranches, mapSupermarketStores, saveSupermarketStore, setSectionOrder } from "@/app/supermarket-actions";
+import { compareSmList, dismissSectionOrder, findBranches, mapSupermarketStores, saveSupermarketStore, setSectionOrder } from "@/app/supermarket-actions";
+import { Money } from "./money";
 import { Spinner } from "@/components/ui/spinner";
 import logos from "@/lib/grocery/chain-logos.json";
 import { CHAINS, chainLogo } from "@/lib/grocery/chains";
@@ -86,6 +87,16 @@ function PickerBody({ onClose }: { onClose: () => void }) {
     void mapSupermarketStores().then((n) => { if (n > 0) void refreshSmHome(space, locale); }, () => {});
   }, [rows, s.space?.role, space, locale]);
   const searching = !!q.trim() || !!chainSel || !!near;
+  // R19 D4 (board Stores-phone): the list's estimate at each branch — its own prices when it has them, else its chain's.
+  const [est, setEst] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let live = true;
+    void compareSmList(true).then((d) => live && setEst(Object.fromEntries(d.ranked.map((x) => [x.store, x.total]))), () => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+  const estOf = (chain: string, branchId?: string | null) => (branchId && est[branchId] != null ? est[branchId] : est[chain]);
   useEffect(() => {
     if (!searching) return;
     let live = true;
@@ -209,7 +220,10 @@ function PickerBody({ onClose }: { onClose: () => void }) {
                       <b className="bidi block truncate text-[15px] font-extrabold">{name(b.chain)} · {b.name}</b>
                       <span className="bidi block truncate text-[12.5px] text-muted">{b.online ? t.sm.store.online : where || "—"}</span>
                     </span>
-                    {b.km != null && <span className="tabular shrink-0 text-[12px] font-semibold text-muted" data-store-km>{f(t.sm.store.km, { n: b.km })}</span>}
+                    <span className="flex shrink-0 flex-col items-end leading-tight">
+                      {estOf(b.chain, b.id) != null && <Money v={estOf(b.chain, b.id)} className="text-[14px] font-extrabold" />}
+                      {b.km != null && <span className="tabular text-[11.5px] font-semibold text-muted" data-store-km>{f(t.sm.store.km, { n: b.km })}</span>}
+                    </span>
                     {radio(on)}
                   </button>
                 );
@@ -247,6 +261,7 @@ function PickerBody({ onClose }: { onClose: () => void }) {
                       <span className={cn("bidi block truncate text-[12.5px]", exact ? "text-muted" : "font-semibold text-info")}>{sub(x)}</span>
                     </span>
                     {def && keyOf(def) === keyOf(x) && <span className="shrink-0 rounded-[7px] bg-surface-2 px-2 py-0.5 text-[12px] font-bold text-muted">{t.sm.store.default}</span>}
+                    {estOf(x.chain, x.branchId) != null && <Money v={estOf(x.chain, x.branchId)} className="shrink-0 text-[14px] font-extrabold" />}
                     {exact ? radio(on) : <ChevronRight className="size-5 shrink-0 text-muted rtl:-scale-x-100" />}
                   </button>
                 );

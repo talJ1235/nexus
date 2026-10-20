@@ -2596,7 +2596,11 @@ try {
         const r = {};
         await page.goto(`${BASE}/supermarket`);
         await page.locator("[data-sm-store]").filter({ visible: true }).first().waitFor({ timeout: 15000 });
-        await page.locator("[data-sm-store]").filter({ visible: true }).first().click();
+        // Tapped before hydration the chip does nothing — tap until the picker is up (≤ 3 tries).
+        for (let k = 0; k < 3; k++) {
+          await page.locator("[data-sm-store]").filter({ visible: true }).first().click();
+          if (await page.waitForSelector("[data-store-picker] [data-store-search]", { timeout: 4000 }).then(() => true, () => false)) break;
+        }
         await page.waitForSelector("[data-store-picker] [data-store-search]");
         await page.waitForTimeout(600);
         r.order = await page.evaluate(() => {
@@ -2629,6 +2633,8 @@ try {
         r.chain = await opts();
         await page.locator('[data-store-chain="shufersal"]').click();
         r.street2 = await search("האומן");
+        // D4: the list's estimate at that branch (Rami Levy's prices in the demo files).
+        r.est = await page.locator('[data-store-option="rami-levy:1"] .money').getAttribute("data-money").catch(() => null);
         await page.locator('[data-store-option="rami-levy:1"]').click();
         await shot(page, "a10-store-directory");
         await page.locator('[data-store-mode="trip"]').click();
@@ -2636,7 +2642,7 @@ try {
         await page.waitForTimeout(1200);
         r.chip = (await page.locator("[data-sm-store]").filter({ visible: true }).first().textContent()) ?? "";
         await page.evaluate(() => Object.keys(sessionStorage).filter((k) => k.startsWith("nexus.tripStore:")).forEach((k) => sessionStorage.removeItem(k)));
-        ok(r.order && r.grid === 8 && r.gridLogos === 8 && r.letters === 0 && r.all >= 30 && r.old >= 1 && r.street.includes("rami-levy:1") && r.city.length >= 2 && r.city.every((x) => /:/.test(x)) && r.none.length === 0 && r.noneMsg === 1 && r.chain.length >= 2 && r.chain.every((x) => x.startsWith("shufersal:")) && /תלפיות/.test(r.chip),
+        ok(r.order && r.grid === 8 && r.gridLogos === 8 && r.letters === 0 && r.all >= 30 && r.old >= 1 && r.street.includes("rami-levy:1") && r.city.length >= 2 && r.city.every((x) => /:/.test(x)) && r.none.length === 0 && r.noneMsg === 1 && r.chain.length >= 2 && r.chain.every((x) => x.startsWith("shufersal:")) && /תלפיות/.test(r.chip) && Number(r.est) > 0,
           "store directory (R19 A10): chains with logos, search by street / city / chain, real branches only, old stores kept", JSON.stringify(r));
       });
 
